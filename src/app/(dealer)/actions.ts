@@ -1,0 +1,193 @@
+'use server';
+
+import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
+import { headers } from 'next/headers';
+import { prisma } from '@/lib/db';
+import { requireRole } from '@/lib/session';
+import { canAccessApplication } from '@/lib/rbac';
+import { encryptOptional } from '@/lib/crypto';
+import { audit } from '@/lib/audit';
+import { storeUploadedFile } from '@/lib/upload';
+import { applicationSchema, serialNumberSchema } from '@/lib/validation';
+import { CONSENT_POLICY_VERSION, CONSENT_TEXT, FUNDING_DOCUMENT_TYPES } from '@/lib/constants';
+import type { DocumentType } from '@prisma/client';
+
+export interface ActionState {
+  error?: string;
+  fieldErrors?: Record<string, string>;
+}
+
+function clientIp(): string | null {
+  const h = headers();
+  return h.get('x-forwarded-for')?.split(',')[0]?.trim() || h.get('x-real-ip') || null;
+}
+
+export async function createApplicationAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await requireRole('DEALER_USER');
+  if (!session.dealerId) return { error: 'Your account is not linked to a dealer.' };
+
+  const raw = Object.fromEntries(formData.entries());
+  const parsed = applicationSchema.safeParse(raw);
+  if (!parsed.success) {
+    const fieldErrors: Record<string, string> = {};
+    for (const issue of parsed.error.issues) {
+      fieldErrors[issue.path.join('.')] = issue.message;
+    }
+    return { error: 'Please correct the highlighted fields.', fieldErrors };
+  }
+  const d = parsed.data;
+
+  const app = await prisma.application.create({
+    data: {
+      dealerId: session.dealerId,
+      createdById: session.userId,
+      status: 'SUBMITTED',
+      province: d.province,
+      program: d.program,
+      requestedAmount: d.requestedAmount,
+      applicantFirstName: d.applicantFirstName,
+      applicantLastName: d.applicantLastName,
+      applicantEmail: d.applicantEmail,
+      applicantPhone: d.applicantPhone,
+      applicantSinEnc: encryptOptional(d.applicantSin),
+      applicantDobEnc: encryptOptional(d.applicantDob),
+      applicantAddressEnc: encryptOptional(d.applicantAddress),
+      bankAccountEnc: encryptOptional(d.bankAccount),
+      govIdNumberEnc: encryptOptional(d.govIdNumber),
+      coApplicantName: d.coApplicantName || null,
+      coApplicantSinEnc: encryptOptional(d.coApplicantSin),
+      incomeAnnual: d.incomeAnnual ?? null,
+      employer: d.employer || null,
+      notes: d.notes || null,
+      homeownershipRequired: d.homeownershipRequired ?? false,
+      consents: {
+        create: {
+          policyVersion: CONSENT_POLICY_VERSION,
+          consentText: CONSENT_TEXT,
+          ipAddress: clientIp(),
+        },
+      },
+      statusEvents: {
+        create: { to: 'SUBMITTED', actorId: session.userId, note: 'Application submitted' },
+      },
+    },
+  });
+
+  await audit({ actorId: session.userId, action: 'APPLICATION_CREATE', entityType: 'Application', entityId: app.id });
+  await audit({ actorId: session.userId, action: 'APPLICATION_SUBMIT', entityType: 'Application', entityId: app.id });
+
+  redirect(`/dealer/applications/${app.id}`);
+}
+
+export async function uploadSupportingDocAction(
+  applicationId: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await requireRole('DEALER_USER');
+  const app = await prisma.application.findUnique({ where: { id: applicationId } });
+  if (!app || !canAccessApplication(session, app.dealerId)) return { error: 'Not found.' };
+
+  const file = formData.get('file') as File;
+  const result = await storeUploadedFile({
+    applicationId,
+    file,
+    type: 'SUPPORTING',
+    stage: 'APPLICATION',
+    uploadedById: session.userId,
+  });
+  if (!result.ok) return { error: result.error };
+
+  revalidatePath(`/dealer/applications/${applicationId}`);
+  return {};
+}
+
+export async function addSerialNumberAction(
+  applicationId: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await requireRole('DEALER_USER');
+  const app = await prisma.application.findUnique({ where: { id: applicationId } });
+  if (!app || !canAccessApplication(session, app.dealerId)) return { error: 'Not found.' };
+
+  const parsed = serialNumberSchema.safeParse({
+    value: formData.get('value'),
+    productLabel: formData.get('productLabel') || undefined,
+  });
+  if (!parsed.success) return { error: 'Enter a valid serial number.' };
+
+  await prisma.serialNumber.create({
+    data: { applicationId, value: parsed.data.value, productLabel: parsed.data.productLabel || null },
+  });
+  revalidatePath(`/dealer/applications/${applicationId}`);
+  return {};
+}
+
+export async function uploadFundingDocAction(
+  applicationId: string,
+  docType: DocumentType,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await requireRole('DEALER_USER');
+  const app = await prisma.application.findUnique({ where: { id: applicationId } });
+  if (!app || !canAccessApplication(session, app.dealerId)) return { error: 'Not found.' };
+  if (!['APPROVED', 'CONDITIONAL', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW'].includes(app.status)) {
+    return { error: 'Funding documents can only be uploaded after approval.' };
+  }
+
+  const file = formData.get('file') as File;
+  const result = await storeUploadedFile({
+    applicationId,
+    file,
+    type: docType,
+    stage: 'FUNDING',
+    uploadedById: session.userId,
+  });
+  if (!result.ok) return { error: result.error };
+
+  revalidatePath(`/dealer/applications/${applicationId}`);
+  return {};
+}
+
+/** Dealer signals the funding package is complete → moves to FUNDING_SUBMITTED. */
+export async function submitFundingAction(applicationId: string): Promise<void> {
+  const session = await requireRole('DEALER_USER');
+  const app = await prisma.application.findUnique({
+    where: { id: applicationId },
+    include: { documents: true },
+  });
+  if (!app || !canAccessApplication(session, app.dealerId)) redirect('/dealer');
+  if (!['APPROVED', 'CONDITIONAL'].includes(app.status)) {
+    redirect(`/dealer/applications/${applicationId}`);
+  }
+
+  // Verify all required funding documents are present.
+  const uploadedTypes = new Set(app.documents.filter((x) => x.stage === 'FUNDING').map((x) => x.type));
+  const missing = FUNDING_DOCUMENT_TYPES.filter(
+    (t) => t.required && (!t.homeownershipOnly || app.homeownershipRequired) && !uploadedTypes.has(t.type),
+  );
+  if (missing.length > 0) {
+    redirect(`/dealer/applications/${applicationId}?missing=${missing.length}`);
+  }
+
+  await prisma.$transaction([
+    prisma.application.update({ where: { id: applicationId }, data: { status: 'FUNDING_SUBMITTED' } }),
+    prisma.statusEvent.create({
+      data: {
+        applicationId,
+        from: app.status,
+        to: 'FUNDING_SUBMITTED',
+        actorId: session.userId,
+        note: 'Funding package submitted',
+      },
+    }),
+  ]);
+  await audit({ actorId: session.userId, action: 'FUNDING_SUBMIT', entityType: 'Application', entityId: applicationId });
+  redirect(`/dealer/applications/${applicationId}`);
+}

@@ -1,0 +1,239 @@
+import Link from 'next/link';
+import { notFound } from 'next/navigation';
+import { requireRole } from '@/lib/session';
+import { prisma } from '@/lib/db';
+import { decryptOptional, maskTail } from '@/lib/crypto';
+import { audit } from '@/lib/audit';
+import { StatusBadge } from '@/components/StatusBadge';
+import { DocumentList } from '@/components/DocumentList';
+import { DecisionForm } from './DecisionForm';
+import { startReviewAction, startFundingReviewAction } from '@/app/(staff)/actions';
+import { STATUS_LABELS } from '@/lib/constants';
+import type { ApplicationStatus } from '@prisma/client';
+
+export const dynamic = 'force-dynamic';
+
+function decisionOptions(status: ApplicationStatus): { value: string; label: string }[] {
+  if (['SUBMITTED', 'UNDER_REVIEW', 'CONDITIONAL'].includes(status)) {
+    return [
+      { value: 'APPROVE', label: 'Approve' },
+      { value: 'CONDITIONAL', label: 'Conditionally approve' },
+      { value: 'REQUEST_DOCS', label: 'Request more documents' },
+      { value: 'DECLINE', label: 'Decline' },
+    ];
+  }
+  if (['FUNDING_SUBMITTED', 'FUNDING_REVIEW'].includes(status)) {
+    return [{ value: 'FUND', label: 'Approve funding (mark funded)' }];
+  }
+  return [];
+}
+
+export default async function StaffApplicationDetail({
+  params,
+  searchParams,
+}: {
+  params: { id: string };
+  searchParams: { reveal?: string };
+}) {
+  const user = await requireRole('REVIEWER', 'ADMIN');
+  const app = await prisma.application.findUnique({
+    where: { id: params.id },
+    include: {
+      dealer: true,
+      createdBy: true,
+      documents: { orderBy: { createdAt: 'desc' } },
+      serialNumbers: { orderBy: { createdAt: 'asc' } },
+      statusEvents: { orderBy: { createdAt: 'desc' }, include: { actor: true } },
+      decisions: { orderBy: { createdAt: 'desc' }, include: { decidedBy: true } },
+      consents: { orderBy: { capturedAt: 'desc' } },
+    },
+  });
+  if (!app) notFound();
+
+  const reveal = searchParams.reveal === '1';
+
+  // Decrypt sensitive fields only when explicitly revealed, and log the access.
+  let sin = maskTail(null);
+  let bank = maskTail(null);
+  let govId = maskTail(null);
+  let dob = maskTail(null);
+  let address = '—';
+  let coSin = maskTail(null);
+
+  if (reveal) {
+    sin = decryptOptional(app.applicantSinEnc) ?? '—';
+    bank = decryptOptional(app.bankAccountEnc) ?? '—';
+    govId = decryptOptional(app.govIdNumberEnc) ?? '—';
+    dob = decryptOptional(app.applicantDobEnc) ?? '—';
+    address = decryptOptional(app.applicantAddressEnc) ?? '—';
+    coSin = decryptOptional(app.coApplicantSinEnc) ?? '—';
+    await audit({
+      actorId: user.userId,
+      action: 'PII_DECRYPT',
+      entityType: 'Application',
+      entityId: app.id,
+      detail: 'Revealed sensitive fields',
+    });
+  } else {
+    sin = maskTail(decryptOptional(app.applicantSinEnc), 3);
+    bank = maskTail(decryptOptional(app.bankAccountEnc), 3);
+    govId = maskTail(decryptOptional(app.govIdNumberEnc), 3);
+    coSin = maskTail(decryptOptional(app.coApplicantSinEnc), 3);
+  }
+
+  const applicationDocs = app.documents.filter((d) => d.stage === 'APPLICATION');
+  const fundingDocs = app.documents.filter((d) => d.stage === 'FUNDING');
+  const options = decisionOptions(app.status);
+  const startReview = startReviewAction.bind(null, app.id);
+  const startFundingReview = startFundingReviewAction.bind(null, app.id);
+
+  return (
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div className="space-y-6 lg:col-span-2">
+        <div>
+          <Link href="/staff" className="text-sm text-gray-500 hover:underline">← Back to queue</Link>
+          <div className="mt-2 flex items-center justify-between">
+            <h1 className="text-xl font-semibold text-gray-900">
+              {app.applicantFirstName} {app.applicantLastName}
+            </h1>
+            <StatusBadge status={app.status} />
+          </div>
+          <p className="mt-1 text-sm text-gray-500">
+            {app.dealer.name} · submitted by {app.createdBy.name} · {app.createdAt.toLocaleString('en-CA')}
+          </p>
+        </div>
+
+        {/* Summary */}
+        <section className="card p-6">
+          <h2 className="mb-4 text-base font-semibold text-gray-900">Summary</h2>
+          <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3">
+            <div><dt className="text-gray-500">Province</dt><dd className="font-medium">{app.province}</dd></div>
+            <div><dt className="text-gray-500">Program</dt><dd className="font-medium">{app.program}</dd></div>
+            <div><dt className="text-gray-500">Requested</dt><dd className="font-medium">${app.requestedAmount.toString()}</dd></div>
+            <div><dt className="text-gray-500">Email</dt><dd className="font-medium">{app.applicantEmail}</dd></div>
+            <div><dt className="text-gray-500">Phone</dt><dd className="font-medium">{app.applicantPhone}</dd></div>
+            <div><dt className="text-gray-500">Income</dt><dd className="font-medium">{app.incomeAnnual ? `$${app.incomeAnnual.toString()}` : '—'}</dd></div>
+            <div><dt className="text-gray-500">Employer</dt><dd className="font-medium">{app.employer ?? '—'}</dd></div>
+            <div><dt className="text-gray-500">Co-applicant</dt><dd className="font-medium">{app.coApplicantName ?? '—'}</dd></div>
+            <div><dt className="text-gray-500">Homeownership req.</dt><dd className="font-medium">{app.homeownershipRequired ? 'Yes' : 'No'}</dd></div>
+          </dl>
+          {app.notes && <p className="mt-4 rounded bg-gray-50 p-3 text-sm text-gray-600">{app.notes}</p>}
+        </section>
+
+        {/* Sensitive */}
+        <section className="card border-amber-200 p-6">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-base font-semibold text-gray-900">Sensitive information</h2>
+            {reveal ? (
+              <Link href={`/staff/applications/${app.id}`} className="text-xs text-brand-700 hover:underline">
+                Hide
+              </Link>
+            ) : (
+              <Link href={`/staff/applications/${app.id}?reveal=1`} className="btn-secondary text-xs">
+                Reveal (logged)
+              </Link>
+            )}
+          </div>
+          {reveal && (
+            <p className="mb-3 rounded bg-amber-50 p-2 text-xs text-amber-700">
+              This access has been recorded in the audit log.
+            </p>
+          )}
+          <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3">
+            <div><dt className="text-gray-500">SIN</dt><dd className="font-mono font-medium">{sin}</dd></div>
+            <div><dt className="text-gray-500">Date of birth</dt><dd className="font-medium">{dob}</dd></div>
+            <div><dt className="text-gray-500">Gov ID #</dt><dd className="font-mono font-medium">{govId}</dd></div>
+            <div className="sm:col-span-2"><dt className="text-gray-500">Bank (void cheque/PAP)</dt><dd className="font-mono font-medium">{bank}</dd></div>
+            <div><dt className="text-gray-500">Address</dt><dd className="font-medium">{reveal ? address : '••••'}</dd></div>
+            <div><dt className="text-gray-500">Co-applicant SIN</dt><dd className="font-mono font-medium">{coSin}</dd></div>
+          </dl>
+        </section>
+
+        {/* Documents */}
+        <section className="card p-6">
+          <h2 className="mb-3 text-base font-semibold text-gray-900">Application documents</h2>
+          <DocumentList documents={applicationDocs} />
+        </section>
+
+        {(fundingDocs.length > 0 || app.serialNumbers.length > 0) && (
+          <section className="card p-6">
+            <h2 className="mb-3 text-base font-semibold text-gray-900">Funding package</h2>
+            {app.serialNumbers.length > 0 && (
+              <div className="mb-4">
+                <h3 className="mb-1 text-sm font-medium text-gray-700">Serial numbers</h3>
+                <ul className="text-sm">
+                  {app.serialNumbers.map((s) => (
+                    <li key={s.id} className="font-mono text-gray-700">
+                      {s.value}{s.productLabel && <span className="ml-2 font-sans text-gray-400">({s.productLabel})</span>}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            <DocumentList documents={fundingDocs} />
+          </section>
+        )}
+
+        {/* History */}
+        <section className="card p-6">
+          <h2 className="mb-3 text-base font-semibold text-gray-900">History</h2>
+          <ul className="space-y-2 text-sm">
+            {app.statusEvents.map((e) => (
+              <li key={e.id} className="flex items-center justify-between">
+                <span>
+                  {e.from ? `${STATUS_LABELS[e.from]} → ` : ''}
+                  <span className="font-medium">{STATUS_LABELS[e.to]}</span>
+                  {e.note && <span className="ml-2 text-gray-500">— {e.note}</span>}
+                  <span className="ml-2 text-xs text-gray-400">by {e.actor.name}</span>
+                </span>
+                <span className="text-xs text-gray-400">{e.createdAt.toLocaleString('en-CA')}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      </div>
+
+      {/* Decision sidebar */}
+      <div className="space-y-6">
+        <section className="card p-6">
+          <h2 className="mb-4 text-base font-semibold text-gray-900">Decision</h2>
+          {app.status === 'SUBMITTED' && (
+            <form action={startReview} className="mb-4">
+              <button type="submit" className="btn-secondary w-full">Start review</button>
+            </form>
+          )}
+          {app.status === 'FUNDING_SUBMITTED' && (
+            <form action={startFundingReview} className="mb-4">
+              <button type="submit" className="btn-secondary w-full">Start funding review</button>
+            </form>
+          )}
+          <DecisionForm applicationId={app.id} options={options} />
+        </section>
+
+        {app.decisions.length > 0 && (
+          <section className="card p-6">
+            <h2 className="mb-3 text-base font-semibold text-gray-900">Decision log</h2>
+            <ul className="space-y-2 text-sm">
+              {app.decisions.map((d) => (
+                <li key={d.id} className="rounded border border-gray-100 bg-gray-50 p-2">
+                  <span className="font-medium">{d.type.replace('_', ' ')}</span>
+                  {d.notes && <p className="text-gray-600">{d.notes}</p>}
+                  <p className="text-xs text-gray-400">{d.decidedBy.name} · {d.createdAt.toLocaleString('en-CA')}</p>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {app.consents.length > 0 && (
+          <section className="card p-6 text-xs text-gray-500">
+            <h2 className="mb-2 text-sm font-semibold text-gray-900">Consent</h2>
+            <p>Captured {app.consents[0].capturedAt.toLocaleString('en-CA')}</p>
+            <p>Policy version: {app.consents[0].policyVersion}</p>
+            {app.consents[0].ipAddress && <p>IP: {app.consents[0].ipAddress}</p>}
+          </section>
+        )}
+      </div>
+    </div>
+  );
+}

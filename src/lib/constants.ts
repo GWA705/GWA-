@@ -1,0 +1,98 @@
+import type { ApplicationStatus, DocumentType, Province } from '@prisma/client';
+
+export const PROVINCES: { value: Province; label: string }[] = [
+  { value: 'AB', label: 'Alberta' },
+  { value: 'BC', label: 'British Columbia' },
+  { value: 'MB', label: 'Manitoba' },
+  { value: 'NB', label: 'New Brunswick' },
+  { value: 'NL', label: 'Newfoundland and Labrador' },
+  { value: 'NS', label: 'Nova Scotia' },
+  { value: 'NT', label: 'Northwest Territories' },
+  { value: 'NU', label: 'Nunavut' },
+  { value: 'ON', label: 'Ontario' },
+  { value: 'PE', label: 'Prince Edward Island' },
+  { value: 'QC', label: 'Quebec' },
+  { value: 'SK', label: 'Saskatchewan' },
+  { value: 'YT', label: 'Yukon' },
+];
+
+export const STATUS_LABELS: Record<ApplicationStatus, string> = {
+  DRAFT: 'Draft',
+  SUBMITTED: 'Submitted',
+  UNDER_REVIEW: 'Under review',
+  CONDITIONAL: 'Conditionally approved',
+  APPROVED: 'Approved',
+  DECLINED: 'Declined',
+  FUNDING_SUBMITTED: 'Funding submitted',
+  FUNDING_REVIEW: 'Funding review',
+  FUNDED: 'Funded',
+  WITHDRAWN: 'Withdrawn',
+};
+
+export const STATUS_COLORS: Record<ApplicationStatus, string> = {
+  DRAFT: 'bg-gray-100 text-gray-700',
+  SUBMITTED: 'bg-blue-100 text-blue-800',
+  UNDER_REVIEW: 'bg-amber-100 text-amber-800',
+  CONDITIONAL: 'bg-purple-100 text-purple-800',
+  APPROVED: 'bg-green-100 text-green-800',
+  DECLINED: 'bg-red-100 text-red-800',
+  FUNDING_SUBMITTED: 'bg-indigo-100 text-indigo-800',
+  FUNDING_REVIEW: 'bg-amber-100 text-amber-800',
+  FUNDED: 'bg-emerald-100 text-emerald-800',
+  WITHDRAWN: 'bg-gray-100 text-gray-700',
+};
+
+// The funding package checklist. Each entry maps to a DocumentType the dealer
+// uploads at the funding stage. `homeownershipOnly` items are only required
+// when the application flagged homeownership as required.
+export const FUNDING_DOCUMENT_TYPES: {
+  type: DocumentType;
+  label: string;
+  required: boolean;
+  homeownershipOnly?: boolean;
+}[] = [
+  { type: 'SIGNED_CONTRACT', label: 'Signed contract', required: true },
+  { type: 'VOID_CHEQUE_OR_PAP', label: 'Void cheque or PAP form', required: true },
+  { type: 'INSTALL_PHOTO', label: 'Pictures of installed product', required: true },
+  { type: 'SIGNED_HD_DOCUMENT', label: 'Signed HD documents', required: true },
+  { type: 'GOVERNMENT_ID', label: 'Government-issued ID', required: true },
+  {
+    type: 'PROOF_OF_HOMEOWNERSHIP',
+    label: 'Proof of homeownership',
+    required: true,
+    homeownershipOnly: true,
+  },
+];
+
+export const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
+  SUPPORTING: 'Supporting document',
+  SIGNED_CONTRACT: 'Signed contract',
+  VOID_CHEQUE_OR_PAP: 'Void cheque / PAP form',
+  INSTALL_PHOTO: 'Installed product photo',
+  SIGNED_HD_DOCUMENT: 'Signed HD document',
+  PROOF_OF_HOMEOWNERSHIP: 'Proof of homeownership',
+  GOVERNMENT_ID: 'Government ID',
+  OTHER: 'Other',
+};
+
+// Upload constraints.
+export const MAX_FILE_BYTES = 15 * 1024 * 1024; // 15 MB
+export const ALLOWED_MIME_TYPES = [
+  'application/pdf',
+  'image/jpeg',
+  'image/png',
+  'image/heic',
+  'image/webp',
+];
+
+export const CONSENT_POLICY_VERSION = '2026-01-mvp';
+
+// PLACEHOLDER — must be replaced with wording reviewed by a Canadian privacy
+// lawyer (PIPEDA + provincial law, incl. Quebec Law 25) before production use.
+export const CONSENT_TEXT = `I confirm that the applicant has authorized GWA and the submitting dealer to \
+collect, use, and disclose the personal information provided in this application \
+(including financial and identity information) for the purpose of assessing and \
+administering this credit application, and to obtain a consumer credit report \
+where applicable. The applicant may withdraw consent and request access to their \
+personal information subject to legal and contractual restrictions. \
+[PLACEHOLDER CONSENT LANGUAGE — REQUIRES LEGAL REVIEW BEFORE PRODUCTION USE.]`;

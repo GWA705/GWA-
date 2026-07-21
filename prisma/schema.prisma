@@ -1,0 +1,280 @@
+// GWA Credit Portal — data model
+// Sensitive PII fields (SIN, bank account, ID number) are stored as
+// application-encrypted ciphertext (see src/lib/crypto.ts). Column-level
+// encryption is layered on top of database-at-rest encryption (RDS + KMS).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Roles & tenancy
+// ---------------------------------------------------------------------------
+
+enum Role {
+  DEALER_USER // external dealer staff — scoped to their dealer
+  REVIEWER    // internal GWA underwriter / funder
+  ADMIN       // internal GWA administrator
+}
+
+// A dealership (external partner). Tenancy boundary: dealer users only ever
+// see applications belonging to their own dealer.
+model Dealer {
+  id        String   @id @default(cuid())
+  name      String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users        User[]
+  applications Application[]
+}
+
+model User {
+  id           String  @id @default(cuid())
+  email        String  @unique
+  name         String
+  passwordHash String
+  role         Role
+  active       Boolean @default(true)
+
+  // Multi-factor auth (TOTP). Secret is application-encrypted.
+  mfaEnabled       Boolean @default(false)
+  mfaSecretEnc     String? // encrypted TOTP secret
+
+  // Dealer users belong to a dealer; internal staff have dealerId = null.
+  dealerId String?
+  dealer   Dealer? @relation(fields: [dealerId], references: [id])
+
+  failedLoginCount Int       @default(0)
+  lockedUntil      DateTime?
+  lastLoginAt      DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  applicationsCreated Application[]    @relation("ApplicationCreatedBy")
+  documentsUploaded   Document[]
+  decisions           Decision[]
+  statusEvents        StatusEvent[]
+  auditLogs           AuditLog[]
+
+  @@index([dealerId])
+}
+
+// ---------------------------------------------------------------------------
+// Applications
+// ---------------------------------------------------------------------------
+
+enum Province {
+  AB
+  BC
+  MB
+  NB
+  NL
+  NS
+  NT
+  NU
+  ON
+  PE
+  QC
+  SK
+  YT
+}
+
+enum ApplicationStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  CONDITIONAL // approved pending additional documents
+  APPROVED
+  DECLINED
+  FUNDING_SUBMITTED // dealer has uploaded the funding package
+  FUNDING_REVIEW
+  FUNDED
+  WITHDRAWN
+}
+
+model Application {
+  id     String            @id @default(cuid())
+  status ApplicationStatus @default(SUBMITTED)
+
+  dealerId String
+  dealer   Dealer @relation(fields: [dealerId], references: [id])
+
+  createdById String
+  createdBy   User   @relation("ApplicationCreatedBy", fields: [createdById], references: [id])
+
+  // ---- Non-sensitive descriptive fields (plaintext, needed for search/queue)
+  province       Province
+  program        String // financing program / product line
+  requestedAmount Decimal @db.Decimal(12, 2)
+
+  // Applicant identity — names/contact kept plaintext for staff triage.
+  applicantFirstName String
+  applicantLastName  String
+  applicantEmail     String
+  applicantPhone     String
+
+  // ---- Sensitive PII (application-encrypted ciphertext) ----
+  applicantSinEnc         String? // Social Insurance Number
+  applicantDobEnc         String? // date of birth
+  applicantAddressEnc     String? // full street address
+  bankAccountEnc          String? // from void cheque / PAP (transit/institution/account)
+  govIdNumberEnc          String? // driver's licence / passport number
+
+  // Co-applicant (optional) — sensitive fields also encrypted.
+  coApplicantName    String?
+  coApplicantSinEnc  String?
+
+  incomeAnnual Decimal? @db.Decimal(12, 2)
+  employer     String?
+  notes        String?  @db.Text
+
+  homeownershipRequired Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  documents     Document[]
+  serialNumbers SerialNumber[]
+  decisions     Decision[]
+  statusEvents  StatusEvent[]
+  consents      Consent[]
+
+  @@index([dealerId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Documents
+// ---------------------------------------------------------------------------
+
+enum DocumentType {
+  // Application stage
+  SUPPORTING // generic supporting document at application time
+  // Funding stage
+  SIGNED_CONTRACT
+  VOID_CHEQUE_OR_PAP
+  INSTALL_PHOTO
+  SIGNED_HD_DOCUMENT
+  PROOF_OF_HOMEOWNERSHIP
+  GOVERNMENT_ID
+  OTHER
+}
+
+enum DocumentStage {
+  APPLICATION
+  FUNDING
+}
+
+model Document {
+  id            String        @id @default(cuid())
+  applicationId String
+  application   Application   @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  type  DocumentType
+  stage DocumentStage
+
+  fileName  String
+  mimeType  String
+  sizeBytes Int
+  // Storage key (S3 key or local relative path). File bytes are encrypted at
+  // rest (SSE-KMS on S3, or envelope-encrypted on the local driver).
+  storageKey String
+  checksum   String // sha-256 of plaintext, for integrity
+
+  uploadedById String
+  uploadedBy   User   @relation(fields: [uploadedById], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([applicationId])
+  @@index([type])
+}
+
+model SerialNumber {
+  id            String      @id @default(cuid())
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  value         String
+  productLabel  String? // e.g. "Furnace", "Water Heater"
+  createdAt     DateTime    @default(now())
+
+  @@index([applicationId])
+}
+
+// ---------------------------------------------------------------------------
+// Decisions, status history, consent, audit
+// ---------------------------------------------------------------------------
+
+enum DecisionType {
+  APPROVE
+  DECLINE
+  CONDITIONAL
+  REQUEST_DOCS
+  FUND
+}
+
+model Decision {
+  id            String       @id @default(cuid())
+  applicationId String
+  application   Application  @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  type          DecisionType
+  notes         String?      @db.Text
+  decidedById   String
+  decidedBy     User         @relation(fields: [decidedById], references: [id])
+  createdAt     DateTime     @default(now())
+
+  @@index([applicationId])
+}
+
+model StatusEvent {
+  id            String            @id @default(cuid())
+  applicationId String
+  application   Application       @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  from          ApplicationStatus?
+  to            ApplicationStatus
+  actorId       String
+  actor         User              @relation(fields: [actorId], references: [id])
+  note          String?
+  createdAt     DateTime          @default(now())
+
+  @@index([applicationId])
+}
+
+// Records consent captured from the dealer/applicant at submission time.
+model Consent {
+  id             String      @id @default(cuid())
+  applicationId  String
+  application    Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  policyVersion  String
+  consentText    String      @db.Text
+  ipAddress      String?
+  capturedAt     DateTime    @default(now())
+
+  @@index([applicationId])
+}
+
+// Append-only audit trail of sensitive access and mutations (PIPEDA / Law 25).
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  actor      User?    @relation(fields: [actorId], references: [id])
+  action     String   // e.g. "PII_DECRYPT", "APPLICATION_SUBMIT", "DOC_DOWNLOAD"
+  entityType String   // e.g. "Application", "Document", "User"
+  entityId   String?
+  detail     String?  @db.Text
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([actorId])
+  @@index([createdAt])
+}

@@ -1,0 +1,42 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# next.js
+/.next/
+/out/
+next-env.d.ts
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# local env files — NEVER commit secrets
+.env
+.env*.local
+.env.local
+.env.development
+.env.production
+
+# prisma / local db
+/prisma/dev.db
+/prisma/dev.db-journal
+
+# local encrypted document storage (dev driver) — contains customer PII
+/storage/
+/var/
+
+# testing
+/coverage
+
+# typescript
+*.tsbuildinfo
