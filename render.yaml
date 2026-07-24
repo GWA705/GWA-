@@ -1,0 +1,47 @@
+# Render Blueprint — one-click-ish deploy of the GWA Credit Portal.
+# Render reads this file to create a web service + a PostgreSQL database and
+# wire them together. See docs/DEPLOY-RENDER.md for the step-by-step guide.
+#
+# IMPORTANT: This is a STAGING / DEMO setup for TEST DATA ONLY. The free tier
+# hosts data in the US and uploaded files are not persistent. Do NOT enter real
+# customer SINs or banking details here — see docs/COMPLIANCE.md before going
+# live with real data in a Canadian region.
+
+databases:
+  - name: gwa-db
+    databaseName: gwa
+    plan: free
+    region: oregon
+
+services:
+  - type: web
+    name: gwa-portal
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: npm install && npm run build
+    # Apply DB migrations, load sample logins (idempotent), then start.
+    startCommand: npx prisma migrate deploy && (npx prisma db seed || true) && npm run start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: 20.18.0
+      - key: DATABASE_URL
+        fromDatabase:
+          name: gwa-db
+          property: connectionString
+      # Auto-generated strong secrets — you never have to create these by hand.
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: MASTER_ENCRYPTION_KEY
+        generateValue: true
+      - key: STORAGE_DRIVER
+        value: local
+      - key: LOCAL_STORAGE_DIR
+        value: /tmp/storage
+      - key: APP_URL
+        sync: false # set to your Render URL after first deploy (optional)
+      - key: SEED_ADMIN_EMAIL
+        value: admin@gwa.example
+      - key: SEED_ADMIN_PASSWORD
+        value: ChangeMe!Admin123

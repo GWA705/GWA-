@@ -52,6 +52,14 @@ isolation, MFA, and an append-only audit trail.
 Next.js 14 (App Router) · TypeScript · PostgreSQL + Prisma · Tailwind CSS · `jose` (sessions)
 · `otplib` (MFA) · `bcryptjs` · Zod · AWS SDK (S3/KMS) · Vitest.
 
+## Deploy to the web (beginner-friendly, via GitHub)
+
+New to deployment? Follow **[`docs/DEPLOY-RENDER.md`](docs/DEPLOY-RENDER.md)** —
+a click-by-click guide that puts a **test/staging** copy online from GitHub with
+no terminal commands (uses the included `render.yaml`). Use fake data only; real
+customer data requires the Canadian-region production setup in
+[`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
+
 ## Local development
 
 Requires Node 20+ and a PostgreSQL 14+ database.

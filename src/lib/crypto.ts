@@ -28,11 +28,19 @@ function getLocalMasterKey(): Buffer {
       'MASTER_ENCRYPTION_KEY is not set (and KMS_KEY_ID is not configured). Cannot encrypt/decrypt.',
     );
   }
-  const key = Buffer.from(raw, 'base64');
-  if (key.length !== 32) {
-    throw new Error('MASTER_ENCRYPTION_KEY must decode to exactly 32 bytes (256 bits).');
+  // Preferred: a base64-encoded 32-byte key (openssl rand -base64 32).
+  const decoded = Buffer.from(raw, 'base64');
+  if (decoded.length === 32) return decoded;
+  // Fallback: derive a stable 32-byte key from any sufficiently long secret.
+  // This lets platform-generated env values (e.g. Render's auto-generated
+  // secrets) work without manual key formatting. Requires >= 16 characters.
+  if (raw.length < 16) {
+    throw new Error(
+      'MASTER_ENCRYPTION_KEY is too short. Provide a base64-encoded 32-byte key ' +
+        '(openssl rand -base64 32) or a random secret of at least 16 characters.',
+    );
   }
-  return key;
+  return crypto.createHash('sha256').update(raw, 'utf8').digest();
 }
 
 function usingKms(): boolean {

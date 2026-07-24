@@ -60,4 +60,16 @@ describe('field encryption', () => {
     expect(maskTail('123456789', 3)).toBe('•••• 789');
     expect(maskTail(null)).toBe('—');
   });
+
+  it('works with an arbitrary platform-generated secret (derived key)', () => {
+    const original = process.env.MASTER_ENCRYPTION_KEY;
+    // A random string that does NOT decode to exactly 32 bytes → key is derived.
+    process.env.MASTER_ENCRYPTION_KEY = 'render-style-auto-generated-secret-abc123XYZ';
+    try {
+      const token = encryptString('sensitive');
+      expect(decryptString(token)).toBe('sensitive');
+    } finally {
+      process.env.MASTER_ENCRYPTION_KEY = original;
+    }
+  });
 });
