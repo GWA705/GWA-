@@ -3,7 +3,7 @@ import { requireRole } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { applicationScopeWhere } from '@/lib/rbac';
 import { StatusBadge } from '@/components/StatusBadge';
-import { STATUS_LABELS } from '@/lib/constants';
+import { programLabel } from '@/lib/constants';
 
 export default async function DealerHome() {
   const user = await requireRole('DEALER_USER');
@@ -51,7 +51,7 @@ export default async function DealerHome() {
                     </Link>
                   </td>
                   <td className="px-4 py-3">{a.province}</td>
-                  <td className="px-4 py-3">{a.program}</td>
+                  <td className="px-4 py-3">{programLabel(a.programType, a.programCategory)}</td>
                   <td className="px-4 py-3">${a.requestedAmount.toString()}</td>
                   <td className="px-4 py-3">
                     <StatusBadge status={a.status} />

@@ -41,14 +41,32 @@ export async function createApplicationAction(
   }
   const d = parsed.data;
 
+  // If a Home Depot store was chosen, verify it belongs to this dealer.
+  let homeDepotStoreId: string | null = null;
+  if (d.homeDepotStoreId) {
+    const store = await prisma.homeDepotStore.findFirst({
+      where: { id: d.homeDepotStoreId, dealerId: session.dealerId },
+    });
+    homeDepotStoreId = store?.id ?? null;
+  }
+
   const app = await prisma.application.create({
     data: {
       dealerId: session.dealerId,
       createdById: session.userId,
       status: 'SUBMITTED',
       province: d.province,
-      program: d.program,
+      programType: d.programType,
+      programCategory: d.programCategory,
       requestedAmount: d.requestedAmount,
+      dateOfSale: d.dateOfSale ? new Date(d.dateOfSale) : null,
+      installationDate: d.installationDate ? new Date(d.installationDate) : null,
+      homeDepotStoreId,
+      financingNote: d.financingNote || null,
+      loanReference: d.loanReference || null,
+      financeReference: d.financeReference || null,
+      hdReference: d.hdReference || null,
+      financeItNumber: d.financeItNumber ? d.financeItNumber.replace(/\s/g, '') : null,
       applicantFirstName: d.applicantFirstName,
       applicantLastName: d.applicantLastName,
       applicantEmail: d.applicantEmail,

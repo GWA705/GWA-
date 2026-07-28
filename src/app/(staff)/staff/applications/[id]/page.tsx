@@ -8,7 +8,7 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { DocumentList } from '@/components/DocumentList';
 import { DecisionForm } from './DecisionForm';
 import { startReviewAction, startFundingReviewAction } from '@/app/(staff)/actions';
-import { STATUS_LABELS } from '@/lib/constants';
+import { STATUS_LABELS, programLabel } from '@/lib/constants';
 import type { ApplicationStatus } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
@@ -46,6 +46,7 @@ export default async function StaffApplicationDetail({
       statusEvents: { orderBy: { createdAt: 'desc' }, include: { actor: true } },
       decisions: { orderBy: { createdAt: 'desc' }, include: { decidedBy: true } },
       consents: { orderBy: { capturedAt: 'desc' } },
+      homeDepotStore: true,
     },
   });
   if (!app) notFound();
@@ -108,15 +109,23 @@ export default async function StaffApplicationDetail({
           <h2 className="mb-4 text-base font-semibold text-gray-900">Summary</h2>
           <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3">
             <div><dt className="text-gray-500">Province</dt><dd className="font-medium">{app.province}</dd></div>
-            <div><dt className="text-gray-500">Program</dt><dd className="font-medium">{app.program}</dd></div>
+            <div><dt className="text-gray-500">Program</dt><dd className="font-medium">{programLabel(app.programType, app.programCategory)}</dd></div>
             <div><dt className="text-gray-500">Requested</dt><dd className="font-medium">${app.requestedAmount.toString()}</dd></div>
+            <div><dt className="text-gray-500">Date of sale</dt><dd className="font-medium">{app.dateOfSale ? app.dateOfSale.toLocaleDateString('en-CA') : '—'}</dd></div>
+            <div><dt className="text-gray-500">Installation date</dt><dd className="font-medium">{app.installationDate ? app.installationDate.toLocaleDateString('en-CA') : '—'}</dd></div>
+            <div><dt className="text-gray-500">HD store</dt><dd className="font-medium">{app.homeDepotStore ? app.homeDepotStore.number : '—'}</dd></div>
             <div><dt className="text-gray-500">Email</dt><dd className="font-medium">{app.applicantEmail}</dd></div>
             <div><dt className="text-gray-500">Phone</dt><dd className="font-medium">{app.applicantPhone}</dd></div>
             <div><dt className="text-gray-500">Income</dt><dd className="font-medium">{app.incomeAnnual ? `$${app.incomeAnnual.toString()}` : '—'}</dd></div>
+            <div><dt className="text-gray-500">FinanceIt #</dt><dd className="font-medium">{app.financeItNumber ?? '—'}</dd></div>
+            <div><dt className="text-gray-500">Loan ref</dt><dd className="font-medium">{app.loanReference ?? '—'}</dd></div>
             <div><dt className="text-gray-500">Employer</dt><dd className="font-medium">{app.employer ?? '—'}</dd></div>
             <div><dt className="text-gray-500">Co-applicant</dt><dd className="font-medium">{app.coApplicantName ?? '—'}</dd></div>
             <div><dt className="text-gray-500">Homeownership req.</dt><dd className="font-medium">{app.homeownershipRequired ? 'Yes' : 'No'}</dd></div>
           </dl>
+          {app.financingNote && (
+            <p className="mt-3 rounded bg-gray-50 p-3 text-sm text-gray-600"><span className="font-medium text-gray-700">Financing note: </span>{app.financingNote}</p>
+          )}
           {app.notes && <p className="mt-4 rounded bg-gray-50 p-3 text-sm text-gray-600">{app.notes}</p>}
         </section>
 

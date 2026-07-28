@@ -75,6 +75,16 @@ async function main() {
   });
   console.log(`Dealers: ${dealer.name}, ${dealer2.name}`);
 
+  // Home Depot stores assigned to each dealer
+  const storeSeed = [
+    { id: 'seed-store-1', dealerId: dealer.id, number: '7112', name: 'Barrie' },
+    { id: 'seed-store-2', dealerId: dealer.id, number: '7124', name: 'Barrie South' },
+    { id: 'seed-store-3', dealerId: dealer2.id, number: '7091', name: 'North Bay' },
+  ];
+  for (const s of storeSeed) {
+    await prisma.homeDepotStore.upsert({ where: { id: s.id }, update: {}, create: s });
+  }
+
   // Sample application (only if none exist for this dealer)
   const existing = await prisma.application.count({ where: { dealerId: dealer.id } });
   if (existing === 0) {
@@ -84,8 +94,14 @@ async function main() {
         createdById: dealerUser.id,
         status: 'SUBMITTED',
         province: 'ON',
-        program: 'HVAC Financing',
+        programType: 'HD',
+        programCategory: 'HVAC',
         requestedAmount: 8500,
+        dateOfSale: new Date('2026-07-20'),
+        installationDate: new Date('2026-07-27'),
+        homeDepotStoreId: 'seed-store-1',
+        financingNote: 'Customer requested the 12-month no-interest HD promo.',
+        financeItNumber: '7123456',
         applicantFirstName: 'Pat',
         applicantLastName: 'Sample',
         applicantEmail: 'pat.sample@example.com',

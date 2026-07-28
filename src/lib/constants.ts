@@ -1,4 +1,38 @@
-import type { ApplicationStatus, DocumentType, Province } from '@prisma/client';
+import type {
+  ApplicationStatus,
+  DocumentType,
+  Province,
+  ProgramType,
+  ProgramCategory,
+} from '@prisma/client';
+
+export const PROGRAM_TYPES: { value: ProgramType; label: string }[] = [
+  { value: 'HD', label: 'HD' },
+  { value: 'GWA', label: 'GWA' },
+];
+
+export const PROGRAM_CATEGORIES: { value: ProgramCategory; label: string }[] = [
+  { value: 'WATER', label: 'Water' },
+  { value: 'AIR', label: 'Air' },
+  { value: 'SMELL_BUSTERS', label: 'Smell Busters' },
+  { value: 'HVAC', label: 'HVAC' },
+];
+
+export const PROGRAM_TYPE_LABELS: Record<ProgramType, string> = {
+  HD: 'HD',
+  GWA: 'GWA',
+};
+
+export const PROGRAM_CATEGORY_LABELS: Record<ProgramCategory, string> = {
+  WATER: 'Water',
+  AIR: 'Air',
+  SMELL_BUSTERS: 'Smell Busters',
+  HVAC: 'HVAC',
+};
+
+export function programLabel(type: ProgramType, category: ProgramCategory): string {
+  return `${PROGRAM_TYPE_LABELS[type]} · ${PROGRAM_CATEGORY_LABELS[category]}`;
+}
 
 export const PROVINCES: { value: Province; label: string }[] = [
   { value: 'AB', label: 'Alberta' },
@@ -65,7 +99,7 @@ export const FUNDING_DOCUMENT_TYPES: {
 ];
 
 export const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
-  SUPPORTING: 'Supporting document',
+  SUPPORTING: 'Document for approval',
   SIGNED_CONTRACT: 'Signed contract',
   VOID_CHEQUE_OR_PAP: 'Void cheque / PAP form',
   INSTALL_PHOTO: 'Installed product photo',

@@ -7,7 +7,7 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { DocumentList } from '@/components/DocumentList';
 import { UploadForm } from '@/components/UploadForm';
 import { SerialNumberForm } from '@/components/SerialNumberForm';
-import { FUNDING_DOCUMENT_TYPES, STATUS_LABELS } from '@/lib/constants';
+import { FUNDING_DOCUMENT_TYPES, STATUS_LABELS, programLabel } from '@/lib/constants';
 import {
   uploadSupportingDocAction,
   uploadFundingDocAction,
@@ -32,6 +32,7 @@ export default async function DealerApplicationDetail({
       serialNumbers: { orderBy: { createdAt: 'asc' } },
       statusEvents: { orderBy: { createdAt: 'desc' }, include: { actor: true } },
       decisions: { orderBy: { createdAt: 'desc' }, include: { decidedBy: true } },
+      homeDepotStore: true,
     },
   });
   if (!app || !canAccessApplication(user, app.dealerId)) notFound();
@@ -78,12 +79,19 @@ export default async function DealerApplicationDetail({
         <h2 className="mb-4 text-base font-semibold text-gray-900">Application summary</h2>
         <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3">
           <div><dt className="text-gray-500">Province</dt><dd className="font-medium">{app.province}</dd></div>
-          <div><dt className="text-gray-500">Program</dt><dd className="font-medium">{app.program}</dd></div>
+          <div><dt className="text-gray-500">Program</dt><dd className="font-medium">{programLabel(app.programType, app.programCategory)}</dd></div>
           <div><dt className="text-gray-500">Requested</dt><dd className="font-medium">${app.requestedAmount.toString()}</dd></div>
+          <div><dt className="text-gray-500">Date of sale</dt><dd className="font-medium">{app.dateOfSale ? app.dateOfSale.toLocaleDateString('en-CA') : '—'}</dd></div>
+          <div><dt className="text-gray-500">Installation date</dt><dd className="font-medium">{app.installationDate ? app.installationDate.toLocaleDateString('en-CA') : '—'}</dd></div>
+          <div><dt className="text-gray-500">HD store</dt><dd className="font-medium">{app.homeDepotStore ? app.homeDepotStore.number : '—'}</dd></div>
           <div><dt className="text-gray-500">Email</dt><dd className="font-medium">{app.applicantEmail}</dd></div>
           <div><dt className="text-gray-500">Phone</dt><dd className="font-medium">{app.applicantPhone}</dd></div>
+          <div><dt className="text-gray-500">FinanceIt #</dt><dd className="font-medium">{app.financeItNumber ?? '—'}</dd></div>
           <div><dt className="text-gray-500">Homeownership required</dt><dd className="font-medium">{app.homeownershipRequired ? 'Yes' : 'No'}</dd></div>
         </dl>
+        {app.financingNote && (
+          <p className="mt-4 rounded bg-gray-50 p-3 text-sm text-gray-600"><span className="font-medium text-gray-700">Financing note: </span>{app.financingNote}</p>
+        )}
         <p className="mt-4 text-xs text-gray-400">
           Sensitive fields (SIN, banking, ID) are stored encrypted and are only visible to the
           GWA review team through an audited path.
@@ -108,12 +116,12 @@ export default async function DealerApplicationDetail({
         </section>
       )}
 
-      {/* Application-stage supporting docs */}
+      {/* Documents for approval */}
       <section className="card p-6">
-        <h2 className="mb-3 text-base font-semibold text-gray-900">Supporting documents</h2>
+        <h2 className="mb-3 text-base font-semibold text-gray-900">Documents for approval</h2>
         <DocumentList documents={applicationDocs} />
         <div className="mt-4 border-t border-gray-100 pt-4">
-          <UploadForm action={uploadSupportingDocAction.bind(null, app.id)} label="Upload supporting doc" />
+          <UploadForm action={uploadSupportingDocAction.bind(null, app.id)} label="Upload document" />
         </div>
       </section>
 
