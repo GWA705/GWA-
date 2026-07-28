@@ -20,6 +20,10 @@ we'll organize and prioritize them together later.
 - [ ] **Multi-file upload:** select and upload many documents at once with a single click (not one at a time).
 - [ ] **View files by role:** Dealer, Reviewer, and Admin can open a customer profile and select/view the files inside it (dealers see only their own — see Search rules).
 
+### Programs
+- [ ] **Two program types:** **HD** and **GWA**.
+- [ ] **Sub-categories for each program:** Water, Air, Smell Busters, HVAC. _(Replaces today's free-text "program" field with a program → sub-category selection.)_
+
 ### Deal intake (dealer-entered fields)
 - [ ] **Require dealers to enter basic info for each deal:**
   - Customer name
