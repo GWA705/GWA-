@@ -41,6 +41,7 @@ we'll organize and prioritize them together later.
 ### Wording / labels
 - [ ] **Rename "Supporting documents" → "Documents for approval"** (the docs a dealer uploads at the application stage).
 - [ ] **Phone number format:** display/format phone numbers as `705-716-2111` (auto-format as the user types).
+- [ ] **Postal code format:** display/format Canadian postal codes as `L0L 2T0` (uppercase, space in the middle; auto-format as the user types).
 
 ### Search
 - [ ] **Global search** by: Loan reference #, Finance reference #, HD reference #, and customer first or last name. ❓ (Requires adding these reference-number fields to each deal.)
