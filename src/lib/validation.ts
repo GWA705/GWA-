@@ -22,6 +22,8 @@ const optionalInt = z.preprocess(
   z.coerce.number().int().nonnegative().max(120).optional(),
 );
 const str = (max: number) => z.string().max(max).optional();
+// Optional dropdown: an unselected <select> posts "" — treat that as "not provided".
+const blankToUndef = (v: unknown) => (v === '' || v == null ? undefined : v);
 
 export const applicationSchema = z.object({
   entryMethod: z.enum(['TYPED', 'PHOTO', 'FINANCEIT']).optional().default('TYPED'),
@@ -37,7 +39,7 @@ export const applicationSchema = z.object({
   middleName: str(80),
   homePhone: str(30),
   maritalStatus: str(30),
-  housingStatus: z.enum(['OWN', 'RENT', 'OTHER']).optional(),
+  housingStatus: z.preprocess(blankToUndef, z.enum(['OWN', 'RENT', 'OTHER']).optional()),
   monthlyHousingCost: optionalNumber,
   yearsAtAddress: optionalInt,
   city: str(80),
@@ -64,7 +66,7 @@ export const applicationSchema = z.object({
   employerPhone: str(30),
   grossMonthlyIncome: optionalNumber,
   timeAtJobYears: optionalInt,
-  employmentStatus: z.enum(['EMPLOYED', 'SELF_EMPLOYED', 'OTHER']).optional(),
+  employmentStatus: z.preprocess(blankToUndef, z.enum(['EMPLOYED', 'SELF_EMPLOYED', 'OTHER']).optional()),
 
   // Deal details
   dateOfSale: optionalDate,
