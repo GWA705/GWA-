@@ -71,6 +71,11 @@ we'll organize and prioritize them together later.
 - [ ] **Follow-up / reminder notifications** when a deal sits unchanged for too long (stale-deal nudges).
 - [ ] **Communication-preference toggles:** let users choose how they're contacted. ❓ Only offer channels we can actually deliver (email is straightforward; SMS is doable but needs a paid text provider — to confirm at rework).
 
+### Application summary & finance companies
+- [ ] **Application summary shows:** customer name, approval status, **approved by** (which reviewer), and **the finance company** that approved it.
+- [ ] **Maintain a list of finance companies** (managed in the backend). ❓ (Company list to be provided.)
+- [ ] **Reviewer marks which finance company approved the deal;** that selection appears in the application summary.
+
 ### Payouts
 - [ ] **Payout receipt / statement per deal:** show the dealer what was paid on the deal. Clickable from the deal so, if there are questions, they can open a receipt/statement of what was paid.
 
