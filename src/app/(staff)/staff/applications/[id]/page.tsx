@@ -6,6 +6,7 @@ import { decryptOptional, maskTail } from '@/lib/crypto';
 import { audit } from '@/lib/audit';
 import { StatusBadge } from '@/components/StatusBadge';
 import { DocumentList } from '@/components/DocumentList';
+import { LoanApplicationDetails } from '@/components/LoanApplicationDetails';
 import { DecisionForm } from './DecisionForm';
 import { startReviewAction, startFundingReviewAction } from '@/app/(staff)/actions';
 import { STATUS_LABELS, programLabel } from '@/lib/constants';
@@ -47,6 +48,7 @@ export default async function StaffApplicationDetail({
       decisions: { orderBy: { createdAt: 'desc' }, include: { decidedBy: true } },
       consents: { orderBy: { capturedAt: 'desc' } },
       homeDepotStore: true,
+      loanApplication: true,
     },
   });
   if (!app) notFound();
@@ -110,6 +112,7 @@ export default async function StaffApplicationDetail({
           <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3">
             <div><dt className="text-gray-500">Province</dt><dd className="font-medium">{app.province}</dd></div>
             <div><dt className="text-gray-500">Program</dt><dd className="font-medium">{programLabel(app.programType, app.programCategory)}</dd></div>
+            <div><dt className="text-gray-500">Entry method</dt><dd className="font-medium">{app.entryMethod === 'TYPED' ? 'Typed in' : app.entryMethod === 'PHOTO' ? 'Photo upload' : 'FinanceIt #'}</dd></div>
             <div><dt className="text-gray-500">Requested</dt><dd className="font-medium">${app.requestedAmount.toString()}</dd></div>
             <div><dt className="text-gray-500">Date of sale</dt><dd className="font-medium">{app.dateOfSale ? app.dateOfSale.toLocaleDateString('en-CA') : '—'}</dd></div>
             <div><dt className="text-gray-500">Installation date</dt><dd className="font-medium">{app.installationDate ? app.installationDate.toLocaleDateString('en-CA') : '—'}</dd></div>
@@ -157,6 +160,8 @@ export default async function StaffApplicationDetail({
             <div><dt className="text-gray-500">Co-applicant SIN</dt><dd className="font-mono font-medium">{coSin}</dd></div>
           </dl>
         </section>
+
+        {app.loanApplication && <LoanApplicationDetails loan={app.loanApplication} />}
 
         {/* Documents */}
         <section className="card p-6">

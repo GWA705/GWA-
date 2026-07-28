@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db';
 import { canAccessApplication } from '@/lib/rbac';
 import { StatusBadge } from '@/components/StatusBadge';
 import { DocumentList } from '@/components/DocumentList';
+import { LoanApplicationDetails } from '@/components/LoanApplicationDetails';
 import { UploadForm } from '@/components/UploadForm';
 import { SerialNumberForm } from '@/components/SerialNumberForm';
 import { FUNDING_DOCUMENT_TYPES, STATUS_LABELS, programLabel } from '@/lib/constants';
@@ -33,6 +34,7 @@ export default async function DealerApplicationDetail({
       statusEvents: { orderBy: { createdAt: 'desc' }, include: { actor: true } },
       decisions: { orderBy: { createdAt: 'desc' }, include: { decidedBy: true } },
       homeDepotStore: true,
+      loanApplication: true,
     },
   });
   if (!app || !canAccessApplication(user, app.dealerId)) notFound();
@@ -115,6 +117,8 @@ export default async function DealerApplicationDetail({
           </ul>
         </section>
       )}
+
+      {app.loanApplication && <LoanApplicationDetails loan={app.loanApplication} />}
 
       {/* Documents for approval */}
       <section className="card p-6">

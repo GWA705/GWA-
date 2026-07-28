@@ -50,11 +50,56 @@ export async function createApplicationAction(
     homeDepotStoreId = store?.id ?? null;
   }
 
+  const financeItNumber = d.financeItNumber ? d.financeItNumber.replace(/\s/g, '') : null;
+  // A FinanceIt approval number means the deal is already approved.
+  const initialStatus = financeItNumber ? 'APPROVED' : 'SUBMITTED';
+
+  // Only persist the extended loan-application record for typed entry.
+  const loanApplicationData =
+    d.entryMethod === 'TYPED'
+      ? {
+          create: {
+            middleName: d.middleName || null,
+            homePhone: d.homePhone || null,
+            maritalStatus: d.maritalStatus || null,
+            housingStatus: d.housingStatus ?? null,
+            monthlyHousingCost: d.monthlyHousingCost ?? null,
+            yearsAtAddress: d.yearsAtAddress ?? null,
+            city: d.city || null,
+            addressProvince: d.addressProvince || null,
+            postalCode: d.postalCode || null,
+            mailingAddress: d.mailingAddress || null,
+            mailingCity: d.mailingCity || null,
+            mailingProvince: d.mailingProvince || null,
+            mailingPostal: d.mailingPostal || null,
+            previousAddress: d.previousAddress || null,
+            previousCity: d.previousCity || null,
+            previousProvince: d.previousProvince || null,
+            previousPostal: d.previousPostal || null,
+            worksiteAddress: d.worksiteAddress || null,
+            worksiteCity: d.worksiteCity || null,
+            worksiteProvince: d.worksiteProvince || null,
+            worksitePostal: d.worksitePostal || null,
+            idType: d.idType || null,
+            idProvince: d.idProvince || null,
+            idExpiry: d.idExpiry ? new Date(d.idExpiry) : null,
+            businessName: d.businessName || null,
+            positionTitle: d.positionTitle || null,
+            employerAddress: d.employerAddress || null,
+            employerPhone: d.employerPhone || null,
+            grossMonthlyIncome: d.grossMonthlyIncome ?? null,
+            timeAtJobYears: d.timeAtJobYears ?? null,
+            employmentStatus: d.employmentStatus ?? null,
+          },
+        }
+      : undefined;
+
   const app = await prisma.application.create({
     data: {
       dealerId: session.dealerId,
       createdById: session.userId,
-      status: 'SUBMITTED',
+      status: initialStatus,
+      entryMethod: d.entryMethod,
       province: d.province,
       programType: d.programType,
       programCategory: d.programCategory,
@@ -66,7 +111,8 @@ export async function createApplicationAction(
       loanReference: d.loanReference || null,
       financeReference: d.financeReference || null,
       hdReference: d.hdReference || null,
-      financeItNumber: d.financeItNumber ? d.financeItNumber.replace(/\s/g, '') : null,
+      financeItNumber,
+      loanApplication: loanApplicationData,
       applicantFirstName: d.applicantFirstName,
       applicantLastName: d.applicantLastName,
       applicantEmail: d.applicantEmail,
@@ -78,8 +124,10 @@ export async function createApplicationAction(
       govIdNumberEnc: encryptOptional(d.govIdNumber),
       coApplicantName: d.coApplicantName || null,
       coApplicantSinEnc: encryptOptional(d.coApplicantSin),
-      incomeAnnual: d.incomeAnnual ?? null,
-      employer: d.employer || null,
+      incomeAnnual:
+        d.incomeAnnual ??
+        (d.grossMonthlyIncome ? Math.round(d.grossMonthlyIncome * 12) : null),
+      employer: d.employer || d.businessName || null,
       notes: d.notes || null,
       homeownershipRequired: d.homeownershipRequired ?? false,
       consents: {
@@ -90,7 +138,13 @@ export async function createApplicationAction(
         },
       },
       statusEvents: {
-        create: { to: 'SUBMITTED', actorId: session.userId, note: 'Application submitted' },
+        create: {
+          to: initialStatus,
+          actorId: session.userId,
+          note: financeItNumber
+            ? `Submitted — approved via FinanceIt #${financeItNumber}`
+            : 'Application submitted',
+        },
       },
     },
   });

@@ -12,7 +12,19 @@ const optionalDate = z
   .optional()
   .refine((v) => !v || !Number.isNaN(Date.parse(v)), 'Invalid date');
 
+// Treat empty strings as "not provided" before coercing to a number.
+const optionalNumber = z.preprocess(
+  (v) => (v === '' || v == null ? undefined : v),
+  z.coerce.number().nonnegative().max(100_000_000).optional(),
+);
+const optionalInt = z.preprocess(
+  (v) => (v === '' || v == null ? undefined : v),
+  z.coerce.number().int().nonnegative().max(120).optional(),
+);
+const str = (max: number) => z.string().max(max).optional();
+
 export const applicationSchema = z.object({
+  entryMethod: z.enum(['TYPED', 'PHOTO', 'FINANCEIT']).optional().default('TYPED'),
   province: z.enum(PROVINCE_VALUES),
   programType: z.enum(['HD', 'GWA']),
   programCategory: z.enum(['WATER', 'AIR', 'SMELL_BUSTERS', 'HVAC']),
@@ -20,6 +32,39 @@ export const applicationSchema = z.object({
     .number()
     .positive('Amount must be greater than 0')
     .max(1_000_000),
+
+  // Extended loan-application fields (typed entry) — all optional.
+  middleName: str(80),
+  homePhone: str(30),
+  maritalStatus: str(30),
+  housingStatus: z.enum(['OWN', 'RENT', 'OTHER']).optional(),
+  monthlyHousingCost: optionalNumber,
+  yearsAtAddress: optionalInt,
+  city: str(80),
+  addressProvince: str(40),
+  postalCode: str(10),
+  mailingAddress: str(200),
+  mailingCity: str(80),
+  mailingProvince: str(40),
+  mailingPostal: str(10),
+  previousAddress: str(200),
+  previousCity: str(80),
+  previousProvince: str(40),
+  previousPostal: str(10),
+  worksiteAddress: str(200),
+  worksiteCity: str(80),
+  worksiteProvince: str(40),
+  worksitePostal: str(10),
+  idType: str(60),
+  idProvince: str(40),
+  idExpiry: optionalDate,
+  businessName: str(160),
+  positionTitle: str(120),
+  employerAddress: str(200),
+  employerPhone: str(30),
+  grossMonthlyIncome: optionalNumber,
+  timeAtJobYears: optionalInt,
+  employmentStatus: z.enum(['EMPLOYED', 'SELF_EMPLOYED', 'OTHER']).optional(),
 
   // Deal details
   dateOfSale: optionalDate,

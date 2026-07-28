@@ -105,6 +105,25 @@ enum Province {
   YT
 }
 
+// How the dealer provided the credit application.
+enum EntryMethod {
+  TYPED // entered directly into the site (full loan application)
+  PHOTO // uploaded a photo of the paper credit application
+  FINANCEIT // provided a FinanceIt approval number (already approved)
+}
+
+enum HousingStatus {
+  OWN
+  RENT
+  OTHER
+}
+
+enum EmploymentStatus {
+  EMPLOYED
+  SELF_EMPLOYED
+  OTHER
+}
+
 // Financing program and its product sub-category.
 enum ProgramType {
   HD
@@ -147,6 +166,9 @@ model Application {
   programCategory ProgramCategory
   requestedAmount Decimal @db.Decimal(12, 2)
 
+  // How this application was provided by the dealer.
+  entryMethod EntryMethod @default(TYPED)
+
   // Deal details (dealer-entered)
   dateOfSale       DateTime?
   installationDate DateTime?
@@ -186,11 +208,12 @@ model Application {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  documents     Document[]
-  serialNumbers SerialNumber[]
-  decisions     Decision[]
-  statusEvents  StatusEvent[]
-  consents      Consent[]
+  documents       Document[]
+  serialNumbers   SerialNumber[]
+  decisions       Decision[]
+  statusEvents    StatusEvent[]
+  consents        Consent[]
+  loanApplication LoanApplication?
 
   @@index([dealerId])
   @@index([status])
@@ -247,6 +270,61 @@ model Document {
 
   @@index([applicationId])
   @@index([type])
+}
+
+// Extended loan-application details captured when the dealer types the
+// application in (entryMethod = TYPED), mirroring the paper loan application.
+// The most sensitive identifiers (SIN, DOB, street address, banking, gov ID
+// number) live encrypted on Application; these lower-sensitivity structured
+// fields are stored here (still protected by database-at-rest encryption).
+model LoanApplication {
+  id            String      @id @default(cuid())
+  applicationId String      @unique
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  // Personal details
+  middleName    String?
+  homePhone     String?
+  maritalStatus String?
+
+  // Housing
+  housingStatus     HousingStatus?
+  monthlyHousingCost Decimal?       @db.Decimal(10, 2)
+  yearsAtAddress    Int?
+  city              String?
+  addressProvince   String?
+  postalCode        String?
+
+  // Optional additional addresses
+  mailingAddress   String?
+  mailingCity      String?
+  mailingProvince  String?
+  mailingPostal    String?
+  previousAddress  String?
+  previousCity     String?
+  previousProvince String?
+  previousPostal   String?
+  worksiteAddress  String?
+  worksiteCity     String?
+  worksiteProvince String?
+  worksitePostal   String?
+
+  // Borrower identification
+  idType     String?
+  idProvince String?
+  idExpiry   DateTime?
+
+  // Employment & income
+  businessName      String?
+  positionTitle     String?
+  employerAddress   String?
+  employerPhone     String?
+  grossMonthlyIncome Decimal?         @db.Decimal(12, 2)
+  timeAtJobYears    Int?
+  employmentStatus  EmploymentStatus?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model SerialNumber {
