@@ -10,7 +10,7 @@ import { encryptOptional } from '@/lib/crypto';
 import { audit } from '@/lib/audit';
 import { storeFiles } from '@/lib/upload';
 import { applicationSchema, serialNumberSchema } from '@/lib/validation';
-import { CONSENT_POLICY_VERSION, CONSENT_TEXT, FUNDING_DOCUMENT_TYPES } from '@/lib/constants';
+import { CONSENT_POLICY_VERSION, CONSENT_TEXT } from '@/lib/constants';
 import type { DocumentType } from '@prisma/client';
 
 export interface ActionState {
@@ -216,24 +216,13 @@ export async function uploadFundingDocAction(
 /** Dealer signals the funding package is complete → moves to FUNDING_SUBMITTED. */
 export async function submitFundingAction(applicationId: string): Promise<void> {
   const session = await requireRole('DEALER_USER');
-  const app = await prisma.application.findUnique({
-    where: { id: applicationId },
-    include: { documents: true },
-  });
+  const app = await prisma.application.findUnique({ where: { id: applicationId } });
   if (!app || !canAccessApplication(session, app.dealerId)) redirect('/dealer');
   if (!['APPROVED', 'CONDITIONAL'].includes(app.status)) {
     redirect(`/dealer/applications/${applicationId}`);
   }
 
-  // Verify all required funding documents are present.
-  const uploadedTypes = new Set(app.documents.filter((x) => x.stage === 'FUNDING').map((x) => x.type));
-  const missing = FUNDING_DOCUMENT_TYPES.filter(
-    (t) => t.required && !uploadedTypes.has(t.type),
-  );
-  if (missing.length > 0) {
-    redirect(`/dealer/applications/${applicationId}?missing=${missing.length}`);
-  }
-
+  // Funding can be submitted as documents come in — not all are required upfront.
   await prisma.$transaction([
     prisma.application.update({ where: { id: applicationId }, data: { status: 'FUNDING_SUBMITTED' } }),
     prisma.statusEvent.create({

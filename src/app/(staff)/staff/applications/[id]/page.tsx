@@ -6,6 +6,7 @@ import { decryptOptional, maskTail } from '@/lib/crypto';
 import { audit } from '@/lib/audit';
 import { StatusBadge } from '@/components/StatusBadge';
 import { DocumentList } from '@/components/DocumentList';
+import { FundingChecklist } from '@/components/FundingChecklist';
 import { LoanApplicationDetails } from '@/components/LoanApplicationDetails';
 import { PayoutReceipt } from '@/components/PayoutReceipt';
 import { UploadForm } from '@/components/UploadForm';
@@ -164,7 +165,9 @@ export default async function StaffApplicationDetail({
           <DocumentList documents={applicationDocs} />
         </section>
 
-        {(fundingDocs.length > 0 || app.serialNumbers.length > 0) && (
+        {(['APPROVED', 'CONDITIONAL', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW', 'FUNDED'].includes(app.status) ||
+          fundingDocs.length > 0 ||
+          app.serialNumbers.length > 0) && (
           <section className="card p-6">
             <h2 className="mb-3 text-base font-semibold text-gray-900">Funding package</h2>
             {app.serialNumbers.length > 0 && (
@@ -179,7 +182,7 @@ export default async function StaffApplicationDetail({
                 </ul>
               </div>
             )}
-            <DocumentList documents={fundingDocs} />
+            <FundingChecklist fundingDocs={fundingDocs} />
           </section>
         )}
 

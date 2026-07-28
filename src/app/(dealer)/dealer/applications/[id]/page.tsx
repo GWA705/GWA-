@@ -21,10 +21,8 @@ export const dynamic = 'force-dynamic';
 
 export default async function DealerApplicationDetail({
   params,
-  searchParams,
 }: {
   params: { id: string };
-  searchParams: { missing?: string };
 }) {
   const user = await requireRole('DEALER_USER');
   const app = await prisma.application.findUnique({
@@ -69,13 +67,6 @@ export default async function DealerApplicationDetail({
           <StatusBadge status={app.status} />
         </div>
       </div>
-
-      {searchParams.missing && (
-        <div className="rounded-md bg-amber-50 p-3 text-sm text-amber-800">
-          You still have {searchParams.missing} required funding document(s) to upload before you
-          can submit the funding package.
-        </div>
-      )}
 
       {/* Summary */}
       <section className="card p-6">
@@ -176,18 +167,29 @@ export default async function DealerApplicationDetail({
 
           {/* Funding document checklist */}
           <div className="space-y-3">
-            <h3 className="text-sm font-medium text-gray-700">Required documents</h3>
+            <h3 className="text-sm font-medium text-gray-700">Funding documents</h3>
+            <p className="text-xs text-gray-500">Upload these as you get them — you don&apos;t have to add them all at once.</p>
             {requiredFunding.map((t) => {
               const uploaded = fundingDocs.filter((d) => d.type === t.type);
               const done = uploaded.length > 0;
               return (
                 <div key={t.type} className="rounded border border-gray-100 p-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-800">
-                      {done ? '✓ ' : '○ '}
+                    <span className="flex items-center gap-2 text-sm font-medium text-gray-800">
+                      <span
+                        className={`flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold ${
+                          done ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'
+                        }`}
+                        aria-hidden
+                      >
+                        {done ? '✓' : '✕'}
+                      </span>
                       {t.label}
+                      {!t.required && <span className="text-xs font-normal text-gray-400">(optional)</span>}
                     </span>
-                    {done && <span className="badge bg-green-100 text-green-800">Uploaded</span>}
+                    <span className={`badge ${done ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-700'}`}>
+                      {done ? 'Uploaded' : 'Missing'}
+                    </span>
                   </div>
                   {uploaded.length > 0 && (
                     <ul className="mt-2 text-xs text-gray-500">
@@ -213,9 +215,9 @@ export default async function DealerApplicationDetail({
           {fundingStageOpen && (
             <form action={submitFunding} className="mt-6 flex items-center justify-end gap-3">
               {missingCount > 0 && (
-                <span className="text-xs text-amber-700">{missingCount} required document(s) remaining</span>
+                <span className="text-xs text-gray-500">{missingCount} still missing — you can submit now and add the rest later</span>
               )}
-              <button type="submit" className="btn-primary" disabled={missingCount > 0}>
+              <button type="submit" className="btn-primary">
                 Submit funding package
               </button>
             </form>
