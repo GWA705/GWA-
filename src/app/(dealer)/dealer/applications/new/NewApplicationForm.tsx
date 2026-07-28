@@ -9,7 +9,7 @@ import {
   PROGRAM_TYPES,
   PROGRAM_CATEGORIES,
 } from '@/lib/constants';
-import { formatPhone, formatPostal, formatSin } from '@/lib/format';
+import { formatPhone, formatPostal } from '@/lib/format';
 
 const initial: ActionState = {};
 
@@ -40,9 +40,6 @@ const phoneFmt = (e: React.FormEvent<HTMLInputElement>) => {
 };
 const postalFmt = (e: React.FormEvent<HTMLInputElement>) => {
   e.currentTarget.value = formatPostal(e.currentTarget.value);
-};
-const sinFmt = (e: React.FormEvent<HTMLInputElement>) => {
-  e.currentTarget.value = formatSin(e.currentTarget.value);
 };
 
 const METHODS: { value: Method; title: string; blurb: string }[] = [
@@ -202,17 +199,6 @@ export function NewApplicationForm({ stores }: { stores: Store[] }) {
 
       {typed && (
         <>
-          {/* Sensitive */}
-          <section className="card border-amber-200 bg-amber-50/40 p-6">
-            <h2 className="text-base font-semibold text-gray-900">Sensitive information</h2>
-            <p className="mb-4 mt-1 text-xs text-amber-700">Encrypted at rest and access is logged. Only collect what is necessary.</p>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div><label className="label" htmlFor="applicantSin">SIN (optional)</label><input id="applicantSin" name="applicantSin" className="input" placeholder="000 000 000" inputMode="numeric" maxLength={11} autoComplete="off" onInput={sinFmt} /><Err state={state} name="applicantSin" /></div>
-              <div><label className="label" htmlFor="govIdNumber">Government ID number</label><input id="govIdNumber" name="govIdNumber" className="input" autoComplete="off" /></div>
-              <div className="sm:col-span-2"><label className="label" htmlFor="bankAccount">Bank account (from void cheque / PAP)</label><input id="bankAccount" name="bankAccount" className="input" placeholder="Institution / Transit / Account" autoComplete="off" /></div>
-            </div>
-          </section>
-
           {/* Housing */}
           <section className="card p-6">
             <h2 className="mb-4 text-base font-semibold text-gray-900">Housing</h2>
@@ -255,7 +241,7 @@ export function NewApplicationForm({ stores }: { stores: Store[] }) {
           {/* Borrower identification */}
           <section className="card p-6">
             <h2 className="mb-4 text-base font-semibold text-gray-900">Borrower identification</h2>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label className="label" htmlFor="idType">Photo ID type</label>
                 <select id="idType" name="idType" className="input">
@@ -264,6 +250,7 @@ export function NewApplicationForm({ stores }: { stores: Store[] }) {
                   <option>Provincial Photo ID Card</option><option>Permanent Resident Card</option><option>Other</option>
                 </select>
               </div>
+              <div><label className="label" htmlFor="govIdNumber">Photo ID number</label><input id="govIdNumber" name="govIdNumber" className="input" autoComplete="off" /></div>
               <div><label className="label" htmlFor="idProvince">Province of issue</label><input id="idProvince" name="idProvince" className="input" placeholder="e.g. ON" /></div>
               <div><label className="label" htmlFor="idExpiry">Expiry date</label><input id="idExpiry" name="idExpiry" type="date" className="input" /></div>
             </div>
@@ -294,7 +281,6 @@ export function NewApplicationForm({ stores }: { stores: Store[] }) {
             <h2 className="mb-4 text-base font-semibold text-gray-900">Co-applicant &amp; notes</h2>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div><label className="label" htmlFor="coApplicantName">Co-applicant name</label><input id="coApplicantName" name="coApplicantName" className="input" /></div>
-              <div><label className="label" htmlFor="coApplicantSin">Co-applicant SIN (optional)</label><input id="coApplicantSin" name="coApplicantSin" className="input" inputMode="numeric" maxLength={11} autoComplete="off" onInput={sinFmt} /><Err state={state} name="coApplicantSin" /></div>
               <div className="sm:col-span-2"><label className="label" htmlFor="notes">Notes</label><textarea id="notes" name="notes" rows={3} className="input" /></div>
             </div>
           </section>

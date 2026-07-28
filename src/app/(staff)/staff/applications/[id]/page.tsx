@@ -63,33 +63,23 @@ export default async function StaffApplicationDetail({
 
   const reveal = searchParams.reveal === '1';
 
-  // Decrypt sensitive fields only when explicitly revealed, and log the access.
-  let sin = maskTail(null);
-  let bank = maskTail(null);
-  let govId = maskTail(null);
-  let dob = maskTail(null);
-  let address = '—';
-  let coSin = maskTail(null);
+  // Only the government ID, date of birth, and address are protected identity
+  // fields (SIN and banking are not collected). Decrypt only when revealed.
+  let govId = maskTail(decryptOptional(app.govIdNumberEnc), 3);
+  let dob = '••••';
+  let address = '••••';
 
   if (reveal) {
-    sin = decryptOptional(app.applicantSinEnc) ?? '—';
-    bank = decryptOptional(app.bankAccountEnc) ?? '—';
     govId = decryptOptional(app.govIdNumberEnc) ?? '—';
     dob = decryptOptional(app.applicantDobEnc) ?? '—';
     address = decryptOptional(app.applicantAddressEnc) ?? '—';
-    coSin = decryptOptional(app.coApplicantSinEnc) ?? '—';
     await audit({
       actorId: user.userId,
       action: 'PII_DECRYPT',
       entityType: 'Application',
       entityId: app.id,
-      detail: 'Revealed sensitive fields',
+      detail: 'Revealed identity fields',
     });
-  } else {
-    sin = maskTail(decryptOptional(app.applicantSinEnc), 3);
-    bank = maskTail(decryptOptional(app.bankAccountEnc), 3);
-    govId = maskTail(decryptOptional(app.govIdNumberEnc), 3);
-    coSin = maskTail(decryptOptional(app.coApplicantSinEnc), 3);
   }
 
   const applicationDocs = app.documents.filter((d) => d.stage === 'APPLICATION');
@@ -144,7 +134,7 @@ export default async function StaffApplicationDetail({
         {/* Sensitive */}
         <section className="card border-amber-200 p-6">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-base font-semibold text-gray-900">Sensitive information</h2>
+            <h2 className="text-base font-semibold text-gray-900">Identity (protected)</h2>
             {reveal ? (
               <Link href={`/staff/applications/${app.id}`} className="text-xs text-brand-700 hover:underline">
                 Hide
@@ -161,12 +151,9 @@ export default async function StaffApplicationDetail({
             </p>
           )}
           <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3">
-            <div><dt className="text-gray-500">SIN</dt><dd className="font-mono font-medium">{sin}</dd></div>
-            <div><dt className="text-gray-500">Date of birth</dt><dd className="font-medium">{dob}</dd></div>
             <div><dt className="text-gray-500">Gov ID #</dt><dd className="font-mono font-medium">{govId}</dd></div>
-            <div className="sm:col-span-2"><dt className="text-gray-500">Bank (void cheque/PAP)</dt><dd className="font-mono font-medium">{bank}</dd></div>
-            <div><dt className="text-gray-500">Address</dt><dd className="font-medium">{reveal ? address : '••••'}</dd></div>
-            <div><dt className="text-gray-500">Co-applicant SIN</dt><dd className="font-mono font-medium">{coSin}</dd></div>
+            <div><dt className="text-gray-500">Date of birth</dt><dd className="font-medium">{dob}</dd></div>
+            <div><dt className="text-gray-500">Address</dt><dd className="font-medium">{address}</dd></div>
           </dl>
         </section>
 

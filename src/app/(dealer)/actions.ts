@@ -117,13 +117,11 @@ export async function createApplicationAction(
       applicantLastName: d.applicantLastName,
       applicantEmail: d.applicantEmail,
       applicantPhone: d.applicantPhone,
-      applicantSinEnc: encryptOptional(d.applicantSin),
+      // SIN and banking are intentionally NOT collected/stored in the portal.
       applicantDobEnc: encryptOptional(d.applicantDob),
       applicantAddressEnc: encryptOptional(d.applicantAddress),
-      bankAccountEnc: encryptOptional(d.bankAccount),
       govIdNumberEnc: encryptOptional(d.govIdNumber),
       coApplicantName: d.coApplicantName || null,
-      coApplicantSinEnc: encryptOptional(d.coApplicantSin),
       incomeAnnual:
         d.incomeAnnual ??
         (d.grossMonthlyIncome ? Math.round(d.grossMonthlyIncome * 12) : null),
