@@ -127,9 +127,45 @@ we'll organize and prioritize them together later.
 
 ---
 
-## Later: organized & prioritized
-_We'll fill this in during the "rework" pass once the inbox feels complete._
+## Build roadmap (organized & prioritized)
 
-### Must-have
-### Nice-to-have
-### Someday / maybe
+Grouped into phases so each one ships a coherent, usable improvement. Items marked
+❓ in the inbox need info from you but won't block the rest of the phase — we build
+the mechanism now and drop your content/keys in when ready.
+
+### Phase 1 — New application experience (dealer intake) 🔨 building first
+- Program types **HD / GWA** + sub-categories (Water, Air, Smell Busters, HVAC) — replaces free-text program.
+- New deal fields: **date of sale**, **installation date**, **Home Depot store #** (per-dealer dropdown), plus date-of-purchase.
+- Digital **loan application** form (from the approved mockup) as the "type it in" method.
+- Three ways to provide the application: type it in / upload a photo / enter a **FinanceIt approval number**.
+- **Financing note** field under Financing details.
+- Input formatting: **phone `705-716-2111`**, **postal `L0L 2T0`**, SIN.
+- Rename **"Supporting documents" → "Documents for approval."**
+- (Address autocomplete: build later in phase once a lookup provider is chosen.)
+
+### Phase 2 — Documents & funding
+- **Multi-file upload** (many at once, one click).
+- **Auto-convert uploads to PDF** + standardized naming (customer name + date of purchase + timestamp).
+- **Organized per-dealer storage** (Year → Month → Week, or a better scheme).
+- **View/download documents by role**; reviewer → dealer paperwork uploads (**HD**, **Financing paperwork**).
+- **Payout receipt / statement** per deal.
+
+### Phase 3 — Workflow: statuses, search, summary, confirmations
+- Expanded **statuses + colours + icons** (visible on both reviewer and dealer sides); **sort/filter by status**; **priority** flag; **stale-deal follow-ups**.
+- **Reference numbers** (loan / finance / HD) + **global search** (dealers scoped to their own).
+- **Application summary:** approved amount, approved-by, **finance company** (+ managed finance-company list).
+- **Confirmations area** (completed / pending / issues) + **confirmation script/checklist** + HD confirmation notes + share completed copy to dealer.
+- **Notes:** dealer-visible per-deal notes + internal reviewer/Admin-only notes.
+
+### Phase 4 — Notifications, accounts, content & polish
+- **Dealer profile page** + **email notifications** + communication-preference toggles.
+- **Reviewer notifications** when new documents are uploaded.
+- Accounts: **forgot-password reset**, **90-day password expiry**, login-IP view.
+- Content tabs: **Resources**, **HD Promotions**, **HD Credit Card** guide; **dealer dashboard announcements**.
+- **Reviewable log** coverage for all new events.
+- Cross-cutting (verified throughout): **responsive** (phone + PC/Mac) and **fast/fluid + shortcuts**.
+
+### ⛔ Blocked on info from you (send when ready — won't hold up the phases)
+- Home Depot store list per dealer · Finance-company list · Confirmation-call script questions
+- HD Credit Card guide content · Final FinanceIt number rule · Legal-reviewed consent wording
+- Address-lookup provider (Canada Post vs Google) · SMS text provider (if you want texts, not just email)
