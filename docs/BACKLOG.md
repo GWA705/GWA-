@@ -96,6 +96,10 @@ we'll organize and prioritize them together later.
 ### Reviewer ↔ Dealer collaboration & notes
 - [ ] **Per-deal note to the dealer:** reviewers can write notes to the dealer; notes live inside that customer's profile (visible to the dealer).
 - [ ] **Internal notes (reviewer/Admin only):** a separate per-deal notes area visible *only* to Reviewers and Admins — never shown to dealers.
+- [ ] **Reviewer → dealer paperwork uploads:** a section on the reviewer side to upload paperwork *for* the dealer, in two categories:
+  - **HD**
+  - **Financing paperwork**
+  Dealers can view and **download/print** these documents. ❓ Scope to confirm at rework: per-deal (attached to a specific customer) vs. per-dealer (general).
 
 ### Dealer dashboard highlights
 - [ ] **Announcements / highlights area on the dealer home page:** a small spot that surfaces promotions, updates, or important messages for dealers. If nothing urgent, it cycles through a set list of promotions. ❓ Fully editable from the backend (Admin can add/edit/reorder the messages).
