@@ -20,6 +20,16 @@ we'll organize and prioritize them together later.
 - [ ] **Multi-file upload:** select and upload many documents at once with a single click (not one at a time).
 - [ ] **View files by role:** Dealer, Reviewer, and Admin can open a customer profile and select/view the files inside it (dealers see only their own — see Search rules).
 
+### Deal intake (dealer-entered fields)
+- [ ] **Require dealers to enter basic info for each deal:**
+  - Customer name
+  - Date of sale
+  - Address
+  - Phone number
+  - Home Depot store number
+  - Installation date
+  - _(Note: name / address / phone already exist on today's application form; date of sale, Home Depot store #, and installation date are new fields to add.)_
+
 ### Search
 - [ ] **Global search** by: Loan reference #, Finance reference #, HD reference #, and customer first or last name. ❓ (Requires adding these reference-number fields to each deal.)
 - [ ] **Search scoping:** Dealers can only search deals *they* uploaded; Reviewers and Admins can search all deals.
