@@ -133,7 +133,7 @@ Grouped into phases so each one ships a coherent, usable improvement. Items mark
 ❓ in the inbox need info from you but won't block the rest of the phase — we build
 the mechanism now and drop your content/keys in when ready.
 
-### Phase 1 — New application experience (dealer intake) 🔨 building first
+### Phase 1 — New application experience (dealer intake) ✅ DONE
 - Program types **HD / GWA** + sub-categories (Water, Air, Smell Busters, HVAC) — replaces free-text program.
 - New deal fields: **date of sale**, **installation date**, **Home Depot store #** (per-dealer dropdown), plus date-of-purchase.
 - Digital **loan application** form (from the approved mockup) as the "type it in" method.
@@ -143,14 +143,14 @@ the mechanism now and drop your content/keys in when ready.
 - Rename **"Supporting documents" → "Documents for approval."**
 - (Address autocomplete: build later in phase once a lookup provider is chosen.)
 
-### Phase 2 — Documents & funding
+### Phase 2 — Documents & funding ✅ DONE
 - **Multi-file upload** (many at once, one click).
 - **Auto-convert uploads to PDF** + standardized naming (customer name + date of purchase + timestamp).
 - **Organized per-dealer storage** (Year → Month → Week, or a better scheme).
 - **View/download documents by role**; reviewer → dealer paperwork uploads (**HD**, **Financing paperwork**).
 - **Payout receipt / statement** per deal.
 
-### Phase 3 — Workflow: statuses, search, summary, confirmations
+### Phase 3 — Workflow: statuses, search, summary, confirmations 🔨 building next
 - Expanded **statuses + colours + icons** (visible on both reviewer and dealer sides); **sort/filter by status**; **priority** flag; **stale-deal follow-ups**.
 - **Reference numbers** (loan / finance / HD) + **global search** (dealers scoped to their own).
 - **Application summary:** approved amount, approved-by, **finance company** (+ managed finance-company list).
