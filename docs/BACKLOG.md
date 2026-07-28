@@ -72,7 +72,7 @@ we'll organize and prioritize them together later.
 - [ ] **Communication-preference toggles:** let users choose how they're contacted. ❓ Only offer channels we can actually deliver (email is straightforward; SMS is doable but needs a paid text provider — to confirm at rework).
 
 ### Application summary & finance companies
-- [ ] **Application summary shows:** customer name, approval status, **approved by** (which reviewer), and **the finance company** that approved it.
+- [ ] **Application summary shows:** customer name, approval status, **approved by** (which reviewer), **the finance company** that approved it, and the **approved amount**.
 - [ ] **Maintain a list of finance companies** (managed in the backend). ❓ (Company list to be provided.)
 - [ ] **Reviewer marks which finance company approved the deal;** that selection appears in the application summary.
 
