@@ -2,120 +2,149 @@ import Link from 'next/link';
 import { requireRole } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { StatusBadge } from '@/components/StatusBadge';
-import type { ApplicationStatus } from '@prisma/client';
+import { programLabel } from '@/lib/constants';
+import type { ApplicationStatus, Prisma } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
 
-const REVIEW_STATUSES: ApplicationStatus[] = ['SUBMITTED', 'UNDER_REVIEW', 'CONDITIONAL'];
-const FUNDING_STATUSES: ApplicationStatus[] = ['FUNDING_SUBMITTED', 'FUNDING_REVIEW'];
+// Filter groups shown in the queue menu. Every deal is reachable through one of
+// these; "All" shows everything so nothing ever disappears from view.
+const GROUPS: {
+  key: string;
+  label: string;
+  statuses?: ApplicationStatus[];
+  paid?: boolean;
+}[] = [
+  { key: 'all', label: 'All' },
+  { key: 'new', label: 'New', statuses: ['SUBMITTED', 'UNDER_REVIEW'] },
+  { key: 'approved', label: 'Approved', statuses: ['APPROVED', 'CONDITIONAL'] },
+  { key: 'funding', label: 'In for funding', statuses: ['FUNDING_SUBMITTED', 'FUNDING_REVIEW'] },
+  { key: 'funded', label: 'Funded', statuses: ['FUNDED'] },
+  { key: 'paid', label: 'Paid', paid: true },
+  { key: 'declined', label: 'Declined', statuses: ['DECLINED', 'WITHDRAWN'] },
+];
 
-export default async function StaffQueue({
-  searchParams,
-}: {
-  searchParams: { tab?: string; status?: string };
-}) {
+// Priority ordering: new/incoming work first, completed work last.
+const RANK: Record<ApplicationStatus, number> = {
+  SUBMITTED: 0,
+  FUNDING_SUBMITTED: 1,
+  UNDER_REVIEW: 2,
+  FUNDING_REVIEW: 3,
+  CONDITIONAL: 4,
+  APPROVED: 5,
+  FUNDED: 6,
+  DECLINED: 7,
+  WITHDRAWN: 8,
+  DRAFT: 9,
+};
+
+function whereFor(key: string): Prisma.ApplicationWhereInput {
+  const group = GROUPS.find((g) => g.key === key) ?? GROUPS[0];
+  if (group.paid) return { payouts: { some: {} } };
+  if (group.statuses) return { status: { in: group.statuses } };
+  return {};
+}
+
+function daysAgo(d: Date): number {
+  return Math.floor((Date.now() - d.getTime()) / 86_400_000);
+}
+
+export default async function StaffQueue({ searchParams }: { searchParams: { filter?: string } }) {
   await requireRole('REVIEWER', 'ADMIN');
-  const tab = searchParams.tab === 'funding' ? 'funding' : 'review';
-  const baseStatuses = tab === 'funding' ? FUNDING_STATUSES : REVIEW_STATUSES;
+  const active = GROUPS.find((g) => g.key === searchParams.filter) ? searchParams.filter! : 'all';
 
-  const statusFilter =
-    searchParams.status && baseStatuses.includes(searchParams.status as ApplicationStatus)
-      ? [searchParams.status as ApplicationStatus]
-      : baseStatuses;
+  const [apps, statusCounts, paidCount] = await Promise.all([
+    prisma.application.findMany({
+      where: whereFor(active),
+      include: { dealer: true, _count: { select: { documents: true, payouts: true } } },
+      take: 300,
+    }),
+    prisma.application.groupBy({ by: ['status'], _count: true }),
+    prisma.application.count({ where: { payouts: { some: {} } } }),
+  ]);
 
-  const apps = await prisma.application.findMany({
-    where: { status: { in: statusFilter } },
-    orderBy: { createdAt: 'asc' },
-    include: { dealer: true, _count: { select: { documents: true } } },
-    take: 200,
-  });
+  // Priority sort: rank asc, then oldest first (longest waiting = more urgent).
+  apps.sort((a, b) => RANK[a.status] - RANK[b.status] || a.createdAt.getTime() - b.createdAt.getTime());
+
+  const countByStatus = (s: ApplicationStatus) =>
+    statusCounts.find((c) => c.status === s)?._count ?? 0;
+  const groupCount = (g: (typeof GROUPS)[number]) => {
+    if (g.key === 'all') return statusCounts.reduce((n, c) => n + c._count, 0);
+    if (g.paid) return paidCount;
+    return (g.statuses ?? []).reduce((n, s) => n + countByStatus(s), 0);
+  };
 
   return (
     <div>
-      <div className="mb-6 flex items-center gap-4">
-        <TabLink current={tab} tab="review" label="Review queue" />
-        <TabLink current={tab} tab="funding" label="Funding queue" />
+      <div className="mb-5 flex items-center justify-between">
+        <h1 className="text-xl font-semibold text-gray-900">Deals</h1>
+        <span className="text-sm text-gray-500">New deals are listed first</span>
       </div>
 
-      <div className="mb-4 flex flex-wrap gap-2 text-xs">
-        <FilterLink tab={tab} status={undefined} active={!searchParams.status} label="All" />
-        {baseStatuses.map((s) => (
-          <FilterLink key={s} tab={tab} status={s} active={searchParams.status === s} label={s} />
-        ))}
+      {/* Status filter menu */}
+      <div className="mb-5 flex flex-wrap gap-2">
+        {GROUPS.map((g) => {
+          const isActive = active === g.key;
+          const count = groupCount(g);
+          return (
+            <Link
+              key={g.key}
+              href={g.key === 'all' ? '/staff' : `/staff?filter=${g.key}`}
+              className={`inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-sm font-medium transition ${
+                isActive ? 'bg-brand-600 text-white' : 'bg-white text-gray-600 ring-1 ring-inset ring-gray-200 hover:bg-gray-50'
+              }`}
+            >
+              {g.label}
+              <span className={`rounded-full px-1.5 text-xs ${isActive ? 'bg-white/25' : 'bg-gray-100 text-gray-500'}`}>{count}</span>
+            </Link>
+          );
+        })}
       </div>
 
       {apps.length === 0 ? (
-        <div className="card p-8 text-center text-sm text-gray-500">Nothing in this queue.</div>
+        <div className="card p-8 text-center text-sm text-gray-500">No deals in this view.</div>
       ) : (
-        <div className="card overflow-hidden">
+        <div className="card overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200 text-sm">
             <thead className="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500">
               <tr>
                 <th className="px-4 py-3">Applicant</th>
                 <th className="px-4 py-3">Dealer</th>
-                <th className="px-4 py-3">Province</th>
+                <th className="px-4 py-3">Program</th>
                 <th className="px-4 py-3">Amount</th>
-                <th className="px-4 py-3">Docs</th>
                 <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Age</th>
+                <th className="px-4 py-3">Waiting</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {apps.map((a) => (
-                <tr key={a.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3">
-                    <Link href={`/staff/applications/${a.id}`} className="font-medium text-brand-700 hover:underline">
-                      {a.applicantFirstName} {a.applicantLastName}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3 text-gray-600">{a.dealer.name}</td>
-                  <td className="px-4 py-3">{a.province}</td>
-                  <td className="px-4 py-3">${a.requestedAmount.toString()}</td>
-                  <td className="px-4 py-3 text-gray-500">{a._count.documents}</td>
-                  <td className="px-4 py-3"><StatusBadge status={a.status} /></td>
-                  <td className="px-4 py-3 text-gray-500">{a.createdAt.toLocaleDateString('en-CA')}</td>
-                </tr>
-              ))}
+              {apps.map((a) => {
+                const isNew = a.status === 'SUBMITTED' || a.status === 'FUNDING_SUBMITTED';
+                const age = daysAgo(a.createdAt);
+                return (
+                  <tr key={a.id} className={isNew ? 'bg-blue-50/40 hover:bg-blue-50' : 'hover:bg-gray-50'}>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        {isNew && <span className="h-2 w-2 flex-none rounded-full bg-blue-500" title="Needs attention" />}
+                        <Link href={`/staff/applications/${a.id}`} className="font-medium text-brand-700 hover:underline">
+                          {a.applicantFirstName} {a.applicantLastName}
+                        </Link>
+                        {a._count.payouts > 0 && (
+                          <span className="badge bg-emerald-100 text-emerald-800">Paid</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-gray-600">{a.dealer.name}</td>
+                    <td className="px-4 py-3">{programLabel(a.programType, a.programCategory)}</td>
+                    <td className="px-4 py-3 tabular-nums">${a.requestedAmount.toString()}</td>
+                    <td className="px-4 py-3"><StatusBadge status={a.status} /></td>
+                    <td className="px-4 py-3 text-gray-500">{age === 0 ? 'today' : `${age}d`}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       )}
     </div>
-  );
-}
-
-function TabLink({ current, tab, label }: { current: string; tab: string; label: string }) {
-  const active = current === tab;
-  return (
-    <Link
-      href={`/staff?tab=${tab}`}
-      className={`border-b-2 px-1 pb-2 text-sm font-medium ${
-        active ? 'border-brand-600 text-brand-700' : 'border-transparent text-gray-500 hover:text-gray-700'
-      }`}
-    >
-      {label}
-    </Link>
-  );
-}
-
-function FilterLink({
-  tab,
-  status,
-  active,
-  label,
-}: {
-  tab: string;
-  status?: string;
-  active: boolean;
-  label: string;
-}) {
-  const href = status ? `/staff?tab=${tab}&status=${status}` : `/staff?tab=${tab}`;
-  return (
-    <Link
-      href={href}
-      className={`rounded-full px-3 py-1 ${active ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-    >
-      {label}
-    </Link>
   );
 }

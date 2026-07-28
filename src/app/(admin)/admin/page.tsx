@@ -19,7 +19,7 @@ export default async function AdminOverview() {
     { label: 'Users', value: users, href: '/admin/users' },
     { label: 'Applications', value: apps, href: '/staff' },
     { label: 'Pending review', value: pendingReview, href: '/staff' },
-    { label: 'Funded', value: funded, href: '/staff?tab=funding' },
+    { label: 'Funded', value: funded, href: '/staff?filter=funded' },
   ];
 
   return (
