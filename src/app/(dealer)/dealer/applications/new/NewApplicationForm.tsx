@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { createApplicationAction, type ActionState } from '@/app/(dealer)/actions';
 import {
@@ -42,6 +42,48 @@ const postalFmt = (e: React.FormEvent<HTMLInputElement>) => {
   e.currentTarget.value = formatPostal(e.currentTarget.value);
 };
 
+// Friendly labels for the error summary (keyed by form field name).
+const FIELD_LABELS: Record<string, string> = {
+  programType: 'Program',
+  programCategory: 'Category',
+  requestedAmount: 'Requested amount',
+  applicantFirstName: 'First name',
+  applicantLastName: 'Last name',
+  applicantEmail: 'Email',
+  applicantPhone: 'Phone',
+  province: 'Province',
+  consent: 'Consent',
+  financeItNumber: 'FinanceIt number',
+};
+
+// Always-required fields (independent of entry method).
+const REQUIRED_FIELDS: { name: string; label: string; checkbox?: boolean }[] = [
+  { name: 'programType', label: 'Program' },
+  { name: 'programCategory', label: 'Category' },
+  { name: 'requestedAmount', label: 'Requested amount' },
+  { name: 'applicantFirstName', label: 'First name' },
+  { name: 'applicantLastName', label: 'Last name' },
+  { name: 'applicantEmail', label: 'Email' },
+  { name: 'applicantPhone', label: 'Phone' },
+  { name: 'province', label: 'Province' },
+  { name: 'consent', label: 'Consent', checkbox: true },
+];
+
+function cleanMessage(msg: string): string {
+  if (/enum|expected|invalid/i.test(msg)) return 'required';
+  return msg.replace(/\.$/, '').toLowerCase();
+}
+
+function focusField(name: string) {
+  const el =
+    (document.getElementById(name) as HTMLElement | null) ??
+    (document.querySelector(`[name="${name}"]`) as HTMLElement | null);
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setTimeout(() => el.focus({ preventScroll: true }), 300);
+  }
+}
+
 const METHODS: { value: Method; title: string; blurb: string }[] = [
   { value: 'TYPED', title: 'Type it in', blurb: 'Enter the full application (fewer errors)' },
   { value: 'PHOTO', title: 'Upload a photo', blurb: 'Attach a photo of the paper application' },
@@ -52,14 +94,66 @@ export function NewApplicationForm({ stores }: { stores: Store[] }) {
   const [state, action] = useFormState(createApplicationAction, initial);
   const [method, setMethod] = useState<Method>('TYPED');
   const typed = method === 'TYPED';
+  const summaryRef = useRef<HTMLDivElement>(null);
+  const [clientErrors, setClientErrors] = useState<Record<string, string>>({});
+
+  // Merge instant client-side checks with any server-returned errors.
+  const errorEntries = Object.entries({ ...(state.fieldErrors ?? {}), ...clientErrors });
+
+  // Check required fields ourselves so we can list ALL missing ones at once,
+  // instead of the browser stopping at the first empty field.
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    const form = e.currentTarget;
+    const errs: Record<string, string> = {};
+    for (const f of REQUIRED_FIELDS) {
+      const el = form.elements.namedItem(f.name) as HTMLInputElement | HTMLSelectElement | null;
+      if (!el) continue;
+      const empty = f.checkbox ? !(el as HTMLInputElement).checked : !(el.value || '').trim();
+      if (empty) errs[f.name] = 'required';
+    }
+    if (Object.keys(errs).length > 0) {
+      e.preventDefault();
+      setClientErrors(errs);
+      summaryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } else {
+      setClientErrors({});
+    }
+  }
+
+  // When the server returns errors, scroll the summary into view.
+  useEffect(() => {
+    if (state.error || (state.fieldErrors && Object.keys(state.fieldErrors).length > 0)) {
+      summaryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state]);
 
   return (
-    <form action={action} className="space-y-8">
+    <form action={action} onSubmit={handleSubmit} className="space-y-8">
       <input type="hidden" name="entryMethod" value={method} />
 
-      {state.error && (
-        <div className="rounded-md bg-red-50 p-3 text-sm text-red-700" role="alert">
-          {state.error}
+      {(state.error || errorEntries.length > 0) && (
+        <div ref={summaryRef} className="rounded-md border border-red-200 bg-red-50 p-4 text-sm" role="alert">
+          <p className="font-semibold text-red-800">
+            {errorEntries.length > 0
+              ? "Please complete or fix the following before submitting:"
+              : state.error}
+          </p>
+          {errorEntries.length > 0 && (
+            <ul className="mt-2 space-y-1">
+              {errorEntries.map(([name, msg]) => (
+                <li key={name}>
+                  <button
+                    type="button"
+                    onClick={() => focusField(name)}
+                    className="text-left text-red-700 underline decoration-red-300 underline-offset-2 hover:text-red-900"
+                  >
+                    {FIELD_LABELS[name] ?? name} — {cleanMessage(msg)}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       )}
 
@@ -102,7 +196,7 @@ export function NewApplicationForm({ stores }: { stores: Store[] }) {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div>
             <label className="label" htmlFor="programType">Program</label>
-            <select id="programType" name="programType" required className="input">
+            <select id="programType" name="programType" className="input">
               <option value="">Select…</option>
               {PROGRAM_TYPES.map((p) => (<option key={p.value} value={p.value}>{p.label}</option>))}
             </select>
@@ -110,7 +204,7 @@ export function NewApplicationForm({ stores }: { stores: Store[] }) {
           </div>
           <div>
             <label className="label" htmlFor="programCategory">Category</label>
-            <select id="programCategory" name="programCategory" required className="input">
+            <select id="programCategory" name="programCategory" className="input">
               <option value="">Select…</option>
               {PROGRAM_CATEGORIES.map((p) => (<option key={p.value} value={p.value}>{p.label}</option>))}
             </select>
@@ -118,7 +212,7 @@ export function NewApplicationForm({ stores }: { stores: Store[] }) {
           </div>
           <div>
             <label className="label" htmlFor="requestedAmount">Requested amount (CAD)</label>
-            <input id="requestedAmount" name="requestedAmount" type="number" step="0.01" min="0" required className="input" />
+            <input id="requestedAmount" name="requestedAmount" type="number" step="0.01" min="0" className="input" />
             <Err state={state} name="requestedAmount" />
           </div>
         </div>
@@ -164,11 +258,11 @@ export function NewApplicationForm({ stores }: { stores: Store[] }) {
       <section className="card p-6">
         <h2 className="mb-4 text-base font-semibold text-gray-900">Applicant</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div><label className="label" htmlFor="applicantFirstName">First name</label><input id="applicantFirstName" name="applicantFirstName" required className="input" /><Err state={state} name="applicantFirstName" /></div>
+          <div><label className="label" htmlFor="applicantFirstName">First name</label><input id="applicantFirstName" name="applicantFirstName" className="input" /><Err state={state} name="applicantFirstName" /></div>
           {typed && <div><label className="label" htmlFor="middleName">Middle name <span className="font-normal text-gray-400">(optional)</span></label><input id="middleName" name="middleName" className="input" /></div>}
-          <div><label className="label" htmlFor="applicantLastName">Last name</label><input id="applicantLastName" name="applicantLastName" required className="input" /><Err state={state} name="applicantLastName" /></div>
-          <div><label className="label" htmlFor="applicantEmail">Email</label><input id="applicantEmail" name="applicantEmail" type="email" required className="input" /><Err state={state} name="applicantEmail" /></div>
-          <div><label className="label" htmlFor="applicantPhone">Mobile phone</label><input id="applicantPhone" name="applicantPhone" required className="input" inputMode="numeric" maxLength={12} placeholder="705-716-2111" onInput={phoneFmt} /><Err state={state} name="applicantPhone" /></div>
+          <div><label className="label" htmlFor="applicantLastName">Last name</label><input id="applicantLastName" name="applicantLastName" className="input" /><Err state={state} name="applicantLastName" /></div>
+          <div><label className="label" htmlFor="applicantEmail">Email</label><input id="applicantEmail" name="applicantEmail" type="email" className="input" /><Err state={state} name="applicantEmail" /></div>
+          <div><label className="label" htmlFor="applicantPhone">Mobile phone</label><input id="applicantPhone" name="applicantPhone" className="input" inputMode="numeric" maxLength={12} placeholder="705-716-2111" onInput={phoneFmt} /><Err state={state} name="applicantPhone" /></div>
           {typed && <div><label className="label" htmlFor="homePhone">Home phone <span className="font-normal text-gray-400">(optional)</span></label><input id="homePhone" name="homePhone" className="input" inputMode="numeric" maxLength={12} placeholder="705-716-2111" onInput={phoneFmt} /></div>}
           {typed && (
             <div>
@@ -182,7 +276,7 @@ export function NewApplicationForm({ stores }: { stores: Store[] }) {
           )}
           <div className="sm:col-span-2"><label className="label" htmlFor="applicantAddress">Street address</label><input id="applicantAddress" name="applicantAddress" className="input" /></div>
           <div><label className="label" htmlFor="province">Province</label>
-            <select id="province" name="province" required className="input">
+            <select id="province" name="province" className="input">
               <option value="">Select…</option>
               {PROVINCES.map((p) => (<option key={p.value} value={p.value}>{p.label}</option>))}
             </select>
@@ -287,7 +381,7 @@ export function NewApplicationForm({ stores }: { stores: Store[] }) {
         <h2 className="mb-2 text-base font-semibold text-gray-900">Consent</h2>
         <div className="mb-3 max-h-40 overflow-y-auto rounded border border-gray-200 bg-gray-50 p-3 text-xs text-gray-600">{CONSENT_TEXT}</div>
         <label className="flex items-start gap-2 text-sm text-gray-700">
-          <input type="checkbox" name="consent" value="on" required className="mt-0.5 rounded border-gray-300" />
+          <input type="checkbox" name="consent" value="on" className="mt-0.5 rounded border-gray-300" />
           <span>I confirm the applicant has provided informed consent as described above.</span>
         </label>
         <Err state={state} name="consent" />
