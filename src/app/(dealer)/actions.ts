@@ -155,6 +155,34 @@ export async function createApplicationAction(
   redirect(`/dealer/applications/${app.id}`);
 }
 
+// Store one or more uploaded files (multi-file upload) for an application.
+async function storeFiles(
+  app: { id: string; dealerId: string; applicantFirstName: string; applicantLastName: string; dateOfSale: Date | null },
+  files: File[],
+  type: DocumentType,
+  stage: 'APPLICATION' | 'FUNDING',
+  uploadedById: string,
+): Promise<ActionState> {
+  const real = files.filter((f) => f && typeof f !== 'string' && f.size > 0);
+  if (real.length === 0) return { error: 'No file provided.' };
+
+  let stored = 0;
+  for (const file of real) {
+    const result = await storeUploadedFile({
+      application: app,
+      file,
+      type,
+      stage,
+      uploadedById,
+    });
+    if (!result.ok) {
+      return { error: stored > 0 ? `${result.error} (${stored} uploaded before this)` : result.error };
+    }
+    stored += 1;
+  }
+  return {};
+}
+
 export async function uploadSupportingDocAction(
   applicationId: string,
   _prev: ActionState,
@@ -164,15 +192,9 @@ export async function uploadSupportingDocAction(
   const app = await prisma.application.findUnique({ where: { id: applicationId } });
   if (!app || !canAccessApplication(session, app.dealerId)) return { error: 'Not found.' };
 
-  const file = formData.get('file') as File;
-  const result = await storeUploadedFile({
-    applicationId,
-    file,
-    type: 'SUPPORTING',
-    stage: 'APPLICATION',
-    uploadedById: session.userId,
-  });
-  if (!result.ok) return { error: result.error };
+  const files = formData.getAll('file') as File[];
+  const result = await storeFiles(app, files, 'SUPPORTING', 'APPLICATION', session.userId);
+  if (result.error) return result;
 
   revalidatePath(`/dealer/applications/${applicationId}`);
   return {};
@@ -213,15 +235,9 @@ export async function uploadFundingDocAction(
     return { error: 'Funding documents can only be uploaded after approval.' };
   }
 
-  const file = formData.get('file') as File;
-  const result = await storeUploadedFile({
-    applicationId,
-    file,
-    type: docType,
-    stage: 'FUNDING',
-    uploadedById: session.userId,
-  });
-  if (!result.ok) return { error: result.error };
+  const files = formData.getAll('file') as File[];
+  const result = await storeFiles(app, files, docType, 'FUNDING', session.userId);
+  if (result.error) return result;
 
   revalidatePath(`/dealer/applications/${applicationId}`);
   return {};

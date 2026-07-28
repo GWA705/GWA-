@@ -24,11 +24,24 @@ function driver(): 'local' | 's3' {
   return (process.env.STORAGE_DRIVER as 'local' | 's3') || 'local';
 }
 
-/** Generate a random, unguessable storage key under an application prefix. */
-export function newStorageKey(applicationId: string, fileName: string): string {
-  const ext = path.extname(fileName).slice(0, 12).replace(/[^a-zA-Z0-9.]/g, '');
+/**
+ * Generate a random, unguessable storage key, organized by dealer and date:
+ *   dealers/<dealerId>/<YYYY>/<MM>/week-<n>/<applicationId>/<rand><ext>
+ * The date hierarchy uses the upload time.
+ */
+export function newStorageKey(params: {
+  dealerId: string;
+  applicationId: string;
+  ext: string;
+  when: Date;
+}): string {
+  const { dealerId, applicationId, when } = params;
+  const ext = params.ext.replace(/[^a-zA-Z0-9.]/g, '') || '.bin';
+  const year = when.getUTCFullYear();
+  const month = String(when.getUTCMonth() + 1).padStart(2, '0');
+  const week = Math.ceil(when.getUTCDate() / 7); // week of the month (1–5)
   const rand = crypto.randomBytes(16).toString('hex');
-  return `applications/${applicationId}/${rand}${ext}`;
+  return `dealers/${dealerId}/${year}/${month}/week-${week}/${applicationId}/${rand}${ext}`;
 }
 
 // --- Local driver ----------------------------------------------------------

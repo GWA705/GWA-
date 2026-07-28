@@ -255,9 +255,10 @@ model Document {
   type  DocumentType
   stage DocumentStage
 
-  fileName  String
-  mimeType  String
-  sizeBytes Int
+  fileName     String // standardized display name (customer + date + timestamp)
+  originalName String? // the file name as uploaded
+  mimeType     String
+  sizeBytes    Int
   // Storage key (S3 key or local relative path). File bytes are encrypted at
   // rest (SSE-KMS on S3, or envelope-encrypted on the local driver).
   storageKey String
