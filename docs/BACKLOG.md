@@ -92,6 +92,7 @@ we'll organize and prioritize them together later.
 - [ ] **Capture login IP addresses.** _(Already captured: every login success/failure is recorded with its IP in the audit log — we can add a clear per-user "recent logins / IPs" view on top.)_
 
 ### Cross-cutting (applies to the whole app)
+- [ ] **Fast & fluid is the #1 priority.** The app should feel quick and responsive with minimal clicks/waiting. Design every workflow to be efficient — keyboard shortcuts, quick actions, smart defaults, and as few steps as possible — so power users can move fast. Treat speed/fluidity as a first-class requirement on every feature.
 - [ ] **Responsive design — works well on phone, PC, and Mac.** Every screen (forms, tables, uploads, dashboards) must lay out properly on a small phone screen and on a full desktop browser. _(The current build already uses a responsive framework and adapts to some degree; this makes "polished on mobile + desktop" an explicit requirement to verify on every feature.)_
 
 ### Logging
