@@ -38,6 +38,9 @@ we'll organize and prioritize them together later.
 ### Address autocomplete
 - [ ] **Smart address entry:** as the dealer types an address, show a dropdown of matching real addresses; clicking one auto-fills the street, city, province, and postal code fields. Should correct/validate the address and fill in the postal code. ❓ Needs a lookup provider (options: Canada Post AddressComplete — Canadian & great for postal codes, or Google Places Autocomplete) — has a per-use cost / API key; pick provider at rework.
 
+### Wording / labels
+- [ ] **Rename "Supporting documents" → "Documents for approval"** (the docs a dealer uploads at the application stage).
+
 ### Search
 - [ ] **Global search** by: Loan reference #, Finance reference #, HD reference #, and customer first or last name. ❓ (Requires adding these reference-number fields to each deal.)
 - [ ] **Search scoping:** Dealers can only search deals *they* uploaded; Reviewers and Admins can search all deals.
