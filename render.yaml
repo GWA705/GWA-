@@ -20,8 +20,8 @@ services:
     plan: free
     region: oregon
     buildCommand: npm install && npm run build
-    # Apply DB migrations, load sample logins (idempotent), then start.
-    startCommand: npx prisma migrate deploy && (npx prisma db seed || true) && npm run start
+    # Waits for the database, applies migrations, seeds, then starts (see script).
+    startCommand: sh scripts/start.sh
     healthCheckPath: /api/health
     envVars:
       - key: NODE_VERSION
