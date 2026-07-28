@@ -228,7 +228,7 @@ export async function submitFundingAction(applicationId: string): Promise<void> 
   // Verify all required funding documents are present.
   const uploadedTypes = new Set(app.documents.filter((x) => x.stage === 'FUNDING').map((x) => x.type));
   const missing = FUNDING_DOCUMENT_TYPES.filter(
-    (t) => t.required && (!t.homeownershipOnly || app.homeownershipRequired) && !uploadedTypes.has(t.type),
+    (t) => t.required && !uploadedTypes.has(t.type),
   );
   if (missing.length > 0) {
     redirect(`/dealer/applications/${applicationId}?missing=${missing.length}`);

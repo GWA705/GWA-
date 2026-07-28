@@ -141,11 +141,6 @@ export function NewApplicationForm({ stores }: { stores: Store[] }) {
           <div><label className="label" htmlFor="financeReference">Finance reference #</label><input id="financeReference" name="financeReference" className="input" autoComplete="off" /></div>
           <div><label className="label" htmlFor="hdReference">HD reference #</label><input id="hdReference" name="hdReference" className="input" autoComplete="off" /></div>
         </div>
-
-        <label className="mt-4 flex items-center gap-2 text-sm text-gray-700">
-          <input type="checkbox" name="homeownershipRequired" value="true" className="rounded border-gray-300" />
-          Proof of homeownership will be required for this deal
-        </label>
       </section>
 
       {/* Deal details */}

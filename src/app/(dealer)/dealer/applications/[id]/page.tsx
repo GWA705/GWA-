@@ -49,9 +49,7 @@ export default async function DealerApplicationDetail({
   const fundingStageOpen = ['APPROVED', 'CONDITIONAL'].includes(app.status);
   const inFundingReview = ['FUNDING_SUBMITTED', 'FUNDING_REVIEW', 'FUNDED'].includes(app.status);
 
-  const requiredFunding = FUNDING_DOCUMENT_TYPES.filter(
-    (t) => !t.homeownershipOnly || app.homeownershipRequired,
-  );
+  const requiredFunding = FUNDING_DOCUMENT_TYPES;
   const missingCount = requiredFunding.filter(
     (t) => t.required && !uploadedFundingTypes.has(t.type),
   ).length;
@@ -92,7 +90,6 @@ export default async function DealerApplicationDetail({
           <div><dt className="text-gray-500">Email</dt><dd className="font-medium">{app.applicantEmail}</dd></div>
           <div><dt className="text-gray-500">Phone</dt><dd className="font-medium">{app.applicantPhone}</dd></div>
           <div><dt className="text-gray-500">FinanceIt #</dt><dd className="font-medium">{app.financeItNumber ?? '—'}</dd></div>
-          <div><dt className="text-gray-500">Homeownership required</dt><dd className="font-medium">{app.homeownershipRequired ? 'Yes' : 'No'}</dd></div>
         </dl>
         {app.financingNote && (
           <p className="mt-4 rounded bg-gray-50 p-3 text-sm text-gray-600"><span className="font-medium text-gray-700">Financing note: </span>{app.financingNote}</p>

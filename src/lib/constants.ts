@@ -77,38 +77,32 @@ export const STATUS_COLORS: Record<ApplicationStatus, string> = {
 };
 
 // The funding package checklist. Each entry maps to a DocumentType the dealer
-// uploads at the funding stage. `homeownershipOnly` items are only required
-// when the application flagged homeownership as required.
+// uploads at the funding stage.
 export const FUNDING_DOCUMENT_TYPES: {
   type: DocumentType;
   label: string;
   required: boolean;
-  homeownershipOnly?: boolean;
 }[] = [
-  { type: 'SIGNED_CONTRACT', label: 'Signed contract', required: true },
+  { type: 'SIGNED_CONTRACT', label: 'Signed finance docs (full package)', required: true },
   { type: 'VOID_CHEQUE_OR_PAP', label: 'Void cheque or PAP form', required: true },
-  { type: 'INSTALL_PHOTO', label: 'Pictures of installed product', required: true },
-  { type: 'SIGNED_HD_DOCUMENT', label: 'Signed HD documents', required: true },
-  { type: 'GOVERNMENT_ID', label: 'Government-issued ID', required: true },
-  {
-    type: 'PROOF_OF_HOMEOWNERSHIP',
-    label: 'Proof of homeownership',
-    required: true,
-    homeownershipOnly: true,
-  },
+  { type: 'INSTALL_PHOTO', label: 'Pictures of installed products', required: true },
+  { type: 'SIGNED_HD_DOCUMENT', label: 'Signed Home Depot documents', required: true },
+  { type: 'HD_WAIVER', label: 'Signed & completed Home Depot waiver', required: true },
+  { type: 'OTHER', label: 'Other supporting documents', required: false },
 ];
 
 export const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
   SUPPORTING: 'Document for approval',
-  SIGNED_CONTRACT: 'Signed contract',
+  SIGNED_CONTRACT: 'Signed finance docs (full package)',
   VOID_CHEQUE_OR_PAP: 'Void cheque / PAP form',
   INSTALL_PHOTO: 'Installed product photo',
-  SIGNED_HD_DOCUMENT: 'Signed HD document',
+  SIGNED_HD_DOCUMENT: 'Signed Home Depot document',
+  HD_WAIVER: 'Home Depot waiver',
   PROOF_OF_HOMEOWNERSHIP: 'Proof of homeownership',
   GOVERNMENT_ID: 'Government ID',
   HD_PAPERWORK: 'HD paperwork',
   FINANCING_PAPERWORK: 'Financing paperwork',
-  OTHER: 'Other',
+  OTHER: 'Other supporting document',
 };
 
 // Upload constraints.

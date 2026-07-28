@@ -239,6 +239,7 @@ enum DocumentType {
   VOID_CHEQUE_OR_PAP
   INSTALL_PHOTO
   SIGNED_HD_DOCUMENT
+  HD_WAIVER
   PROOF_OF_HOMEOWNERSHIP
   GOVERNMENT_ID
   // Reviewer -> dealer paperwork

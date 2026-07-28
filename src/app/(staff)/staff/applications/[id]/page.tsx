@@ -123,7 +123,6 @@ export default async function StaffApplicationDetail({
             <div><dt className="text-gray-500">Loan ref</dt><dd className="font-medium">{app.loanReference ?? '—'}</dd></div>
             <div><dt className="text-gray-500">Employer</dt><dd className="font-medium">{app.employer ?? '—'}</dd></div>
             <div><dt className="text-gray-500">Co-applicant</dt><dd className="font-medium">{app.coApplicantName ?? '—'}</dd></div>
-            <div><dt className="text-gray-500">Homeownership req.</dt><dd className="font-medium">{app.homeownershipRequired ? 'Yes' : 'No'}</dd></div>
           </dl>
           {app.financingNote && (
             <p className="mt-3 rounded bg-gray-50 p-3 text-sm text-gray-600"><span className="font-medium text-gray-700">Financing note: </span>{app.financingNote}</p>
