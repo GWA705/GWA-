@@ -47,6 +47,15 @@ we'll organize and prioritize them together later.
 - [ ] **Same colour/icon visible on the Dealer side** so dealers see the deal's progress at a glance.
 - [ ] **Priority flag** for deals where someone is waiting on an approval — surface these first.
 
+### Sort / filter by status (all logins)
+- [ ] **Status sort/filter built into every login** (Dealer, Reviewer, Admin) to filter the deal list by status. Starting set (extensible):
+  - Submitted
+  - Approved
+  - In for funding
+  - Funded
+  - Problem
+  - _(More statuses can be added; these will map to / extend the app's existing status list.)_
+
 ### Notifications & communication
 - [ ] **Reviewer notification when new documents are uploaded** (so they know something needs review) — via email and/or text.
 - [ ] **Dealer email notifications** on deal progress/status changes.
