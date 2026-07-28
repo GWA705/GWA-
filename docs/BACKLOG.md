@@ -27,7 +27,7 @@ we'll organize and prioritize them together later.
 ### New application — financing details
 - [ ] **Financing note field:** under "Financing details," add a note box where the dealer writes what kind of financing deal or promotion they'd like with this application.
 - [ ] **Three ways for a dealer to provide the credit application:**
-  1. **Type it into the site** — enter the application details directly. ❓ Exact fields/layout to be provided by you; when typed, it must display in the **same layout as the document you'll upload as the template**.
+  1. **Type it into the site** — enter the application details directly. **Template provided:** the FinanceIt "Loan Application" paper form (photo supplied). The digital typed-entry form should mirror its layout/sections: **Personal Details** (Photo ID first/middle/last name, home & mobile phone, birthdate, marital status, SIN, email), **Housing** (address/unit, city, province, postal code, years at address, monthly housing cost, own/rent/other), optional **Mailing / Previous / Work-site addresses**, **Borrower Identification** (photo ID type/number/province/expiry), **Employment & Income** (business name, position, employer address & phone, gross monthly income, time at job, employment status), **Consents** (privacy policy + electronic disclosures), and **Credit Authorization** (signature + date). Build as **GWA-branded** (not FinanceIt branding); consent wording is placeholder pending legal review.
   2. **Upload a photo** of the paper credit application for processing.
   3. **Enter just the FinanceIt approval number** — providing it indicates the deal is already approved.
 - [ ] **Encourage typing over photo:** nudge dealers to type the info in (fewer errors on the customer's application than a photo).

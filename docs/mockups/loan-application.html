@@ -1,0 +1,502 @@
+<title>GWA — Loan Application</title>
+<style>
+  :root {
+    --ground: #eaeef3;
+    --sheet: #ffffff;
+    --ink: #14202e;
+    --muted: #566574;
+    --faint: #8593a3;
+    --line: #dbe2ea;
+    --field-bg: #f6f9fc;
+    --field-line: #ccd6e1;
+    --field-line-focus: #2456c9;
+    --bar: #2b3a4d;
+    --bar-ink: #eef3f8;
+    --accent: #2456c9;
+    --accent-ink: #ffffff;
+    --accent-soft: #e7eefb;
+    --optional: #7c8998;
+    --good: #1f9d63;
+    --shadow: 0 1px 2px rgba(20,32,46,.06), 0 12px 34px rgba(20,32,46,.10);
+    --radius: 10px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground: #0c131b;
+      --sheet: #121b26;
+      --ink: #e7edf4;
+      --muted: #93a1b2;
+      --faint: #667584;
+      --line: #22303f;
+      --field-bg: #0e1720;
+      --field-line: #2c3b4d;
+      --field-line-focus: #5b8def;
+      --bar: #1b2735;
+      --bar-ink: #d7e0ea;
+      --accent: #5b8def;
+      --accent-ink: #0a111c;
+      --accent-soft: #16273f;
+      --optional: #7d8a9b;
+      --good: #3fbb7f;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 14px 40px rgba(0,0,0,.45);
+    }
+  }
+  :root[data-theme="light"] {
+    --ground: #eaeef3; --sheet: #ffffff; --ink: #14202e; --muted: #566574; --faint: #8593a3;
+    --line: #dbe2ea; --field-bg: #f6f9fc; --field-line: #ccd6e1; --field-line-focus: #2456c9;
+    --bar: #2b3a4d; --bar-ink: #eef3f8; --accent: #2456c9; --accent-ink: #ffffff;
+    --accent-soft: #e7eefb; --optional: #7c8998; --good: #1f9d63;
+    --shadow: 0 1px 2px rgba(20,32,46,.06), 0 12px 34px rgba(20,32,46,.10);
+  }
+  :root[data-theme="dark"] {
+    --ground: #0c131b; --sheet: #121b26; --ink: #e7edf4; --muted: #93a1b2; --faint: #667584;
+    --line: #22303f; --field-bg: #0e1720; --field-line: #2c3b4d; --field-line-focus: #5b8def;
+    --bar: #1b2735; --bar-ink: #d7e0ea; --accent: #5b8def; --accent-ink: #0a111c;
+    --accent-soft: #16273f; --optional: #7d8a9b; --good: #3fbb7f;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 14px 40px rgba(0,0,0,.45);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 28px 16px 64px; }
+
+  /* Masthead */
+  .masthead {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px; flex-wrap: wrap; margin-bottom: 18px;
+  }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand-mark {
+    width: 42px; height: 42px; border-radius: 10px; flex: none;
+    background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 62%, #0a2a6b));
+    color: #fff; display: grid; place-items: center;
+    font-weight: 800; font-size: 1.05rem; letter-spacing: .02em;
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 40%, transparent);
+  }
+  .brand-name { font-weight: 750; font-size: 1.02rem; letter-spacing: -.01em; }
+  .brand-sub { font-size: .74rem; color: var(--muted); }
+  .preview-tag {
+    font-size: .68rem; text-transform: uppercase; letter-spacing: .09em; font-weight: 700;
+    color: var(--accent); background: var(--accent-soft);
+    padding: 5px 10px; border-radius: 999px; white-space: nowrap;
+  }
+
+  /* Sheet */
+  .sheet {
+    background: var(--sheet); border-radius: var(--radius);
+    box-shadow: var(--shadow); overflow: hidden;
+    border: 1px solid var(--line);
+  }
+  .sheet-head { padding: 22px 24px 20px; border-bottom: 1px solid var(--line); }
+  .sheet-title {
+    margin: 0; font-size: clamp(1.5rem, 3.6vw, 2rem); font-weight: 780;
+    letter-spacing: -.025em; text-wrap: balance;
+  }
+  .sheet-note { margin: 4px 0 0; font-size: .78rem; color: var(--muted); }
+
+  .joint-row {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    margin-top: 16px; font-size: .86rem; color: var(--ink);
+  }
+  .joint-row input[type="text"] {
+    flex: 1 1 220px; min-width: 160px;
+  }
+  .joint-fields { display: none; }
+  .joint-fields.show { display: contents; }
+
+  /* Section */
+  .section-bar {
+    background: var(--bar); color: var(--bar-ink);
+    padding: 9px 24px; font-size: .78rem; font-weight: 650;
+    text-transform: uppercase; letter-spacing: .09em;
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  }
+  .section-bar .hint { font-weight: 500; letter-spacing: .02em; text-transform: none; opacity: .8; font-size: .72rem; }
+  .section-body { padding: 20px 24px 24px; }
+
+  .row {
+    display: grid; gap: 15px 20px;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  }
+  .row + .row { margin-top: 15px; }
+  .span-2 { grid-column: span 2; }
+  .span-all { grid-column: 1 / -1; }
+
+  .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .field > label {
+    font-size: .68rem; text-transform: uppercase; letter-spacing: .06em;
+    font-weight: 650; color: var(--muted);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .opt { color: var(--optional); font-weight: 600; letter-spacing: .03em; text-transform: none; font-size: .68rem; }
+  input, select {
+    font: inherit; font-size: .93rem; color: var(--ink);
+    background: var(--field-bg);
+    border: 1px solid var(--field-line);
+    border-radius: 8px; padding: 9px 11px; width: 100%;
+    transition: border-color .12s ease, box-shadow .12s ease, background .12s ease;
+  }
+  input::placeholder { color: var(--faint); }
+  input:focus, select:focus {
+    outline: none; border-color: var(--field-line-focus);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--field-line-focus) 22%, transparent);
+    background: var(--sheet);
+  }
+  .tnum { font-variant-numeric: tabular-nums; letter-spacing: .01em; }
+
+  /* Segmented control */
+  .seg { display: inline-flex; background: var(--field-bg); border: 1px solid var(--field-line); border-radius: 8px; padding: 3px; gap: 3px; }
+  .seg label {
+    position: relative; font-size: .84rem; padding: 6px 14px; border-radius: 6px;
+    cursor: pointer; color: var(--muted); white-space: nowrap; user-select: none;
+  }
+  .seg input { position: absolute; opacity: 0; pointer-events: none; }
+  .seg input:checked + span { color: var(--accent-ink); }
+  .seg label span { position: relative; z-index: 1; }
+  .seg label:has(input:checked) { background: var(--accent); color: var(--accent-ink); }
+  .seg label:has(input:focus-visible) { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent); }
+
+  /* Optional address disclosure */
+  .disclosure { margin-top: 15px; }
+  .add-btn {
+    background: none; border: 1px dashed var(--field-line); color: var(--accent);
+    font: inherit; font-size: .82rem; font-weight: 600; cursor: pointer;
+    padding: 9px 14px; border-radius: 8px; width: 100%; text-align: left;
+    transition: background .12s, border-color .12s;
+  }
+  .add-btn:hover { background: var(--accent-soft); border-color: var(--accent); }
+  .add-btn::before { content: "+ "; font-weight: 800; }
+  .add-btn.open { display: none; }
+  .disclosure-body { display: none; padding-top: 4px; }
+  .disclosure-body.show { display: block; }
+  .disclosure-title {
+    font-size: .72rem; text-transform: uppercase; letter-spacing: .07em; font-weight: 700;
+    color: var(--muted); margin: 6px 0 12px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .remove-link { color: var(--faint); background: none; border: none; font: inherit; font-size: .74rem; cursor: pointer; text-decoration: underline; }
+
+  /* Consent */
+  .consent { display: flex; gap: 12px; padding: 14px; border: 1px solid var(--line); border-radius: 9px; background: var(--field-bg); }
+  .consent + .consent { margin-top: 12px; }
+  .consent input { width: 18px; height: 18px; margin-top: 2px; flex: none; accent-color: var(--accent); }
+  .consent-text { font-size: .82rem; color: var(--muted); }
+  .consent-text strong { color: var(--ink); font-weight: 650; display: block; margin-bottom: 2px; }
+  .placeholder-note {
+    font-size: .72rem; color: var(--optional); font-style: italic; margin-top: 4px;
+  }
+
+  /* Signature */
+  .sign-row { display: grid; gap: 15px 20px; grid-template-columns: 2fr 1fr; }
+  .sign-input {
+    font-family: "Segoe Script", "Bradley Hand", "Brush Script MT", cursive;
+    font-size: 1.25rem; letter-spacing: .01em;
+  }
+
+  /* Footer actions */
+  .actions {
+    display: flex; align-items: center; justify-content: flex-end; gap: 12px;
+    padding: 20px 24px; border-top: 1px solid var(--line); flex-wrap: wrap;
+  }
+  .actions .spacer { margin-right: auto; font-size: .76rem; color: var(--muted); }
+  .btn {
+    font: inherit; font-weight: 650; font-size: .9rem; cursor: pointer;
+    padding: 10px 20px; border-radius: 8px; border: 1px solid transparent;
+  }
+  .btn-secondary { background: var(--sheet); color: var(--ink); border-color: var(--field-line); }
+  .btn-secondary:hover { background: var(--field-bg); }
+  .btn-primary { background: var(--accent); color: var(--accent-ink); }
+  .btn-primary:hover { filter: brightness(1.06); }
+
+  .page-foot { margin-top: 20px; font-size: .74rem; color: var(--faint); text-align: center; text-wrap: balance; }
+
+  @media (max-width: 560px) {
+    .span-2 { grid-column: 1 / -1; }
+    .sign-row { grid-template-columns: 1fr; }
+    .section-body, .sheet-head { padding-left: 16px; padding-right: 16px; }
+    .section-bar { padding-left: 16px; padding-right: 16px; }
+    .actions { padding-left: 16px; padding-right: 16px; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <div class="masthead">
+    <div class="brand">
+      <div class="brand-mark">GWA</div>
+      <div>
+        <div class="brand-name">GWA Financing</div>
+        <div class="brand-sub">Barrie, Ontario · Credit Portal</div>
+      </div>
+    </div>
+    <span class="preview-tag">Layout preview</span>
+  </div>
+
+  <form class="sheet" autocomplete="off" onsubmit="return false">
+    <div class="sheet-head">
+      <h1 class="sheet-title">Loan Application</h1>
+      <p class="sheet-note">Fields marked <span class="opt">optional</span> may be left blank. An email address is required to receive financing statements.</p>
+      <div class="joint-row">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+          <input type="checkbox" id="jointToggle" style="width:17px;height:17px;accent-color:var(--accent);">
+          Co-borrower application — I am applying with
+        </label>
+        <input type="text" id="jointName" placeholder="Co-borrower name" disabled>
+        <span>for joint credit.</span>
+      </div>
+    </div>
+
+    <!-- PERSONAL DETAILS -->
+    <div class="section-bar">Personal details</div>
+    <div class="section-body">
+      <div class="row">
+        <div class="field"><label>Photo ID first name</label><input type="text" placeholder="First name"></div>
+        <div class="field"><label>Middle name <span class="opt">optional</span></label><input type="text" placeholder="Middle name"></div>
+        <div class="field"><label>Photo ID last name</label><input type="text" placeholder="Last name"></div>
+      </div>
+      <div class="row">
+        <div class="field"><label>Home phone <span class="opt">optional</span></label><input type="tel" class="tnum js-phone" inputmode="numeric" placeholder="705-716-2111" maxlength="12"></div>
+        <div class="field"><label>Mobile phone</label><input type="tel" class="tnum js-phone" inputmode="numeric" placeholder="705-716-2111" maxlength="12"></div>
+        <div class="field"><label>Email</label><input type="email" placeholder="name@email.com"></div>
+      </div>
+      <div class="row">
+        <div class="field"><label>Birthdate</label><input type="date"></div>
+        <div class="field">
+          <label>Marital status</label>
+          <select>
+            <option value="" selected disabled hidden>Select…</option>
+            <option>Single</option><option>Married</option><option>Common-law</option>
+            <option>Separated</option><option>Divorced</option><option>Widowed</option>
+          </select>
+        </div>
+        <div class="field"><label>Social Insurance Number</label><input type="text" class="tnum js-sin" inputmode="numeric" placeholder="000 000 000" maxlength="11"></div>
+      </div>
+    </div>
+
+    <!-- HOUSING -->
+    <div class="section-bar">Housing</div>
+    <div class="section-body">
+      <div class="row">
+        <div class="field span-2"><label>Address</label><input type="text" placeholder="Street address"></div>
+        <div class="field"><label>Unit no. <span class="opt">optional</span></label><input type="text" placeholder="Unit"></div>
+      </div>
+      <div class="row">
+        <div class="field"><label>City</label><input type="text" placeholder="City"></div>
+        <div class="field"><label>Province</label>
+          <select>
+            <option value="" selected disabled hidden>Select…</option>
+            <option>AB</option><option>BC</option><option>MB</option><option>NB</option>
+            <option>NL</option><option>NS</option><option>NT</option><option>NU</option>
+            <option>ON</option><option>PE</option><option>QC</option><option>SK</option><option>YT</option>
+          </select>
+        </div>
+        <div class="field"><label>Postal code</label><input type="text" class="tnum js-postal" placeholder="L0L 2T0" maxlength="7"></div>
+      </div>
+      <div class="row">
+        <div class="field"><label>Years at this address</label><input type="number" class="tnum" min="0" placeholder="0"></div>
+        <div class="field"><label>Monthly housing cost</label><input type="text" class="tnum" inputmode="decimal" placeholder="$0.00"></div>
+        <div class="field">
+          <label>Housing status</label>
+          <div class="seg" role="radiogroup" aria-label="Housing status">
+            <label><input type="radio" name="housing" checked><span>Own</span></label>
+            <label><input type="radio" name="housing"><span>Rent</span></label>
+            <label><input type="radio" name="housing"><span>Other</span></label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Optional addresses -->
+      <div class="disclosure">
+        <button type="button" class="add-btn" data-target="mailing">Add mailing address (if different)</button>
+        <div class="disclosure-body" id="mailing">
+          <div class="disclosure-title">Mailing address <button type="button" class="remove-link" data-remove="mailing">remove</button></div>
+          <div class="row">
+            <div class="field span-2"><label>Mailing address</label><input type="text" placeholder="Street address"></div>
+            <div class="field"><label>Apt / Unit <span class="opt">optional</span></label><input type="text"></div>
+          </div>
+          <div class="row">
+            <div class="field"><label>City</label><input type="text"></div>
+            <div class="field"><label>Province</label><input type="text"></div>
+            <div class="field"><label>Postal code</label><input type="text" class="tnum js-postal" placeholder="L0L 2T0" maxlength="7"></div>
+          </div>
+        </div>
+      </div>
+      <div class="disclosure">
+        <button type="button" class="add-btn" data-target="previous">Add previous address (if moved within 2 years)</button>
+        <div class="disclosure-body" id="previous">
+          <div class="disclosure-title">Previous address <button type="button" class="remove-link" data-remove="previous">remove</button></div>
+          <div class="row">
+            <div class="field span-2"><label>Previous address</label><input type="text" placeholder="Street address"></div>
+            <div class="field"><label>Apt / Unit <span class="opt">optional</span></label><input type="text"></div>
+          </div>
+          <div class="row">
+            <div class="field"><label>City</label><input type="text"></div>
+            <div class="field"><label>Province</label><input type="text"></div>
+            <div class="field"><label>Postal code</label><input type="text" class="tnum js-postal" placeholder="L0L 2T0" maxlength="7"></div>
+          </div>
+        </div>
+      </div>
+      <div class="disclosure">
+        <button type="button" class="add-btn" data-target="worksite">Add work-site address (if install location differs from home)</button>
+        <div class="disclosure-body" id="worksite">
+          <div class="disclosure-title">Work-site address <button type="button" class="remove-link" data-remove="worksite">remove</button></div>
+          <div class="row">
+            <div class="field span-2"><label>Work-site address</label><input type="text" placeholder="Street address"></div>
+            <div class="field"><label>Apt / Unit <span class="opt">optional</span></label><input type="text"></div>
+          </div>
+          <div class="row">
+            <div class="field"><label>City</label><input type="text"></div>
+            <div class="field"><label>Province</label><input type="text"></div>
+            <div class="field"><label>Postal code</label><input type="text" class="tnum js-postal" placeholder="L0L 2T0" maxlength="7"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BORROWER IDENTIFICATION -->
+    <div class="section-bar">Borrower identification <span class="hint">Driver's licence, passport, or other government photo ID</span></div>
+    <div class="section-body">
+      <div class="row">
+        <div class="field">
+          <label>Photo ID card type</label>
+          <select>
+            <option value="" selected disabled hidden>Select…</option>
+            <option>Driver's Licence</option><option>Canadian Passport</option>
+            <option>Provincial Photo ID Card</option><option>Permanent Resident Card</option>
+            <option>Other government photo ID</option>
+          </select>
+        </div>
+        <div class="field"><label>Photo ID number</label><input type="text" class="tnum" placeholder="ID number"></div>
+        <div class="field"><label>Province of issue</label><input type="text" placeholder="e.g. ON"></div>
+        <div class="field"><label>Expiry date</label><input type="date"></div>
+      </div>
+    </div>
+
+    <!-- EMPLOYMENT & INCOME -->
+    <div class="section-bar">Employment &amp; income</div>
+    <div class="section-body">
+      <div class="row">
+        <div class="field span-2"><label>Business / employer name</label><input type="text" placeholder="Employer"></div>
+        <div class="field"><label>Position title</label><input type="text" placeholder="Job title"></div>
+      </div>
+      <div class="row">
+        <div class="field span-2"><label>Employer address <span class="opt">optional</span></label><input type="text" placeholder="Employer address"></div>
+        <div class="field"><label>Employer phone <span class="opt">optional</span></label><input type="tel" class="tnum js-phone" inputmode="numeric" placeholder="705-716-2111" maxlength="12"></div>
+      </div>
+      <div class="row">
+        <div class="field"><label>Gross monthly income</label><input type="text" class="tnum" inputmode="decimal" placeholder="$0.00"></div>
+        <div class="field"><label>Time at job (years)</label><input type="number" class="tnum" min="0" placeholder="0"></div>
+        <div class="field">
+          <label>Employment status</label>
+          <div class="seg" role="radiogroup" aria-label="Employment status">
+            <label><input type="radio" name="employment" checked><span>Employed</span></label>
+            <label><input type="radio" name="employment"><span>Self-employed</span></label>
+            <label><input type="radio" name="employment"><span>Other</span></label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONSENTS -->
+    <div class="section-bar">Consent &amp; authorization</div>
+    <div class="section-body">
+      <label class="consent">
+        <input type="checkbox">
+        <span class="consent-text">
+          <strong>Privacy policy &amp; third-party determination</strong>
+          I accept the privacy policy and confirm no other person or company is directing this application or will use this loan on their behalf.
+          <span class="placeholder-note">Placeholder wording — final consent language to be provided by legal review (PIPEDA / Quebec Law 25).</span>
+        </span>
+      </label>
+      <label class="consent">
+        <input type="checkbox">
+        <span class="consent-text">
+          <strong>Electronic disclosures <span class="opt">optional</span></strong>
+          I consent to receive disclosures — loan agreement, amendments, statements, notices and related documents — electronically.
+          <span class="placeholder-note">Placeholder wording — final consent language to be provided by legal review.</span>
+        </span>
+      </label>
+
+      <div class="row" style="margin-top:18px;">
+        <div class="field span-all">
+          <label>Credit authorization</label>
+          <p class="consent-text" style="margin:0;">By signing, the applicant authorizes GWA and its financing partners to obtain and verify their consumer credit report and to update credit information with reporting agencies as necessary. <span class="placeholder-note">Placeholder — final wording pending legal review.</span></p>
+        </div>
+      </div>
+      <div class="sign-row" style="margin-top:14px;">
+        <div class="field"><label>Signature — type full legal name to sign</label><input type="text" class="sign-input" placeholder="Full legal name"></div>
+        <div class="field"><label>Date</label><input type="date"></div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <span class="spacer">This is a layout preview — nothing is saved or submitted.</span>
+      <button type="button" class="btn btn-secondary">Save draft</button>
+      <button type="button" class="btn btn-primary">Submit application</button>
+    </div>
+  </form>
+
+  <p class="page-foot">GWA Credit Portal · Digital rebuild of the paper loan application, matched to your uploaded template. Branding and consent text are placeholders for review.</p>
+</div>
+
+<script>
+  // Phone: format digits as 705-716-2111
+  function fmtPhone(v) {
+    const d = v.replace(/\D/g, '').slice(0, 10);
+    if (d.length <= 3) return d;
+    if (d.length <= 6) return d.slice(0,3) + '-' + d.slice(3);
+    return d.slice(0,3) + '-' + d.slice(3,6) + '-' + d.slice(6);
+  }
+  // Postal code: format as L0L 2T0 (uppercase, space after 3)
+  function fmtPostal(v) {
+    const c = v.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+    return c.length > 3 ? c.slice(0,3) + ' ' + c.slice(3) : c;
+  }
+  // SIN: format as 000 000 000
+  function fmtSin(v) {
+    const d = v.replace(/\D/g, '').slice(0, 9);
+    return d.replace(/(\d{3})(?=\d)/g, '$1 ').trim();
+  }
+  function bind(cls, fn) {
+    document.querySelectorAll(cls).forEach(function (el) {
+      el.addEventListener('input', function () {
+        const s = el.selectionStart, before = el.value;
+        el.value = fn(el.value);
+        // keep caret near the end for simplicity
+        if (s === before.length) el.setSelectionRange(el.value.length, el.value.length);
+      });
+    });
+  }
+  bind('.js-phone', fmtPhone);
+  bind('.js-postal', fmtPostal);
+  bind('.js-sin', fmtSin);
+
+  // Joint applicant toggle
+  var jt = document.getElementById('jointToggle'), jn = document.getElementById('jointName');
+  jt.addEventListener('change', function () {
+    jn.disabled = !jt.checked;
+    if (jt.checked) jn.focus();
+  });
+
+  // Optional address disclosures
+  document.querySelectorAll('.add-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var body = document.getElementById(btn.dataset.target);
+      body.classList.add('show'); btn.classList.add('open');
+    });
+  });
+  document.querySelectorAll('.remove-link').forEach(function (link) {
+    link.addEventListener('click', function () {
+      var id = link.dataset.remove;
+      document.getElementById(id).classList.remove('show');
+      document.querySelector('.add-btn[data-target="' + id + '"]').classList.remove('open');
+    });
+  });
+</script>
