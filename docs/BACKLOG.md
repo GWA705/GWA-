@@ -82,6 +82,12 @@ we'll organize and prioritize them together later.
 ### Dealer profile
 - [ ] **Dealer profile page** where dealers fill in contact information; that contact info feeds the email notifications.
 
+### Security & accounts
+- [ ] **Password expiry / forced rotation every 3 months (90 days):** users are required to set a new password when theirs expires.
+- [ ] **Password complexity:** must contain uppercase, lowercase, a number, and/or another character. _(Already enforced today: min length + upper + lower + number + symbol; we'll align the rule to whatever you finalize.)_
+- [ ] **"Forgot password" self-service reset:** user clicks *Forgot password*, gets an email with a secure link, and sets a new password.
+- [ ] **Capture login IP addresses.** _(Already captured: every login success/failure is recorded with its IP in the audit log — we can add a clear per-user "recent logins / IPs" view on top.)_
+
 ### Logging
 - [ ] **Everything recorded in a reviewable log** (extend the existing audit log to cover uploads, conversions, status changes, notifications, and notes).
 
