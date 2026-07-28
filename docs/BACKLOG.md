@@ -74,6 +74,9 @@ we'll organize and prioritize them together later.
 - [ ] **Per-deal note to the dealer:** reviewers can write notes to the dealer; notes live inside that customer's profile (visible to the dealer).
 - [ ] **Internal notes (reviewer/Admin only):** a separate per-deal notes area visible *only* to Reviewers and Admins — never shown to dealers.
 
+### Dealer dashboard highlights
+- [ ] **Announcements / highlights area on the dealer home page:** a small spot that surfaces promotions, updates, or important messages for dealers. If nothing urgent, it cycles through a set list of promotions. ❓ Fully editable from the backend (Admin can add/edit/reorder the messages).
+
 ### New tabs / sections
 - [ ] **Resources tab** (top nav, for dealers): a place to upload and share documents/resources dealers can access.
 - [ ] **"HD Promotions" tab** (top nav): promotions section.
