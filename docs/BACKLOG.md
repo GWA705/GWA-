@@ -62,8 +62,17 @@ we'll organize and prioritize them together later.
 - [ ] **Follow-up / reminder notifications** when a deal sits unchanged for too long (stale-deal nudges).
 - [ ] **Communication-preference toggles:** let users choose how they're contacted. ❓ Only offer channels we can actually deliver (email is straightforward; SMS is doable but needs a paid text provider — to confirm at rework).
 
-### Reviewer ↔ Dealer collaboration
-- [ ] **Per-deal note section** for reviewers to write to the dealer; notes live inside that customer's profile.
+### Payouts
+- [ ] **Payout receipt / statement per deal:** show the dealer what was paid on the deal. Clickable from the deal so, if there are questions, they can open a receipt/statement of what was paid.
+
+### Confirmation calls (reviewer/confirmer)
+- [ ] **HD confirmation notes:** free-text notes the confirmer jots down during a confirmation call (reviewer side).
+- [ ] **Confirmation script with checkboxes:** a script of simple questions appears as a checklist; the confirmer checks every box, then clicks **Confirm**. ❓ (Exact script/questions to be provided.)
+- [ ] **Share completed confirmation with the dealer:** a copy of the completed confirmation (script + checks) is shown to the dealer too.
+
+### Reviewer ↔ Dealer collaboration & notes
+- [ ] **Per-deal note to the dealer:** reviewers can write notes to the dealer; notes live inside that customer's profile (visible to the dealer).
+- [ ] **Internal notes (reviewer/Admin only):** a separate per-deal notes area visible *only* to Reviewers and Admins — never shown to dealers.
 
 ### New tabs / sections
 - [ ] **Resources tab** (top nav, for dealers): a place to upload and share documents/resources dealers can access.
