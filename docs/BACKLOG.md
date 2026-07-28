@@ -24,6 +24,15 @@ we'll organize and prioritize them together later.
 - [ ] **Two program types:** **HD** and **GWA**.
 - [ ] **Sub-categories for each program:** Water, Air, Smell Busters, HVAC. _(Replaces today's free-text "program" field with a program → sub-category selection.)_
 
+### New application — financing details
+- [ ] **Financing note field:** under "Financing details," add a note box where the dealer writes what kind of financing deal or promotion they'd like with this application.
+- [ ] **Three ways for a dealer to provide the credit application:**
+  1. **Type it into the site** — enter the application details directly. ❓ Exact fields/layout to be provided by you; when typed, it must display in the **same layout as the document you'll upload as the template**.
+  2. **Upload a photo** of the paper credit application for processing.
+  3. **Enter just the FinanceIt approval number** — providing it indicates the deal is already approved.
+- [ ] **Encourage typing over photo:** nudge dealers to type the info in (fewer errors on the customer's application than a photo).
+- [ ] **FinanceIt approval number validation:** currently **7 digits, starting with 7** ("…until it doesn't" — treat the rule as configurable so it can change later). ❓ Confirm final rule.
+
 ### Deal intake (dealer-entered fields)
 - [ ] **Require dealers to enter basic info for each deal:**
   - Customer name
