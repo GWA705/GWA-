@@ -25,38 +25,46 @@ function landingFor(role: string | null): string {
   return '/login';
 }
 
-function applySecurityHeaders(res: NextResponse): NextResponse {
+/**
+ * Build the Content Security Policy. In production we use a per-request nonce
+ * plus 'strict-dynamic' so Next.js's own scripts run while inline injection is
+ * still blocked. In development we allow eval/inline for the dev toolchain.
+ */
+function buildCsp(nonce: string): string {
   const isProd = process.env.NODE_ENV === 'production';
-  // Content Security Policy. 'unsafe-inline' for styles supports Tailwind's
-  // injected styles and inline data-URL QR codes; scripts are same-origin.
-  const csp = [
+  const scriptSrc = isProd
+    ? `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`
+    : "script-src 'self' 'unsafe-eval' 'unsafe-inline'";
+  return [
     "default-src 'self'",
     "img-src 'self' data:",
     "style-src 'self' 'unsafe-inline'",
-    "script-src 'self'" + (isProd ? '' : " 'unsafe-eval'"),
+    scriptSrc,
     "connect-src 'self'",
     "frame-ancestors 'none'",
     "form-action 'self'",
     "base-uri 'self'",
     "object-src 'none'",
   ].join('; ');
+}
 
-  res.headers.set('Content-Security-Policy', csp);
+function applyStaticHeaders(res: NextResponse): NextResponse {
   res.headers.set('X-Content-Type-Options', 'nosniff');
   res.headers.set('X-Frame-Options', 'DENY');
   res.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-  if (isProd) {
-    res.headers.set(
-      'Strict-Transport-Security',
-      'max-age=63072000; includeSubDomains; preload',
-    );
+  if (process.env.NODE_ENV === 'production') {
+    res.headers.set('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
   }
   return res;
 }
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
+
+  // Per-request nonce for the CSP (also handed to Next.js so it nonces its scripts).
+  const nonce = crypto.randomUUID().replace(/-/g, '');
+  const csp = buildCsp(nonce);
 
   // Route-group gating.
   const guards: { prefix: string; roles: string[] }[] = [
@@ -72,17 +80,29 @@ export async function middleware(req: NextRequest) {
       const url = req.nextUrl.clone();
       url.pathname = '/login';
       url.searchParams.set('next', pathname);
-      return applySecurityHeaders(NextResponse.redirect(url));
+      const res = NextResponse.redirect(url);
+      res.headers.set('Content-Security-Policy', csp);
+      return applyStaticHeaders(res);
     }
     if (!guard.roles.includes(role)) {
       const url = req.nextUrl.clone();
       url.pathname = landingFor(role);
       url.search = '';
-      return applySecurityHeaders(NextResponse.redirect(url));
+      const res = NextResponse.redirect(url);
+      res.headers.set('Content-Security-Policy', csp);
+      return applyStaticHeaders(res);
     }
   }
 
-  return applySecurityHeaders(NextResponse.next());
+  // Pass the nonce + CSP to Next via request headers so it applies the nonce to
+  // its own <script> tags, and enforce the CSP on the response.
+  const requestHeaders = new Headers(req.headers);
+  requestHeaders.set('x-nonce', nonce);
+  requestHeaders.set('Content-Security-Policy', csp);
+
+  const res = NextResponse.next({ request: { headers: requestHeaders } });
+  res.headers.set('Content-Security-Policy', csp);
+  return applyStaticHeaders(res);
 }
 
 export const config = {

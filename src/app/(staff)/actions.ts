@@ -5,7 +5,7 @@ import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/session';
 import { audit } from '@/lib/audit';
 import { storeFiles } from '@/lib/upload';
-import { decisionSchema, payoutSchema } from '@/lib/validation';
+import { decisionSchema, payoutSchema, statusChangeSchema } from '@/lib/validation';
 import { FUNDING_DOCUMENT_TYPES } from '@/lib/constants';
 import type { ApplicationStatus, DecisionType, DocumentType } from '@prisma/client';
 
@@ -294,4 +294,47 @@ export async function moveToInForFundingAction(applicationId: string): Promise<v
   await audit({ actorId: session.userId, action: 'STATUS_CHANGE', entityType: 'Application', entityId: applicationId, detail: 'FUNDING_REVIEW' });
   revalidatePath(`/staff/applications/${applicationId}`);
   revalidatePath('/staff');
+}
+
+// Reviewer/admin manually sets a deal's status at any time (override/correct).
+export async function changeStatusAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await requireRole('REVIEWER', 'ADMIN');
+  const parsed = statusChangeSchema.safeParse({
+    applicationId: formData.get('applicationId'),
+    status: formData.get('status'),
+    note: formData.get('note') || undefined,
+  });
+  if (!parsed.success) return { error: 'Pick a valid status.' };
+  const { applicationId, status, note } = parsed.data;
+
+  const app = await prisma.application.findUnique({ where: { id: applicationId } });
+  if (!app) return { error: 'Application not found.' };
+  if (app.status === status) return { ok: true };
+
+  await prisma.$transaction([
+    prisma.application.update({ where: { id: applicationId }, data: { status } }),
+    prisma.statusEvent.create({
+      data: {
+        applicationId,
+        from: app.status,
+        to: status,
+        actorId: session.userId,
+        note: note || 'Status changed manually',
+      },
+    }),
+  ]);
+  await audit({
+    actorId: session.userId,
+    action: 'STATUS_CHANGE',
+    entityType: 'Application',
+    entityId: applicationId,
+    detail: `Manual: ${app.status} -> ${status}${note ? ` (${note.slice(0, 200)})` : ''}`,
+  });
+
+  revalidatePath(`/staff/applications/${applicationId}`);
+  revalidatePath('/staff');
+  return { ok: true };
 }

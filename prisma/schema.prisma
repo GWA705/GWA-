@@ -149,6 +149,7 @@ enum ApplicationStatus {
   FUNDING_SUBMITTED // dealer has uploaded the funding package
   FUNDING_REVIEW
   FUNDED
+  PROBLEM // something needs attention / is blocked
   WITHDRAWN
 }
 
@@ -246,6 +247,7 @@ enum DocumentType {
   // Reviewer -> dealer paperwork
   HD_PAPERWORK
   FINANCING_PAPERWORK
+  RELEASE_OF_FUNDS
   OTHER
 }
 

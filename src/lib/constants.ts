@@ -60,8 +60,23 @@ export const STATUS_LABELS: Record<ApplicationStatus, string> = {
   FUNDING_SUBMITTED: 'Funding submitted',
   FUNDING_REVIEW: 'In for funding',
   FUNDED: 'Funded',
+  PROBLEM: 'Problem',
   WITHDRAWN: 'Withdrawn',
 };
+
+// Statuses a reviewer can set manually (all meaningful states except DRAFT).
+export const MANUAL_STATUS_OPTIONS: ApplicationStatus[] = [
+  'SUBMITTED',
+  'UNDER_REVIEW',
+  'APPROVED',
+  'CONDITIONAL',
+  'DECLINED',
+  'FUNDING_SUBMITTED',
+  'FUNDING_REVIEW',
+  'FUNDED',
+  'PROBLEM',
+  'WITHDRAWN',
+];
 
 export const STATUS_COLORS: Record<ApplicationStatus, string> = {
   DRAFT: 'bg-gray-100 text-gray-700',
@@ -73,6 +88,7 @@ export const STATUS_COLORS: Record<ApplicationStatus, string> = {
   FUNDING_SUBMITTED: 'bg-indigo-100 text-indigo-800',
   FUNDING_REVIEW: 'bg-amber-100 text-amber-800',
   FUNDED: 'bg-emerald-100 text-emerald-800',
+  PROBLEM: 'bg-orange-100 text-orange-800',
   WITHDRAWN: 'bg-gray-100 text-gray-700',
 };
 
@@ -100,10 +116,20 @@ export const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
   HD_WAIVER: 'Home Depot waiver',
   PROOF_OF_HOMEOWNERSHIP: 'Proof of homeownership',
   GOVERNMENT_ID: 'Government ID',
-  HD_PAPERWORK: 'HD paperwork',
+  HD_PAPERWORK: 'HD Agreements',
   FINANCING_PAPERWORK: 'Financing paperwork',
+  RELEASE_OF_FUNDS: 'Release of funds / completion certificate',
   OTHER: 'Other supporting document',
 };
+
+// Categories the reviewer uploads for the dealer (in the "Paperwork for dealer"
+// section). Dealers can view and download these.
+export const REVIEWER_PAPERWORK_TYPES: { type: DocumentType; label: string }[] = [
+  { type: 'HD_PAPERWORK', label: 'HD Agreements' },
+  { type: 'HD_WAIVER', label: 'HD Waiver' },
+  { type: 'RELEASE_OF_FUNDS', label: 'Release of funds / completion certificate' },
+  { type: 'FINANCING_PAPERWORK', label: 'Financing paperwork' },
+];
 
 // Upload constraints.
 export const MAX_FILE_BYTES = 15 * 1024 * 1024; // 15 MB

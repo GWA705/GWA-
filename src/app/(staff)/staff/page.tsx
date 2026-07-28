@@ -21,21 +21,23 @@ const GROUPS: {
   { key: 'funding', label: 'In for funding', statuses: ['FUNDING_SUBMITTED', 'FUNDING_REVIEW'] },
   { key: 'funded', label: 'Funded', statuses: ['FUNDED'] },
   { key: 'paid', label: 'Paid', paid: true },
+  { key: 'problem', label: 'Problem', statuses: ['PROBLEM'] },
   { key: 'declined', label: 'Declined', statuses: ['DECLINED', 'WITHDRAWN'] },
 ];
 
 // Priority ordering: new/incoming work first, completed work last.
 const RANK: Record<ApplicationStatus, number> = {
-  SUBMITTED: 0,
-  FUNDING_SUBMITTED: 1,
-  UNDER_REVIEW: 2,
-  FUNDING_REVIEW: 3,
-  CONDITIONAL: 4,
-  APPROVED: 5,
-  FUNDED: 6,
-  DECLINED: 7,
-  WITHDRAWN: 8,
-  DRAFT: 9,
+  PROBLEM: 0,
+  SUBMITTED: 1,
+  FUNDING_SUBMITTED: 2,
+  UNDER_REVIEW: 3,
+  FUNDING_REVIEW: 4,
+  CONDITIONAL: 5,
+  APPROVED: 6,
+  FUNDED: 7,
+  DECLINED: 8,
+  WITHDRAWN: 9,
+  DRAFT: 10,
 };
 
 function whereFor(key: string): Prisma.ApplicationWhereInput {

@@ -12,11 +12,12 @@ import { PayoutReceipt } from '@/components/PayoutReceipt';
 import { UploadForm } from '@/components/UploadForm';
 import { DecisionForm } from './DecisionForm';
 import { PayoutForm } from './PayoutForm';
+import { StatusChangeForm } from './StatusChangeForm';
 import {
   startReviewAction,
   uploadReviewerPaperworkAction,
 } from '@/app/(staff)/actions';
-import { STATUS_LABELS, programLabel } from '@/lib/constants';
+import { STATUS_LABELS, programLabel, REVIEWER_PAPERWORK_TYPES } from '@/lib/constants';
 import type { ApplicationStatus } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
@@ -192,14 +193,12 @@ export default async function StaffApplicationDetail({
             <DocumentList documents={reviewerDocs} />
           </div>
           <div className="grid grid-cols-1 gap-4 border-t border-gray-100 pt-4 sm:grid-cols-2">
-            <div>
-              <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500">HD paperwork</div>
-              <UploadForm action={uploadReviewerPaperworkAction.bind(null, app.id, 'HD_PAPERWORK')} label="Upload HD" />
-            </div>
-            <div>
-              <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500">Financing paperwork</div>
-              <UploadForm action={uploadReviewerPaperworkAction.bind(null, app.id, 'FINANCING_PAPERWORK')} label="Upload financing" />
-            </div>
+            {REVIEWER_PAPERWORK_TYPES.map((p) => (
+              <div key={p.type}>
+                <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500">{p.label}</div>
+                <UploadForm action={uploadReviewerPaperworkAction.bind(null, app.id, p.type)} label="Upload" />
+              </div>
+            ))}
           </div>
         </section>
 
@@ -250,6 +249,13 @@ export default async function StaffApplicationDetail({
             </p>
           )}
           <DecisionForm applicationId={app.id} options={options} />
+
+          <div className="mt-5 border-t border-gray-100 pt-4">
+            <StatusChangeForm applicationId={app.id} current={app.status} />
+            <p className="mt-2 text-xs text-gray-400">
+              Change the status at any time (e.g. flag a Problem, or move it back).
+            </p>
+          </div>
         </section>
 
         {app.decisions.length > 0 && (
