@@ -31,6 +31,9 @@ we'll organize and prioritize them together later.
   - _(Note: name / address / phone already exist on today's application form; date of sale, Home Depot store #, and installation date are new fields to add.)_
 - [ ] **Per-dealer Home Depot store list:** each dealer has a defined set of HD stores they can pick from; the store dropdown shows only those. ❓ Admins assign which stores belong to each dealer (store list/assignment to be provided).
 
+### Address autocomplete
+- [ ] **Smart address entry:** as the dealer types an address, show a dropdown of matching real addresses; clicking one auto-fills the street, city, province, and postal code fields. Should correct/validate the address and fill in the postal code. ❓ Needs a lookup provider (options: Canada Post AddressComplete — Canadian & great for postal codes, or Google Places Autocomplete) — has a per-use cost / API key; pick provider at rework.
+
 ### Search
 - [ ] **Global search** by: Loan reference #, Finance reference #, HD reference #, and customer first or last name. ❓ (Requires adding these reference-number fields to each deal.)
 - [ ] **Search scoping:** Dealers can only search deals *they* uploaded; Reviewers and Admins can search all deals.
