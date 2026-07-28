@@ -7,14 +7,51 @@ we'll organize and prioritize them together later.
 
 ---
 
-## Inbox (raw ideas, newest first)
+## Inbox (captured ideas)
 
-_Nothing captured yet — tell Claude what you want and it'll land here._
+> Grouped by theme for readability. Nothing here is built yet — this is the
+> collection list. `❓` marks items where we'll need a decision or more info
+> during the rework pass.
 
-<!--
-Each item is captured as:
-- [ ] Short description of the idea  — (any extra notes)
--->
+### Files & documents
+- [ ] **Auto-convert every uploaded file to PDF** and store it as a PDF, whatever the original type.
+- [ ] **Standardized PDF naming:** each saved PDF named with the customer's name, the date of purchase, and a date+time stamp.
+- [ ] **Organized storage structure per dealer:** Dealer → Year → Month → Week → files. ❓ Open to a better organization scheme if Claude proposes one.
+- [ ] **Multi-file upload:** select and upload many documents at once with a single click (not one at a time).
+- [ ] **View files by role:** Dealer, Reviewer, and Admin can open a customer profile and select/view the files inside it (dealers see only their own — see Search rules).
+
+### Search
+- [ ] **Global search** by: Loan reference #, Finance reference #, HD reference #, and customer first or last name. ❓ (Requires adding these reference-number fields to each deal.)
+- [ ] **Search scoping:** Dealers can only search deals *they* uploaded; Reviewers and Admins can search all deals.
+
+### Statuses, colours & progress indicators
+- [ ] **Dealer "Confirmations" area** (similar to the approvals area) with statuses, each with its own colour:
+  - Confirmation completed
+  - Pending confirmation
+  - Issues with confirmation
+- [ ] **Review-status colour + icon** that changes as the reviewer's status changes.
+- [ ] **Same colour/icon visible on the Dealer side** so dealers see the deal's progress at a glance.
+- [ ] **Priority flag** for deals where someone is waiting on an approval — surface these first.
+
+### Notifications & communication
+- [ ] **Reviewer notification when new documents are uploaded** (so they know something needs review) — via email and/or text.
+- [ ] **Dealer email notifications** on deal progress/status changes.
+- [ ] **Follow-up / reminder notifications** when a deal sits unchanged for too long (stale-deal nudges).
+- [ ] **Communication-preference toggles:** let users choose how they're contacted. ❓ Only offer channels we can actually deliver (email is straightforward; SMS is doable but needs a paid text provider — to confirm at rework).
+
+### Reviewer ↔ Dealer collaboration
+- [ ] **Per-deal note section** for reviewers to write to the dealer; notes live inside that customer's profile.
+
+### New tabs / sections
+- [ ] **Resources tab** (top nav, for dealers): a place to upload and share documents/resources dealers can access.
+- [ ] **"HD Promotions" tab** (top nav): promotions section.
+- [ ] **"HD Credit Card" tab:** a help guide for dealers processing an HD credit card. ❓ Content to be provided later.
+
+### Dealer profile
+- [ ] **Dealer profile page** where dealers fill in contact information; that contact info feeds the email notifications.
+
+### Logging
+- [ ] **Everything recorded in a reviewable log** (extend the existing audit log to cover uploads, conversions, status changes, notifications, and notes).
 
 ---
 
