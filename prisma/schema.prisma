@@ -77,7 +77,8 @@ model User {
   updatedAt DateTime @updatedAt
 
   applicationsCreated Application[]    @relation("ApplicationCreatedBy")
-  documentsUploaded   Document[]
+  documentsUploaded   Document[]       @relation("DocumentUploader")
+  documentsVerified   Document[]       @relation("DocumentVerifier")
   decisions           Decision[]
   statusEvents        StatusEvent[]
   auditLogs           AuditLog[]
@@ -272,7 +273,12 @@ model Document {
   checksum   String // sha-256 of plaintext, for integrity
 
   uploadedById String
-  uploadedBy   User   @relation(fields: [uploadedById], references: [id])
+  uploadedBy   User   @relation("DocumentUploader", fields: [uploadedById], references: [id])
+
+  // Reviewer verification — a reviewer views the document and marks it complete.
+  verifiedAt   DateTime?
+  verifiedById String?
+  verifiedBy   User?     @relation("DocumentVerifier", fields: [verifiedById], references: [id])
 
   createdAt DateTime @default(now())
 

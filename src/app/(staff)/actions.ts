@@ -6,6 +6,7 @@ import { requireRole } from '@/lib/session';
 import { audit } from '@/lib/audit';
 import { storeFiles } from '@/lib/upload';
 import { decisionSchema, payoutSchema } from '@/lib/validation';
+import { FUNDING_DOCUMENT_TYPES } from '@/lib/constants';
 import type { ApplicationStatus, DecisionType, DocumentType } from '@prisma/client';
 
 export interface ActionState {
@@ -208,4 +209,89 @@ export async function recordPayoutAction(
 
   revalidatePath(`/staff/applications/${d.applicationId}`);
   return { ok: true };
+}
+
+// Reviewer toggles a funding document's "completed/verified" state.
+export async function toggleDocumentVerifiedAction(documentId: string): Promise<void> {
+  const session = await requireRole('REVIEWER', 'ADMIN');
+  const doc = await prisma.document.findUnique({ where: { id: documentId } });
+  if (!doc) return;
+  const verify = doc.verifiedAt === null;
+  await prisma.document.update({
+    where: { id: documentId },
+    data: {
+      verifiedAt: verify ? new Date() : null,
+      verifiedById: verify ? session.userId : null,
+    },
+  });
+  await audit({
+    actorId: session.userId,
+    action: 'STATUS_CHANGE',
+    entityType: 'Document',
+    entityId: documentId,
+    detail: verify ? 'Marked document completed' : 'Unmarked document',
+  });
+  revalidatePath(`/staff/applications/${doc.applicationId}`);
+}
+
+// Reviewer marks every uploaded funding document as completed in one click.
+export async function verifyAllFundingDocsAction(applicationId: string): Promise<void> {
+  const session = await requireRole('REVIEWER', 'ADMIN');
+  await prisma.document.updateMany({
+    where: { applicationId, stage: 'FUNDING', verifiedAt: null },
+    data: { verifiedAt: new Date(), verifiedById: session.userId },
+  });
+  await audit({
+    actorId: session.userId,
+    action: 'STATUS_CHANGE',
+    entityType: 'Application',
+    entityId: applicationId,
+    detail: 'Marked all funding documents completed',
+  });
+  revalidatePath(`/staff/applications/${applicationId}`);
+}
+
+/**
+ * Move a deal to "In for funding" (FUNDING_REVIEW) — allowed only once every
+ * required funding document type has at least one verified/completed document.
+ */
+export async function moveToInForFundingAction(applicationId: string): Promise<void> {
+  const session = await requireRole('REVIEWER', 'ADMIN');
+  const app = await prisma.application.findUnique({
+    where: { id: applicationId },
+    include: { documents: { where: { stage: 'FUNDING' } } },
+  });
+  if (!app) return;
+  if (app.status !== 'FUNDING_SUBMITTED') {
+    revalidatePath(`/staff/applications/${applicationId}`);
+    return;
+  }
+
+  const verifiedTypes = new Set(
+    app.documents.filter((d) => d.verifiedAt !== null).map((d) => d.type),
+  );
+  const allRequiredVerified = FUNDING_DOCUMENT_TYPES.filter((t) => t.required).every((t) =>
+    verifiedTypes.has(t.type),
+  );
+  if (!allRequiredVerified) {
+    // Guard: not all required documents confirmed yet.
+    revalidatePath(`/staff/applications/${applicationId}`);
+    return;
+  }
+
+  await prisma.$transaction([
+    prisma.application.update({ where: { id: applicationId }, data: { status: 'FUNDING_REVIEW' } }),
+    prisma.statusEvent.create({
+      data: {
+        applicationId,
+        from: 'FUNDING_SUBMITTED',
+        to: 'FUNDING_REVIEW',
+        actorId: session.userId,
+        note: 'All funding documents confirmed — moved to In for funding',
+      },
+    }),
+  ]);
+  await audit({ actorId: session.userId, action: 'STATUS_CHANGE', entityType: 'Application', entityId: applicationId, detail: 'FUNDING_REVIEW' });
+  revalidatePath(`/staff/applications/${applicationId}`);
+  revalidatePath('/staff');
 }

@@ -14,7 +14,6 @@ import { DecisionForm } from './DecisionForm';
 import { PayoutForm } from './PayoutForm';
 import {
   startReviewAction,
-  startFundingReviewAction,
   uploadReviewerPaperworkAction,
 } from '@/app/(staff)/actions';
 import { STATUS_LABELS, programLabel } from '@/lib/constants';
@@ -88,7 +87,6 @@ export default async function StaffApplicationDetail({
   const reviewerDocs = app.documents.filter((d) => d.stage === 'REVIEWER');
   const options = decisionOptions(app.status);
   const startReview = startReviewAction.bind(null, app.id);
-  const startFundingReview = startFundingReviewAction.bind(null, app.id);
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -182,7 +180,7 @@ export default async function StaffApplicationDetail({
                 </ul>
               </div>
             )}
-            <FundingChecklist fundingDocs={fundingDocs} />
+            <FundingChecklist fundingDocs={fundingDocs} applicationId={app.id} status={app.status} />
           </section>
         )}
 
@@ -246,9 +244,10 @@ export default async function StaffApplicationDetail({
             </form>
           )}
           {app.status === 'FUNDING_SUBMITTED' && (
-            <form action={startFundingReview} className="mb-4">
-              <button type="submit" className="btn-secondary w-full">Start funding review</button>
-            </form>
+            <p className="mb-4 rounded bg-amber-50 p-2 text-xs text-amber-800">
+              Confirm the funding documents in the checklist above, then move this deal to
+              “In for funding.”
+            </p>
           )}
           <DecisionForm applicationId={app.id} options={options} />
         </section>

@@ -58,7 +58,7 @@ export const STATUS_LABELS: Record<ApplicationStatus, string> = {
   APPROVED: 'Approved',
   DECLINED: 'Declined',
   FUNDING_SUBMITTED: 'Funding submitted',
-  FUNDING_REVIEW: 'Funding review',
+  FUNDING_REVIEW: 'In for funding',
   FUNDED: 'Funded',
   WITHDRAWN: 'Withdrawn',
 };
