@@ -89,3 +89,31 @@ export async function storeUploadedFile(params: {
 
   return { ok: true, documentId: doc.id };
 }
+
+/** Store one or more uploaded files (multi-file upload). Returns an error string or null. */
+export async function storeFiles(params: {
+  application: ApplicationContext;
+  files: File[];
+  type: DocumentType;
+  stage: DocumentStage;
+  uploadedById: string;
+}): Promise<{ error?: string }> {
+  const real = params.files.filter((f) => f && typeof f !== 'string' && f.size > 0);
+  if (real.length === 0) return { error: 'No file provided.' };
+
+  let stored = 0;
+  for (const file of real) {
+    const result = await storeUploadedFile({
+      application: params.application,
+      file,
+      type: params.type,
+      stage: params.stage,
+      uploadedById: params.uploadedById,
+    });
+    if (!result.ok) {
+      return { error: stored > 0 ? `${result.error} (${stored} uploaded before this)` : result.error };
+    }
+    stored += 1;
+  }
+  return {};
+}

@@ -8,7 +8,7 @@ import { requireRole } from '@/lib/session';
 import { canAccessApplication } from '@/lib/rbac';
 import { encryptOptional } from '@/lib/crypto';
 import { audit } from '@/lib/audit';
-import { storeUploadedFile } from '@/lib/upload';
+import { storeFiles } from '@/lib/upload';
 import { applicationSchema, serialNumberSchema } from '@/lib/validation';
 import { CONSENT_POLICY_VERSION, CONSENT_TEXT, FUNDING_DOCUMENT_TYPES } from '@/lib/constants';
 import type { DocumentType } from '@prisma/client';
@@ -155,34 +155,6 @@ export async function createApplicationAction(
   redirect(`/dealer/applications/${app.id}`);
 }
 
-// Store one or more uploaded files (multi-file upload) for an application.
-async function storeFiles(
-  app: { id: string; dealerId: string; applicantFirstName: string; applicantLastName: string; dateOfSale: Date | null },
-  files: File[],
-  type: DocumentType,
-  stage: 'APPLICATION' | 'FUNDING',
-  uploadedById: string,
-): Promise<ActionState> {
-  const real = files.filter((f) => f && typeof f !== 'string' && f.size > 0);
-  if (real.length === 0) return { error: 'No file provided.' };
-
-  let stored = 0;
-  for (const file of real) {
-    const result = await storeUploadedFile({
-      application: app,
-      file,
-      type,
-      stage,
-      uploadedById,
-    });
-    if (!result.ok) {
-      return { error: stored > 0 ? `${result.error} (${stored} uploaded before this)` : result.error };
-    }
-    stored += 1;
-  }
-  return {};
-}
-
 export async function uploadSupportingDocAction(
   applicationId: string,
   _prev: ActionState,
@@ -193,7 +165,7 @@ export async function uploadSupportingDocAction(
   if (!app || !canAccessApplication(session, app.dealerId)) return { error: 'Not found.' };
 
   const files = formData.getAll('file') as File[];
-  const result = await storeFiles(app, files, 'SUPPORTING', 'APPLICATION', session.userId);
+  const result = await storeFiles({ application: app, files, type: 'SUPPORTING', stage: 'APPLICATION', uploadedById: session.userId });
   if (result.error) return result;
 
   revalidatePath(`/dealer/applications/${applicationId}`);
@@ -236,7 +208,7 @@ export async function uploadFundingDocAction(
   }
 
   const files = formData.getAll('file') as File[];
-  const result = await storeFiles(app, files, docType, 'FUNDING', session.userId);
+  const result = await storeFiles({ application: app, files, type: docType, stage: 'FUNDING', uploadedById: session.userId });
   if (result.error) return result;
 
   revalidatePath(`/dealer/applications/${applicationId}`);

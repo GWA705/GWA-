@@ -4,8 +4,9 @@ import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/session';
 import { audit } from '@/lib/audit';
-import { decisionSchema } from '@/lib/validation';
-import type { ApplicationStatus, DecisionType } from '@prisma/client';
+import { storeFiles } from '@/lib/upload';
+import { decisionSchema, payoutSchema } from '@/lib/validation';
+import type { ApplicationStatus, DecisionType, DocumentType } from '@prisma/client';
 
 export interface ActionState {
   error?: string;
@@ -133,4 +134,78 @@ export async function startFundingReviewAction(applicationId: string): Promise<v
     await audit({ actorId: session.userId, action: 'STATUS_CHANGE', entityType: 'Application', entityId: applicationId, detail: 'FUNDING_REVIEW' });
   }
   revalidatePath(`/staff/applications/${applicationId}`);
+}
+
+// Reviewer/admin uploads paperwork FOR the dealer (HD or Financing).
+export async function uploadReviewerPaperworkAction(
+  applicationId: string,
+  docType: DocumentType,
+  _prev: { error?: string },
+  formData: FormData,
+): Promise<{ error?: string }> {
+  const session = await requireRole('REVIEWER', 'ADMIN');
+  const app = await prisma.application.findUnique({ where: { id: applicationId } });
+  if (!app) return { error: 'Not found.' };
+
+  const files = formData.getAll('file') as File[];
+  const result = await storeFiles({
+    application: {
+      id: app.id,
+      dealerId: app.dealerId,
+      applicantFirstName: app.applicantFirstName,
+      applicantLastName: app.applicantLastName,
+      dateOfSale: app.dateOfSale,
+    },
+    files,
+    type: docType,
+    stage: 'REVIEWER',
+    uploadedById: session.userId,
+  });
+  if (result.error) return result;
+
+  revalidatePath(`/staff/applications/${applicationId}`);
+  return {};
+}
+
+// Reviewer/admin records a payout to the dealer (builds the payout receipt).
+export async function recordPayoutAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await requireRole('REVIEWER', 'ADMIN');
+  const parsed = payoutSchema.safeParse({
+    applicationId: formData.get('applicationId'),
+    amount: formData.get('amount'),
+    paidOn: formData.get('paidOn'),
+    method: formData.get('method') || undefined,
+    reference: formData.get('reference') || undefined,
+    note: formData.get('note') || undefined,
+  });
+  if (!parsed.success) return { error: 'Enter a valid amount and date.' };
+  const d = parsed.data;
+
+  const app = await prisma.application.findUnique({ where: { id: d.applicationId } });
+  if (!app) return { error: 'Application not found.' };
+
+  const payout = await prisma.payout.create({
+    data: {
+      applicationId: d.applicationId,
+      amount: d.amount,
+      paidOn: new Date(d.paidOn),
+      method: d.method || null,
+      reference: d.reference || null,
+      note: d.note || null,
+      createdById: session.userId,
+    },
+  });
+  await audit({
+    actorId: session.userId,
+    action: 'FUNDING_DECISION',
+    entityType: 'Application',
+    entityId: d.applicationId,
+    detail: `Payout recorded: $${d.amount} (${payout.id})`,
+  });
+
+  revalidatePath(`/staff/applications/${d.applicationId}`);
+  return { ok: true };
 }

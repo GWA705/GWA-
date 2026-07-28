@@ -106,6 +106,8 @@ export const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
   SIGNED_HD_DOCUMENT: 'Signed HD document',
   PROOF_OF_HOMEOWNERSHIP: 'Proof of homeownership',
   GOVERNMENT_ID: 'Government ID',
+  HD_PAPERWORK: 'HD paperwork',
+  FINANCING_PAPERWORK: 'Financing paperwork',
   OTHER: 'Other',
 };
 

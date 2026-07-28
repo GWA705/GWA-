@@ -2,9 +2,11 @@
 
 import { useRef } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
-import type { ActionState } from '@/app/(dealer)/actions';
 
-type BoundUploadAction = (prev: ActionState, formData: FormData) => Promise<ActionState>;
+export interface UploadState {
+  error?: string;
+}
+type BoundUploadAction = (prev: UploadState, formData: FormData) => Promise<UploadState>;
 
 function SubmitButton({ label }: { label: string }) {
   const { pending } = useFormStatus();
@@ -24,7 +26,7 @@ export function UploadForm({
   label?: string;
   accept?: string;
 }) {
-  const [state, formAction] = useFormState(action, {} as ActionState);
+  const [state, formAction] = useFormState(action, {} as UploadState);
   const ref = useRef<HTMLFormElement>(null);
 
   return (

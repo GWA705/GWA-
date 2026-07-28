@@ -148,3 +148,12 @@ export const createUserSchema = z.object({
 export const createDealerSchema = z.object({
   name: z.string().min(1).max(160),
 });
+
+export const payoutSchema = z.object({
+  applicationId: z.string().min(1),
+  amount: z.coerce.number().positive('Amount must be greater than 0').max(10_000_000),
+  paidOn: z.string().refine((v) => !Number.isNaN(Date.parse(v)), 'Invalid date'),
+  method: z.string().max(40).optional(),
+  reference: z.string().max(80).optional(),
+  note: z.string().max(1000).optional(),
+});

@@ -7,8 +7,15 @@ import { audit } from '@/lib/audit';
 import { StatusBadge } from '@/components/StatusBadge';
 import { DocumentList } from '@/components/DocumentList';
 import { LoanApplicationDetails } from '@/components/LoanApplicationDetails';
+import { PayoutReceipt } from '@/components/PayoutReceipt';
+import { UploadForm } from '@/components/UploadForm';
 import { DecisionForm } from './DecisionForm';
-import { startReviewAction, startFundingReviewAction } from '@/app/(staff)/actions';
+import { PayoutForm } from './PayoutForm';
+import {
+  startReviewAction,
+  startFundingReviewAction,
+  uploadReviewerPaperworkAction,
+} from '@/app/(staff)/actions';
 import { STATUS_LABELS, programLabel } from '@/lib/constants';
 import type { ApplicationStatus } from '@prisma/client';
 
@@ -49,6 +56,7 @@ export default async function StaffApplicationDetail({
       consents: { orderBy: { capturedAt: 'desc' } },
       homeDepotStore: true,
       loanApplication: true,
+      payouts: { orderBy: { paidOn: 'desc' }, include: { createdBy: true } },
     },
   });
   if (!app) notFound();
@@ -86,6 +94,7 @@ export default async function StaffApplicationDetail({
 
   const applicationDocs = app.documents.filter((d) => d.stage === 'APPLICATION');
   const fundingDocs = app.documents.filter((d) => d.stage === 'FUNDING');
+  const reviewerDocs = app.documents.filter((d) => d.stage === 'REVIEWER');
   const options = decisionOptions(app.status);
   const startReview = startReviewAction.bind(null, app.id);
   const startFundingReview = startFundingReviewAction.bind(null, app.id);
@@ -187,6 +196,37 @@ export default async function StaffApplicationDetail({
             <DocumentList documents={fundingDocs} />
           </section>
         )}
+
+        {/* Paperwork for the dealer (HD / Financing) */}
+        <section className="card p-6">
+          <h2 className="mb-1 text-base font-semibold text-gray-900">Paperwork for dealer</h2>
+          <p className="mb-4 text-xs text-gray-500">Upload paperwork the dealer can view and download. Files are converted to PDF.</p>
+          <div className="mb-4">
+            <DocumentList documents={reviewerDocs} />
+          </div>
+          <div className="grid grid-cols-1 gap-4 border-t border-gray-100 pt-4 sm:grid-cols-2">
+            <div>
+              <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500">HD paperwork</div>
+              <UploadForm action={uploadReviewerPaperworkAction.bind(null, app.id, 'HD_PAPERWORK')} label="Upload HD" />
+            </div>
+            <div>
+              <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500">Financing paperwork</div>
+              <UploadForm action={uploadReviewerPaperworkAction.bind(null, app.id, 'FINANCING_PAPERWORK')} label="Upload financing" />
+            </div>
+          </div>
+        </section>
+
+        {/* Payout / receipt */}
+        <section className="card p-6">
+          <h2 className="mb-3 text-base font-semibold text-gray-900">Payout / receipt</h2>
+          <div className="mb-5">
+            <PayoutReceipt payouts={app.payouts} />
+          </div>
+          <div className="border-t border-gray-100 pt-4">
+            <h3 className="mb-3 text-sm font-medium text-gray-700">Record a payout</h3>
+            <PayoutForm applicationId={app.id} />
+          </div>
+        </section>
 
         {/* History */}
         <section className="card p-6">

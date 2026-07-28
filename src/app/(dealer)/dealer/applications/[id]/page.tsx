@@ -6,6 +6,7 @@ import { canAccessApplication } from '@/lib/rbac';
 import { StatusBadge } from '@/components/StatusBadge';
 import { DocumentList } from '@/components/DocumentList';
 import { LoanApplicationDetails } from '@/components/LoanApplicationDetails';
+import { PayoutReceipt } from '@/components/PayoutReceipt';
 import { UploadForm } from '@/components/UploadForm';
 import { SerialNumberForm } from '@/components/SerialNumberForm';
 import { FUNDING_DOCUMENT_TYPES, STATUS_LABELS, programLabel } from '@/lib/constants';
@@ -35,12 +36,14 @@ export default async function DealerApplicationDetail({
       decisions: { orderBy: { createdAt: 'desc' }, include: { decidedBy: true } },
       homeDepotStore: true,
       loanApplication: true,
+      payouts: { orderBy: { paidOn: 'desc' } },
     },
   });
   if (!app || !canAccessApplication(user, app.dealerId)) notFound();
 
   const applicationDocs = app.documents.filter((d) => d.stage === 'APPLICATION');
   const fundingDocs = app.documents.filter((d) => d.stage === 'FUNDING');
+  const gwaDocs = app.documents.filter((d) => d.stage === 'REVIEWER');
   const uploadedFundingTypes = new Set(fundingDocs.map((d) => d.type));
 
   const fundingStageOpen = ['APPROVED', 'CONDITIONAL'].includes(app.status);
@@ -128,6 +131,23 @@ export default async function DealerApplicationDetail({
           <UploadForm action={uploadSupportingDocAction.bind(null, app.id)} label="Upload document" />
         </div>
       </section>
+
+      {/* Paperwork from GWA */}
+      {gwaDocs.length > 0 && (
+        <section className="card p-6">
+          <h2 className="mb-3 text-base font-semibold text-gray-900">Paperwork from GWA</h2>
+          <p className="mb-3 text-xs text-gray-500">Documents from the GWA team — open to view or print.</p>
+          <DocumentList documents={gwaDocs} />
+        </section>
+      )}
+
+      {/* Payout receipt */}
+      {app.payouts.length > 0 && (
+        <section className="card p-6">
+          <h2 className="mb-3 text-base font-semibold text-gray-900">Payout receipt</h2>
+          <PayoutReceipt payouts={app.payouts} />
+        </section>
+      )}
 
       {/* Funding stage */}
       {(fundingStageOpen || inFundingReview) && (

@@ -81,6 +81,7 @@ model User {
   decisions           Decision[]
   statusEvents        StatusEvent[]
   auditLogs           AuditLog[]
+  payoutsRecorded     Payout[]
 
   @@index([dealerId])
 }
@@ -214,6 +215,7 @@ model Application {
   statusEvents    StatusEvent[]
   consents        Consent[]
   loanApplication LoanApplication?
+  payouts         Payout[]
 
   @@index([dealerId])
   @@index([status])
@@ -239,12 +241,16 @@ enum DocumentType {
   SIGNED_HD_DOCUMENT
   PROOF_OF_HOMEOWNERSHIP
   GOVERNMENT_ID
+  // Reviewer -> dealer paperwork
+  HD_PAPERWORK
+  FINANCING_PAPERWORK
   OTHER
 }
 
 enum DocumentStage {
   APPLICATION
   FUNDING
+  REVIEWER // paperwork uploaded by GWA staff for the dealer
 }
 
 model Document {
@@ -326,6 +332,25 @@ model LoanApplication {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// A payment made to the dealer on a deal — the dealer's payout receipt.
+// A deal can have more than one (e.g. partial payments); together they read
+// as a statement of what was paid.
+model Payout {
+  id            String      @id @default(cuid())
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  amount        Decimal     @db.Decimal(12, 2)
+  paidOn        DateTime
+  method        String? // e.g. EFT, cheque
+  reference     String? // payment reference number
+  note          String?
+  createdById   String
+  createdBy     User        @relation(fields: [createdById], references: [id])
+  createdAt     DateTime    @default(now())
+
+  @@index([applicationId])
 }
 
 model SerialNumber {
