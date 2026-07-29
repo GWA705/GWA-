@@ -232,8 +232,8 @@ export function NewApplicationForm({ stores }: { stores: Store[] }) {
         </div>
 
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div><label className="label" htmlFor="financeReference">Finance reference #</label><input id="financeReference" name="financeReference" className="input" autoComplete="off" /></div>
-          <div><label className="label" htmlFor="hdReference">HD Customer #</label><input id="hdReference" name="hdReference" className="input" autoComplete="off" /></div>
+          <div><label className="label" htmlFor="financeReference">Finance reference #</label><input id="financeReference" name="financeReference" className="input" autoComplete="off" placeholder="If applicable" /></div>
+          <div><label className="label" htmlFor="hdReference">HD Customer #</label><input id="hdReference" name="hdReference" className="input" autoComplete="off" placeholder="If applicable" /></div>
         </div>
       </section>
 
