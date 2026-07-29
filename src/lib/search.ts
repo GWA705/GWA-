@@ -13,7 +13,6 @@ export function searchWhere(q: string | undefined): Prisma.ApplicationWhereInput
     OR: [
       { applicantFirstName: contains },
       { applicantLastName: contains },
-      { loanReference: contains },
       { financeReference: contains },
       { hdReference: contains },
       { financeItNumber: contains },

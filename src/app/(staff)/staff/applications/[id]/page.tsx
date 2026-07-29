@@ -137,8 +137,8 @@ export default async function StaffApplicationDetail({
             <div><dt className="text-gray-500">Email</dt><dd className="font-medium">{app.applicantEmail}</dd></div>
             <div><dt className="text-gray-500">Phone</dt><dd className="font-medium">{app.applicantPhone}</dd></div>
             <div><dt className="text-gray-500">Income</dt><dd className="font-medium">{app.incomeAnnual ? `$${app.incomeAnnual.toString()}` : '—'}</dd></div>
-            <div><dt className="text-gray-500">FinanceIt #</dt><dd className="font-medium">{app.financeItNumber ?? '—'}</dd></div>
-            <div><dt className="text-gray-500">Loan ref</dt><dd className="font-medium">{app.loanReference ?? '—'}</dd></div>
+            <div><dt className="text-gray-500">FinanceIt deal #</dt><dd className="font-medium">{app.financeItNumber ?? '—'}</dd></div>
+            <div><dt className="text-gray-500">HD Customer #</dt><dd className="font-medium">{app.hdReference ?? '—'}</dd></div>
             <div><dt className="text-gray-500">Employer</dt><dd className="font-medium">{app.employer ?? '—'}</dd></div>
             <div><dt className="text-gray-500">Co-applicant</dt><dd className="font-medium">{app.coApplicantName ?? '—'}</dd></div>
           </dl>

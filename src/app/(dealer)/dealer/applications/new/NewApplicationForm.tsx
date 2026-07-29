@@ -53,7 +53,7 @@ const FIELD_LABELS: Record<string, string> = {
   applicantPhone: 'Phone',
   province: 'Province',
   consent: 'Consent',
-  financeItNumber: 'FinanceIt number',
+  financeItNumber: 'FinanceIt deal #',
 };
 
 // Always-required fields (independent of entry method).
@@ -219,7 +219,7 @@ export function NewApplicationForm({ stores }: { stores: Store[] }) {
 
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className="label" htmlFor="financeItNumber">FinanceIt approval number {method === 'FINANCEIT' ? '' : <span className="font-normal text-gray-400">(if approved)</span>}</label>
+            <label className="label" htmlFor="financeItNumber">FinanceIt deal # {method === 'FINANCEIT' ? '' : <span className="font-normal text-gray-400">(if approved)</span>}</label>
             <input id="financeItNumber" name="financeItNumber" inputMode="numeric" maxLength={7} className="input" placeholder="7000000" autoComplete="off" />
             <p className="mt-1 text-xs text-gray-400">Entering this indicates the deal is already approved.</p>
             <Err state={state} name="financeItNumber" />
@@ -230,10 +230,9 @@ export function NewApplicationForm({ stores }: { stores: Store[] }) {
           </div>
         </div>
 
-        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <div><label className="label" htmlFor="loanReference">Loan reference #</label><input id="loanReference" name="loanReference" className="input" autoComplete="off" /></div>
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div><label className="label" htmlFor="financeReference">Finance reference #</label><input id="financeReference" name="financeReference" className="input" autoComplete="off" /></div>
-          <div><label className="label" htmlFor="hdReference">HD reference #</label><input id="hdReference" name="hdReference" className="input" autoComplete="off" /></div>
+          <div><label className="label" htmlFor="hdReference">HD Customer #</label><input id="hdReference" name="hdReference" className="input" autoComplete="off" /></div>
         </div>
       </section>
 
