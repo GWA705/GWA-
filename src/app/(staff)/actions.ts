@@ -59,9 +59,11 @@ export async function recordDecisionAction(
     applicationId: formData.get('applicationId'),
     type: formData.get('type'),
     notes: formData.get('notes') || undefined,
+    approvedAmount: formData.get('approvedAmount') ?? undefined,
+    financeCompanyId: formData.get('financeCompanyId') || undefined,
   });
   if (!parsed.success) return { error: 'Invalid decision.' };
-  const { applicationId, type, notes } = parsed.data;
+  const { applicationId, type, notes, approvedAmount, financeCompanyId } = parsed.data;
 
   const app = await prisma.application.findUnique({ where: { id: applicationId } });
   if (!app) return { error: 'Application not found.' };
@@ -72,10 +74,23 @@ export async function recordDecisionAction(
 
   const to = nextStatus(type);
 
+  // On an approval, record the approved amount, finance company, and approver.
+  const isApproval = type === 'APPROVE' || type === 'CONDITIONAL';
+  const approvalData = isApproval
+    ? {
+        approvedAmount: approvedAmount ?? app.approvedAmount ?? app.requestedAmount,
+        financeCompanyId: financeCompanyId ?? app.financeCompanyId,
+        approvedById: session.userId,
+      }
+    : {};
+
   await prisma.$transaction(async (tx) => {
     await tx.decision.create({
       data: { applicationId, type, notes: notes || null, decidedById: session.userId },
     });
+    if (isApproval) {
+      await tx.application.update({ where: { id: applicationId }, data: approvalData });
+    }
     if (to && to !== app.status) {
       await tx.application.update({ where: { id: applicationId }, data: { status: to } });
       await tx.statusEvent.create({

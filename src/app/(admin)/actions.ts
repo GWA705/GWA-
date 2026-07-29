@@ -5,7 +5,7 @@ import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/session';
 import { hashPassword, validatePasswordStrength } from '@/lib/password';
 import { audit } from '@/lib/audit';
-import { createUserSchema, createDealerSchema } from '@/lib/validation';
+import { createUserSchema, createDealerSchema, createFinanceCompanySchema } from '@/lib/validation';
 
 export interface ActionState {
   error?: string;
@@ -82,4 +82,27 @@ export async function toggleDealerActiveAction(dealerId: string): Promise<void> 
   await prisma.dealer.update({ where: { id: dealerId }, data: { active: !dealer.active } });
   await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'Dealer', entityId: dealerId, detail: `active=${!dealer.active}` });
   revalidatePath('/admin/dealers');
+}
+
+export async function createFinanceCompanyAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await requireRole('ADMIN');
+  const parsed = createFinanceCompanySchema.safeParse({ name: formData.get('name') });
+  if (!parsed.success) return { error: 'Enter a finance company name.' };
+
+  const fc = await prisma.financeCompany.create({ data: { name: parsed.data.name } });
+  await audit({ actorId: session.userId, action: 'DEALER_CREATE', entityType: 'FinanceCompany', entityId: fc.id, detail: fc.name });
+  revalidatePath('/admin/finance-companies');
+  return { ok: true };
+}
+
+export async function toggleFinanceCompanyActiveAction(id: string): Promise<void> {
+  const session = await requireRole('ADMIN');
+  const fc = await prisma.financeCompany.findUnique({ where: { id } });
+  if (!fc) return;
+  await prisma.financeCompany.update({ where: { id }, data: { active: !fc.active } });
+  await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'FinanceCompany', entityId: id, detail: `active=${!fc.active}` });
+  revalidatePath('/admin/finance-companies');
 }

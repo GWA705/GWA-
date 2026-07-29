@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { recordDecisionAction, type ActionState } from '@/app/(staff)/actions';
 
@@ -15,14 +16,20 @@ function SubmitButton() {
 export function DecisionForm({
   applicationId,
   options,
+  financeCompanies,
+  defaultAmount,
 }: {
   applicationId: string;
   options: { value: string; label: string }[];
+  financeCompanies: { id: string; name: string }[];
+  defaultAmount: string;
 }) {
   const [state, action] = useFormState(recordDecisionAction, {} as ActionState);
+  const [type, setType] = useState(options[0]?.value ?? '');
+  const isApproval = type === 'APPROVE' || type === 'CONDITIONAL';
 
   if (options.length === 0) {
-    return <p className="text-sm text-gray-500">No decisions available for this status.</p>;
+    return <p className="text-sm text-gray-500">Use “Change status” below to update this deal.</p>;
   }
 
   return (
@@ -36,12 +43,31 @@ export function DecisionForm({
       <input type="hidden" name="applicationId" value={applicationId} />
       <div>
         <label className="label" htmlFor="type">Decision</label>
-        <select id="type" name="type" required className="input">
+        <select id="type" name="type" required className="input" value={type} onChange={(e) => setType(e.target.value)}>
           {options.map((o) => (
             <option key={o.value} value={o.value}>{o.label}</option>
           ))}
         </select>
       </div>
+
+      {isApproval && (
+        <div className="space-y-3 rounded-md bg-green-50/50 p-3 ring-1 ring-green-100">
+          <div>
+            <label className="label" htmlFor="approvedAmount">Approved amount (CAD)</label>
+            <input id="approvedAmount" name="approvedAmount" type="number" step="0.01" min="0" defaultValue={defaultAmount} className="input" />
+          </div>
+          <div>
+            <label className="label" htmlFor="financeCompanyId">Finance company</label>
+            <select id="financeCompanyId" name="financeCompanyId" className="input">
+              <option value="">Select…</option>
+              {financeCompanies.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
+
       <div>
         <label className="label" htmlFor="notes">Notes (shared with dealer)</label>
         <textarea id="notes" name="notes" rows={3} className="input" />

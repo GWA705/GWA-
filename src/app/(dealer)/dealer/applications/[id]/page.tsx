@@ -34,6 +34,7 @@ export default async function DealerApplicationDetail({
       decisions: { orderBy: { createdAt: 'desc' }, include: { decidedBy: true } },
       homeDepotStore: true,
       loanApplication: true,
+      financeCompany: true,
       payouts: { orderBy: { paidOn: 'desc' } },
     },
   });
@@ -75,6 +76,8 @@ export default async function DealerApplicationDetail({
           <div><dt className="text-gray-500">Province</dt><dd className="font-medium">{app.province}</dd></div>
           <div><dt className="text-gray-500">Program</dt><dd className="font-medium">{programLabel(app.programType, app.programCategory)}</dd></div>
           <div><dt className="text-gray-500">Requested</dt><dd className="font-medium">${app.requestedAmount.toString()}</dd></div>
+          <div><dt className="text-gray-500">Approved amount</dt><dd className="font-medium">{app.approvedAmount ? `$${app.approvedAmount.toString()}` : '—'}</dd></div>
+          <div><dt className="text-gray-500">Finance company</dt><dd className="font-medium">{app.financeCompany?.name ?? '—'}</dd></div>
           <div><dt className="text-gray-500">Date of sale</dt><dd className="font-medium">{app.dateOfSale ? app.dateOfSale.toLocaleDateString('en-CA') : '—'}</dd></div>
           <div><dt className="text-gray-500">Installation date</dt><dd className="font-medium">{app.installationDate ? app.installationDate.toLocaleDateString('en-CA') : '—'}</dd></div>
           <div><dt className="text-gray-500">HD store</dt><dd className="font-medium">{app.homeDepotStore ? app.homeDepotStore.number : '—'}</dd></div>

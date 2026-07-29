@@ -123,6 +123,16 @@ export const decisionSchema = z.object({
   applicationId: z.string().min(1),
   type: z.enum(['APPROVE', 'DECLINE', 'CONDITIONAL', 'REQUEST_DOCS', 'FUND']),
   notes: z.string().max(4000).optional(),
+  // Captured when approving.
+  approvedAmount: z.preprocess(
+    (v) => (v === '' || v == null ? undefined : v),
+    z.coerce.number().positive().max(1_000_000).optional(),
+  ),
+  financeCompanyId: z.string().optional(),
+});
+
+export const createFinanceCompanySchema = z.object({
+  name: z.string().min(1).max(160),
 });
 
 export const loginSchema = z.object({

@@ -75,6 +75,15 @@ async function main() {
   });
   console.log(`Dealers: ${dealer.name}, ${dealer2.name}`);
 
+  // Finance companies (placeholder list — replace with the real ones)
+  for (const [id, name] of [
+    ['seed-fc-1', 'FinanceIt'],
+    ['seed-fc-2', 'Financeit Home'],
+    ['seed-fc-3', 'SNAP Financial'],
+  ] as const) {
+    await prisma.financeCompany.upsert({ where: { id }, update: {}, create: { id, name } });
+  }
+
   // Home Depot stores assigned to each dealer
   const storeSeed = [
     { id: 'seed-store-1', dealerId: dealer.id, number: '7112', name: 'Barrie' },

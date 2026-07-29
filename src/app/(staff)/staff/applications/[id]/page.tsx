@@ -57,10 +57,18 @@ export default async function StaffApplicationDetail({
       consents: { orderBy: { capturedAt: 'desc' } },
       homeDepotStore: true,
       loanApplication: true,
+      financeCompany: true,
+      approvedBy: true,
       payouts: { orderBy: { paidOn: 'desc' }, include: { createdBy: true } },
     },
   });
   if (!app) notFound();
+
+  const financeCompanies = await prisma.financeCompany.findMany({
+    where: { active: true },
+    orderBy: { name: 'asc' },
+    select: { id: true, name: true },
+  });
 
   const reveal = searchParams.reveal === '1';
 
@@ -113,6 +121,9 @@ export default async function StaffApplicationDetail({
             <div><dt className="text-gray-500">Program</dt><dd className="font-medium">{programLabel(app.programType, app.programCategory)}</dd></div>
             <div><dt className="text-gray-500">Entry method</dt><dd className="font-medium">{app.entryMethod === 'TYPED' ? 'Typed in' : app.entryMethod === 'PHOTO' ? 'Photo upload' : 'FinanceIt #'}</dd></div>
             <div><dt className="text-gray-500">Requested</dt><dd className="font-medium">${app.requestedAmount.toString()}</dd></div>
+            <div><dt className="text-gray-500">Approved amount</dt><dd className="font-medium">{app.approvedAmount ? `$${app.approvedAmount.toString()}` : '—'}</dd></div>
+            <div><dt className="text-gray-500">Finance company</dt><dd className="font-medium">{app.financeCompany?.name ?? '—'}</dd></div>
+            <div><dt className="text-gray-500">Approved by</dt><dd className="font-medium">{app.approvedBy?.name ?? '—'}</dd></div>
             <div><dt className="text-gray-500">Date of sale</dt><dd className="font-medium">{app.dateOfSale ? app.dateOfSale.toLocaleDateString('en-CA') : '—'}</dd></div>
             <div><dt className="text-gray-500">Installation date</dt><dd className="font-medium">{app.installationDate ? app.installationDate.toLocaleDateString('en-CA') : '—'}</dd></div>
             <div><dt className="text-gray-500">HD store</dt><dd className="font-medium">{app.homeDepotStore ? app.homeDepotStore.number : '—'}</dd></div>
@@ -248,7 +259,12 @@ export default async function StaffApplicationDetail({
               “In for funding.”
             </p>
           )}
-          <DecisionForm applicationId={app.id} options={options} />
+          <DecisionForm
+            applicationId={app.id}
+            options={options}
+            financeCompanies={financeCompanies}
+            defaultAmount={app.requestedAmount.toString()}
+          />
 
           <div className="mt-5 border-t border-gray-100 pt-4">
             <StatusChangeForm applicationId={app.id} current={app.status} />
