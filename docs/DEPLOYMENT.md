@@ -81,6 +81,25 @@ Run these after deploying to staging (or locally with `npm run dev`):
 8. **Audit**
    - `/admin/audit` shows logins, PII reveals, decisions, and document access.
 
+## Email (transactional)
+
+Email is provider-agnostic SMTP and ships in **log-only mode** (emails are logged,
+not sent) until SMTP credentials are set. To switch it on with **Google
+Workspace**:
+
+1. Use a real mailbox (not a Google Group), e.g. `hello@ghsbarrie.ca`. Turn on
+   2-Step Verification, then create an **App Password** (Google Account →
+   Security → App passwords). If your Workspace admin disabled App Passwords,
+   use Google's **SMTP relay** (`smtp-relay.gmail.com`) instead.
+2. Optionally add `noreply@ghsbarrie.ca` as a send-as alias and use it as
+   `EMAIL_FROM`.
+3. Set the env vars (see `.env.example`):
+   `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=465`, `SMTP_SECURE=true`,
+   `SMTP_USER=<mailbox>`, `SMTP_PASS=<app password>`, `EMAIL_FROM=<from address>`,
+   `EMAIL_FROM_NAME="GWA Dealer Portal"`.
+
+Emails never contain sensitive personal information — they link back to the portal.
+
 ## Operational notes
 
 - Enable automated RDS backups and S3 versioning.
