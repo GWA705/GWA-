@@ -135,6 +135,31 @@ export const createFinanceCompanySchema = z.object({
   name: z.string().min(1).max(160),
 });
 
+const boolFromForm = z.preprocess((v) => v === 'on' || v === 'true' || v === true, z.boolean());
+
+export const confirmationSchema = z.object({
+  applicationId: z.string().min(1),
+  intent: z.enum(['save', 'complete', 'issue']),
+  productName: str(120),
+  numberOfCalls: optionalInt,
+  city: str(80),
+  district: str(80),
+  phoneNumber: str(30),
+  installedWorking: boolFromForm.optional(),
+  performingAsRepresented: boolFromForm.optional(),
+  receivedEverything: boolFromForm.optional(),
+  financingAmount: optionalNumber,
+  termMonths: optionalInt,
+  firstInstallmentAmount: optionalNumber,
+  firstInstallmentDate: optionalDate,
+  termsAgreed: boolFromForm.optional(),
+  signatureConfirmed: boolFromForm.optional(),
+  notTrialOffer: boolFromForm.optional(),
+  specialArrangements: str(2000),
+  hdNotes: str(4000),
+  issueNote: str(2000),
+});
+
 export const noteSchema = z.object({
   applicationId: z.string().min(1),
   body: z.string().min(1, 'Write a note').max(4000),

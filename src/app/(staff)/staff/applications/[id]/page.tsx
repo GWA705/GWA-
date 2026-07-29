@@ -12,6 +12,9 @@ import { PayoutReceipt } from '@/components/PayoutReceipt';
 import { UploadForm } from '@/components/UploadForm';
 import { NoteThread } from '@/components/NoteThread';
 import { NoteForm } from '@/components/NoteForm';
+import { ConfirmationBadge } from '@/components/ConfirmationBadge';
+import { PROGRAM_CATEGORY_LABELS } from '@/lib/constants';
+import { ConfirmationForm } from './ConfirmationForm';
 import { DecisionForm } from './DecisionForm';
 import { PayoutForm } from './PayoutForm';
 import { StatusChangeForm } from './StatusChangeForm';
@@ -64,6 +67,7 @@ export default async function StaffApplicationDetail({
       approvedBy: true,
       payouts: { orderBy: { paidOn: 'desc' }, include: { createdBy: true } },
       dealNotes: { orderBy: { createdAt: 'asc' }, include: { author: true } },
+      confirmation: { include: { confirmedBy: true } },
     },
   });
   if (!app) notFound();
@@ -260,6 +264,23 @@ export default async function StaffApplicationDetail({
             <h3 className="mb-3 text-sm font-medium text-gray-700">Record a payout</h3>
             <PayoutForm applicationId={app.id} />
           </div>
+        </section>
+
+        {/* Confirmation call */}
+        <section className="card p-6">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-base font-semibold text-gray-900">Confirmation call</h2>
+            <ConfirmationBadge status={app.confirmationStatus} />
+          </div>
+          <p className="mb-4 text-xs text-gray-500">UEI confirmation script — work through it on the call, check all six boxes, then Confirm.</p>
+          <ConfirmationForm
+            applicationId={app.id}
+            data={app.confirmation}
+            applicantName={`${app.applicantFirstName} ${app.applicantLastName}`}
+            defaultProduct={PROGRAM_CATEGORY_LABELS[app.programCategory]}
+            defaultPhone={app.applicantPhone}
+            defaultAmount={(app.approvedAmount ?? app.requestedAmount).toString()}
+          />
         </section>
 
         {/* History */}

@@ -9,6 +9,8 @@ import { LoanApplicationDetails } from '@/components/LoanApplicationDetails';
 import { PayoutReceipt } from '@/components/PayoutReceipt';
 import { NoteThread } from '@/components/NoteThread';
 import { NoteForm } from '@/components/NoteForm';
+import { ConfirmationBadge } from '@/components/ConfirmationBadge';
+import { ConfirmationView } from '@/components/ConfirmationView';
 import { UploadForm } from '@/components/UploadForm';
 import { SerialNumberForm } from '@/components/SerialNumberForm';
 import { FUNDING_DOCUMENT_TYPES, STATUS_LABELS, programLabel } from '@/lib/constants';
@@ -40,6 +42,7 @@ export default async function DealerApplicationDetail({
       financeCompany: true,
       payouts: { orderBy: { paidOn: 'desc' } },
       dealNotes: { where: { internal: false }, orderBy: { createdAt: 'asc' }, include: { author: true } },
+      confirmation: { include: { confirmedBy: true } },
     },
   });
   if (!app || !canAccessApplication(user, app.dealerId)) notFound();
@@ -118,6 +121,19 @@ export default async function DealerApplicationDetail({
       )}
 
       {app.loanApplication && <LoanApplicationDetails loan={app.loanApplication} />}
+
+      {/* Confirmation */}
+      <section className="card p-6">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-base font-semibold text-gray-900">Confirmation</h2>
+          <ConfirmationBadge status={app.confirmationStatus} />
+        </div>
+        {app.confirmation && app.confirmationStatus !== 'PENDING' ? (
+          <ConfirmationView c={app.confirmation} />
+        ) : (
+          <p className="text-sm text-gray-500">This deal has not been confirmed yet.</p>
+        )}
+      </section>
 
       {/* Notes with GWA */}
       <section className="card p-6">

@@ -1,10 +1,25 @@
 import type {
   ApplicationStatus,
+  ConfirmationStatus,
   DocumentType,
   Province,
   ProgramType,
   ProgramCategory,
 } from '@prisma/client';
+
+export const CONFIRMATION_STATUS_LABELS: Record<ConfirmationStatus, string> = {
+  PENDING: 'Pending confirmation',
+  COMPLETED: 'Confirmation completed',
+  ISSUE: 'Issue with confirmation',
+};
+
+export const CONFIRMATION_STATUS_COLORS: Record<ConfirmationStatus, string> = {
+  PENDING: 'bg-amber-100 text-amber-800',
+  COMPLETED: 'bg-green-100 text-green-800',
+  ISSUE: 'bg-red-100 text-red-700',
+};
+
+export const CONFIRMATION_PHONE = '1-866-874-2532';
 
 export const PROGRAM_TYPES: { value: ProgramType; label: string }[] = [
   { value: 'HD', label: 'HD' },

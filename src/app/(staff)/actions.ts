@@ -5,7 +5,13 @@ import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/session';
 import { audit } from '@/lib/audit';
 import { storeFiles } from '@/lib/upload';
-import { decisionSchema, payoutSchema, statusChangeSchema, noteSchema } from '@/lib/validation';
+import {
+  decisionSchema,
+  payoutSchema,
+  statusChangeSchema,
+  noteSchema,
+  confirmationSchema,
+} from '@/lib/validation';
 import { FUNDING_DOCUMENT_TYPES } from '@/lib/constants';
 import type { ApplicationStatus, DecisionType, DocumentType } from '@prisma/client';
 
@@ -374,5 +380,110 @@ export async function addStaffNoteAction(
   await prisma.note.create({ data: { applicationId, authorId: session.userId, body, internal } });
   await audit({ actorId: session.userId, action: 'DECISION', entityType: 'Application', entityId: applicationId, detail: internal ? 'Internal note' : 'Note to dealer' });
   revalidatePath(`/staff/applications/${applicationId}`);
+  return { ok: true };
+}
+
+// Reviewer/confirmer saves the confirmation script — draft save, complete, or
+// flag an issue. "complete" requires all six confirmation boxes to be checked.
+export async function saveConfirmationAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await requireRole('REVIEWER', 'ADMIN');
+  const parsed = confirmationSchema.safeParse({
+    applicationId: formData.get('applicationId'),
+    intent: formData.get('intent'),
+    productName: formData.get('productName') || undefined,
+    numberOfCalls: formData.get('numberOfCalls') ?? undefined,
+    city: formData.get('city') || undefined,
+    district: formData.get('district') || undefined,
+    phoneNumber: formData.get('phoneNumber') || undefined,
+    installedWorking: formData.get('installedWorking'),
+    performingAsRepresented: formData.get('performingAsRepresented'),
+    receivedEverything: formData.get('receivedEverything'),
+    financingAmount: formData.get('financingAmount') ?? undefined,
+    termMonths: formData.get('termMonths') ?? undefined,
+    firstInstallmentAmount: formData.get('firstInstallmentAmount') ?? undefined,
+    firstInstallmentDate: formData.get('firstInstallmentDate') || undefined,
+    termsAgreed: formData.get('termsAgreed'),
+    signatureConfirmed: formData.get('signatureConfirmed'),
+    notTrialOffer: formData.get('notTrialOffer'),
+    specialArrangements: formData.get('specialArrangements') || undefined,
+    hdNotes: formData.get('hdNotes') || undefined,
+    issueNote: formData.get('issueNote') || undefined,
+  });
+  if (!parsed.success) return { error: 'Could not save the confirmation.' };
+  const d = parsed.data;
+
+  const app = await prisma.application.findUnique({ where: { id: d.applicationId } });
+  if (!app) return { error: 'Application not found.' };
+
+  const allChecked =
+    !!d.installedWorking &&
+    !!d.performingAsRepresented &&
+    !!d.receivedEverything &&
+    !!d.termsAgreed &&
+    !!d.signatureConfirmed &&
+    !!d.notTrialOffer;
+
+  if (d.intent === 'complete' && !allChecked) {
+    return { error: 'Check all six confirmation boxes before completing.' };
+  }
+
+  const fields = {
+    productName: d.productName || null,
+    numberOfCalls: d.numberOfCalls ?? null,
+    city: d.city || null,
+    district: d.district || null,
+    phoneNumber: d.phoneNumber || null,
+    installedWorking: !!d.installedWorking,
+    performingAsRepresented: !!d.performingAsRepresented,
+    receivedEverything: !!d.receivedEverything,
+    financingAmount: d.financingAmount ?? null,
+    termMonths: d.termMonths ?? null,
+    firstInstallmentAmount: d.firstInstallmentAmount ?? null,
+    firstInstallmentDate: d.firstInstallmentDate ? new Date(d.firstInstallmentDate) : null,
+    termsAgreed: !!d.termsAgreed,
+    signatureConfirmed: !!d.signatureConfirmed,
+    notTrialOffer: !!d.notTrialOffer,
+    specialArrangements: d.specialArrangements || null,
+    hdNotes: d.hdNotes || null,
+    issueNote: d.issueNote || null,
+  };
+
+  const completing = d.intent === 'complete';
+  await prisma.confirmation.upsert({
+    where: { applicationId: d.applicationId },
+    create: {
+      applicationId: d.applicationId,
+      ...fields,
+      confirmedById: completing ? session.userId : null,
+      completedAt: completing ? new Date() : null,
+    },
+    update: {
+      ...fields,
+      ...(completing ? { confirmedById: session.userId, completedAt: new Date() } : {}),
+    },
+  });
+
+  const newStatus =
+    d.intent === 'complete' ? 'COMPLETED' : d.intent === 'issue' ? 'ISSUE' : app.confirmationStatus;
+  if (newStatus !== app.confirmationStatus) {
+    await prisma.application.update({
+      where: { id: d.applicationId },
+      data: { confirmationStatus: newStatus },
+    });
+  }
+
+  await audit({
+    actorId: session.userId,
+    action: 'DECISION',
+    entityType: 'Application',
+    entityId: d.applicationId,
+    detail: `Confirmation ${d.intent}`,
+  });
+
+  revalidatePath(`/staff/applications/${d.applicationId}`);
+  revalidatePath('/staff');
   return { ok: true };
 }
