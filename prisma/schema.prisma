@@ -79,6 +79,13 @@ model User {
   dealerId String?
   dealer   Dealer? @relation(fields: [dealerId], references: [id])
 
+  // Profile & notification preferences
+  phone             String?
+  notificationEmail String? // where notifications go; falls back to `email`
+  notifyStatusUpdates Boolean @default(true)
+  notifyNewNotes      Boolean @default(true)
+  notifyNewDocuments  Boolean @default(true) // for reviewers/admins
+
   failedLoginCount Int       @default(0)
   lockedUntil      DateTime?
   lastLoginAt      DateTime?

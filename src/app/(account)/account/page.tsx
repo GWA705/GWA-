@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db';
 import { decryptMfaSecret, buildMfaEnrollment } from '@/lib/mfa';
 import { beginMfaAction, disableMfaAction } from '@/app/(account)/actions';
 import { ConfirmMfaForm } from './ConfirmMfaForm';
+import { ProfileForm } from './ProfileForm';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,14 +23,32 @@ export default async function AccountPage() {
     otpauthUrl = enrollment.otpauthUrl;
   }
 
+  const isStaff = session.role === 'REVIEWER' || session.role === 'ADMIN';
+
   return (
-    <div className="mx-auto max-w-2xl px-4 py-10">
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-gray-900">Account security</h1>
+    <div className="mx-auto max-w-2xl space-y-6 px-4 py-10">
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-semibold text-gray-900">My account</h1>
         <Link href={defaultLandingFor(session.role)} className="text-sm text-gray-500 hover:underline">
           ← Back
         </Link>
       </div>
+
+      <section className="card p-6">
+        <h2 className="mb-4 text-base font-semibold text-gray-900">Profile &amp; notifications</h2>
+        <ProfileForm
+          profile={{
+            name: user.name,
+            email: user.email,
+            phone: user.phone,
+            notificationEmail: user.notificationEmail,
+            notifyStatusUpdates: user.notifyStatusUpdates,
+            notifyNewNotes: user.notifyNewNotes,
+            notifyNewDocuments: user.notifyNewDocuments,
+            isStaff,
+          }}
+        />
+      </section>
 
       <section className="card p-6">
         <h2 className="text-base font-semibold text-gray-900">Two-factor authentication (2FA)</h2>

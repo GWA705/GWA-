@@ -9,6 +9,7 @@ import { canAccessApplication } from '@/lib/rbac';
 import { encryptOptional } from '@/lib/crypto';
 import { audit } from '@/lib/audit';
 import { storeFiles } from '@/lib/upload';
+import { notifyNewDocuments, notifyNewNote } from '@/lib/notify';
 import { applicationSchema, serialNumberSchema } from '@/lib/validation';
 import { CONSENT_POLICY_VERSION, CONSENT_TEXT } from '@/lib/constants';
 import type { DocumentType } from '@prisma/client';
@@ -166,6 +167,7 @@ export async function uploadSupportingDocAction(
   const result = await storeFiles({ application: app, files, type: 'SUPPORTING', stage: 'APPLICATION', uploadedById: session.userId });
   if (result.error) return result;
 
+  await notifyNewDocuments(applicationId);
   revalidatePath(`/dealer/applications/${applicationId}`);
   return {};
 }
@@ -209,6 +211,7 @@ export async function uploadFundingDocAction(
   const result = await storeFiles({ application: app, files, type: docType, stage: 'FUNDING', uploadedById: session.userId });
   if (result.error) return result;
 
+  await notifyNewDocuments(applicationId);
   revalidatePath(`/dealer/applications/${applicationId}`);
   return {};
 }
@@ -255,6 +258,7 @@ export async function addDealerNoteAction(
   await prisma.note.create({
     data: { applicationId, authorId: session.userId, body: body.slice(0, 4000), internal: false },
   });
+  await notifyNewNote(applicationId, 'DEALER_USER');
   revalidatePath(`/dealer/applications/${applicationId}`);
   return {};
 }

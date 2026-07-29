@@ -192,6 +192,18 @@ export const createDealerSchema = z.object({
   name: z.string().min(1).max(160),
 });
 
+export const profileSchema = z.object({
+  name: z.string().min(1, 'Enter your name').max(120),
+  phone: z.string().max(30).optional(),
+  notificationEmail: z
+    .string()
+    .optional()
+    .refine((v) => !v || z.string().email().safeParse(v).success, 'Enter a valid email'),
+  notifyStatusUpdates: z.coerce.boolean().optional().default(false),
+  notifyNewNotes: z.coerce.boolean().optional().default(false),
+  notifyNewDocuments: z.coerce.boolean().optional().default(false),
+});
+
 export const statusChangeSchema = z.object({
   applicationId: z.string().min(1),
   status: z.enum([

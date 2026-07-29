@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/session';
 import { audit } from '@/lib/audit';
 import { storeFiles } from '@/lib/upload';
+import { notifyStatusChange, notifyNewNote } from '@/lib/notify';
 import {
   decisionSchema,
   payoutSchema,
@@ -119,6 +120,7 @@ export async function recordDecisionAction(
     detail: `${type}${notes ? `: ${notes.slice(0, 200)}` : ''}`,
   });
 
+  if (to && to !== app.status) await notifyStatusChange(applicationId, to);
   revalidatePath(`/staff/applications/${applicationId}`);
   revalidatePath('/staff');
   return { ok: true };
@@ -313,6 +315,7 @@ export async function moveToInForFundingAction(applicationId: string): Promise<v
     }),
   ]);
   await audit({ actorId: session.userId, action: 'STATUS_CHANGE', entityType: 'Application', entityId: applicationId, detail: 'FUNDING_REVIEW' });
+  await notifyStatusChange(applicationId, 'FUNDING_REVIEW');
   revalidatePath(`/staff/applications/${applicationId}`);
   revalidatePath('/staff');
 }
@@ -355,6 +358,7 @@ export async function changeStatusAction(
     detail: `Manual: ${app.status} -> ${status}${note ? ` (${note.slice(0, 200)})` : ''}`,
   });
 
+  await notifyStatusChange(applicationId, status);
   revalidatePath(`/staff/applications/${applicationId}`);
   revalidatePath('/staff');
   return { ok: true };
@@ -379,6 +383,7 @@ export async function addStaffNoteAction(
 
   await prisma.note.create({ data: { applicationId, authorId: session.userId, body, internal } });
   await audit({ actorId: session.userId, action: 'DECISION', entityType: 'Application', entityId: applicationId, detail: internal ? 'Internal note' : 'Note to dealer' });
+  if (!internal) await notifyNewNote(applicationId, 'REVIEWER');
   revalidatePath(`/staff/applications/${applicationId}`);
   return { ok: true };
 }

@@ -9,6 +9,7 @@ export default async function DealerLayout({ children }: { children: React.React
       nav={[
         { href: '/dealer', label: 'Applications' },
         { href: '/dealer/applications/new', label: 'New application' },
+        { href: '/account', label: 'My account' },
       ]}
     >
       {children}
