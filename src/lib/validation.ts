@@ -135,6 +135,22 @@ export const createFinanceCompanySchema = z.object({
   name: z.string().min(1).max(160),
 });
 
+export const announcementSchema = z
+  .object({
+    title: z.string().max(160).optional(),
+    body: z.string().max(4000).optional(),
+    linkUrl: z
+      .string()
+      .max(500)
+      .optional()
+      .refine((v) => !v || /^https?:\/\//i.test(v), 'Link must start with http(s)://'),
+    hasImage: z.boolean().optional(),
+  })
+  .refine((d) => !!(d.title || d.body || d.hasImage), {
+    message: 'Add some text or an image.',
+    path: ['body'],
+  });
+
 const boolFromForm = z.preprocess((v) => v === 'on' || v === 'true' || v === true, z.boolean());
 
 export const confirmationSchema = z.object({

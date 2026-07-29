@@ -5,7 +5,11 @@ import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/session';
 import { hashPassword, validatePasswordStrength } from '@/lib/password';
 import { audit } from '@/lib/audit';
-import { createUserSchema, createDealerSchema, createFinanceCompanySchema } from '@/lib/validation';
+import crypto from 'crypto';
+import path from 'path';
+import { putDocument, deleteDocument } from '@/lib/storage';
+import { ALLOWED_MIME_TYPES, MAX_FILE_BYTES } from '@/lib/constants';
+import { createUserSchema, createDealerSchema, createFinanceCompanySchema, announcementSchema } from '@/lib/validation';
 
 export interface ActionState {
   error?: string;
@@ -105,4 +109,69 @@ export async function toggleFinanceCompanyActiveAction(id: string): Promise<void
   await prisma.financeCompany.update({ where: { id }, data: { active: !fc.active } });
   await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'FinanceCompany', entityId: id, detail: `active=${!fc.active}` });
   revalidatePath('/admin/finance-companies');
+}
+
+// --- Announcements / banner ------------------------------------------------
+
+export async function createAnnouncementAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await requireRole('ADMIN');
+  const file = formData.get('image') as File | null;
+  const hasImage = !!file && typeof file !== 'string' && file.size > 0;
+
+  const parsed = announcementSchema.safeParse({
+    title: (formData.get('title') as string) || undefined,
+    body: (formData.get('body') as string) || undefined,
+    linkUrl: (formData.get('linkUrl') as string) || undefined,
+    hasImage,
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Please check the form.' };
+  const d = parsed.data;
+
+  const created = await prisma.announcement.create({
+    data: { title: d.title || null, body: d.body || null, linkUrl: d.linkUrl || null },
+  });
+
+  if (hasImage) {
+    if (file!.size > MAX_FILE_BYTES) return { error: 'Image is too large (max 15 MB).' };
+    if (!ALLOWED_MIME_TYPES.includes(file!.type) || !file!.type.startsWith('image/')) {
+      return { error: 'Banner must be an image (JPG, PNG, WEBP).' };
+    }
+    const ext = path.extname(file!.name).slice(0, 12).replace(/[^a-zA-Z0-9.]/g, '') || '.img';
+    const key = `announcements/${created.id}/${crypto.randomBytes(8).toString('hex')}${ext}`;
+    const bytes = Buffer.from(await file!.arrayBuffer());
+    await putDocument(key, bytes);
+    await prisma.announcement.update({
+      where: { id: created.id },
+      data: { imageStorageKey: key, imageMime: file!.type },
+    });
+  }
+
+  await audit({ actorId: session.userId, action: 'DEALER_CREATE', entityType: 'Announcement', entityId: created.id, detail: d.title || 'announcement' });
+  revalidatePath('/admin/announcements');
+  revalidatePath('/dealer');
+  return { ok: true };
+}
+
+export async function toggleAnnouncementActiveAction(id: string): Promise<void> {
+  const session = await requireRole('ADMIN');
+  const a = await prisma.announcement.findUnique({ where: { id } });
+  if (!a) return;
+  await prisma.announcement.update({ where: { id }, data: { active: !a.active } });
+  await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'Announcement', entityId: id, detail: `active=${!a.active}` });
+  revalidatePath('/admin/announcements');
+  revalidatePath('/dealer');
+}
+
+export async function deleteAnnouncementAction(id: string): Promise<void> {
+  const session = await requireRole('ADMIN');
+  const a = await prisma.announcement.findUnique({ where: { id } });
+  if (!a) return;
+  if (a.imageStorageKey) await deleteDocument(a.imageStorageKey).catch(() => {});
+  await prisma.announcement.delete({ where: { id } });
+  await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'Announcement', entityId: id, detail: 'deleted' });
+  revalidatePath('/admin/announcements');
+  revalidatePath('/dealer');
 }
