@@ -55,7 +55,7 @@ const FIELD_LABELS: Record<string, string> = {
   applicantPhone: 'Phone',
   province: 'Province',
   consent: 'Consent',
-  financeItNumber: 'FinanceIt deal #',
+  financeItNumber: 'Financing deal number',
 };
 
 // Always-required fields (independent of entry method).
@@ -89,7 +89,7 @@ function focusField(name: string) {
 const METHODS: { value: Method; title: string; blurb: string }[] = [
   { value: 'TYPED', title: 'Type it in', blurb: 'Enter the full application (fewer errors)' },
   { value: 'PHOTO', title: 'Upload a photo', blurb: 'Attach a photo of the paper application' },
-  { value: 'FINANCEIT', title: 'FinanceIt number', blurb: 'Already approved — enter the number' },
+  { value: 'FINANCEIT', title: 'Financing number', blurb: 'Already approved — enter the deal number' },
 ];
 
 export function NewApplicationForm({ stores }: { stores: Store[] }) {
@@ -187,7 +187,7 @@ export function NewApplicationForm({ stores }: { stores: Store[] }) {
         )}
         {method === 'FINANCEIT' && (
           <p className="mt-4 rounded bg-emerald-50 p-3 text-sm text-emerald-800">
-            Enter the FinanceIt approval number below — the deal will be marked as approved.
+            Enter the financing deal number below — the deal will be marked as approved.
           </p>
         )}
       </section>
@@ -221,8 +221,8 @@ export function NewApplicationForm({ stores }: { stores: Store[] }) {
 
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className="label" htmlFor="financeItNumber">FinanceIt deal # {method === 'FINANCEIT' ? '' : <span className="font-normal text-gray-400">(if approved)</span>}</label>
-            <input id="financeItNumber" name="financeItNumber" inputMode="numeric" maxLength={7} className="input" placeholder="7000000" autoComplete="off" />
+            <label className="label" htmlFor="financeItNumber">Financing deal number {method === 'FINANCEIT' ? '' : <span className="font-normal text-gray-400">(if approved)</span>}</label>
+            <input id="financeItNumber" name="financeItNumber" maxLength={60} className="input" placeholder="Finance company deal #" autoComplete="off" />
             <p className="mt-1 text-xs text-gray-400">Entering this indicates the deal is already approved.</p>
             <Err state={state} name="financeItNumber" />
           </div>

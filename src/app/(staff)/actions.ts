@@ -12,6 +12,7 @@ import {
   statusChangeSchema,
   noteSchema,
   confirmationSchema,
+  financingNumberSchema,
 } from '@/lib/validation';
 import { FUNDING_DOCUMENT_TYPES } from '@/lib/constants';
 import type { ApplicationStatus, DecisionType, DocumentType } from '@prisma/client';
@@ -38,6 +39,33 @@ function nextStatus(type: DecisionType): ApplicationStatus | null {
     default:
       return null;
   }
+}
+
+/** Reviewer records/updates the financing deal number after approval. */
+export async function setFinancingNumberAction(
+  applicationId: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await requireRole('REVIEWER', 'ADMIN');
+  const parsed = financingNumberSchema.safeParse({
+    applicationId,
+    financeItNumber: (formData.get('financeItNumber') as string) ?? '',
+  });
+  if (!parsed.success) return { error: 'Enter a valid financing deal number (max 60 characters).' };
+
+  const value = parsed.data.financeItNumber?.trim() || null;
+  await prisma.application.update({ where: { id: applicationId }, data: { financeItNumber: value } });
+  await audit({
+    actorId: session.userId,
+    action: 'STATUS_CHANGE',
+    entityType: 'Application',
+    entityId: applicationId,
+    detail: `Financing deal number ${value ? `set to ${value}` : 'cleared'}`,
+  });
+  revalidatePath(`/staff/applications/${applicationId}`);
+  revalidatePath(`/dealer/applications/${applicationId}`);
+  return { ok: true };
 }
 
 // Which current statuses permit which decision.

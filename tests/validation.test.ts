@@ -71,7 +71,12 @@ describe('applicationSchema', () => {
     expect(applicationSchema.safeParse(rest).success).toBe(false);
   });
 
-  it('rejects a bad FinanceIt number', () => {
-    expect(applicationSchema.safeParse({ ...baseForm, financeItNumber: '1234567' }).success).toBe(false);
+  it('accepts a financing deal number in any format', () => {
+    expect(applicationSchema.safeParse({ ...baseForm, financeItNumber: 'ABC-123456' }).success).toBe(true);
+    expect(applicationSchema.safeParse({ ...baseForm, financeItNumber: '7123456' }).success).toBe(true);
+  });
+
+  it('rejects an over-long financing deal number', () => {
+    expect(applicationSchema.safeParse({ ...baseForm, financeItNumber: 'x'.repeat(61) }).success).toBe(false);
   });
 });

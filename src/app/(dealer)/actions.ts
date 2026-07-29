@@ -141,7 +141,7 @@ export async function createApplicationAction(
           to: initialStatus,
           actorId: session.userId,
           note: financeItNumber
-            ? `Submitted — approved via FinanceIt #${financeItNumber}`
+            ? `Submitted — approved, financing deal #${financeItNumber}`
             : 'Application submitted',
         },
       },

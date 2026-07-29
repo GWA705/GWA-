@@ -16,6 +16,7 @@ import { ConfirmationBadge } from '@/components/ConfirmationBadge';
 import { DealProgress } from '@/components/DealProgress';
 import { PROGRAM_CATEGORY_LABELS } from '@/lib/constants';
 import { ConfirmationForm } from './ConfirmationForm';
+import { FinancingNumberForm } from './FinancingNumberForm';
 import { DecisionForm } from './DecisionForm';
 import { PayoutForm } from './PayoutForm';
 import { StatusChangeForm } from './StatusChangeForm';
@@ -148,7 +149,7 @@ export default async function StaffApplicationDetail({
             <div><dt className="text-gray-500">Email</dt><dd className="font-medium">{app.applicantEmail}</dd></div>
             <div><dt className="text-gray-500">Phone</dt><dd className="font-medium">{app.applicantPhone}</dd></div>
             <div><dt className="text-gray-500">Income</dt><dd className="font-medium">{app.incomeAnnual ? `$${app.incomeAnnual.toString()}` : '—'}</dd></div>
-            <div><dt className="text-gray-500">FinanceIt deal #</dt><dd className="font-medium">{app.financeItNumber ?? '—'}</dd></div>
+            <div><dt className="text-gray-500">Financing deal number</dt><dd className="font-medium">{app.financeItNumber ?? '—'}</dd></div>
             <div><dt className="text-gray-500">HD Customer #</dt><dd className="font-medium">{app.hdReference ?? '—'}</dd></div>
           </dl>
           {app.financingNote && (
@@ -337,6 +338,13 @@ export default async function StaffApplicationDetail({
             </p>
           </div>
         </section>
+
+        {['APPROVED', 'CONDITIONAL', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW', 'FUNDED'].includes(app.status) && (
+          <section className="card p-6">
+            <h2 className="mb-3 text-base font-semibold text-gray-900">Financing deal number</h2>
+            <FinancingNumberForm applicationId={app.id} current={app.financeItNumber} />
+          </section>
+        )}
 
         {app.decisions.length > 0 && (
           <section className="card p-6">

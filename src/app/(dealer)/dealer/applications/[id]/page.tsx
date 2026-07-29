@@ -103,7 +103,7 @@ export default async function DealerApplicationDetail({
           <div><dt className="text-gray-500">HD store</dt><dd className="font-medium">{app.homeDepotStore ? app.homeDepotStore.number : '—'}</dd></div>
           <div><dt className="text-gray-500">Email</dt><dd className="font-medium">{app.applicantEmail}</dd></div>
           <div><dt className="text-gray-500">Phone</dt><dd className="font-medium">{app.applicantPhone}</dd></div>
-          <div><dt className="text-gray-500">FinanceIt deal #</dt><dd className="font-medium">{app.financeItNumber ?? '—'}</dd></div>
+          <div><dt className="text-gray-500">Financing deal number</dt><dd className="font-medium">{app.financeItNumber ?? '—'}</dd></div>
           <div><dt className="text-gray-500">HD Customer #</dt><dd className="font-medium">{app.hdReference ?? '—'}</dd></div>
         </dl>
         {app.financingNote && (

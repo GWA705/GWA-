@@ -78,13 +78,8 @@ export const applicationSchema = z.object({
   loanReference: z.string().max(60).optional(),
   financeReference: z.string().max(60).optional(),
   hdReference: z.string().max(60).optional(),
-  financeItNumber: z
-    .string()
-    .optional()
-    .refine(
-      (v) => !v || /^7\d{6}$/.test(v.replace(/\s/g, '')),
-      'FinanceIt number should be 7 digits starting with 7',
-    ),
+  // Financing deal number — any short reference from the finance company.
+  financeItNumber: z.string().trim().max(60).optional(),
 
   applicantFirstName: z.string().min(1).max(80),
   applicantLastName: z.string().min(1).max(80),
@@ -133,6 +128,13 @@ export const decisionSchema = z.object({
 
 export const createFinanceCompanySchema = z.object({
   name: z.string().min(1).max(160),
+});
+
+// The reviewer records the financing deal number after approval. Finance
+// companies use varied formats, so this is lenient (any short reference).
+export const financingNumberSchema = z.object({
+  applicationId: z.string().min(1),
+  financeItNumber: z.string().trim().max(60).optional(),
 });
 
 export const announcementSchema = z
