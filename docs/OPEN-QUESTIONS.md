@@ -65,7 +65,15 @@ _Last updated: 2026-07-29_
     exactly what you want.
 
 16. **FinanceIt number rule** — currently "7 digits starting with 7." Confirm
-    the final rule (you noted it may change).
+    the final rule (you noted it may change). *(Resolved: now accepts any format
+    up to 60 chars — reopen if you want a strict rule.)*
+
+17. **Progress bar should react to status changes after Approved** — right now
+    the deal tracker (Submitted → Approved → … → Paid) only ever fills forward.
+    If a reviewer moves a deal *backward* (e.g. Approved → Under review) or to a
+    side state (Problem / Declined / Withdrawn), the bar should adjust to reflect
+    the current status instead of leaving earlier steps lit. Rework the progress
+    logic to key off the live status, including regressions and off-path states.
 
 ---
 
