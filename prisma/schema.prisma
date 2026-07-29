@@ -94,6 +94,7 @@ model User {
   statusEvents        StatusEvent[]
   auditLogs           AuditLog[]
   payoutsRecorded     Payout[]
+  notesAuthored       Note[]
 
   @@index([dealerId])
 }
@@ -236,6 +237,7 @@ model Application {
   consents        Consent[]
   loanApplication LoanApplication?
   payouts         Payout[]
+  dealNotes       Note[]
 
   @@index([dealerId])
   @@index([status])
@@ -375,6 +377,21 @@ model Payout {
   note          String?
   createdById   String
   createdBy     User        @relation(fields: [createdById], references: [id])
+  createdAt     DateTime    @default(now())
+
+  @@index([applicationId])
+}
+
+// A note on a deal. internal=false is visible to the dealer (a conversation
+// between GWA and the dealer); internal=true is reviewer/admin only.
+model Note {
+  id            String      @id @default(cuid())
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  authorId      String
+  author        User        @relation(fields: [authorId], references: [id])
+  body          String      @db.Text
+  internal      Boolean     @default(false)
   createdAt     DateTime    @default(now())
 
   @@index([applicationId])

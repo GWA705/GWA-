@@ -238,3 +238,23 @@ export async function submitFundingAction(applicationId: string): Promise<void> 
   await audit({ actorId: session.userId, action: 'FUNDING_SUBMIT', entityType: 'Application', entityId: applicationId });
   redirect(`/dealer/applications/${applicationId}`);
 }
+
+// Dealer adds a note to the dealer-visible thread on their own deal.
+export async function addDealerNoteAction(
+  applicationId: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await requireRole('DEALER_USER');
+  const app = await prisma.application.findUnique({ where: { id: applicationId } });
+  if (!app || !canAccessApplication(session, app.dealerId)) return { error: 'Not found.' };
+
+  const body = String(formData.get('body') || '').trim();
+  if (!body) return { error: 'Write a note first.' };
+
+  await prisma.note.create({
+    data: { applicationId, authorId: session.userId, body: body.slice(0, 4000), internal: false },
+  });
+  revalidatePath(`/dealer/applications/${applicationId}`);
+  return {};
+}

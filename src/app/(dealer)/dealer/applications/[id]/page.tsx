@@ -7,6 +7,8 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { DocumentList } from '@/components/DocumentList';
 import { LoanApplicationDetails } from '@/components/LoanApplicationDetails';
 import { PayoutReceipt } from '@/components/PayoutReceipt';
+import { NoteThread } from '@/components/NoteThread';
+import { NoteForm } from '@/components/NoteForm';
 import { UploadForm } from '@/components/UploadForm';
 import { SerialNumberForm } from '@/components/SerialNumberForm';
 import { FUNDING_DOCUMENT_TYPES, STATUS_LABELS, programLabel } from '@/lib/constants';
@@ -15,6 +17,7 @@ import {
   uploadFundingDocAction,
   addSerialNumberAction,
   submitFundingAction,
+  addDealerNoteAction,
 } from '@/app/(dealer)/actions';
 
 export const dynamic = 'force-dynamic';
@@ -36,6 +39,7 @@ export default async function DealerApplicationDetail({
       loanApplication: true,
       financeCompany: true,
       payouts: { orderBy: { paidOn: 'desc' } },
+      dealNotes: { where: { internal: false }, orderBy: { createdAt: 'asc' }, include: { author: true } },
     },
   });
   if (!app || !canAccessApplication(user, app.dealerId)) notFound();
@@ -113,6 +117,19 @@ export default async function DealerApplicationDetail({
       )}
 
       {app.loanApplication && <LoanApplicationDetails loan={app.loanApplication} />}
+
+      {/* Notes with GWA */}
+      <section className="card p-6">
+        <h2 className="mb-3 text-base font-semibold text-gray-900">Notes</h2>
+        <div className="mb-4">
+          <NoteThread notes={app.dealNotes} emptyText="No messages yet. Use this to communicate with the GWA team about this deal." />
+        </div>
+        <NoteForm
+          action={addDealerNoteAction.bind(null, app.id)}
+          placeholder="Write a note to the GWA team…"
+          label="Send"
+        />
+      </section>
 
       {/* Documents for approval */}
       <section className="card p-6">

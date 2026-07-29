@@ -135,6 +135,12 @@ export const createFinanceCompanySchema = z.object({
   name: z.string().min(1).max(160),
 });
 
+export const noteSchema = z.object({
+  applicationId: z.string().min(1),
+  body: z.string().min(1, 'Write a note').max(4000),
+  internal: z.coerce.boolean().optional().default(false),
+});
+
 export const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),

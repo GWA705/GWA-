@@ -10,12 +10,15 @@ import { FundingChecklist } from '@/components/FundingChecklist';
 import { LoanApplicationDetails } from '@/components/LoanApplicationDetails';
 import { PayoutReceipt } from '@/components/PayoutReceipt';
 import { UploadForm } from '@/components/UploadForm';
+import { NoteThread } from '@/components/NoteThread';
+import { NoteForm } from '@/components/NoteForm';
 import { DecisionForm } from './DecisionForm';
 import { PayoutForm } from './PayoutForm';
 import { StatusChangeForm } from './StatusChangeForm';
 import {
   startReviewAction,
   uploadReviewerPaperworkAction,
+  addStaffNoteAction,
 } from '@/app/(staff)/actions';
 import { STATUS_LABELS, programLabel, REVIEWER_PAPERWORK_TYPES } from '@/lib/constants';
 import type { ApplicationStatus } from '@prisma/client';
@@ -60,9 +63,13 @@ export default async function StaffApplicationDetail({
       financeCompany: true,
       approvedBy: true,
       payouts: { orderBy: { paidOn: 'desc' }, include: { createdBy: true } },
+      dealNotes: { orderBy: { createdAt: 'asc' }, include: { author: true } },
     },
   });
   if (!app) notFound();
+
+  const dealerNotes = app.dealNotes.filter((n) => !n.internal);
+  const internalNotes = app.dealNotes.filter((n) => n.internal);
 
   const financeCompanies = await prisma.financeCompany.findMany({
     where: { active: true },
@@ -168,6 +175,36 @@ export default async function StaffApplicationDetail({
         </section>
 
         {app.loanApplication && <LoanApplicationDetails loan={app.loanApplication} />}
+
+        {/* Notes to dealer */}
+        <section className="card p-6">
+          <h2 className="text-base font-semibold text-gray-900">Notes to dealer</h2>
+          <p className="mb-3 text-xs text-gray-500">Visible to the dealer on this deal.</p>
+          <div className="mb-4">
+            <NoteThread notes={dealerNotes} emptyText="No messages with the dealer yet." />
+          </div>
+          <NoteForm
+            action={addStaffNoteAction}
+            hidden={{ applicationId: app.id, internal: 'false' }}
+            placeholder="Write a note to the dealer…"
+            label="Send to dealer"
+          />
+        </section>
+
+        {/* Internal notes */}
+        <section className="card border-amber-200 p-6">
+          <h2 className="text-base font-semibold text-gray-900">Internal notes</h2>
+          <p className="mb-3 text-xs text-amber-700">Only Reviewers and Admins can see these — never shown to the dealer.</p>
+          <div className="mb-4">
+            <NoteThread notes={internalNotes} emptyText="No internal notes yet." />
+          </div>
+          <NoteForm
+            action={addStaffNoteAction}
+            hidden={{ applicationId: app.id, internal: 'true' }}
+            placeholder="Internal note (staff only)…"
+            label="Add internal note"
+          />
+        </section>
 
         {/* Documents */}
         <section className="card p-6">

@@ -5,7 +5,7 @@ import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/session';
 import { audit } from '@/lib/audit';
 import { storeFiles } from '@/lib/upload';
-import { decisionSchema, payoutSchema, statusChangeSchema } from '@/lib/validation';
+import { decisionSchema, payoutSchema, statusChangeSchema, noteSchema } from '@/lib/validation';
 import { FUNDING_DOCUMENT_TYPES } from '@/lib/constants';
 import type { ApplicationStatus, DecisionType, DocumentType } from '@prisma/client';
 
@@ -351,5 +351,28 @@ export async function changeStatusAction(
 
   revalidatePath(`/staff/applications/${applicationId}`);
   revalidatePath('/staff');
+  return { ok: true };
+}
+
+// Reviewer/admin adds a note — to the dealer (internal=false) or internal-only.
+export async function addStaffNoteAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await requireRole('REVIEWER', 'ADMIN');
+  const parsed = noteSchema.safeParse({
+    applicationId: formData.get('applicationId'),
+    body: formData.get('body'),
+    internal: formData.get('internal') === 'true',
+  });
+  if (!parsed.success) return { error: 'Write a note first.' };
+  const { applicationId, body, internal } = parsed.data;
+
+  const app = await prisma.application.findUnique({ where: { id: applicationId } });
+  if (!app) return { error: 'Application not found.' };
+
+  await prisma.note.create({ data: { applicationId, authorId: session.userId, body, internal } });
+  await audit({ actorId: session.userId, action: 'DECISION', entityType: 'Application', entityId: applicationId, detail: internal ? 'Internal note' : 'Note to dealer' });
+  revalidatePath(`/staff/applications/${applicationId}`);
   return { ok: true };
 }
