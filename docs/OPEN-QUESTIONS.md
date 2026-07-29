@@ -97,6 +97,12 @@ _Last updated: 2026-07-29_
 22. **Independent security review / penetration test** — recommended before
     handling real customer applications in production.
 
+23. **Rotate the AWS access key** 🔐 — the S3 secret key was shown in a
+    screenshot during setup. Create a fresh key (IAM → gwa-portal-app →
+    Security credentials → delete old → create new), update
+    `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` in Render, then redeploy.
+    Type the values straight into Render — don't screenshot them.
+
 ---
 
 ## Notes
