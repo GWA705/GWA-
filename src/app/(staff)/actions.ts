@@ -12,7 +12,7 @@ import {
   statusChangeSchema,
   noteSchema,
   confirmationSchema,
-  financingNumberSchema,
+  dealReferencesSchema,
 } from '@/lib/validation';
 import { FUNDING_DOCUMENT_TYPES } from '@/lib/constants';
 import type { ApplicationStatus, DecisionType, DocumentType } from '@prisma/client';
@@ -41,27 +41,32 @@ function nextStatus(type: DecisionType): ApplicationStatus | null {
   }
 }
 
-/** Reviewer records/updates the financing deal number after approval. */
-export async function setFinancingNumberAction(
+/** Reviewer records/updates deal reference numbers after approval. */
+export async function setDealReferencesAction(
   applicationId: string,
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
   const session = await requireRole('REVIEWER', 'ADMIN');
-  const parsed = financingNumberSchema.safeParse({
+  const parsed = dealReferencesSchema.safeParse({
     applicationId,
     financeItNumber: (formData.get('financeItNumber') as string) ?? '',
+    hdReference: (formData.get('hdReference') as string) ?? '',
   });
-  if (!parsed.success) return { error: 'Enter a valid financing deal number (max 60 characters).' };
+  if (!parsed.success) return { error: 'Reference numbers can be up to 60 characters.' };
 
-  const value = parsed.data.financeItNumber?.trim() || null;
-  await prisma.application.update({ where: { id: applicationId }, data: { financeItNumber: value } });
+  const financeItNumber = parsed.data.financeItNumber?.trim() || null;
+  const hdReference = parsed.data.hdReference?.trim() || null;
+  await prisma.application.update({
+    where: { id: applicationId },
+    data: { financeItNumber, hdReference },
+  });
   await audit({
     actorId: session.userId,
     action: 'STATUS_CHANGE',
     entityType: 'Application',
     entityId: applicationId,
-    detail: `Financing deal number ${value ? `set to ${value}` : 'cleared'}`,
+    detail: `References set — financing #${financeItNumber ?? '—'}, HD customer #${hdReference ?? '—'}`,
   });
   revalidatePath(`/staff/applications/${applicationId}`);
   revalidatePath(`/dealer/applications/${applicationId}`);

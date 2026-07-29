@@ -16,7 +16,7 @@ import { ConfirmationBadge } from '@/components/ConfirmationBadge';
 import { DealProgress } from '@/components/DealProgress';
 import { PROGRAM_CATEGORY_LABELS } from '@/lib/constants';
 import { ConfirmationForm } from './ConfirmationForm';
-import { FinancingNumberForm } from './FinancingNumberForm';
+import { DealReferencesForm } from './DealReferencesForm';
 import { DecisionForm } from './DecisionForm';
 import { PayoutForm } from './PayoutForm';
 import { StatusChangeForm } from './StatusChangeForm';
@@ -341,8 +341,12 @@ export default async function StaffApplicationDetail({
 
         {['APPROVED', 'CONDITIONAL', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW', 'FUNDED'].includes(app.status) && (
           <section className="card p-6">
-            <h2 className="mb-3 text-base font-semibold text-gray-900">Financing deal number</h2>
-            <FinancingNumberForm applicationId={app.id} current={app.financeItNumber} />
+            <h2 className="mb-3 text-base font-semibold text-gray-900">Deal reference numbers</h2>
+            <DealReferencesForm
+              applicationId={app.id}
+              financeItNumber={app.financeItNumber}
+              hdReference={app.hdReference}
+            />
           </section>
         )}
 

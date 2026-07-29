@@ -130,11 +130,12 @@ export const createFinanceCompanySchema = z.object({
   name: z.string().min(1).max(160),
 });
 
-// The reviewer records the financing deal number after approval. Finance
-// companies use varied formats, so this is lenient (any short reference).
-export const financingNumberSchema = z.object({
+// The reviewer records deal reference numbers after approval. Finance companies
+// and HD use varied formats, so these are lenient (any short reference).
+export const dealReferencesSchema = z.object({
   applicationId: z.string().min(1),
   financeItNumber: z.string().trim().max(60).optional(),
+  hdReference: z.string().trim().max(60).optional(),
 });
 
 export const announcementSchema = z
