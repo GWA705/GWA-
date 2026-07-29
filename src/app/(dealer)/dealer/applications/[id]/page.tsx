@@ -53,8 +53,11 @@ export default async function DealerApplicationDetail({
   const gwaDocs = app.documents.filter((d) => d.stage === 'REVIEWER');
   const uploadedFundingTypes = new Set(fundingDocs.map((d) => d.type));
 
-  const fundingStageOpen = ['APPROVED', 'CONDITIONAL'].includes(app.status);
-  const inFundingReview = ['FUNDING_SUBMITTED', 'FUNDING_REVIEW', 'FUNDED'].includes(app.status);
+  // The dealer can upload funding documents throughout the funding window —
+  // before AND after submitting — right up until the deal is funded.
+  const canUploadFunding = ['APPROVED', 'CONDITIONAL', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW'].includes(app.status);
+  const fundingVisible = canUploadFunding || app.status === 'FUNDED';
+  const canSubmitFunding = ['APPROVED', 'CONDITIONAL'].includes(app.status);
 
   const requiredFunding = FUNDING_DOCUMENT_TYPES;
   const missingCount = requiredFunding.filter(
@@ -185,14 +188,17 @@ export default async function DealerApplicationDetail({
       )}
 
       {/* Funding stage */}
-      {(fundingStageOpen || inFundingReview) && (
+      {fundingVisible && (
         <section className="card p-6">
-          <div className="mb-4 flex items-center justify-between">
+          <div className="mb-1 flex items-center justify-between">
             <h2 className="text-base font-semibold text-gray-900">Funding package</h2>
-            {inFundingReview && (
-              <span className="text-xs text-gray-500">Status: {STATUS_LABELS[app.status]}</span>
-            )}
+            <span className="text-xs text-gray-500">Status: {STATUS_LABELS[app.status]}</span>
           </div>
+          <p className="mb-4 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
+            <span><span className="mr-1 inline-block h-2.5 w-2.5 rounded-full bg-red-400 align-middle" />Missing</span>
+            <span><span className="mr-1 inline-block h-2.5 w-2.5 rounded-full bg-amber-400 align-middle" />Uploaded — pending GWA review</span>
+            <span><span className="mr-1 inline-block h-2.5 w-2.5 rounded-full bg-green-500 align-middle" />Confirmed by GWA</span>
+          </p>
 
           {/* Serial numbers */}
           <div className="mb-6">
@@ -209,7 +215,7 @@ export default async function DealerApplicationDetail({
             ) : (
               <p className="mb-3 text-sm text-gray-500">No serial numbers added yet.</p>
             )}
-            {fundingStageOpen && <SerialNumberForm action={addSerialNumberAction.bind(null, app.id)} />}
+            {canUploadFunding && <SerialNumberForm action={addSerialNumberAction.bind(null, app.id)} />}
           </div>
 
           {/* Funding document checklist */}
@@ -218,38 +224,43 @@ export default async function DealerApplicationDetail({
             <p className="text-xs text-gray-500">Upload these as you get them — you don&apos;t have to add them all at once.</p>
             {requiredFunding.map((t) => {
               const uploaded = fundingDocs.filter((d) => d.type === t.type);
-              const done = uploaded.length > 0;
+              const confirmed = uploaded.some((d) => d.verifiedAt);
+              const state = confirmed ? 'confirmed' : uploaded.length > 0 ? 'pending' : 'missing';
+              const badgeCls =
+                state === 'confirmed' ? 'bg-green-100 text-green-800'
+                  : state === 'pending' ? 'bg-amber-100 text-amber-800'
+                    : 'bg-red-100 text-red-700';
+              const badgeLabel = state === 'confirmed' ? 'Confirmed' : state === 'pending' ? 'Pending review' : 'Missing';
+              const dotCls =
+                state === 'confirmed' ? 'bg-green-100 text-green-700'
+                  : state === 'pending' ? 'bg-amber-100 text-amber-700'
+                    : 'bg-red-100 text-red-600';
+              const dotIcon = state === 'confirmed' ? '✓' : state === 'pending' ? '!' : '✕';
               return (
                 <div key={t.type} className="rounded border border-gray-100 p-3">
                   <div className="flex items-center justify-between">
                     <span className="flex items-center gap-2 text-sm font-medium text-gray-800">
-                      <span
-                        className={`flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold ${
-                          done ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'
-                        }`}
-                        aria-hidden
-                      >
-                        {done ? '✓' : '✕'}
+                      <span className={`flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold ${dotCls}`} aria-hidden>
+                        {dotIcon}
                       </span>
                       {t.label}
                       {!t.required && <span className="text-xs font-normal text-gray-400">(optional)</span>}
                     </span>
-                    <span className={`badge ${done ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-700'}`}>
-                      {done ? 'Uploaded' : 'Missing'}
-                    </span>
+                    <span className={`badge ${badgeCls}`}>{badgeLabel}</span>
                   </div>
                   {uploaded.length > 0 && (
-                    <ul className="mt-2 text-xs text-gray-500">
+                    <ul className="mt-2 space-y-1 pl-7 text-xs text-gray-500">
                       {uploaded.map((u) => (
-                        <li key={u.id}>
+                        <li key={u.id} className="flex flex-wrap items-center gap-2">
                           <a href={`/api/documents/${u.id}`} target="_blank" rel="noopener noreferrer" className="text-brand-700 hover:underline">
                             {u.fileName}
                           </a>
+                          {u.verifiedAt && <span className="text-green-600">✓ confirmed by GWA</span>}
                         </li>
                       ))}
                     </ul>
                   )}
-                  {fundingStageOpen && (
+                  {canUploadFunding && (
                     <div className="mt-2">
                       <UploadForm action={uploadFundingDocAction.bind(null, app.id, t.type)} label="Upload" />
                     </div>
@@ -259,7 +270,7 @@ export default async function DealerApplicationDetail({
             })}
           </div>
 
-          {fundingStageOpen && (
+          {canSubmitFunding && (
             <form action={submitFunding} className="mt-6 flex items-center justify-end gap-3">
               {missingCount > 0 && (
                 <span className="text-xs text-gray-500">{missingCount} still missing — you can submit now and add the rest later</span>

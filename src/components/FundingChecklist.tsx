@@ -26,6 +26,7 @@ export function FundingChecklist({
   const allRequiredVerified = FUNDING_DOCUMENT_TYPES.filter((t) => t.required).every((t) =>
     verifiedTypes.has(t.type),
   );
+  const hasDocs = fundingDocs.length > 0;
   const hasUnverified = fundingDocs.some((d) => !d.verifiedAt);
   const canMove = status === 'FUNDING_SUBMITTED';
 
@@ -112,8 +113,10 @@ export function FundingChecklist({
           <form action={verifyAll}>
             <button type="submit" className="btn-secondary text-sm">Mark all completed</button>
           </form>
-        ) : (
+        ) : hasDocs ? (
           <span className="text-xs text-gray-400">All uploaded documents confirmed.</span>
+        ) : (
+          <span className="text-xs text-gray-400">No documents uploaded yet.</span>
         )}
 
         {canMove && (
