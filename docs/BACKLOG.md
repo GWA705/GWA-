@@ -150,14 +150,14 @@ the mechanism now and drop your content/keys in when ready.
 - **View/download documents by role**; reviewer → dealer paperwork uploads (**HD**, **Financing paperwork**).
 - **Payout receipt / statement** per deal.
 
-### Phase 3 — Workflow: statuses, search, summary, confirmations 🔨 building next
+### Phase 3 — Workflow: statuses, search, summary, confirmations ✅ DONE
 - Expanded **statuses + colours + icons** (visible on both reviewer and dealer sides); **sort/filter by status**; **priority** flag; **stale-deal follow-ups**.
 - **Reference numbers** (loan / finance / HD) + **global search** (dealers scoped to their own).
 - **Application summary:** approved amount, approved-by, **finance company** (+ managed finance-company list).
 - **Confirmations area** (completed / pending / issues) + **confirmation script/checklist** + HD confirmation notes + share completed copy to dealer.
 - **Notes:** dealer-visible per-deal notes + internal reviewer/Admin-only notes.
 
-### Phase 4 — Notifications, accounts, content & polish
+### Phase 4 — Notifications, accounts, content & polish 🔨 next
 - **Dealer profile page** + **email notifications** + communication-preference toggles.
 - **Reviewer notifications** when new documents are uploaded.
 - Accounts: **forgot-password reset**, **90-day password expiry**, login-IP view.
