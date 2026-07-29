@@ -75,18 +75,22 @@ _Last updated: 2026-07-29_
     the current status instead of leaving earlier steps lit. Rework the progress
     logic to key off the live status, including regressions and off-path states.
 
+18. **Confirmation call form buttons don't work** 🐞 — on the reviewer's
+    confirmation script, **Save** and **Confirm complete** currently don't save
+    or change the confirmation status. Investigate and fix (Mark issue too).
+
 ---
 
 ## C. Before going live (accounts, compliance, security)
 
-17. **Retire the placeholder logins** — create real named accounts for you and
+19. **Retire the placeholder logins** — create real named accounts for you and
     your team and deactivate the seeded `@gwa.example` accounts. Change all
     default passwords.
 
-18. **Organizational privacy controls** — designate a privacy officer, a
+20. **Organizational privacy controls** — designate a privacy officer, a
     breach-response process, and a data-retention schedule (PIPEDA / Law 25).
 
-19. **Independent security review / penetration test** — recommended before
+21. **Independent security review / penetration test** — recommended before
     handling real customer applications in production.
 
 ---
