@@ -212,11 +212,13 @@ export const serialNumberSchema = z.object({
 });
 
 export const createUserSchema = z.object({
-  email: z.string().email().max(160),
-  name: z.string().min(1).max(120),
+  email: z.string().email('Enter a valid email address.').max(160),
+  name: z.string().min(1, 'Enter the full name.').max(120),
   role: z.enum(['DEALER_USER', 'REVIEWER', 'ADMIN']),
   dealerId: z.string().optional(),
-  password: z.string().min(12).max(200),
+  // Length/complexity is enforced with a friendly message by
+  // validatePasswordStrength() in the action, so keep the schema permissive.
+  password: z.string().min(1, 'Enter a temporary password.').max(200),
 });
 
 export const createDealerSchema = z.object({

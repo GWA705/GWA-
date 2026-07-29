@@ -43,15 +43,17 @@ export async function createUserAction(
     dealerId: formData.get('dealerId') || undefined,
     password: formData.get('password'),
   });
-  if (!parsed.success) return { error: 'Please check the fields and try again.' };
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? 'Please check the fields and try again.' };
+  }
   const d = parsed.data;
+
+  if (d.role === 'DEALER_USER' && !d.dealerId) {
+    return { error: 'Choose a dealer for this dealer user.' };
+  }
 
   const pwError = validatePasswordStrength(d.password);
   if (pwError) return { error: pwError };
-
-  if (d.role === 'DEALER_USER' && !d.dealerId) {
-    return { error: 'Dealer users must be assigned to a dealer.' };
-  }
 
   const email = d.email.toLowerCase().trim();
   const existing = await prisma.user.findUnique({ where: { email } });

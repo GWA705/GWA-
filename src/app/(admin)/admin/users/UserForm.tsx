@@ -53,7 +53,11 @@ export function UserForm({ dealers }: { dealers: { id: string; name: string }[] 
         </div>
         <div className="sm:col-span-2">
           <label className="label" htmlFor="password">Temporary password</label>
-          <input id="password" name="password" type="text" required className="input" placeholder="min 12 chars, mixed case, number, symbol" />
+          <input id="password" name="password" type="text" required className="input" placeholder="e.g. BrightRiver!47" />
+          <p className="mt-1 text-xs text-gray-500">
+            Must be at least <strong>12 characters</strong> and include an uppercase letter, a
+            lowercase letter, a number, and a symbol.
+          </p>
           <p className="mt-1 text-xs text-gray-400">Share securely with the user; they should change it after first login.</p>
         </div>
       </div>
