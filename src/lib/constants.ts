@@ -199,6 +199,19 @@ export function contentSlugToSection(slug: string): ContentSection | null {
   return CONTENT_SECTIONS.find((s) => s.slug === slug)?.section ?? null;
 }
 
+// Accepted government photo ID types (Canadian). The dealer selects one on the
+// application; the value is stored as-is and shown back on the deal.
+export const PHOTO_ID_TYPES = [
+  "Driver's Licence",
+  'Current Canadian Passport',
+  'Canadian Citizenship Card',
+  'Permanent Resident Card',
+  'Certificate of Indian Status issued by the Government of Canada',
+  'Provincial Government Photo Identification Card',
+  'Nexus Card',
+  'LCBO BYID Card',
+];
+
 export const CONSENT_POLICY_VERSION = '2026-01-mvp';
 
 // PLACEHOLDER — must be replaced with wording reviewed by a Canadian privacy

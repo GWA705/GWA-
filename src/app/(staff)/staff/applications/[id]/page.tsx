@@ -13,6 +13,7 @@ import { UploadForm } from '@/components/UploadForm';
 import { NoteThread } from '@/components/NoteThread';
 import { NoteForm } from '@/components/NoteForm';
 import { ConfirmationBadge } from '@/components/ConfirmationBadge';
+import { DealProgress } from '@/components/DealProgress';
 import { PROGRAM_CATEGORY_LABELS } from '@/lib/constants';
 import { ConfirmationForm } from './ConfirmationForm';
 import { DecisionForm } from './DecisionForm';
@@ -83,15 +84,13 @@ export default async function StaffApplicationDetail({
 
   const reveal = searchParams.reveal === '1';
 
-  // The government ID number and date of birth are the protected identity
-  // fields (SIN and banking are not collected). Decrypt only when revealed.
-  // ID province and expiry are low-sensitivity and shown without revealing.
+  // The government ID number is the protected identity field shown here (SIN
+  // and banking are not collected). Decrypt only when revealed. ID type,
+  // province, and expiry are low-sensitivity and shown without revealing.
   let govId = maskTail(decryptOptional(app.govIdNumberEnc), 3);
-  let dob = '••••';
 
   if (reveal) {
     govId = decryptOptional(app.govIdNumberEnc) ?? '—';
-    dob = decryptOptional(app.applicantDobEnc) ?? '—';
     await audit({
       actorId: user.userId,
       action: 'PII_DECRYPT',
@@ -123,6 +122,15 @@ export default async function StaffApplicationDetail({
           </p>
         </div>
 
+        {/* Progress tracker */}
+        <DealProgress
+          status={app.status}
+          approvedById={app.approvedById}
+          confirmationStatus={app.confirmationStatus}
+          hasFundingDocs={app.documents.some((d) => d.stage === 'FUNDING')}
+          hasPayouts={app.payouts.length > 0}
+        />
+
         {/* Summary */}
         <section className="card p-6">
           <h2 className="mb-4 text-base font-semibold text-gray-900">Summary</h2>
@@ -142,8 +150,6 @@ export default async function StaffApplicationDetail({
             <div><dt className="text-gray-500">Income</dt><dd className="font-medium">{app.incomeAnnual ? `$${app.incomeAnnual.toString()}` : '—'}</dd></div>
             <div><dt className="text-gray-500">FinanceIt deal #</dt><dd className="font-medium">{app.financeItNumber ?? '—'}</dd></div>
             <div><dt className="text-gray-500">HD Customer #</dt><dd className="font-medium">{app.hdReference ?? '—'}</dd></div>
-            <div><dt className="text-gray-500">Employer</dt><dd className="font-medium">{app.employer ?? '—'}</dd></div>
-            <div><dt className="text-gray-500">Co-applicant</dt><dd className="font-medium">{app.coApplicantName ?? '—'}</dd></div>
           </dl>
           {app.financingNote && (
             <p className="mt-3 rounded bg-gray-50 p-3 text-sm text-gray-600"><span className="font-medium text-gray-700">Financing note: </span>{app.financingNote}</p>
@@ -171,10 +177,10 @@ export default async function StaffApplicationDetail({
             </p>
           )}
           <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3">
+            <div><dt className="text-gray-500">Gov ID type</dt><dd className="font-medium">{app.loanApplication?.idType || '—'}</dd></div>
             <div><dt className="text-gray-500">Gov ID #</dt><dd className="font-mono font-medium">{govId}</dd></div>
-            <div><dt className="text-gray-500">ID province</dt><dd className="font-medium">{app.loanApplication?.idProvince || '—'}</dd></div>
+            <div><dt className="text-gray-500">Province of issue</dt><dd className="font-medium">{app.loanApplication?.idProvince || '—'}</dd></div>
             <div><dt className="text-gray-500">ID expiry</dt><dd className="font-medium">{app.loanApplication?.idExpiry ? app.loanApplication.idExpiry.toLocaleDateString('en-CA') : '—'}</dd></div>
-            <div><dt className="text-gray-500">Date of birth</dt><dd className="font-medium">{dob}</dd></div>
           </dl>
         </section>
 

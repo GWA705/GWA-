@@ -8,6 +8,7 @@ import {
   CONSENT_TEXT,
   PROGRAM_TYPES,
   PROGRAM_CATEGORIES,
+  PHOTO_ID_TYPES,
 } from '@/lib/constants';
 import { formatPhone, formatPostal } from '@/lib/format';
 
@@ -334,12 +335,21 @@ export function NewApplicationForm({ stores }: { stores: Store[] }) {
                 <label className="label" htmlFor="idType">Photo ID type</label>
                 <select id="idType" name="idType" className="input">
                   <option value="">Select…</option>
-                  <option>Driver&apos;s Licence</option><option>Canadian Passport</option>
-                  <option>Provincial Photo ID Card</option><option>Permanent Resident Card</option><option>Other</option>
+                  {PHOTO_ID_TYPES.map((t) => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
                 </select>
               </div>
               <div><label className="label" htmlFor="govIdNumber">Photo ID number</label><input id="govIdNumber" name="govIdNumber" className="input" autoComplete="off" /></div>
-              <div><label className="label" htmlFor="idProvince">Province of issue</label><input id="idProvince" name="idProvince" className="input" placeholder="e.g. ON" /></div>
+              <div>
+                <label className="label" htmlFor="idProvince">Province of issue</label>
+                <select id="idProvince" name="idProvince" className="input">
+                  <option value="">Select…</option>
+                  {PROVINCES.map((p) => (
+                    <option key={p.value} value={p.value}>{p.label}</option>
+                  ))}
+                </select>
+              </div>
               <div><label className="label" htmlFor="idExpiry">Expiry date</label><input id="idExpiry" name="idExpiry" type="date" className="input" /></div>
             </div>
           </section>

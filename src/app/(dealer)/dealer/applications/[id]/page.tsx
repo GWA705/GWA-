@@ -11,6 +11,7 @@ import { NoteThread } from '@/components/NoteThread';
 import { NoteForm } from '@/components/NoteForm';
 import { ConfirmationBadge } from '@/components/ConfirmationBadge';
 import { ConfirmationView } from '@/components/ConfirmationView';
+import { DealProgress } from '@/components/DealProgress';
 import { UploadForm } from '@/components/UploadForm';
 import { SerialNumberForm } from '@/components/SerialNumberForm';
 import { FUNDING_DOCUMENT_TYPES, STATUS_LABELS, programLabel } from '@/lib/constants';
@@ -75,6 +76,15 @@ export default async function DealerApplicationDetail({
           <StatusBadge status={app.status} />
         </div>
       </div>
+
+      {/* Progress tracker */}
+      <DealProgress
+        status={app.status}
+        approvedById={app.approvedById}
+        confirmationStatus={app.confirmationStatus}
+        hasFundingDocs={app.documents.some((d) => d.stage === 'FUNDING')}
+        hasPayouts={app.payouts.length > 0}
+      />
 
       {/* Summary */}
       <section className="card p-6">
