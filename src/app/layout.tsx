@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'GWA Credit Portal',
+  title: 'GWA Dealer Portal',
   description: 'Secure credit application and funding portal.',
   robots: { index: false, follow: false },
 };

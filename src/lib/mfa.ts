@@ -5,7 +5,7 @@ import { encryptString, decryptString } from './crypto';
 // Allow one step of drift on either side (30s window each).
 authenticator.options = { window: 1 };
 
-const ISSUER = 'GWA Credit Portal';
+const ISSUER = 'GWA Dealer Portal';
 
 export function generateMfaSecret(): string {
   return authenticator.generateSecret();

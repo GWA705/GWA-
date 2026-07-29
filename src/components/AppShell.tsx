@@ -22,7 +22,7 @@ export function AppShell({
       <header className="border-b border-gray-200 bg-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
           <div className="flex items-center gap-6">
-            <span className="text-lg font-semibold text-brand-700">GWA Portal</span>
+            <span className="text-lg font-semibold text-brand-700">GWA Dealer Portal</span>
             <nav className="flex gap-4 text-sm">
               {nav.map((item) => (
                 <Link key={item.href} href={item.href} className="text-gray-600 hover:text-brand-700">
@@ -46,7 +46,7 @@ export function AppShell({
       </header>
       <main className="mx-auto max-w-6xl px-4 py-8">{children}</main>
       <footer className="mx-auto max-w-6xl px-4 py-8 text-xs text-gray-400">
-        GWA Credit Portal · Handles personal information under PIPEDA and provincial privacy law.
+        GWA Dealer Portal · Handles personal information under PIPEDA and provincial privacy law.
         Access is logged.
       </footer>
     </div>
