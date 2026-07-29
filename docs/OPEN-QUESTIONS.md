@@ -79,18 +79,22 @@ _Last updated: 2026-07-29_
     confirmation script, **Save** and **Confirm complete** currently don't save
     or change the confirmation status. Investigate and fix (Mark issue too).
 
+19. **Serial number field doesn't clear after Add** 🐞 — on the funding package,
+    after adding a serial number the input keeps the old value instead of
+    resetting for the next entry. Clear the field (and Product) after Add.
+
 ---
 
 ## C. Before going live (accounts, compliance, security)
 
-19. **Retire the placeholder logins** — create real named accounts for you and
+20. **Retire the placeholder logins** — create real named accounts for you and
     your team and deactivate the seeded `@gwa.example` accounts. Change all
     default passwords.
 
-20. **Organizational privacy controls** — designate a privacy officer, a
+21. **Organizational privacy controls** — designate a privacy officer, a
     breach-response process, and a data-retention schedule (PIPEDA / Law 25).
 
-21. **Independent security review / penetration test** — recommended before
+22. **Independent security review / penetration test** — recommended before
     handling real customer applications in production.
 
 ---
