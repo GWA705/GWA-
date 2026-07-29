@@ -36,6 +36,48 @@ model Announcement {
   updatedAt       DateTime @updatedAt
 }
 
+// A single-use, expiring token backing the "forgot password" self-service
+// reset. Only the SHA-256 hash of the token is stored; the raw token lives
+// only in the emailed link.
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+// Dealer-facing content shown under the top-nav tabs (Resources, HD
+// Promotions, HD Credit Card guide). Admin-managed. Each item can be a note,
+// a link, and/or an uploaded file (encrypted at rest).
+enum ContentSection {
+  RESOURCE
+  HD_PROMOTION
+  HD_CREDIT_CARD
+}
+
+model ContentItem {
+  id             String         @id @default(cuid())
+  section        ContentSection
+  title          String
+  body           String?        @db.Text
+  linkUrl        String?
+  fileStorageKey String? // uploaded attachment (encrypted at rest)
+  fileMime       String?
+  fileName       String?
+  active         Boolean        @default(true)
+  sortOrder      Int            @default(0)
+  createdById    String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([section, active])
+}
+
 // A finance company a deal can be approved through (admin-managed list).
 model FinanceCompany {
   id        String   @id @default(cuid())
@@ -104,9 +146,14 @@ model User {
   lockedUntil      DateTime?
   lastLoginAt      DateTime?
 
+  // Password lifecycle. passwordChangedAt drives the 90-day expiry policy;
+  // null is treated as "never set" and forces a change at next login.
+  passwordChangedAt DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  passwordResetTokens  PasswordResetToken[]
   applicationsCreated  Application[]   @relation("ApplicationCreatedBy")
   applicationsApproved Application[]   @relation("ApplicationApprover")
   documentsUploaded    Document[]      @relation("DocumentUploader")

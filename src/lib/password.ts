@@ -23,3 +23,17 @@ export function validatePasswordStrength(pw: string): string | null {
   if (/^(password|123456|qwerty)/i.test(pw)) return 'Password is too common.';
   return null;
 }
+
+// Passwords must be rotated on this cadence (Phase 4 requirement).
+export const PASSWORD_MAX_AGE_DAYS = 90;
+
+/**
+ * Whether a password is past its rotation window. A null `changedAt` (e.g. a
+ * legacy/seeded account that has never rotated) is treated as expired so the
+ * user is prompted to set a fresh password at their next sign-in.
+ */
+export function isPasswordExpired(changedAt: Date | null | undefined): boolean {
+  if (!changedAt) return true;
+  const ageMs = Date.now() - changedAt.getTime();
+  return ageMs > PASSWORD_MAX_AGE_DAYS * 24 * 60 * 60 * 1000;
+}

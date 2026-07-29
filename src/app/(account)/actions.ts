@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/db';
 import { requireSession } from '@/lib/session';
 import { audit } from '@/lib/audit';
+import { hashPassword, verifyPassword, validatePasswordStrength } from '@/lib/password';
 import {
   generateMfaSecret,
   encryptMfaSecret,
@@ -47,6 +48,38 @@ export async function updateProfileAction(
   });
   await audit({ actorId: session.userId, action: 'USER_UPDATE', entityType: 'User', entityId: session.userId, detail: 'Profile updated' });
   revalidatePath('/account');
+  return { ok: true };
+}
+
+/** Self-service password change for a signed-in user (requires current password). */
+export async function changePasswordAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await requireSession();
+  const current = String(formData.get('currentPassword') || '');
+  const password = String(formData.get('password') || '');
+  const confirm = String(formData.get('confirm') || '');
+
+  if (!current) return { error: 'Enter your current password.' };
+  if (password !== confirm) return { error: 'New passwords do not match.' };
+  const pwError = validatePasswordStrength(password);
+  if (pwError) return { error: pwError };
+
+  const user = await prisma.user.findUnique({ where: { id: session.userId } });
+  if (!user) return { error: 'Account not found.' };
+
+  const ok = await verifyPassword(current, user.passwordHash);
+  if (!ok) return { error: 'Your current password is incorrect.' };
+
+  const same = await verifyPassword(password, user.passwordHash);
+  if (same) return { error: 'Choose a password different from your current one.' };
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { passwordHash: await hashPassword(password), passwordChangedAt: new Date() },
+  });
+  await audit({ actorId: user.id, action: 'PASSWORD_CHANGE', entityType: 'User', entityId: user.id });
   return { ok: true };
 }
 

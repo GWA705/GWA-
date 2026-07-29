@@ -157,13 +157,17 @@ the mechanism now and drop your content/keys in when ready.
 - **Confirmations area** (completed / pending / issues) + **confirmation script/checklist** + HD confirmation notes + share completed copy to dealer.
 - **Notes:** dealer-visible per-deal notes + internal reviewer/Admin-only notes.
 
-### Phase 4 — Notifications, accounts, content & polish 🔨 next
-- **Dealer profile page** + **email notifications** + communication-preference toggles.
-- **Reviewer notifications** when new documents are uploaded.
-- Accounts: **forgot-password reset**, **90-day password expiry**, login-IP view.
-- Content tabs: **Resources**, **HD Promotions**, **HD Credit Card** guide; **dealer dashboard announcements**.
-- **Reviewable log** coverage for all new events.
-- Cross-cutting (verified throughout): **responsive** (phone + PC/Mac) and **fast/fluid + shortcuts**.
+### Phase 4 — Notifications, accounts, content & polish ✅ DONE
+- ✅ **Dealer profile page** + **email notifications** (log-only, SMTP-ready) + communication-preference toggles.
+- ✅ **Reviewer notifications** when new documents are uploaded.
+- ✅ Accounts: **forgot-password reset** (single-use, expiring token), **90-day password expiry** with forced change at login, self-service **change password**, and a **recent sign-ins / IP view** on the account page.
+- ✅ Content tabs: **Resources**, **HD Promotions**, **HD Credit Card** guide (admin-managed, with file/link/notes); **dealer dashboard announcements**.
+- ✅ **Reviewable log** coverage extended (password reset/change, content changes).
+- ✅ Cross-cutting: **responsive** nav for phone + PC/Mac; fast server-rendered pages.
+
+> Remaining content is data-only, not code: the **HD Credit Card guide** text and any
+> **Resources / HD Promotions** items are added by an admin under Admin → Content when ready.
+> **SMS** notifications still need a paid text provider (email works today).
 
 ### ⛔ Blocked on info from you (send when ready — won't hold up the phases)
 - Home Depot store list per dealer · Finance-company list · Confirmation-call script questions

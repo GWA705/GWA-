@@ -1,6 +1,7 @@
 import type {
   ApplicationStatus,
   ConfirmationStatus,
+  ContentSection,
   DocumentType,
   Province,
   ProgramType,
@@ -155,6 +156,48 @@ export const ALLOWED_MIME_TYPES = [
   'image/heic',
   'image/webp',
 ];
+
+// Dealer-facing content sections (top-nav tabs). Each has a route slug, label,
+// and a short blurb shown at the top of the page / empty state.
+export const CONTENT_SECTIONS: {
+  section: ContentSection;
+  slug: string;
+  label: string;
+  blurb: string;
+  emptyText: string;
+}[] = [
+  {
+    section: 'RESOURCE',
+    slug: 'resources',
+    label: 'Resources',
+    blurb: 'Guides, forms, and documents shared by GWA.',
+    emptyText: 'No resources have been posted yet. Check back soon.',
+  },
+  {
+    section: 'HD_PROMOTION',
+    slug: 'hd-promotions',
+    label: 'HD Promotions',
+    blurb: 'Current Home Depot promotions and program details.',
+    emptyText: 'No promotions are running right now. Check back soon.',
+  },
+  {
+    section: 'HD_CREDIT_CARD',
+    slug: 'hd-credit-card',
+    label: 'HD Credit Card',
+    blurb: 'How to process a Home Depot credit card — step-by-step help for dealers.',
+    emptyText: 'The HD Credit Card guide is being prepared and will appear here soon.',
+  },
+];
+
+export const CONTENT_SECTION_LABELS: Record<ContentSection, string> = {
+  RESOURCE: 'Resources',
+  HD_PROMOTION: 'HD Promotions',
+  HD_CREDIT_CARD: 'HD Credit Card',
+};
+
+export function contentSlugToSection(slug: string): ContentSection | null {
+  return CONTENT_SECTIONS.find((s) => s.slug === slug)?.section ?? null;
+}
 
 export const CONSENT_POLICY_VERSION = '2026-01-mvp';
 

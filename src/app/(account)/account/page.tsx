@@ -5,13 +5,24 @@ import { decryptMfaSecret, buildMfaEnrollment } from '@/lib/mfa';
 import { beginMfaAction, disableMfaAction } from '@/app/(account)/actions';
 import { ConfirmMfaForm } from './ConfirmMfaForm';
 import { ProfileForm } from './ProfileForm';
+import { ChangePasswordForm } from './ChangePasswordForm';
+import { isPasswordExpired, PASSWORD_MAX_AGE_DAYS } from '@/lib/password';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AccountPage() {
   const session = await requireSession();
-  const user = await prisma.user.findUnique({ where: { id: session.userId } });
+  const [user, recentLogins] = await Promise.all([
+    prisma.user.findUnique({ where: { id: session.userId } }),
+    prisma.auditLog.findMany({
+      where: { actorId: session.userId, action: { in: ['LOGIN_SUCCESS', 'LOGIN_FAILED'] } },
+      orderBy: { createdAt: 'desc' },
+      take: 8,
+    }),
+  ]);
   if (!user) return null;
+
+  const pwExpired = isPasswordExpired(user.passwordChangedAt);
 
   const pending = !user.mfaEnabled && !!user.mfaSecretEnc;
   let qrDataUrl = '';
@@ -51,6 +62,22 @@ export default async function AccountPage() {
       </section>
 
       <section className="card p-6">
+        <h2 className="mb-1 text-base font-semibold text-gray-900">Password</h2>
+        <p className="mb-4 text-sm text-gray-500">
+          {user.passwordChangedAt
+            ? `Last changed ${user.passwordChangedAt.toLocaleDateString('en-CA')}.`
+            : 'Set a fresh password to start the rotation clock.'}{' '}
+          Passwords must be changed every {PASSWORD_MAX_AGE_DAYS} days.
+        </p>
+        {pwExpired && (
+          <div className="mb-4 rounded-md bg-amber-50 p-3 text-sm text-amber-800">
+            Your password has expired — please choose a new one below.
+          </div>
+        )}
+        <ChangePasswordForm />
+      </section>
+
+      <section className="card p-6">
         <h2 className="text-base font-semibold text-gray-900">Two-factor authentication (2FA)</h2>
         <p className="mt-1 text-sm text-gray-500">
           Protect your account with a time-based one-time code from an authenticator app
@@ -78,6 +105,42 @@ export default async function AccountPage() {
           <form action={beginMfaAction} className="mt-4">
             <button type="submit" className="btn-primary">Enable 2FA</button>
           </form>
+        )}
+      </section>
+
+      <section className="card p-6">
+        <h2 className="mb-1 text-base font-semibold text-gray-900">Recent sign-in activity</h2>
+        <p className="mb-4 text-sm text-gray-500">
+          The most recent sign-ins on your account, with the IP address they came from. If you don&apos;t
+          recognize one, change your password and contact GWA.
+        </p>
+        {recentLogins.length === 0 ? (
+          <p className="text-sm text-gray-500">No sign-in activity recorded yet.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 text-sm">
+              <thead className="text-left text-xs uppercase tracking-wide text-gray-500">
+                <tr>
+                  <th className="py-2 pr-4">When</th>
+                  <th className="py-2 pr-4">Result</th>
+                  <th className="py-2">IP address</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {recentLogins.map((l) => (
+                  <tr key={l.id}>
+                    <td className="py-2 pr-4 text-gray-700">{l.createdAt.toLocaleString('en-CA')}</td>
+                    <td className="py-2 pr-4">
+                      <span className={`badge ${l.action === 'LOGIN_SUCCESS' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-700'}`}>
+                        {l.action === 'LOGIN_SUCCESS' ? 'Success' : 'Failed'}
+                      </span>
+                    </td>
+                    <td className="py-2 text-gray-500">{l.ipAddress || '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </section>
     </div>

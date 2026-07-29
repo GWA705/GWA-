@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useFormState, useFormStatus } from 'react-dom';
 import { loginAction, type FormState } from '../actions';
 
@@ -41,6 +42,11 @@ export function LoginForm() {
           required
           className="input"
         />
+        <div className="mt-1 text-right">
+          <Link href="/forgot-password" className="text-xs text-brand-700 hover:underline">
+            Forgot password?
+          </Link>
+        </div>
       </div>
       <SubmitButton />
     </form>

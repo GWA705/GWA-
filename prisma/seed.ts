@@ -22,6 +22,7 @@ async function main() {
       name: 'GWA Administrator',
       role: 'ADMIN',
       passwordHash: await hash(adminPassword),
+      passwordChangedAt: new Date(),
     },
   });
   console.log(`Admin: ${admin.email}`);
@@ -35,6 +36,7 @@ async function main() {
       name: 'Jordan Reviewer',
       role: 'REVIEWER',
       passwordHash: await hash('ChangeMe!Review123'),
+      passwordChangedAt: new Date(),
     },
   });
   console.log(`Reviewer: ${reviewer.email}`);
@@ -60,6 +62,7 @@ async function main() {
       role: 'DEALER_USER',
       dealerId: dealer.id,
       passwordHash: await hash('ChangeMe!Dealer123'),
+      passwordChangedAt: new Date(),
     },
   });
   await prisma.user.upsert({
@@ -71,6 +74,7 @@ async function main() {
       role: 'DEALER_USER',
       dealerId: dealer2.id,
       passwordHash: await hash('ChangeMe!Dealer123'),
+      passwordChangedAt: new Date(),
     },
   });
   console.log(`Dealers: ${dealer.name}, ${dealer2.name}`);

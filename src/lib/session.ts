@@ -5,6 +5,7 @@ import type { Role } from '@prisma/client';
 
 const COOKIE_NAME = 'gwa_session';
 const MFA_COOKIE_NAME = 'gwa_mfa_pending';
+const PWCHANGE_COOKIE_NAME = 'gwa_pwchange_pending';
 const SESSION_TTL_SECONDS = 60 * 60 * 8; // 8 hours
 
 export interface SessionUser {
@@ -51,6 +52,7 @@ export async function createSession(user: SessionUser): Promise<void> {
   const token = await sign({ ...user }, SESSION_TTL_SECONDS);
   cookies().set(COOKIE_NAME, token, { ...cookieOptions, maxAge: SESSION_TTL_SECONDS });
   cookies().delete(MFA_COOKIE_NAME);
+  cookies().delete(PWCHANGE_COOKIE_NAME);
 }
 
 /** Intermediate state: password verified, awaiting a TOTP code. */
@@ -65,6 +67,27 @@ export async function getMfaPendingUserId(): Promise<string | null> {
   const payload = await verify(token);
   if (!payload || payload.mfa !== 'pending') return null;
   return (payload.userId as string) ?? null;
+}
+
+/**
+ * Intermediate state: identity verified (password + any MFA) but the password
+ * has expired, so a new one must be set before a full session is issued.
+ */
+export async function createPasswordChangePending(userId: string): Promise<void> {
+  const token = await sign({ userId, pwchange: 'pending' }, 60 * 10);
+  cookies().set(PWCHANGE_COOKIE_NAME, token, { ...cookieOptions, maxAge: 60 * 10 });
+}
+
+export async function getPasswordChangePendingUserId(): Promise<string | null> {
+  const token = cookies().get(PWCHANGE_COOKIE_NAME)?.value;
+  if (!token) return null;
+  const payload = await verify(token);
+  if (!payload || payload.pwchange !== 'pending') return null;
+  return (payload.userId as string) ?? null;
+}
+
+export async function clearPasswordChangePending(): Promise<void> {
+  cookies().delete(PWCHANGE_COOKIE_NAME);
 }
 
 export async function getSession(): Promise<SessionUser | null> {
@@ -84,6 +107,7 @@ export async function getSession(): Promise<SessionUser | null> {
 export async function destroySession(): Promise<void> {
   cookies().delete(COOKIE_NAME);
   cookies().delete(MFA_COOKIE_NAME);
+  cookies().delete(PWCHANGE_COOKIE_NAME);
 }
 
 /** Require a logged-in session or redirect to the login page. */

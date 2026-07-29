@@ -151,6 +151,21 @@ export const announcementSchema = z
     path: ['body'],
   });
 
+export const contentSchema = z.object({
+  section: z.enum(['RESOURCE', 'HD_PROMOTION', 'HD_CREDIT_CARD']),
+  title: z.string().min(1, 'Enter a title').max(200),
+  body: z.string().max(8000).optional(),
+  linkUrl: z
+    .string()
+    .max(500)
+    .optional()
+    .refine((v) => !v || /^https?:\/\//i.test(v), 'Link must start with http(s)://'),
+  sortOrder: z.preprocess(
+    (v) => (v === '' || v == null ? undefined : v),
+    z.coerce.number().int().min(-1000).max(1000).optional(),
+  ),
+});
+
 const boolFromForm = z.preprocess((v) => v === 'on' || v === 'true' || v === true, z.boolean());
 
 export const confirmationSchema = z.object({

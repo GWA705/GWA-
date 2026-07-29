@@ -9,7 +9,8 @@ import crypto from 'crypto';
 import path from 'path';
 import { putDocument, deleteDocument } from '@/lib/storage';
 import { ALLOWED_MIME_TYPES, MAX_FILE_BYTES } from '@/lib/constants';
-import { createUserSchema, createDealerSchema, createFinanceCompanySchema, announcementSchema } from '@/lib/validation';
+import { createUserSchema, createDealerSchema, createFinanceCompanySchema, announcementSchema, contentSchema } from '@/lib/validation';
+import { CONTENT_SECTIONS } from '@/lib/constants';
 
 export interface ActionState {
   error?: string;
@@ -63,6 +64,7 @@ export async function createUserAction(
       role: d.role,
       dealerId: d.role === 'DEALER_USER' ? d.dealerId! : null,
       passwordHash: await hashPassword(d.password),
+      passwordChangedAt: new Date(),
     },
   });
   await audit({ actorId: session.userId, action: 'USER_CREATE', entityType: 'User', entityId: user.id, detail: `${email} (${d.role})` });
@@ -174,4 +176,81 @@ export async function deleteAnnouncementAction(id: string): Promise<void> {
   await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'Announcement', entityId: id, detail: 'deleted' });
   revalidatePath('/admin/announcements');
   revalidatePath('/dealer');
+}
+
+// --- Content tabs (Resources / HD Promotions / HD Credit Card) -------------
+
+function revalidateContent(section?: string) {
+  revalidatePath('/admin/content');
+  const match = CONTENT_SECTIONS.find((s) => s.section === section);
+  if (match) revalidatePath(`/dealer/${match.slug}`);
+  else CONTENT_SECTIONS.forEach((s) => revalidatePath(`/dealer/${s.slug}`));
+}
+
+export async function createContentAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await requireRole('ADMIN');
+  const file = formData.get('file') as File | null;
+  const hasFile = !!file && typeof file !== 'string' && file.size > 0;
+
+  const parsed = contentSchema.safeParse({
+    section: formData.get('section'),
+    title: formData.get('title'),
+    body: (formData.get('body') as string) || undefined,
+    linkUrl: (formData.get('linkUrl') as string) || undefined,
+    sortOrder: (formData.get('sortOrder') as string) || undefined,
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Please check the form.' };
+  const d = parsed.data;
+
+  const created = await prisma.contentItem.create({
+    data: {
+      section: d.section,
+      title: d.title,
+      body: d.body || null,
+      linkUrl: d.linkUrl || null,
+      sortOrder: d.sortOrder ?? 0,
+      createdById: session.userId,
+    },
+  });
+
+  if (hasFile) {
+    if (file!.size > MAX_FILE_BYTES) return { error: 'File is too large (max 15 MB).' };
+    if (!ALLOWED_MIME_TYPES.includes(file!.type)) {
+      return { error: 'File must be a PDF or image (PDF, JPG, PNG, WEBP).' };
+    }
+    const ext = path.extname(file!.name).slice(0, 12).replace(/[^a-zA-Z0-9.]/g, '') || '.bin';
+    const key = `content/${created.id}/${crypto.randomBytes(8).toString('hex')}${ext}`;
+    const bytes = Buffer.from(await file!.arrayBuffer());
+    await putDocument(key, bytes);
+    await prisma.contentItem.update({
+      where: { id: created.id },
+      data: { fileStorageKey: key, fileMime: file!.type, fileName: file!.name.slice(0, 200) },
+    });
+  }
+
+  await audit({ actorId: session.userId, action: 'CONTENT_CREATE', entityType: 'ContentItem', entityId: created.id, detail: `${d.section}: ${d.title}` });
+  revalidateContent(d.section);
+  return { ok: true };
+}
+
+export async function toggleContentActiveAction(id: string): Promise<void> {
+  const session = await requireRole('ADMIN');
+  const c = await prisma.contentItem.findUnique({ where: { id } });
+  if (!c) return;
+  await prisma.contentItem.update({ where: { id }, data: { active: !c.active } });
+  await audit({ actorId: session.userId, action: 'CONTENT_UPDATE', entityType: 'ContentItem', entityId: id, detail: `active=${!c.active}` });
+  revalidateContent(c.section);
+}
+
+export async function deleteContentAction(id: string): Promise<void> {
+  const session = await requireRole('ADMIN');
+  const c = await prisma.contentItem.findUnique({ where: { id } });
+  if (!c) return;
+  if (c.fileStorageKey) await deleteDocument(c.fileStorageKey).catch(() => {});
+  await prisma.contentItem.delete({ where: { id } });
+  await audit({ actorId: session.userId, action: 'CONTENT_UPDATE', entityType: 'ContentItem', entityId: id, detail: 'deleted' });
+  revalidateContent(c.section);
 }
