@@ -83,16 +83,15 @@ export default async function StaffApplicationDetail({
 
   const reveal = searchParams.reveal === '1';
 
-  // Only the government ID, date of birth, and address are protected identity
+  // The government ID number and date of birth are the protected identity
   // fields (SIN and banking are not collected). Decrypt only when revealed.
+  // ID province and expiry are low-sensitivity and shown without revealing.
   let govId = maskTail(decryptOptional(app.govIdNumberEnc), 3);
   let dob = '••••';
-  let address = '••••';
 
   if (reveal) {
     govId = decryptOptional(app.govIdNumberEnc) ?? '—';
     dob = decryptOptional(app.applicantDobEnc) ?? '—';
-    address = decryptOptional(app.applicantAddressEnc) ?? '—';
     await audit({
       actorId: user.userId,
       action: 'PII_DECRYPT',
@@ -173,8 +172,9 @@ export default async function StaffApplicationDetail({
           )}
           <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3">
             <div><dt className="text-gray-500">Gov ID #</dt><dd className="font-mono font-medium">{govId}</dd></div>
+            <div><dt className="text-gray-500">ID province</dt><dd className="font-medium">{app.loanApplication?.idProvince || '—'}</dd></div>
+            <div><dt className="text-gray-500">ID expiry</dt><dd className="font-medium">{app.loanApplication?.idExpiry ? app.loanApplication.idExpiry.toLocaleDateString('en-CA') : '—'}</dd></div>
             <div><dt className="text-gray-500">Date of birth</dt><dd className="font-medium">{dob}</dd></div>
-            <div><dt className="text-gray-500">Address</dt><dd className="font-medium">{address}</dd></div>
           </dl>
         </section>
 
