@@ -32,15 +32,21 @@ function landingFor(role: string | null): string {
  */
 function buildCsp(nonce: string): string {
   const isProd = process.env.NODE_ENV === 'production';
+  // Only widen the policy for Google Maps when the Places key is configured.
+  const gmaps = !!process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  const gScript = gmaps ? ' https://maps.googleapis.com' : '';
+  const gConnect = gmaps ? ' https://maps.googleapis.com' : '';
+  const gImg = gmaps ? ' https://maps.gstatic.com https://maps.googleapis.com https://*.googleusercontent.com' : '';
+
   const scriptSrc = isProd
-    ? `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`
-    : "script-src 'self' 'unsafe-eval' 'unsafe-inline'";
+    ? `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${gScript}`
+    : `script-src 'self' 'unsafe-eval' 'unsafe-inline'${gScript}`;
   return [
     "default-src 'self'",
-    "img-src 'self' data:",
+    `img-src 'self' data:${gImg}`,
     "style-src 'self' 'unsafe-inline'",
     scriptSrc,
-    "connect-src 'self'",
+    `connect-src 'self'${gConnect}`,
     "frame-ancestors 'none'",
     "form-action 'self'",
     "base-uri 'self'",

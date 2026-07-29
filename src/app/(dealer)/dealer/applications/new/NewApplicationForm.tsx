@@ -11,6 +11,7 @@ import {
   PHOTO_ID_TYPES,
 } from '@/lib/constants';
 import { formatPhone, formatPostal } from '@/lib/format';
+import { AddressAutocompleteInput } from '@/components/AddressAutocompleteInput';
 
 const initial: ActionState = {};
 
@@ -259,8 +260,9 @@ export function NewApplicationForm({ stores }: { stores: Store[] }) {
         <h2 className="mb-4 text-base font-semibold text-gray-900">Applicant</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div><label className="label" htmlFor="applicantFirstName">First name</label><input id="applicantFirstName" name="applicantFirstName" className="input" /><Err state={state} name="applicantFirstName" /></div>
-          {typed && <div><label className="label" htmlFor="middleName">Middle name <span className="font-normal text-gray-400">(optional)</span></label><input id="middleName" name="middleName" className="input" /></div>}
           <div><label className="label" htmlFor="applicantLastName">Last name</label><input id="applicantLastName" name="applicantLastName" className="input" /><Err state={state} name="applicantLastName" /></div>
+          {typed && <div><label className="label" htmlFor="middleName">Middle name <span className="font-normal text-gray-400">(optional)</span></label><input id="middleName" name="middleName" className="input" /></div>}
+          <div><label className="label" htmlFor="applicantDob">Date of birth</label><input id="applicantDob" name="applicantDob" type="date" className="input" /></div>
           <div><label className="label" htmlFor="applicantEmail">Email</label><input id="applicantEmail" name="applicantEmail" type="email" className="input" /><Err state={state} name="applicantEmail" /></div>
           <div><label className="label" htmlFor="applicantPhone">Mobile phone</label><input id="applicantPhone" name="applicantPhone" className="input" inputMode="numeric" maxLength={12} placeholder="705-716-2111" onInput={phoneFmt} /><Err state={state} name="applicantPhone" /></div>
           {typed && <div><label className="label" htmlFor="homePhone">Home phone <span className="font-normal text-gray-400">(optional)</span></label><input id="homePhone" name="homePhone" className="input" inputMode="numeric" maxLength={12} placeholder="705-716-2111" onInput={phoneFmt} /></div>}
@@ -274,27 +276,33 @@ export function NewApplicationForm({ stores }: { stores: Store[] }) {
               </select>
             </div>
           )}
-          <div className="sm:col-span-2"><label className="label" htmlFor="applicantAddress">Street address</label><input id="applicantAddress" name="applicantAddress" className="input" /></div>
-          <div><label className="label" htmlFor="province">Province</label>
+        </div>
+      </section>
+
+      {/* Address (always) */}
+      <section className="card p-6">
+        <h2 className="mb-1 text-base font-semibold text-gray-900">Address</h2>
+        <p className="mb-4 text-xs text-gray-400">Start typing the street address and pick a suggestion to fill in the rest.</p>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <label className="label" htmlFor="applicantAddress">Street address</label>
+            <AddressAutocompleteInput id="applicantAddress" name="applicantAddress" className="input" cityId="city" provinceId="province" postalId="postalCode" />
+          </div>
+          {typed && <div><label className="label" htmlFor="city">City</label><input id="city" name="city" className="input" /></div>}
+          <div>
+            <label className="label" htmlFor="province">Province</label>
             <select id="province" name="province" className="input">
               <option value="">Select…</option>
               {PROVINCES.map((p) => (<option key={p.value} value={p.value}>{p.label}</option>))}
             </select>
             <Err state={state} name="province" />
           </div>
-          <div><label className="label" htmlFor="applicantDob">Date of birth</label><input id="applicantDob" name="applicantDob" type="date" className="input" /></div>
+          {typed && <div><label className="label" htmlFor="postalCode">Postal code</label><input id="postalCode" name="postalCode" className="input" placeholder="L0L 2T0" maxLength={7} onInput={postalFmt} /></div>}
         </div>
-      </section>
 
-      {typed && (
-        <>
-          {/* Housing */}
-          <section className="card p-6">
-            <h2 className="mb-4 text-base font-semibold text-gray-900">Housing</h2>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <div><label className="label" htmlFor="city">City</label><input id="city" name="city" className="input" /></div>
-              <div><label className="label" htmlFor="addressProvince">Province</label><input id="addressProvince" name="addressProvince" className="input" placeholder="e.g. ON" /></div>
-              <div><label className="label" htmlFor="postalCode">Postal code</label><input id="postalCode" name="postalCode" className="input" placeholder="L0L 2T0" maxLength={7} onInput={postalFmt} /></div>
+        {typed && (
+          <>
+            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div>
                 <label className="label" htmlFor="housingStatus">Housing status</label>
                 <select id="housingStatus" name="housingStatus" className="input">
@@ -325,8 +333,12 @@ export function NewApplicationForm({ stores }: { stores: Store[] }) {
                 ))}
               </div>
             </details>
-          </section>
+          </>
+        )}
+      </section>
 
+      {typed && (
+        <>
           {/* Borrower identification */}
           <section className="card p-6">
             <h2 className="mb-4 text-base font-semibold text-gray-900">Borrower identification</h2>
