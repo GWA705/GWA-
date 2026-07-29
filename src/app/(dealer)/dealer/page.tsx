@@ -3,28 +3,34 @@ import { requireRole } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { applicationScopeWhere } from '@/lib/rbac';
 import { StatusBadge } from '@/components/StatusBadge';
+import { SearchBox } from '@/components/SearchBox';
+import { searchWhere } from '@/lib/search';
 import { programLabel } from '@/lib/constants';
 
-export default async function DealerHome() {
+export default async function DealerHome({ searchParams }: { searchParams: { q?: string } }) {
   const user = await requireRole('DEALER_USER');
+  const search = searchWhere(searchParams.q);
   const apps = await prisma.application.findMany({
-    where: applicationScopeWhere(user),
+    where: search ? { AND: [applicationScopeWhere(user), search] } : applicationScopeWhere(user),
     orderBy: { createdAt: 'desc' },
     take: 100,
   });
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-semibold text-gray-900">Applications</h1>
-        <Link href="/dealer/applications/new" className="btn-primary">
-          New application
-        </Link>
+        <div className="flex items-center gap-3">
+          <SearchBox action="/dealer" q={searchParams.q} />
+          <Link href="/dealer/applications/new" className="btn-primary">
+            New application
+          </Link>
+        </div>
       </div>
 
       {apps.length === 0 ? (
         <div className="card p-8 text-center text-sm text-gray-500">
-          No applications yet. Start by creating a new application.
+          {searchParams.q ? `No applications match “${searchParams.q}”.` : 'No applications yet. Start by creating a new application.'}
         </div>
       ) : (
         <div className="card overflow-hidden">

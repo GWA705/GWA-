@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { requireRole } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { StatusBadge } from '@/components/StatusBadge';
+import { SearchBox } from '@/components/SearchBox';
+import { searchWhere } from '@/lib/search';
 import { programLabel } from '@/lib/constants';
 import type { ApplicationStatus, Prisma } from '@prisma/client';
 
@@ -51,13 +53,20 @@ function daysAgo(d: Date): number {
   return Math.floor((Date.now() - d.getTime()) / 86_400_000);
 }
 
-export default async function StaffQueue({ searchParams }: { searchParams: { filter?: string } }) {
+export default async function StaffQueue({
+  searchParams,
+}: {
+  searchParams: { filter?: string; q?: string };
+}) {
   await requireRole('REVIEWER', 'ADMIN');
   const active = GROUPS.find((g) => g.key === searchParams.filter) ? searchParams.filter! : 'all';
+  const search = searchWhere(searchParams.q);
+  // A search looks across every deal (ignores the status filter).
+  const listWhere = search ?? whereFor(active);
 
   const [apps, statusCounts, paidCount] = await Promise.all([
     prisma.application.findMany({
-      where: whereFor(active),
+      where: listWhere,
       include: { dealer: true, _count: { select: { documents: true, payouts: true } } },
       take: 300,
     }),
@@ -78,13 +87,20 @@ export default async function StaffQueue({ searchParams }: { searchParams: { fil
 
   return (
     <div>
-      <div className="mb-5 flex items-center justify-between">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-semibold text-gray-900">Deals</h1>
-        <span className="text-sm text-gray-500">New deals are listed first</span>
+        <SearchBox action="/staff" q={searchParams.q} />
       </div>
 
+      {searchParams.q ? (
+        <p className="mb-4 text-sm text-gray-500">
+          Search results for “{searchParams.q}” — {apps.length} match(es).{' '}
+          <Link href="/staff" className="text-brand-700 hover:underline">Back to all deals</Link>
+        </p>
+      ) : null}
+
       {/* Status filter menu */}
-      <div className="mb-5 flex flex-wrap gap-2">
+      <div className={`mb-5 flex flex-wrap gap-2 ${searchParams.q ? 'hidden' : ''}`}>
         {GROUPS.map((g) => {
           const isActive = active === g.key;
           const count = groupCount(g);
