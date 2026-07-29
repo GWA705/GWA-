@@ -77,16 +77,48 @@ async function localDelete(key: string): Promise<void> {
 }
 
 // --- S3 driver -------------------------------------------------------------
+//
+// Works with AWS S3 (recommended: ca-central-1 for Canadian data residency)
+// and any S3-compatible service (Cloudflare R2, MinIO) via S3_ENDPOINT.
+// Credentials come from the standard AWS chain — on a host without an IAM role
+// (e.g. Vercel), set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY.
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let _s3: any = null;
 
 async function s3Client() {
+  if (_s3) return _s3;
   const { S3Client } = await import('@aws-sdk/client-s3');
-  return new S3Client({ region: process.env.S3_REGION || 'ca-central-1' });
+  const endpoint = process.env.S3_ENDPOINT || undefined;
+  _s3 = new S3Client({
+    region: process.env.S3_REGION || 'ca-central-1',
+    // Custom endpoint (R2 / MinIO / tests). Path-style is required by most
+    // S3-compatible servers and by localhost testing.
+    ...(endpoint ? { endpoint, forcePathStyle: process.env.S3_FORCE_PATH_STYLE !== 'false' } : {}),
+  });
+  return _s3;
 }
 
 function s3Bucket(): string {
   const b = process.env.S3_BUCKET;
   if (!b) throw new Error('S3_BUCKET is not set.');
   return b;
+}
+
+// Server-side encryption on the bucket. The file bytes are ALREADY
+// application-encrypted before upload, so this is defense-in-depth. Defaults to
+// SSE-S3 (AES256), which needs no extra setup; set S3_SSE=aws:kms (with optional
+// S3_KMS_KEY_ID) for KMS, or S3_SSE=none to rely on the bucket's default.
+function s3Sse(): Record<string, string> {
+  const sse = (process.env.S3_SSE || 'AES256').toLowerCase();
+  if (sse === 'none') return {};
+  if (sse === 'aws:kms' || sse === 'kms') {
+    return {
+      ServerSideEncryption: 'aws:kms',
+      ...(process.env.S3_KMS_KEY_ID ? { SSEKMSKeyId: process.env.S3_KMS_KEY_ID } : {}),
+    };
+  }
+  return { ServerSideEncryption: 'AES256' };
 }
 
 async function s3Put(key: string, plaintext: Buffer): Promise<void> {
@@ -98,9 +130,8 @@ async function s3Put(key: string, plaintext: Buffer): Promise<void> {
       Bucket: s3Bucket(),
       Key: key,
       Body: token,
-      // Additional at-rest encryption managed by AWS KMS.
-      ServerSideEncryption: 'aws:kms',
       ContentType: 'application/octet-stream',
+      ...s3Sse(),
     }),
   );
 }

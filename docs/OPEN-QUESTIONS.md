@@ -10,11 +10,11 @@ _Last updated: 2026-07-29_
 
 ## A. Needs something only you can provide (accounts, keys, real data)
 
-1. **Persistent document storage** ⭐ _most important_
-   Right now uploads (announcement images, application & funding documents)
-   sit on Render's temporary disk and are wiped on every redeploy. Need to
-   switch on permanent storage: **Amazon S3** (code is ready — needs a bucket +
-   credentials) or a **Render persistent disk** (paid add-on). Decision: which one?
+1. **Persistent document storage** ⭐ _most important — code DONE, needs your AWS account_
+   The S3 storage driver is built and tested. To turn it on, create an S3 bucket
+   (ca-central-1) + an IAM user, and set the env vars in Vercel. Full step-by-step:
+   **`docs/STORAGE-S3.md`**. Until this is done, uploads do not persist (and don't
+   work at all on Vercel's serverless disk).
 
 2. **Google Maps API key** — to turn on address autocomplete on the Street
    address field. You create it in Google Cloud (billing account required),
