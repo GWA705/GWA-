@@ -86,7 +86,30 @@ export async function toggleDealerActiveAction(dealerId: string): Promise<void> 
   const dealer = await prisma.dealer.findUnique({ where: { id: dealerId } });
   if (!dealer) return;
   await prisma.dealer.update({ where: { id: dealerId }, data: { active: !dealer.active } });
-  await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'Dealer', entityId: dealerId, detail: `active=${!dealer.active}` });
+  await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'Dealer', entityId: dealerId, detail: `active=${!dealer.active} (${dealer.active ? 'archived' : 'unarchived'})` });
+  revalidatePath('/admin/dealers');
+}
+
+/**
+ * Permanently delete a dealer. Only allowed when the dealer has no users and no
+ * applications — deleting one with customer applications would destroy personal
+ * information and the audit trail, so those must be archived instead.
+ */
+export async function deleteDealerAction(dealerId: string): Promise<void> {
+  const session = await requireRole('ADMIN');
+  const dealer = await prisma.dealer.findUnique({
+    where: { id: dealerId },
+    include: { _count: { select: { users: true, applications: true } } },
+  });
+  if (!dealer) return;
+  if (dealer._count.users > 0 || dealer._count.applications > 0) {
+    // Not empty — refuse the hard delete. The UI only offers Delete on empty
+    // dealers, but guard here too in case of a stale page.
+    return;
+  }
+  // Home Depot stores cascade-delete with the dealer.
+  await prisma.dealer.delete({ where: { id: dealerId } });
+  await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'Dealer', entityId: dealerId, detail: `deleted: ${dealer.name}` });
   revalidatePath('/admin/dealers');
 }
 

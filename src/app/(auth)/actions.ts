@@ -66,13 +66,19 @@ export async function loginAction(
   if (!parsed.success) return { error: 'Enter a valid email and password.' };
 
   const email = parsed.data.email.toLowerCase().trim();
-  const user = await prisma.user.findUnique({ where: { email } });
+  const user = await prisma.user.findUnique({ where: { email }, include: { dealer: true } });
 
   // Generic error message to avoid user enumeration.
   const genericFail: FormState = { error: 'Invalid credentials.' };
 
   if (!user || !user.active) {
     await audit({ action: 'LOGIN_FAILED', entityType: 'User', detail: `unknown or inactive: ${email}` });
+    return genericFail;
+  }
+
+  // A dealer user whose dealership has been archived cannot sign in.
+  if (user.dealer && !user.dealer.active) {
+    await audit({ actorId: user.id, action: 'LOGIN_FAILED', entityType: 'User', entityId: user.id, detail: 'dealer archived' });
     return genericFail;
   }
 
