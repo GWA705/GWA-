@@ -66,6 +66,12 @@ _Last updated: 2026-07-30_
     the final rule (you noted it may change). *(Resolved: now accepts any format
     up to 60 chars — reopen if you want a strict rule.)*
 
+24. **Admin bulk download / export of documents** — since files in S3 are
+    encrypted at rest, they can only be read through the portal. Build an admin
+    "Download" option that decrypts on the fly: e.g. a "Download all documents
+    (ZIP)" button on a deal, and/or an admin export by dealer / date range.
+    Access-controlled and written to the audit log.
+
 17. ✅ **DONE — Progress bar reacts to status changes.** The tracker now keys off
     the live status: moving a deal backward (e.g. Approved → Under review)
     un-lights later steps, and Problem / Declined / Withdrawn show an off-path
