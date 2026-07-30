@@ -105,6 +105,10 @@ _Last updated: 2026-07-30_
       the application **and** the bill of sale).
     Order them Fastest → Fast → Normal.
 
+29. **Spelling: use "FinanceIT" everywhere** (replace "Finance it" / "FinanceIt")
+    in all user-facing text. Note: only the displayed text — leave code
+    identifiers (`financeItNumber`, the `FINANCEIT` value) as-is.
+
 17. ✅ **DONE — Progress bar reacts to status changes.** The tracker now keys off
     the live status: moving a deal backward (e.g. Approved → Under review)
     un-lights later steps, and Problem / Declined / Withdrawn show an off-path
