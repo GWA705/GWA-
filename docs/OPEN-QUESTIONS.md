@@ -91,6 +91,20 @@ _Last updated: 2026-07-30_
     everywhere it appears for consistency: the page heading, the top-nav link
     ("New application"), and the "New application" button on the dealer home.
 
+28. **Redesign the entry-method chooser into three speed-ranked, colour-coded
+    options.** Heading: "Three choices to process a new customer application."
+    Add depth to the cards (speed badge + colour, maybe an icon):
+    - **1 · Fastest** (green): "Use your FinanceIt Portal to approve the
+      application and submit your approval FinanceIt loan number below."
+      → current **Financing number / FINANCEIT** method.
+    - **2 · Fast** (blue): "Need a different financing option? Type in the
+      customer details below (helps with spelling and ensures accuracy of the
+      application)." → current **Type it in / TYPED** method.
+    - **3 · Normal** (amber/grey): "Upload application and bill of sale for
+      processing." → current **Upload a photo / PHOTO** method (allow uploading
+      the application **and** the bill of sale).
+    Order them Fastest → Fast → Normal.
+
 17. ✅ **DONE — Progress bar reacts to status changes.** The tracker now keys off
     the live status: moving a deal backward (e.g. Approved → Under review)
     un-lights later steps, and Problem / Declined / Withdrawn show an off-path
