@@ -4,7 +4,8 @@ import { redirect } from 'next/navigation';
 import type { User } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { hashPassword, verifyPassword, validatePasswordStrength, isPasswordExpired } from '@/lib/password';
-import { verifyMfaToken, decryptMfaSecret } from '@/lib/mfa';
+import { verifyMfaToken, decryptMfaSecret, emailCodeMatches } from '@/lib/mfa';
+import { issueEmailMfaCode } from '@/lib/mfa-email';
 import {
   createSession,
   createMfaPending,
@@ -108,6 +109,10 @@ export async function loginAction(
   });
 
   if (user.mfaEnabled) {
+    // Email method: send a one-time code now; app method: prompt for the app code.
+    if (user.mfaMethod === 'EMAIL') {
+      await issueEmailMfaCode(user);
+    }
     await createMfaPending(user.id);
     redirect('/mfa');
   }
@@ -126,8 +131,19 @@ export async function verifyMfaAction(
   if (!parsed.success) return { error: 'Enter the 6-digit code.' };
 
   const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user || !user.mfaEnabled || !user.mfaSecretEnc) redirect('/login');
+  if (!user || !user.mfaEnabled) redirect('/login');
 
+  if (user.mfaMethod === 'EMAIL') {
+    if (!emailCodeMatches(parsed.data.token, user.mfaEmailCodeHash, user.mfaEmailCodeExpiresAt)) {
+      await audit({ actorId: user.id, action: 'LOGIN_FAILED', entityType: 'User', entityId: user.id, detail: 'bad email MFA code' });
+      return { error: 'Invalid or expired code. Check your email or resend a new code.' };
+    }
+    // Consume the code so it can't be reused.
+    await prisma.user.update({ where: { id: user.id }, data: { mfaEmailCodeHash: null, mfaEmailCodeExpiresAt: null } });
+    return finishLogin(user, true);
+  }
+
+  if (!user.mfaSecretEnc) redirect('/login');
   const secret = decryptMfaSecret(user.mfaSecretEnc);
   if (!verifyMfaToken(parsed.data.token, secret)) {
     await audit({ actorId: user.id, action: 'LOGIN_FAILED', entityType: 'User', entityId: user.id, detail: 'bad MFA code' });
@@ -135,6 +151,16 @@ export async function verifyMfaAction(
   }
 
   return finishLogin(user, true);
+}
+
+// Resend the email 2FA code from the /mfa page (EMAIL method only).
+export async function resendMfaEmailAction(): Promise<FormState> {
+  const userId = await getMfaPendingUserId();
+  if (!userId) redirect('/login');
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user || !user.mfaEnabled || user.mfaMethod !== 'EMAIL') redirect('/login');
+  await issueEmailMfaCode(user);
+  return { ok: true };
 }
 
 export async function logoutAction(): Promise<void> {

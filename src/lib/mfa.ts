@@ -1,6 +1,26 @@
+import crypto from 'crypto';
 import { authenticator } from 'otplib';
 import QRCode from 'qrcode';
-import { encryptString, decryptString } from './crypto';
+import { encryptString, decryptString, sha256 } from './crypto';
+
+// --- Email one-time codes (EMAIL method) ----------------------------------
+export const EMAIL_CODE_TTL_MINUTES = 10;
+
+/** A 6-digit numeric login code. */
+export function generateEmailCode(): string {
+  return crypto.randomInt(0, 1_000_000).toString().padStart(6, '0');
+}
+
+/** Hash for storage (never store the raw code). */
+export function hashEmailCode(code: string): string {
+  return sha256(Buffer.from(code.replace(/\s+/g, '')));
+}
+
+export function emailCodeMatches(input: string, storedHash: string | null, expiresAt: Date | null): boolean {
+  if (!storedHash || !expiresAt) return false;
+  if (expiresAt.getTime() < Date.now()) return false;
+  return hashEmailCode(input) === storedHash;
+}
 
 // Allow one step of drift on either side (30s window each).
 authenticator.options = { window: 1 };

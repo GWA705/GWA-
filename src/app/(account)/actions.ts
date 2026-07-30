@@ -10,7 +10,10 @@ import {
   encryptMfaSecret,
   decryptMfaSecret,
   verifyMfaToken,
+  emailCodeMatches,
 } from '@/lib/mfa';
+import { issueEmailMfaCode } from '@/lib/mfa-email';
+import { emailEnabled } from '@/lib/email';
 
 import { profileSchema } from '@/lib/validation';
 
@@ -106,8 +109,44 @@ export async function confirmMfaAction(
   const secret = decryptMfaSecret(user.mfaSecretEnc);
   if (!verifyMfaToken(token, secret)) return { error: 'Invalid code. Try again.' };
 
-  await prisma.user.update({ where: { id: user.id }, data: { mfaEnabled: true } });
-  await audit({ actorId: user.id, action: 'MFA_ENROLLED', entityType: 'User', entityId: user.id });
+  await prisma.user.update({ where: { id: user.id }, data: { mfaEnabled: true, mfaMethod: 'APP' } });
+  await audit({ actorId: user.id, action: 'MFA_ENROLLED', entityType: 'User', entityId: user.id, detail: 'app' });
+  revalidatePath('/account');
+  return { ok: true };
+}
+
+/** Start email-code 2FA enrollment: email a code the user confirms below. */
+export async function beginEmailMfaAction(): Promise<ActionState> {
+  const session = await requireSession();
+  const user = await prisma.user.findUnique({ where: { id: session.userId } });
+  if (!user) return { error: 'Not found.' };
+  if (!emailEnabled()) {
+    return { error: 'Email is not configured yet, so email codes cannot be used. Set up email first (admin → Email), or use an authenticator app.' };
+  }
+  const { sent } = await issueEmailMfaCode(user);
+  revalidatePath('/account');
+  if (!sent) return { error: 'Could not send the code email. Check the email settings and try again.' };
+  return { ok: true };
+}
+
+export async function confirmEmailMfaAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await requireSession();
+  const user = await prisma.user.findUnique({ where: { id: session.userId } });
+  if (!user) return { error: 'Not found.' };
+
+  const code = String(formData.get('token') || '');
+  if (!emailCodeMatches(code, user.mfaEmailCodeHash, user.mfaEmailCodeExpiresAt)) {
+    return { error: 'Invalid or expired code. Send a new code and try again.' };
+  }
+  await prisma.user.update({
+    where: { id: user.id },
+    // Switching to email 2FA — clear any app secret so only one method is active.
+    data: { mfaEnabled: true, mfaMethod: 'EMAIL', mfaSecretEnc: null, mfaEmailCodeHash: null, mfaEmailCodeExpiresAt: null },
+  });
+  await audit({ actorId: user.id, action: 'MFA_ENROLLED', entityType: 'User', entityId: user.id, detail: 'email' });
   revalidatePath('/account');
   return { ok: true };
 }
@@ -116,7 +155,7 @@ export async function disableMfaAction(): Promise<void> {
   const session = await requireSession();
   await prisma.user.update({
     where: { id: session.userId },
-    data: { mfaEnabled: false, mfaSecretEnc: null },
+    data: { mfaEnabled: false, mfaMethod: null, mfaSecretEnc: null, mfaEmailCodeHash: null, mfaEmailCodeExpiresAt: null },
   });
   await audit({ actorId: session.userId, action: 'USER_UPDATE', entityType: 'User', entityId: session.userId, detail: 'MFA disabled' });
   revalidatePath('/account');

@@ -135,9 +135,14 @@ model User {
   role         Role
   active       Boolean @default(true)
 
-  // Multi-factor auth (TOTP). Secret is application-encrypted.
+  // Multi-factor auth. Method is 'APP' (authenticator TOTP) or 'EMAIL' (a code
+  // emailed at login). Secret is application-encrypted (APP only).
   mfaEnabled       Boolean @default(false)
-  mfaSecretEnc     String? // encrypted TOTP secret
+  mfaMethod        String? // 'APP' | 'EMAIL'
+  mfaSecretEnc     String? // encrypted TOTP secret (APP method)
+  // Emailed one-time code (EMAIL method) — stored hashed, short-lived.
+  mfaEmailCodeHash      String?
+  mfaEmailCodeExpiresAt DateTime?
 
   // Dealer users belong to a dealer; internal staff have dealerId = null.
   dealerId String?

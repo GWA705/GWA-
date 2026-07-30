@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db';
 import { decryptMfaSecret, buildMfaEnrollment } from '@/lib/mfa';
 import { beginMfaAction, disableMfaAction } from '@/app/(account)/actions';
 import { ConfirmMfaForm } from './ConfirmMfaForm';
+import { StartEmailMfaButton, ConfirmEmailMfaForm } from './EmailMfaForms';
 import { ProfileForm } from './ProfileForm';
 import { ChangePasswordForm } from './ChangePasswordForm';
 import { isPasswordExpired, PASSWORD_MAX_AGE_DAYS } from '@/lib/password';
@@ -24,10 +25,16 @@ export default async function AccountPage() {
 
   const pwExpired = isPasswordExpired(user.passwordChangedAt);
 
-  const pending = !user.mfaEnabled && !!user.mfaSecretEnc;
+  const appPending = !user.mfaEnabled && !!user.mfaSecretEnc;
+  const emailPending =
+    !user.mfaEnabled &&
+    !user.mfaSecretEnc &&
+    !!user.mfaEmailCodeHash &&
+    !!user.mfaEmailCodeExpiresAt &&
+    user.mfaEmailCodeExpiresAt.getTime() > Date.now();
   let qrDataUrl = '';
   let otpauthUrl = '';
-  if (pending && user.mfaSecretEnc) {
+  if (appPending && user.mfaSecretEnc) {
     const secret = decryptMfaSecret(user.mfaSecretEnc);
     const enrollment = await buildMfaEnrollment(user.email, secret);
     qrDataUrl = enrollment.qrDataUrl;
@@ -80,18 +87,21 @@ export default async function AccountPage() {
       <section className="card p-6">
         <h2 className="text-base font-semibold text-gray-900">Two-factor authentication (2FA)</h2>
         <p className="mt-1 text-sm text-gray-500">
-          Protect your account with a time-based one-time code from an authenticator app
-          (Google Authenticator, Authy, 1Password, etc.). Strongly recommended for all staff.
+          Add a second step at sign-in. Choose an <strong>authenticator app</strong> (most secure —
+          Google Authenticator, Authy, 1Password) or have a <strong>code emailed</strong> to you.
+          Strongly recommended for all staff.
         </p>
 
         {user.mfaEnabled ? (
           <div className="mt-4">
-            <span className="badge bg-green-100 text-green-800">Enabled</span>
+            <span className="badge bg-green-100 text-green-800">
+              Enabled · {user.mfaMethod === 'EMAIL' ? 'Email codes' : 'Authenticator app'}
+            </span>
             <form action={disableMfaAction} className="mt-4">
               <button type="submit" className="btn-secondary">Disable 2FA</button>
             </form>
           </div>
-        ) : pending ? (
+        ) : appPending ? (
           <div className="mt-4 space-y-4">
             <p className="text-sm text-gray-700">
               Scan this QR code with your authenticator app, then enter the code to finish.
@@ -101,10 +111,21 @@ export default async function AccountPage() {
             <p className="break-all text-xs text-gray-400">{otpauthUrl}</p>
             <ConfirmMfaForm />
           </div>
+        ) : emailPending ? (
+          <div className="mt-4 space-y-3">
+            <p className="text-sm text-gray-700">
+              We emailed a 6-digit code to <strong>{user.notificationEmail || user.email}</strong>. Enter it
+              below to turn on email 2FA.
+            </p>
+            <ConfirmEmailMfaForm />
+          </div>
         ) : (
-          <form action={beginMfaAction} className="mt-4">
-            <button type="submit" className="btn-primary">Enable 2FA</button>
-          </form>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <form action={beginMfaAction}>
+              <button type="submit" className="btn-primary">Use an authenticator app</button>
+            </form>
+            <StartEmailMfaButton />
+          </div>
         )}
       </section>
 
