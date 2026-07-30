@@ -118,9 +118,16 @@ export default async function StaffApplicationDetail({
             </h1>
             <StatusBadge status={app.status} />
           </div>
-          <p className="mt-1 text-sm text-gray-500">
-            {app.dealer.name} · submitted by {app.createdBy.name} · {app.createdAt.toLocaleString('en-CA')}
-          </p>
+          <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm text-gray-500">
+              {app.dealer.name} · submitted by {app.createdBy.name} · {app.createdAt.toLocaleString('en-CA')}
+            </p>
+            {app.documents.length > 0 && (
+              <a href={`/api/applications/${app.id}/documents`} className="btn-secondary text-xs">
+                ↓ Download all documents (ZIP)
+              </a>
+            )}
+          </div>
         </div>
 
         {/* Progress tracker */}

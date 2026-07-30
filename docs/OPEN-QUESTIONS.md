@@ -75,11 +75,12 @@ _Last updated: 2026-07-30_
     the final rule (you noted it may change). *(Resolved: now accepts any format
     up to 60 chars — reopen if you want a strict rule.)*
 
-24. **Admin bulk download / export of documents** — since files in S3 are
-    encrypted at rest, they can only be read through the portal. Build an admin
-    "Download" option that decrypts on the fly: e.g. a "Download all documents
-    (ZIP)" button on a deal, and/or an admin export by dealer / date range.
-    Access-controlled and written to the audit log.
+24. ✅ **DONE — "Download all documents (ZIP)" on a deal.** Reviewers/admins get a
+    button on the deal page that streams every document as a single ZIP,
+    decrypted on the fly, foldered by stage (Application / Funding / Paperwork),
+    de-duplicated, and written to the audit log. Unreadable/orphaned files are
+    skipped rather than failing the whole download. (A dealer/date-range export
+    can follow later if you want it.)
 
 25. ✅ **DONE — Announcement banner image polish.**
     a) Images now auto-fit (`object-contain`, `max-h-72`) — the whole picture is

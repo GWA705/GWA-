@@ -27,6 +27,7 @@
     "@prisma/client": "^5.20.0",
     "bcryptjs": "^2.4.3",
     "jose": "^5.9.3",
+    "jszip": "^3.10.1",
     "next": "^14.2.35",
     "nodemailer": "^9.0.3",
     "otplib": "^12.0.1",
