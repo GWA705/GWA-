@@ -23,7 +23,7 @@ export function AnnouncementBanner({ announcements }: { announcements: Announcem
               <BannerImage
                 src={`/api/announcements/${a.id}/image`}
                 alt={a.title ?? 'Announcement'}
-                className="block h-40 w-full object-cover object-center sm:h-52"
+                className="block h-auto w-full"
               />
             )}
             {(a.title || a.body) && (
