@@ -93,13 +93,17 @@ async function main() {
   }
   console.log(`Dealers: ${dealer.name}, ${dealer2.name}`);
 
-  // Finance companies (placeholder list — replace with the real ones)
-  for (const [id, name] of [
-    ['seed-fc-1', 'FinanceIt'],
-    ['seed-fc-2', 'Financeit Home'],
-    ['seed-fc-3', 'SNAP Financial'],
-  ] as const) {
-    await prisma.financeCompany.upsert({ where: { id }, update: {}, create: { id, name } });
+  // Finance companies — demo placeholders only. In production the real list is
+  // managed in Admin → Finance cos, so we must NOT re-create these on every
+  // deploy (that would resurrect ones an admin deleted). Gated behind SEED_DEMO.
+  if (seedDemo) {
+    for (const [id, name] of [
+      ['seed-fc-1', 'FinanceIt'],
+      ['seed-fc-2', 'Financeit Home'],
+      ['seed-fc-3', 'SNAP Financial'],
+    ] as const) {
+      await prisma.financeCompany.upsert({ where: { id }, update: {}, create: { id, name } });
+    }
   }
 
   // Home Depot stores assigned to each dealer
