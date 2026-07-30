@@ -4,17 +4,15 @@ A running list of things to go over together. Grouped by type and rough
 priority. Nothing here blocks the app from running today — these are the
 "fill in the real details / make a call" items.
 
-_Last updated: 2026-07-29_
+_Last updated: 2026-07-30_
 
 ---
 
 ## A. Needs something only you can provide (accounts, keys, real data)
 
-1. **Persistent document storage** ⭐ _most important — code DONE, needs your AWS account_
-   The S3 storage driver is built and tested. To turn it on, create an S3 bucket
-   (ca-central-1) + an IAM user, and set the env vars in Vercel. Full step-by-step:
-   **`docs/STORAGE-S3.md`**. Until this is done, uploads do not persist (and don't
-   work at all on Vercel's serverless disk).
+1. ✅ **DONE — Persistent document storage (S3).** Live on Render with an S3
+   bucket in ca-central-1 (Canada). Uploads now persist across redeploys.
+   Setup reference kept at `docs/STORAGE-S3.md`.
 
 2. **Google Maps API key** — to turn on address autocomplete on the Street
    address field. You create it in Google Cloud (billing account required),
