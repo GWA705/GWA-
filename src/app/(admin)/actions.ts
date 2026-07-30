@@ -77,7 +77,22 @@ export async function sendTestEmailAction(
   if (result.sent) {
     return { ok: true, message: `Test email sent to ${to}. Check the inbox (and spam folder).` };
   }
-  return { error: `Could not send: ${result.reason || 'unknown error'}. Check the SMTP settings and the server logs.` };
+
+  // Turn common SMTP failures into a plain-English hint.
+  const raw = result.reason || 'unknown error';
+  let hint = '';
+  const code = result.code || '';
+  if (code === 'EAUTH' || /invalid login|username and password not accepted|5\.7\.8|badcredentials/i.test(raw)) {
+    hint =
+      ' → Gmail rejected the sign-in. Re-check SMTP_USER is the exact mailbox you made the App Password on, and re-paste SMTP_PASS (the 16-char App Password, no spaces). A normal account password will NOT work.';
+  } else if (code === 'ESOCKET' || code === 'ECONNECTION' || /wrong version number|ssl|tls/i.test(raw)) {
+    hint =
+      ' → Looks like a port/security mismatch. Use SMTP_PORT=587 and do NOT set SMTP_SECURE (or set it to false). Only use SMTP_SECURE=true with SMTP_PORT=465.';
+  } else if (code === 'ETIMEDOUT' || code === 'ECONNREFUSED' || /timed out|timeout/i.test(raw)) {
+    hint = ' → Could not reach the mail server. Check SMTP_HOST (smtp.gmail.com) and SMTP_PORT (587).';
+  }
+
+  return { error: `Could not send: ${raw}${hint}` };
 }
 
 export async function createDealerAction(

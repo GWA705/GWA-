@@ -92,7 +92,9 @@ export async function getEmailIdentityInfo(): Promise<{
   };
 }
 
-export async function sendEmail(args: SendEmailArgs): Promise<{ sent: boolean; reason?: string }> {
+export async function sendEmail(
+  args: SendEmailArgs,
+): Promise<{ sent: boolean; reason?: string; code?: string }> {
   const text = args.text || stripHtml(args.html);
 
   if (!emailEnabled()) {
@@ -115,6 +117,9 @@ export async function sendEmail(args: SendEmailArgs): Promise<{ sent: boolean; r
     return { sent: true };
   } catch (err) {
     console.error('[email] send failed:', err);
-    return { sent: false, reason: 'error' };
+    // Surface the real SMTP error so the admin test can show what went wrong.
+    // These messages never contain the password.
+    const e = err as { message?: string; code?: string };
+    return { sent: false, reason: e?.message || 'error', code: e?.code };
   }
 }
