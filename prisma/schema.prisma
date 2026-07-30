@@ -318,6 +318,15 @@ model Application {
 
   homeownershipRequired Boolean @default(false)
 
+  // Reviewer queue signals. lastDealerActionAt is set whenever the dealer does
+  // something the reviewer may need to act on (submit, upload, note, funding);
+  // lastReviewerActionAt is set whenever a reviewer/admin acts. When the dealer
+  // acted more recently than the reviewer, the deal "needs attention". The kind
+  // labels the most recent dealer action for the activity chip.
+  lastDealerActionAt   DateTime?
+  lastDealerActionKind String? // 'SUBMITTED' | 'DOCUMENT' | 'NOTE' | 'FUNDING'
+  lastReviewerActionAt DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

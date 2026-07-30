@@ -9,6 +9,7 @@ import { canAccessAsDealer } from '@/lib/rbac';
 import { encryptOptional } from '@/lib/crypto';
 import { audit } from '@/lib/audit';
 import { storeFiles } from '@/lib/upload';
+import { markDealerAction } from '@/lib/activity';
 import { notifyNewDocuments, notifyNewNote } from '@/lib/notify';
 import { applicationSchema, serialNumberSchema } from '@/lib/validation';
 import { CONSENT_POLICY_VERSION, CONSENT_TEXT } from '@/lib/constants';
@@ -159,6 +160,8 @@ export async function createApplicationAction(
       employer: d.employer || d.businessName || null,
       notes: d.notes || null,
       homeownershipRequired: d.homeownershipRequired ?? false,
+      lastDealerActionAt: new Date(),
+      lastDealerActionKind: 'SUBMITTED',
       consents: {
         create: {
           policyVersion: CONSENT_POLICY_VERSION,
@@ -197,6 +200,7 @@ export async function uploadSupportingDocAction(
   const result = await storeFiles({ application: app, files, type: 'SUPPORTING', stage: 'APPLICATION', uploadedById: session.userId });
   if (result.error) return result;
 
+  await markDealerAction(applicationId, 'DOCUMENT');
   await notifyNewDocuments(applicationId);
   revalidatePath(`/dealer/applications/${applicationId}`);
   return {};
@@ -241,6 +245,7 @@ export async function uploadFundingDocAction(
   const result = await storeFiles({ application: app, files, type: docType, stage: 'FUNDING', uploadedById: session.userId });
   if (result.error) return result;
 
+  await markDealerAction(applicationId, 'DOCUMENT');
   await notifyNewDocuments(applicationId);
   revalidatePath(`/dealer/applications/${applicationId}`);
   return {};
@@ -257,7 +262,10 @@ export async function submitFundingAction(applicationId: string): Promise<void> 
 
   // Funding can be submitted as documents come in — not all are required upfront.
   await prisma.$transaction([
-    prisma.application.update({ where: { id: applicationId }, data: { status: 'FUNDING_SUBMITTED' } }),
+    prisma.application.update({
+      where: { id: applicationId },
+      data: { status: 'FUNDING_SUBMITTED', lastDealerActionAt: new Date(), lastDealerActionKind: 'FUNDING' },
+    }),
     prisma.statusEvent.create({
       data: {
         applicationId,
@@ -288,6 +296,7 @@ export async function addDealerNoteAction(
   await prisma.note.create({
     data: { applicationId, authorId: session.userId, body: body.slice(0, 4000), internal: false },
   });
+  await markDealerAction(applicationId, 'NOTE');
   await notifyNewNote(applicationId, 'DEALER_USER');
   revalidatePath(`/dealer/applications/${applicationId}`);
   return {};

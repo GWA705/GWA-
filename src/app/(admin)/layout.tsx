@@ -10,7 +10,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         { href: '/admin', label: 'Overview' },
         { href: '/admin/dealers', label: 'Dealers' },
         { href: '/admin/finance-companies', label: 'Finance cos' },
-        { href: '/admin/announcements', label: 'Announcements' },
+        { href: '/admin/announcements', label: 'Dealer portal sign' },
         { href: '/admin/content', label: 'Content' },
         { href: '/admin/users', label: 'Users' },
         { href: '/admin/email', label: 'Email' },

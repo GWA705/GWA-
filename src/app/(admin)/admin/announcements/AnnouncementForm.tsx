@@ -8,7 +8,7 @@ function SubmitButton() {
   const { pending } = useFormStatus();
   return (
     <button type="submit" className="btn-primary" disabled={pending}>
-      {pending ? 'Posting…' : 'Post announcement'}
+      {pending ? 'Posting…' : 'Post sign'}
     </button>
   );
 }
@@ -26,7 +26,7 @@ export function AnnouncementForm() {
       className="space-y-4"
     >
       {state.error && <div className="rounded-md bg-red-50 p-2 text-sm text-red-700">{state.error}</div>}
-      {state.ok && <div className="rounded-md bg-green-50 p-2 text-sm text-green-700">Announcement posted.</div>}
+      {state.ok && <div className="rounded-md bg-green-50 p-2 text-sm text-green-700">Sign posted.</div>}
 
       <div>
         <label className="label" htmlFor="title">Title <span className="font-normal text-gray-400">(optional)</span></label>

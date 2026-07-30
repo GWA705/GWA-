@@ -12,17 +12,17 @@ export default async function AnnouncementsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-semibold text-gray-900">Dealer announcements</h1>
+      <h1 className="text-xl font-semibold text-gray-900">Dealer portal sign</h1>
       <p className="-mt-3 text-sm text-gray-500">Shown as a banner above the dealer&apos;s Applications list. Active items appear to all dealers.</p>
 
       <div className="card p-6">
-        <h2 className="mb-4 text-base font-semibold text-gray-900">New announcement</h2>
+        <h2 className="mb-4 text-base font-semibold text-gray-900">New sign</h2>
         <AnnouncementForm />
       </div>
 
       <div className="space-y-3">
         {announcements.length === 0 ? (
-          <div className="card p-8 text-center text-sm text-gray-500">No announcements yet.</div>
+          <div className="card p-8 text-center text-sm text-gray-500">No signs yet.</div>
         ) : (
           announcements.map((a) => (
             <div key={a.id} className="card flex items-start justify-between gap-4 p-4">
@@ -46,7 +46,7 @@ export default async function AnnouncementsPage() {
                   <button type="submit" className="btn-secondary w-full text-xs">{a.active ? 'Hide' : 'Show'}</button>
                 </form>
                 <form action={deleteAnnouncementAction.bind(null, a.id)}>
-                  <button type="submit" className="btn-danger w-full text-xs">Delete announcement</button>
+                  <button type="submit" className="btn-danger w-full text-xs">Delete sign</button>
                 </form>
               </div>
             </div>

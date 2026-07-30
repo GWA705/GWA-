@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/session';
 import { audit } from '@/lib/audit';
+import { markReviewerAction } from '@/lib/activity';
 import { encryptOptional } from '@/lib/crypto';
 import { storeFiles } from '@/lib/upload';
 import { notifyStatusChange, notifyNewNote } from '@/lib/notify';
@@ -64,6 +65,7 @@ export async function setDealReferencesAction(
     where: { id: applicationId },
     data: { financeItNumber, hdReference },
   });
+  await markReviewerAction(applicationId);
   await audit({
     actorId: session.userId,
     action: 'STATUS_CHANGE',
@@ -148,6 +150,7 @@ export async function recordDecisionAction(
     }
   });
 
+  await markReviewerAction(applicationId);
   await audit({
     actorId: session.userId,
     action: type === 'FUND' ? 'FUNDING_DECISION' : 'DECISION',
@@ -176,7 +179,9 @@ export async function startReviewAction(applicationId: string): Promise<void> {
     ]);
     await audit({ actorId: session.userId, action: 'STATUS_CHANGE', entityType: 'Application', entityId: applicationId, detail: 'UNDER_REVIEW' });
   }
+  await markReviewerAction(applicationId);
   revalidatePath(`/staff/applications/${applicationId}`);
+  revalidatePath('/staff');
 }
 
 /** Move a submitted funding package into review. */
@@ -193,7 +198,9 @@ export async function startFundingReviewAction(applicationId: string): Promise<v
     ]);
     await audit({ actorId: session.userId, action: 'STATUS_CHANGE', entityType: 'Application', entityId: applicationId, detail: 'FUNDING_REVIEW' });
   }
+  await markReviewerAction(applicationId);
   revalidatePath(`/staff/applications/${applicationId}`);
+  revalidatePath('/staff');
 }
 
 // Reviewer/admin uploads paperwork FOR the dealer. The category is chosen from
@@ -229,6 +236,7 @@ export async function uploadReviewerPaperworkAction(
   });
   if (result.error) return result;
 
+  await markReviewerAction(applicationId);
   revalidatePath(`/staff/applications/${applicationId}`);
   return {};
 }
@@ -304,6 +312,7 @@ export async function updateDealAction(
     },
   });
 
+  await markReviewerAction(applicationId);
   await audit({
     actorId: session.userId,
     action: 'APPLICATION_UPDATE',
@@ -353,6 +362,7 @@ export async function recordPayoutAction(
     entityId: d.applicationId,
     detail: `Payout recorded: $${d.amount} (${payout.id})`,
   });
+  await markReviewerAction(d.applicationId);
 
   revalidatePath(`/staff/applications/${d.applicationId}`);
   return { ok: true };
@@ -378,6 +388,7 @@ export async function toggleDocumentVerifiedAction(documentId: string): Promise<
     entityId: documentId,
     detail: verify ? 'Marked document completed' : 'Unmarked document',
   });
+  await markReviewerAction(doc.applicationId);
   revalidatePath(`/staff/applications/${doc.applicationId}`);
 }
 
@@ -395,6 +406,7 @@ export async function verifyAllFundingDocsAction(applicationId: string): Promise
     entityId: applicationId,
     detail: 'Marked all funding documents completed',
   });
+  await markReviewerAction(applicationId);
   revalidatePath(`/staff/applications/${applicationId}`);
 }
 
@@ -439,6 +451,7 @@ export async function moveToInForFundingAction(applicationId: string): Promise<v
     }),
   ]);
   await audit({ actorId: session.userId, action: 'STATUS_CHANGE', entityType: 'Application', entityId: applicationId, detail: 'FUNDING_REVIEW' });
+  await markReviewerAction(applicationId);
   await notifyStatusChange(applicationId, 'FUNDING_REVIEW');
   revalidatePath(`/staff/applications/${applicationId}`);
   revalidatePath('/staff');
@@ -481,6 +494,7 @@ export async function changeStatusAction(
     entityId: applicationId,
     detail: `Manual: ${app.status} -> ${status}${note ? ` (${note.slice(0, 200)})` : ''}`,
   });
+  await markReviewerAction(applicationId);
 
   await notifyStatusChange(applicationId, status);
   revalidatePath(`/staff/applications/${applicationId}`);
@@ -506,6 +520,7 @@ export async function addStaffNoteAction(
   if (!app) return { error: 'Application not found.' };
 
   await prisma.note.create({ data: { applicationId, authorId: session.userId, body, internal } });
+  await markReviewerAction(applicationId);
   await audit({ actorId: session.userId, action: 'DECISION', entityType: 'Application', entityId: applicationId, detail: internal ? 'Internal note' : 'Note to dealer' });
   if (!internal) await notifyNewNote(applicationId, 'REVIEWER');
   revalidatePath(`/staff/applications/${applicationId}`);
@@ -611,6 +626,7 @@ export async function saveConfirmationAction(
     entityId: d.applicationId,
     detail: `Confirmation ${d.intent}`,
   });
+  await markReviewerAction(d.applicationId);
 
   revalidatePath(`/staff/applications/${d.applicationId}`);
   revalidatePath('/staff');

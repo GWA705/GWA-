@@ -30,6 +30,24 @@ import type { ApplicationStatus } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
 
+// Friendly wording for each audit action shown in the deal activity log.
+const ACTION_LABELS: Record<string, string> = {
+  APPLICATION_CREATE: 'Created the deal',
+  APPLICATION_SUBMIT: 'Submitted the application',
+  APPLICATION_UPDATE: 'Edited the deal',
+  PII_DECRYPT: 'Revealed protected identity',
+  DECISION: 'Recorded a decision',
+  STATUS_CHANGE: 'Changed status',
+  DOC_UPLOAD: 'Uploaded a document',
+  DOC_DOWNLOAD: 'Downloaded a document',
+  FUNDING_SUBMIT: 'Submitted the funding package',
+  FUNDING_DECISION: 'Funding decision',
+};
+
+function actionLabel(action: string): string {
+  return ACTION_LABELS[action] ?? action.replace(/_/g, ' ').toLowerCase();
+}
+
 function decisionOptions(status: ApplicationStatus): { value: string; label: string }[] {
   if (['SUBMITTED', 'UNDER_REVIEW', 'CONDITIONAL'].includes(status)) {
     return [
@@ -106,6 +124,21 @@ export default async function StaffApplicationDetail({
   const reviewerDocs = app.documents.filter((d) => d.stage === 'REVIEWER');
   const options = decisionOptions(app.status);
   const startReview = startReviewAction.bind(null, app.id);
+
+  // Full activity log for this deal — every recorded action, and who did it, so
+  // with several reviewers on staff you can always see who handled what.
+  const docIds = app.documents.map((d) => d.id);
+  const activity = await prisma.auditLog.findMany({
+    where: {
+      OR: [
+        { entityType: 'Application', entityId: app.id },
+        { entityType: 'Document', entityId: { in: docIds } },
+      ],
+    },
+    orderBy: { createdAt: 'desc' },
+    include: { actor: true },
+    take: 200,
+  });
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -329,6 +362,30 @@ export default async function StaffApplicationDetail({
               </li>
             ))}
           </ul>
+        </section>
+
+        {/* Full activity log — who did what, across all reviewers */}
+        <section className="card p-6">
+          <h2 className="mb-1 text-base font-semibold text-gray-900">Activity log</h2>
+          <p className="mb-3 text-xs text-gray-500">
+            Everything that happened on this deal, and which team member did it.
+          </p>
+          {activity.length === 0 ? (
+            <p className="text-sm text-gray-500">No activity recorded yet.</p>
+          ) : (
+            <ul className="space-y-2 text-sm">
+              {activity.map((e) => (
+                <li key={e.id} className="flex items-start justify-between gap-3 border-b border-gray-50 pb-2 last:border-0">
+                  <span>
+                    <span className="font-medium text-gray-800">{e.actor?.name ?? 'System'}</span>
+                    <span className="text-gray-600"> — {actionLabel(e.action)}</span>
+                    {e.detail && <span className="ml-1 text-gray-400">({e.detail})</span>}
+                  </span>
+                  <span className="flex-none text-xs text-gray-400">{e.createdAt.toLocaleString('en-CA')}</span>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
       </div>
 
