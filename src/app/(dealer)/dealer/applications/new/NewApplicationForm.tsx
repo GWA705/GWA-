@@ -386,7 +386,7 @@ export function NewApplicationForm({ stores }: { stores: Store[] }) {
             <AddressAutocompleteInput id="applicantAddress" name="applicantAddress" className={fieldCls('applicantAddress')} cityId="city" provinceId="province" postalId="postalCode" />
             <Err state={state} name="applicantAddress" />
           </div>
-          {typed && <div><label className="label" htmlFor="city">City</label><input id="city" name="city" className={fieldCls('')} /></div>}
+          <div><label className="label" htmlFor="city">City</label><input id="city" name="city" className={fieldCls('')} /></div>
           <div>
             <label className="label" htmlFor="province">Province</label>
             <select id="province" name="province" className={fieldCls('province')}>
@@ -395,7 +395,7 @@ export function NewApplicationForm({ stores }: { stores: Store[] }) {
             </select>
             <Err state={state} name="province" />
           </div>
-          {typed && <div><label className="label" htmlFor="postalCode">Postal code</label><input id="postalCode" name="postalCode" className={fieldCls('')} placeholder="L0L 2T0" maxLength={7} onInput={postalFmt} /></div>}
+          <div><label className="label" htmlFor="postalCode">Postal code</label><input id="postalCode" name="postalCode" className={fieldCls('')} placeholder="L0L 2T0" maxLength={7} onInput={postalFmt} /></div>
         </div>
 
         {typed && (

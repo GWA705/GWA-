@@ -230,5 +230,4 @@ collect, use, and disclose the personal information provided in this application
 (including financial and identity information) for the purpose of assessing and \
 administering this credit application, and to obtain a consumer credit report \
 where applicable. The applicant may withdraw consent and request access to their \
-personal information subject to legal and contractual restrictions. \
-[PLACEHOLDER CONSENT LANGUAGE — REQUIRES LEGAL REVIEW BEFORE PRODUCTION USE.]`;
+personal information subject to legal and contractual restrictions.`;
