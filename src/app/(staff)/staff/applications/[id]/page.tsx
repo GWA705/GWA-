@@ -122,11 +122,16 @@ export default async function StaffApplicationDetail({
             <p className="text-sm text-gray-500">
               {app.dealer.name} · submitted by {app.createdBy.name} · {app.createdAt.toLocaleString('en-CA')}
             </p>
-            {app.documents.length > 0 && (
-              <a href={`/api/applications/${app.id}/documents`} className="btn-secondary text-xs">
-                ↓ Download all documents (ZIP)
-              </a>
-            )}
+            <div className="flex flex-wrap gap-2">
+              <Link href={`/staff/applications/${app.id}/edit`} className="btn-secondary text-xs">
+                ✎ Edit deal
+              </Link>
+              {app.documents.length > 0 && (
+                <a href={`/api/applications/${app.id}/documents`} className="btn-secondary text-xs">
+                  ↓ Download all documents (ZIP)
+                </a>
+              )}
+            </div>
           </div>
         </div>
 

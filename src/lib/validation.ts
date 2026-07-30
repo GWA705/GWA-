@@ -142,6 +142,53 @@ export const applicationSchema = z.object({
 
 export type ApplicationInput = z.infer<typeof applicationSchema>;
 
+// Reviewer/admin edit of an existing deal — full applicant + deal details
+// (everything except the encrypted consent record). Core fields that are
+// non-null on the Application are required; the rest are optional.
+export const editDealSchema = z.object({
+  province: z.enum(PROVINCE_VALUES),
+  programType: z.enum(['HD', 'GWA']),
+  programCategory: z.enum(['WATER', 'AIR', 'SMELL_BUSTERS', 'HVAC']),
+  requestedAmount: z.coerce.number().positive('Amount must be greater than 0').max(1_000_000),
+  approvedAmount: optionalNumber,
+
+  applicantFirstName: z.string().min(1, 'First name is required').max(80),
+  applicantLastName: z.string().min(1, 'Last name is required').max(80),
+  applicantEmail: z.string().email('Enter a valid email').max(160),
+  applicantPhone: z.string().min(7, 'Enter a valid phone').max(30),
+  applicantDob: z.string().optional(),
+  applicantAddress: z.string().max(300).optional(),
+  govIdNumber: z.string().max(80).optional(),
+
+  dateOfSale: optionalDate,
+  installationDate: optionalDate,
+  financingNote: z.string().max(2000).optional(),
+  notes: z.string().max(4000).optional(),
+
+  // LoanApplication (extended) fields.
+  middleName: str(80),
+  homePhone: str(30),
+  maritalStatus: str(30),
+  housingStatus: z.preprocess(blankToUndef, z.enum(['OWN', 'RENT', 'OTHER']).optional()),
+  monthlyHousingCost: optionalNumber,
+  yearsAtAddress: optionalInt,
+  city: str(80),
+  addressProvince: str(40),
+  postalCode: str(10),
+  idType: str(60),
+  idProvince: str(40),
+  idExpiry: optionalDate,
+  businessName: str(160),
+  positionTitle: str(120),
+  employerAddress: str(200),
+  employerPhone: str(30),
+  grossMonthlyIncome: optionalNumber,
+  timeAtJobYears: optionalInt,
+  employmentStatus: z.preprocess(blankToUndef, z.enum(['EMPLOYED', 'SELF_EMPLOYED', 'OTHER']).optional()),
+});
+
+export type EditDealInput = z.infer<typeof editDealSchema>;
+
 export const decisionSchema = z.object({
   applicationId: z.string().min(1),
   type: z.enum(['APPROVE', 'DECLINE', 'CONDITIONAL', 'REQUEST_DOCS', 'FUND']),

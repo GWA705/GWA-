@@ -53,8 +53,12 @@ _Last updated: 2026-07-30_
    / Financing Paperwork) are collapsed into a single upload: pick the type, drop
    the file(s). The category still drives the filename prefix (HD 1 / COC / etc.).
 
-10. **ID province / ID type on older deals** — add an "Edit deal" option so
-    reviewers can fill these in on deals created before those fields existed.
+10. ✅ **DONE — Reviewer "Edit deal".** Reviewers/admins get an **Edit deal**
+    button on the deal page that opens a full edit form (deal details, applicant,
+    address & housing, identification, employment). Older deals can now have ID
+    province/type/number/expiry filled in; a deal with no extended record gets
+    one created. Sensitive fields are re-encrypted and the edit is audited
+    (opening the form is logged as an identity reveal).
 
 11. **Make ID province (and/or ID type) required** on the application form?
 

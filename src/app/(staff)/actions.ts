@@ -1,9 +1,11 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/session';
 import { audit } from '@/lib/audit';
+import { encryptOptional } from '@/lib/crypto';
 import { storeFiles } from '@/lib/upload';
 import { notifyStatusChange, notifyNewNote } from '@/lib/notify';
 import {
@@ -13,6 +15,7 @@ import {
   noteSchema,
   confirmationSchema,
   dealReferencesSchema,
+  editDealSchema,
 } from '@/lib/validation';
 import { FUNDING_DOCUMENT_TYPES, REVIEWER_PAPERWORK_PREFIX, REVIEWER_PAPERWORK_TYPES } from '@/lib/constants';
 import type { ApplicationStatus, DecisionType, DocumentType } from '@prisma/client';
@@ -228,6 +231,88 @@ export async function uploadReviewerPaperworkAction(
 
   revalidatePath(`/staff/applications/${applicationId}`);
   return {};
+}
+
+// Reviewer/admin edits an existing deal — full applicant + deal details. Older
+// deals created before certain fields existed (e.g. ID province/type) can be
+// filled in here. Sensitive fields are re-encrypted; the change is audited.
+export async function updateDealAction(
+  applicationId: string,
+  _prev: { error?: string; fieldErrors?: Record<string, string> },
+  formData: FormData,
+): Promise<{ error?: string; fieldErrors?: Record<string, string> }> {
+  const session = await requireRole('REVIEWER', 'ADMIN');
+  const app = await prisma.application.findUnique({ where: { id: applicationId } });
+  if (!app) return { error: 'Deal not found.' };
+
+  const parsed = editDealSchema.safeParse(Object.fromEntries(formData.entries()));
+  if (!parsed.success) {
+    const fieldErrors: Record<string, string> = {};
+    for (const issue of parsed.error.issues) fieldErrors[issue.path.join('.')] = issue.message;
+    return { error: 'Please correct the highlighted fields.', fieldErrors };
+  }
+  const d = parsed.data;
+
+  const loanData = {
+    middleName: d.middleName || null,
+    homePhone: d.homePhone || null,
+    maritalStatus: d.maritalStatus || null,
+    housingStatus: d.housingStatus ?? null,
+    monthlyHousingCost: d.monthlyHousingCost ?? null,
+    yearsAtAddress: d.yearsAtAddress ?? null,
+    city: d.city || null,
+    addressProvince: d.addressProvince || null,
+    postalCode: d.postalCode || null,
+    idType: d.idType || null,
+    idProvince: d.idProvince || null,
+    idExpiry: d.idExpiry ? new Date(d.idExpiry) : null,
+    businessName: d.businessName || null,
+    positionTitle: d.positionTitle || null,
+    employerAddress: d.employerAddress || null,
+    employerPhone: d.employerPhone || null,
+    grossMonthlyIncome: d.grossMonthlyIncome ?? null,
+    timeAtJobYears: d.timeAtJobYears ?? null,
+    employmentStatus: d.employmentStatus ?? null,
+  };
+
+  await prisma.application.update({
+    where: { id: applicationId },
+    data: {
+      province: d.province,
+      programType: d.programType,
+      programCategory: d.programCategory,
+      requestedAmount: d.requestedAmount,
+      approvedAmount: d.approvedAmount ?? null,
+      applicantFirstName: d.applicantFirstName,
+      applicantLastName: d.applicantLastName,
+      applicantEmail: d.applicantEmail,
+      applicantPhone: d.applicantPhone,
+      applicantDobEnc: encryptOptional(d.applicantDob),
+      applicantAddressEnc: encryptOptional(d.applicantAddress),
+      govIdNumberEnc: encryptOptional(d.govIdNumber),
+      dateOfSale: d.dateOfSale ? new Date(d.dateOfSale) : null,
+      installationDate: d.installationDate ? new Date(d.installationDate) : null,
+      financingNote: d.financingNote || null,
+      notes: d.notes || null,
+      incomeAnnual: d.grossMonthlyIncome ? Math.round(d.grossMonthlyIncome * 12) : app.incomeAnnual,
+      employer: d.businessName || app.employer,
+      // Create the extended record if the deal never had one (e.g. a photo/
+      // FinanceIT entry), so ID and employment details can be filled in.
+      loanApplication: {
+        upsert: { create: loanData, update: loanData },
+      },
+    },
+  });
+
+  await audit({
+    actorId: session.userId,
+    action: 'APPLICATION_UPDATE',
+    entityType: 'Application',
+    entityId: applicationId,
+    detail: 'Deal edited by reviewer',
+  });
+  revalidatePath(`/staff/applications/${applicationId}`);
+  redirect(`/staff/applications/${applicationId}`);
 }
 
 // Reviewer/admin records a payout to the dealer (builds the payout receipt).
