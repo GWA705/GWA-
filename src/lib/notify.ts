@@ -17,6 +17,16 @@ function recipientEmail(u: Pick<User, 'email' | 'notificationEmail'>): string {
   return u.notificationEmail || u.email;
 }
 
+// A short, low-sensitivity label for a deal so notifications say which one they
+// mean: the customer's first name + last initial (e.g. "John D."). Full customer
+// names are deliberately kept out of email.
+function dealLabel(app: { applicantFirstName: string; applicantLastName: string }): string {
+  const first = (app.applicantFirstName || '').trim();
+  const lastInitial = (app.applicantLastName || '').trim().charAt(0);
+  const label = `${first}${lastInitial ? ` ${lastInitial}.` : ''}`.trim();
+  return label || 'a deal';
+}
+
 /** Dealer users of a deal have their status updated. */
 export async function notifyStatusChange(applicationId: string, toStatus: ApplicationStatus) {
   try {
@@ -26,13 +36,14 @@ export async function notifyStatusChange(applicationId: string, toStatus: Applic
       where: { dealerId: app.dealerId, role: 'DEALER_USER', active: true, notifyStatusUpdates: true },
     });
     const label = STATUS_LABELS[toStatus];
+    const deal = dealLabel(app);
     for (const u of users) {
       await sendEmail({
         to: recipientEmail(u),
-        subject: `Deal update: ${label}`,
+        subject: `Deal update (${deal}): ${label}`,
         html: renderEmail({
           heading: 'Deal status updated',
-          intro: `A deal has moved to “${label}”.`,
+          intro: `The deal for ${deal} has moved to “${label}”.`,
           ctaLabel: 'View deal',
           ctaUrl: `${appUrl()}/dealer/applications/${applicationId}`,
         }),
@@ -51,13 +62,14 @@ export async function notifyNewDocuments(applicationId: string) {
     const staff = await prisma.user.findMany({
       where: { role: { in: ['REVIEWER', 'ADMIN'] }, active: true, notifyNewDocuments: true },
     });
+    const deal = dealLabel(app);
     for (const u of staff) {
       await sendEmail({
         to: recipientEmail(u),
-        subject: 'New documents uploaded',
+        subject: `New documents uploaded (${deal})`,
         html: renderEmail({
           heading: 'New documents uploaded',
-          intro: `New document(s) were uploaded on a deal (${app.dealer.name}).`,
+          intro: `New document(s) were uploaded on the deal for ${deal} (${app.dealer.name}).`,
           ctaLabel: 'Review deal',
           ctaUrl: `${appUrl()}/staff/applications/${applicationId}`,
         }),
@@ -73,6 +85,7 @@ export async function notifyNewNote(applicationId: string, authorRole: Role) {
   try {
     const app = await prisma.application.findUnique({ where: { id: applicationId } });
     if (!app) return;
+    const deal = dealLabel(app);
     if (authorRole === 'DEALER_USER') {
       const staff = await prisma.user.findMany({
         where: { role: { in: ['REVIEWER', 'ADMIN'] }, active: true, notifyNewNotes: true },
@@ -80,10 +93,10 @@ export async function notifyNewNote(applicationId: string, authorRole: Role) {
       for (const u of staff) {
         await sendEmail({
           to: recipientEmail(u),
-          subject: 'New note from a dealer',
+          subject: `New note from a dealer (${deal})`,
           html: renderEmail({
             heading: 'New note from a dealer',
-            intro: 'A dealer added a note on a deal.',
+            intro: `A dealer added a note on the deal for ${deal}.`,
             ctaLabel: 'Open deal',
             ctaUrl: `${appUrl()}/staff/applications/${applicationId}`,
           }),
@@ -96,10 +109,10 @@ export async function notifyNewNote(applicationId: string, authorRole: Role) {
       for (const u of users) {
         await sendEmail({
           to: recipientEmail(u),
-          subject: 'New note from GWA',
+          subject: `New note from GWA (${deal})`,
           html: renderEmail({
             heading: 'New note from GWA',
-            intro: 'The GWA team added a note on your deal.',
+            intro: `The GWA team added a note on your deal for ${deal}.`,
             ctaLabel: 'Open deal',
             ctaUrl: `${appUrl()}/dealer/applications/${applicationId}`,
           }),
