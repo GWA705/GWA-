@@ -49,6 +49,8 @@ export function buildDocumentName(params: {
   when: Date;
   isPdf: boolean;
   originalName: string;
+  /** Optional category label placed at the front, e.g. "HD 1" or "COC". */
+  prefix?: string;
 }): string {
   const clean = (s: string) => s.replace(/[^a-zA-Z0-9]+/g, '').slice(0, 40) || 'x';
   const d = (dt: Date) => dt.toISOString().slice(0, 10); // YYYY-MM-DD
@@ -57,7 +59,10 @@ export function buildDocumentName(params: {
     .slice(0, 19)
     .replace(/[-:T]/g, (c) => (c === 'T' ? '-' : ''));
   const purchase = params.purchaseDate ? d(params.purchaseDate) : 'nodate';
-  const base = `${clean(params.lastName)}_${clean(params.firstName)}_${purchase}_${stamp}`;
+  // Keep the prefix readable (letters/numbers/spaces) and space-separated from
+  // the customer/date base, e.g. "HD 1 Smith_Sean_2026-07-30_….pdf".
+  const pre = params.prefix ? `${params.prefix.replace(/[^a-zA-Z0-9 ]+/g, '').trim().slice(0, 20)} ` : '';
+  const base = `${pre}${clean(params.lastName)}_${clean(params.firstName)}_${purchase}_${stamp}`;
   if (params.isPdf) return `${base}.pdf`;
   const ext = params.originalName.includes('.')
     ? params.originalName.slice(params.originalName.lastIndexOf('.'))

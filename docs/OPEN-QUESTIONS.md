@@ -99,14 +99,14 @@ _Last updated: 2026-07-30_
 29. ✅ **DONE — "FinanceIT" spelling** used in all user-facing text (code
     identifiers `financeItNumber` / `FINANCEIT` left unchanged).
 
-30. **Prefix reviewer→dealer paperwork filenames by category.** Keep the current
-    name + date, but add a category prefix at the front of "Paperwork from GWA"
-    uploads so dealers can tell them apart:
+30. ✅ **DONE — Reviewer→dealer paperwork filenames prefixed by category.**
+    Reviewer-stage uploads now carry a category prefix in front of the existing
+    customer + date name (`REVIEWER_PAPERWORK_PREFIX`):
     - HD Agreements → **"HD 1"**
     - Home Depot Waiver → **"HD Waiver"**
     - Financing paperwork → **"Finance contract"**
     - Release of funds / completion certificate → **"COC"**
-    e.g. `HD 1 Tetser_Sean_2026-07-30_….pdf`. (Applies to reviewer-stage uploads.)
+    e.g. `HD 1 Tetser_Sean_2026-07-30_….pdf`.
 
 31. **Refine the "Paperwork from GWA" section (dealer side).**
     a) ✅ **DONE — Renamed to "Paperwork for your Customer."**

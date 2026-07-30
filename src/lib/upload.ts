@@ -34,8 +34,10 @@ export async function storeUploadedFile(params: {
   type: DocumentType;
   stage: DocumentStage;
   uploadedById: string;
+  /** Optional category prefix for the stored file name (e.g. "HD 1"). */
+  namePrefix?: string;
 }): Promise<UploadResult> {
-  const { file, application, type, stage, uploadedById } = params;
+  const { file, application, type, stage, uploadedById, namePrefix } = params;
 
   if (!file || typeof file === 'string' || file.size === 0) {
     return { ok: false, error: 'No file provided.' };
@@ -59,6 +61,7 @@ export async function storeUploadedFile(params: {
     when,
     isPdf,
     originalName: file.name,
+    prefix: namePrefix,
   });
   const ext = isPdf ? '.pdf' : displayName.slice(displayName.lastIndexOf('.'));
   const key = newStorageKey({ dealerId: application.dealerId, applicationId: application.id, ext, when });
@@ -97,6 +100,7 @@ export async function storeFiles(params: {
   type: DocumentType;
   stage: DocumentStage;
   uploadedById: string;
+  namePrefix?: string;
 }): Promise<{ error?: string }> {
   const real = params.files.filter((f) => f && typeof f !== 'string' && f.size > 0);
   if (real.length === 0) return { error: 'No file provided.' };
@@ -109,6 +113,7 @@ export async function storeFiles(params: {
       type: params.type,
       stage: params.stage,
       uploadedById: params.uploadedById,
+      namePrefix: params.namePrefix,
     });
     if (!result.ok) {
       return { error: stored > 0 ? `${result.error} (${stored} uploaded before this)` : result.error };

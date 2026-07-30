@@ -14,7 +14,7 @@ import {
   confirmationSchema,
   dealReferencesSchema,
 } from '@/lib/validation';
-import { FUNDING_DOCUMENT_TYPES } from '@/lib/constants';
+import { FUNDING_DOCUMENT_TYPES, REVIEWER_PAPERWORK_PREFIX } from '@/lib/constants';
 import type { ApplicationStatus, DecisionType, DocumentType } from '@prisma/client';
 
 export interface ActionState {
@@ -217,6 +217,7 @@ export async function uploadReviewerPaperworkAction(
     type: docType,
     stage: 'REVIEWER',
     uploadedById: session.userId,
+    namePrefix: REVIEWER_PAPERWORK_PREFIX[docType],
   });
   if (result.error) return result;
 

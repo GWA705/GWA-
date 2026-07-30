@@ -147,6 +147,15 @@ export const REVIEWER_PAPERWORK_TYPES: { type: DocumentType; label: string }[] =
   { type: 'FINANCING_PAPERWORK', label: 'Financing paperwork' },
 ];
 
+// Short filename prefix added to reviewer→dealer paperwork so dealers can tell
+// the categories apart at a glance, e.g. "HD 1 Smith_Sean_2026-07-30_….pdf".
+export const REVIEWER_PAPERWORK_PREFIX: Partial<Record<DocumentType, string>> = {
+  HD_PAPERWORK: 'HD 1',
+  HD_WAIVER: 'HD Waiver',
+  FINANCING_PAPERWORK: 'Finance contract',
+  RELEASE_OF_FUNDS: 'COC',
+};
+
 // Upload constraints.
 export const MAX_FILE_BYTES = 15 * 1024 * 1024; // 15 MB
 export const ALLOWED_MIME_TYPES = [
