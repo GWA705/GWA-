@@ -23,7 +23,7 @@ export function UserForm({ dealers }: { dealers: { id: string; name: string }[] 
         <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{state.error}</div>
       )}
       {state.ok && (
-        <div className="rounded-md bg-green-50 p-3 text-sm text-green-700">User created.</div>
+        <div className="rounded-md bg-green-50 p-3 text-sm text-green-700">{state.message ?? 'User created.'}</div>
       )}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
@@ -58,7 +58,19 @@ export function UserForm({ dealers }: { dealers: { id: string; name: string }[] 
             Must be at least <strong>12 characters</strong> and include an uppercase letter, a
             lowercase letter, a number, and a symbol.
           </p>
-          <p className="mt-1 text-xs text-gray-400">Share securely with the user; they should change it after first login.</p>
+          <p className="mt-1 text-xs text-gray-400">The user must change this at first login.</p>
+        </div>
+        <div className="sm:col-span-2">
+          <label className="flex items-start gap-2 text-sm text-gray-700">
+            <input type="checkbox" name="sendInvite" defaultChecked className="mt-0.5 rounded border-gray-300" />
+            <span>
+              Email the login details to the user
+              <span className="block text-xs text-gray-400">
+                Sends the portal address, their username, and the temporary password. If email isn&apos;t
+                configured yet, the user is still created — just share the password securely.
+              </span>
+            </span>
+          </label>
         </div>
       </div>
       <SubmitButton />

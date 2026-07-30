@@ -12,6 +12,7 @@ import { ALLOWED_MIME_TYPES, MAX_FILE_BYTES } from '@/lib/constants';
 import { createUserSchema, createDealerSchema, createFinanceCompanySchema, announcementSchema, contentSchema } from '@/lib/validation';
 import { CONTENT_SECTIONS } from '@/lib/constants';
 import { sendEmail, emailEnabled } from '@/lib/email';
+import { renderEmail } from '@/lib/email-templates';
 import { setSetting, EMAIL_SETTING_KEYS } from '@/lib/settings';
 
 export interface ActionState {
@@ -144,12 +145,50 @@ export async function createUserAction(
       role: d.role,
       dealerId: d.role === 'DEALER_USER' ? d.dealerId! : null,
       passwordHash: await hashPassword(d.password),
-      passwordChangedAt: new Date(),
+      // null forces a password change at first login (the temp password is
+      // treated as already expired) — see isPasswordExpired().
+      passwordChangedAt: null,
     },
   });
   await audit({ actorId: session.userId, action: 'USER_CREATE', entityType: 'User', entityId: user.id, detail: `${email} (${d.role})` });
   revalidatePath('/admin/users');
-  return { ok: true };
+
+  // Optionally email the new user their login details.
+  const sendInvite = formData.get('sendInvite') === 'on';
+  if (!sendInvite) {
+    return { ok: true, message: 'User created. They must change the temporary password at first login. (No email sent.)' };
+  }
+  if (!emailEnabled()) {
+    return { ok: true, message: 'User created, but email is off (log-only) — no invite was sent. Share the temporary password securely.' };
+  }
+
+  const portalUrl = process.env.APP_URL || 'https://portal.ghsbarrie.ca';
+  const invite = await sendEmail({
+    to: email,
+    subject: 'Your GWA Dealer Portal account',
+    html: renderEmail({
+      heading: 'Your account is ready',
+      intro: `Hi ${d.name}, an account has been created for you on the GWA Dealer Portal. Use the details below to sign in — you'll be asked to set your own password the first time.`,
+      bodyHtml: `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:4px 0 8px;font-size:14px;color:#111827;">
+        <tr><td style="padding:3px 12px 3px 0;color:#6b7280;">Web address</td><td style="padding:3px 0;"><a href="${portalUrl}" style="color:#1d4ed8;">${portalUrl}</a></td></tr>
+        <tr><td style="padding:3px 12px 3px 0;color:#6b7280;">Username</td><td style="padding:3px 0;font-weight:600;">${email}</td></tr>
+        <tr><td style="padding:3px 12px 3px 0;color:#6b7280;">Temporary password</td><td style="padding:3px 0;font-family:monospace;font-weight:600;">${escapeHtmlLite(d.password)}</td></tr>
+      </table>`,
+      ctaLabel: 'Sign in to the portal',
+      ctaUrl: portalUrl,
+      footerNote: 'For your security, you will be required to choose a new password when you first sign in. If you did not expect this account, please ignore this email.',
+    }),
+  });
+
+  if (invite.sent) {
+    return { ok: true, message: `User created and login details emailed to ${email}.` };
+  }
+  return { ok: true, message: `User created, but the invite email could not be sent (${invite.reason || 'error'}). Share the temporary password securely.` };
+}
+
+// Minimal HTML-escape for values interpolated into email bodyHtml.
+function escapeHtmlLite(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 export async function toggleUserActiveAction(userId: string): Promise<void> {

@@ -126,6 +126,14 @@ _Last updated: 2026-07-30_
        size, date, and separate **View** / **Download** actions. Download uses a
        new `?download=1` mode on the document route (forces "Save as").
 
+42. ✅ **DONE — Email new users their login details + force first-login change.**
+    Creating a user now has an **"Email the login details to the user"** toggle
+    (default on). When on (and email configured), the new user gets an email with
+    the portal address (portal.ghsbarrie.ca), their username, and the temporary
+    password. Every new user must change that password at first login (the temp
+    password is treated as expired). If email is off, the user is still created
+    with a clear "share the password securely" message.
+
 32. ✅ **DONE — Removed "Finance reference #" and "HD Customer #" inputs from the
     dealer application form.** These are set by the reviewer after approval (via
     the deal-references form on the staff side), so there's no reason for the
