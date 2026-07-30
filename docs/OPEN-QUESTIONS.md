@@ -19,15 +19,10 @@ _Last updated: 2026-07-30_
    `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` in Render, live. Street address now
    autocompletes and fills city/province/postal.
 
-3. 🟡 **Email sending (SMTP) — code ready, needs your App Password.** The email
-   layer is built and proven; it sends the moment SMTP is configured. New admin
-   **Email** page: live status (Log-only / Sending), a **Send test email**
-   button, an editable **From name / From (group) address / Reply-To (group)**
-   (stored in the DB, no redeploy), and an inline setup guide. Emails come
-   **from** your group address with **Reply-To** set to the group so replies
-   reach the whole team. Step-by-step: `docs/EMAIL-SMTP.md`.
-   **Your part:** create a Google Workspace App Password and set `SMTP_HOST`,
-   `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` in Render (see the guide).
+3. ✅ **DONE — Email sending (SMTP) is live.** Google Workspace App Password set
+   in Render; test email delivered. Emails send from the group address with
+   Reply-To to the group. Admin **Email** page shows "Sending" and the From /
+   Reply-To are editable in the DB (no redeploy). Reference: `docs/EMAIL-SMTP.md`.
 
 4. **Home Depot store list per dealer** — which HD store numbers each dealer
    is allowed to pick from (the store dropdown on an application).
@@ -41,8 +36,9 @@ _Last updated: 2026-07-30_
 7. **Legal-reviewed consent wording** — the consent text on the application is
    a placeholder; needs a Canadian privacy lawyer (PIPEDA + Quebec Law 25).
 
-8. **SMS/text notifications** — email works today; texting needs a paid text
-   provider (e.g. Twilio). Do you want texts too, and via which provider?
+8. ⛔ **Parked (your call) — SMS/text notifications.** You said leave text/SMS
+   out for now. Email covers notifications today. Reopen if you want texts (needs
+   a paid provider like Twilio).
 
 ---
 
@@ -62,8 +58,10 @@ _Last updated: 2026-07-30_
 
 11. **Make ID province (and/or ID type) required** on the application form?
 
-12. **Archive/Delete for Users and Finance companies** — same treatment we
-    added to Dealers (archive = reversible, delete only when unused)?
+12. ✅ **DONE — Archive/Delete for Users and Finance companies.** Same treatment
+    as Dealers: archive is reversible; delete is only offered when the record has
+    no activity/deals. (Finance-company placeholders no longer re-seed on deploy,
+    so admin deletions now stick.)
 
 13. **Password minimum length** — currently 12 characters. Keep it, or lower it?
 
@@ -196,6 +194,25 @@ _Last updated: 2026-07-30_
     remain, a clearer disabled state, and a note explaining Save vs Confirm.
 
 19. ✅ **DONE — Serial number field clears after Add.**
+
+### Recently built (this round)
+- ✅ **Reviewer queue overhaul (Chunk 1).** "Attention needed" vs "In progress"
+  split, deals move automatically as reviewers act, whole-row highlight + "!",
+  red escalation past 2 hours, activity chips (New deal / Funding ready / New
+  document / New note / Problem), hours-and-minutes waiting times, and a legend.
+- ✅ **Per-deal activity log.** The staff deal page lists every recorded action
+  and which team member did it (built for multiple reviewers).
+- ✅ **Dealer portal sign.** Announcements renamed to "Dealer portal sign";
+  banner shows the full image edge-to-edge.
+- ✅ **"Retired" added** to the Employment status dropdown (applicant + co-applicant).
+
+### Parked builds — ready when you say go
+- 🅿️ **Reviewer queue Chunk 2 — 2-hour SLA email alert.** Email the reviewers
+  when a deal has waited in "Attention needed" more than 2 hours between
+  8am–10pm. Needs a scheduled job. (Chunk 1 already lays the groundwork.)
+- 🅿️ **Products-at-funding.** A products list at the funding stage that softly
+  guides the dealer to add a serial number per product (guide, not a hard block).
+- 🅿️ **Super-admin account** — you said "another time, not right now."
 
 ---
 
