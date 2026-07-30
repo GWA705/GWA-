@@ -87,6 +87,10 @@ _Last updated: 2026-07-30_
     e.g. a compact/scrollable stepper on small screens, smaller dots+labels, or
     a "Step X of 7" summary. Should fit within the phone width.
 
+27. **Rename "New credit application" → "New customer processing."** Update it
+    everywhere it appears for consistency: the page heading, the top-nav link
+    ("New application"), and the "New application" button on the dealer home.
+
 17. ✅ **DONE — Progress bar reacts to status changes.** The tracker now keys off
     the live status: moving a deal backward (e.g. Approved → Under review)
     un-lights later steps, and Problem / Declined / Withdrawn show an off-path
