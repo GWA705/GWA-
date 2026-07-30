@@ -1,16 +1,17 @@
 import type { ApplicationStatus, ConfirmationStatus } from '@prisma/client';
 
 /**
- * Deal progress tracker. Each stage's "done" flag is derived from the actual
- * data for that part of the deal — not just the single status field — so a dot
- * turns green when that step has really happened (docs actually uploaded,
- * confirmation actually completed, a payout actually recorded), and stays green
- * once the deal moves past it.
+ * Deal progress tracker. The linear steps (Approved → In for funding → Funded)
+ * reflect the deal's CURRENT status, so moving a deal backward (e.g. Approved →
+ * Under review) un-lights the later steps instead of leaving them green. The
+ * fact-based steps (docs uploaded, confirmation completed, paid) reflect whether
+ * that thing has actually happened, regardless of status. Off-path states
+ * (Problem / Declined / Withdrawn) are surfaced separately via offPathFlag().
  */
 
 export interface ProgressSignals {
   status: ApplicationStatus;
-  approvedById?: string | null;
+  approvedById?: string | null; // accepted for compatibility; not used
   confirmationStatus: ConfirmationStatus;
   hasFundingDocs: boolean;
   hasPayouts: boolean;
@@ -22,24 +23,46 @@ export interface ProgressStage {
   done: boolean;
 }
 
-const APPROVED_OR_BEYOND: ApplicationStatus[] = [
-  'APPROVED',
-  'CONDITIONAL',
-  'FUNDING_SUBMITTED',
-  'FUNDING_REVIEW',
-  'FUNDED',
-];
-const FUNDING_OR_BEYOND: ApplicationStatus[] = ['FUNDING_SUBMITTED', 'FUNDING_REVIEW', 'FUNDED'];
+// How far along the happy path each status sits. Stage positions:
+// 1 Submitted · 2 Approved · 3 Docs uploaded · 5 In for funding · 6 Funded.
+const STATUS_RANK: Record<ApplicationStatus, number> = {
+  DRAFT: 0,
+  SUBMITTED: 1,
+  UNDER_REVIEW: 1,
+  CONDITIONAL: 2,
+  APPROVED: 2,
+  FUNDING_SUBMITTED: 3,
+  FUNDING_REVIEW: 5,
+  FUNDED: 6,
+  // Off-path / terminal — no forward progress implied (see offPathFlag).
+  DECLINED: 0,
+  WITHDRAWN: 0,
+  PROBLEM: 0,
+};
 
 export function dealProgress(s: ProgressSignals): ProgressStage[] {
-  const approved = !!s.approvedById || APPROVED_OR_BEYOND.includes(s.status);
+  const rank = STATUS_RANK[s.status] ?? 0;
   return [
     { key: 'submitted', label: 'Submitted', done: s.status !== 'DRAFT' },
-    { key: 'approved', label: 'Approved', done: approved },
-    { key: 'docs', label: 'Docs uploaded', done: s.hasFundingDocs || FUNDING_OR_BEYOND.includes(s.status) },
+    { key: 'approved', label: 'Approved', done: rank >= 2 },
+    { key: 'docs', label: 'Docs uploaded', done: s.hasFundingDocs || rank >= 3 },
     { key: 'confirmation', label: 'Confirmation', done: s.confirmationStatus === 'COMPLETED' },
-    { key: 'funding', label: 'In for funding', done: ['FUNDING_REVIEW', 'FUNDED'].includes(s.status) },
-    { key: 'funded', label: 'Funded', done: s.status === 'FUNDED' },
+    { key: 'funding', label: 'In for funding', done: rank >= 5 },
+    { key: 'funded', label: 'Funded', done: rank >= 6 },
     { key: 'paid', label: 'Paid', done: s.hasPayouts },
   ];
+}
+
+/** A deal that's off the normal track — shown as a coloured flag on the tracker. */
+export function offPathFlag(status: ApplicationStatus): { label: string; cls: string } | null {
+  switch (status) {
+    case 'PROBLEM':
+      return { label: 'Problem', cls: 'bg-orange-100 text-orange-800' };
+    case 'DECLINED':
+      return { label: 'Declined', cls: 'bg-red-100 text-red-800' };
+    case 'WITHDRAWN':
+      return { label: 'Withdrawn', cls: 'bg-gray-200 text-gray-700' };
+    default:
+      return null;
+  }
 }

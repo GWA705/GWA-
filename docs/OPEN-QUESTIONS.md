@@ -68,20 +68,17 @@ _Last updated: 2026-07-29_
     the final rule (you noted it may change). *(Resolved: now accepts any format
     up to 60 chars — reopen if you want a strict rule.)*
 
-17. **Progress bar should react to status changes after Approved** — right now
-    the deal tracker (Submitted → Approved → … → Paid) only ever fills forward.
-    If a reviewer moves a deal *backward* (e.g. Approved → Under review) or to a
-    side state (Problem / Declined / Withdrawn), the bar should adjust to reflect
-    the current status instead of leaving earlier steps lit. Rework the progress
-    logic to key off the live status, including regressions and off-path states.
+17. ✅ **DONE — Progress bar reacts to status changes.** The tracker now keys off
+    the live status: moving a deal backward (e.g. Approved → Under review)
+    un-lights later steps, and Problem / Declined / Withdrawn show an off-path
+    flag. Fact-based steps (docs, confirmation, paid) stay based on what happened.
 
-18. **Confirmation call form buttons don't work** 🐞 — on the reviewer's
-    confirmation script, **Save** and **Confirm complete** currently don't save
-    or change the confirmation status. Investigate and fix (Mark issue too).
+18. ✅ **DONE — Confirmation buttons clarified.** They already worked; the cause
+    was "Confirm complete" being disabled until all six boxes are checked, and
+    "Save" not changing the status badge (by design). Now shows how many boxes
+    remain, a clearer disabled state, and a note explaining Save vs Confirm.
 
-19. **Serial number field doesn't clear after Add** 🐞 — on the funding package,
-    after adding a serial number the input keeps the old value instead of
-    resetting for the next entry. Clear the field (and Product) after Add.
+19. ✅ **DONE — Serial number field clears after Add.**
 
 ---
 

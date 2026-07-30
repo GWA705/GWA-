@@ -1,5 +1,6 @@
 'use client';
 
+import { useRef } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import type { ActionState } from '@/app/(dealer)/actions';
 
@@ -16,8 +17,16 @@ function SubmitButton() {
 
 export function SerialNumberForm({ action }: { action: BoundAction }) {
   const [state, formAction] = useFormState(action, {} as ActionState);
+  const ref = useRef<HTMLFormElement>(null);
   return (
-    <form action={formAction} className="flex flex-wrap items-end gap-2">
+    <form
+      ref={ref}
+      action={async (fd) => {
+        await formAction(fd);
+        ref.current?.reset();
+      }}
+      className="flex flex-wrap items-end gap-2"
+    >
       <div>
         <label className="label text-xs">Serial number</label>
         <input name="value" required className="input py-1 text-sm" />

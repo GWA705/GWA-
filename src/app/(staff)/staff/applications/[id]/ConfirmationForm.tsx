@@ -24,20 +24,37 @@ interface CheckState {
   notTrialOffer: boolean;
 }
 
-function Buttons({ allChecked }: { allChecked: boolean }) {
+function Buttons({ remaining }: { remaining: number }) {
   const { pending } = useFormStatus();
+  const allChecked = remaining === 0;
   return (
-    <div className="flex flex-wrap items-center gap-3">
-      <button type="submit" name="intent" value="save" className="btn-secondary text-sm" disabled={pending}>
-        Save
-      </button>
-      <button type="submit" name="intent" value="complete" className="btn-primary text-sm" disabled={pending || !allChecked}>
-        Confirm complete
-      </button>
-      <button type="submit" name="intent" value="issue" className="btn-danger text-sm" disabled={pending}>
-        Mark issue
-      </button>
-      {!allChecked && <span className="text-xs text-amber-700">Check all six boxes to complete.</span>}
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center gap-3">
+        <button type="submit" name="intent" value="save" className="btn-secondary text-sm" disabled={pending}>
+          Save draft
+        </button>
+        <button
+          type="submit"
+          name="intent"
+          value="complete"
+          className="btn-primary text-sm disabled:cursor-not-allowed disabled:opacity-50"
+          disabled={pending || !allChecked}
+        >
+          Confirm complete
+        </button>
+        <button type="submit" name="intent" value="issue" className="btn-danger text-sm" disabled={pending}>
+          Mark issue
+        </button>
+      </div>
+      {!allChecked && (
+        <p className="text-xs font-medium text-amber-700">
+          “Confirm complete” unlocks once all six boxes are checked — {remaining} left.
+        </p>
+      )}
+      <p className="text-xs text-gray-400">
+        <strong>Save draft</strong> keeps your progress (status stays “Pending confirmation”).
+        <strong> Confirm complete</strong> marks it done and turns the badge green.
+      </p>
     </div>
   );
 }
@@ -66,7 +83,7 @@ export function ConfirmationForm({
     signatureConfirmed: data?.signatureConfirmed ?? false,
     notTrialOffer: data?.notTrialOffer ?? false,
   });
-  const allChecked = Object.values(checked).every(Boolean);
+  const remaining = Object.values(checked).filter((v) => !v).length;
   const val = (v: string | number | null | undefined) => (v === null || v === undefined ? '' : String(v));
 
   return (
@@ -145,7 +162,7 @@ export function ConfirmationForm({
       </div>
       <div><label className="label">Issue note (if marking an issue)</label><input name="issueNote" defaultValue={val(data?.issueNote)} className="input" /></div>
 
-      <Buttons allChecked={allChecked} />
+      <Buttons remaining={remaining} />
     </form>
   );
 }

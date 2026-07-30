@@ -1,11 +1,18 @@
-import { dealProgress, type ProgressSignals } from '@/lib/progress';
+import { dealProgress, offPathFlag, type ProgressSignals } from '@/lib/progress';
 
 // Horizontal progress tracker of green dots that fill in as a deal advances.
 // Each stage is computed from the deal's real data (see lib/progress.ts).
 export function DealProgress(props: ProgressSignals) {
   const stages = dealProgress(props);
+  const flag = offPathFlag(props.status);
   return (
     <section className="card p-5">
+      {flag && (
+        <div className="mb-3 flex items-center gap-2 text-sm">
+          <span className={`badge ${flag.cls}`}>{flag.label}</span>
+          <span className="text-gray-500">This deal is currently off the normal track.</span>
+        </div>
+      )}
       <div className="flex items-start overflow-x-auto">
         {stages.map((st, i) => {
           const prevDone = i > 0 && stages[i - 1].done;
