@@ -134,6 +134,11 @@ _Last updated: 2026-07-30_
     page (decrypted for the dealer who entered it; reveal-gated + audited for
     staff). Required a purely-additive DB migration.
 
+39. ✅ **DONE — Shade the funding-document cards by state.** On the dealer deal
+    page, each funding-document card is now tinted by its state — red (Missing),
+    amber (Uploaded — pending), green (Confirmed) — while the upload dropzone
+    inside each card stays white.
+
 38. ✅ **DONE — Paperwork View/Download buttons pop.** The dealer "Paperwork for
     your Customer" cards now use a solid green Download button and a green
     outline View button so they stand out.

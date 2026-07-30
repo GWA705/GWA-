@@ -73,7 +73,7 @@ export function UploadForm({
         }}
         onDragLeave={() => setDragging(false)}
         onDrop={onDrop}
-        className={`cursor-pointer rounded-md border-2 border-dashed px-4 py-3 text-center text-sm transition ${
+        className={`cursor-pointer rounded-md border-2 border-dashed bg-white px-4 py-3 text-center text-sm transition ${
           dragging ? 'border-brand-500 bg-brand-50' : 'border-gray-300 hover:border-gray-400 hover:bg-gray-50'
         }`}
       >

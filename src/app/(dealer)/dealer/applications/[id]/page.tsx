@@ -247,8 +247,14 @@ export default async function DealerApplicationDetail({
                   : state === 'pending' ? 'bg-amber-100 text-amber-700'
                     : 'bg-red-100 text-red-600';
               const dotIcon = state === 'confirmed' ? '✓' : state === 'pending' ? '!' : '✕';
+              // Shade the whole card by state (red missing / amber pending /
+              // green confirmed). The upload dropzone inside stays white.
+              const cardCls =
+                state === 'confirmed' ? 'border-green-300 bg-green-50'
+                  : state === 'pending' ? 'border-amber-300 bg-amber-50'
+                    : 'border-red-300 bg-red-50';
               return (
-                <div key={t.type} className="rounded border border-gray-100 p-3">
+                <div key={t.type} className={`rounded border p-3 ${cardCls}`}>
                   <div className="flex items-center justify-between">
                     <span className="flex items-center gap-2 text-sm font-medium text-gray-800">
                       <span className={`flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold ${dotCls}`} aria-hidden>
