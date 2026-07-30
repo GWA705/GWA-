@@ -109,6 +109,21 @@ _Last updated: 2026-07-30_
     in all user-facing text. Note: only the displayed text — leave code
     identifiers (`financeItNumber`, the `FINANCEIT` value) as-is.
 
+30. **Prefix reviewer→dealer paperwork filenames by category.** Keep the current
+    name + date, but add a category prefix at the front of "Paperwork from GWA"
+    uploads so dealers can tell them apart:
+    - HD Agreements → **"HD 1"**
+    - Home Depot Waiver → **"HD Waiver"**
+    - Financing paperwork → **"Finance contract"**
+    - Release of funds / completion certificate → **"COC"**
+    e.g. `HD 1 Tetser_Sean_2026-07-30_….pdf`. (Applies to reviewer-stage uploads.)
+
+31. **Refine the "Paperwork from GWA" section (dealer side).**
+    a) Rename it to **"Paperwork for your Customer."**
+    b) Add depth / make each file more defined — e.g. each document as its own
+       card with a file icon, its category label, size, and date, and a clear
+       View / Download action. Make it look more refined than a plain list.
+
 17. ✅ **DONE — Progress bar reacts to status changes.** The tracker now keys off
     the live status: moving a deal backward (e.g. Approved → Under review)
     un-lights later steps, and Problem / Declined / Withdrawn show an off-path
