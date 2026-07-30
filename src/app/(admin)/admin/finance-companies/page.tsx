@@ -1,7 +1,7 @@
 import { requireRole } from '@/lib/session';
 import { prisma } from '@/lib/db';
-import { toggleFinanceCompanyActiveAction } from '@/app/(admin)/actions';
 import { FinanceCompanyForm } from './FinanceCompanyForm';
+import { FinanceCompanyRowActions } from './FinanceCompanyRowActions';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,11 +42,12 @@ export default async function FinanceCompaniesPage() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <form action={toggleFinanceCompanyActiveAction.bind(null, c.id)}>
-                      <button type="submit" className="btn-secondary text-xs">
-                        {c.active ? 'Deactivate' : 'Activate'}
-                      </button>
-                    </form>
+                    <FinanceCompanyRowActions
+                      id={c.id}
+                      name={c.name}
+                      active={c.active}
+                      canDelete={c._count.applications === 0}
+                    />
                   </td>
                 </tr>
               ))

@@ -190,6 +190,9 @@ export function NewApplicationForm({ stores }: { stores: Store[] }) {
 
       {/* Entry method */}
       <section className="card p-6">
+        <span className="mb-2 inline-flex w-fit items-center gap-1 rounded-full bg-brand-100 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wide text-brand-800">
+          Start here
+        </span>
         <h2 className="mb-1 text-base font-semibold text-gray-900">Three choices to process a new customer application</h2>
         <p className="mb-4 text-xs text-gray-500">Pick the option that fits — faster options are at the top.</p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -263,10 +266,6 @@ export function NewApplicationForm({ stores }: { stores: Store[] }) {
           </div>
         </div>
 
-        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div><label className="label" htmlFor="financeReference">Finance reference #</label><input id="financeReference" name="financeReference" className="input" autoComplete="off" placeholder="If applicable" /></div>
-          <div><label className="label" htmlFor="hdReference">HD Customer #</label><input id="hdReference" name="hdReference" className="input" autoComplete="off" placeholder="If applicable" /></div>
-        </div>
       </section>
 
       {/* Deal details */}

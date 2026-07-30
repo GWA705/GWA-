@@ -115,6 +115,16 @@ _Last updated: 2026-07-30_
        size, date, and separate **View** / **Download** actions. Download uses a
        new `?download=1` mode on the document route (forces "Save as").
 
+32. ✅ **DONE — Removed "Finance reference #" and "HD Customer #" inputs from the
+    dealer application form.** These are set by the reviewer after approval (via
+    the deal-references form on the staff side), so there's no reason for the
+    dealer to fill them in when creating an application. The fields remain in the
+    data model (reviewer-set, searchable, shown on the deal) — only the dealer
+    inputs were removed.
+
+33. ✅ **DONE — Added a "Start here" badge** above the "Three choices to process a
+    new customer application" heading on the dealer application form.
+
 17. ✅ **DONE — Progress bar reacts to status changes.** The tracker now keys off
     the live status: moving a deal backward (e.g. Approved → Under review)
     un-lights later steps, and Problem / Declined / Withdrawn show an off-path

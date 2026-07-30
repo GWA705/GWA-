@@ -79,7 +79,47 @@ export async function toggleUserActiveAction(userId: string): Promise<void> {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user || user.id === session.userId) return; // cannot disable self
   await prisma.user.update({ where: { id: userId }, data: { active: !user.active } });
-  await audit({ actorId: session.userId, action: 'USER_UPDATE', entityType: 'User', entityId: userId, detail: `active=${!user.active}` });
+  await audit({ actorId: session.userId, action: 'USER_UPDATE', entityType: 'User', entityId: userId, detail: `active=${!user.active} (${user.active ? 'archived' : 'unarchived'})` });
+  revalidatePath('/admin/users');
+}
+
+/**
+ * Permanently delete a user. Only allowed when the account has no history at all
+ * — it has never created/approved a deal, uploaded/verified a document, made a
+ * decision or status change, recorded a payout, written a note, run a
+ * confirmation, or generated any audit-log entry. Anyone with history must be
+ * archived (deactivated) instead so records and the audit trail stay intact.
+ * Admins cannot delete their own account.
+ */
+export async function deleteUserAction(userId: string): Promise<void> {
+  const session = await requireRole('ADMIN');
+  if (userId === session.userId) return; // cannot delete self
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: {
+      _count: {
+        select: {
+          applicationsCreated: true,
+          applicationsApproved: true,
+          documentsUploaded: true,
+          documentsVerified: true,
+          decisions: true,
+          statusEvents: true,
+          auditLogs: true,
+          payoutsRecorded: true,
+          notesAuthored: true,
+          confirmations: true,
+        },
+      },
+    },
+  });
+  if (!user) return;
+  const references = Object.values(user._count).reduce((a, b) => a + b, 0);
+  if (references > 0) return; // has history — the UI offers Delete only when empty; guard here too
+  // Unused password-reset tokens cascade with the user (they carry no history).
+  await prisma.passwordResetToken.deleteMany({ where: { userId } });
+  await prisma.user.delete({ where: { id: userId } });
+  await audit({ actorId: session.userId, action: 'USER_UPDATE', entityType: 'User', entityId: userId, detail: `deleted: ${user.email}` });
   revalidatePath('/admin/users');
 }
 
@@ -134,7 +174,25 @@ export async function toggleFinanceCompanyActiveAction(id: string): Promise<void
   const fc = await prisma.financeCompany.findUnique({ where: { id } });
   if (!fc) return;
   await prisma.financeCompany.update({ where: { id }, data: { active: !fc.active } });
-  await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'FinanceCompany', entityId: id, detail: `active=${!fc.active}` });
+  await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'FinanceCompany', entityId: id, detail: `active=${!fc.active} (${fc.active ? 'archived' : 'unarchived'})` });
+  revalidatePath('/admin/finance-companies');
+}
+
+/**
+ * Permanently delete a finance company. Only allowed when no deals reference it
+ * — one that has been used on any application must be archived instead so the
+ * historical record stays intact.
+ */
+export async function deleteFinanceCompanyAction(id: string): Promise<void> {
+  const session = await requireRole('ADMIN');
+  const fc = await prisma.financeCompany.findUnique({
+    where: { id },
+    include: { _count: { select: { applications: true } } },
+  });
+  if (!fc) return;
+  if (fc._count.applications > 0) return; // used on deals — archive instead
+  await prisma.financeCompany.delete({ where: { id } });
+  await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'FinanceCompany', entityId: id, detail: `deleted: ${fc.name}` });
   revalidatePath('/admin/finance-companies');
 }
 

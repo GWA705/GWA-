@@ -1,15 +1,34 @@
 import { requireRole } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { roleLabel } from '@/lib/rbac';
-import { toggleUserActiveAction } from '@/app/(admin)/actions';
 import { UserForm } from './UserForm';
+import { UserRowActions } from './UserRowActions';
 
 export const dynamic = 'force-dynamic';
 
 export default async function UsersPage() {
   const admin = await requireRole('ADMIN');
   const [users, dealers] = await Promise.all([
-    prisma.user.findMany({ orderBy: { createdAt: 'desc' }, include: { dealer: true } }),
+    prisma.user.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: {
+        dealer: true,
+        _count: {
+          select: {
+            applicationsCreated: true,
+            applicationsApproved: true,
+            documentsUploaded: true,
+            documentsVerified: true,
+            decisions: true,
+            statusEvents: true,
+            auditLogs: true,
+            payoutsRecorded: true,
+            notesAuthored: true,
+            confirmations: true,
+          },
+        },
+      },
+    }),
     prisma.dealer.findMany({ where: { active: true }, orderBy: { name: 'asc' }, select: { id: true, name: true } }),
   ]);
 
@@ -48,11 +67,12 @@ export default async function UsersPage() {
                 </td>
                 <td className="px-4 py-3 text-right">
                   {u.id !== admin.userId && (
-                    <form action={toggleUserActiveAction.bind(null, u.id)}>
-                      <button type="submit" className="btn-secondary text-xs">
-                        {u.active ? 'Deactivate' : 'Activate'}
-                      </button>
-                    </form>
+                    <UserRowActions
+                      id={u.id}
+                      name={u.name}
+                      active={u.active}
+                      canDelete={Object.values(u._count).reduce((a, b) => a + b, 0) === 0}
+                    />
                   )}
                 </td>
               </tr>
