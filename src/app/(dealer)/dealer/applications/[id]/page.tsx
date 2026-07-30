@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db';
 import { canAccessApplication } from '@/lib/rbac';
 import { StatusBadge } from '@/components/StatusBadge';
 import { DocumentList } from '@/components/DocumentList';
+import { PaperworkCards } from '@/components/PaperworkCards';
 import { LoanApplicationDetails } from '@/components/LoanApplicationDetails';
 import { PayoutReceipt } from '@/components/PayoutReceipt';
 import { NoteThread } from '@/components/NoteThread';
@@ -173,9 +174,9 @@ export default async function DealerApplicationDetail({
       {/* Paperwork for your Customer */}
       {gwaDocs.length > 0 && (
         <section className="card p-6">
-          <h2 className="mb-3 text-base font-semibold text-gray-900">Paperwork for your Customer</h2>
-          <p className="mb-3 text-xs text-gray-500">Documents from the GWA team — open to view or print.</p>
-          <DocumentList documents={gwaDocs} />
+          <h2 className="mb-1 text-base font-semibold text-gray-900">Paperwork for your Customer</h2>
+          <p className="mb-4 text-xs text-gray-500">Documents from the GWA team — view in your browser or download to share with your customer.</p>
+          <PaperworkCards documents={gwaDocs} />
         </section>
       )}
 

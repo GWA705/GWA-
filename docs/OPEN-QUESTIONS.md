@@ -110,9 +110,10 @@ _Last updated: 2026-07-30_
 
 31. **Refine the "Paperwork from GWA" section (dealer side).**
     a) ✅ **DONE — Renamed to "Paperwork for your Customer."**
-    b) ⏳ TODO — Add depth / make each file more defined — e.g. each document as
-       its own card with a file icon, its category label, size, and date, and a
-       clear View / Download action. Make it look more refined than a plain list.
+    b) ✅ **DONE — Refined file cards.** New `PaperworkCards` component renders
+       each document as its own card with a PDF/IMG icon, its category label,
+       size, date, and separate **View** / **Download** actions. Download uses a
+       new `?download=1` mode on the document route (forces "Save as").
 
 17. ✅ **DONE — Progress bar reacts to status changes.** The tracker now keys off
     the live status: moving a deal backward (e.g. Approved → Under review)

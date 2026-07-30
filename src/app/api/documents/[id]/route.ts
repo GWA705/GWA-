@@ -7,9 +7,12 @@ import { audit } from '@/lib/audit';
 
 // Authenticated, access-controlled document download. There are no public URLs
 // to document contents; every retrieval is authorized and audited.
-export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getSession();
   if (!session) return new NextResponse('Unauthorized', { status: 401 });
+
+  // ?download=1 forces a "Save as" download; otherwise the file opens inline.
+  const asDownload = req.nextUrl.searchParams.get('download') === '1';
 
   const doc = await prisma.document.findUnique({
     where: { id: params.id },
@@ -41,7 +44,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     status: 200,
     headers: {
       'Content-Type': doc.mimeType || 'application/octet-stream',
-      'Content-Disposition': `inline; filename="${encodeURIComponent(doc.fileName)}"`,
+      'Content-Disposition': `${asDownload ? 'attachment' : 'inline'}; filename="${encodeURIComponent(doc.fileName)}"`,
       'Cache-Control': 'private, no-store',
       'X-Content-Type-Options': 'nosniff',
     },
