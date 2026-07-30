@@ -1,0 +1,78 @@
+'use client';
+
+import { useState } from 'react';
+import Link from 'next/link';
+import { useFormState, useFormStatus } from 'react-dom';
+import { updateUserAction, type ActionState } from '@/app/(admin)/actions';
+
+function SubmitButton() {
+  const { pending } = useFormStatus();
+  return (
+    <button type="submit" className="btn-primary" disabled={pending}>
+      {pending ? 'Saving…' : 'Save changes'}
+    </button>
+  );
+}
+
+export function EditUserForm({
+  user,
+  dealers,
+}: {
+  user: { id: string; name: string; email: string; role: string; dealerId: string | null };
+  dealers: { id: string; name: string }[];
+}) {
+  const [state, action] = useFormState(updateUserAction.bind(null, user.id), {} as ActionState);
+  const [role, setRole] = useState(user.role);
+
+  return (
+    <form action={action} className="space-y-4">
+      {state.error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{state.error}</div>}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+          <label className="label" htmlFor="name">Full name</label>
+          <input id="name" name="name" required defaultValue={user.name} className="input" />
+        </div>
+        <div>
+          <label className="label" htmlFor="email">Email (their login)</label>
+          <input id="email" name="email" type="email" required defaultValue={user.email} className="input" />
+        </div>
+        <div>
+          <label className="label" htmlFor="role">Role</label>
+          <select id="role" name="role" className="input" value={role} onChange={(e) => setRole(e.target.value)}>
+            <option value="DEALER_USER">Dealer user</option>
+            <option value="REVIEWER">Reviewer (internal)</option>
+            <option value="ADMIN">Administrator</option>
+          </select>
+        </div>
+        <div>
+          <label className="label" htmlFor="dealerId">
+            Dealer {role === 'DEALER_USER' ? '(required)' : '(optional — also gives dealer access)'}
+          </label>
+          <select id="dealerId" name="dealerId" className="input" defaultValue={user.dealerId ?? ''}>
+            <option value="">—</option>
+            {dealers.map((d) => (
+              <option key={d.id} value={d.id}>{d.name}</option>
+            ))}
+          </select>
+          {role !== 'DEALER_USER' && (
+            <p className="mt-1 text-xs text-gray-400">
+              Linking a reviewer/admin to a dealer lets them switch into that dealer&apos;s portal.
+            </p>
+          )}
+        </div>
+        <div className="sm:col-span-2">
+          <label className="label" htmlFor="newPassword">New temporary password <span className="font-normal text-gray-400">(leave blank to keep current)</span></label>
+          <input id="newPassword" name="newPassword" type="text" className="input" placeholder="Only fill this to reset their password" />
+          <p className="mt-1 text-xs text-gray-400">
+            If set: must be ≥12 chars with an uppercase, lowercase, number, and symbol. The user will be
+            required to change it at their next login.
+          </p>
+        </div>
+      </div>
+      <div className="flex items-center gap-3">
+        <SubmitButton />
+        <Link href="/admin/users" className="btn-secondary">Cancel</Link>
+      </div>
+    </form>
+  );
+}

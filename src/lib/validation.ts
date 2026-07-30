@@ -299,6 +299,15 @@ export const createUserSchema = z.object({
   password: z.string().min(1, 'Enter a temporary password.').max(200),
 });
 
+export const updateUserSchema = z.object({
+  email: z.string().email('Enter a valid email address.').max(160),
+  name: z.string().min(1, 'Enter the full name.').max(120),
+  role: z.enum(['DEALER_USER', 'REVIEWER', 'ADMIN']),
+  dealerId: z.string().optional(),
+  // Optional: set a new temporary password (blank = leave the password as-is).
+  newPassword: z.string().max(200).optional(),
+});
+
 export const createDealerSchema = z.object({
   name: z.string().min(1).max(160),
 });

@@ -9,7 +9,8 @@ import crypto from 'crypto';
 import path from 'path';
 import { putDocument, getDocument, deleteDocument } from '@/lib/storage';
 import { ALLOWED_MIME_TYPES, MAX_FILE_BYTES } from '@/lib/constants';
-import { createUserSchema, createDealerSchema, createFinanceCompanySchema, announcementSchema, contentSchema } from '@/lib/validation';
+import { createUserSchema, updateUserSchema, createDealerSchema, createFinanceCompanySchema, announcementSchema, contentSchema } from '@/lib/validation';
+import { redirect } from 'next/navigation';
 import { CONTENT_SECTIONS } from '@/lib/constants';
 import { sendEmail, emailEnabled } from '@/lib/email';
 import { renderEmail } from '@/lib/email-templates';
@@ -220,6 +221,69 @@ export async function createUserAction(
 // Minimal HTML-escape for values interpolated into email bodyHtml.
 function escapeHtmlLite(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// Admin edits an existing user — name, email, role, dealer link, and optionally
+// a new temporary password (which forces a change at next login).
+export async function updateUserAction(
+  userId: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await requireRole('ADMIN');
+  const parsed = updateUserSchema.safeParse({
+    email: formData.get('email'),
+    name: formData.get('name'),
+    role: formData.get('role'),
+    dealerId: formData.get('dealerId') || undefined,
+    newPassword: (formData.get('newPassword') as string) || undefined,
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? 'Please check the fields and try again.' };
+  }
+  const d = parsed.data;
+
+  const target = await prisma.user.findUnique({ where: { id: userId } });
+  if (!target) return { error: 'User not found.' };
+
+  if (d.role === 'DEALER_USER' && !d.dealerId) {
+    return { error: 'Choose a dealer for this dealer user.' };
+  }
+  // Don't let an admin lock themselves out by demoting their own account.
+  if (userId === session.userId && d.role !== 'ADMIN') {
+    return { error: "You can't change your own role away from Administrator." };
+  }
+
+  const email = d.email.toLowerCase().trim();
+  const clash = await prisma.user.findFirst({ where: { email, id: { not: userId } } });
+  if (clash) return { error: 'Another user already has that email.' };
+
+  const data: {
+    email: string;
+    name: string;
+    role: typeof d.role;
+    dealerId: string | null;
+    passwordHash?: string;
+    passwordChangedAt?: Date | null;
+  } = {
+    email,
+    name: d.name,
+    role: d.role,
+    // Reviewers/admins may be linked to a dealer for dual portal access.
+    dealerId: d.dealerId || null,
+  };
+
+  if (d.newPassword && d.newPassword.trim()) {
+    const pwError = validatePasswordStrength(d.newPassword);
+    if (pwError) return { error: pwError };
+    data.passwordHash = await hashPassword(d.newPassword);
+    data.passwordChangedAt = null; // force change at next login
+  }
+
+  await prisma.user.update({ where: { id: userId }, data });
+  await audit({ actorId: session.userId, action: 'USER_UPDATE', entityType: 'User', entityId: userId, detail: `edited: ${email} (${d.role})${data.passwordHash ? ' + password reset' : ''}` });
+  revalidatePath('/admin/users');
+  redirect('/admin/users');
 }
 
 export async function toggleUserActiveAction(userId: string): Promise<void> {

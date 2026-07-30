@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { toggleUserActiveAction, deleteUserAction } from '@/app/(admin)/actions';
 
 export function UserRowActions({
@@ -15,6 +16,7 @@ export function UserRowActions({
 }) {
   return (
     <div className="flex flex-wrap justify-end gap-2">
+      <Link href={`/admin/users/${id}/edit`} className="btn-secondary text-xs">Edit</Link>
       <form action={toggleUserActiveAction.bind(null, id)}>
         <button type="submit" className="btn-secondary text-xs">
           {active ? 'Archive' : 'Unarchive'}
