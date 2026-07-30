@@ -14,9 +14,10 @@ _Last updated: 2026-07-30_
    bucket in ca-central-1 (Canada). Uploads now persist across redeploys.
    Setup reference kept at `docs/STORAGE-S3.md`.
 
-2. **Google Maps API key** — to turn on address autocomplete on the Street
-   address field. You create it in Google Cloud (billing account required),
-   then add `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` in Render and redeploy.
+2. ✅ **DONE — Google Maps address autocomplete.** Key created & restricted
+   (Websites: portal.ghsbarrie.ca; Maps JavaScript API + Places API), set as
+   `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` in Render, live. Street address now
+   autocompletes and fills city/province/postal.
 
 3. **Google Workspace email credentials** — to switch email from "log-only"
    to actually sending (password resets, status updates, etc.). Need the
