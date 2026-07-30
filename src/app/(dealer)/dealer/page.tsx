@@ -1,7 +1,7 @@
 import Link from 'next/link';
-import { requireRole } from '@/lib/session';
+import { requireDealerAccess } from '@/lib/session';
 import { prisma } from '@/lib/db';
-import { applicationScopeWhere } from '@/lib/rbac';
+import { dealerPortalScopeWhere } from '@/lib/rbac';
 import { StatusBadge } from '@/components/StatusBadge';
 import { SearchBox } from '@/components/SearchBox';
 import { AnnouncementBanner } from '@/components/AnnouncementBanner';
@@ -9,11 +9,11 @@ import { searchWhere } from '@/lib/search';
 import { programLabel } from '@/lib/constants';
 
 export default async function DealerHome({ searchParams }: { searchParams: { q?: string } }) {
-  const user = await requireRole('DEALER_USER');
+  const user = await requireDealerAccess();
   const search = searchWhere(searchParams.q);
   const [apps, announcements] = await Promise.all([
     prisma.application.findMany({
-      where: search ? { AND: [applicationScopeWhere(user), search] } : applicationScopeWhere(user),
+      where: search ? { AND: [dealerPortalScopeWhere(user), search] } : dealerPortalScopeWhere(user),
       orderBy: { createdAt: 'desc' },
       take: 100,
     }),

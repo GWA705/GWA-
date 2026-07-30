@@ -1,8 +1,8 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { requireRole } from '@/lib/session';
+import { requireDealerAccess } from '@/lib/session';
 import { prisma } from '@/lib/db';
-import { canAccessApplication } from '@/lib/rbac';
+import { canAccessAsDealer } from '@/lib/rbac';
 import { decryptOptional } from '@/lib/crypto';
 import { StatusBadge } from '@/components/StatusBadge';
 import { DocumentList } from '@/components/DocumentList';
@@ -32,7 +32,7 @@ export default async function DealerApplicationDetail({
 }: {
   params: { id: string };
 }) {
-  const user = await requireRole('DEALER_USER');
+  const user = await requireDealerAccess();
   const app = await prisma.application.findUnique({
     where: { id: params.id },
     include: {
@@ -48,7 +48,7 @@ export default async function DealerApplicationDetail({
       confirmation: { include: { confirmedBy: true } },
     },
   });
-  if (!app || !canAccessApplication(user, app.dealerId)) notFound();
+  if (!app || !canAccessAsDealer(user, app.dealerId)) notFound();
 
   const applicationDocs = app.documents.filter((d) => d.stage === 'APPLICATION');
   const fundingDocs = app.documents.filter((d) => d.stage === 'FUNDING');

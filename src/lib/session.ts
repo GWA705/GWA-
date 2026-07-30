@@ -126,6 +126,32 @@ export async function requireRole(...roles: Role[]): Promise<SessionUser> {
   return session;
 }
 
+/**
+ * Can this user act in the dealer portal? Dealer users always can (their tenant
+ * is their dealerId). Internal staff (reviewer/admin) can too, but only if they
+ * have been linked to a dealer — this powers the "one login, switch portals"
+ * dual access.
+ */
+export function hasDealerAccess(user: SessionUser): boolean {
+  if (user.role === 'DEALER_USER') return true;
+  return (user.role === 'REVIEWER' || user.role === 'ADMIN') && !!user.dealerId;
+}
+
+/** True when the user can use BOTH the dealer and the staff/reviewer portals. */
+export function hasBothPortals(user: SessionUser): boolean {
+  const staff = user.role === 'REVIEWER' || user.role === 'ADMIN';
+  return staff && !!user.dealerId;
+}
+
+/** Require dealer-portal access (dealer user, or internal user linked to a dealer). */
+export async function requireDealerAccess(): Promise<SessionUser> {
+  const session = await requireSession();
+  if (!hasDealerAccess(session)) {
+    redirect(defaultLandingFor(session.role));
+  }
+  return session;
+}
+
 export function defaultLandingFor(role: Role): string {
   switch (role) {
     case 'DEALER_USER':

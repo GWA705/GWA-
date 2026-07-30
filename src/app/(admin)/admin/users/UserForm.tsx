@@ -43,13 +43,20 @@ export function UserForm({ dealers }: { dealers: { id: string; name: string }[] 
           </select>
         </div>
         <div>
-          <label className="label" htmlFor="dealerId">Dealer {role === 'DEALER_USER' ? '(required)' : '(n/a)'}</label>
-          <select id="dealerId" name="dealerId" className="input" disabled={role !== 'DEALER_USER'}>
+          <label className="label" htmlFor="dealerId">
+            Dealer {role === 'DEALER_USER' ? '(required)' : '(optional — also gives dealer access)'}
+          </label>
+          <select id="dealerId" name="dealerId" className="input">
             <option value="">—</option>
             {dealers.map((d) => (
               <option key={d.id} value={d.id}>{d.name}</option>
             ))}
           </select>
+          {role !== 'DEALER_USER' && (
+            <p className="mt-1 text-xs text-gray-400">
+              Link this reviewer/admin to a dealer to let them switch into that dealer&apos;s portal with the same login.
+            </p>
+          )}
         </div>
         <div className="sm:col-span-2">
           <label className="label" htmlFor="password">Temporary password</label>

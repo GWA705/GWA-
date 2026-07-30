@@ -4,8 +4,8 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { headers } from 'next/headers';
 import { prisma } from '@/lib/db';
-import { requireRole } from '@/lib/session';
-import { canAccessApplication } from '@/lib/rbac';
+import { requireDealerAccess } from '@/lib/session';
+import { canAccessAsDealer } from '@/lib/rbac';
 import { encryptOptional } from '@/lib/crypto';
 import { audit } from '@/lib/audit';
 import { storeFiles } from '@/lib/upload';
@@ -28,7 +28,7 @@ export async function createApplicationAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const session = await requireRole('DEALER_USER');
+  const session = await requireDealerAccess();
   if (!session.dealerId) return { error: 'Your account is not linked to a dealer.' };
 
   const raw = Object.fromEntries(formData.entries());
@@ -189,9 +189,9 @@ export async function uploadSupportingDocAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const session = await requireRole('DEALER_USER');
+  const session = await requireDealerAccess();
   const app = await prisma.application.findUnique({ where: { id: applicationId } });
-  if (!app || !canAccessApplication(session, app.dealerId)) return { error: 'Not found.' };
+  if (!app || !canAccessAsDealer(session, app.dealerId)) return { error: 'Not found.' };
 
   const files = formData.getAll('file') as File[];
   const result = await storeFiles({ application: app, files, type: 'SUPPORTING', stage: 'APPLICATION', uploadedById: session.userId });
@@ -207,9 +207,9 @@ export async function addSerialNumberAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const session = await requireRole('DEALER_USER');
+  const session = await requireDealerAccess();
   const app = await prisma.application.findUnique({ where: { id: applicationId } });
-  if (!app || !canAccessApplication(session, app.dealerId)) return { error: 'Not found.' };
+  if (!app || !canAccessAsDealer(session, app.dealerId)) return { error: 'Not found.' };
 
   const parsed = serialNumberSchema.safeParse({
     value: formData.get('value'),
@@ -230,9 +230,9 @@ export async function uploadFundingDocAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const session = await requireRole('DEALER_USER');
+  const session = await requireDealerAccess();
   const app = await prisma.application.findUnique({ where: { id: applicationId } });
-  if (!app || !canAccessApplication(session, app.dealerId)) return { error: 'Not found.' };
+  if (!app || !canAccessAsDealer(session, app.dealerId)) return { error: 'Not found.' };
   if (!['APPROVED', 'CONDITIONAL', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW'].includes(app.status)) {
     return { error: 'Funding documents can only be uploaded after approval.' };
   }
@@ -248,9 +248,9 @@ export async function uploadFundingDocAction(
 
 /** Dealer signals the funding package is complete → moves to FUNDING_SUBMITTED. */
 export async function submitFundingAction(applicationId: string): Promise<void> {
-  const session = await requireRole('DEALER_USER');
+  const session = await requireDealerAccess();
   const app = await prisma.application.findUnique({ where: { id: applicationId } });
-  if (!app || !canAccessApplication(session, app.dealerId)) redirect('/dealer');
+  if (!app || !canAccessAsDealer(session, app.dealerId)) redirect('/dealer');
   if (!['APPROVED', 'CONDITIONAL'].includes(app.status)) {
     redirect(`/dealer/applications/${applicationId}`);
   }
@@ -278,9 +278,9 @@ export async function addDealerNoteAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const session = await requireRole('DEALER_USER');
+  const session = await requireDealerAccess();
   const app = await prisma.application.findUnique({ where: { id: applicationId } });
-  if (!app || !canAccessApplication(session, app.dealerId)) return { error: 'Not found.' };
+  if (!app || !canAccessAsDealer(session, app.dealerId)) return { error: 'Not found.' };
 
   const body = String(formData.get('body') || '').trim();
   if (!body) return { error: 'Write a note first.' };

@@ -172,7 +172,9 @@ export async function createUserAction(
       email,
       name: d.name,
       role: d.role,
-      dealerId: d.role === 'DEALER_USER' ? d.dealerId! : null,
+      // Dealer users must have a dealer; reviewers/admins may optionally be
+      // linked to one to also get that dealer's portal (one login, both views).
+      dealerId: d.dealerId || null,
       passwordHash: await hashPassword(d.password),
       // null forces a password change at first login (the temp password is
       // treated as already expired) — see isPasswordExpired().

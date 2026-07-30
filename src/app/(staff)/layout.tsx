@@ -9,7 +9,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
   ];
   if (user.role === 'ADMIN') nav.push({ href: '/admin', label: 'Admin' });
   return (
-    <AppShell user={user} nav={nav}>
+    <AppShell user={user} portal="staff" nav={nav}>
       {children}
     </AppShell>
   );

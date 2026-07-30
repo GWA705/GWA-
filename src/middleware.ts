@@ -7,14 +7,14 @@ function secret(): Uint8Array {
   return new TextEncoder().encode(process.env.SESSION_SECRET || '');
 }
 
-async function readRole(req: NextRequest): Promise<string | null> {
+async function readClaims(req: NextRequest): Promise<{ role: string | null; dealerId: string | null }> {
   const token = req.cookies.get(COOKIE_NAME)?.value;
-  if (!token) return null;
+  if (!token) return { role: null, dealerId: null };
   try {
     const { payload } = await jwtVerify(token, secret());
-    return (payload.role as string) ?? null;
+    return { role: (payload.role as string) ?? null, dealerId: (payload.dealerId as string | null) ?? null };
   } catch {
-    return null;
+    return { role: null, dealerId: null };
   }
 }
 
@@ -81,7 +81,7 @@ export async function middleware(req: NextRequest) {
 
   const guard = guards.find((g) => pathname === g.prefix || pathname.startsWith(g.prefix + '/'));
   if (guard) {
-    const role = await readRole(req);
+    const { role, dealerId } = await readClaims(req);
     if (!role) {
       const url = req.nextUrl.clone();
       url.pathname = '/login';
@@ -90,7 +90,11 @@ export async function middleware(req: NextRequest) {
       res.headers.set('Content-Security-Policy', csp);
       return applyStaticHeaders(res);
     }
-    if (!guard.roles.includes(role)) {
+    // The dealer portal also admits internal staff (reviewer/admin) who are
+    // linked to a dealer — this powers the "one login, switch portals" access.
+    const dealerPortalOk =
+      guard.prefix === '/dealer' && (role === 'REVIEWER' || role === 'ADMIN') && !!dealerId;
+    if (!guard.roles.includes(role) && !dealerPortalOk) {
       const url = req.nextUrl.clone();
       url.pathname = landingFor(role);
       url.search = '';

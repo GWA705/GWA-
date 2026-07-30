@@ -38,6 +38,20 @@ export function applicationScopeWhere(user: SessionUser): { dealerId?: string } 
   return { dealerId: user.dealerId ?? '__none__' };
 }
 
+/**
+ * Scope for the DEALER portal specifically — always the user's own dealer, even
+ * for an internal user who is linked to a dealer (the "switch portals" case).
+ * This keeps the dealer view limited to that dealership's deals.
+ */
+export function dealerPortalScopeWhere(user: SessionUser): { dealerId: string } {
+  return { dealerId: user.dealerId ?? '__none__' };
+}
+
+/** Can this user act on this application within the DEALER portal? */
+export function canAccessAsDealer(user: SessionUser, applicationDealerId: string): boolean {
+  return user.dealerId != null && user.dealerId === applicationDealerId;
+}
+
 export function assert(condition: boolean, message = 'Forbidden'): asserts condition {
   if (!condition) {
     const err = new Error(message) as Error & { statusCode?: number };

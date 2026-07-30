@@ -1,11 +1,11 @@
-import { requireRole } from '@/lib/session';
+import { requireDealerAccess } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { NewApplicationForm } from './NewApplicationForm';
 
 export const dynamic = 'force-dynamic';
 
 export default async function NewApplicationPage() {
-  const user = await requireRole('DEALER_USER');
+  const user = await requireDealerAccess();
   const stores = user.dealerId
     ? await prisma.homeDepotStore.findMany({
         where: { dealerId: user.dealerId, active: true },

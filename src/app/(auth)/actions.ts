@@ -77,8 +77,10 @@ export async function loginAction(
     return genericFail;
   }
 
-  // A dealer user whose dealership has been archived cannot sign in.
-  if (user.dealer && !user.dealer.active) {
+  // A dealer user whose dealership has been archived cannot sign in. Internal
+  // staff linked to an archived dealer can still sign in (they keep staff access
+  // and simply lose the dealer view).
+  if (user.role === 'DEALER_USER' && user.dealer && !user.dealer.active) {
     await audit({ actorId: user.id, action: 'LOGIN_FAILED', entityType: 'User', entityId: user.id, detail: 'dealer archived' });
     return genericFail;
   }
