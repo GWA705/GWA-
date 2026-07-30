@@ -125,6 +125,19 @@ _Last updated: 2026-07-30_
 33. ✅ **DONE — Added a "Start here" badge** above the "Three choices to process a
     new customer application" heading on the dealer application form.
 
+36. ✅ **DONE — Co-applicant activation.** On the typed application, entering a
+    co-applicant first name now opens the full co-applicant questionnaire — the
+    same questions asked about the main applicant: name, DOB, contact, marital
+    status, relationship, address, photo ID (type/number/province/expiry), and
+    employment/income. Stored on the loan record with the sensitive fields (DOB,
+    address, ID number) application-encrypted at rest; shown on the deal detail
+    page (decrypted for the dealer who entered it; reveal-gated + audited for
+    staff). Required a purely-additive DB migration.
+
+38. ✅ **DONE — Paperwork View/Download buttons pop.** The dealer "Paperwork for
+    your Customer" cards now use a solid green Download button and a green
+    outline View button so they stand out.
+
 37. ✅ **DONE — Outline the whole form in the selected option's colour.** Picking
     option 1/2/3 now tints every input's outline (ring) in that method's colour —
     green (Fastest), blue (Fast), amber (Normal) — outline only, no fill. Red

@@ -22,7 +22,22 @@ function addressLine(street?: string | null, city?: string | null, prov?: string
   return parts.length ? parts.join(', ') : null;
 }
 
-export function LoanApplicationDetails({ loan }: { loan: LoanApplication }) {
+// Decrypted co-applicant sensitive values, supplied by the page (which owns the
+// crypto + audit path). Omitted values simply don't render.
+export interface CoApplicantReveal {
+  dob?: string | null;
+  address?: string | null;
+  govId?: string | null;
+}
+
+export function LoanApplicationDetails({
+  loan,
+  co,
+}: {
+  loan: LoanApplication;
+  co?: CoApplicantReveal;
+}) {
+  const hasCo = !!(loan.coFirstName || loan.coLastName);
   return (
     <section className="card p-6">
       <h2 className="mb-4 text-base font-semibold text-gray-900">Loan application details</h2>
@@ -60,6 +75,43 @@ export function LoanApplicationDetails({ loan }: { loan: LoanApplication }) {
         <Row label="Time at job (yrs)" value={loan.timeAtJobYears} />
         <Row label="Employment status" value={loan.employmentStatus ? EMPLOYMENT[loan.employmentStatus] : null} />
       </dl>
+
+      {hasCo && (
+        <div className="mt-6 rounded-lg border border-brand-100 bg-brand-50/40 p-4">
+          <h3 className="mb-3 text-sm font-semibold text-brand-900">
+            Co-applicant{loan.coRelationship ? ` · ${loan.coRelationship}` : ''}
+          </h3>
+
+          <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3">
+            <Row label="Name" value={[loan.coFirstName, loan.coMiddleName, loan.coLastName].filter(Boolean).join(' ')} />
+            <Row label="Date of birth" value={co?.dob} />
+            <Row label="Marital status" value={loan.coMaritalStatus} />
+            <Row label="Email" value={loan.coEmail} />
+            <Row label="Mobile phone" value={loan.coPhone} />
+            <Row label="Home phone" value={loan.coHomePhone} />
+            <Row label="Address" value={addressLine(co?.address, loan.coCity, loan.coProvince, loan.coPostal)} />
+          </dl>
+
+          <h4 className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-gray-400">Identification</h4>
+          <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3">
+            <Row label="ID type" value={loan.coIdType} />
+            <Row label="ID #" value={co?.govId ? <span className="font-mono">{co.govId}</span> : null} />
+            <Row label="Province of issue" value={loan.coIdProvince} />
+            <Row label="Expiry" value={loan.coIdExpiry ? loan.coIdExpiry.toLocaleDateString('en-CA') : null} />
+          </dl>
+
+          <h4 className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-gray-400">Employment &amp; income</h4>
+          <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3">
+            <Row label="Employer" value={loan.coBusinessName} />
+            <Row label="Position" value={loan.coPositionTitle} />
+            <Row label="Employer address" value={loan.coEmployerAddress} />
+            <Row label="Employer phone" value={loan.coEmployerPhone} />
+            <Row label="Gross monthly income" value={loan.coGrossMonthlyIncome ? `$${loan.coGrossMonthlyIncome.toString()}` : null} />
+            <Row label="Time at job (yrs)" value={loan.coTimeAtJobYears} />
+            <Row label="Employment status" value={loan.coEmploymentStatus ? EMPLOYMENT[loan.coEmploymentStatus] : null} />
+          </dl>
+        </div>
+      )}
     </section>
   );
 }

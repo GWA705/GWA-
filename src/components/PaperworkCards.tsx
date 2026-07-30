@@ -52,13 +52,13 @@ export function PaperworkCards({ documents }: { documents: Document[] }) {
                   href={`/api/documents/${d.id}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="rounded-md border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                  className="rounded-md border border-green-600 px-3 py-1 text-xs font-semibold text-green-700 shadow-sm transition hover:bg-green-50"
                 >
                   View
                 </a>
                 <a
                   href={`/api/documents/${d.id}?download=1`}
-                  className="rounded-md border border-brand-200 bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700 hover:bg-brand-100"
+                  className="rounded-md bg-green-600 px-3 py-1 text-xs font-semibold text-white shadow-sm transition hover:bg-green-700"
                 >
                   Download
                 </a>

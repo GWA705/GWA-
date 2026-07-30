@@ -101,6 +101,34 @@ export const applicationSchema = z.object({
     .optional()
     .refine((v) => !v || sinRegex.test(v), 'Co-applicant SIN must be 9 digits'),
 
+  // Co-applicant details (typed entry) — revealed when a name is entered; the
+  // same set of questions as the main applicant. All optional at the schema
+  // level; SIN/banking are not collected (same as the main applicant).
+  coFirstName: str(80),
+  coLastName: str(80),
+  coMiddleName: str(80),
+  coDob: z.string().optional(),
+  coEmail: z.preprocess(blankToUndef, z.string().email().max(160).optional()),
+  coPhone: str(30),
+  coHomePhone: str(30),
+  coMaritalStatus: str(30),
+  coRelationship: str(60),
+  coAddress: str(300),
+  coCity: str(80),
+  coProvince: str(40),
+  coPostal: str(10),
+  coIdType: str(60),
+  coGovIdNumber: str(80),
+  coIdProvince: str(40),
+  coIdExpiry: optionalDate,
+  coBusinessName: str(160),
+  coPositionTitle: str(120),
+  coEmployerAddress: str(200),
+  coEmployerPhone: str(30),
+  coGrossMonthlyIncome: optionalNumber,
+  coTimeAtJobYears: optionalInt,
+  coEmploymentStatus: z.preprocess(blankToUndef, z.enum(['EMPLOYED', 'SELF_EMPLOYED', 'OTHER']).optional()),
+
   incomeAnnual: z.coerce.number().nonnegative().max(100_000_000).optional(),
   employer: z.string().max(160).optional(),
   notes: z.string().max(4000).optional(),

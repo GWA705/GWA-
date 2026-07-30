@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { requireRole } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { canAccessApplication } from '@/lib/rbac';
+import { decryptOptional } from '@/lib/crypto';
 import { StatusBadge } from '@/components/StatusBadge';
 import { DocumentList } from '@/components/DocumentList';
 import { PaperworkCards } from '@/components/PaperworkCards';
@@ -134,7 +135,16 @@ export default async function DealerApplicationDetail({
         </section>
       )}
 
-      {app.loanApplication && <LoanApplicationDetails loan={app.loanApplication} />}
+      {app.loanApplication && (
+        <LoanApplicationDetails
+          loan={app.loanApplication}
+          co={{
+            dob: decryptOptional(app.loanApplication.coDobEnc),
+            address: decryptOptional(app.loanApplication.coAddressEnc),
+            govId: decryptOptional(app.loanApplication.coGovIdNumberEnc),
+          }}
+        />
+      )}
 
       {/* Confirmation */}
       <section className="card p-6">

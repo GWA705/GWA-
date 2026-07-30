@@ -438,6 +438,38 @@ model LoanApplication {
   timeAtJobYears    Int?
   employmentStatus  EmploymentStatus?
 
+  // ---- Co-applicant (optional) ----
+  // Revealed on the form when a co-applicant name is entered; collects the same
+  // details as the main applicant. Sensitive fields (date of birth, street
+  // address, government ID number) are application-encrypted at rest.
+  coFirstName     String?
+  coLastName      String?
+  coMiddleName    String?
+  coDobEnc        String?
+  coEmail         String?
+  coPhone         String?
+  coHomePhone     String?
+  coMaritalStatus String?
+  coRelationship  String?
+
+  coAddressEnc    String?
+  coCity          String?
+  coProvince      String?
+  coPostal        String?
+
+  coIdType         String?
+  coGovIdNumberEnc String?
+  coIdProvince     String?
+  coIdExpiry       DateTime?
+
+  coBusinessName       String?
+  coPositionTitle      String?
+  coEmployerAddress    String?
+  coEmployerPhone      String?
+  coGrossMonthlyIncome Decimal?          @db.Decimal(12, 2)
+  coTimeAtJobYears     Int?
+  coEmploymentStatus   EmploymentStatus?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

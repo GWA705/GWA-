@@ -144,6 +144,9 @@ export function NewApplicationForm({ stores }: { stores: Store[] }) {
   const typed = method === 'TYPED';
   const summaryRef = useRef<HTMLDivElement>(null);
   const [clientErrors, setClientErrors] = useState<Record<string, string>>({});
+  // Entering a co-applicant first name opens the full co-applicant questionnaire.
+  const [coFirstName, setCoFirstName] = useState('');
+  const hasCoApplicant = coFirstName.trim().length > 0;
 
   // Merge instant client-side checks with any server-returned errors.
   const errorEntries = Object.entries({ ...(state.fieldErrors ?? {}), ...clientErrors });
@@ -483,11 +486,116 @@ export function NewApplicationForm({ stores }: { stores: Store[] }) {
 
           {/* Co-applicant */}
           <section className="card p-6">
-            <h2 className="mb-4 text-base font-semibold text-gray-900">Co-applicant &amp; notes</h2>
+            <h2 className="mb-1 text-base font-semibold text-gray-900">Co-applicant</h2>
+            <p className="mb-4 text-xs text-gray-400">
+              Optional. Enter a co-applicant first name to open the full set of questions — a co-applicant needs the same details as the main applicant.
+            </p>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div><label className="label" htmlFor="coApplicantName">Co-applicant name</label><input id="coApplicantName" name="coApplicantName" className={fieldCls('')} /></div>
-              <div className="sm:col-span-2"><label className="label" htmlFor="notes">Notes</label><textarea id="notes" name="notes" rows={3} className={fieldCls('')} /></div>
+              <div>
+                <label className="label" htmlFor="coFirstName">Co-applicant first name</label>
+                <input
+                  id="coFirstName"
+                  name="coFirstName"
+                  className={fieldCls('')}
+                  value={coFirstName}
+                  onChange={(e) => setCoFirstName(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="label" htmlFor="coLastName">Co-applicant last name</label>
+                <input id="coLastName" name="coLastName" className={fieldCls('')} />
+              </div>
             </div>
+
+            {hasCoApplicant && (
+              <div className="mt-5 space-y-5 border-t border-gray-100 pt-5">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div><label className="label" htmlFor="coMiddleName">Middle name <span className="font-normal text-gray-400">(optional)</span></label><input id="coMiddleName" name="coMiddleName" className={fieldCls('')} /></div>
+                  <div><label className="label" htmlFor="coRelationship">Relationship to applicant</label><input id="coRelationship" name="coRelationship" className={fieldCls('')} placeholder="e.g. Spouse" /></div>
+                  <div><label className="label" htmlFor="coDob">Date of birth</label><input id="coDob" name="coDob" type="date" className={fieldCls('')} /></div>
+                  <div>
+                    <label className="label" htmlFor="coMaritalStatus">Marital status</label>
+                    <select id="coMaritalStatus" name="coMaritalStatus" className={fieldCls('')}>
+                      <option value="">Select…</option>
+                      <option>Single</option><option>Married</option><option>Common-law</option>
+                      <option>Separated</option><option>Divorced</option><option>Widowed</option>
+                    </select>
+                  </div>
+                  <div><label className="label" htmlFor="coEmail">Email</label><input id="coEmail" name="coEmail" type="email" className={fieldCls('')} /></div>
+                  <div><label className="label" htmlFor="coPhone">Mobile phone</label><input id="coPhone" name="coPhone" className={fieldCls('')} inputMode="numeric" maxLength={12} placeholder="705-716-2111" onInput={phoneFmt} /></div>
+                  <div><label className="label" htmlFor="coHomePhone">Home phone <span className="font-normal text-gray-400">(optional)</span></label><input id="coHomePhone" name="coHomePhone" className={fieldCls('')} inputMode="numeric" maxLength={12} placeholder="705-716-2111" onInput={phoneFmt} /></div>
+                </div>
+
+                <div>
+                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Co-applicant address</h3>
+                  <p className="mb-3 text-xs text-gray-400">Leave blank if the co-applicant lives at the same address as the applicant.</p>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div className="sm:col-span-2">
+                      <label className="label" htmlFor="coAddress">Street address</label>
+                      <AddressAutocompleteInput id="coAddress" name="coAddress" className={fieldCls('')} cityId="coCity" provinceId="coProvince" postalId="coPostal" />
+                    </div>
+                    <div><label className="label" htmlFor="coCity">City</label><input id="coCity" name="coCity" className={fieldCls('')} /></div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="label" htmlFor="coProvince">Province</label>
+                        <select id="coProvince" name="coProvince" className={fieldCls('')}>
+                          <option value="">Select…</option>
+                          {PROVINCES.map((p) => (<option key={p.value} value={p.value}>{p.value}</option>))}
+                        </select>
+                      </div>
+                      <div><label className="label" htmlFor="coPostal">Postal</label><input id="coPostal" name="coPostal" className={fieldCls('')} maxLength={7} onInput={postalFmt} /></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Co-applicant identification</h3>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                      <label className="label" htmlFor="coIdType">Photo ID type</label>
+                      <select id="coIdType" name="coIdType" className={fieldCls('')}>
+                        <option value="">Select…</option>
+                        {PHOTO_ID_TYPES.map((t) => (<option key={t} value={t}>{t}</option>))}
+                      </select>
+                    </div>
+                    <div><label className="label" htmlFor="coGovIdNumber">Photo ID number</label><input id="coGovIdNumber" name="coGovIdNumber" className={fieldCls('')} autoComplete="off" /></div>
+                    <div>
+                      <label className="label" htmlFor="coIdProvince">Province of issue</label>
+                      <select id="coIdProvince" name="coIdProvince" className={fieldCls('')}>
+                        <option value="">Select…</option>
+                        {PROVINCES.map((p) => (<option key={p.value} value={p.value}>{p.label}</option>))}
+                      </select>
+                    </div>
+                    <div><label className="label" htmlFor="coIdExpiry">Expiry date</label><input id="coIdExpiry" name="coIdExpiry" type="date" className={fieldCls('')} /></div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Co-applicant employment &amp; income</h3>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div><label className="label" htmlFor="coBusinessName">Employer / business name</label><input id="coBusinessName" name="coBusinessName" className={fieldCls('')} /></div>
+                    <div><label className="label" htmlFor="coPositionTitle">Position title</label><input id="coPositionTitle" name="coPositionTitle" className={fieldCls('')} /></div>
+                    <div><label className="label" htmlFor="coEmployerAddress">Employer address <span className="font-normal text-gray-400">(optional)</span></label><input id="coEmployerAddress" name="coEmployerAddress" className={fieldCls('')} /></div>
+                    <div><label className="label" htmlFor="coEmployerPhone">Employer phone <span className="font-normal text-gray-400">(optional)</span></label><input id="coEmployerPhone" name="coEmployerPhone" className={fieldCls('')} inputMode="numeric" maxLength={12} placeholder="705-716-2111" onInput={phoneFmt} /></div>
+                    <div><label className="label" htmlFor="coGrossMonthlyIncome">Gross monthly income</label><input id="coGrossMonthlyIncome" name="coGrossMonthlyIncome" type="number" step="0.01" min="0" className={fieldCls('')} /></div>
+                    <div><label className="label" htmlFor="coTimeAtJobYears">Time at job (years)</label><input id="coTimeAtJobYears" name="coTimeAtJobYears" type="number" min="0" className={fieldCls('')} /></div>
+                    <div>
+                      <label className="label" htmlFor="coEmploymentStatus">Employment status</label>
+                      <select id="coEmploymentStatus" name="coEmploymentStatus" className={fieldCls('')}>
+                        <option value="">Select…</option>
+                        <option value="EMPLOYED">Employed</option><option value="SELF_EMPLOYED">Self-employed</option><option value="OTHER">Other</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </section>
+
+          {/* Notes */}
+          <section className="card p-6">
+            <h2 className="mb-4 text-base font-semibold text-gray-900">Notes</h2>
+            <div><label className="label" htmlFor="notes">Notes <span className="font-normal text-gray-400">(optional)</span></label><textarea id="notes" name="notes" rows={3} className={fieldCls('')} /></div>
           </section>
         </>
       )}

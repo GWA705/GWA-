@@ -91,9 +91,39 @@ export async function createApplicationAction(
             grossMonthlyIncome: d.grossMonthlyIncome ?? null,
             timeAtJobYears: d.timeAtJobYears ?? null,
             employmentStatus: d.employmentStatus ?? null,
+            // Co-applicant (only meaningful when a name was entered). Sensitive
+            // fields are encrypted, mirroring the main applicant.
+            coFirstName: d.coFirstName || null,
+            coLastName: d.coLastName || null,
+            coMiddleName: d.coMiddleName || null,
+            coDobEnc: encryptOptional(d.coDob),
+            coEmail: d.coEmail || null,
+            coPhone: d.coPhone || null,
+            coHomePhone: d.coHomePhone || null,
+            coMaritalStatus: d.coMaritalStatus || null,
+            coRelationship: d.coRelationship || null,
+            coAddressEnc: encryptOptional(d.coAddress),
+            coCity: d.coCity || null,
+            coProvince: d.coProvince || null,
+            coPostal: d.coPostal || null,
+            coIdType: d.coIdType || null,
+            coGovIdNumberEnc: encryptOptional(d.coGovIdNumber),
+            coIdProvince: d.coIdProvince || null,
+            coIdExpiry: d.coIdExpiry ? new Date(d.coIdExpiry) : null,
+            coBusinessName: d.coBusinessName || null,
+            coPositionTitle: d.coPositionTitle || null,
+            coEmployerAddress: d.coEmployerAddress || null,
+            coEmployerPhone: d.coEmployerPhone || null,
+            coGrossMonthlyIncome: d.coGrossMonthlyIncome ?? null,
+            coTimeAtJobYears: d.coTimeAtJobYears ?? null,
+            coEmploymentStatus: d.coEmploymentStatus ?? null,
           },
         }
       : undefined;
+
+  // Keep the plaintext co-applicant name on the Application for search/back-compat.
+  const coApplicantName =
+    [d.coFirstName, d.coLastName].filter(Boolean).join(' ').trim() || d.coApplicantName || null;
 
   const app = await prisma.application.create({
     data: {
@@ -122,7 +152,7 @@ export async function createApplicationAction(
       applicantDobEnc: encryptOptional(d.applicantDob),
       applicantAddressEnc: encryptOptional(d.applicantAddress),
       govIdNumberEnc: encryptOptional(d.govIdNumber),
-      coApplicantName: d.coApplicantName || null,
+      coApplicantName,
       incomeAnnual:
         d.incomeAnnual ??
         (d.grossMonthlyIncome ? Math.round(d.grossMonthlyIncome * 12) : null),

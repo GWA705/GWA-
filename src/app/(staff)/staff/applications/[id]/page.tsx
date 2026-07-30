@@ -185,7 +185,20 @@ export default async function StaffApplicationDetail({
           </dl>
         </section>
 
-        {app.loanApplication && <LoanApplicationDetails loan={app.loanApplication} />}
+        {app.loanApplication && (
+          <LoanApplicationDetails
+            loan={app.loanApplication}
+            co={
+              reveal
+                ? {
+                    dob: decryptOptional(app.loanApplication.coDobEnc),
+                    address: decryptOptional(app.loanApplication.coAddressEnc),
+                    govId: decryptOptional(app.loanApplication.coGovIdNumberEnc),
+                  }
+                : undefined
+            }
+          />
+        )}
 
         {/* Notes to dealer */}
         <section className="card p-6">
