@@ -81,6 +81,12 @@ _Last updated: 2026-07-30_
        redeploy). Hide the image gracefully when it can't load, and let the admin
        spot/clean up the orphaned announcement. (New uploads now persist in S3.)
 
+26. **Progress tracker cut off on mobile** 🐞 — the 7-step deal tracker
+    (Submitted → … → Paid) is a fixed-width row, so on a phone the later steps
+    (In for funding / Funded / Paid) run off the right edge. Make it responsive:
+    e.g. a compact/scrollable stepper on small screens, smaller dots+labels, or
+    a "Step X of 7" summary. Should fit within the phone width.
+
 17. ✅ **DONE — Progress bar reacts to status changes.** The tracker now keys off
     the live status: moving a deal backward (e.g. Approved → Under review)
     un-lights later steps, and Problem / Declined / Withdrawn show an off-path
