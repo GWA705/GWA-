@@ -13,33 +13,43 @@ async function main() {
   const adminEmail = (process.env.SEED_ADMIN_EMAIL || 'admin@gwa.example').toLowerCase();
   const adminPassword = process.env.SEED_ADMIN_PASSWORD || 'ChangeMe!Admin123';
 
-  // Admin
-  const admin = await prisma.user.upsert({
-    where: { email: adminEmail },
-    update: {},
-    create: {
-      email: adminEmail,
-      name: 'GWA Administrator',
-      role: 'ADMIN',
-      passwordHash: await hash(adminPassword),
-      passwordChangedAt: new Date(),
-    },
-  });
-  console.log(`Admin: ${admin.email}`);
+  // Demo accounts (reviewer/dealer with fake @…example emails) are only created
+  // when SEED_DEMO=true. In production they're left out, so they can't receive
+  // — and bounce — notification emails. Real accounts are made in the admin UI.
+  const seedDemo = process.env.SEED_DEMO === 'true';
 
-  // Reviewer
-  const reviewer = await prisma.user.upsert({
-    where: { email: 'reviewer@gwa.example' },
-    update: {},
-    create: {
-      email: 'reviewer@gwa.example',
-      name: 'Jordan Reviewer',
-      role: 'REVIEWER',
-      passwordHash: await hash('ChangeMe!Review123'),
-      passwordChangedAt: new Date(),
-    },
-  });
-  console.log(`Reviewer: ${reviewer.email}`);
+  // Bootstrap admin — only when there is no admin yet, so a fresh environment
+  // has a way in. Once you've created your own admin and removed this one, it
+  // won't come back.
+  const adminCount = await prisma.user.count({ where: { role: 'ADMIN' } });
+  if (adminCount === 0) {
+    const admin = await prisma.user.create({
+      data: {
+        email: adminEmail,
+        name: 'GWA Administrator',
+        role: 'ADMIN',
+        passwordHash: await hash(adminPassword),
+        passwordChangedAt: new Date(),
+      },
+    });
+    console.log(`Bootstrap admin created: ${admin.email}`);
+  }
+
+  // Reviewer (demo only)
+  if (seedDemo) {
+    const reviewer = await prisma.user.upsert({
+      where: { email: 'reviewer@gwa.example' },
+      update: {},
+      create: {
+        email: 'reviewer@gwa.example',
+        name: 'Jordan Reviewer',
+        role: 'REVIEWER',
+        passwordHash: await hash('ChangeMe!Review123'),
+        passwordChangedAt: new Date(),
+      },
+    });
+    console.log(`Reviewer: ${reviewer.email}`);
+  }
 
   // Dealer + dealer users
   const dealer = await prisma.dealer.upsert({
@@ -53,30 +63,34 @@ async function main() {
     create: { id: 'seed-dealer-2', name: 'North Bay Mechanical' },
   });
 
-  const dealerUser = await prisma.user.upsert({
-    where: { email: 'dealer@barrie.example' },
-    update: {},
-    create: {
-      email: 'dealer@barrie.example',
-      name: 'Sam Dealer',
-      role: 'DEALER_USER',
-      dealerId: dealer.id,
-      passwordHash: await hash('ChangeMe!Dealer123'),
-      passwordChangedAt: new Date(),
-    },
-  });
-  await prisma.user.upsert({
-    where: { email: 'dealer@northbay.example' },
-    update: {},
-    create: {
-      email: 'dealer@northbay.example',
-      name: 'Alex Dealer',
-      role: 'DEALER_USER',
-      dealerId: dealer2.id,
-      passwordHash: await hash('ChangeMe!Dealer123'),
-      passwordChangedAt: new Date(),
-    },
-  });
+  // Demo dealer users (fake emails) — demo only.
+  let dealerUser: { id: string } | null = null;
+  if (seedDemo) {
+    dealerUser = await prisma.user.upsert({
+      where: { email: 'dealer@barrie.example' },
+      update: {},
+      create: {
+        email: 'dealer@barrie.example',
+        name: 'Sam Dealer',
+        role: 'DEALER_USER',
+        dealerId: dealer.id,
+        passwordHash: await hash('ChangeMe!Dealer123'),
+        passwordChangedAt: new Date(),
+      },
+    });
+    await prisma.user.upsert({
+      where: { email: 'dealer@northbay.example' },
+      update: {},
+      create: {
+        email: 'dealer@northbay.example',
+        name: 'Alex Dealer',
+        role: 'DEALER_USER',
+        dealerId: dealer2.id,
+        passwordHash: await hash('ChangeMe!Dealer123'),
+        passwordChangedAt: new Date(),
+      },
+    });
+  }
   console.log(`Dealers: ${dealer.name}, ${dealer2.name}`);
 
   // Finance companies (placeholder list — replace with the real ones)
@@ -98,9 +112,9 @@ async function main() {
     await prisma.homeDepotStore.upsert({ where: { id: s.id }, update: {}, create: s });
   }
 
-  // Sample application (only if none exist for this dealer)
+  // Sample application (demo only, and only if none exist for this dealer)
   const existing = await prisma.application.count({ where: { dealerId: dealer.id } });
-  if (existing === 0) {
+  if (seedDemo && dealerUser && existing === 0) {
     await prisma.application.create({
       data: {
         dealerId: dealer.id,
@@ -136,10 +150,13 @@ async function main() {
     console.log('Created sample application.');
   }
 
-  console.log('\nSeed complete. Sample logins (change in production):');
-  console.log(`  Admin:    ${adminEmail} / ${adminPassword}`);
-  console.log('  Reviewer: reviewer@gwa.example / ChangeMe!Review123');
-  console.log('  Dealer:   dealer@barrie.example / ChangeMe!Dealer123');
+  console.log('\nSeed complete.');
+  if (seedDemo) {
+    console.log('Demo logins (change in production):');
+    console.log(`  Admin:    ${adminEmail} / ${adminPassword}`);
+    console.log('  Reviewer: reviewer@gwa.example / ChangeMe!Review123');
+    console.log('  Dealer:   dealer@barrie.example / ChangeMe!Dealer123');
+  }
 }
 
 main()
