@@ -254,10 +254,28 @@ export function NewApplicationForm({ stores }: { stores: Store[] }) {
         </div>
 
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label className="label" htmlFor="financeItNumber">Financing deal number {method === 'FINANCEIT' ? '' : <span className="font-normal text-gray-400">(if applicable)</span>}</label>
-            <input id="financeItNumber" name="financeItNumber" maxLength={60} className="input" placeholder={method === 'FINANCEIT' ? 'FinanceIT loan number' : 'If applicable'} autoComplete="off" />
-            <p className="mt-1 text-xs text-gray-400">Entering this indicates the deal is already approved.</p>
+          <div className={method === 'FINANCEIT' ? 'rounded-lg bg-green-50 p-3 ring-1 ring-green-300' : ''}>
+            <label className="label" htmlFor="financeItNumber">
+              Financing deal number{' '}
+              {method === 'FINANCEIT'
+                ? <span className="font-semibold text-green-700">← enter your FinanceIT number here</span>
+                : <span className="font-normal text-gray-400">(if applicable)</span>}
+            </label>
+            <input
+              id="financeItNumber"
+              name="financeItNumber"
+              maxLength={60}
+              className={`input ${method === 'FINANCEIT' ? 'border-green-400 bg-white ring-2 ring-green-300 focus:border-green-500 focus:ring-green-400' : ''}`}
+              placeholder={method === 'FINANCEIT' ? 'FinanceIT loan number' : 'If applicable'}
+              autoComplete="off"
+            />
+            {method === 'FINANCEIT' ? (
+              <p className="mt-1 text-xs text-green-700">
+                Copy the approval number from your FinanceIT portal (for example <span className="font-mono font-semibold">7779477</span>). Double-check it matches before submitting — entering it marks the deal approved.
+              </p>
+            ) : (
+              <p className="mt-1 text-xs text-gray-400">Entering this indicates the deal is already approved.</p>
+            )}
             <Err state={state} name="financeItNumber" />
           </div>
           <div>

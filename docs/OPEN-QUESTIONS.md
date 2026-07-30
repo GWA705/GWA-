@@ -125,6 +125,12 @@ _Last updated: 2026-07-30_
 33. ✅ **DONE — Added a "Start here" badge** above the "Three choices to process a
     new customer application" heading on the dealer application form.
 
+34. ✅ **DONE — Guide the dealer to the financing-deal-number field when option 1
+    (Fastest / FinanceIT) is selected.** The field now highlights in green (green
+    box + ring + "← enter your FinanceIT number here" label) and shows an example
+    number (`7779477`) so the dealer can confirm they're entering the right
+    number before submitting.
+
 17. ✅ **DONE — Progress bar reacts to status changes.** The tracker now keys off
     the live status: moving a deal backward (e.g. Approved → Under review)
     un-lights later steps, and Problem / Declined / Withdrawn show an off-path
