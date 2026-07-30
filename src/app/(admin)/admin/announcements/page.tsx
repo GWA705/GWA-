@@ -2,6 +2,7 @@ import { requireRole } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { toggleAnnouncementActiveAction, deleteAnnouncementAction } from '@/app/(admin)/actions';
 import { AnnouncementForm } from './AnnouncementForm';
+import { AnnouncementImageForm } from './AnnouncementImageForm';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,11 +41,12 @@ export default async function AnnouncementsPage() {
                 {a.linkUrl && <p className="mt-1 truncate text-xs text-brand-700">{a.linkUrl}</p>}
               </div>
               <div className="flex flex-none flex-col gap-2">
+                <AnnouncementImageForm id={a.id} hasImage={!!a.imageStorageKey} />
                 <form action={toggleAnnouncementActiveAction.bind(null, a.id)}>
                   <button type="submit" className="btn-secondary w-full text-xs">{a.active ? 'Hide' : 'Show'}</button>
                 </form>
                 <form action={deleteAnnouncementAction.bind(null, a.id)}>
-                  <button type="submit" className="btn-danger w-full text-xs">Delete</button>
+                  <button type="submit" className="btn-danger w-full text-xs">Delete announcement</button>
                 </form>
               </div>
             </div>

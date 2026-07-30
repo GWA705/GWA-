@@ -49,48 +49,57 @@ export async function storeUploadedFile(params: {
     return { ok: false, error: `Unsupported file type: ${file.type || 'unknown'}.` };
   }
 
-  const original = Buffer.from(await file.arrayBuffer());
-  const { bytes, mimeType, converted } = await convertToPdf(original, file.type);
-  const isPdf = mimeType === 'application/pdf';
+  // Process + store inside a try/catch so a failure (e.g. the file store /
+  // S3 rejecting the write, or image conversion blowing up) returns a clean
+  // error to the user instead of throwing an uncaught server exception that
+  // crashes the whole page.
+  try {
+    const original = Buffer.from(await file.arrayBuffer());
+    const { bytes, mimeType, converted } = await convertToPdf(original, file.type);
+    const isPdf = mimeType === 'application/pdf';
 
-  const when = new Date();
-  const displayName = buildDocumentName({
-    firstName: application.applicantFirstName,
-    lastName: application.applicantLastName,
-    purchaseDate: application.dateOfSale,
-    when,
-    isPdf,
-    originalName: file.name,
-    prefix: namePrefix,
-  });
-  const ext = isPdf ? '.pdf' : displayName.slice(displayName.lastIndexOf('.'));
-  const key = newStorageKey({ dealerId: application.dealerId, applicationId: application.id, ext, when });
-  await putDocument(key, bytes);
+    const when = new Date();
+    const displayName = buildDocumentName({
+      firstName: application.applicantFirstName,
+      lastName: application.applicantLastName,
+      purchaseDate: application.dateOfSale,
+      when,
+      isPdf,
+      originalName: file.name,
+      prefix: namePrefix,
+    });
+    const ext = isPdf ? '.pdf' : displayName.slice(displayName.lastIndexOf('.'));
+    const key = newStorageKey({ dealerId: application.dealerId, applicationId: application.id, ext, when });
+    await putDocument(key, bytes);
 
-  const doc = await prisma.document.create({
-    data: {
-      applicationId: application.id,
-      type,
-      stage,
-      fileName: displayName,
-      originalName: file.name.slice(0, 255),
-      mimeType,
-      sizeBytes: bytes.length,
-      storageKey: key,
-      checksum: sha256(bytes),
-      uploadedById,
-    },
-  });
+    const doc = await prisma.document.create({
+      data: {
+        applicationId: application.id,
+        type,
+        stage,
+        fileName: displayName,
+        originalName: file.name.slice(0, 255),
+        mimeType,
+        sizeBytes: bytes.length,
+        storageKey: key,
+        checksum: sha256(bytes),
+        uploadedById,
+      },
+    });
 
-  await audit({
-    actorId: uploadedById,
-    action: 'DOC_UPLOAD',
-    entityType: 'Document',
-    entityId: doc.id,
-    detail: `${type} (${stage}) for application ${application.id}${converted ? ' [converted to PDF]' : ''}`,
-  });
+    await audit({
+      actorId: uploadedById,
+      action: 'DOC_UPLOAD',
+      entityType: 'Document',
+      entityId: doc.id,
+      detail: `${type} (${stage}) for application ${application.id}${converted ? ' [converted to PDF]' : ''}`,
+    });
 
-  return { ok: true, documentId: doc.id };
+    return { ok: true, documentId: doc.id };
+  } catch (err) {
+    console.error('[upload] failed to store document', err);
+    return { ok: false, error: 'The file could not be saved. Please try again — if it keeps happening, contact GWA.' };
+  }
 }
 
 /** Store one or more uploaded files (multi-file upload). Returns an error string or null. */

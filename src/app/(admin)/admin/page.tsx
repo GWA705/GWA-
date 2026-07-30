@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { requireRole } from '@/lib/session';
 import { prisma } from '@/lib/db';
+import { StorageCheck } from './StorageCheck';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,6 +33,9 @@ export default async function AdminOverview() {
             <div className="mt-1 text-sm text-gray-500">{c.label}</div>
           </Link>
         ))}
+      </div>
+      <div className="mt-6">
+        <StorageCheck />
       </div>
     </div>
   );

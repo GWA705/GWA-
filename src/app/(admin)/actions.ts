@@ -7,7 +7,7 @@ import { hashPassword, validatePasswordStrength } from '@/lib/password';
 import { audit } from '@/lib/audit';
 import crypto from 'crypto';
 import path from 'path';
-import { putDocument, deleteDocument } from '@/lib/storage';
+import { putDocument, getDocument, deleteDocument } from '@/lib/storage';
 import { ALLOWED_MIME_TYPES, MAX_FILE_BYTES } from '@/lib/constants';
 import { createUserSchema, createDealerSchema, createFinanceCompanySchema, announcementSchema, contentSchema } from '@/lib/validation';
 import { CONTENT_SECTIONS } from '@/lib/constants';
@@ -43,6 +43,35 @@ export async function saveEmailIdentityAction(
   await audit({ actorId: session.userId, action: 'USER_UPDATE', entityType: 'AppSetting', entityId: 'email', detail: `Email identity updated (from=${fromEmail || 'env'}, replyTo=${replyTo || 'from'})` });
   revalidatePath('/admin/email');
   return { ok: true, message: 'Email identity saved.' };
+}
+
+// Storage health check: write a tiny test object, read it back, and delete it.
+// Surfaces the real error (e.g. an S3 auth/permission failure) so document-
+// upload problems can be diagnosed without digging through server logs.
+export async function testStorageAction(): Promise<ActionState> {
+  const session = await requireRole('ADMIN');
+  const key = `healthcheck/${crypto.randomBytes(8).toString('hex')}.txt`;
+  const payload = Buffer.from(`storage-check ${key}`);
+  try {
+    await putDocument(key, payload);
+    const back = await getDocument(key);
+    const roundTripOk = Buffer.compare(back, payload) === 0;
+    await deleteDocument(key).catch(() => {});
+    if (!roundTripOk) return { error: 'Storage wrote and read a file, but the contents did not match. Check encryption settings.' };
+    const driver = process.env.STORAGE_DRIVER === 's3' ? `S3 (bucket ${process.env.S3_BUCKET || '?'})` : 'local disk';
+    await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'AppSetting', entityId: 'storage', detail: 'Storage health check passed' });
+    return { ok: true, message: `Document storage is working (${driver}). A test file was written, read back, and deleted.` };
+  } catch (err) {
+    const e = err as { name?: string; Code?: string; message?: string };
+    const code = e?.Code || e?.name || '';
+    let hint = '';
+    if (/InvalidAccessKeyId|SignatureDoesNotMatch|AccessDenied|Forbidden|credential/i.test(`${code} ${e?.message}`)) {
+      hint = ' → This looks like an AWS credential/permission problem. Re-check AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY in Render match the current key, and that the IAM user can PutObject/GetObject/DeleteObject on the bucket.';
+    } else if (/NoSuchBucket|bucket/i.test(`${code} ${e?.message}`)) {
+      hint = ' → Check S3_BUCKET and S3_REGION in Render.';
+    }
+    return { error: `Storage check failed: ${code ? code + ' — ' : ''}${e?.message || 'unknown error'}.${hint}` };
+  }
 }
 
 // Send a test email to confirm SMTP is configured correctly. The admin can
@@ -332,26 +361,88 @@ export async function createAnnouncementAction(
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Please check the form.' };
   const d = parsed.data;
 
-  const created = await prisma.announcement.create({
-    data: { title: d.title || null, body: d.body || null, linkUrl: d.linkUrl || null },
-  });
-
+  // Validate the image BEFORE creating the announcement, so a bad/oversized
+  // image never leaves behind an empty orphan announcement.
   if (hasImage) {
     if (file!.size > MAX_FILE_BYTES) return { error: 'Image is too large (max 15 MB).' };
     if (!ALLOWED_MIME_TYPES.includes(file!.type) || !file!.type.startsWith('image/')) {
       return { error: 'Banner must be an image (JPG, PNG, WEBP).' };
     }
-    const ext = path.extname(file!.name).slice(0, 12).replace(/[^a-zA-Z0-9.]/g, '') || '.img';
-    const key = `announcements/${created.id}/${crypto.randomBytes(8).toString('hex')}${ext}`;
-    const bytes = Buffer.from(await file!.arrayBuffer());
-    await putDocument(key, bytes);
-    await prisma.announcement.update({
-      where: { id: created.id },
-      data: { imageStorageKey: key, imageMime: file!.type },
-    });
+  }
+
+  const created = await prisma.announcement.create({
+    data: { title: d.title || null, body: d.body || null, linkUrl: d.linkUrl || null },
+  });
+
+  if (hasImage) {
+    try {
+      const ext = path.extname(file!.name).slice(0, 12).replace(/[^a-zA-Z0-9.]/g, '') || '.img';
+      const key = `announcements/${created.id}/${crypto.randomBytes(8).toString('hex')}${ext}`;
+      const bytes = Buffer.from(await file!.arrayBuffer());
+      await putDocument(key, bytes);
+      await prisma.announcement.update({
+        where: { id: created.id },
+        data: { imageStorageKey: key, imageMime: file!.type },
+      });
+    } catch (err) {
+      // Upload failed — remove the just-created row so nothing accumulates.
+      console.error('[announcement] image upload failed; rolling back', err);
+      await prisma.announcement.delete({ where: { id: created.id } }).catch(() => {});
+      return { error: 'The image could not be saved. Please try again.' };
+    }
   }
 
   await audit({ actorId: session.userId, action: 'DEALER_CREATE', entityType: 'Announcement', entityId: created.id, detail: d.title || 'announcement' });
+  revalidatePath('/admin/announcements');
+  revalidatePath('/dealer');
+  return { ok: true };
+}
+
+// Replace (or remove) the image on an existing announcement, so admins can swap
+// the picture without creating a new announcement each time.
+export async function setAnnouncementImageAction(
+  id: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await requireRole('ADMIN');
+  const a = await prisma.announcement.findUnique({ where: { id } });
+  if (!a) return { error: 'Announcement not found.' };
+
+  const remove = formData.get('remove') === '1';
+  const file = formData.get('image') as File | null;
+  const hasImage = !!file && typeof file !== 'string' && file.size > 0;
+
+  if (remove) {
+    if (a.imageStorageKey) await deleteDocument(a.imageStorageKey).catch(() => {});
+    await prisma.announcement.update({ where: { id }, data: { imageStorageKey: null, imageMime: null } });
+    await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'Announcement', entityId: id, detail: 'image removed' });
+    revalidatePath('/admin/announcements');
+    revalidatePath('/dealer');
+    return { ok: true };
+  }
+
+  if (!hasImage) return { error: 'Choose an image to upload.' };
+  if (file!.size > MAX_FILE_BYTES) return { error: 'Image is too large (max 15 MB).' };
+  if (!ALLOWED_MIME_TYPES.includes(file!.type) || !file!.type.startsWith('image/')) {
+    return { error: 'Banner must be an image (JPG, PNG, WEBP).' };
+  }
+
+  try {
+    const ext = path.extname(file!.name).slice(0, 12).replace(/[^a-zA-Z0-9.]/g, '') || '.img';
+    const key = `announcements/${id}/${crypto.randomBytes(8).toString('hex')}${ext}`;
+    const bytes = Buffer.from(await file!.arrayBuffer());
+    await putDocument(key, bytes);
+    const oldKey = a.imageStorageKey;
+    await prisma.announcement.update({ where: { id }, data: { imageStorageKey: key, imageMime: file!.type } });
+    // Delete the previous image after the new one is saved (best-effort).
+    if (oldKey && oldKey !== key) await deleteDocument(oldKey).catch(() => {});
+  } catch (err) {
+    console.error('[announcement] image replace failed', err);
+    return { error: 'The image could not be saved. Please try again.' };
+  }
+
+  await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'Announcement', entityId: id, detail: 'image replaced' });
   revalidatePath('/admin/announcements');
   revalidatePath('/dealer');
   return { ok: true };

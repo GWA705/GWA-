@@ -159,15 +159,15 @@ export default async function DealerApplicationDetail({
         )}
       </section>
 
-      {/* Notes with GWA */}
+      {/* Chat with the Reviewer */}
       <section className="card p-6">
-        <h2 className="mb-3 text-base font-semibold text-gray-900">Notes</h2>
+        <h2 className="mb-3 text-base font-semibold text-gray-900">Chat with the Reviewer</h2>
         <div className="mb-4">
-          <NoteThread notes={app.dealNotes} emptyText="No messages yet. Use this to communicate with the GWA team about this deal." />
+          <NoteThread notes={app.dealNotes} emptyText="No messages yet. Use this to chat with the reviewer about this deal." />
         </div>
         <NoteForm
           action={addDealerNoteAction.bind(null, app.id)}
-          placeholder="Write a note to the GWA team…"
+          placeholder="Write a message to the reviewer…"
           label="Send"
         />
       </section>
