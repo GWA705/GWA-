@@ -14,7 +14,7 @@ import {
   confirmationSchema,
   dealReferencesSchema,
 } from '@/lib/validation';
-import { FUNDING_DOCUMENT_TYPES, REVIEWER_PAPERWORK_PREFIX } from '@/lib/constants';
+import { FUNDING_DOCUMENT_TYPES, REVIEWER_PAPERWORK_PREFIX, REVIEWER_PAPERWORK_TYPES } from '@/lib/constants';
 import type { ApplicationStatus, DecisionType, DocumentType } from '@prisma/client';
 
 export interface ActionState {
@@ -193,16 +193,21 @@ export async function startFundingReviewAction(applicationId: string): Promise<v
   revalidatePath(`/staff/applications/${applicationId}`);
 }
 
-// Reviewer/admin uploads paperwork FOR the dealer (HD or Financing).
+// Reviewer/admin uploads paperwork FOR the dealer. The category is chosen from
+// a dropdown and arrives in the form data (one drop zone for all types).
 export async function uploadReviewerPaperworkAction(
   applicationId: string,
-  docType: DocumentType,
   _prev: { error?: string },
   formData: FormData,
 ): Promise<{ error?: string }> {
   const session = await requireRole('REVIEWER', 'ADMIN');
   const app = await prisma.application.findUnique({ where: { id: applicationId } });
   if (!app) return { error: 'Not found.' };
+
+  const category = String(formData.get('category') || '');
+  const allowed = REVIEWER_PAPERWORK_TYPES.map((t) => t.type) as string[];
+  if (!allowed.includes(category)) return { error: 'Choose a paperwork type first.' };
+  const docType = category as DocumentType;
 
   const files = formData.getAll('file') as File[];
   const result = await storeFiles({

@@ -9,7 +9,7 @@ import { DocumentList } from '@/components/DocumentList';
 import { FundingChecklist } from '@/components/FundingChecklist';
 import { LoanApplicationDetails } from '@/components/LoanApplicationDetails';
 import { PayoutReceipt } from '@/components/PayoutReceipt';
-import { UploadForm } from '@/components/UploadForm';
+import { ReviewerPaperworkForm } from './ReviewerPaperworkForm';
 import { NoteThread } from '@/components/NoteThread';
 import { NoteForm } from '@/components/NoteForm';
 import { ConfirmationBadge } from '@/components/ConfirmationBadge';
@@ -264,13 +264,11 @@ export default async function StaffApplicationDetail({
           <div className="mb-4">
             <DocumentList documents={reviewerDocs} />
           </div>
-          <div className="grid grid-cols-1 gap-4 border-t border-gray-100 pt-4 sm:grid-cols-2">
-            {REVIEWER_PAPERWORK_TYPES.map((p) => (
-              <div key={p.type}>
-                <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500">{p.label}</div>
-                <UploadForm action={uploadReviewerPaperworkAction.bind(null, app.id, p.type)} label="Upload" />
-              </div>
-            ))}
+          <div className="border-t border-gray-100 pt-4">
+            <ReviewerPaperworkForm
+              action={uploadReviewerPaperworkAction.bind(null, app.id)}
+              categories={REVIEWER_PAPERWORK_TYPES}
+            />
           </div>
         </section>
 

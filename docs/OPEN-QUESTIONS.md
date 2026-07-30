@@ -48,9 +48,10 @@ _Last updated: 2026-07-30_
 
 ## B. Feature decisions I've offered — just say the word
 
-9. **Reviewer "Paperwork for dealer" upload** — collapse the 4 separate boxes
-   (HD Agreements / HD Waiver / Release of Funds / Financing Paperwork) into
-   **one drop zone with a category dropdown**. (No issue uploading just one type.)
+9. ✅ **DONE — Reviewer "Paperwork for dealer" is now one drop zone + a category
+   dropdown.** The 4 separate boxes (HD Agreements / HD Waiver / Release of Funds
+   / Financing Paperwork) are collapsed into a single upload: pick the type, drop
+   the file(s). The category still drives the filename prefix (HD 1 / COC / etc.).
 
 10. **ID province / ID type on older deals** — add an "Edit deal" option so
     reviewers can fill these in on deals created before those fields existed.
