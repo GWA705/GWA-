@@ -217,6 +217,7 @@ enum HousingStatus {
 enum EmploymentStatus {
   EMPLOYED
   SELF_EMPLOYED
+  RETIRED
   OTHER
 }
 

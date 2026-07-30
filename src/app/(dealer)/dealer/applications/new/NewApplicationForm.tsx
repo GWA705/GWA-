@@ -478,7 +478,7 @@ export function NewApplicationForm({ stores }: { stores: Store[] }) {
                 <label className="label" htmlFor="employmentStatus">Employment status</label>
                 <select id="employmentStatus" name="employmentStatus" className={fieldCls('')}>
                   <option value="">Select…</option>
-                  <option value="EMPLOYED">Employed</option><option value="SELF_EMPLOYED">Self-employed</option><option value="OTHER">Other</option>
+                  <option value="EMPLOYED">Employed</option><option value="SELF_EMPLOYED">Self-employed</option><option value="RETIRED">Retired</option><option value="OTHER">Other</option>
                 </select>
               </div>
             </div>
@@ -583,7 +583,7 @@ export function NewApplicationForm({ stores }: { stores: Store[] }) {
                       <label className="label" htmlFor="coEmploymentStatus">Employment status</label>
                       <select id="coEmploymentStatus" name="coEmploymentStatus" className={fieldCls('')}>
                         <option value="">Select…</option>
-                        <option value="EMPLOYED">Employed</option><option value="SELF_EMPLOYED">Self-employed</option><option value="OTHER">Other</option>
+                        <option value="EMPLOYED">Employed</option><option value="SELF_EMPLOYED">Self-employed</option><option value="RETIRED">Retired</option><option value="OTHER">Other</option>
                       </select>
                     </div>
                   </div>

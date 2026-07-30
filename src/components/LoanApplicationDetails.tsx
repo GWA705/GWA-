@@ -14,6 +14,7 @@ const HOUSING: Record<string, string> = { OWN: 'Own', RENT: 'Rent', OTHER: 'Othe
 const EMPLOYMENT: Record<string, string> = {
   EMPLOYED: 'Employed',
   SELF_EMPLOYED: 'Self-employed',
+  RETIRED: 'Retired',
   OTHER: 'Other',
 };
 

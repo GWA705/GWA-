@@ -187,7 +187,7 @@ export function EditDealForm({ applicationId, initial }: { applicationId: string
             <label className="label" htmlFor="employmentStatus">Employment status</label>
             <select id="employmentStatus" name="employmentStatus" defaultValue={v.employmentStatus} className="input">
               <option value="">Select…</option>
-              <option value="EMPLOYED">Employed</option><option value="SELF_EMPLOYED">Self-employed</option><option value="OTHER">Other</option>
+              <option value="EMPLOYED">Employed</option><option value="SELF_EMPLOYED">Self-employed</option><option value="RETIRED">Retired</option><option value="OTHER">Other</option>
             </select>
           </div>
         </div>

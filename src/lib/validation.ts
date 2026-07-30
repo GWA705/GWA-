@@ -66,7 +66,7 @@ export const applicationSchema = z.object({
   employerPhone: str(30),
   grossMonthlyIncome: optionalNumber,
   timeAtJobYears: optionalInt,
-  employmentStatus: z.preprocess(blankToUndef, z.enum(['EMPLOYED', 'SELF_EMPLOYED', 'OTHER']).optional()),
+  employmentStatus: z.preprocess(blankToUndef, z.enum(['EMPLOYED', 'SELF_EMPLOYED', 'RETIRED', 'OTHER']).optional()),
 
   // Deal details
   dateOfSale: optionalDate,
@@ -127,7 +127,7 @@ export const applicationSchema = z.object({
   coEmployerPhone: str(30),
   coGrossMonthlyIncome: optionalNumber,
   coTimeAtJobYears: optionalInt,
-  coEmploymentStatus: z.preprocess(blankToUndef, z.enum(['EMPLOYED', 'SELF_EMPLOYED', 'OTHER']).optional()),
+  coEmploymentStatus: z.preprocess(blankToUndef, z.enum(['EMPLOYED', 'SELF_EMPLOYED', 'RETIRED', 'OTHER']).optional()),
 
   incomeAnnual: z.coerce.number().nonnegative().max(100_000_000).optional(),
   employer: z.string().max(160).optional(),
@@ -184,7 +184,7 @@ export const editDealSchema = z.object({
   employerPhone: str(30),
   grossMonthlyIncome: optionalNumber,
   timeAtJobYears: optionalInt,
-  employmentStatus: z.preprocess(blankToUndef, z.enum(['EMPLOYED', 'SELF_EMPLOYED', 'OTHER']).optional()),
+  employmentStatus: z.preprocess(blankToUndef, z.enum(['EMPLOYED', 'SELF_EMPLOYED', 'RETIRED', 'OTHER']).optional()),
 });
 
 export type EditDealInput = z.infer<typeof editDealSchema>;
