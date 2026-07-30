@@ -72,6 +72,15 @@ _Last updated: 2026-07-30_
     (ZIP)" button on a deal, and/or an admin export by dealer / date range.
     Access-controlled and written to the audit log.
 
+25. **Announcement banner image polish** 🐞 —
+    a) **Auto-fit uploaded pictures** to the banner area instead of cropping
+       them (currently `object-cover` cuts off the top/bottom — the GWA logo is
+       clipped). Show the whole image scaled to fit.
+    b) **Broken image window** — an announcement is showing a broken-image "?"
+       box because its image file is missing (uploaded before S3 was on, lost on
+       redeploy). Hide the image gracefully when it can't load, and let the admin
+       spot/clean up the orphaned announcement. (New uploads now persist in S3.)
+
 17. ✅ **DONE — Progress bar reacts to status changes.** The tracker now keys off
     the live status: moving a deal backward (e.g. Approved → Under review)
     un-lights later steps, and Problem / Declined / Withdrawn show an off-path
