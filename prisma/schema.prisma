@@ -79,6 +79,14 @@ model ContentItem {
 }
 
 // A finance company a deal can be approved through (admin-managed list).
+// Small key/value store for admin-editable app settings (e.g. the email
+// From/Reply-To group addresses). SMTP credentials stay in env, not here.
+model AppSetting {
+  key       String   @id
+  value     String   @db.Text
+  updatedAt DateTime @updatedAt
+}
+
 model FinanceCompany {
   id        String   @id @default(cuid())
   name      String

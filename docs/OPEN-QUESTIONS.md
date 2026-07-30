@@ -19,10 +19,15 @@ _Last updated: 2026-07-30_
    `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` in Render, live. Street address now
    autocompletes and fills city/province/postal.
 
-3. **Google Workspace email credentials** — to switch email from "log-only"
-   to actually sending (password resets, status updates, etc.). Need the
-   mailbox + App Password (e.g. a real `hello@ghsbarrie.ca`, send-as
-   `noreply@ghsbarrie.ca`).
+3. 🟡 **Email sending (SMTP) — code ready, needs your App Password.** The email
+   layer is built and proven; it sends the moment SMTP is configured. New admin
+   **Email** page: live status (Log-only / Sending), a **Send test email**
+   button, an editable **From name / From (group) address / Reply-To (group)**
+   (stored in the DB, no redeploy), and an inline setup guide. Emails come
+   **from** your group address with **Reply-To** set to the group so replies
+   reach the whole team. Step-by-step: `docs/EMAIL-SMTP.md`.
+   **Your part:** create a Google Workspace App Password and set `SMTP_HOST`,
+   `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` in Render (see the guide).
 
 4. **Home Depot store list per dealer** — which HD store numbers each dealer
    is allowed to pick from (the store dropdown on an application).
@@ -192,11 +197,15 @@ _Last updated: 2026-07-30_
 22. **Independent security review / penetration test** — recommended before
     handling real customer applications in production.
 
-23. **Rotate the AWS access key** 🔐 — the S3 secret key was shown in a
-    screenshot during setup. Create a fresh key (IAM → gwa-portal-app →
-    Security credentials → delete old → create new), update
-    `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` in Render, then redeploy.
-    Type the values straight into Render — don't screenshot them.
+23. ✅ **DONE — Rotated the AWS access key.** New key created, updated in Render,
+    old key deleted; live site healthy and serving from S3 after the rotation.
+
+40. ✅ **DONE — Heading now reads "Three choices to process a new customer"**
+    (dropped "application").
+
+41. ✅ **DONE — Emails come from a group address with Reply-To to the group**, and
+    the From name / From address / Reply-To are editable in the admin Email page
+    (stored in the DB, no redeploy). See #3.
 
 ---
 

@@ -11,10 +11,73 @@ import { putDocument, deleteDocument } from '@/lib/storage';
 import { ALLOWED_MIME_TYPES, MAX_FILE_BYTES } from '@/lib/constants';
 import { createUserSchema, createDealerSchema, createFinanceCompanySchema, announcementSchema, contentSchema } from '@/lib/validation';
 import { CONTENT_SECTIONS } from '@/lib/constants';
+import { sendEmail, emailEnabled } from '@/lib/email';
+import { setSetting, EMAIL_SETTING_KEYS } from '@/lib/settings';
 
 export interface ActionState {
   error?: string;
   ok?: boolean;
+  message?: string;
+}
+
+// Save the email identity — the From display name, the group address emails
+// come FROM, and the Reply-To group address. Stored in the DB so they can be
+// changed without a redeploy. Blank fields fall back to the env defaults.
+export async function saveEmailIdentityAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await requireRole('ADMIN');
+  const fromName = String(formData.get('fromName') || '').trim();
+  const fromEmail = String(formData.get('fromEmail') || '').trim();
+  const replyTo = String(formData.get('replyTo') || '').trim();
+
+  const emailRe = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+  if (fromEmail && !emailRe.test(fromEmail)) return { error: 'Enter a valid "From" email address.' };
+  if (replyTo && !emailRe.test(replyTo)) return { error: 'Enter a valid "Reply-To" email address.' };
+
+  await setSetting(EMAIL_SETTING_KEYS.fromName, fromName);
+  await setSetting(EMAIL_SETTING_KEYS.fromEmail, fromEmail);
+  await setSetting(EMAIL_SETTING_KEYS.replyTo, replyTo);
+  await audit({ actorId: session.userId, action: 'USER_UPDATE', entityType: 'AppSetting', entityId: 'email', detail: `Email identity updated (from=${fromEmail || 'env'}, replyTo=${replyTo || 'from'})` });
+  revalidatePath('/admin/email');
+  return { ok: true, message: 'Email identity saved.' };
+}
+
+// Send a test email to confirm SMTP is configured correctly. The admin can
+// send to themselves (default) or any address. No personal data is included.
+export async function sendTestEmailAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await requireRole('ADMIN');
+  const to = String(formData.get('to') || '').trim();
+  if (!to || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) {
+    return { error: 'Enter a valid email address.' };
+  }
+
+  if (!emailEnabled()) {
+    return {
+      error:
+        'Email is still in log-only mode. Set SMTP_HOST, SMTP_USER and SMTP_PASS in Render, redeploy, then try again.',
+    };
+  }
+
+  const result = await sendEmail({
+    to,
+    subject: 'GWA Dealer Portal — test email',
+    html: `<p>This is a test email from the GWA Dealer Portal.</p>
+      <p>If you received this, outgoing email is configured correctly.</p>
+      <p style="color:#6b7280;font-size:12px">Sent by ${session.email} · no action needed.</p>`,
+    text: 'This is a test email from the GWA Dealer Portal. If you received this, outgoing email is configured correctly.',
+  });
+
+  await audit({ actorId: session.userId, action: 'USER_UPDATE', entityType: 'User', entityId: session.userId, detail: `Sent test email to ${to} (${result.sent ? 'sent' : result.reason})` });
+
+  if (result.sent) {
+    return { ok: true, message: `Test email sent to ${to}. Check the inbox (and spam folder).` };
+  }
+  return { error: `Could not send: ${result.reason || 'unknown error'}. Check the SMTP settings and the server logs.` };
 }
 
 export async function createDealerAction(

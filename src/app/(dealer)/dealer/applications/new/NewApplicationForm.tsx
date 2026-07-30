@@ -236,7 +236,7 @@ export function NewApplicationForm({ stores }: { stores: Store[] }) {
         <span className="mb-2 inline-flex w-fit items-center gap-1 rounded-full bg-brand-100 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wide text-brand-800">
           Start here
         </span>
-        <h2 className="mb-1 text-base font-semibold text-gray-900">Three choices to process a new customer application</h2>
+        <h2 className="mb-1 text-base font-semibold text-gray-900">Three choices to process a new customer</h2>
         <p className="mb-4 text-xs text-gray-500">Pick the option that fits — faster options are at the top.</p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {METHODS.map((m, i) => (
