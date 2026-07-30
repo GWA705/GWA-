@@ -110,3 +110,14 @@ _Last updated: 2026-07-30_
 - Items in **A** generally need your action first; **B** are quick builds once
   you decide; **C** are go-live gates (some are organizational, not code).
 - Add anything new here as it comes up.
+
+### ⚠️ render.yaml is intentionally out of sync (do not naively edit)
+The live Render setup is managed in the **dashboard**, which is the source of
+truth: web service = **Pro**, database = **Basic (5 GB)**, `STORAGE_DRIVER=s3`
+(+ S3 vars & AWS keys), paid & always-on. The committed `render.yaml` still
+says `plan: free` and `STORAGE_DRIVER: local` from the original demo blueprint.
+Render only re-syncs the blueprint when `render.yaml` itself changes, so normal
+code deploys are safe and have never reverted the dashboard. **Before ever
+editing render.yaml, reconcile it to match the dashboard** (plans + S3 +
+`SESSION_SECRET`/`MASTER_ENCRYPTION_KEY` as `sync:false`) or a sync could revert
+the upgrades / switch storage back to local and lose file access.
