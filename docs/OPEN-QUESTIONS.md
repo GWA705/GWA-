@@ -125,6 +125,16 @@ _Last updated: 2026-07-30_
 33. ✅ **DONE — Added a "Start here" badge** above the "Three choices to process a
     new customer application" heading on the dealer application form.
 
+35. ✅ **DONE — Highlight missing fields in red + expand required set for option 1.**
+    a) On a validation error, each affected input (not just the summary list) now
+       gets a red outline/background so it's obvious where to look. The red
+       clears once the field is filled and re-submitted.
+    b) The Fastest / FinanceIT path (option 1) now requires the full set: street
+       address, province, financing details (program/category/amount + the
+       FinanceIT number), and deal details (date of sale, installation date, and
+       Home Depot store when the dealer has stores assigned). Other methods keep
+       their lighter required set.
+
 34. ✅ **DONE — Guide the dealer to the financing-deal-number field when option 1
     (Fastest / FinanceIT) is selected.** The field now highlights in green (green
     box + ring + "← enter your FinanceIT number here" label) and shows an example

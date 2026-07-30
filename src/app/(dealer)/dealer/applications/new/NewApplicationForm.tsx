@@ -53,13 +53,19 @@ const FIELD_LABELS: Record<string, string> = {
   applicantLastName: 'Last name',
   applicantEmail: 'Email',
   applicantPhone: 'Phone',
+  applicantAddress: 'Street address',
   province: 'Province',
+  dateOfSale: 'Date of sale',
+  installationDate: 'Installation date',
+  homeDepotStoreId: 'Home Depot store',
   consent: 'Consent',
   financeItNumber: 'Financing deal number',
 };
 
+type RequiredField = { name: string; label: string; checkbox?: boolean };
+
 // Always-required fields (independent of entry method).
-const REQUIRED_FIELDS: { name: string; label: string; checkbox?: boolean }[] = [
+const BASE_REQUIRED: RequiredField[] = [
   { name: 'programType', label: 'Program' },
   { name: 'programCategory', label: 'Category' },
   { name: 'requestedAmount', label: 'Requested amount' },
@@ -67,8 +73,19 @@ const REQUIRED_FIELDS: { name: string; label: string; checkbox?: boolean }[] = [
   { name: 'applicantLastName', label: 'Last name' },
   { name: 'applicantEmail', label: 'Email' },
   { name: 'applicantPhone', label: 'Phone' },
+  { name: 'applicantAddress', label: 'Street address' },
   { name: 'province', label: 'Province' },
   { name: 'consent', label: 'Consent', checkbox: true },
+];
+
+// Extra fields required for the Fastest / FinanceIT path, where the deal is
+// submitted as already approved: the FinanceIT number plus the full deal
+// details (dates + store). Home Depot store only when the dealer has stores.
+const FINANCEIT_EXTRA: RequiredField[] = [
+  { name: 'financeItNumber', label: 'Financing deal number' },
+  { name: 'dateOfSale', label: 'Date of sale' },
+  { name: 'installationDate', label: 'Installation date' },
+  { name: 'homeDepotStoreId', label: 'Home Depot store' },
 ];
 
 function cleanMessage(msg: string): string {
@@ -130,13 +147,27 @@ export function NewApplicationForm({ stores }: { stores: Store[] }) {
 
   // Merge instant client-side checks with any server-returned errors.
   const errorEntries = Object.entries({ ...(state.fieldErrors ?? {}), ...clientErrors });
+  // Set of field names currently in error, used to outline the inputs in red.
+  const errorNames = new Set(errorEntries.map(([name]) => name));
+  // Append red-outline classes to an input when its field has an error.
+  const fieldCls = (name: string, base = 'input') =>
+    errorNames.has(name) ? `${base} border-red-400 bg-red-50 ring-1 ring-red-300` : base;
+
+  // Fields required for the current entry method. The Fastest / FinanceIT path
+  // also requires the FinanceIT number and full deal details.
+  const requiredFields: RequiredField[] = [
+    ...BASE_REQUIRED,
+    ...(method === 'FINANCEIT'
+      ? FINANCEIT_EXTRA.filter((f) => f.name !== 'homeDepotStoreId' || stores.length > 0)
+      : []),
+  ];
 
   // Check required fields ourselves so we can list ALL missing ones at once,
   // instead of the browser stopping at the first empty field.
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     const form = e.currentTarget;
     const errs: Record<string, string> = {};
-    for (const f of REQUIRED_FIELDS) {
+    for (const f of requiredFields) {
       const el = form.elements.namedItem(f.name) as HTMLInputElement | HTMLSelectElement | null;
       if (!el) continue;
       const empty = f.checkbox ? !(el as HTMLInputElement).checked : !(el.value || '').trim();
@@ -232,7 +263,7 @@ export function NewApplicationForm({ stores }: { stores: Store[] }) {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div>
             <label className="label" htmlFor="programType">Program</label>
-            <select id="programType" name="programType" className="input">
+            <select id="programType" name="programType" className={fieldCls('programType')}>
               <option value="">Select…</option>
               {PROGRAM_TYPES.map((p) => (<option key={p.value} value={p.value}>{p.label}</option>))}
             </select>
@@ -240,7 +271,7 @@ export function NewApplicationForm({ stores }: { stores: Store[] }) {
           </div>
           <div>
             <label className="label" htmlFor="programCategory">Category</label>
-            <select id="programCategory" name="programCategory" className="input">
+            <select id="programCategory" name="programCategory" className={fieldCls('programCategory')}>
               <option value="">Select…</option>
               {PROGRAM_CATEGORIES.map((p) => (<option key={p.value} value={p.value}>{p.label}</option>))}
             </select>
@@ -248,7 +279,7 @@ export function NewApplicationForm({ stores }: { stores: Store[] }) {
           </div>
           <div>
             <label className="label" htmlFor="requestedAmount">Requested amount (CAD)</label>
-            <input id="requestedAmount" name="requestedAmount" type="number" step="0.01" min="0" className="input" />
+            <input id="requestedAmount" name="requestedAmount" type="number" step="0.01" min="0" className={fieldCls('requestedAmount')} />
             <Err state={state} name="requestedAmount" />
           </div>
         </div>
@@ -265,7 +296,11 @@ export function NewApplicationForm({ stores }: { stores: Store[] }) {
               id="financeItNumber"
               name="financeItNumber"
               maxLength={60}
-              className={`input ${method === 'FINANCEIT' ? 'border-green-400 bg-white ring-2 ring-green-300 focus:border-green-500 focus:ring-green-400' : ''}`}
+              className={
+                errorNames.has('financeItNumber')
+                  ? 'input border-red-400 bg-red-50 ring-1 ring-red-300'
+                  : `input ${method === 'FINANCEIT' ? 'border-green-400 bg-white ring-2 ring-green-300 focus:border-green-500 focus:ring-green-400' : ''}`
+              }
               placeholder={method === 'FINANCEIT' ? 'FinanceIT loan number' : 'If applicable'}
               autoComplete="off"
             />
@@ -290,11 +325,11 @@ export function NewApplicationForm({ stores }: { stores: Store[] }) {
       <section className="card p-6">
         <h2 className="mb-4 text-base font-semibold text-gray-900">Deal details</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <div><label className="label" htmlFor="dateOfSale">Date of sale</label><input id="dateOfSale" name="dateOfSale" type="date" className="input" /></div>
-          <div><label className="label" htmlFor="installationDate">Installation date</label><input id="installationDate" name="installationDate" type="date" className="input" /></div>
+          <div><label className="label" htmlFor="dateOfSale">Date of sale</label><input id="dateOfSale" name="dateOfSale" type="date" className={fieldCls('dateOfSale')} /><Err state={state} name="dateOfSale" /></div>
+          <div><label className="label" htmlFor="installationDate">Installation date</label><input id="installationDate" name="installationDate" type="date" className={fieldCls('installationDate')} /><Err state={state} name="installationDate" /></div>
           <div>
             <label className="label" htmlFor="homeDepotStoreId">Home Depot store</label>
-            <select id="homeDepotStoreId" name="homeDepotStoreId" className="input" disabled={stores.length === 0}>
+            <select id="homeDepotStoreId" name="homeDepotStoreId" className={fieldCls('homeDepotStoreId')} disabled={stores.length === 0}>
               <option value="">{stores.length === 0 ? 'No stores assigned' : 'Select…'}</option>
               {stores.map((s) => (<option key={s.id} value={s.id}>{s.number}{s.name ? ` — ${s.name}` : ''}</option>))}
             </select>
@@ -307,12 +342,12 @@ export function NewApplicationForm({ stores }: { stores: Store[] }) {
       <section className="card p-6">
         <h2 className="mb-4 text-base font-semibold text-gray-900">Applicant</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div><label className="label" htmlFor="applicantFirstName">First name</label><input id="applicantFirstName" name="applicantFirstName" className="input" /><Err state={state} name="applicantFirstName" /></div>
-          <div><label className="label" htmlFor="applicantLastName">Last name</label><input id="applicantLastName" name="applicantLastName" className="input" /><Err state={state} name="applicantLastName" /></div>
+          <div><label className="label" htmlFor="applicantFirstName">First name</label><input id="applicantFirstName" name="applicantFirstName" className={fieldCls('applicantFirstName')} /><Err state={state} name="applicantFirstName" /></div>
+          <div><label className="label" htmlFor="applicantLastName">Last name</label><input id="applicantLastName" name="applicantLastName" className={fieldCls('applicantLastName')} /><Err state={state} name="applicantLastName" /></div>
           {typed && <div><label className="label" htmlFor="middleName">Middle name <span className="font-normal text-gray-400">(optional)</span></label><input id="middleName" name="middleName" className="input" /></div>}
           <div><label className="label" htmlFor="applicantDob">Date of birth</label><input id="applicantDob" name="applicantDob" type="date" className="input" /></div>
-          <div><label className="label" htmlFor="applicantEmail">Email</label><input id="applicantEmail" name="applicantEmail" type="email" className="input" /><Err state={state} name="applicantEmail" /></div>
-          <div><label className="label" htmlFor="applicantPhone">Mobile phone</label><input id="applicantPhone" name="applicantPhone" className="input" inputMode="numeric" maxLength={12} placeholder="705-716-2111" onInput={phoneFmt} /><Err state={state} name="applicantPhone" /></div>
+          <div><label className="label" htmlFor="applicantEmail">Email</label><input id="applicantEmail" name="applicantEmail" type="email" className={fieldCls('applicantEmail')} /><Err state={state} name="applicantEmail" /></div>
+          <div><label className="label" htmlFor="applicantPhone">Mobile phone</label><input id="applicantPhone" name="applicantPhone" className={fieldCls('applicantPhone')} inputMode="numeric" maxLength={12} placeholder="705-716-2111" onInput={phoneFmt} /><Err state={state} name="applicantPhone" /></div>
           {typed && <div><label className="label" htmlFor="homePhone">Home phone <span className="font-normal text-gray-400">(optional)</span></label><input id="homePhone" name="homePhone" className="input" inputMode="numeric" maxLength={12} placeholder="705-716-2111" onInput={phoneFmt} /></div>}
           {typed && (
             <div>
@@ -334,12 +369,13 @@ export function NewApplicationForm({ stores }: { stores: Store[] }) {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">
             <label className="label" htmlFor="applicantAddress">Street address</label>
-            <AddressAutocompleteInput id="applicantAddress" name="applicantAddress" className="input" cityId="city" provinceId="province" postalId="postalCode" />
+            <AddressAutocompleteInput id="applicantAddress" name="applicantAddress" className={fieldCls('applicantAddress')} cityId="city" provinceId="province" postalId="postalCode" />
+            <Err state={state} name="applicantAddress" />
           </div>
           {typed && <div><label className="label" htmlFor="city">City</label><input id="city" name="city" className="input" /></div>}
           <div>
             <label className="label" htmlFor="province">Province</label>
-            <select id="province" name="province" className="input">
+            <select id="province" name="province" className={fieldCls('province')}>
               <option value="">Select…</option>
               {PROVINCES.map((p) => (<option key={p.value} value={p.value}>{p.label}</option>))}
             </select>
@@ -449,8 +485,8 @@ export function NewApplicationForm({ stores }: { stores: Store[] }) {
       <section className="card p-6">
         <h2 className="mb-2 text-base font-semibold text-gray-900">Consent</h2>
         <div className="mb-3 max-h-40 overflow-y-auto rounded border border-gray-200 bg-gray-50 p-3 text-xs text-gray-600">{CONSENT_TEXT}</div>
-        <label className="flex items-start gap-2 text-sm text-gray-700">
-          <input type="checkbox" name="consent" value="on" className="mt-0.5 rounded border-gray-300" />
+        <label className={`flex items-start gap-2 rounded p-2 text-sm text-gray-700 ${errorNames.has('consent') ? 'bg-red-50 ring-1 ring-red-300' : ''}`}>
+          <input type="checkbox" name="consent" value="on" className={`mt-0.5 rounded ${errorNames.has('consent') ? 'border-red-400 ring-1 ring-red-300' : 'border-gray-300'}`} />
           <span>I confirm the applicant has provided informed consent as described above.</span>
         </label>
         <Err state={state} name="consent" />
