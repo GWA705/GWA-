@@ -16,7 +16,7 @@ export default async function NewApplicationPage() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <h1 className="mb-6 text-xl font-semibold text-gray-900">New credit application</h1>
+      <h1 className="mb-6 text-xl font-semibold text-gray-900">New customer processing</h1>
       <NewApplicationForm stores={stores} />
     </div>
   );

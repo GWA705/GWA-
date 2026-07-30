@@ -138,7 +138,7 @@ export default async function StaffApplicationDetail({
           <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3">
             <div><dt className="text-gray-500">Province</dt><dd className="font-medium">{app.province}</dd></div>
             <div><dt className="text-gray-500">Program</dt><dd className="font-medium">{programLabel(app.programType, app.programCategory)}</dd></div>
-            <div><dt className="text-gray-500">Entry method</dt><dd className="font-medium">{app.entryMethod === 'TYPED' ? 'Typed in' : app.entryMethod === 'PHOTO' ? 'Photo upload' : 'FinanceIt #'}</dd></div>
+            <div><dt className="text-gray-500">Entry method</dt><dd className="font-medium">{app.entryMethod === 'TYPED' ? 'Typed in' : app.entryMethod === 'PHOTO' ? 'Photo upload' : 'FinanceIT #'}</dd></div>
             <div><dt className="text-gray-500">Requested</dt><dd className="font-medium">${app.requestedAmount.toString()}</dd></div>
             <div><dt className="text-gray-500">Approved amount</dt><dd className="font-medium">{app.approvedAmount ? `$${app.approvedAmount.toString()}` : '—'}</dd></div>
             <div><dt className="text-gray-500">Finance company</dt><dd className="font-medium">{app.financeCompany?.name ?? '—'}</dd></div>

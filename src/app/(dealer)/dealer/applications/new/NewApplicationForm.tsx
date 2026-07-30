@@ -86,10 +86,39 @@ function focusField(name: string) {
   }
 }
 
-const METHODS: { value: Method; title: string; blurb: string }[] = [
-  { value: 'TYPED', title: 'Type it in', blurb: 'Enter the full application (fewer errors)' },
-  { value: 'PHOTO', title: 'Upload a photo', blurb: 'Attach a photo of the paper application' },
-  { value: 'FINANCEIT', title: 'Financing number', blurb: 'Already approved — enter the deal number' },
+// Three ways to process a new customer, ranked by speed and colour-coded.
+const METHODS: {
+  value: Method;
+  rank: string;
+  title: string;
+  blurb: string;
+  badge: string; // badge colour
+  selected: string; // selected card colour
+}[] = [
+  {
+    value: 'FINANCEIT',
+    rank: 'Fastest',
+    title: 'FinanceIT approval',
+    blurb: 'Use your FinanceIT Portal to approve the application and submit your approval FinanceIT loan number below.',
+    badge: 'bg-green-100 text-green-800',
+    selected: 'border-green-600 bg-green-50 ring-1 ring-green-600',
+  },
+  {
+    value: 'TYPED',
+    rank: 'Fast',
+    title: 'Type in the details',
+    blurb: 'Need a different financing option? Type in the customer details below (helps with spelling and ensures accuracy of the application).',
+    badge: 'bg-blue-100 text-blue-800',
+    selected: 'border-blue-600 bg-blue-50 ring-1 ring-blue-600',
+  },
+  {
+    value: 'PHOTO',
+    rank: 'Normal',
+    title: 'Upload documents',
+    blurb: 'Upload application and bill of sale for processing.',
+    badge: 'bg-amber-100 text-amber-800',
+    selected: 'border-amber-500 bg-amber-50 ring-1 ring-amber-500',
+  },
 ];
 
 export function NewApplicationForm({ stores }: { stores: Store[] }) {
@@ -161,33 +190,35 @@ export function NewApplicationForm({ stores }: { stores: Store[] }) {
 
       {/* Entry method */}
       <section className="card p-6">
-        <h2 className="mb-1 text-base font-semibold text-gray-900">How are you providing the credit application?</h2>
-        <p className="mb-4 text-xs text-gray-500">Typing it in is encouraged — it means fewer errors on the customer&apos;s application.</p>
+        <h2 className="mb-1 text-base font-semibold text-gray-900">Three choices to process a new customer application</h2>
+        <p className="mb-4 text-xs text-gray-500">Pick the option that fits — faster options are at the top.</p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          {METHODS.map((m) => (
+          {METHODS.map((m, i) => (
             <button
               key={m.value}
               type="button"
               onClick={() => setMethod(m.value)}
-              className={`rounded-lg border p-4 text-left transition ${
-                method === m.value
-                  ? 'border-brand-600 bg-brand-50 ring-1 ring-brand-600'
-                  : 'border-gray-200 hover:border-gray-300'
+              className={`flex flex-col rounded-lg border p-4 text-left transition ${
+                method === m.value ? m.selected : 'border-gray-200 hover:border-gray-300'
               }`}
             >
+              <span className={`mb-2 inline-flex w-fit items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${m.badge}`}>
+                {i + 1} · {m.rank}
+              </span>
               <div className="text-sm font-semibold text-gray-900">{m.title}</div>
-              <div className="mt-0.5 text-xs text-gray-500">{m.blurb}</div>
+              <div className="mt-1 text-xs text-gray-500">{m.blurb}</div>
             </button>
           ))}
         </div>
         {method === 'PHOTO' && (
-          <p className="mt-4 rounded bg-blue-50 p-3 text-sm text-blue-800">
-            After you submit, open the application and upload the photo(s) under “Documents for approval.”
+          <p className="mt-4 rounded bg-amber-50 p-3 text-sm text-amber-800">
+            After you submit, open the application and upload the customer&apos;s application and bill of sale
+            under “Documents for approval.”
           </p>
         )}
         {method === 'FINANCEIT' && (
-          <p className="mt-4 rounded bg-emerald-50 p-3 text-sm text-emerald-800">
-            Enter the financing deal number below — the deal will be marked as approved.
+          <p className="mt-4 rounded bg-green-50 p-3 text-sm text-green-800">
+            Enter your FinanceIT loan number below — the deal will be marked as approved.
           </p>
         )}
       </section>
@@ -221,8 +252,8 @@ export function NewApplicationForm({ stores }: { stores: Store[] }) {
 
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className="label" htmlFor="financeItNumber">Financing deal number {method === 'FINANCEIT' ? '' : <span className="font-normal text-gray-400">(if approved)</span>}</label>
-            <input id="financeItNumber" name="financeItNumber" maxLength={60} className="input" placeholder="Finance company deal #" autoComplete="off" />
+            <label className="label" htmlFor="financeItNumber">Financing deal number {method === 'FINANCEIT' ? '' : <span className="font-normal text-gray-400">(if applicable)</span>}</label>
+            <input id="financeItNumber" name="financeItNumber" maxLength={60} className="input" placeholder={method === 'FINANCEIT' ? 'FinanceIT loan number' : 'If applicable'} autoComplete="off" />
             <p className="mt-1 text-xs text-gray-400">Entering this indicates the deal is already approved.</p>
             <Err state={state} name="financeItNumber" />
           </div>

@@ -1,4 +1,5 @@
 import type { Announcement } from '@prisma/client';
+import { BannerImage } from './BannerImage';
 
 function Wrap({ href, children }: { href: string | null; children: React.ReactNode }) {
   if (href) {
@@ -19,11 +20,10 @@ export function AnnouncementBanner({ announcements }: { announcements: Announcem
         <div key={a.id} className="overflow-hidden rounded-lg border border-brand-100 bg-brand-50">
           <Wrap href={a.linkUrl}>
             {a.imageStorageKey && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
+              <BannerImage
                 src={`/api/announcements/${a.id}/image`}
                 alt={a.title ?? 'Announcement'}
-                className="max-h-56 w-full object-cover"
+                className="max-h-72 w-full object-contain"
               />
             )}
             {(a.title || a.body) && (

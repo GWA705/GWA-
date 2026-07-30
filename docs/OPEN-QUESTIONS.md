@@ -57,8 +57,10 @@ _Last updated: 2026-07-30_
 
 13. **Password minimum length** — currently 12 characters. Keep it, or lower it?
 
-14. **"If applicable" placeholders** on other optional reference fields (e.g.
-    the FinanceIt deal # currently shows "(if approved)").
+14. ✅ **DONE — "If applicable" placeholders.** The FinanceIT deal # field now
+    shows "If applicable" (and its label hint reads "(if applicable)"), except
+    when the Fastest/FINANCEIT method is chosen, where it prompts "FinanceIT
+    loan number."
 
 15. **Confirmation-call script** — confirm the questions/checklist wording is
     exactly what you want.
@@ -73,42 +75,29 @@ _Last updated: 2026-07-30_
     (ZIP)" button on a deal, and/or an admin export by dealer / date range.
     Access-controlled and written to the audit log.
 
-25. **Announcement banner image polish** 🐞 —
-    a) **Auto-fit uploaded pictures** to the banner area instead of cropping
-       them (currently `object-cover` cuts off the top/bottom — the GWA logo is
-       clipped). Show the whole image scaled to fit.
-    b) **Broken image window** — an announcement is showing a broken-image "?"
-       box because its image file is missing (uploaded before S3 was on, lost on
-       redeploy). Hide the image gracefully when it can't load, and let the admin
-       spot/clean up the orphaned announcement. (New uploads now persist in S3.)
+25. ✅ **DONE — Announcement banner image polish.**
+    a) Images now auto-fit (`object-contain`, `max-h-72`) — the whole picture is
+       scaled to fit, no more cropping/clipping.
+    b) A new `BannerImage` client component hides the image gracefully if the
+       file can't load (orphaned/missing), so no broken-image "?" box shows.
 
-26. **Progress tracker cut off on mobile** 🐞 — the 7-step deal tracker
-    (Submitted → … → Paid) is a fixed-width row, so on a phone the later steps
-    (In for funding / Funded / Paid) run off the right edge. Make it responsive:
-    e.g. a compact/scrollable stepper on small screens, smaller dots+labels, or
-    a "Step X of 7" summary. Should fit within the phone width.
+26. ✅ **DONE — Progress tracker fits on mobile.** The 7-step tracker now uses
+    `min-w-0 flex-1` columns that share the width and shrink to fit, with
+    smaller dots/labels on small screens (`h-6 w-6` / `text-[10px]`). No more
+    running off the right edge on a phone.
 
-27. **Rename "New credit application" → "New customer processing."** Update it
-    everywhere it appears for consistency: the page heading, the top-nav link
-    ("New application"), and the "New application" button on the dealer home.
+27. ✅ **DONE — Renamed "New credit application" → "New customer processing"**
+    everywhere: page heading, top-nav link ("New customer"), and the dealer
+    home button ("New customer processing").
 
-28. **Redesign the entry-method chooser into three speed-ranked, colour-coded
-    options.** Heading: "Three choices to process a new customer application."
-    Add depth to the cards (speed badge + colour, maybe an icon):
-    - **1 · Fastest** (green): "Use your FinanceIt Portal to approve the
-      application and submit your approval FinanceIt loan number below."
-      → current **Financing number / FINANCEIT** method.
-    - **2 · Fast** (blue): "Need a different financing option? Type in the
-      customer details below (helps with spelling and ensures accuracy of the
-      application)." → current **Type it in / TYPED** method.
-    - **3 · Normal** (amber/grey): "Upload application and bill of sale for
-      processing." → current **Upload a photo / PHOTO** method (allow uploading
-      the application **and** the bill of sale).
-    Order them Fastest → Fast → Normal.
+28. ✅ **DONE — Three speed-ranked, colour-coded entry-method cards.** Heading:
+    "Three choices to process a new customer application." Cards ordered
+    **1 · Fastest** (green, FINANCEIT), **2 · Fast** (blue, TYPED),
+    **3 · Normal** (amber, PHOTO), each with a numbered speed badge and the
+    agreed copy.
 
-29. **Spelling: use "FinanceIT" everywhere** (replace "Finance it" / "FinanceIt")
-    in all user-facing text. Note: only the displayed text — leave code
-    identifiers (`financeItNumber`, the `FINANCEIT` value) as-is.
+29. ✅ **DONE — "FinanceIT" spelling** used in all user-facing text (code
+    identifiers `financeItNumber` / `FINANCEIT` left unchanged).
 
 30. **Prefix reviewer→dealer paperwork filenames by category.** Keep the current
     name + date, but add a category prefix at the front of "Paperwork from GWA"
@@ -120,10 +109,10 @@ _Last updated: 2026-07-30_
     e.g. `HD 1 Tetser_Sean_2026-07-30_….pdf`. (Applies to reviewer-stage uploads.)
 
 31. **Refine the "Paperwork from GWA" section (dealer side).**
-    a) Rename it to **"Paperwork for your Customer."**
-    b) Add depth / make each file more defined — e.g. each document as its own
-       card with a file icon, its category label, size, and date, and a clear
-       View / Download action. Make it look more refined than a plain list.
+    a) ✅ **DONE — Renamed to "Paperwork for your Customer."**
+    b) ⏳ TODO — Add depth / make each file more defined — e.g. each document as
+       its own card with a file icon, its category label, size, and date, and a
+       clear View / Download action. Make it look more refined than a plain list.
 
 17. ✅ **DONE — Progress bar reacts to status changes.** The tracker now keys off
     the live status: moving a deal backward (e.g. Approved → Under review)

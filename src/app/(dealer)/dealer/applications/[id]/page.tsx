@@ -170,10 +170,10 @@ export default async function DealerApplicationDetail({
         </div>
       </section>
 
-      {/* Paperwork from GWA */}
+      {/* Paperwork for your Customer */}
       {gwaDocs.length > 0 && (
         <section className="card p-6">
-          <h2 className="mb-3 text-base font-semibold text-gray-900">Paperwork from GWA</h2>
+          <h2 className="mb-3 text-base font-semibold text-gray-900">Paperwork for your Customer</h2>
           <p className="mb-3 text-xs text-gray-500">Documents from the GWA team — open to view or print.</p>
           <DocumentList documents={gwaDocs} />
         </section>

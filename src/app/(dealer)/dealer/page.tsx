@@ -29,7 +29,7 @@ export default async function DealerHome({ searchParams }: { searchParams: { q?:
         <div className="flex items-center gap-3">
           <SearchBox action="/dealer" q={searchParams.q} />
           <Link href="/dealer/applications/new" className="btn-primary">
-            New application
+            New customer processing
           </Link>
         </div>
       </div>
