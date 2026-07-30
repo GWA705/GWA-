@@ -125,6 +125,13 @@ _Last updated: 2026-07-30_
 33. ✅ **DONE — Added a "Start here" badge** above the "Three choices to process a
     new customer application" heading on the dealer application form.
 
+37. ✅ **DONE — Outline the whole form in the selected option's colour.** Picking
+    option 1/2/3 now tints every input's outline (ring) in that method's colour —
+    green (Fastest), blue (Fast), amber (Normal) — outline only, no fill. Red
+    still wins on a field with an error. (Also fixed the CSS layering so ring-
+    colour utilities actually override the default gray ring — this is what makes
+    both the method colour and the #35 red outline render.)
+
 35. ✅ **DONE — Highlight missing fields in red + expand required set for option 1.**
     a) On a validation error, each affected input (not just the summary list) now
        gets a red outline/background so it's obvious where to look. The red

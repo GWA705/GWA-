@@ -149,9 +149,18 @@ export function NewApplicationForm({ stores }: { stores: Store[] }) {
   const errorEntries = Object.entries({ ...(state.fieldErrors ?? {}), ...clientErrors });
   // Set of field names currently in error, used to outline the inputs in red.
   const errorNames = new Set(errorEntries.map(([name]) => name));
-  // Append red-outline classes to an input when its field has an error.
+
+  // The whole form's inputs are outlined in the selected method's colour so the
+  // dealer can see which areas belong to their choice — outline only, no fill.
+  const METHOD_RING: Record<Method, string> = {
+    FINANCEIT: 'ring-green-400 focus:ring-green-500',
+    TYPED: 'ring-blue-400 focus:ring-blue-500',
+    PHOTO: 'ring-amber-400 focus:ring-amber-500',
+  };
+  // Outline an input: red (with a light fill) when it has an error, otherwise
+  // the selected method's colour.
   const fieldCls = (name: string, base = 'input') =>
-    errorNames.has(name) ? `${base} border-red-400 bg-red-50 ring-1 ring-red-300` : base;
+    errorNames.has(name) ? `${base} bg-red-50 ring-2 ring-red-400` : `${base} ${METHOD_RING[method]}`;
 
   // Fields required for the current entry method. The Fastest / FinanceIT path
   // also requires the FinanceIT number and full deal details.
@@ -298,8 +307,10 @@ export function NewApplicationForm({ stores }: { stores: Store[] }) {
               maxLength={60}
               className={
                 errorNames.has('financeItNumber')
-                  ? 'input border-red-400 bg-red-50 ring-1 ring-red-300'
-                  : `input ${method === 'FINANCEIT' ? 'border-green-400 bg-white ring-2 ring-green-300 focus:border-green-500 focus:ring-green-400' : ''}`
+                  ? 'input bg-red-50 ring-2 ring-red-400'
+                  : method === 'FINANCEIT'
+                    ? 'input bg-white ring-2 ring-green-400 focus:ring-green-500'
+                    : `input ${METHOD_RING[method]}`
               }
               placeholder={method === 'FINANCEIT' ? 'FinanceIT loan number' : 'If applicable'}
               autoComplete="off"
@@ -315,7 +326,7 @@ export function NewApplicationForm({ stores }: { stores: Store[] }) {
           </div>
           <div>
             <label className="label" htmlFor="financingNote">Financing note</label>
-            <textarea id="financingNote" name="financingNote" rows={2} className="input" placeholder="What kind of financing deal or promotion would you like with this?" />
+            <textarea id="financingNote" name="financingNote" rows={2} className={fieldCls('')} placeholder="What kind of financing deal or promotion would you like with this?" />
           </div>
         </div>
 
@@ -344,15 +355,15 @@ export function NewApplicationForm({ stores }: { stores: Store[] }) {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div><label className="label" htmlFor="applicantFirstName">First name</label><input id="applicantFirstName" name="applicantFirstName" className={fieldCls('applicantFirstName')} /><Err state={state} name="applicantFirstName" /></div>
           <div><label className="label" htmlFor="applicantLastName">Last name</label><input id="applicantLastName" name="applicantLastName" className={fieldCls('applicantLastName')} /><Err state={state} name="applicantLastName" /></div>
-          {typed && <div><label className="label" htmlFor="middleName">Middle name <span className="font-normal text-gray-400">(optional)</span></label><input id="middleName" name="middleName" className="input" /></div>}
-          <div><label className="label" htmlFor="applicantDob">Date of birth</label><input id="applicantDob" name="applicantDob" type="date" className="input" /></div>
+          {typed && <div><label className="label" htmlFor="middleName">Middle name <span className="font-normal text-gray-400">(optional)</span></label><input id="middleName" name="middleName" className={fieldCls('')} /></div>}
+          <div><label className="label" htmlFor="applicantDob">Date of birth</label><input id="applicantDob" name="applicantDob" type="date" className={fieldCls('')} /></div>
           <div><label className="label" htmlFor="applicantEmail">Email</label><input id="applicantEmail" name="applicantEmail" type="email" className={fieldCls('applicantEmail')} /><Err state={state} name="applicantEmail" /></div>
           <div><label className="label" htmlFor="applicantPhone">Mobile phone</label><input id="applicantPhone" name="applicantPhone" className={fieldCls('applicantPhone')} inputMode="numeric" maxLength={12} placeholder="705-716-2111" onInput={phoneFmt} /><Err state={state} name="applicantPhone" /></div>
-          {typed && <div><label className="label" htmlFor="homePhone">Home phone <span className="font-normal text-gray-400">(optional)</span></label><input id="homePhone" name="homePhone" className="input" inputMode="numeric" maxLength={12} placeholder="705-716-2111" onInput={phoneFmt} /></div>}
+          {typed && <div><label className="label" htmlFor="homePhone">Home phone <span className="font-normal text-gray-400">(optional)</span></label><input id="homePhone" name="homePhone" className={fieldCls('')} inputMode="numeric" maxLength={12} placeholder="705-716-2111" onInput={phoneFmt} /></div>}
           {typed && (
             <div>
               <label className="label" htmlFor="maritalStatus">Marital status</label>
-              <select id="maritalStatus" name="maritalStatus" className="input">
+              <select id="maritalStatus" name="maritalStatus" className={fieldCls('')}>
                 <option value="">Select…</option>
                 <option>Single</option><option>Married</option><option>Common-law</option>
                 <option>Separated</option><option>Divorced</option><option>Widowed</option>
@@ -372,7 +383,7 @@ export function NewApplicationForm({ stores }: { stores: Store[] }) {
             <AddressAutocompleteInput id="applicantAddress" name="applicantAddress" className={fieldCls('applicantAddress')} cityId="city" provinceId="province" postalId="postalCode" />
             <Err state={state} name="applicantAddress" />
           </div>
-          {typed && <div><label className="label" htmlFor="city">City</label><input id="city" name="city" className="input" /></div>}
+          {typed && <div><label className="label" htmlFor="city">City</label><input id="city" name="city" className={fieldCls('')} /></div>}
           <div>
             <label className="label" htmlFor="province">Province</label>
             <select id="province" name="province" className={fieldCls('province')}>
@@ -381,7 +392,7 @@ export function NewApplicationForm({ stores }: { stores: Store[] }) {
             </select>
             <Err state={state} name="province" />
           </div>
-          {typed && <div><label className="label" htmlFor="postalCode">Postal code</label><input id="postalCode" name="postalCode" className="input" placeholder="L0L 2T0" maxLength={7} onInput={postalFmt} /></div>}
+          {typed && <div><label className="label" htmlFor="postalCode">Postal code</label><input id="postalCode" name="postalCode" className={fieldCls('')} placeholder="L0L 2T0" maxLength={7} onInput={postalFmt} /></div>}
         </div>
 
         {typed && (
@@ -389,13 +400,13 @@ export function NewApplicationForm({ stores }: { stores: Store[] }) {
             <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div>
                 <label className="label" htmlFor="housingStatus">Housing status</label>
-                <select id="housingStatus" name="housingStatus" className="input">
+                <select id="housingStatus" name="housingStatus" className={fieldCls('')}>
                   <option value="">Select…</option>
                   <option value="OWN">Own</option><option value="RENT">Rent</option><option value="OTHER">Other</option>
                 </select>
               </div>
-              <div><label className="label" htmlFor="monthlyHousingCost">Monthly housing cost</label><input id="monthlyHousingCost" name="monthlyHousingCost" type="number" step="0.01" min="0" className="input" /></div>
-              <div><label className="label" htmlFor="yearsAtAddress">Years at this address</label><input id="yearsAtAddress" name="yearsAtAddress" type="number" min="0" className="input" /></div>
+              <div><label className="label" htmlFor="monthlyHousingCost">Monthly housing cost</label><input id="monthlyHousingCost" name="monthlyHousingCost" type="number" step="0.01" min="0" className={fieldCls('')} /></div>
+              <div><label className="label" htmlFor="yearsAtAddress">Years at this address</label><input id="yearsAtAddress" name="yearsAtAddress" type="number" min="0" className={fieldCls('')} /></div>
             </div>
 
             <details className="mt-4">
@@ -407,11 +418,11 @@ export function NewApplicationForm({ stores }: { stores: Store[] }) {
                   { key: 'worksite', label: 'Work-site (install) address' },
                 ].map((a) => (
                   <div key={a.key} className="grid grid-cols-1 gap-3 sm:grid-cols-4">
-                    <div className="sm:col-span-2"><label className="label">{a.label}</label><input name={`${a.key}Address`} className="input" /></div>
-                    <div><label className="label">City</label><input name={`${a.key}City`} className="input" /></div>
+                    <div className="sm:col-span-2"><label className="label">{a.label}</label><input name={`${a.key}Address`} className={fieldCls('')} /></div>
+                    <div><label className="label">City</label><input name={`${a.key}City`} className={fieldCls('')} /></div>
                     <div className="grid grid-cols-2 gap-2">
-                      <div><label className="label">Prov.</label><input name={`${a.key}Province`} className="input" /></div>
-                      <div><label className="label">Postal</label><input name={`${a.key}Postal`} className="input" maxLength={7} onInput={postalFmt} /></div>
+                      <div><label className="label">Prov.</label><input name={`${a.key}Province`} className={fieldCls('')} /></div>
+                      <div><label className="label">Postal</label><input name={`${a.key}Postal`} className={fieldCls('')} maxLength={7} onInput={postalFmt} /></div>
                     </div>
                   </div>
                 ))}
@@ -429,24 +440,24 @@ export function NewApplicationForm({ stores }: { stores: Store[] }) {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label className="label" htmlFor="idType">Photo ID type</label>
-                <select id="idType" name="idType" className="input">
+                <select id="idType" name="idType" className={fieldCls('')}>
                   <option value="">Select…</option>
                   {PHOTO_ID_TYPES.map((t) => (
                     <option key={t} value={t}>{t}</option>
                   ))}
                 </select>
               </div>
-              <div><label className="label" htmlFor="govIdNumber">Photo ID number</label><input id="govIdNumber" name="govIdNumber" className="input" autoComplete="off" /></div>
+              <div><label className="label" htmlFor="govIdNumber">Photo ID number</label><input id="govIdNumber" name="govIdNumber" className={fieldCls('')} autoComplete="off" /></div>
               <div>
                 <label className="label" htmlFor="idProvince">Province of issue</label>
-                <select id="idProvince" name="idProvince" className="input">
+                <select id="idProvince" name="idProvince" className={fieldCls('')}>
                   <option value="">Select…</option>
                   {PROVINCES.map((p) => (
                     <option key={p.value} value={p.value}>{p.label}</option>
                   ))}
                 </select>
               </div>
-              <div><label className="label" htmlFor="idExpiry">Expiry date</label><input id="idExpiry" name="idExpiry" type="date" className="input" /></div>
+              <div><label className="label" htmlFor="idExpiry">Expiry date</label><input id="idExpiry" name="idExpiry" type="date" className={fieldCls('')} /></div>
             </div>
           </section>
 
@@ -454,15 +465,15 @@ export function NewApplicationForm({ stores }: { stores: Store[] }) {
           <section className="card p-6">
             <h2 className="mb-4 text-base font-semibold text-gray-900">Employment &amp; income</h2>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div><label className="label" htmlFor="businessName">Employer / business name</label><input id="businessName" name="businessName" className="input" /></div>
-              <div><label className="label" htmlFor="positionTitle">Position title</label><input id="positionTitle" name="positionTitle" className="input" /></div>
-              <div><label className="label" htmlFor="employerAddress">Employer address <span className="font-normal text-gray-400">(optional)</span></label><input id="employerAddress" name="employerAddress" className="input" /></div>
-              <div><label className="label" htmlFor="employerPhone">Employer phone <span className="font-normal text-gray-400">(optional)</span></label><input id="employerPhone" name="employerPhone" className="input" inputMode="numeric" maxLength={12} placeholder="705-716-2111" onInput={phoneFmt} /></div>
-              <div><label className="label" htmlFor="grossMonthlyIncome">Gross monthly income</label><input id="grossMonthlyIncome" name="grossMonthlyIncome" type="number" step="0.01" min="0" className="input" /></div>
-              <div><label className="label" htmlFor="timeAtJobYears">Time at job (years)</label><input id="timeAtJobYears" name="timeAtJobYears" type="number" min="0" className="input" /></div>
+              <div><label className="label" htmlFor="businessName">Employer / business name</label><input id="businessName" name="businessName" className={fieldCls('')} /></div>
+              <div><label className="label" htmlFor="positionTitle">Position title</label><input id="positionTitle" name="positionTitle" className={fieldCls('')} /></div>
+              <div><label className="label" htmlFor="employerAddress">Employer address <span className="font-normal text-gray-400">(optional)</span></label><input id="employerAddress" name="employerAddress" className={fieldCls('')} /></div>
+              <div><label className="label" htmlFor="employerPhone">Employer phone <span className="font-normal text-gray-400">(optional)</span></label><input id="employerPhone" name="employerPhone" className={fieldCls('')} inputMode="numeric" maxLength={12} placeholder="705-716-2111" onInput={phoneFmt} /></div>
+              <div><label className="label" htmlFor="grossMonthlyIncome">Gross monthly income</label><input id="grossMonthlyIncome" name="grossMonthlyIncome" type="number" step="0.01" min="0" className={fieldCls('')} /></div>
+              <div><label className="label" htmlFor="timeAtJobYears">Time at job (years)</label><input id="timeAtJobYears" name="timeAtJobYears" type="number" min="0" className={fieldCls('')} /></div>
               <div>
                 <label className="label" htmlFor="employmentStatus">Employment status</label>
-                <select id="employmentStatus" name="employmentStatus" className="input">
+                <select id="employmentStatus" name="employmentStatus" className={fieldCls('')}>
                   <option value="">Select…</option>
                   <option value="EMPLOYED">Employed</option><option value="SELF_EMPLOYED">Self-employed</option><option value="OTHER">Other</option>
                 </select>
@@ -474,8 +485,8 @@ export function NewApplicationForm({ stores }: { stores: Store[] }) {
           <section className="card p-6">
             <h2 className="mb-4 text-base font-semibold text-gray-900">Co-applicant &amp; notes</h2>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div><label className="label" htmlFor="coApplicantName">Co-applicant name</label><input id="coApplicantName" name="coApplicantName" className="input" /></div>
-              <div className="sm:col-span-2"><label className="label" htmlFor="notes">Notes</label><textarea id="notes" name="notes" rows={3} className="input" /></div>
+              <div><label className="label" htmlFor="coApplicantName">Co-applicant name</label><input id="coApplicantName" name="coApplicantName" className={fieldCls('')} /></div>
+              <div className="sm:col-span-2"><label className="label" htmlFor="notes">Notes</label><textarea id="notes" name="notes" rows={3} className={fieldCls('')} /></div>
             </div>
           </section>
         </>
