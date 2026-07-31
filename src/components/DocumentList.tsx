@@ -14,21 +14,22 @@ export function DocumentList({ documents }: { documents: Document[] }) {
   return (
     <ul className="divide-y divide-gray-100 text-sm">
       {documents.map((d) => (
-        <li key={d.id} className="flex items-center justify-between py-2">
-          <div>
+        <li key={d.id} className="flex items-center justify-between gap-3 py-2">
+          <div className="min-w-0 flex-1">
             <a
               href={`/api/documents/${d.id}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="font-medium text-brand-700 hover:underline"
+              className="block truncate font-medium text-brand-700 hover:underline"
+              title={d.fileName}
             >
               {d.fileName}
             </a>
-            <span className="ml-2 text-xs text-gray-400">
+            <span className="text-xs text-gray-400">
               {DOCUMENT_TYPE_LABELS[d.type]} · {formatSize(d.sizeBytes)}
             </span>
           </div>
-          <span className="text-xs text-gray-400">{d.createdAt.toLocaleDateString('en-CA')}</span>
+          <span className="flex-none text-xs text-gray-400">{d.createdAt.toLocaleDateString('en-CA')}</span>
         </li>
       ))}
     </ul>

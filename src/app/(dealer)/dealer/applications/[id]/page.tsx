@@ -269,7 +269,7 @@ export default async function DealerApplicationDetail({
                     <ul className="mt-2 space-y-1 pl-7 text-xs text-gray-500">
                       {uploaded.map((u) => (
                         <li key={u.id} className="flex flex-wrap items-center gap-2">
-                          <a href={`/api/documents/${u.id}`} target="_blank" rel="noopener noreferrer" className="text-brand-700 hover:underline">
+                          <a href={`/api/documents/${u.id}`} target="_blank" rel="noopener noreferrer" className="break-all text-brand-700 hover:underline">
                             {u.fileName}
                           </a>
                           {u.verifiedAt && <span className="text-green-600">✓ confirmed by GWA</span>}

@@ -30,7 +30,7 @@ export function PaperworkCards({ documents }: { documents: Document[] }) {
     return <p className="text-sm text-gray-500">No documents shared yet.</p>;
   }
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
       {documents.map((d) => {
         const isPdf = (d.mimeType || '').includes('pdf');
         return (
