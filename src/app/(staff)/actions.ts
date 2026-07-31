@@ -309,7 +309,6 @@ export async function updateDealAction(
       financingNote: d.financingNote || null,
       notes: d.notes || null,
       // Sales-journal detail fields (reviewer backfill).
-      leadGenerator: d.leadGenerator || null,
       salespersonName: d.salespersonName || null,
       installerName: d.installerName || null,
       soapIncluded: d.soapIncluded === 'YES' ? true : d.soapIncluded === 'NO' ? false : null,
@@ -697,7 +696,6 @@ export async function writeToJournalAction(
     financeItNumber: app.financeItNumber,
     hdStoreLabel: storeLabel,
     dealerName: app.dealer?.name ?? null,
-    leadGenerator: app.leadGenerator,
     salesperson: app.salespersonName,
     installer: app.installerName,
     products: app.productsSold.length ? app.productsSold.join(', ') : null,

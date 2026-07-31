@@ -58,7 +58,6 @@ export default async function EditDealPage({ params }: { params: { id: string } 
     installationDate: ymd(app.installationDate),
     financingNote: app.financingNote ?? '',
     notes: app.notes ?? '',
-    leadGenerator: app.leadGenerator ?? '',
     salespersonName: app.salespersonName ?? '',
     installerName: app.installerName ?? '',
     soapIncluded: app.soapIncluded === true ? 'YES' : app.soapIncluded === false ? 'NO' : '',

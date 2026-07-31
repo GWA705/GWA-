@@ -48,7 +48,6 @@ export async function createApplicationAction(
   // Sales details are required at intake so the journal is complete.
   const salesErrors: Record<string, string> = {};
   if (!d.salespersonName) salesErrors.salespersonName = 'required';
-  if (!d.leadGenerator) salesErrors.leadGenerator = 'required';
   if (!d.installerName) salesErrors.installerName = 'required';
   if (!d.soapIncluded) salesErrors.soapIncluded = 'required';
   if (productsSold.length === 0 && (await prisma.product.count({ where: { active: true } })) > 0) {
@@ -155,7 +154,6 @@ export async function createApplicationAction(
       installationDate: d.installationDate ? new Date(d.installationDate) : null,
       homeDepotStoreId,
       financingNote: d.financingNote || null,
-      leadGenerator: d.leadGenerator || null,
       salespersonName: d.salespersonName || null,
       installerName: d.installerName || null,
       soapIncluded: d.soapIncluded === 'YES' ? true : d.soapIncluded === 'NO' ? false : null,

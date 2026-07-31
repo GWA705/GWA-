@@ -61,7 +61,6 @@ const FIELD_LABELS: Record<string, string> = {
   consent: 'Consent',
   financeItNumber: 'Financing deal number',
   salespersonName: "Salesperson's name",
-  leadGenerator: 'Lead generator',
   installerName: "Installer's name",
   soapIncluded: 'SOAP included',
   productsSold: 'Product(s) sold',
@@ -82,7 +81,6 @@ const BASE_REQUIRED: RequiredField[] = [
   { name: 'province', label: 'Province' },
   // Sales details — required on every entry method.
   { name: 'salespersonName', label: "Salesperson's name" },
-  { name: 'leadGenerator', label: 'Lead generator' },
   { name: 'installerName', label: "Installer's name" },
   { name: 'soapIncluded', label: 'SOAP included' },
   { name: 'consent', label: 'Consent', checkbox: true },
@@ -379,7 +377,6 @@ export function NewApplicationForm({
         <p className="mb-4 text-xs text-gray-500">Required — these fill the sales journal.</p>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div><label className="label" htmlFor="salespersonName">Salesperson&apos;s name</label><input id="salespersonName" name="salespersonName" className={fieldCls('')} /></div>
-          <div><label className="label" htmlFor="leadGenerator">Lead generator</label><input id="leadGenerator" name="leadGenerator" className={fieldCls('')} /></div>
           <div><label className="label" htmlFor="installerName">Installer&apos;s name</label><input id="installerName" name="installerName" className={fieldCls('')} /></div>
           <div>
             <label className="label" htmlFor="soapIncluded">SOAP included</label>

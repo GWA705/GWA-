@@ -24,7 +24,6 @@ export interface EditInitial {
   installationDate: string;
   financingNote: string;
   notes: string;
-  leadGenerator: string;
   salespersonName: string;
   installerName: string;
   soapIncluded: string; // '' | 'YES' | 'NO'
@@ -123,7 +122,6 @@ export function EditDealForm({
         <h2 className="mb-4 text-base font-semibold text-gray-900">Sales details</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div><label className="label" htmlFor="salespersonName">Salesperson&apos;s name</label><input id="salespersonName" name="salespersonName" defaultValue={v.salespersonName} className="input" /></div>
-          <div><label className="label" htmlFor="leadGenerator">Lead generator</label><input id="leadGenerator" name="leadGenerator" defaultValue={v.leadGenerator} className="input" /></div>
           <div><label className="label" htmlFor="installerName">Installer&apos;s name</label><input id="installerName" name="installerName" defaultValue={v.installerName} className="input" /></div>
           <div>
             <label className="label" htmlFor="soapIncluded">SOAP included</label>

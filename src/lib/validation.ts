@@ -76,7 +76,6 @@ export const applicationSchema = z.object({
 
   // Sales-journal detail fields (dealer-entered). productsSold is multi-value
   // and read via formData.getAll(), so it is not part of this object schema.
-  leadGenerator: str(120),
   salespersonName: str(120),
   installerName: str(120),
   soapIncluded: z.preprocess(blankToUndef, z.enum(['YES', 'NO']).optional()),
@@ -174,7 +173,6 @@ export const editDealSchema = z.object({
 
   // Sales-journal detail fields (editable by reviewers). productsSold is
   // multi-value and read via formData.getAll(), not through this object schema.
-  leadGenerator: str(120),
   salespersonName: str(120),
   installerName: str(120),
   soapIncluded: z.preprocess(blankToUndef, z.enum(['YES', 'NO']).optional()),

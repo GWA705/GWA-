@@ -124,7 +124,6 @@ const FIELD_SPECS: FieldSpec[] = [
   // the bottom half of "Amt. Paid By / Finance Co.", which is a dollar/formula
   // column, so writing a name there breaks the sheet's math.
   { key: 'location', test: (c) => c === 'location' },
-  { key: 'leadGenerator', test: (c) => c === 'lead generator' },
   { key: 'salesperson', test: (c) => c === 'dealer s name' }, // journal "Dealer's Name"
   { key: 'installer', test: (c) => c === 'installer s name' },
   { key: 'products', test: (c) => c.includes('product') },
@@ -246,7 +245,6 @@ export interface JournalDeal {
   financeItNumber: string | null; // → "Loan #"
   hdStoreLabel: string | null; // → "HD Store" (e.g. "BARRIE - 7024")
   dealerName: string | null; // → "Location" column (column O)
-  leadGenerator: string | null;
   salesperson: string | null; // → journal "Dealer's Name"
   installer: string | null;
   products: string | null; // comma-joined product names → "Product Sold"
@@ -310,7 +308,6 @@ export async function writeDealToJournal(deal: JournalDeal): Promise<JournalResu
     loanNo: deal.financeItNumber,
     hdStore: deal.hdStoreLabel,
     location: deal.dealerName,
-    leadGenerator: deal.leadGenerator,
     salesperson: deal.salesperson,
     installer: deal.installer,
     products: deal.products,
