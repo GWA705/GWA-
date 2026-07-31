@@ -96,6 +96,18 @@ model FinanceCompany {
   applications Application[]
 }
 
+// Admin-managed catalog of products a dealer can pick (multi-select) on a deal.
+// Seeded from the sales-journal dropdown; editable in Admin → Products. The
+// selection is stored on Application.productsSold as names, so archiving or
+// renaming a product never rewrites history.
+model Product {
+  id        String   @id @default(cuid())
+  name      String
+  active    Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
 // A dealership (external partner). Tenancy boundary: dealer users only ever
 // see applications belonging to their own dealer.
 model Dealer {
@@ -340,6 +352,18 @@ model Application {
   journalTab      String?
   journalRow      Int?
   journalSyncedAt DateTime?
+
+  // Sales-journal detail fields. Captured by the dealer at intake (and editable
+  // by reviewers) so they auto-fill the journal. Free text because installer /
+  // salesperson names are office-specific, not a shared list. productsSold is a
+  // multi-select from the admin-managed Product catalog. soapIncluded is Yes/No.
+  // datePaid is set by a reviewer once the deal is paid.
+  leadGenerator   String?
+  salespersonName String?
+  installerName   String?
+  soapIncluded    Boolean?
+  productsSold    String[]
+  datePaid        DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

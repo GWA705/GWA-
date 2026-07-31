@@ -14,10 +14,16 @@ export default async function NewApplicationPage() {
       })
     : [];
 
+  const products = await prisma.product.findMany({
+    where: { active: true },
+    orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+    select: { id: true, name: true },
+  });
+
   return (
     <div className="mx-auto max-w-3xl">
       <h1 className="mb-6 text-xl font-semibold text-gray-900">New customer processing</h1>
-      <NewApplicationForm stores={stores} />
+      <NewApplicationForm stores={stores} products={products} />
     </div>
   );
 }

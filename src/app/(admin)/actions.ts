@@ -409,6 +409,54 @@ export async function deleteFinanceCompanyAction(id: string): Promise<void> {
   revalidatePath('/admin/finance-companies');
 }
 
+// --- Products (sales-journal dropdown, admin-managed) ----------------------
+
+export async function createProductAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const session = await requireRole('ADMIN');
+  const name = String(formData.get('name') || '').trim();
+  if (!name || name.length > 120) return { error: 'Enter a product name (up to 120 characters).' };
+  const existing = await prisma.product.findFirst({ where: { name } });
+  if (existing) return { error: 'That product already exists.' };
+  const p = await prisma.product.create({ data: { name } });
+  await audit({ actorId: session.userId, action: 'DEALER_CREATE', entityType: 'Product', entityId: p.id, detail: p.name });
+  revalidatePath('/admin/products');
+  return { ok: true };
+}
+
+export async function renameProductAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const session = await requireRole('ADMIN');
+  const id = String(formData.get('id') || '');
+  const name = String(formData.get('name') || '').trim();
+  if (!name || name.length > 120) return { error: 'Enter a product name (up to 120 characters).' };
+  const p = await prisma.product.findUnique({ where: { id } });
+  if (!p) return { error: 'Product not found.' };
+  await prisma.product.update({ where: { id }, data: { name } });
+  await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'Product', entityId: id, detail: `renamed: ${p.name} -> ${name}` });
+  revalidatePath('/admin/products');
+  return { ok: true };
+}
+
+export async function toggleProductActiveAction(id: string): Promise<void> {
+  const session = await requireRole('ADMIN');
+  const p = await prisma.product.findUnique({ where: { id } });
+  if (!p) return;
+  await prisma.product.update({ where: { id }, data: { active: !p.active } });
+  await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'Product', entityId: id, detail: `active=${!p.active}` });
+  revalidatePath('/admin/products');
+}
+
+// Products aren't referenced by a foreign key (selections are stored as names on
+// the deal), so a delete never affects historical records — it just removes the
+// dropdown option.
+export async function deleteProductAction(id: string): Promise<void> {
+  const session = await requireRole('ADMIN');
+  const p = await prisma.product.findUnique({ where: { id } });
+  if (!p) return;
+  await prisma.product.delete({ where: { id } });
+  await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'Product', entityId: id, detail: `deleted: ${p.name}` });
+  revalidatePath('/admin/products');
+}
+
 // --- Announcements / banner ------------------------------------------------
 
 export async function createAnnouncementAction(

@@ -25,6 +25,12 @@ export default async function EditDealPage({ params }: { params: { id: string } 
   });
   if (!app) notFound();
 
+  const products = await prisma.product.findMany({
+    where: { active: true },
+    orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+    select: { id: true, name: true },
+  });
+
   // Editing reveals the protected identity fields — record the access.
   await audit({
     actorId: user.userId,
@@ -52,6 +58,12 @@ export default async function EditDealPage({ params }: { params: { id: string } 
     installationDate: ymd(app.installationDate),
     financingNote: app.financingNote ?? '',
     notes: app.notes ?? '',
+    leadGenerator: app.leadGenerator ?? '',
+    salespersonName: app.salespersonName ?? '',
+    installerName: app.installerName ?? '',
+    soapIncluded: app.soapIncluded === true ? 'YES' : app.soapIncluded === false ? 'NO' : '',
+    datePaid: ymd(app.datePaid),
+    productsSold: app.productsSold,
     middleName: l?.middleName ?? '',
     homePhone: l?.homePhone ?? '',
     maritalStatus: l?.maritalStatus ?? '',
@@ -82,7 +94,7 @@ export default async function EditDealPage({ params }: { params: { id: string } 
         </h1>
         <p className="mt-1 text-sm text-gray-500">Update applicant and deal details. Changes are logged.</p>
       </div>
-      <EditDealForm applicationId={app.id} initial={initial} />
+      <EditDealForm applicationId={app.id} initial={initial} products={products} />
     </div>
   );
 }

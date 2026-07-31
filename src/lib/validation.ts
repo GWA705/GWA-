@@ -74,6 +74,13 @@ export const applicationSchema = z.object({
   homeDepotStoreId: z.string().optional(),
   financingNote: z.string().max(2000).optional(),
 
+  // Sales-journal detail fields (dealer-entered). productsSold is multi-value
+  // and read via formData.getAll(), so it is not part of this object schema.
+  leadGenerator: str(120),
+  salespersonName: str(120),
+  installerName: str(120),
+  soapIncluded: z.preprocess(blankToUndef, z.enum(['YES', 'NO']).optional()),
+
   // Reference numbers
   loanReference: z.string().max(60).optional(),
   financeReference: z.string().max(60).optional(),
@@ -164,6 +171,14 @@ export const editDealSchema = z.object({
   installationDate: optionalDate,
   financingNote: z.string().max(2000).optional(),
   notes: z.string().max(4000).optional(),
+
+  // Sales-journal detail fields (editable by reviewers). productsSold is
+  // multi-value and read via formData.getAll(), not through this object schema.
+  leadGenerator: str(120),
+  salespersonName: str(120),
+  installerName: str(120),
+  soapIncluded: z.preprocess(blankToUndef, z.enum(['YES', 'NO']).optional()),
+  datePaid: optionalDate,
 
   // LoanApplication (extended) fields.
   middleName: str(80),

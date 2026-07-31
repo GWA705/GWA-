@@ -138,7 +138,13 @@ const METHODS: {
   },
 ];
 
-export function NewApplicationForm({ stores }: { stores: Store[] }) {
+export function NewApplicationForm({
+  stores,
+  products,
+}: {
+  stores: Store[];
+  products: { id: string; name: string }[];
+}) {
   const [state, action] = useFormState(createApplicationAction, initial);
   const [method, setMethod] = useState<Method>('TYPED');
   const typed = method === 'TYPED';
@@ -349,6 +355,40 @@ export function NewApplicationForm({ stores }: { stores: Store[] }) {
             </select>
             {stores.length === 0 && <p className="mt-1 text-xs text-gray-400">Ask an admin to assign your store(s).</p>}
           </div>
+        </div>
+      </section>
+
+      {/* Sales details — flow into the sales journal. Optional. */}
+      <section className="card p-6">
+        <h2 className="mb-1 text-base font-semibold text-gray-900">Sales details</h2>
+        <p className="mb-4 text-xs text-gray-500">For the sales journal. Optional, but please fill what you can.</p>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div><label className="label" htmlFor="salespersonName">Salesperson&apos;s name</label><input id="salespersonName" name="salespersonName" className={fieldCls('')} /></div>
+          <div><label className="label" htmlFor="leadGenerator">Lead generator</label><input id="leadGenerator" name="leadGenerator" className={fieldCls('')} /></div>
+          <div><label className="label" htmlFor="installerName">Installer&apos;s name</label><input id="installerName" name="installerName" className={fieldCls('')} /></div>
+          <div>
+            <label className="label" htmlFor="soapIncluded">SOAP included</label>
+            <select id="soapIncluded" name="soapIncluded" className={fieldCls('')}>
+              <option value="">—</option>
+              <option value="YES">Yes</option>
+              <option value="NO">No</option>
+            </select>
+          </div>
+        </div>
+        <div className="mt-4">
+          <span className="label">Product(s) sold</span>
+          {products.length === 0 ? (
+            <p className="mt-1 text-xs text-gray-400">No products set up yet — an admin can add them under Admin → Products.</p>
+          ) : (
+            <div className="mt-1 grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {products.map((p) => (
+                <label key={p.id} className="flex items-center gap-2 rounded border border-gray-200 px-3 py-2 text-sm">
+                  <input type="checkbox" name="productsSold" value={p.name} className="h-4 w-4" />
+                  <span>{p.name}</span>
+                </label>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 

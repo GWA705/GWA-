@@ -116,6 +116,20 @@ async function main() {
     await prisma.homeDepotStore.upsert({ where: { id: s.id }, update: {}, create: s });
   }
 
+  // Product catalog for the sales-journal dropdown. Seed the journal's default
+  // list ONLY when the table is empty, so admin edits/deletes aren't undone on
+  // redeploy.
+  if ((await prisma.product.count()) === 0) {
+    const defaultProducts = [
+      'WS', 'City', 'Country', 'UV12', 'UV20', 'SIM', 'HEPA', 'RPS UV',
+      'SOAP', 'WHCCF', 'BEYOND', 'ANGEL', 'Guardian Home Air', 'Elevate PH+',
+    ];
+    await prisma.product.createMany({
+      data: defaultProducts.map((name, i) => ({ name, sortOrder: i })),
+    });
+    console.log(`Seeded ${defaultProducts.length} products.`);
+  }
+
   // Sample application (demo only, and only if none exist for this dealer)
   const existing = await prisma.application.count({ where: { dealerId: dealer.id } });
   if (seedDemo && dealerUser && existing === 0) {

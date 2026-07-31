@@ -42,6 +42,8 @@ export async function createApplicationAction(
     return { error: 'Please correct the highlighted fields.', fieldErrors };
   }
   const d = parsed.data;
+  // Products are a multi-select, so they arrive as repeated form fields.
+  const productsSold = formData.getAll('productsSold').map(String).map((s) => s.trim()).filter(Boolean).slice(0, 50);
 
   // If a Home Depot store was chosen, verify it belongs to this dealer.
   let homeDepotStoreId: string | null = null;
@@ -140,6 +142,11 @@ export async function createApplicationAction(
       installationDate: d.installationDate ? new Date(d.installationDate) : null,
       homeDepotStoreId,
       financingNote: d.financingNote || null,
+      leadGenerator: d.leadGenerator || null,
+      salespersonName: d.salespersonName || null,
+      installerName: d.installerName || null,
+      soapIncluded: d.soapIncluded === 'YES' ? true : d.soapIncluded === 'NO' ? false : null,
+      productsSold,
       loanReference: d.loanReference || null,
       financeReference: d.financeReference || null,
       hdReference: d.hdReference || null,

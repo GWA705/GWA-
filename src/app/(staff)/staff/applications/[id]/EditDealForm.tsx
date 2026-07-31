@@ -24,6 +24,12 @@ export interface EditInitial {
   installationDate: string;
   financingNote: string;
   notes: string;
+  leadGenerator: string;
+  salespersonName: string;
+  installerName: string;
+  soapIncluded: string; // '' | 'YES' | 'NO'
+  datePaid: string;
+  productsSold: string[];
   middleName: string;
   homePhone: string;
   maritalStatus: string;
@@ -59,9 +65,18 @@ function SaveButton() {
   );
 }
 
-export function EditDealForm({ applicationId, initial }: { applicationId: string; initial: EditInitial }) {
+export function EditDealForm({
+  applicationId,
+  initial,
+  products,
+}: {
+  applicationId: string;
+  initial: EditInitial;
+  products: { id: string; name: string }[];
+}) {
   const [state, action] = useFormState(updateDealAction.bind(null, applicationId), {} as State);
   const v = initial;
+  const selected = new Set(v.productsSold);
 
   return (
     <form action={action} className="space-y-6">
@@ -102,6 +117,40 @@ export function EditDealForm({ applicationId, initial }: { applicationId: string
         </div>
         <div className="mt-4"><label className="label" htmlFor="financingNote">Financing note</label><textarea id="financingNote" name="financingNote" rows={2} defaultValue={v.financingNote} className="input" /></div>
         <div className="mt-4"><label className="label" htmlFor="notes">Notes</label><textarea id="notes" name="notes" rows={2} defaultValue={v.notes} className="input" /></div>
+      </section>
+
+      {/* Sales details — fill the sales journal. */}
+      <section className="card p-6">
+        <h2 className="mb-4 text-base font-semibold text-gray-900">Sales details</h2>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div><label className="label" htmlFor="salespersonName">Salesperson&apos;s name</label><input id="salespersonName" name="salespersonName" defaultValue={v.salespersonName} className="input" /></div>
+          <div><label className="label" htmlFor="leadGenerator">Lead generator</label><input id="leadGenerator" name="leadGenerator" defaultValue={v.leadGenerator} className="input" /></div>
+          <div><label className="label" htmlFor="installerName">Installer&apos;s name</label><input id="installerName" name="installerName" defaultValue={v.installerName} className="input" /></div>
+          <div>
+            <label className="label" htmlFor="soapIncluded">SOAP included</label>
+            <select id="soapIncluded" name="soapIncluded" defaultValue={v.soapIncluded} className="input">
+              <option value="">—</option>
+              <option value="YES">Yes</option>
+              <option value="NO">No</option>
+            </select>
+          </div>
+          <div><label className="label" htmlFor="datePaid">Date paid</label><input id="datePaid" name="datePaid" type="date" defaultValue={v.datePaid} className="input" /></div>
+        </div>
+        <div className="mt-4">
+          <span className="label">Product(s) sold</span>
+          {products.length === 0 ? (
+            <p className="mt-1 text-xs text-gray-400">No products set up — add them under Admin → Products.</p>
+          ) : (
+            <div className="mt-1 grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {products.map((p) => (
+                <label key={p.id} className="flex items-center gap-2 rounded border border-gray-200 px-3 py-2 text-sm">
+                  <input type="checkbox" name="productsSold" value={p.name} defaultChecked={selected.has(p.name)} className="h-4 w-4" />
+                  <span>{p.name}</span>
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
       </section>
 
       <section className="card p-6">
