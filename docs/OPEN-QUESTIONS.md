@@ -246,9 +246,86 @@ _Last updated: 2026-07-30_
 
 ---
 
+## D. Roadmap — planned work (captured 2026-07-31)
+
+Bigger items we've agreed to do later. Each notes rough feasibility and what's
+needed to start. Nothing here is built yet.
+
+43. **Widen the 2-hour alert to unacknowledged uploads.** Today the alert only
+    covers brand-new deals no reviewer has looked at. Extend it so a dealer's
+    **uploaded document that hasn't been acknowledged/verified** also triggers
+    the "waiting" alert after 2 hours. *(Small build — extend the query in
+    `runAttentionAlerts`, keyed off `lastDealerActionKind='DOCUMENT'` and no
+    reviewer action since.)*
+
+44. **Two admin tiers + "view any dealer account."**
+    a) **Regular admin** (can be handed to a staff member) — manages users,
+       dealers, finance companies, content, email, etc.
+    b) **Super-admin** (yours only) — controls the "real backend" (to be
+       defined together: e.g. data retention settings, integrations/API keys,
+       destructive actions like the go-live wipe, promoting/demoting admins,
+       security settings). Regular admins can't touch these.
+    c) **Impersonate / "view as dealer."** A safe way for an admin to open a
+       dealer's account and see exactly what they see, to troubleshoot an issue.
+       Must be **read-only or clearly flagged**, and **audit-logged** (who
+       viewed whose account, when). *(Medium build — new role/permission split
+       + a guarded "view as" session mechanism. Define the super-admin powers
+       first.)*
+
+45. **Google Sheets journal integration.** Write each deal's key info into your
+    existing Google Sheets sales journal automatically.
+    - **Feasible?** Yes — via the Google Sheets API using a **service account**
+      (a machine login) that you share the sheet with. The app appends a row per
+      deal (and can update on status changes).
+    - Each journal row should include a **link back to the deal** and links to
+      the **documents** provided (secure, access-controlled links — not public).
+    - **Fallback if we don't want to touch the live sheet:** the app keeps its
+      **own journal view** built from the deals entered, with the same document
+      links, exportable to CSV/Sheets.
+    - **Your part when we start:** decide append-to-existing-sheet vs. app-owned
+      journal; if the former, share the sheet with the service account and give
+      me the sheet ID + column layout.
+
+46. **Reporting / analytics on the site.** Bring the reporting you currently
+    build in Google Sheets into the portal (counts, funnel, probabilities, etc.).
+    *(Larger build. Best done after #45 so the data model for reporting is
+    settled.)* **Your part:** upload the current Google-Sheets reports + the
+    formulas/codes so we can mirror the logic natively.
+
+47. **Privacy & security review (deep pass).** Go through the whole app for
+    privacy loopholes and make sure customer personal data is properly secured
+    (access control, encryption coverage, audit completeness, least-privilege,
+    data minimization). Pairs with the go-live gates in section C (#21, #22).
+
+48. **Automatic deletion of ID data after retention window.** Auto-purge the
+    government ID number, ID expiry, and related identity fields (and possibly
+    the ID document image) **~15 days after a deal is paid**, so we don't hold
+    driver's licenses long-term. *(Medium build — a scheduled purge job like the
+    alert cron; needs a clear retention rule per field and an audit entry when
+    data is purged. Ties into #47 and Law 25 data-minimization.)* **Decide:**
+    exact window (15 days after payment?), and which fields/documents to purge
+    vs. keep.
+
+49. **FinanceIT calculator API (Dealer Support).** Wire in FinanceIT's payment
+    calculator via their API so dealers can quote payments in-portal.
+    *(Feasible once we have their API docs.)* **Your part:** get from FinanceIT —
+    API documentation, the endpoint(s), authentication method + credentials, and
+    any usage terms. We'll review together before building.
+
+50. **First-login tutorial / guided tour.** A short pop-up walkthrough on first
+    login (click-through "OK" windows) introducing the main areas and actions.
+    - **Feasible?** Yes.
+    - **Toggle on/off:** yes — auto-shows once per user, with a "Show me the
+      tour again" option in My account so they can replay it anytime.
+    *(Small–medium build. Provide the copy/steps for each screen when we start,
+    or I can draft a first version.)*
+
+---
+
 ## Notes
 - Items in **A** generally need your action first; **B** are quick builds once
-  you decide; **C** are go-live gates (some are organizational, not code).
+  you decide; **C** are go-live gates (some are organizational, not code);
+  **D** is the agreed roadmap of bigger items.
 - Add anything new here as it comes up.
 
 ### ⚠️ render.yaml is intentionally out of sync (do not naively edit)
