@@ -119,7 +119,11 @@ const FIELD_SPECS: FieldSpec[] = [
   { key: 'loanNo', test: (_c, b) => b === 'loan' || b.startsWith('loan ') },
   { key: 'term', test: (_c, b) => b.startsWith('term') },
   { key: 'financedAmount', test: (c) => c === 'financed amount' },
-  { key: 'financeCo', test: (c, b) => b.startsWith('finance co') || c.includes('finance co') },
+  // Column O is headed "Location" (top) with a blank bottom row → dealer name.
+  // NB: do NOT map the finance company here — the only "Finance Co." header is
+  // the bottom half of "Amt. Paid By / Finance Co.", which is a dollar/formula
+  // column, so writing a name there breaks the sheet's math.
+  { key: 'location', test: (c) => c === 'location' },
   { key: 'address', test: (_c, b) => b === 'address' },
   { key: 'city', test: (_c, b) => b.startsWith('city') },
   { key: 'prov', test: (_c, b) => b === 'prov' || b.startsWith('prov') },
@@ -236,7 +240,7 @@ export interface JournalDeal {
   hdReference: string | null; // → "HD Ref #"
   financeItNumber: string | null; // → "Loan #"
   hdStoreLabel: string | null; // → "HD Store" (e.g. "BARRIE - 7024")
-  financeCompany: string | null;
+  dealerName: string | null; // → "Location" column (column O)
   financedAmount: string | null;
   term: string | null;
   address: string | null;
@@ -295,7 +299,7 @@ export async function writeDealToJournal(deal: JournalDeal): Promise<JournalResu
     hdRef: deal.hdReference,
     loanNo: deal.financeItNumber,
     hdStore: deal.hdStoreLabel,
-    financeCo: deal.financeCompany,
+    location: deal.dealerName,
     financedAmount: deal.financedAmount,
     term: deal.term,
     address: deal.address,

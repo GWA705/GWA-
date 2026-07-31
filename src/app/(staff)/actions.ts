@@ -669,7 +669,7 @@ export async function writeToJournalAction(
 
   const app = await prisma.application.findUnique({
     where: { id: applicationId },
-    include: { homeDepotStore: true, financeCompany: true, loanApplication: true },
+    include: { homeDepotStore: true, dealer: true, loanApplication: true },
   });
   if (!app) return { error: 'Deal not found.' };
   if (!app.hdReference || !app.financeItNumber) {
@@ -690,7 +690,7 @@ export async function writeToJournalAction(
     hdReference: app.hdReference,
     financeItNumber: app.financeItNumber,
     hdStoreLabel: storeLabel,
-    financeCompany: app.financeCompany?.name ?? null,
+    dealerName: app.dealer?.name ?? null,
     financedAmount: fmtAmount(app.approvedAmount),
     term: null,
     address: decryptOptional(app.applicantAddressEnc),
