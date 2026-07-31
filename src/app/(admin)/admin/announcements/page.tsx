@@ -1,6 +1,6 @@
 import { requireRole } from '@/lib/session';
 import { prisma } from '@/lib/db';
-import { toggleAnnouncementActiveAction, deleteAnnouncementAction } from '@/app/(admin)/actions';
+import { toggleAnnouncementActiveAction, toggleAnnouncementPositionAction, deleteAnnouncementAction } from '@/app/(admin)/actions';
 import { AnnouncementForm } from './AnnouncementForm';
 import { AnnouncementImageForm } from './AnnouncementImageForm';
 
@@ -13,7 +13,7 @@ export default async function AnnouncementsPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-xl font-semibold text-gray-900">Dealer portal sign</h1>
-      <p className="-mt-3 text-sm text-gray-500">Shown as a banner above the dealer&apos;s Applications list. Active items appear to all dealers.</p>
+      <p className="-mt-3 text-sm text-gray-500">Banners on the dealer dashboard — place each at the top (above the deals) or after the deals list. Active items appear to all dealers.</p>
 
       <div className="card p-6">
         <h2 className="mb-4 text-base font-semibold text-gray-900">New sign</h2>
@@ -31,6 +31,9 @@ export default async function AnnouncementsPage() {
                   <span className={`badge ${a.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
                     {a.active ? 'Active' : 'Hidden'}
                   </span>
+                  <span className="badge bg-brand-50 text-brand-700">
+                    {a.position === 'BOTTOM' ? 'After deals' : 'Top'}
+                  </span>
                   {a.title && <span className="font-medium text-gray-900">{a.title}</span>}
                 </div>
                 {a.body && <p className="mt-1 whitespace-pre-wrap text-sm text-gray-600">{a.body}</p>}
@@ -42,6 +45,11 @@ export default async function AnnouncementsPage() {
               </div>
               <div className="flex flex-none flex-col gap-2">
                 <AnnouncementImageForm id={a.id} hasImage={!!a.imageStorageKey} />
+                <form action={toggleAnnouncementPositionAction.bind(null, a.id)}>
+                  <button type="submit" className="btn-secondary w-full text-xs">
+                    {a.position === 'BOTTOM' ? 'Move to top' : 'Move after deals'}
+                  </button>
+                </form>
                 <form action={toggleAnnouncementActiveAction.bind(null, a.id)}>
                   <button type="submit" className="btn-secondary w-full text-xs">{a.active ? 'Hide' : 'Show'}</button>
                 </form>

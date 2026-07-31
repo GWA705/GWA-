@@ -41,6 +41,13 @@ export function AnnouncementForm() {
         <input id="linkUrl" name="linkUrl" className="input" placeholder="https://…" />
       </div>
       <div>
+        <label className="label" htmlFor="position">Where it shows</label>
+        <select id="position" name="position" className="input" defaultValue="TOP">
+          <option value="TOP">Top of page (above the deals)</option>
+          <option value="BOTTOM">After the deals list</option>
+        </select>
+      </div>
+      <div>
         <label className="label" htmlFor="image">Banner image <span className="font-normal text-gray-400">(optional — JPG/PNG/WEBP)</span></label>
         <input id="image" name="image" type="file" accept=".jpg,.jpeg,.png,.webp" className="block w-full text-sm text-gray-600 file:mr-3 file:rounded file:border-0 file:bg-brand-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-brand-700 hover:file:bg-brand-100" />
       </div>

@@ -236,6 +236,7 @@ export const announcementSchema = z
       .max(500)
       .optional()
       .refine((v) => !v || /^https?:\/\//i.test(v), 'Link must start with http(s)://'),
+    position: z.enum(['TOP', 'BOTTOM']).optional().default('TOP'),
     hasImage: z.boolean().optional(),
   })
   .refine((d) => !!(d.title || d.body || d.hasImage), {

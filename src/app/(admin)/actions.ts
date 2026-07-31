@@ -471,6 +471,7 @@ export async function createAnnouncementAction(
     title: (formData.get('title') as string) || undefined,
     body: (formData.get('body') as string) || undefined,
     linkUrl: (formData.get('linkUrl') as string) || undefined,
+    position: (formData.get('position') as string) || undefined,
     hasImage,
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Please check the form.' };
@@ -486,7 +487,7 @@ export async function createAnnouncementAction(
   }
 
   const created = await prisma.announcement.create({
-    data: { title: d.title || null, body: d.body || null, linkUrl: d.linkUrl || null },
+    data: { title: d.title || null, body: d.body || null, linkUrl: d.linkUrl || null, position: d.position },
   });
 
   if (hasImage) {
@@ -569,6 +570,18 @@ export async function toggleAnnouncementActiveAction(id: string): Promise<void> 
   if (!a) return;
   await prisma.announcement.update({ where: { id }, data: { active: !a.active } });
   await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'Announcement', entityId: id, detail: `active=${!a.active}` });
+  revalidatePath('/admin/announcements');
+  revalidatePath('/dealer');
+}
+
+// Flip a sign between the top of the dealer dashboard and after the deals list.
+export async function toggleAnnouncementPositionAction(id: string): Promise<void> {
+  const session = await requireRole('ADMIN');
+  const a = await prisma.announcement.findUnique({ where: { id } });
+  if (!a) return;
+  const next = a.position === 'BOTTOM' ? 'TOP' : 'BOTTOM';
+  await prisma.announcement.update({ where: { id }, data: { position: next } });
+  await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'Announcement', entityId: id, detail: `position=${next}` });
   revalidatePath('/admin/announcements');
   revalidatePath('/dealer');
 }

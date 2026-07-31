@@ -32,6 +32,9 @@ model Announcement {
   imageStorageKey String? // uploaded banner image (encrypted at rest)
   imageMime       String?
   active          Boolean  @default(true)
+  // Where the sign shows on the dealer dashboard: "TOP" (above the deals, the
+  // default) or "BOTTOM" (after the deals list).
+  position        String   @default("TOP")
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
