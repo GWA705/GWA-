@@ -143,10 +143,9 @@ export default async function StaffApplicationDetail({
   });
 
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-      <div className="space-y-6 lg:col-span-2">
-        <div>
-          <Link href="/staff" className="text-sm text-gray-500 hover:underline">← Back to queue</Link>
+    <div className="space-y-6">
+      <div>
+        <Link href="/staff" className="text-sm text-gray-500 hover:underline">← Back to queue</Link>
           <div className="mt-2 flex items-center justify-between">
             <h1 className="text-xl font-semibold text-gray-900">
               {app.applicantFirstName} {app.applicantLastName}
@@ -179,6 +178,10 @@ export default async function StaffApplicationDetail({
           hasPayouts={app.payouts.length > 0}
         />
 
+      {/* Below the header/progress: actions column first on mobile so a reviewer
+          can act without scrolling past the whole deal; back on the right at lg. */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="order-2 space-y-6 lg:order-1 lg:col-span-2">
         {/* Summary */}
         <section className="card p-6">
           <h2 className="mb-4 text-base font-semibold text-gray-900">Summary</h2>
@@ -391,8 +394,8 @@ export default async function StaffApplicationDetail({
         </section>
       </div>
 
-      {/* Decision sidebar */}
-      <div className="space-y-6">
+      {/* Decision sidebar — first on mobile, right-hand column at lg. */}
+      <div className="order-1 space-y-6 lg:order-2">
         <section className="card p-6">
           <h2 className="mb-4 text-base font-semibold text-gray-900">Decision</h2>
           {app.status === 'SUBMITTED' && (
@@ -463,6 +466,7 @@ export default async function StaffApplicationDetail({
             {app.consents[0].ipAddress && <p>IP: {app.consents[0].ipAddress}</p>}
           </section>
         )}
+      </div>
       </div>
     </div>
   );

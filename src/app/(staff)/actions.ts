@@ -118,6 +118,11 @@ export async function recordDecisionAction(
     return { error: `Cannot ${type.replace('_', ' ').toLowerCase()} an application in status ${app.status}.` };
   }
 
+  // Funding a deal requires both reference numbers on file.
+  if (type === 'FUND' && (!app.hdReference || !app.financeItNumber)) {
+    return { error: 'Add both the HD Customer # and the Financing deal number before funding this deal.' };
+  }
+
   const to = nextStatus(type);
 
   // On an approval, record the approved amount, finance company, and approver.
@@ -475,6 +480,15 @@ export async function changeStatusAction(
   const app = await prisma.application.findUnique({ where: { id: applicationId } });
   if (!app) return { error: 'Application not found.' };
   if (app.status === status) return { ok: true };
+
+  // A deal can't move into funding (or anything past it) until both reference
+  // numbers are recorded.
+  const FUNDING_OR_BEYOND: ApplicationStatus[] = ['FUNDING_SUBMITTED', 'FUNDING_REVIEW', 'FUNDED'];
+  if (FUNDING_OR_BEYOND.includes(status) && (!app.hdReference || !app.financeItNumber)) {
+    return {
+      error: 'Add both the HD Customer # and the Financing deal number before moving this deal into funding.',
+    };
+  }
 
   await prisma.$transaction([
     prisma.application.update({ where: { id: applicationId }, data: { status } }),
