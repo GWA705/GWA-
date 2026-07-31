@@ -669,3 +669,56 @@ export async function stopViewAsAction(): Promise<void> {
   });
   redirect('/admin/dealers');
 }
+
+/**
+ * Idempotent import of the acquired Home Depot stores, grouped by the dealer
+ * that owns them. Creates any missing dealer and attaches any missing store
+ * (matched on dealer + store number) — safe to run repeatedly. Admin only.
+ */
+export async function importHomeDepotStoresAction(): Promise<ActionState> {
+  const session = await requireRole('ADMIN');
+  const { HD_STORE_IMPORT } = await import('@/lib/hdStores');
+
+  let dealersCreated = 0;
+  let storesCreated = 0;
+  let storesUpdated = 0;
+
+  for (const group of HD_STORE_IMPORT) {
+    let dealer = await prisma.dealer.findFirst({ where: { name: group.dealer } });
+    if (!dealer) {
+      dealer = await prisma.dealer.create({ data: { name: group.dealer } });
+      dealersCreated += 1;
+    }
+    for (const store of group.stores) {
+      const existing = await prisma.homeDepotStore.findFirst({
+        where: { dealerId: dealer.id, number: store.number },
+      });
+      if (!existing) {
+        await prisma.homeDepotStore.create({
+          data: { dealerId: dealer.id, number: store.number, name: store.city },
+        });
+        storesCreated += 1;
+      } else if (existing.name !== store.city) {
+        await prisma.homeDepotStore.update({ where: { id: existing.id }, data: { name: store.city } });
+        storesUpdated += 1;
+      }
+    }
+  }
+
+  await audit({
+    actorId: session.userId,
+    action: 'DEALER_CREATE',
+    entityType: 'HomeDepotStore',
+    entityId: 'import',
+    detail: `HD store import — ${dealersCreated} new dealers, ${storesCreated} new stores, ${storesUpdated} updated`,
+  });
+  revalidatePath('/admin');
+  revalidatePath('/admin/dealers');
+
+  const parts = [
+    `${dealersCreated} new dealer${dealersCreated === 1 ? '' : 's'}`,
+    `${storesCreated} new store${storesCreated === 1 ? '' : 's'}`,
+  ];
+  if (storesUpdated) parts.push(`${storesUpdated} store name${storesUpdated === 1 ? '' : 's'} updated`);
+  return { ok: true, message: `Import complete — ${parts.join(', ')}. Re-running is safe (no duplicates).` };
+}
