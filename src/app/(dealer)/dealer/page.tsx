@@ -56,14 +56,14 @@ export default async function DealerHome({
     <div>
       <AnnouncementBanner announcements={topBanners} />
 
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold text-gray-900">Applications</h1>
-        <div className="flex items-center gap-3">
-          <SearchBox action="/dealer" q={searchParams.q} />
-          <Link href="/dealer/applications/new" className="btn-primary">
+      <div className="mb-6 space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h1 className="text-xl font-semibold text-gray-900">Applications</h1>
+          <Link href="/dealer/applications/new" className="btn-primary whitespace-nowrap text-sm">
             New customer processing
           </Link>
         </div>
+        <SearchBox action="/dealer" q={searchParams.q} />
       </div>
 
       {apps.length === 0 ? (
