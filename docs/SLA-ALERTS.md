@@ -1,8 +1,12 @@
 # Reviewer 2-hour "not looked at" alert
 
-When a **new deal** (a submitted application or a submitted funding package) has
-been waiting **more than 2 hours** and **no reviewer has looked at it yet**, the
-portal emails all active reviewers/admins a summary with a link to the queue.
+When a deal has been waiting **more than 2 hours** with the ball in the
+reviewer's court and **no reviewer has looked at it yet**, the portal emails all
+active reviewers/admins a summary with a link to the queue. This covers:
+
+- a **new application** or **funding package** nobody has picked up, and
+- a **document a dealer uploaded** that hasn't been acknowledged yet (even on an
+  in-progress deal).
 
 - **Only sends 8am–10pm** (America/Toronto), every day. A deal that crosses the
   2-hour mark overnight is alerted at the next 8am run.
@@ -60,6 +64,7 @@ The endpoint is safe to call all day — outside 8am–10pm it simply no-ops.
 - `WAIT_MINUTES` — the 2-hour threshold (120).
 - `BUSINESS_START_HOUR` / `BUSINESS_END_HOUR` — 8 and 22.
 - `BUSINESS_TZ` — `America/Toronto`.
-- Scope: currently only brand-new deals with no reviewer action. To also alert
-  on in-progress deals that got a new dealer document/note, widen the `where` in
-  `runAttentionAlerts` to the full "needs attention" set.
+- Scope: new deals, funding packages, and unacknowledged document uploads
+  (dealer acted more recently than any reviewer). Notes are intentionally
+  excluded (reviewers already get a "new note" email). To include notes, add
+  `'NOTE'` to the `lastDealerActionKind` filter in `runAttentionAlerts`.

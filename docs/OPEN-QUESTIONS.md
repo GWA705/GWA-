@@ -251,12 +251,11 @@ _Last updated: 2026-07-30_
 Bigger items we've agreed to do later. Each notes rough feasibility and what's
 needed to start. Nothing here is built yet.
 
-43. **Widen the 2-hour alert to unacknowledged uploads.** Today the alert only
-    covers brand-new deals no reviewer has looked at. Extend it so a dealer's
-    **uploaded document that hasn't been acknowledged/verified** also triggers
-    the "waiting" alert after 2 hours. *(Small build — extend the query in
-    `runAttentionAlerts`, keyed off `lastDealerActionKind='DOCUMENT'` and no
-    reviewer action since.)*
+43. ✅ **DONE — 2-hour alert now covers unacknowledged uploads too.** In addition
+    to brand-new deals/funding packages, the alert fires when a dealer's
+    **uploaded document** has waited over 2 hours with no reviewer acting since
+    (dealer acted more recently than any reviewer). Notes stay excluded (they
+    already send their own email).
 
 44. **Two admin tiers + "view any dealer account."**
     a) **Regular admin** (can be handed to a staff member) — manages users,

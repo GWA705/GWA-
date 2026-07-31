@@ -66,20 +66,33 @@ export async function runAttentionAlerts(now: Date = new Date()): Promise<SlaAle
   // Only re-alert a deal whose last alert was more than one wait-window ago.
   const resendCutoff = waitCutoff;
 
-  const deals = await prisma.application.findMany({
+  // Candidates: active deals (not finished) where the dealer's most recent
+  // action is a submit, funding, or document upload, and it's old enough to be
+  // "waiting". We compare lastDealerActionAt vs lastReviewerActionAt in JS
+  // because Prisma can't compare two columns in a `where`.
+  const candidates = await prisma.application.findMany({
     where: {
-      status: { in: ['SUBMITTED', 'FUNDING_SUBMITTED'] },
-      lastReviewerActionAt: null, // never looked at by a reviewer
-      // Waiting since the dealer acted (submitted/uploaded); fall back to createdAt.
+      status: { notIn: ['FUNDED', 'DECLINED', 'WITHDRAWN', 'DRAFT'] },
+      lastDealerActionKind: { in: ['SUBMITTED', 'FUNDING', 'DOCUMENT'] },
       OR: [
         { lastDealerActionAt: { lte: waitCutoff } },
         { lastDealerActionAt: null, createdAt: { lte: waitCutoff } },
       ],
-      // Not alerted yet, or last alert is older than one wait-window.
-      AND: [{ OR: [{ attentionAlertSentAt: null }, { attentionAlertSentAt: { lte: resendCutoff } }] }],
     },
     include: { dealer: true },
     orderBy: { createdAt: 'asc' },
+    take: 500,
+  });
+
+  // Keep deals where the dealer acted more recently than any reviewer (i.e. the
+  // ball is in the reviewer's court and hasn't been acknowledged), and that
+  // haven't already been alerted within the last wait-window.
+  const deals = candidates.filter((d) => {
+    const dealerAt = (d.lastDealerActionAt ?? d.createdAt).getTime();
+    const reviewerAt = d.lastReviewerActionAt ? d.lastReviewerActionAt.getTime() : 0;
+    const unacknowledged = dealerAt > reviewerAt;
+    const notRecentlyAlerted = !d.attentionAlertSentAt || d.attentionAlertSentAt <= resendCutoff;
+    return unacknowledged && notRecentlyAlerted;
   });
 
   if (deals.length === 0) {
@@ -90,6 +103,12 @@ export async function runAttentionAlerts(now: Date = new Date()): Promise<SlaAle
     where: { role: { in: ['REVIEWER', 'ADMIN'] }, active: true, notifyAttentionAlerts: true },
   });
 
+  const kindLabel = (d: (typeof deals)[number]): string => {
+    if (d.lastDealerActionKind === 'DOCUMENT') return 'New document';
+    if (d.lastDealerActionKind === 'FUNDING' || d.status === 'FUNDING_SUBMITTED') return 'Funding package';
+    return 'New application';
+  };
+
   const lines = deals
     .map((d) => {
       const since = d.lastDealerActionAt ?? d.createdAt;
@@ -97,8 +116,7 @@ export async function runAttentionAlerts(now: Date = new Date()): Promise<SlaAle
       const hrs = Math.floor(mins / 60);
       const remM = mins % 60;
       const wait = hrs > 0 ? `${hrs}h ${remM}m` : `${remM}m`;
-      const kind = d.status === 'FUNDING_SUBMITTED' ? 'Funding package' : 'New application';
-      return `<li style="margin:4px 0;">${dealLabel(d)} — ${d.dealer.name} · ${kind} · waiting ${wait}</li>`;
+      return `<li style="margin:4px 0;">${dealLabel(d)} — ${d.dealer.name} · ${kindLabel(d)} · waiting ${wait}</li>`;
     })
     .join('');
 
@@ -106,7 +124,7 @@ export async function runAttentionAlerts(now: Date = new Date()): Promise<SlaAle
   const heading = `${count} deal${count === 1 ? '' : 's'} waiting over 2 hours`;
   const intro =
     `The following ${count === 1 ? 'deal has' : 'deals have'} been waiting more than 2 hours ` +
-    `and no reviewer has picked ${count === 1 ? 'it' : 'them'} up yet.`;
+    `for a reviewer (new deals or uploads not yet looked at).`;
   const html = renderEmail({
     heading,
     intro,

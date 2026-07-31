@@ -61,7 +61,7 @@ export function ProfileForm({ profile }: { profile: Profile }) {
           {profile.isStaff ? (
             <>
               <Toggle name="notifyNewDocuments" label="A dealer uploads new documents" defaultChecked={profile.notifyNewDocuments} />
-              <Toggle name="notifyAttentionAlerts" label="A new deal waits over 2 hours without being looked at" defaultChecked={profile.notifyAttentionAlerts} />
+              <Toggle name="notifyAttentionAlerts" label="A deal or upload waits over 2 hours without being looked at" defaultChecked={profile.notifyAttentionAlerts} />
             </>
           ) : (
             <Toggle name="notifyStatusUpdates" label="A deal's status changes" defaultChecked={profile.notifyStatusUpdates} />

@@ -49,9 +49,9 @@ export default async function EmailSettingsPage() {
       <div className="card p-6">
         <h2 className="mb-1 text-base font-semibold text-gray-900">Reviewer 2-hour alert</h2>
         <p className="mb-4 text-sm text-gray-500">
-          Reviewers/admins get an email when a <span className="font-medium">new deal</span> has been
-          waiting more than 2 hours without any reviewer looking at it. It only sends between
-          8am–10pm. Runs automatically on a schedule; use this button to check right now.
+          Reviewers/admins get an email when a <span className="font-medium">new deal or an uploaded
+          document</span> has been waiting more than 2 hours without any reviewer looking at it. It
+          only sends between 8am–10pm. Runs automatically on a schedule; use this button to check right now.
         </p>
         <AttentionAlertRunner />
       </div>
