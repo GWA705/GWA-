@@ -1,11 +1,43 @@
 import type { ContentItem } from '@prisma/client';
 
-function FileIcon() {
+// Known acronyms that should stay uppercase when we standardize a title's case.
+const ACRONYMS = new Set(['HD', 'HDCC', 'GHS', 'GWA', 'FAQ', 'UV', 'PH', 'SIN', 'PDF', 'ON', 'US', 'CA', 'HDFINIT']);
+
+/**
+ * Present titles in a consistent Title Case regardless of how they were typed
+ * (ALL CAPS, mixed, …). Words containing a digit (years, codes) are left as-is,
+ * and known acronyms stay uppercase.
+ */
+function standardizeTitle(s: string): string {
+  return s
+    .split(/\s+/)
+    .map((w) => {
+      if (/\d/.test(w)) return w;
+      const bare = w.replace(/[^A-Za-z]/g, '');
+      if (bare.length <= 1) return w;
+      if (ACRONYMS.has(bare.toUpperCase())) return w.toUpperCase();
+      return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
+    })
+    .join(' ')
+    .trim();
+}
+
+function PdfCover() {
   return (
-    <svg viewBox="0 0 20 20" className="h-4 w-4" fill="currentColor" aria-hidden="true">
-      <path d="M4 3a2 2 0 012-2h5l5 5v9a2 2 0 01-2 2H6a2 2 0 01-2-2V3z" opacity=".2" />
-      <path d="M11 1H6a2 2 0 00-2 2v14a2 2 0 002 2h8a2 2 0 002-2V6l-5-5zm3 16H6V3h4v4h4v10z" />
-    </svg>
+    <div className="flex h-40 w-full items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+      <span className="rounded-lg bg-red-50 px-4 py-2 text-lg font-extrabold tracking-wide text-red-600">PDF</span>
+    </div>
+  );
+}
+
+function LinkCover() {
+  return (
+    <div className="flex h-40 w-full items-center justify-center bg-gradient-to-br from-brand-50 to-brand-100">
+      <svg className="h-10 w-10 text-brand-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.5 1.5" />
+        <path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7L12 19" />
+      </svg>
+    </div>
   );
 }
 
@@ -30,46 +62,63 @@ export function ContentSectionView({
       {items.length === 0 ? (
         <div className="card p-8 text-center text-sm text-gray-500">{emptyText}</div>
       ) : (
-        <div className="space-y-4">
-          {items.map((c) => (
-            <article key={c.id} className="card p-5">
-              <h2 className="text-base font-semibold text-gray-900">{c.title}</h2>
-              {c.body && (
-                <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-gray-700">{c.body}</p>
-              )}
-              <div className="mt-3 flex flex-wrap items-center gap-4 text-sm">
-                {c.linkUrl && (
-                  <a
-                    href={c.linkUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-medium text-brand-700 hover:underline"
-                  >
-                    Open link →
-                  </a>
-                )}
-                {c.fileStorageKey && (
-                  <>
-                    <a
-                      href={`/api/content/${c.id}/file`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 font-medium text-brand-700 hover:underline"
-                    >
-                      <FileIcon />
-                      {c.fileName || 'View file'}
-                    </a>
-                    <a
-                      href={`/api/content/${c.id}/file?download=1`}
-                      className="text-gray-500 hover:underline"
-                    >
-                      Download
-                    </a>
-                  </>
-                )}
-              </div>
-            </article>
-          ))}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {items.map((c) => {
+            const isImage = (c.fileMime || '').startsWith('image/');
+            const isPdf = (c.fileMime || '').includes('pdf');
+            const fileUrl = `/api/content/${c.id}/file`;
+            return (
+              <article key={c.id} className="card flex flex-col overflow-hidden">
+                {/* Preview */}
+                {c.fileStorageKey && isImage ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={fileUrl} alt={c.title} loading="lazy" className="h-40 w-full bg-gray-50 object-cover" />
+                ) : c.fileStorageKey && isPdf ? (
+                  <PdfCover />
+                ) : c.linkUrl ? (
+                  <LinkCover />
+                ) : null}
+
+                <div className="flex flex-1 flex-col p-5">
+                  <h2 className="text-base font-semibold text-gray-900">{standardizeTitle(c.title)}</h2>
+                  {c.body && (
+                    <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-gray-700">{c.body}</p>
+                  )}
+
+                  <div className="mt-4 flex flex-wrap items-center gap-2 pt-1">
+                    {c.linkUrl && (
+                      <a
+                        href={c.linkUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="rounded-md border border-brand-500 px-3 py-1.5 text-xs font-semibold text-brand-700 transition hover:bg-brand-50"
+                      >
+                        Open link →
+                      </a>
+                    )}
+                    {c.fileStorageKey && (
+                      <>
+                        <a
+                          href={fileUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="rounded-md border border-brand-500 px-3 py-1.5 text-xs font-semibold text-brand-700 transition hover:bg-brand-50"
+                        >
+                          View
+                        </a>
+                        <a
+                          href={`${fileUrl}?download=1`}
+                          className="rounded-md bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-brand-700"
+                        >
+                          Download
+                        </a>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </article>
+            );
+          })}
         </div>
       )}
     </div>
