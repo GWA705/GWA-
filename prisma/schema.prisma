@@ -334,6 +334,13 @@ model Application {
   // business hours) instead of every cron run.
   attentionAlertSentAt DateTime?
 
+  // Google Sheets sales-journal sync ("Write to Journal"). We remember which
+  // month tab and row this deal was written to, so pressing the button again
+  // UPDATES the same row instead of appending a duplicate. Null until synced.
+  journalTab      String?
+  journalRow      Int?
+  journalSyncedAt DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

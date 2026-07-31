@@ -6,7 +6,8 @@ import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/session';
 import { audit } from '@/lib/audit';
 import { markReviewerAction } from '@/lib/activity';
-import { encryptOptional } from '@/lib/crypto';
+import { encryptOptional, decryptOptional } from '@/lib/crypto';
+import { writeDealToJournal, journalEnabled, type JournalDeal } from '@/lib/journal';
 import { storeFiles } from '@/lib/upload';
 import { notifyStatusChange, notifyNewNote } from '@/lib/notify';
 import {
@@ -631,4 +632,85 @@ export async function saveConfirmationAction(
   revalidatePath(`/staff/applications/${d.applicationId}`);
   revalidatePath('/staff');
   return { ok: true };
+}
+
+/**
+ * Write (or update) this deal's row in the Google Sheets sales journal.
+ * Reviewer/admin only, and only once both the HD Customer # and the Financing
+ * deal number are recorded. Best-effort: a Sheets failure never touches the
+ * deal, it just returns an error for the reviewer to retry.
+ */
+export async function writeToJournalAction(
+  applicationId: string,
+  _prev: ActionState,
+  _formData: FormData,
+): Promise<ActionState> {
+  const session = await requireRole('REVIEWER', 'ADMIN');
+  if (!journalEnabled()) {
+    return {
+      error:
+        'The sales journal is not connected yet (JOURNAL_SHEET_ID / Google credentials are missing on the server).',
+    };
+  }
+
+  const app = await prisma.application.findUnique({
+    where: { id: applicationId },
+    include: { homeDepotStore: true, financeCompany: true, loanApplication: true },
+  });
+  if (!app) return { error: 'Deal not found.' };
+  if (!app.hdReference || !app.financeItNumber) {
+    return { error: 'Add both the HD Customer # and the Financing deal number before writing to the journal.' };
+  }
+
+  const fmtDate = (d: Date | null | undefined) => (d ? d.toISOString().slice(0, 10) : null);
+  const fmtAmount = (a: unknown) => (a == null ? null : Number(a).toFixed(2));
+  const storeLabel = app.homeDepotStore
+    ? app.homeDepotStore.name
+      ? `${app.homeDepotStore.name} - ${app.homeDepotStore.number}`
+      : app.homeDepotStore.number
+    : null;
+
+  const deal: JournalDeal = {
+    lastName: app.applicantLastName,
+    firstName: app.applicantFirstName,
+    hdReference: app.hdReference,
+    financeItNumber: app.financeItNumber,
+    hdStoreLabel: storeLabel,
+    financeCompany: app.financeCompany?.name ?? null,
+    financedAmount: fmtAmount(app.approvedAmount),
+    term: null,
+    address: decryptOptional(app.applicantAddressEnc),
+    city: app.loanApplication?.city ?? null,
+    province: app.province,
+    postalCode: app.loanApplication?.postalCode ?? null,
+    phone: app.applicantPhone,
+    dealDate: fmtDate(app.dateOfSale),
+    dateInstalled: fmtDate(app.installationDate),
+    dateOfSale: fmtDate(app.dateOfSale),
+    saleDate: app.dateOfSale ?? app.createdAt,
+    knownTab: app.journalTab,
+    knownRow: app.journalRow,
+  };
+
+  try {
+    const result = await writeDealToJournal(deal);
+    await prisma.application.update({
+      where: { id: applicationId },
+      data: { journalTab: result.tab, journalRow: result.row, journalSyncedAt: new Date() },
+    });
+    await markReviewerAction(applicationId);
+    await audit({
+      actorId: session.userId,
+      action: 'JOURNAL_WRITE',
+      entityType: 'Application',
+      entityId: applicationId,
+      detail: `Wrote to sales journal — ${result.tab} row ${result.row} (${result.wrote.length} fields)`,
+    });
+    revalidatePath(`/staff/applications/${applicationId}`);
+    return { ok: true };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Unknown error';
+    console.error('[journal] write failed', err);
+    return { error: `Could not write to the journal: ${msg}` };
+  }
 }

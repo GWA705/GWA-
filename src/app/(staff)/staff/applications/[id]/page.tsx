@@ -17,6 +17,7 @@ import { DealProgress } from '@/components/DealProgress';
 import { PROGRAM_CATEGORY_LABELS } from '@/lib/constants';
 import { ConfirmationForm } from './ConfirmationForm';
 import { DealReferencesForm } from './DealReferencesForm';
+import { WriteToJournalButton } from './WriteToJournalButton';
 import { DecisionForm } from './DecisionForm';
 import { PayoutForm } from './PayoutForm';
 import { StatusChangeForm } from './StatusChangeForm';
@@ -40,6 +41,7 @@ const ACTION_LABELS: Record<string, string> = {
   STATUS_CHANGE: 'Changed status',
   DOC_UPLOAD: 'Uploaded a document',
   DOC_DOWNLOAD: 'Downloaded a document',
+  JOURNAL_WRITE: 'Wrote to the sales journal',
   FUNDING_SUBMIT: 'Submitted the funding package',
   FUNDING_DECISION: 'Funding decision',
 };
@@ -427,6 +429,14 @@ export default async function StaffApplicationDetail({
               financeItNumber={app.financeItNumber}
               hdReference={app.hdReference}
             />
+            {app.hdReference && app.financeItNumber && (
+              <WriteToJournalButton
+                applicationId={app.id}
+                syncedAt={app.journalSyncedAt ? app.journalSyncedAt.toISOString() : null}
+                tab={app.journalTab}
+                row={app.journalRow}
+              />
+            )}
           </section>
         )}
 
