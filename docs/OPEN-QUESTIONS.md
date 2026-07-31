@@ -206,10 +206,16 @@ _Last updated: 2026-07-30_
   banner shows the full image edge-to-edge.
 - ✅ **"Retired" added** to the Employment status dropdown (applicant + co-applicant).
 
+- ✅ **Reviewer queue Chunk 2 — 2-hour "not looked at" alert.** Reviewers/admins
+  are emailed when a new deal (submitted application or funding package) has
+  waited over 2 hours with no reviewer having looked at it, 8am–10pm Ontario
+  time, re-nudging ~every 2h until picked up. Per-person opt-out in My account.
+  Triggered by `/api/cron/attention-alerts` (secret-protected); a "Run now"
+  button is on the admin Email page. Setup: `docs/SLA-ALERTS.md`.
+  **Your part:** set `CRON_SECRET` in Render and add a Render Cron Job that hits
+  the endpoint every ~15 min (steps in the doc).
+
 ### Parked builds — ready when you say go
-- 🅿️ **Reviewer queue Chunk 2 — 2-hour SLA email alert.** Email the reviewers
-  when a deal has waited in "Attention needed" more than 2 hours between
-  8am–10pm. Needs a scheduled job. (Chunk 1 already lays the groundwork.)
 - 🅿️ **Products-at-funding.** A products list at the funding stage that softly
   guides the dealer to add a serial number per product (guide, not a hard block).
 - 🅿️ **Super-admin account** — you said "another time, not right now."

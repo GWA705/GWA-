@@ -63,6 +63,7 @@ export default async function AccountPage() {
             notifyStatusUpdates: user.notifyStatusUpdates,
             notifyNewNotes: user.notifyNewNotes,
             notifyNewDocuments: user.notifyNewDocuments,
+            notifyAttentionAlerts: user.notifyAttentionAlerts,
             isStaff,
           }}
         />

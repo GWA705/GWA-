@@ -11,6 +11,7 @@ interface Profile {
   notifyStatusUpdates: boolean;
   notifyNewNotes: boolean;
   notifyNewDocuments: boolean;
+  notifyAttentionAlerts: boolean;
   isStaff: boolean;
 }
 
@@ -58,7 +59,10 @@ export function ProfileForm({ profile }: { profile: Profile }) {
         <h3 className="mb-2 text-sm font-medium text-gray-700">Email me when…</h3>
         <div className="space-y-2">
           {profile.isStaff ? (
-            <Toggle name="notifyNewDocuments" label="A dealer uploads new documents" defaultChecked={profile.notifyNewDocuments} />
+            <>
+              <Toggle name="notifyNewDocuments" label="A dealer uploads new documents" defaultChecked={profile.notifyNewDocuments} />
+              <Toggle name="notifyAttentionAlerts" label="A new deal waits over 2 hours without being looked at" defaultChecked={profile.notifyAttentionAlerts} />
+            </>
           ) : (
             <Toggle name="notifyStatusUpdates" label="A deal's status changes" defaultChecked={profile.notifyStatusUpdates} />
           )}

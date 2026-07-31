@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/session';
 import { hashPassword, validatePasswordStrength } from '@/lib/password';
 import { audit } from '@/lib/audit';
+import { runAttentionAlerts } from '@/lib/sla';
 import crypto from 'crypto';
 import path from 'path';
 import { putDocument, getDocument, deleteDocument } from '@/lib/storage';
@@ -610,4 +611,30 @@ export async function deleteContentAction(id: string): Promise<void> {
   await prisma.contentItem.delete({ where: { id } });
   await audit({ actorId: session.userId, action: 'CONTENT_UPDATE', entityType: 'ContentItem', entityId: id, detail: 'deleted' });
   revalidateContent(c.section);
+}
+
+// Admin: run the 2-hour "new deal not looked at" alert on demand (for testing /
+// a manual nudge). Respects business hours and the 2-hour wait, same as the
+// scheduled run.
+export async function runAttentionAlertsNowAction(
+  _prev: { ok?: boolean; message?: string },
+  _formData: FormData,
+): Promise<{ ok?: boolean; message?: string }> {
+  const session = await requireRole('ADMIN');
+  try {
+    const r = await runAttentionAlerts();
+    await audit({
+      actorId: session.userId,
+      action: 'STATUS_CHANGE',
+      entityType: 'System',
+      entityId: null,
+      detail: `Attention-alert run: ${JSON.stringify(r)}`,
+    });
+    if (!r.ran) return { ok: true, message: `Not sent right now — ${r.reason} (alerts only send 8am–10pm).` };
+    if (r.deals === 0) return { ok: true, message: 'Checked — no deals are waiting over 2 hours right now.' };
+    return { ok: true, message: `Sent alerts for ${r.deals} deal(s) to ${r.recipients} reviewer(s).` };
+  } catch (e) {
+    console.error('[admin] runAttentionAlertsNow failed', e);
+    return { ok: false, message: 'Could not run the alert check.' };
+  }
 }

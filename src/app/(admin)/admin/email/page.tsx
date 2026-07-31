@@ -2,6 +2,7 @@ import { requireRole } from '@/lib/session';
 import { emailEnabled, getEmailIdentityInfo } from '@/lib/email';
 import { TestEmailForm } from './TestEmailForm';
 import { EmailIdentityForm } from './EmailIdentityForm';
+import { AttentionAlertRunner } from './AttentionAlertRunner';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,6 +44,16 @@ export default async function EmailSettingsPage() {
           Confirms outgoing email works end-to-end. No personal information is included.
         </p>
         <TestEmailForm defaultTo={admin.email} enabled={enabled} />
+      </div>
+
+      <div className="card p-6">
+        <h2 className="mb-1 text-base font-semibold text-gray-900">Reviewer 2-hour alert</h2>
+        <p className="mb-4 text-sm text-gray-500">
+          Reviewers/admins get an email when a <span className="font-medium">new deal</span> has been
+          waiting more than 2 hours without any reviewer looking at it. It only sends between
+          8am–10pm. Runs automatically on a schedule; use this button to check right now.
+        </p>
+        <AttentionAlertRunner />
       </div>
 
       <div className="card p-6">

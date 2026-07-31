@@ -154,6 +154,7 @@ model User {
   notifyStatusUpdates Boolean @default(true)
   notifyNewNotes      Boolean @default(true)
   notifyNewDocuments  Boolean @default(true) // for reviewers/admins
+  notifyAttentionAlerts Boolean @default(true) // 2-hour "new deal not looked at" alert (reviewers/admins)
 
   failedLoginCount Int       @default(0)
   lockedUntil      DateTime?
@@ -327,6 +328,10 @@ model Application {
   lastDealerActionAt   DateTime?
   lastDealerActionKind String? // 'SUBMITTED' | 'DOCUMENT' | 'NOTE' | 'FUNDING'
   lastReviewerActionAt DateTime?
+  // Set when a "waited over 2 hours, not looked at" alert was last emailed for
+  // this deal, so the alert re-sends at most once per ~2h window (during
+  // business hours) instead of every cron run.
+  attentionAlertSentAt DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
