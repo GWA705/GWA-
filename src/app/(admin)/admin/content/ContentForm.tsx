@@ -3,6 +3,7 @@
 import { useRef } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { createContentAction, type ActionState } from '@/app/(admin)/actions';
+import { FileDropInput } from '@/components/FileDropInput';
 
 const SECTIONS = [
   { value: 'RESOURCE', label: 'Resources' },
@@ -62,8 +63,8 @@ export function ContentForm({ defaultSection }: { defaultSection?: string }) {
         <input id="linkUrl" name="linkUrl" className="input" placeholder="https://…" />
       </div>
       <div>
-        <label className="label" htmlFor="file">Attachment <span className="font-normal text-gray-400">(optional — PDF or image)</span></label>
-        <input id="file" name="file" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" className="block w-full text-sm text-gray-600 file:mr-3 file:rounded file:border-0 file:bg-brand-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-brand-700 hover:file:bg-brand-100" />
+        <label className="label">Attachment <span className="font-normal text-gray-400">(optional)</span></label>
+        <FileDropInput name="file" accept=".pdf,.jpg,.jpeg,.png,.webp" multiple={false} variant="compact" hint="PDF, JPG, PNG, or WEBP" />
       </div>
       <SubmitButton />
     </form>

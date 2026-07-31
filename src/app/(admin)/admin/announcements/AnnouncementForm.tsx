@@ -3,6 +3,7 @@
 import { useRef } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { createAnnouncementAction, type ActionState } from '@/app/(admin)/actions';
+import { FileDropInput } from '@/components/FileDropInput';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -48,8 +49,8 @@ export function AnnouncementForm() {
         </select>
       </div>
       <div>
-        <label className="label" htmlFor="image">Banner image <span className="font-normal text-gray-400">(optional — JPG/PNG/WEBP)</span></label>
-        <input id="image" name="image" type="file" accept=".jpg,.jpeg,.png,.webp" className="block w-full text-sm text-gray-600 file:mr-3 file:rounded file:border-0 file:bg-brand-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-brand-700 hover:file:bg-brand-100" />
+        <label className="label">Banner image <span className="font-normal text-gray-400">(optional)</span></label>
+        <FileDropInput name="image" accept=".jpg,.jpeg,.png,.webp" multiple={false} variant="compact" hint="JPG, PNG, or WEBP" buttonLabel="Choose image" />
       </div>
       <SubmitButton />
     </form>
