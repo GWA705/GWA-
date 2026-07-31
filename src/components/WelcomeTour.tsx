@@ -1,0 +1,117 @@
+'use client';
+
+import { useState } from 'react';
+import { completeWelcomeTourAction } from '@/app/(account)/actions';
+
+interface Step {
+  emoji: string;
+  title: string;
+  body: string;
+}
+
+const STEPS: Step[] = [
+  {
+    emoji: '👋',
+    title: 'Welcome to the GWA Dealer Portal',
+    body: 'This quick tour shows you where everything is. It takes about 30 seconds — you can replay it any time from “My account.”',
+  },
+  {
+    emoji: '➕',
+    title: 'Process a new customer',
+    body: '“New customer” is where you start a deal. You’ll pick one of three ways to submit — Fastest (FinanceIT number), Fast (type it in), or Normal (photo upload). The form guides you the rest of the way.',
+  },
+  {
+    emoji: '📋',
+    title: 'Track your deals',
+    body: '“Applications” lists every deal you’ve submitted and its status. Click a deal to see its progress, upload funding paperwork, and view documents.',
+  },
+  {
+    emoji: '📎',
+    title: 'Documents & funding paperwork',
+    body: 'Inside a deal you can upload the funding package (contract, void cheque/PAP, photos, ID, etc.). Cards turn green once our team confirms each item. Paperwork we send back to you appears there too.',
+  },
+  {
+    emoji: '💬',
+    title: 'Chat with the reviewer',
+    body: 'Each deal has a notes area to message our reviewers directly — ask a question or add context, and you’ll get an email when they reply.',
+  },
+  {
+    emoji: '📚',
+    title: 'Resources & promotions',
+    body: 'The Resources, HD Promotions, and HD Credit Card tabs hold guides and current promos. Check back — we keep them up to date.',
+  },
+  {
+    emoji: '⚙️',
+    title: 'Your account',
+    body: 'In “My account” you can update your details, set which emails you get, turn on extra sign-in security, and replay this tour. That’s it — you’re ready to go!',
+  },
+];
+
+export function WelcomeTour({ userName }: { userName?: string }) {
+  const [open, setOpen] = useState(true);
+  const [i, setI] = useState(0);
+
+  if (!open) return null;
+
+  const step = STEPS[i];
+  const isLast = i === STEPS.length - 1;
+  const isFirst = i === 0;
+
+  const finish = () => {
+    setOpen(false);
+    // Best-effort: record that the tour was seen so it doesn't auto-open again.
+    void completeWelcomeTourAction();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+        <div className="mb-4 flex items-start justify-between">
+          <span className="text-4xl" aria-hidden>{step.emoji}</span>
+          <button
+            type="button"
+            onClick={finish}
+            className="text-xs text-gray-400 hover:text-gray-600"
+          >
+            Skip tour
+          </button>
+        </div>
+
+        <h2 className="mb-2 text-lg font-semibold text-gray-900">
+          {isFirst && userName ? `Welcome, ${userName.split(' ')[0]}!` : step.title}
+        </h2>
+        <p className="text-sm leading-relaxed text-gray-600">{step.body}</p>
+
+        {/* Progress dots */}
+        <div className="my-5 flex justify-center gap-1.5">
+          {STEPS.map((_, idx) => (
+            <span
+              key={idx}
+              className={`h-1.5 rounded-full transition-all ${idx === i ? 'w-5 bg-brand-600' : 'w-1.5 bg-gray-300'}`}
+            />
+          ))}
+        </div>
+
+        <div className="flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => setI((n) => Math.max(0, n - 1))}
+            className={`btn-secondary text-sm ${isFirst ? 'invisible' : ''}`}
+          >
+            Back
+          </button>
+          <span className="text-xs text-gray-400">{i + 1} of {STEPS.length}</span>
+          {isLast ? (
+            <button type="button" onClick={finish} className="btn-primary text-sm">
+              Got it
+            </button>
+          ) : (
+            <button type="button" onClick={() => setI((n) => Math.min(STEPS.length - 1, n + 1))} className="btn-primary text-sm">
+              Next
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

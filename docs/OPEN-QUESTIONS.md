@@ -312,13 +312,14 @@ needed to start. Nothing here is built yet.
     API documentation, the endpoint(s), authentication method + credentials, and
     any usage terms. We'll review together before building.
 
-50. **First-login tutorial / guided tour.** A short pop-up walkthrough on first
-    login (click-through "OK" windows) introducing the main areas and actions.
-    - **Feasible?** Yes.
-    - **Toggle on/off:** yes — auto-shows once per user, with a "Show me the
-      tour again" option in My account so they can replay it anytime.
-    *(Small–medium build. Provide the copy/steps for each screen when we start,
-    or I can draft a first version.)*
+50. ✅ **DONE — First-login welcome tour.** A 7-step pop-up walkthrough
+    (Welcome → New customer → Track deals → Documents/funding → Chat with
+    reviewer → Resources → My account) auto-shows the first time a **dealer**
+    opens their portal. Back/Next with progress dots, "Skip tour", and "Got it"
+    to finish. It records `tourSeenAt` so it won't reappear, and **My account →
+    Portal tour → "Replay the welcome tour"** shows it again anytime. Not shown
+    to staff, and never while an admin is viewing-as a dealer. *(Copy is a first
+    draft — easy to tweak the wording per step.)*
 
 ---
 

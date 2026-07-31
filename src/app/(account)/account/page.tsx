@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { requireSession, defaultLandingFor } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { decryptMfaSecret, buildMfaEnrollment } from '@/lib/mfa';
-import { beginMfaAction, disableMfaAction } from '@/app/(account)/actions';
+import { beginMfaAction, disableMfaAction, replayWelcomeTourAction } from '@/app/(account)/actions';
 import { ConfirmMfaForm } from './ConfirmMfaForm';
 import { StartEmailMfaButton, ConfirmEmailMfaForm } from './EmailMfaForms';
 import { ProfileForm } from './ProfileForm';
@@ -68,6 +68,18 @@ export default async function AccountPage() {
           }}
         />
       </section>
+
+      {session.role === 'DEALER_USER' && (
+        <section className="card p-6">
+          <h2 className="mb-1 text-base font-semibold text-gray-900">Portal tour</h2>
+          <p className="mb-4 text-sm text-gray-500">
+            New here or need a refresher? Replay the quick welcome tour of the portal.
+          </p>
+          <form action={replayWelcomeTourAction}>
+            <button type="submit" className="btn-secondary text-sm">Replay the welcome tour</button>
+          </form>
+        </section>
+      )}
 
       <section className="card p-6">
         <h2 className="mb-1 text-base font-semibold text-gray-900">Password</h2>

@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import { requireSession } from '@/lib/session';
 import { audit } from '@/lib/audit';
@@ -161,4 +162,18 @@ export async function disableMfaAction(): Promise<void> {
   });
   await audit({ actorId: session.userId, action: 'USER_UPDATE', entityType: 'User', entityId: session.userId, detail: 'MFA disabled' });
   revalidatePath('/account');
+}
+
+// Mark the welcome tour as seen (called when a dealer finishes or skips it).
+export async function completeWelcomeTourAction(): Promise<void> {
+  const session = await requireSession();
+  await prisma.user.update({ where: { id: session.userId }, data: { tourSeenAt: new Date() } });
+}
+
+// Replay the welcome tour — clears the "seen" flag so it shows again next time
+// the dealer opens their portal.
+export async function replayWelcomeTourAction(): Promise<void> {
+  const session = await requireSession();
+  await prisma.user.update({ where: { id: session.userId }, data: { tourSeenAt: null } });
+  redirect('/dealer');
 }

@@ -1,5 +1,6 @@
 import { requireDealerAccess } from '@/lib/session';
 import { AppShell } from '@/components/AppShell';
+import { WelcomeTour } from '@/components/WelcomeTour';
 import { prisma } from '@/lib/db';
 import { stopViewAsAction } from '@/app/(admin)/actions';
 
@@ -12,6 +13,14 @@ export default async function DealerLayout({ children }: { children: React.React
   if (user.impersonating && user.dealerId) {
     const dealer = await prisma.dealer.findUnique({ where: { id: user.dealerId }, select: { name: true } });
     impersonatingName = dealer?.name ?? 'this dealer';
+  }
+
+  // First-login welcome tour for real dealers only — not while an admin is
+  // impersonating (that would pop the admin's own tour), and only until seen.
+  let showTour = false;
+  if (user.role === 'DEALER_USER' && !user.impersonating) {
+    const me = await prisma.user.findUnique({ where: { id: user.userId }, select: { tourSeenAt: true } });
+    showTour = !me?.tourSeenAt;
   }
 
   return (
@@ -45,6 +54,7 @@ export default async function DealerLayout({ children }: { children: React.React
       >
         {children}
       </AppShell>
+      {showTour && <WelcomeTour userName={user.name} />}
     </>
   );
 }

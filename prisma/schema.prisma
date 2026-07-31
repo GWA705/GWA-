@@ -155,6 +155,7 @@ model User {
   notifyNewNotes      Boolean @default(true)
   notifyNewDocuments  Boolean @default(true) // for reviewers/admins
   notifyAttentionAlerts Boolean @default(true) // 2-hour "new deal not looked at" alert (reviewers/admins)
+  tourSeenAt          DateTime? // when the dealer completed/dismissed the welcome tour (null = not seen)
 
   failedLoginCount Int       @default(0)
   lockedUntil      DateTime?
