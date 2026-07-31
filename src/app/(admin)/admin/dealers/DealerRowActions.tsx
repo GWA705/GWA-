@@ -1,6 +1,6 @@
 'use client';
 
-import { toggleDealerActiveAction, deleteDealerAction } from '@/app/(admin)/actions';
+import { toggleDealerActiveAction, deleteDealerAction, viewAsDealerAction } from '@/app/(admin)/actions';
 
 export function DealerRowActions({
   id,
@@ -15,6 +15,15 @@ export function DealerRowActions({
 }) {
   return (
     <div className="flex flex-wrap justify-end gap-2">
+      <form action={viewAsDealerAction.bind(null, id)}>
+        <button
+          type="submit"
+          className="btn-secondary text-xs"
+          title="Open this dealer's portal exactly as they see it, to troubleshoot an issue. Your access is logged."
+        >
+          View as
+        </button>
+      </form>
       <form action={toggleDealerActiveAction.bind(null, id)}>
         <button type="submit" className="btn-secondary text-xs">
           {active ? 'Archive' : 'Unarchive'}

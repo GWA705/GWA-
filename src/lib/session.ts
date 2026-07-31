@@ -6,6 +6,7 @@ import type { Role } from '@prisma/client';
 const COOKIE_NAME = 'gwa_session';
 const MFA_COOKIE_NAME = 'gwa_mfa_pending';
 const PWCHANGE_COOKIE_NAME = 'gwa_pwchange_pending';
+const VIEW_AS_COOKIE_NAME = 'gwa_view_as';
 const SESSION_TTL_SECONDS = 60 * 60 * 8; // 8 hours
 
 export interface SessionUser {
@@ -14,6 +15,9 @@ export interface SessionUser {
   name: string;
   role: Role;
   dealerId: string | null;
+  // True when an admin is currently "viewing as" a dealer. When set, dealerId is
+  // the impersonated dealer's id (so all dealer-portal scoping just works).
+  impersonating?: boolean;
 }
 
 function secret(): Uint8Array {
@@ -95,19 +99,51 @@ export async function getSession(): Promise<SessionUser | null> {
   if (!token) return null;
   const payload = await verify(token);
   if (!payload || !payload.userId) return null;
-  return {
+  const user: SessionUser = {
     userId: payload.userId as string,
     email: payload.email as string,
     name: payload.name as string,
     role: payload.role as Role,
     dealerId: (payload.dealerId as string | null) ?? null,
   };
+
+  // "View as dealer": only an admin can impersonate, and only their own cookie
+  // counts (by === their userId). When active, the effective dealerId becomes
+  // the impersonated dealer so the dealer portal scopes to it automatically.
+  if (user.role === 'ADMIN') {
+    const viewAs = await getViewAs();
+    if (viewAs && viewAs.by === user.userId) {
+      user.dealerId = viewAs.dealerId;
+      user.impersonating = true;
+    }
+  }
+  return user;
+}
+
+/** Start "view as dealer" for an admin. Signed + bound to the admin's userId. */
+export async function startViewAs(dealerId: string, adminUserId: string): Promise<void> {
+  const token = await sign({ viewAs: dealerId, by: adminUserId }, SESSION_TTL_SECONDS);
+  cookies().set(VIEW_AS_COOKIE_NAME, token, { ...cookieOptions, maxAge: SESSION_TTL_SECONDS });
+}
+
+/** Stop impersonating. */
+export function stopViewAs(): void {
+  cookies().delete(VIEW_AS_COOKIE_NAME);
+}
+
+async function getViewAs(): Promise<{ dealerId: string; by: string } | null> {
+  const token = cookies().get(VIEW_AS_COOKIE_NAME)?.value;
+  if (!token) return null;
+  const payload = await verify(token);
+  if (!payload || !payload.viewAs || !payload.by) return null;
+  return { dealerId: payload.viewAs as string, by: payload.by as string };
 }
 
 export async function destroySession(): Promise<void> {
   cookies().delete(COOKIE_NAME);
   cookies().delete(MFA_COOKIE_NAME);
   cookies().delete(PWCHANGE_COOKIE_NAME);
+  cookies().delete(VIEW_AS_COOKIE_NAME);
 }
 
 /** Require a logged-in session or redirect to the login page. */

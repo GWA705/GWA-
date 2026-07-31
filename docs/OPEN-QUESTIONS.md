@@ -264,12 +264,13 @@ needed to start. Nothing here is built yet.
        defined together: e.g. data retention settings, integrations/API keys,
        destructive actions like the go-live wipe, promoting/demoting admins,
        security settings). Regular admins can't touch these.
-    c) **Impersonate / "view as dealer."** A safe way for an admin to open a
-       dealer's account and see exactly what they see, to troubleshoot an issue.
-       Must be **read-only or clearly flagged**, and **audit-logged** (who
-       viewed whose account, when). *(Medium build — new role/permission split
-       + a guarded "view as" session mechanism. Define the super-admin powers
-       first.)*
+    c) ✅ **DONE — "View as dealer."** Admins get a **View as** button on each
+       dealer (Admin → Dealers). It opens that dealer's portal exactly as they
+       see it, with a persistent amber banner ("You are viewing as … — Exit")
+       and a one-click exit. It's bound to the admin's own session (signed
+       cookie), admin-only, and both start and stop are written to the audit
+       log. Data provenance is preserved (any action records the admin's user
+       id). *(Still to do: 44a/44b admin-tier split.)*
 
 45. **Google Sheets journal integration.** Write each deal's key info into your
     existing Google Sheets sales journal automatically.

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/db';
-import { requireRole } from '@/lib/session';
+import { requireRole, startViewAs, stopViewAs } from '@/lib/session';
 import { hashPassword, validatePasswordStrength } from '@/lib/password';
 import { audit } from '@/lib/audit';
 import { runAttentionAlerts } from '@/lib/sla';
@@ -637,4 +637,35 @@ export async function runAttentionAlertsNowAction(
     console.error('[admin] runAttentionAlertsNow failed', e);
     return { ok: false, message: 'Could not run the alert check.' };
   }
+}
+
+// Admin: start "view as dealer" — see exactly what a dealer sees, to
+// troubleshoot an issue. Bound to this admin's session and audit-logged.
+export async function viewAsDealerAction(dealerId: string): Promise<void> {
+  const session = await requireRole('ADMIN');
+  const dealer = await prisma.dealer.findUnique({ where: { id: dealerId } });
+  if (!dealer) redirect('/admin/dealers');
+  await startViewAs(dealerId, session.userId);
+  await audit({
+    actorId: session.userId,
+    action: 'USER_UPDATE',
+    entityType: 'Dealer',
+    entityId: dealerId,
+    detail: `Started "view as dealer" (${dealer!.name})`,
+  });
+  redirect('/dealer');
+}
+
+// Admin: stop impersonating and return to the admin area.
+export async function stopViewAsAction(): Promise<void> {
+  const session = await requireRole('ADMIN');
+  stopViewAs();
+  await audit({
+    actorId: session.userId,
+    action: 'USER_UPDATE',
+    entityType: 'Dealer',
+    entityId: null,
+    detail: 'Stopped "view as dealer"',
+  });
+  redirect('/admin/dealers');
 }

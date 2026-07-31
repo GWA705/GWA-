@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
 
 const COOKIE_NAME = 'gwa_session';
+const VIEW_AS_COOKIE_NAME = 'gwa_view_as';
 
 function secret(): Uint8Array {
   return new TextEncoder().encode(process.env.SESSION_SECRET || '');
@@ -12,7 +13,22 @@ async function readClaims(req: NextRequest): Promise<{ role: string | null; deal
   if (!token) return { role: null, dealerId: null };
   try {
     const { payload } = await jwtVerify(token, secret());
-    return { role: (payload.role as string) ?? null, dealerId: (payload.dealerId as string | null) ?? null };
+    const role = (payload.role as string) ?? null;
+    let dealerId = (payload.dealerId as string | null) ?? null;
+    // An admin "viewing as" a dealer carries the target dealer in a separate
+    // signed cookie; honor it so the /dealer guard admits them.
+    if (role === 'ADMIN') {
+      const viewAsToken = req.cookies.get(VIEW_AS_COOKIE_NAME)?.value;
+      if (viewAsToken) {
+        try {
+          const { payload: v } = await jwtVerify(viewAsToken, secret());
+          if (v.viewAs && v.by === payload.userId) dealerId = v.viewAs as string;
+        } catch {
+          /* ignore an invalid view-as cookie */
+        }
+      }
+    }
+    return { role, dealerId };
   } catch {
     return { role: null, dealerId: null };
   }
