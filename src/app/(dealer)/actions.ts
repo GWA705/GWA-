@@ -45,6 +45,19 @@ export async function createApplicationAction(
   // Products are a multi-select, so they arrive as repeated form fields.
   const productsSold = formData.getAll('productsSold').map(String).map((s) => s.trim()).filter(Boolean).slice(0, 50);
 
+  // Sales details are required at intake so the journal is complete.
+  const salesErrors: Record<string, string> = {};
+  if (!d.salespersonName) salesErrors.salespersonName = 'required';
+  if (!d.leadGenerator) salesErrors.leadGenerator = 'required';
+  if (!d.installerName) salesErrors.installerName = 'required';
+  if (!d.soapIncluded) salesErrors.soapIncluded = 'required';
+  if (productsSold.length === 0 && (await prisma.product.count({ where: { active: true } })) > 0) {
+    salesErrors.productsSold = 'required';
+  }
+  if (Object.keys(salesErrors).length > 0) {
+    return { error: 'Please complete the sales details.', fieldErrors: salesErrors };
+  }
+
   // If a Home Depot store was chosen, verify it belongs to this dealer.
   let homeDepotStoreId: string | null = null;
   if (d.homeDepotStoreId) {

@@ -60,6 +60,11 @@ const FIELD_LABELS: Record<string, string> = {
   homeDepotStoreId: 'Home Depot store',
   consent: 'Consent',
   financeItNumber: 'Financing deal number',
+  salespersonName: "Salesperson's name",
+  leadGenerator: 'Lead generator',
+  installerName: "Installer's name",
+  soapIncluded: 'SOAP included',
+  productsSold: 'Product(s) sold',
 };
 
 type RequiredField = { name: string; label: string; checkbox?: boolean };
@@ -75,6 +80,11 @@ const BASE_REQUIRED: RequiredField[] = [
   { name: 'applicantPhone', label: 'Phone' },
   { name: 'applicantAddress', label: 'Street address' },
   { name: 'province', label: 'Province' },
+  // Sales details — required on every entry method.
+  { name: 'salespersonName', label: "Salesperson's name" },
+  { name: 'leadGenerator', label: 'Lead generator' },
+  { name: 'installerName', label: "Installer's name" },
+  { name: 'soapIncluded', label: 'SOAP included' },
   { name: 'consent', label: 'Consent', checkbox: true },
 ];
 
@@ -190,6 +200,11 @@ export function NewApplicationForm({
       if (!el) continue;
       const empty = f.checkbox ? !(el as HTMLInputElement).checked : !(el.value || '').trim();
       if (empty) errs[f.name] = 'required';
+    }
+    // Products: require at least one when the catalog has options.
+    const productBoxes = form.querySelectorAll('input[name="productsSold"]');
+    if (productBoxes.length > 0 && !Array.from(productBoxes).some((el) => (el as HTMLInputElement).checked)) {
+      errs['productsSold'] = 'required';
     }
     if (Object.keys(errs).length > 0) {
       e.preventDefault();
@@ -361,7 +376,7 @@ export function NewApplicationForm({
       {/* Sales details — flow into the sales journal. Optional. */}
       <section className="card p-6">
         <h2 className="mb-1 text-base font-semibold text-gray-900">Sales details</h2>
-        <p className="mb-4 text-xs text-gray-500">For the sales journal. Optional, but please fill what you can.</p>
+        <p className="mb-4 text-xs text-gray-500">Required — these fill the sales journal.</p>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div><label className="label" htmlFor="salespersonName">Salesperson&apos;s name</label><input id="salespersonName" name="salespersonName" className={fieldCls('')} /></div>
           <div><label className="label" htmlFor="leadGenerator">Lead generator</label><input id="leadGenerator" name="leadGenerator" className={fieldCls('')} /></div>

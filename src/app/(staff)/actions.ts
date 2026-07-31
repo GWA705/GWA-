@@ -308,13 +308,12 @@ export async function updateDealAction(
       installationDate: d.installationDate ? new Date(d.installationDate) : null,
       financingNote: d.financingNote || null,
       notes: d.notes || null,
-      // Sales-journal detail fields (reviewer backfill + reviewer-only datePaid).
+      // Sales-journal detail fields (reviewer backfill).
       leadGenerator: d.leadGenerator || null,
       salespersonName: d.salespersonName || null,
       installerName: d.installerName || null,
       soapIncluded: d.soapIncluded === 'YES' ? true : d.soapIncluded === 'NO' ? false : null,
       productsSold: formData.getAll('productsSold').map(String).map((s) => s.trim()).filter(Boolean).slice(0, 50),
-      datePaid: d.datePaid ? new Date(d.datePaid) : null,
       incomeAnnual: d.grossMonthlyIncome ? Math.round(d.grossMonthlyIncome * 12) : app.incomeAnnual,
       employer: d.businessName || app.employer,
       // Create the extended record if the deal never had one (e.g. a photo/
@@ -703,7 +702,6 @@ export async function writeToJournalAction(
     installer: app.installerName,
     products: app.productsSold.length ? app.productsSold.join(', ') : null,
     soap: app.soapIncluded == null ? null : app.soapIncluded ? 'Yes' : 'No',
-    datePaid: fmtDate(app.datePaid),
     financedAmount: fmtAmount(app.approvedAmount),
     term: null,
     address: decryptOptional(app.applicantAddressEnc),

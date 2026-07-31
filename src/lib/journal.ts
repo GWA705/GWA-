@@ -129,9 +129,6 @@ const FIELD_SPECS: FieldSpec[] = [
   { key: 'installer', test: (c) => c === 'installer s name' },
   { key: 'products', test: (c) => c.includes('product') },
   { key: 'soap', test: (c) => c.includes('soap') },
-  // NB: the journal has more than one "Date Paid" column — this grabs the first;
-  // verify on a test write and pin it if it's the wrong one.
-  { key: 'datePaid', test: (c) => c === 'date paid' },
   { key: 'address', test: (_c, b) => b === 'address' },
   { key: 'city', test: (_c, b) => b.startsWith('city') },
   { key: 'prov', test: (_c, b) => b === 'prov' || b.startsWith('prov') },
@@ -254,7 +251,6 @@ export interface JournalDeal {
   installer: string | null;
   products: string | null; // comma-joined product names → "Product Sold"
   soap: string | null; // "Yes" / "No" → "SOAP Included"
-  datePaid: string | null;
   financedAmount: string | null;
   term: string | null;
   address: string | null;
@@ -319,7 +315,6 @@ export async function writeDealToJournal(deal: JournalDeal): Promise<JournalResu
     installer: deal.installer,
     products: deal.products,
     soap: deal.soap,
-    datePaid: deal.datePaid,
     financedAmount: deal.financedAmount,
     term: deal.term,
     address: deal.address,

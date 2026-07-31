@@ -28,7 +28,6 @@ export interface EditInitial {
   salespersonName: string;
   installerName: string;
   soapIncluded: string; // '' | 'YES' | 'NO'
-  datePaid: string;
   productsSold: string[];
   middleName: string;
   homePhone: string;
@@ -134,7 +133,6 @@ export function EditDealForm({
               <option value="NO">No</option>
             </select>
           </div>
-          <div><label className="label" htmlFor="datePaid">Date paid</label><input id="datePaid" name="datePaid" type="date" defaultValue={v.datePaid} className="input" /></div>
         </div>
         <div className="mt-4">
           <span className="label">Product(s) sold</span>

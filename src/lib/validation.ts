@@ -178,7 +178,6 @@ export const editDealSchema = z.object({
   salespersonName: str(120),
   installerName: str(120),
   soapIncluded: z.preprocess(blankToUndef, z.enum(['YES', 'NO']).optional()),
-  datePaid: optionalDate,
 
   // LoanApplication (extended) fields.
   middleName: str(80),
