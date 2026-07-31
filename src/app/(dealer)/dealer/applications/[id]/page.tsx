@@ -279,7 +279,7 @@ export default async function DealerApplicationDetail({
                   )}
                   {canUploadFunding && (
                     <div className="mt-2">
-                      <UploadForm action={uploadFundingDocAction.bind(null, app.id, t.type)} label="Upload" />
+                      <UploadForm action={uploadFundingDocAction.bind(null, app.id, t.type)} label="Upload" variant="compact" />
                     </div>
                   )}
                 </div>
