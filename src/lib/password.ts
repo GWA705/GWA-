@@ -15,7 +15,7 @@ export async function verifyPassword(plain: string, hash: string): Promise<boole
  * (Length + character variety; rejects a few obvious weak values.)
  */
 export function validatePasswordStrength(pw: string): string | null {
-  if (pw.length < 12) return 'Password must be at least 12 characters.';
+  if (pw.length < 8) return 'Password must be at least 8 characters.';
   if (!/[a-z]/.test(pw)) return 'Password must include a lowercase letter.';
   if (!/[A-Z]/.test(pw)) return 'Password must include an uppercase letter.';
   if (!/[0-9]/.test(pw)) return 'Password must include a number.';

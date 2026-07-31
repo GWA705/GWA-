@@ -27,7 +27,7 @@ export function ChangePasswordForm() {
         <label className="label" htmlFor="password">New password</label>
         <input id="password" name="password" type="password" autoComplete="new-password" required className="input" />
         <p className="mt-1 text-xs text-gray-400">
-          At least 12 characters with upper &amp; lower case, a number, and a symbol.
+          At least 8 characters with upper &amp; lower case, a number, and a symbol.
         </p>
       </div>
       <div>

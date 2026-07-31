@@ -64,7 +64,7 @@ export function EditUserForm({
           <label className="label" htmlFor="newPassword">New temporary password <span className="font-normal text-gray-400">(leave blank to keep current)</span></label>
           <input id="newPassword" name="newPassword" type="text" className="input" placeholder="Only fill this to reset their password" />
           <p className="mt-1 text-xs text-gray-400">
-            If set: must be ≥12 chars with an uppercase, lowercase, number, and symbol. The user will be
+            If set: must be ≥8 chars with an uppercase, lowercase, number, and symbol. The user will be
             required to change it at their next login.
           </p>
         </div>

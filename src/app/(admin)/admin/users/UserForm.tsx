@@ -62,7 +62,7 @@ export function UserForm({ dealers }: { dealers: { id: string; name: string }[] 
           <label className="label" htmlFor="password">Temporary password</label>
           <input id="password" name="password" type="text" required className="input" placeholder="e.g. BrightRiver!47" />
           <p className="mt-1 text-xs text-gray-500">
-            Must be at least <strong>12 characters</strong> and include an uppercase letter, a
+            Must be at least <strong>8 characters</strong> and include an uppercase letter, a
             lowercase letter, a number, and a symbol.
           </p>
           <p className="mt-1 text-xs text-gray-400">The user must change this at first login.</p>

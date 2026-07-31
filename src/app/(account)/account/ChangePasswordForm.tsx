@@ -43,7 +43,7 @@ export function ChangePasswordForm() {
         </div>
       </div>
       <p className="text-xs text-gray-400">
-        At least 12 characters with upper &amp; lower case, a number, and a symbol. Passwords must be changed every 90 days.
+        At least 8 characters with upper &amp; lower case, a number, and a symbol. Passwords must be changed every 90 days.
       </p>
       <SubmitButton />
     </form>
