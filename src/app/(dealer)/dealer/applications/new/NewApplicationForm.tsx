@@ -127,7 +127,9 @@ const METHODS: {
   title: string;
   blurb: string;
   badge: string; // badge colour
-  selected: string; // selected card colour
+  selected: string; // selected card border + fill
+  dot: string; // selected radio indicator fill
+  focus: string; // focus ring colour
 }[] = [
   {
     value: 'FINANCEIT',
@@ -136,7 +138,9 @@ const METHODS: {
     title: 'FinanceIT approval',
     blurb: 'Use your FinanceIT Portal to approve the application and submit your approval FinanceIT loan number below.',
     badge: 'bg-green-100 text-green-800',
-    selected: 'border-green-600 bg-green-50 ring-1 ring-green-600',
+    selected: 'border-green-600 bg-green-50 ring-2 ring-green-600/40',
+    dot: 'bg-green-600',
+    focus: 'focus-visible:ring-green-500',
   },
   {
     value: 'TYPED',
@@ -145,7 +149,9 @@ const METHODS: {
     title: 'Type in the details',
     blurb: 'Need a different financing option? Type in the customer details below (helps with spelling and ensures accuracy of the application).',
     badge: 'bg-blue-100 text-blue-800',
-    selected: 'border-blue-600 bg-blue-50 ring-1 ring-blue-600',
+    selected: 'border-blue-600 bg-blue-50 ring-2 ring-blue-600/40',
+    dot: 'bg-blue-600',
+    focus: 'focus-visible:ring-blue-500',
   },
   {
     value: 'PHOTO',
@@ -154,7 +160,9 @@ const METHODS: {
     title: 'Upload documents',
     blurb: 'Upload application and bill of sale for processing.',
     badge: 'bg-amber-100 text-amber-800',
-    selected: 'border-amber-500 bg-amber-50 ring-1 ring-amber-500',
+    selected: 'border-amber-500 bg-amber-50 ring-2 ring-amber-500/40',
+    dot: 'bg-amber-500',
+    focus: 'focus-visible:ring-amber-500',
   },
 ];
 
@@ -269,24 +277,43 @@ export function NewApplicationForm({
           Start here
         </span>
         <h2 className="mb-1 text-base font-semibold text-gray-900">Three choices to process a new customer</h2>
-        <p className="mb-4 text-xs text-gray-500">Pick the option that fits — faster options are at the top.</p>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          {METHODS.map((m, i) => (
-            <button
-              key={m.value}
-              type="button"
-              onClick={() => setMethod(m.value)}
-              className={`flex flex-col rounded-lg border p-4 text-left transition ${
-                method === m.value ? m.selected : 'border-gray-200 hover:border-gray-300'
-              }`}
-            >
-              <span className={`mb-2 inline-flex w-fit items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${m.badge}`}>
-                {i + 1} · <span aria-hidden>{m.icon}</span> {m.rank}
-              </span>
-              <div className="text-sm font-semibold text-gray-900">{m.title}</div>
-              <div className="mt-1 text-xs text-gray-500">{m.blurb}</div>
-            </button>
-          ))}
+        <p className="mb-4 text-xs text-gray-500">Tap the option that fits — faster options are at the top.</p>
+        <div role="radiogroup" aria-label="How to process this customer" className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {METHODS.map((m, i) => {
+            const active = method === m.value;
+            return (
+              <button
+                key={m.value}
+                type="button"
+                role="radio"
+                aria-checked={active}
+                onClick={() => setMethod(m.value)}
+                className={`group relative flex cursor-pointer flex-col rounded-xl border-2 p-4 pr-10 text-left shadow-sm transition duration-150 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${m.focus} ${
+                  active ? m.selected : 'border-gray-200 bg-white hover:border-gray-300'
+                }`}
+              >
+                {/* Radio-style selection indicator */}
+                <span
+                  className={`absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full border-2 transition ${
+                    active ? `${m.dot} border-transparent text-white` : 'border-gray-300 bg-white text-transparent group-hover:border-gray-400'
+                  }`}
+                  aria-hidden
+                >
+                  <svg viewBox="0 0 20 20" fill="currentColor" className="h-3 w-3">
+                    <path fillRule="evenodd" d="M16.7 5.3a1 1 0 0 1 0 1.4l-7.5 7.5a1 1 0 0 1-1.4 0L3.3 9.7a1 1 0 1 1 1.4-1.4l3.3 3.3 6.8-6.8a1 1 0 0 1 1.4 0Z" clipRule="evenodd" />
+                  </svg>
+                </span>
+                <span className={`mb-2 inline-flex w-fit items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${m.badge}`}>
+                  {i + 1} · <span aria-hidden>{m.icon}</span> {m.rank}
+                </span>
+                <div className="text-sm font-semibold text-gray-900">{m.title}</div>
+                <div className="mt-1 text-xs text-gray-500">{m.blurb}</div>
+                <span className={`mt-auto pt-3 text-xs font-semibold ${active ? 'text-gray-700' : 'text-brand-600 group-hover:text-brand-700'}`}>
+                  {active ? '✓ Selected' : 'Tap to choose →'}
+                </span>
+              </button>
+            );
+          })}
         </div>
         {method === 'PHOTO' && (
           <p className="mt-4 rounded bg-amber-50 p-3 text-sm text-amber-800">

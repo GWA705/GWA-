@@ -105,6 +105,7 @@ body {
 .dark .bg-emerald-100 { background-color: rgba(16,185,129,.20); }
 .dark .text-emerald-800 { color: #6ee0c2; }
 
+.dark .bg-blue-50 { background-color: rgba(59,130,246,.13); }
 .dark .bg-blue-100 { background-color: rgba(59,130,246,.22); }
 .dark .text-blue-800 { color: #9cc2ff; }
 
