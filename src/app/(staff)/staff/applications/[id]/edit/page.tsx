@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireRole } from '@/lib/session';
 import { prisma } from '@/lib/db';
-import { decryptOptional } from '@/lib/crypto';
+import { decryptOptional, readEnc } from '@/lib/crypto';
 import { audit } from '@/lib/audit';
 import { EditDealForm, type EditInitial } from '../EditDealForm';
 
@@ -66,7 +66,7 @@ export default async function EditDealPage({ params }: { params: { id: string } 
     homePhone: l?.homePhone ?? '',
     maritalStatus: l?.maritalStatus ?? '',
     housingStatus: l?.housingStatus ?? '',
-    monthlyHousingCost: num(l?.monthlyHousingCost),
+    monthlyHousingCost: readEnc(l?.monthlyHousingCostEnc, l?.monthlyHousingCost) ?? '',
     yearsAtAddress: num(l?.yearsAtAddress),
     city: l?.city ?? '',
     addressProvince: l?.addressProvince ?? '',
@@ -76,9 +76,9 @@ export default async function EditDealPage({ params }: { params: { id: string } 
     idExpiry: ymd(l?.idExpiry),
     businessName: l?.businessName ?? '',
     positionTitle: l?.positionTitle ?? '',
-    employerAddress: l?.employerAddress ?? '',
+    employerAddress: readEnc(l?.employerAddressEnc, l?.employerAddress) ?? '',
     employerPhone: l?.employerPhone ?? '',
-    grossMonthlyIncome: num(l?.grossMonthlyIncome),
+    grossMonthlyIncome: readEnc(l?.grossMonthlyIncomeEnc, l?.grossMonthlyIncome) ?? '',
     timeAtJobYears: num(l?.timeAtJobYears),
     employmentStatus: l?.employmentStatus ?? '',
   };

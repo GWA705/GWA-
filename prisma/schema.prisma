@@ -416,7 +416,11 @@ model Application {
   coApplicantName    String?
   coApplicantSinEnc  String?
 
-  incomeAnnual Decimal? @db.Decimal(12, 2)
+  // incomeAnnual is being migrated to the encrypted column below. New writes go
+  // to incomeAnnualEnc; the plaintext column is nulled on write/backfill and
+  // dropped in a later migration.
+  incomeAnnual    Decimal? @db.Decimal(12, 2)
+  incomeAnnualEnc String?
   employer     String?
   notes        String?  @db.Text
 
@@ -554,22 +558,27 @@ model LoanApplication {
 
   // Housing
   housingStatus     HousingStatus?
-  monthlyHousingCost Decimal?       @db.Decimal(10, 2)
+  monthlyHousingCost    Decimal? @db.Decimal(10, 2) // migrating → monthlyHousingCostEnc
+  monthlyHousingCostEnc String?
   yearsAtAddress    Int?
   city              String?
   addressProvince   String?
   postalCode        String?
 
-  // Optional additional addresses
-  mailingAddress   String?
+  // Optional additional addresses. The street lines are encrypted (migrating);
+  // city/province/postal stay plaintext (lower sensitivity, kept for search).
+  mailingAddress    String? // migrating → mailingAddressEnc
+  mailingAddressEnc String?
   mailingCity      String?
   mailingProvince  String?
   mailingPostal    String?
-  previousAddress  String?
+  previousAddress    String? // migrating → previousAddressEnc
+  previousAddressEnc String?
   previousCity     String?
   previousProvince String?
   previousPostal   String?
-  worksiteAddress  String?
+  worksiteAddress    String? // migrating → worksiteAddressEnc
+  worksiteAddressEnc String?
   worksiteCity     String?
   worksiteProvince String?
   worksitePostal   String?
@@ -582,9 +591,11 @@ model LoanApplication {
   // Employment & income
   businessName      String?
   positionTitle     String?
-  employerAddress   String?
+  employerAddress    String? // migrating → employerAddressEnc
+  employerAddressEnc String?
   employerPhone     String?
-  grossMonthlyIncome Decimal?         @db.Decimal(12, 2)
+  grossMonthlyIncome    Decimal? @db.Decimal(12, 2) // migrating → grossMonthlyIncomeEnc
+  grossMonthlyIncomeEnc String?
   timeAtJobYears    Int?
   employmentStatus  EmploymentStatus?
 
@@ -614,9 +625,11 @@ model LoanApplication {
 
   coBusinessName       String?
   coPositionTitle      String?
-  coEmployerAddress    String?
+  coEmployerAddress    String? // migrating → coEmployerAddressEnc
+  coEmployerAddressEnc String?
   coEmployerPhone      String?
-  coGrossMonthlyIncome Decimal?          @db.Decimal(12, 2)
+  coGrossMonthlyIncome    Decimal? @db.Decimal(12, 2) // migrating → coGrossMonthlyIncomeEnc
+  coGrossMonthlyIncomeEnc String?
   coTimeAtJobYears     Int?
   coEmploymentStatus   EmploymentStatus?
 

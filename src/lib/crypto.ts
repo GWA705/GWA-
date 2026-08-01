@@ -147,6 +147,18 @@ export function decryptOptional(token: string | null | undefined): string | null
   return decryptString(token);
 }
 
+/**
+ * Read a value that is being migrated from a plaintext column to an encrypted
+ * one: prefer the decrypted ciphertext, else fall back to the legacy plaintext
+ * value (for rows not yet backfilled). Returns null when neither is present.
+ */
+export function readEnc(enc: string | null | undefined, legacy?: unknown): string | null {
+  const d = decryptOptional(enc);
+  if (d !== null && d !== '') return d;
+  if (legacy === null || legacy === undefined || legacy === '') return null;
+  return String(legacy);
+}
+
 /** SHA-256 hex digest, used for document integrity checksums. */
 export function sha256(buf: Buffer): string {
   return crypto.createHash('sha256').update(buf).digest('hex');

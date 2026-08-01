@@ -326,7 +326,8 @@ export async function updateDealAction(
     homePhone: d.homePhone || null,
     maritalStatus: d.maritalStatus || null,
     housingStatus: d.housingStatus ?? null,
-    monthlyHousingCost: d.monthlyHousingCost ?? null,
+    monthlyHousingCostEnc: encryptOptional(d.monthlyHousingCost != null ? String(d.monthlyHousingCost) : null),
+    monthlyHousingCost: null,
     yearsAtAddress: d.yearsAtAddress ?? null,
     city: d.city || null,
     addressProvince: d.addressProvince || null,
@@ -336,9 +337,11 @@ export async function updateDealAction(
     idExpiry: d.idExpiry ? new Date(d.idExpiry) : null,
     businessName: d.businessName || null,
     positionTitle: d.positionTitle || null,
-    employerAddress: d.employerAddress || null,
+    employerAddressEnc: encryptOptional(d.employerAddress),
+    employerAddress: null,
     employerPhone: d.employerPhone || null,
-    grossMonthlyIncome: d.grossMonthlyIncome ?? null,
+    grossMonthlyIncomeEnc: encryptOptional(d.grossMonthlyIncome != null ? String(d.grossMonthlyIncome) : null),
+    grossMonthlyIncome: null,
     timeAtJobYears: d.timeAtJobYears ?? null,
     employmentStatus: d.employmentStatus ?? null,
   };
@@ -367,7 +370,10 @@ export async function updateDealAction(
       installerName: d.installerName || null,
       soapIncluded: d.soapIncluded === 'YES' ? true : d.soapIncluded === 'NO' ? false : null,
       productsSold: formData.getAll('productsSold').map(String).map((s) => s.trim()).filter(Boolean).slice(0, 50),
-      incomeAnnual: d.grossMonthlyIncome ? Math.round(d.grossMonthlyIncome * 12) : app.incomeAnnual,
+      incomeAnnualEnc: d.grossMonthlyIncome
+        ? encryptOptional(String(Math.round(d.grossMonthlyIncome * 12)))
+        : app.incomeAnnualEnc ?? encryptOptional(app.incomeAnnual != null ? String(app.incomeAnnual) : null),
+      incomeAnnual: null,
       employer: d.businessName || app.employer,
       // Create the extended record if the deal never had one (e.g. a photo/
       // FinanceIT entry), so ID and employment details can be filled in.

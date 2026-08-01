@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { Application, LoanApplication, HomeDepotStore, FinanceCompany, User } from '@prisma/client';
 import { programLabel } from '@/lib/constants';
+import { readEnc } from '@/lib/crypto';
 
 /**
  * Reviewer entry view — the whole application laid out top-to-bottom in the
@@ -90,9 +91,9 @@ export function ReviewerEntryView({
 }) {
   const hasCo = !!(loan?.coFirstName || loan?.coLastName);
   const otherAddresses = [
-    addressLine(loan?.mailingAddress, loan?.mailingCity, loan?.mailingProvince, loan?.mailingPostal),
-    addressLine(loan?.previousAddress, loan?.previousCity, loan?.previousProvince, loan?.previousPostal),
-    addressLine(loan?.worksiteAddress, loan?.worksiteCity, loan?.worksiteProvince, loan?.worksitePostal),
+    addressLine(readEnc(loan?.mailingAddressEnc, loan?.mailingAddress), loan?.mailingCity, loan?.mailingProvince, loan?.mailingPostal),
+    addressLine(readEnc(loan?.previousAddressEnc, loan?.previousAddress), loan?.previousCity, loan?.previousProvince, loan?.previousPostal),
+    addressLine(readEnc(loan?.worksiteAddressEnc, loan?.worksiteAddress), loan?.worksiteCity, loan?.worksiteProvince, loan?.worksitePostal),
   ];
   const hasOther = otherAddresses.some(Boolean);
   const storeLabel = app.homeDepotStore
@@ -147,7 +148,7 @@ export function ReviewerEntryView({
         <Field label="Province" value={nonEmpty(loan?.addressProvince) ?? app.province} />
         <Field label="Postal code" value={nonEmpty(loan?.postalCode)} />
         <Field label="Years at this address" value={loan?.yearsAtAddress ?? null} />
-        <Field label="Monthly housing costs" value={money(loan?.monthlyHousingCost)} />
+        <Field label="Monthly housing costs" value={money(readEnc(loan?.monthlyHousingCostEnc, loan?.monthlyHousingCost))} />
         <Field label="Housing status (Own / Rent / Other)" value={loan?.housingStatus ? HOUSING[loan.housingStatus] : null} />
       </Group>
 
@@ -169,10 +170,10 @@ export function ReviewerEntryView({
       <Group title="Employment & income information">
         <Field label="Business name / employer" value={nonEmpty(loan?.businessName)} />
         <Field label="Position title" value={nonEmpty(loan?.positionTitle)} />
-        <Field label="Employer address" value={nonEmpty(loan?.employerAddress)} />
+        <Field label="Employer address" value={nonEmpty(readEnc(loan?.employerAddressEnc, loan?.employerAddress))} />
         <Field label="Employer phone" value={nonEmpty(loan?.employerPhone)} />
         <Field label="Time at job (years)" value={loan?.timeAtJobYears ?? null} />
-        <Field label="Gross monthly income" value={money(loan?.grossMonthlyIncome)} />
+        <Field label="Gross monthly income" value={money(readEnc(loan?.grossMonthlyIncomeEnc, loan?.grossMonthlyIncome))} />
         <Field label="Employment status" value={loan?.employmentStatus ? EMPLOYMENT[loan.employmentStatus] : null} />
       </Group>
 
@@ -204,10 +205,10 @@ export function ReviewerEntryView({
           <Group title="Employment & income information">
             <Field label="Business name / employer" value={nonEmpty(loan.coBusinessName)} />
             <Field label="Position title" value={nonEmpty(loan.coPositionTitle)} />
-            <Field label="Employer address" value={nonEmpty(loan.coEmployerAddress)} />
+            <Field label="Employer address" value={nonEmpty(readEnc(loan.coEmployerAddressEnc, loan.coEmployerAddress))} />
             <Field label="Employer phone" value={nonEmpty(loan.coEmployerPhone)} />
             <Field label="Time at job (years)" value={loan.coTimeAtJobYears ?? null} />
-            <Field label="Gross monthly income" value={money(loan.coGrossMonthlyIncome)} />
+            <Field label="Gross monthly income" value={money(readEnc(loan.coGrossMonthlyIncomeEnc, loan.coGrossMonthlyIncome))} />
             <Field label="Employment status" value={loan.coEmploymentStatus ? EMPLOYMENT[loan.coEmploymentStatus] : null} />
           </Group>
         </div>

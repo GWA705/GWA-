@@ -171,7 +171,7 @@ async function main() {
         applicantAddressEnc: encryptOptional('12 Dunlop St, Barrie ON'),
         bankAccountEnc: encryptOptional('001-12345-6789012'),
         govIdNumberEnc: encryptOptional('D1234-56789-01234'),
-        incomeAnnual: 72000,
+        incomeAnnualEnc: encryptOptional('72000'),
         employer: 'Simcoe Logistics',
         homeownershipRequired: true,
         consents: {
@@ -183,12 +183,80 @@ async function main() {
     console.log('Created sample application.');
   }
 
+  await backfillEncryption();
+
   console.log('\nSeed complete.');
   if (seedDemo) {
     console.log('Demo logins (change in production):');
     console.log(`  Admin:    ${adminEmail} / ${adminPassword}`);
     console.log('  Reviewer: reviewer@gwa.example / ChangeMe!Review123');
     console.log('  Dealer:   dealer@barrie.example / ChangeMe!Dealer123');
+  }
+}
+
+/**
+ * One-time (idempotent) backfill: move income + secondary/employer address
+ * values from their legacy plaintext columns into the encrypted columns, then
+ * null the plaintext. Safe to run on every deploy — it only touches rows that
+ * still hold plaintext. The legacy columns are dropped in a later migration
+ * once every environment has been backfilled.
+ */
+async function backfillEncryption() {
+  // Application.incomeAnnual → incomeAnnualEnc
+  const apps = await prisma.application.findMany({
+    where: { incomeAnnual: { not: null } },
+    select: { id: true, incomeAnnual: true, incomeAnnualEnc: true },
+  });
+  for (const a of apps) {
+    await prisma.application.update({
+      where: { id: a.id },
+      data: {
+        incomeAnnualEnc: a.incomeAnnualEnc ?? encryptOptional(String(a.incomeAnnual)),
+        incomeAnnual: null,
+      },
+    });
+  }
+
+  // LoanApplication income + secondary/employer address street lines.
+  const loans = await prisma.loanApplication.findMany({
+    where: {
+      OR: [
+        { monthlyHousingCost: { not: null } },
+        { grossMonthlyIncome: { not: null } },
+        { coGrossMonthlyIncome: { not: null } },
+        { mailingAddress: { not: null } },
+        { previousAddress: { not: null } },
+        { worksiteAddress: { not: null } },
+        { employerAddress: { not: null } },
+        { coEmployerAddress: { not: null } },
+      ],
+    },
+  });
+  for (const l of loans) {
+    await prisma.loanApplication.update({
+      where: { id: l.id },
+      data: {
+        monthlyHousingCostEnc: l.monthlyHousingCostEnc ?? encryptOptional(l.monthlyHousingCost != null ? String(l.monthlyHousingCost) : null),
+        monthlyHousingCost: null,
+        grossMonthlyIncomeEnc: l.grossMonthlyIncomeEnc ?? encryptOptional(l.grossMonthlyIncome != null ? String(l.grossMonthlyIncome) : null),
+        grossMonthlyIncome: null,
+        coGrossMonthlyIncomeEnc: l.coGrossMonthlyIncomeEnc ?? encryptOptional(l.coGrossMonthlyIncome != null ? String(l.coGrossMonthlyIncome) : null),
+        coGrossMonthlyIncome: null,
+        mailingAddressEnc: l.mailingAddressEnc ?? encryptOptional(l.mailingAddress),
+        mailingAddress: null,
+        previousAddressEnc: l.previousAddressEnc ?? encryptOptional(l.previousAddress),
+        previousAddress: null,
+        worksiteAddressEnc: l.worksiteAddressEnc ?? encryptOptional(l.worksiteAddress),
+        worksiteAddress: null,
+        employerAddressEnc: l.employerAddressEnc ?? encryptOptional(l.employerAddress),
+        employerAddress: null,
+        coEmployerAddressEnc: l.coEmployerAddressEnc ?? encryptOptional(l.coEmployerAddress),
+        coEmployerAddress: null,
+      },
+    });
+  }
+  if (apps.length || loans.length) {
+    console.log(`Backfilled encryption: ${apps.length} application(s), ${loans.length} loan record(s).`);
   }
 }
 
