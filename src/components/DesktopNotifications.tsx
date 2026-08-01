@@ -34,6 +34,16 @@ export function DesktopNotifications() {
     'PushManager' in window &&
     'Notification' in window;
 
+  // iPhone/iPad only allow push once the site is added to the Home Screen and
+  // opened from there (iOS 16.4+). Detect that case so we can guide the user.
+  const isIOS =
+    typeof navigator !== 'undefined' && /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isStandalone =
+    typeof window !== 'undefined' &&
+    (window.matchMedia?.('(display-mode: standalone)').matches ||
+      (navigator as unknown as { standalone?: boolean }).standalone === true);
+  const iosNeedsInstall = isIOS && !isStandalone && !supported;
+
   useEffect(() => {
     if (!supported) {
       setStatus('unsupported');
@@ -123,20 +133,28 @@ export function DesktopNotifications() {
   return (
     <div className="space-y-2">
       <div>
-        <h3 className="text-sm font-medium text-gray-700">Desktop notifications</h3>
+        <h3 className="text-sm font-medium text-gray-700">Desktop &amp; phone notifications</h3>
         <p className="text-xs text-gray-500">
-          Get a pop-up on your computer when there’s activity on a deal — new submissions, uploads,
-          funding packages, and notes — even when the portal isn’t the active tab.
+          Get a pop-up on your computer or phone when there’s activity on a deal — new submissions,
+          uploads, funding packages, and notes — even when the portal isn’t open.
         </p>
       </div>
 
       {status === 'loading' && <p className="text-xs text-gray-400">Checking…</p>}
 
-      {status === 'unsupported' && (
+      {iosNeedsInstall ? (
         <p className="text-xs text-amber-700">
-          This browser doesn’t support desktop notifications. Try Chrome, Edge, or Firefox on a
-          computer.
+          On iPhone/iPad: tap the <span className="font-medium">Share</span> button, then{' '}
+          <span className="font-medium">Add to Home Screen</span>. Open “GWA Portal” from your Home
+          Screen and come back here to turn on notifications. (Requires iOS 16.4 or newer.)
         </p>
+      ) : (
+        status === 'unsupported' && (
+          <p className="text-xs text-amber-700">
+            This browser doesn’t support notifications. On a computer use Chrome, Edge, or Firefox;
+            on Android use Chrome; on iPhone add the portal to your Home Screen first.
+          </p>
+        )
       )}
 
       {status === 'denied' && (
@@ -166,7 +184,8 @@ export function DesktopNotifications() {
 
       {msg && <p className="text-xs text-gray-500">{msg}</p>}
       <p className="text-[11px] text-gray-400">
-        Turn this on for each computer/browser where you want pop-ups. Emails still send regardless.
+        Turn this on for each device (computer or phone) where you want pop-ups. Emails still send
+        regardless.
       </p>
     </div>
   );

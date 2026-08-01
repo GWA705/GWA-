@@ -17,10 +17,21 @@ a link into the portal — no full names or personal data.
 
 ## How a user turns it on
 
-**My account → Desktop notifications → “Enable desktop notifications.”** The
-browser asks for permission once; after that, pop-ups arrive automatically. It's
-per-browser/per-computer, so each device where they want pop-ups enables it once.
+**My account → Desktop & phone notifications → “Enable desktop notifications.”**
+The browser asks for permission once; after that, pop-ups arrive automatically.
+It's per-device, so each computer/phone where they want pop-ups enables it once.
 A **“Send a test”** button confirms it's working.
+
+## Phones
+
+- **Android** (Chrome/Edge/Firefox): works the same as a computer — just tap
+  “Enable” in My account. No install needed; notifications arrive even when the
+  browser is closed.
+- **iPhone / iPad** (iOS **16.4+**): Apple only allows web push for **installed**
+  web apps. The user must, in Safari, tap **Share → Add to Home Screen**, open
+  **GWA Portal** from the Home Screen, then tap Enable in My account. The portal
+  detects this case and shows the instructions. This is why the app ships a web
+  app manifest (`src/app/manifest.ts`) and Home-Screen icons.
 
 ## Setup (one time, on the server)
 

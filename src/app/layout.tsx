@@ -1,10 +1,22 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
   title: 'GWA Dealer Portal',
   description: 'Secure credit application and funding portal.',
   robots: { index: false, follow: false },
+  manifest: '/manifest.webmanifest',
+  // Lets iPhones add the portal to the Home Screen as an app, which is required
+  // for push notifications on iOS (16.4+).
+  appleWebApp: { capable: true, title: 'GWA Portal', statusBarStyle: 'default' },
+  icons: {
+    icon: [{ url: '/icon-192.png', sizes: '192x192', type: 'image/png' }],
+    apple: [{ url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: '#1d4ed8',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
