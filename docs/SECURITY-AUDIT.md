@@ -30,7 +30,7 @@ Status key: ✅ fixed · 🟡 in progress · ⬜ planned · 🔷 your action (Re
 - ✅ **Announcement image route** missing `nosniff` and ignored the `active` flag → both fixed.
 - ✅ **No rate limiting / MFA brute-force** → durable DB-backed rate limiter (`src/lib/ratelimit.ts`, holds across Render instances) applied to login (per-IP + per-email), MFA verify, reset, MFA resend/enroll, and push-test. **MFA now shares the 5-attempt/15-min lockout**, and a wrong email code is invalidated so it can't be re-guessed within its TTL.
 - ✅ **Login user-enumeration (timing)** → dummy bcrypt compare on the no-user path so timing is equal.
-- ⬜ **Outdated `next` (HIGH advisories: SSRF/cache-poisoning/CSP-nonce XSS)** — bump to the latest patched 14.2.x (verify build); plan the Next 16 upgrade. _(awaiting your go-ahead)_
+- 🟡 **Outdated `next` (HIGH advisories)** — 14.2.35 is already the newest 14.x, so **no patch bump exists**. Fix requires a **major** upgrade (15/16) which makes `cookies()`/`headers()`/`params`/`searchParams` async — a real migration across many files (attempted + reverted; the app builds clean on 14.2.35). **Deferred as a dedicated, regression-tested upgrade.** Interim: the remaining prod advisory is mostly `next`'s bundled build-time `postcss` (not attacker-reachable here), and the app's nonce CSP + no user-supplied rewrites + full auth mitigate the runtime `next` advisories.
 
 ## Wave 2 — Medium
 
@@ -55,7 +55,8 @@ Status key: ✅ fixed · 🟡 in progress · ⬜ planned · 🔷 your action (Re
 - ⬜ `__Host-` cookie prefix; force `secure` in all deployed envs.
 - ⬜ `serverActions.bodySizeLimit` set to match the 15 MB upload intent.
 - ⬜ Journal write: tag the address decrypt as `PII_DECRYPT`; document the cross-border transfer.
-- ⬜ Dealer self-advances a deal to APPROVED via a FinanceIt number at creation — **confirm this is intended** (funding still needs reviewer + both refs).
+- ✅ Dealer self-advances a deal to APPROVED via a FinanceIt number at creation — **confirmed intended**; added a reviewer **"Verify financing number"** confirmation (audited, shown on the deal) to solidify the dealer-asserted approval.
+- ⬜ **Encrypt income + secondary/employer addresses** (approved) — next dedicated change, with a data-backfill migration. Keeping `city`/`postalCode` searchable (lower sensitivity; primary street already encrypted). Encrypted values remain viewable to logged-in reviewers/admins.
 - ⬜ Data retention / auto-purge of ID data after a window (already roadmap #48).
 
 ## FinanceIt API readiness (before processing real deals via API)

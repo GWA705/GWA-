@@ -261,6 +261,7 @@ model User {
   passwordResetTokens  PasswordResetToken[]
   applicationsCreated  Application[]   @relation("ApplicationCreatedBy")
   applicationsApproved Application[]   @relation("ApplicationApprover")
+  financeNumbersVerified Application[] @relation("FinanceNumberVerifier")
   documentsUploaded    Document[]      @relation("DocumentUploader")
   documentsVerified    Document[]      @relation("DocumentVerifier")
   decisions           Decision[]
@@ -390,6 +391,13 @@ model Application {
   financeReference String?
   hdReference      String?
   financeItNumber  String? // FinanceIT approval number (approved when present)
+
+  // A reviewer confirms the financing (FinanceIT) number is valid to solidify an
+  // approval — important for dealer-auto-approved (FinanceIT) deals, where the
+  // "approved" state is dealer-asserted until a reviewer verifies the number.
+  financeNumberVerifiedAt   DateTime?
+  financeNumberVerifiedById String?
+  financeNumberVerifiedBy   User?     @relation("FinanceNumberVerifier", fields: [financeNumberVerifiedById], references: [id])
 
   // Applicant identity — names/contact kept plaintext for staff triage.
   applicantFirstName String

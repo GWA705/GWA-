@@ -85,6 +85,36 @@ export async function setDealReferencesAction(
   return { ok: true };
 }
 
+/**
+ * Reviewer confirms (or un-confirms) that the financing/FinanceIT number on the
+ * deal is valid — solidifying an approval, especially for dealer-auto-approved
+ * (FinanceIT) deals where "approved" was dealer-asserted until now.
+ */
+export async function toggleFinanceNumberVerifiedAction(applicationId: string): Promise<void> {
+  const session = await requireRole('REVIEWER', 'ADMIN');
+  const app = await prisma.application.findUnique({ where: { id: applicationId } });
+  if (!app) return;
+  const verifying = app.financeNumberVerifiedAt === null;
+  await prisma.application.update({
+    where: { id: applicationId },
+    data: {
+      financeNumberVerifiedAt: verifying ? new Date() : null,
+      financeNumberVerifiedById: verifying ? session.userId : null,
+    },
+  });
+  await markReviewerAction(applicationId);
+  await audit({
+    actorId: session.userId,
+    action: 'STATUS_CHANGE',
+    entityType: 'Application',
+    entityId: applicationId,
+    detail: verifying
+      ? `Financing number verified (${app.financeItNumber ?? '—'})`
+      : 'Financing number verification cleared',
+  });
+  revalidatePath(`/staff/applications/${applicationId}`);
+}
+
 // Which current statuses permit which decision.
 function isTransitionAllowed(current: ApplicationStatus, type: DecisionType): boolean {
   const preDecision: ApplicationStatus[] = ['SUBMITTED', 'UNDER_REVIEW', 'CONDITIONAL'];
