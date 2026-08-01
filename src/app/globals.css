@@ -48,17 +48,17 @@ body {
    ========================================================================== */
 .dark {
   color-scheme: dark;
-  --d-bg: #0b1220;
-  --d-surface: #131d31;
-  --d-surface-2: #0f1829;
-  --d-fill: #1b2740;
-  --d-hover: rgba(148, 163, 184, 0.10);
-  --d-border: #28334c;
-  --d-border-strong: #384663;
-  --d-text: #e9eef8;
-  --d-text-strong: #f6f8fc;
-  --d-muted: #a5b3cd;
-  --d-dim: #7f8fad;
+  --d-bg: #0a1120;
+  --d-surface: #1a2540;      /* cards — clearly lighter than the page */
+  --d-surface-2: #121b30;    /* inputs, table headers */
+  --d-fill: #26314c;
+  --d-hover: rgba(148, 163, 184, 0.12);
+  --d-border: #34425f;       /* visible panel edges */
+  --d-border-strong: #46557a;
+  --d-text: #eaf0fa;
+  --d-text-strong: #f7f9fd;
+  --d-muted: #aab8d2;
+  --d-dim: #8695b3;
 }
 .dark body { background-color: var(--d-bg); color: var(--d-text); }
 
@@ -121,3 +121,8 @@ body {
 .dark .bg-brand-50 { background-color: rgba(37,99,235,.18); }
 .dark .bg-brand-100 { background-color: rgba(37,99,235,.26); }
 .dark .text-brand-700, .dark .text-brand-800 { color: #93b4ff; }
+/* Dark brand text (e.g. the announcement banner title/body) would otherwise
+   stay navy-on-navy — lift it to a bright, legible blue-white. */
+.dark .text-brand-900 { color: #dbe6ff; }
+.dark .text-brand-900\/80 { color: #c3d4ff; }
+.dark .border-brand-100 { border-color: rgba(37,99,235,.4); }

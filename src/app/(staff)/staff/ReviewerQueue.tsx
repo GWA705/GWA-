@@ -117,33 +117,34 @@ function rowsFor(lanes: Lanes, kind: Kind): QueueRow[] {
   return lanes.all;
 }
 
-// A single priority-view row: colour-striped by urgency, with the action chip
-// and an aging wait time. Flex layout that wraps cleanly on a phone.
+// A single priority-view row. A fixed CSS grid — stripe · applicant/meta ·
+// action chip · wait time — so the action chips and wait times line up in
+// columns down the whole list instead of drifting with each row's content.
 function PriorityRow({ r }: { r: QueueRow }) {
   const stripe = r.tone === 'prob' ? 'bg-red-500' : r.waitHot ? 'bg-red-500' : 'bg-transparent';
   return (
     <Link
       href={`/staff/applications/${r.id}`}
-      className="card flex items-stretch gap-0 overflow-hidden p-0 transition hover:ring-2 hover:ring-brand-500"
+      className="card grid grid-cols-[5px_minmax(0,1fr)_auto_84px] items-center overflow-hidden p-0 transition hover:ring-2 hover:ring-brand-500"
     >
-      <div className={`w-1.5 flex-none ${stripe}`} />
-      <div className="flex flex-1 flex-wrap items-center gap-x-3 gap-y-1 p-3 sm:px-4">
-        <div className="min-w-0 flex-1 basis-48">
-          <div className="flex items-center gap-2">
-            <span className="truncate font-medium text-brand-700">{r.applicant}</span>
-            {r.paid && <span className="badge bg-emerald-100 text-emerald-800">Paid</span>}
-          </div>
-          <div className="truncate text-xs text-gray-500">
-            {r.dealer} · {r.program} · <span className="tabular-nums">{r.amount}</span>
-          </div>
+      <div className={`h-full ${stripe}`} />
+      <div className="min-w-0 py-3 pl-3 pr-2 sm:pl-4">
+        <div className="flex items-center gap-2">
+          <span className="truncate font-medium text-brand-700">{r.applicant}</span>
+          {r.paid && <span className="badge bg-emerald-100 text-emerald-800">Paid</span>}
         </div>
+        <div className="truncate text-xs text-gray-500">
+          {r.dealer} · {r.program} · <span className="tabular-nums">{r.amount}</span>
+        </div>
+      </div>
+      <div className="justify-self-end px-2">
         <Pill tone={r.actionTone} label={r.actionLabel} />
-        <div className="ml-auto whitespace-nowrap text-right">
-          <div className={`text-sm font-semibold tabular-nums ${r.waitHot ? 'text-red-700' : 'text-gray-600'}`}>
-            {r.waitLabel}
-          </div>
-          <div className="text-[11px] text-gray-400">{r.statusLabel}</div>
+      </div>
+      <div className="justify-self-end whitespace-nowrap py-3 pr-3 text-right sm:pr-4">
+        <div className={`text-sm font-semibold tabular-nums ${r.waitHot ? 'text-red-700' : 'text-gray-600'}`}>
+          {r.waitLabel}
         </div>
+        <div className="text-[11px] text-gray-400">{r.statusLabel}</div>
       </div>
     </Link>
   );
