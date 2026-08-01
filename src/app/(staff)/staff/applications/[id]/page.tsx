@@ -8,7 +8,7 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { DocumentList } from '@/components/DocumentList';
 import { FundingChecklist } from '@/components/FundingChecklist';
 import { VerificationChecklist, type VerificationState } from '@/components/VerificationChecklist';
-import { LoanApplicationDetails } from '@/components/LoanApplicationDetails';
+import { ReviewerEntryView } from '@/components/ReviewerEntryView';
 import { PayoutReceipt } from '@/components/PayoutReceipt';
 import { ReviewerPaperworkForm } from './ReviewerPaperworkForm';
 import { NoteThread } from '@/components/NoteThread';
@@ -27,7 +27,7 @@ import {
   uploadReviewerPaperworkAction,
   addStaffNoteAction,
 } from '@/app/(staff)/actions';
-import { STATUS_LABELS, programLabel, REVIEWER_PAPERWORK_TYPES, applicableVerificationChecks } from '@/lib/constants';
+import { STATUS_LABELS, REVIEWER_PAPERWORK_TYPES, applicableVerificationChecks } from '@/lib/constants';
 import type { ApplicationStatus } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
@@ -125,19 +125,39 @@ export default async function StaffApplicationDetail({
 
   const reveal = searchParams.reveal === '1';
 
-  // The government ID number is the protected identity field shown here (SIN
-  // and banking are not collected). Decrypt only when revealed. ID type,
-  // province, and expiry are low-sensitivity and shown without revealing.
-  let govId = maskTail(decryptOptional(app.govIdNumberEnc), 3);
+  // Protected identity fields (DOB, street address, government ID number — SIN
+  // and banking are not collected) are shown masked, and decrypted only when
+  // the reviewer explicitly reveals them (which is audited). This lets the
+  // reviewer read the whole application straight down when re-keying it into a
+  // lender's portal. A masked value shows dots when present, an em dash when the
+  // field is empty.
+  const masked = (enc: string | null | undefined) => (enc ? '••••••' : '—');
+  const loan = app.loanApplication;
+  const pv = reveal
+    ? {
+        dob: decryptOptional(app.applicantDobEnc) ?? '—',
+        address: decryptOptional(app.applicantAddressEnc) ?? '—',
+        govId: decryptOptional(app.govIdNumberEnc) ?? '—',
+        coDob: decryptOptional(loan?.coDobEnc) ?? '—',
+        coAddress: decryptOptional(loan?.coAddressEnc) ?? '—',
+        coGovId: decryptOptional(loan?.coGovIdNumberEnc) ?? '—',
+      }
+    : {
+        dob: masked(app.applicantDobEnc),
+        address: masked(app.applicantAddressEnc),
+        govId: maskTail(decryptOptional(app.govIdNumberEnc), 3),
+        coDob: masked(loan?.coDobEnc),
+        coAddress: masked(loan?.coAddressEnc),
+        coGovId: maskTail(decryptOptional(loan?.coGovIdNumberEnc), 3),
+      };
 
   if (reveal) {
-    govId = decryptOptional(app.govIdNumberEnc) ?? '—';
     await audit({
       actorId: user.userId,
       action: 'PII_DECRYPT',
       entityType: 'Application',
       entityId: app.id,
-      detail: 'Revealed identity fields',
+      detail: 'Revealed identity fields (reviewer entry view)',
     });
   }
 
@@ -202,73 +222,15 @@ export default async function StaffApplicationDetail({
           can act without scrolling past the whole deal; back on the right at lg. */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="order-2 space-y-6 lg:order-1 lg:col-span-2">
-        {/* Summary */}
-        <section className="card p-6">
-          <h2 className="mb-4 text-base font-semibold text-gray-900">Summary</h2>
-          <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3">
-            <div><dt className="text-gray-500">Province</dt><dd className="font-medium">{app.province}</dd></div>
-            <div><dt className="text-gray-500">Program</dt><dd className="font-medium">{programLabel(app.programType, app.programCategory)}</dd></div>
-            <div><dt className="text-gray-500">Entry method</dt><dd className="font-medium">{app.entryMethod === 'TYPED' ? 'Typed in' : app.entryMethod === 'PHOTO' ? 'Photo upload' : 'FinanceIT #'}</dd></div>
-            <div><dt className="text-gray-500">Requested</dt><dd className="font-medium">${app.requestedAmount.toString()}</dd></div>
-            <div><dt className="text-gray-500">Approved amount</dt><dd className="font-medium">{app.approvedAmount ? `$${app.approvedAmount.toString()}` : '—'}</dd></div>
-            <div><dt className="text-gray-500">Finance company</dt><dd className="font-medium">{app.financeCompany?.name ?? '—'}</dd></div>
-            <div><dt className="text-gray-500">Approved by</dt><dd className="font-medium">{app.approvedBy?.name ?? '—'}</dd></div>
-            <div><dt className="text-gray-500">Date of sale</dt><dd className="font-medium">{app.dateOfSale ? app.dateOfSale.toLocaleDateString('en-CA') : '—'}</dd></div>
-            <div><dt className="text-gray-500">Installation date</dt><dd className="font-medium">{app.installationDate ? app.installationDate.toLocaleDateString('en-CA') : '—'}</dd></div>
-            <div><dt className="text-gray-500">HD store</dt><dd className="font-medium">{app.homeDepotStore ? app.homeDepotStore.number : '—'}</dd></div>
-            <div><dt className="text-gray-500">Email</dt><dd className="font-medium">{app.applicantEmail}</dd></div>
-            <div><dt className="text-gray-500">Phone</dt><dd className="font-medium">{app.applicantPhone}</dd></div>
-            <div><dt className="text-gray-500">Income</dt><dd className="font-medium">{app.incomeAnnual ? `$${app.incomeAnnual.toString()}` : '—'}</dd></div>
-            <div><dt className="text-gray-500">Financing deal number</dt><dd className="font-medium">{app.financeItNumber ?? '—'}</dd></div>
-            <div><dt className="text-gray-500">HD Customer #</dt><dd className="font-medium">{app.hdReference ?? '—'}</dd></div>
-          </dl>
-          {app.financingNote && (
-            <p className="mt-3 rounded bg-gray-50 p-3 text-sm text-gray-600"><span className="font-medium text-gray-700">Financing note: </span>{app.financingNote}</p>
-          )}
-          {app.notes && <p className="mt-4 rounded bg-gray-50 p-3 text-sm text-gray-600">{app.notes}</p>}
-        </section>
-
-        {/* Sensitive */}
-        <section className="card border-amber-200 p-6">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-base font-semibold text-gray-900">Identity (protected)</h2>
-            {reveal ? (
-              <Link href={`/staff/applications/${app.id}`} className="text-xs text-brand-700 hover:underline">
-                Hide
-              </Link>
-            ) : (
-              <Link href={`/staff/applications/${app.id}?reveal=1`} className="btn-secondary text-xs">
-                Reveal (logged)
-              </Link>
-            )}
-          </div>
-          {reveal && (
-            <p className="mb-3 rounded bg-amber-50 p-2 text-xs text-amber-700">
-              This access has been recorded in the audit log.
-            </p>
-          )}
-          <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3">
-            <div><dt className="text-gray-500">Gov ID type</dt><dd className="font-medium">{app.loanApplication?.idType || '—'}</dd></div>
-            <div><dt className="text-gray-500">Gov ID #</dt><dd className="font-mono font-medium">{govId}</dd></div>
-            <div><dt className="text-gray-500">Province of issue</dt><dd className="font-medium">{app.loanApplication?.idProvince || '—'}</dd></div>
-            <div><dt className="text-gray-500">ID expiry</dt><dd className="font-medium">{app.loanApplication?.idExpiry ? app.loanApplication.idExpiry.toLocaleDateString('en-CA') : '—'}</dd></div>
-          </dl>
-        </section>
-
-        {app.loanApplication && (
-          <LoanApplicationDetails
-            loan={app.loanApplication}
-            co={
-              reveal
-                ? {
-                    dob: decryptOptional(app.loanApplication.coDobEnc),
-                    address: decryptOptional(app.loanApplication.coAddressEnc),
-                    govId: decryptOptional(app.loanApplication.coGovIdNumberEnc),
-                  }
-                : undefined
-            }
-          />
-        )}
+        {/* Application in lender-entry order — one panel, read straight down. */}
+        <ReviewerEntryView
+          app={app}
+          loan={loan}
+          reveal={reveal}
+          pv={pv}
+          revealHref={`/staff/applications/${app.id}?reveal=1`}
+          hideHref={`/staff/applications/${app.id}`}
+        />
 
         {/* Notes to dealer */}
         <section className="card p-6">
