@@ -11,15 +11,32 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   if (!session) return new NextResponse('Unauthorized', { status: 401 });
 
   const item = await prisma.contentItem.findUnique({ where: { id: params.id } });
-  if (!item || !item.fileStorageKey || !item.active) {
-    return new NextResponse('Not found', { status: 404 });
-  }
+  if (!item || !item.active) return new NextResponse('Not found', { status: 404 });
+
+  // ?thumb=1 serves the optional custom cover image instead of the attachment.
+  const wantThumb = req.nextUrl.searchParams.get('thumb') === '1';
+  const key = wantThumb ? item.thumbStorageKey : item.fileStorageKey;
+  const mime = wantThumb ? item.thumbMime : item.fileMime;
+  if (!key) return new NextResponse('Not found', { status: 404 });
 
   let bytes: Buffer;
   try {
-    bytes = await getDocument(item.fileStorageKey);
+    bytes = await getDocument(key);
   } catch {
     return new NextResponse('Unavailable', { status: 500 });
+  }
+
+  // A thumbnail is just a preview image — serve it inline without an audit entry.
+  if (wantThumb) {
+    return new NextResponse(new Uint8Array(bytes), {
+      status: 200,
+      headers: {
+        'Content-Type': mime || 'image/jpeg',
+        'Content-Disposition': 'inline',
+        'Cache-Control': 'private, no-store',
+        'X-Content-Type-Options': 'nosniff',
+      },
+    });
   }
 
   const download = req.nextUrl.searchParams.get('download') === '1';

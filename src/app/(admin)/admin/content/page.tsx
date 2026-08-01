@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { toggleContentActiveAction, deleteContentAction } from '@/app/(admin)/actions';
 import { CONTENT_SECTIONS, CONTENT_SECTION_LABELS } from '@/lib/constants';
 import { ContentForm } from './ContentForm';
+import { ContentThumbForm } from './ContentThumbForm';
 
 export const dynamic = 'force-dynamic';
 
@@ -51,6 +52,7 @@ export default async function ContentPage() {
                     {c.fileName && <p className="mt-1 truncate text-xs text-gray-500">📎 {c.fileName}</p>}
                   </div>
                   <div className="flex flex-none flex-col gap-2">
+                    <ContentThumbForm id={c.id} hasThumb={!!c.thumbStorageKey} />
                     <form action={toggleContentActiveAction.bind(null, c.id)}>
                       <button type="submit" className="btn-secondary w-full text-xs">{c.active ? 'Hide' : 'Show'}</button>
                     </form>

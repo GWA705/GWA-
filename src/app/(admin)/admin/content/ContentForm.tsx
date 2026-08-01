@@ -66,6 +66,10 @@ export function ContentForm({ defaultSection }: { defaultSection?: string }) {
         <label className="label">Attachment <span className="font-normal text-gray-400">(optional)</span></label>
         <FileDropInput name="file" accept=".pdf,.jpg,.jpeg,.png,.webp" multiple={false} variant="compact" hint="PDF, JPG, PNG, or WEBP" />
       </div>
+      <div>
+        <label className="label">Cover thumbnail <span className="font-normal text-gray-400">(optional — shown on the card)</span></label>
+        <FileDropInput name="thumb" accept=".jpg,.jpeg,.png,.webp" multiple={false} variant="compact" hint="JPG, PNG, or WEBP" buttonLabel="Choose image" />
+      </div>
       <SubmitButton />
     </form>
   );

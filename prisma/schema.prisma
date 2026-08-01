@@ -72,6 +72,10 @@ model ContentItem {
   fileStorageKey String? // uploaded attachment (encrypted at rest)
   fileMime       String?
   fileName       String?
+  // Optional custom cover image shown as the card thumbnail (e.g. a nice cover
+  // for a PDF). Falls back to the file's own image / a generic cover when unset.
+  thumbStorageKey String?
+  thumbMime       String?
   active         Boolean        @default(true)
   sortOrder      Int            @default(0)
   createdById    String?

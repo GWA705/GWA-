@@ -69,8 +69,12 @@ export function ContentSectionView({
             const fileUrl = `/api/content/${c.id}/file`;
             return (
               <article key={c.id} className="card flex flex-col overflow-hidden">
-                {/* Preview */}
-                {c.fileStorageKey && isImage ? (
+                {/* Preview — a custom cover wins; otherwise the image itself, a
+                    PDF cover, or a link cover. */}
+                {c.thumbStorageKey ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={`${fileUrl}?thumb=1`} alt={c.title} loading="lazy" className="h-40 w-full bg-gray-50 object-cover" />
+                ) : c.fileStorageKey && isImage ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={fileUrl} alt={c.title} loading="lazy" className="h-40 w-full bg-gray-50 object-cover" />
                 ) : c.fileStorageKey && isPdf ? (
