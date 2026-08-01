@@ -7,6 +7,7 @@ import { audit } from '@/lib/audit';
 import { StatusBadge } from '@/components/StatusBadge';
 import { DocumentList } from '@/components/DocumentList';
 import { FundingChecklist } from '@/components/FundingChecklist';
+import { VerificationChecklist, type VerificationState } from '@/components/VerificationChecklist';
 import { LoanApplicationDetails } from '@/components/LoanApplicationDetails';
 import { PayoutReceipt } from '@/components/PayoutReceipt';
 import { ReviewerPaperworkForm } from './ReviewerPaperworkForm';
@@ -26,7 +27,7 @@ import {
   uploadReviewerPaperworkAction,
   addStaffNoteAction,
 } from '@/app/(staff)/actions';
-import { STATUS_LABELS, programLabel, REVIEWER_PAPERWORK_TYPES } from '@/lib/constants';
+import { STATUS_LABELS, programLabel, REVIEWER_PAPERWORK_TYPES, applicableVerificationChecks } from '@/lib/constants';
 import type { ApplicationStatus } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
@@ -90,9 +91,28 @@ export default async function StaffApplicationDetail({
       payouts: { orderBy: { paidOn: 'desc' }, include: { createdBy: true } },
       dealNotes: { orderBy: { createdAt: 'asc' }, include: { author: true } },
       confirmation: { include: { confirmedBy: true } },
+      verificationChecks: { include: { checkedBy: true } },
     },
   });
   if (!app) notFound();
+
+  // Rule 2 — funding verification checklist. The serial-match item only applies
+  // when the finance company requires a serial per product (e.g. UEI).
+  const verificationItems = applicableVerificationChecks(
+    !!app.financeCompany?.requiresSerialPerProduct,
+  );
+  const verificationStates: Record<string, VerificationState> = {};
+  for (const v of app.verificationChecks) {
+    verificationStates[v.key] = {
+      status: v.status,
+      note: v.note,
+      checkedByName: v.checkedBy?.name ?? null,
+      checkedAt: v.checkedAt ? v.checkedAt.toISOString() : null,
+    };
+  }
+  const verificationComplete = verificationItems.every(
+    (i) => verificationStates[i.key]?.status === 'CONFIRMED',
+  );
 
   const dealerNotes = app.dealNotes.filter((n) => !n.internal);
   const internalNotes = app.dealNotes.filter((n) => n.internal);
@@ -304,6 +324,18 @@ export default async function StaffApplicationDetail({
               </div>
             )}
             <FundingChecklist fundingDocs={fundingDocs} applicationId={app.id} status={app.status} />
+
+            <div className="mt-6 border-t border-gray-100 pt-4">
+              <h3 className="mb-1 text-sm font-medium text-gray-700">Funding verification</h3>
+              <p className="mb-3 text-xs text-gray-500">
+                Confirm each item before funding. Flagging a problem sends a note to the dealer.
+              </p>
+              <VerificationChecklist
+                applicationId={app.id}
+                items={verificationItems}
+                states={verificationStates}
+              />
+            </div>
           </section>
         )}
 
@@ -407,6 +439,12 @@ export default async function StaffApplicationDetail({
             <p className="mb-4 rounded bg-amber-50 p-2 text-xs text-amber-800">
               Confirm the funding documents in the checklist above, then move this deal to
               “In for funding.”
+            </p>
+          )}
+          {options.some((o) => o.value === 'FUND') && !verificationComplete && (
+            <p className="mb-4 rounded bg-amber-50 p-2 text-xs text-amber-800">
+              Complete the funding verification checklist above (every item Confirmed) before this
+              deal can be funded.
             </p>
           )}
           <DecisionForm

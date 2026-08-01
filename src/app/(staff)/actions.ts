@@ -19,8 +19,14 @@ import {
   dealReferencesSchema,
   editDealSchema,
 } from '@/lib/validation';
-import { FUNDING_DOCUMENT_TYPES, REVIEWER_PAPERWORK_PREFIX, REVIEWER_PAPERWORK_TYPES } from '@/lib/constants';
-import type { ApplicationStatus, DecisionType, DocumentType } from '@prisma/client';
+import {
+  FUNDING_DOCUMENT_TYPES,
+  REVIEWER_PAPERWORK_PREFIX,
+  REVIEWER_PAPERWORK_TYPES,
+  VERIFICATION_CHECKS,
+  applicableVerificationChecks,
+} from '@/lib/constants';
+import type { ApplicationStatus, DecisionType, DocumentType, VerificationStatus } from '@prisma/client';
 
 export interface ActionState {
   error?: string;
@@ -121,6 +127,24 @@ export async function recordDecisionAction(
   // Funding a deal requires both reference numbers on file.
   if (type === 'FUND' && (!app.hdReference || !app.financeItNumber)) {
     return { error: 'Add both the HD Customer # and the Financing deal number before funding this deal.' };
+  }
+
+  // Hard gate (Rule 2): every applicable verification check must be Confirmed
+  // before a deal can be funded.
+  if (type === 'FUND') {
+    const withChecks = await prisma.application.findUnique({
+      where: { id: applicationId },
+      include: { financeCompany: true, verificationChecks: true },
+    });
+    const requiresSerials = !!withChecks?.financeCompany?.requiresSerialPerProduct;
+    const applicable = applicableVerificationChecks(requiresSerials);
+    const byKey = new Map((withChecks?.verificationChecks ?? []).map((v) => [v.key, v.status]));
+    const outstanding = applicable.filter((c) => byKey.get(c.key) !== 'CONFIRMED');
+    if (outstanding.length > 0) {
+      return {
+        error: 'Complete the funding verification checklist — every item must be Confirmed before funding.',
+      };
+    }
   }
 
   const to = nextStatus(type);
@@ -650,6 +674,78 @@ export async function saveConfirmationAction(
 
   revalidatePath(`/staff/applications/${d.applicationId}`);
   revalidatePath('/staff');
+  return { ok: true };
+}
+
+/**
+ * Reviewer sets a funding verification checklist item (Rule 2) to Confirmed or
+ * Problem. A Problem requires a note, which is posted as a dealer-visible note
+ * and notifies the dealer; the item is flagged but the whole deal is not moved
+ * to Problem status. Confirming clears any prior problem note.
+ */
+export async function setVerificationCheckAction(
+  applicationId: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await requireRole('REVIEWER', 'ADMIN');
+
+  const key = String(formData.get('key') || '');
+  const status = String(formData.get('status') || '') as VerificationStatus;
+  const note = ((formData.get('note') as string) || '').trim();
+
+  const def = VERIFICATION_CHECKS.find((c) => c.key === key);
+  if (!def) return { error: 'Unknown checklist item.' };
+  if (status !== 'CONFIRMED' && status !== 'PROBLEM' && status !== 'PENDING') {
+    return { error: 'Invalid status.' };
+  }
+  if (status === 'PROBLEM' && !note) {
+    return { error: 'Add a short note describing the problem — the dealer will be notified.' };
+  }
+
+  const app = await prisma.application.findUnique({ where: { id: applicationId } });
+  if (!app) return { error: 'Deal not found.' };
+
+  await prisma.verificationCheck.upsert({
+    where: { applicationId_key: { applicationId, key } },
+    create: {
+      applicationId,
+      key,
+      status,
+      note: status === 'PROBLEM' ? note : null,
+      checkedById: session.userId,
+      checkedAt: new Date(),
+    },
+    update: {
+      status,
+      note: status === 'PROBLEM' ? note : null,
+      checkedById: session.userId,
+      checkedAt: new Date(),
+    },
+  });
+
+  // A flagged problem becomes a dealer-visible note and notifies the dealer.
+  if (status === 'PROBLEM') {
+    await prisma.note.create({
+      data: {
+        applicationId,
+        authorId: session.userId,
+        body: `Funding check — ${def.label}: ${note}`,
+        internal: false,
+      },
+    });
+    await notifyNewNote(applicationId, 'REVIEWER');
+  }
+
+  await markReviewerAction(applicationId);
+  await audit({
+    actorId: session.userId,
+    action: 'STATUS_CHANGE',
+    entityType: 'Application',
+    entityId: applicationId,
+    detail: `Funding check "${def.label}" → ${status}`,
+  });
+  revalidatePath(`/staff/applications/${applicationId}`);
   return { ok: true };
 }
 

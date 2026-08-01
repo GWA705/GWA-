@@ -123,6 +123,47 @@ export const FUNDING_DOCUMENT_TYPES: {
   { type: 'OTHER', label: 'Other supporting documents', required: false },
 ];
 
+// Rule 2 — the reviewer's funding verification checklist. A fixed list of checks
+// a reviewer works through before a deal can be funded. Every applicable item
+// must be CONFIRMED; flagging one as a PROBLEM requires a note that is shown to
+// the dealer and notifies them. `serialsOnly` items apply only to deals whose
+// finance company requires a serial number per product (e.g. UEI).
+export const VERIFICATION_CHECKS: {
+  key: string;
+  label: string;
+  help?: string;
+  serialsOnly?: boolean;
+}[] = [
+  {
+    key: 'PRODUCTS_PHOTO',
+    label: 'Install photo shows every product purchased',
+    help: 'Count the products in the picture and confirm it matches what the customer bought.',
+  },
+  {
+    key: 'SIGNATURES',
+    label: 'All required signatures are present',
+    help: 'The contract and Home Depot documents are signed everywhere required.',
+  },
+  {
+    key: 'PAP_VOID',
+    label: 'Valid PAP form or void cheque on file',
+    help: 'Pre-authorized payment banking details are included and legible.',
+  },
+  {
+    key: 'SERIALS_MATCH',
+    label: 'Serial numbers match the installed equipment',
+    help: 'Each serial number entered matches the unit shown in the photo / on the equipment.',
+    serialsOnly: true,
+  },
+];
+
+// The verification checklist items that apply to a deal. The serial-match item
+// only applies when the finance company requires a serial per product (e.g.
+// UEI). Shared by the FUND hard-gate and the checklist UI.
+export function applicableVerificationChecks(requiresSerials: boolean) {
+  return VERIFICATION_CHECKS.filter((c) => !c.serialsOnly || requiresSerials);
+}
+
 export const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
   SUPPORTING: 'Document for approval',
   SIGNED_CONTRACT: 'Signed finance docs (full package)',

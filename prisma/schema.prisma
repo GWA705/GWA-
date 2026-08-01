@@ -201,6 +201,7 @@ model User {
   payoutsRecorded     Payout[]
   notesAuthored       Note[]
   confirmations       Confirmation[]
+  verificationChecks  VerificationCheck[]
 
   @@index([dealerId])
 }
@@ -387,6 +388,7 @@ model Application {
   payouts         Payout[]
   dealNotes       Note[]
   confirmation    Confirmation?
+  verificationChecks VerificationCheck[]
 
   @@index([dealerId])
   @@index([status])
@@ -627,6 +629,34 @@ model SerialNumber {
   productLabel  String? // e.g. "Furnace", "Water Heater"
   createdAt     DateTime    @default(now())
 
+  @@index([applicationId])
+}
+
+// A reviewer's funding verification checklist item (Rule 2). Before a deal can
+// be funded, a reviewer works through a fixed list of checks (photo shows every
+// product, signatures present, PAP/void cheque on file, serials match). Each
+// item is CONFIRMED or flagged as a PROBLEM. A PROBLEM requires a note, which is
+// posted as a dealer-visible note and notifies the dealer. Funding is hard-gated
+// until every applicable item is CONFIRMED.
+enum VerificationStatus {
+  PENDING
+  CONFIRMED
+  PROBLEM
+}
+
+model VerificationCheck {
+  id            String             @id @default(cuid())
+  applicationId String
+  application   Application        @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  key           String // stable item key (see VERIFICATION_CHECKS in constants)
+  status        VerificationStatus @default(PENDING)
+  note          String?            @db.Text // required when status = PROBLEM
+  checkedById   String?
+  checkedBy     User?              @relation(fields: [checkedById], references: [id])
+  checkedAt     DateTime?
+  updatedAt     DateTime           @updatedAt
+
+  @@unique([applicationId, key])
   @@index([applicationId])
 }
 
