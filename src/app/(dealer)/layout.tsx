@@ -49,6 +49,7 @@ export default async function DealerLayout({ children }: { children: React.React
           { href: '/dealer/resources', label: 'Resources' },
           { href: '/dealer/hd-promotions', label: 'HD Promotions' },
           { href: '/dealer/hd-credit-card', label: 'HD Credit Card' },
+          { href: '/dealer/tutorial', label: 'Tutorial' },
           { href: '/account', label: 'My account' },
         ]}
       >
