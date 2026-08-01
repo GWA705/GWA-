@@ -6,8 +6,11 @@ interface Step {
   n: number;
   title: string;
   body: string[];
-  img: string;
-  alt: string;
+  img?: string;
+  alt?: string;
+  // Optional platform how-to lists shown instead of a screenshot (e.g. phone
+  // notification setup, which differs by device).
+  howtos?: { heading: string; steps: string[] }[];
 }
 
 const STEPS: Step[] = [
@@ -93,6 +96,41 @@ const STEPS: Step[] = [
     img: '/tutorial/08-account.png',
     alt: 'The My account page with profile, notifications, security, and replay-tour options.',
   },
+  {
+    n: 9,
+    title: 'Get notifications & pop-ups on your phone',
+    body: [
+      'The portal can pop up a notification on your phone or computer the moment there’s activity on a deal — even when the portal isn’t open. These come on top of the emails you already get.',
+      'Turn it on under My account → “Desktop & phone notifications” → Enable. Do it once on each device where you want alerts, then use “Send a test” to confirm it’s working.',
+    ],
+    howtos: [
+      {
+        heading: '📱 iPhone / iPad (iOS 16.4 or newer)',
+        steps: [
+          'Open portal.ghsbarrie.ca in Safari.',
+          'Tap the Share button (the square with an up-arrow) at the bottom.',
+          'Tap “Add to Home Screen,” then Add.',
+          'Open “GWA Portal” from the new Home Screen icon (not Safari).',
+          'Go to My account → Desktop & phone notifications → Enable, and allow when asked.',
+        ],
+      },
+      {
+        heading: '🤖 Android phone',
+        steps: [
+          'Open portal.ghsbarrie.ca in Chrome.',
+          'Go to My account → Desktop & phone notifications → Enable.',
+          'Tap Allow when Chrome asks. That’s it — no install needed.',
+        ],
+      },
+      {
+        heading: '💻 Computer (Chrome, Edge or Firefox)',
+        steps: [
+          'Go to My account → Desktop & phone notifications → Enable.',
+          'Click Allow when the browser asks. Pop-ups will appear in the corner of your screen.',
+        ],
+      },
+    ],
+  },
 ];
 
 export default async function TutorialPage() {
@@ -122,15 +160,31 @@ export default async function TutorialPage() {
                 </div>
               </div>
             </div>
-            <div className="border-t border-gray-100 bg-gray-50 p-4">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={s.img}
-                alt={s.alt}
-                loading="lazy"
-                className="mx-auto w-full rounded-lg border border-gray-200 bg-white shadow-sm"
-              />
-            </div>
+            {s.howtos && (
+              <div className="grid grid-cols-1 gap-4 border-t border-gray-100 bg-gray-50 p-4 sm:grid-cols-3">
+                {s.howtos.map((h) => (
+                  <div key={h.heading} className="rounded-lg border border-gray-200 bg-white p-4">
+                    <h3 className="mb-2 text-sm font-semibold text-gray-900">{h.heading}</h3>
+                    <ol className="list-decimal space-y-1 pl-4 text-xs leading-relaxed text-gray-700">
+                      {h.steps.map((st, i) => (
+                        <li key={i}>{st}</li>
+                      ))}
+                    </ol>
+                  </div>
+                ))}
+              </div>
+            )}
+            {s.img && (
+              <div className="border-t border-gray-100 bg-gray-50 p-4">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={s.img}
+                  alt={s.alt}
+                  loading="lazy"
+                  className="mx-auto w-full rounded-lg border border-gray-200 bg-white shadow-sm"
+                />
+              </div>
+            )}
           </li>
         ))}
       </ol>
