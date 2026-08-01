@@ -2,39 +2,35 @@
 
 import { useEffect, useState } from 'react';
 
-type Mode = 'light' | 'dark' | 'system';
+type Mode = 'light' | 'dark';
+
+function systemPrefersDark(): boolean {
+  return typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches;
+}
 
 function apply(mode: Mode) {
-  const dark =
-    mode === 'dark' ||
-    (mode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-  document.documentElement.classList.toggle('dark', dark);
+  document.documentElement.classList.toggle('dark', mode === 'dark');
 }
 
 /**
- * Site-wide light / dark / system theme switch. Persists the choice in
- * localStorage; an inline script in the root layout applies it before first
- * paint so there's no flash.
+ * Simple one-click Light ↔ Dark switch. The choice is saved in localStorage and
+ * re-applied on every mount so the page and the button never drift out of sync
+ * across navigation. First-time visitors follow their device setting until they
+ * pick one. An inline script in the root layout applies the saved choice before
+ * first paint so there's no flash.
  */
 export function ThemeToggle() {
-  const [mode, setMode] = useState<Mode>('system');
+  const [mode, setMode] = useState<Mode>('light');
 
   useEffect(() => {
-    const saved = (localStorage.getItem('theme') as Mode) || 'system';
-    setMode(saved);
+    const saved = localStorage.getItem('theme');
+    const initial: Mode = saved === 'dark' ? 'dark' : saved === 'light' ? 'light' : systemPrefersDark() ? 'dark' : 'light';
+    setMode(initial);
+    apply(initial); // self-heal: make the DOM match the saved choice
   }, []);
 
-  // Follow the OS when in "system" mode and it changes live.
-  useEffect(() => {
-    if (mode !== 'system') return;
-    const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    const onChange = () => apply('system');
-    mq.addEventListener('change', onChange);
-    return () => mq.removeEventListener('change', onChange);
-  }, [mode]);
-
-  function cycle() {
-    const next: Mode = mode === 'light' ? 'dark' : mode === 'dark' ? 'system' : 'light';
+  function toggle() {
+    const next: Mode = mode === 'dark' ? 'light' : 'dark';
     setMode(next);
     try {
       localStorage.setItem('theme', next);
@@ -44,19 +40,18 @@ export function ThemeToggle() {
     apply(next);
   }
 
-  const label = mode === 'light' ? 'Light' : mode === 'dark' ? 'Dark' : 'System';
-  const icon = mode === 'light' ? '☀' : mode === 'dark' ? '☾' : '◐';
-
+  const isDark = mode === 'dark';
   return (
     <button
       type="button"
-      onClick={cycle}
+      onClick={toggle}
       className="btn-secondary text-xs"
-      title={`Theme: ${label} — tap to change`}
-      aria-label={`Theme: ${label}. Tap to change.`}
+      aria-pressed={isDark}
+      title={isDark ? 'Dark mode — tap for light' : 'Light mode — tap for dark'}
+      aria-label={isDark ? 'Dark mode. Tap for light.' : 'Light mode. Tap for dark.'}
     >
-      <span aria-hidden>{icon}</span>
-      <span className="ml-1 hidden sm:inline">{label}</span>
+      <span aria-hidden>{isDark ? '☾' : '☀'}</span>
+      <span className="ml-1 hidden sm:inline">{isDark ? 'Dark' : 'Light'}</span>
     </button>
   );
 }
