@@ -16,7 +16,7 @@ import { redirect } from 'next/navigation';
 import { CONTENT_SECTIONS } from '@/lib/constants';
 import { sendEmail, emailEnabled } from '@/lib/email';
 import { renderEmail } from '@/lib/email-templates';
-import { setSetting, EMAIL_SETTING_KEYS } from '@/lib/settings';
+import { setSetting, EMAIL_SETTING_KEYS, BANNER_SETTING_KEYS } from '@/lib/settings';
 
 export interface ActionState {
   error?: string;
@@ -478,6 +478,23 @@ export async function deleteProductAction(id: string): Promise<void> {
   await prisma.product.delete({ where: { id } });
   await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'Product', entityId: id, detail: `deleted: ${p.name}` });
   revalidatePath('/admin/products');
+}
+
+// Save the per-slot banner slideshow toggles. When a slot is OFF, its banners
+// stack instead of rotating.
+export async function saveBannerSettingsAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await requireRole('ADMIN');
+  const top = formData.get('rotateTop') === 'on';
+  const bottom = formData.get('rotateBottom') === 'on';
+  await setSetting(BANNER_SETTING_KEYS.rotateTop, top ? 'true' : 'false');
+  await setSetting(BANNER_SETTING_KEYS.rotateBottom, bottom ? 'true' : 'false');
+  await audit({ actorId: session.userId, action: 'USER_UPDATE', entityType: 'AppSetting', entityId: 'banner', detail: `Banner rotation: top=${top}, bottom=${bottom}` });
+  revalidatePath('/admin/announcements');
+  revalidatePath('/dealer');
+  return { ok: true, message: 'Slideshow settings saved.' };
 }
 
 // --- Quick-note templates --------------------------------------------------

@@ -8,6 +8,7 @@ import { AnnouncementBanner } from '@/components/AnnouncementBanner';
 import { searchWhere } from '@/lib/search';
 import { programLabel } from '@/lib/constants';
 import { dealerOutstanding } from '@/lib/outstanding';
+import { getBannerRotation } from '@/lib/settings';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,6 +45,7 @@ export default async function DealerHome({
 
   const topBanners = announcements.filter((a) => a.position !== 'BOTTOM');
   const bottomBanners = announcements.filter((a) => a.position === 'BOTTOM');
+  const rotation = await getBannerRotation();
 
   // Build a dashboard URL preserving the search query.
   const q = searchParams.q;
@@ -60,7 +62,7 @@ export default async function DealerHome({
 
   return (
     <div>
-      <AnnouncementBanner announcements={topBanners} />
+      <AnnouncementBanner announcements={topBanners} rotate={rotation.top} />
 
       <div className="mb-6 space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -171,7 +173,7 @@ export default async function DealerHome({
 
       {bottomBanners.length > 0 && (
         <div className="mt-6">
-          <AnnouncementBanner announcements={bottomBanners} />
+          <AnnouncementBanner announcements={bottomBanners} rotate={rotation.bottom} />
         </div>
       )}
     </div>

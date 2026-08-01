@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { BannerImage } from './BannerImage';
 
 export interface BannerItem {
@@ -22,7 +22,7 @@ function Wrap({ href, children }: { href: string | null; children: React.ReactNo
   return <>{children}</>;
 }
 
-function Slide({ item }: { item: BannerItem }) {
+export function BannerCard({ item }: { item: BannerItem }) {
   return (
     <div className="overflow-hidden rounded-lg border border-brand-100 bg-brand-50">
       <Wrap href={item.linkUrl}>
@@ -65,7 +65,7 @@ export function AnnouncementCarousel({ items, intervalMs = 6000 }: { items: Bann
   const go = (next: number) => setIndex(((next % n) + n) % n);
 
   if (n === 0) return null;
-  if (n === 1) return <Slide item={items[0]} />;
+  if (n === 1) return <BannerCard item={items[0]} />;
 
   return (
     <div
@@ -79,7 +79,7 @@ export function AnnouncementCarousel({ items, intervalMs = 6000 }: { items: Bann
       aria-label="Announcements"
     >
       <div key={items[i].id} className="banner-fade">
-        <Slide item={items[i]} />
+        <BannerCard item={items[i]} />
       </div>
 
       {/* Prev / next */}

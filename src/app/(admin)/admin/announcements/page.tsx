@@ -3,17 +3,27 @@ import { prisma } from '@/lib/db';
 import { toggleAnnouncementActiveAction, toggleAnnouncementPositionAction, deleteAnnouncementAction } from '@/app/(admin)/actions';
 import { AnnouncementForm } from './AnnouncementForm';
 import { AnnouncementImageForm } from './AnnouncementImageForm';
+import { BannerSettingsForm } from './BannerSettingsForm';
+import { getBannerRotation } from '@/lib/settings';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AnnouncementsPage() {
   await requireRole('ADMIN');
-  const announcements = await prisma.announcement.findMany({ orderBy: { createdAt: 'desc' } });
+  const [announcements, rotation] = await Promise.all([
+    prisma.announcement.findMany({ orderBy: { createdAt: 'desc' } }),
+    getBannerRotation(),
+  ]);
 
   return (
     <div className="space-y-6">
       <h1 className="text-xl font-semibold text-gray-900">Dealer portal sign</h1>
-      <p className="-mt-3 text-sm text-gray-500">Banners on the dealer dashboard — place each at the top (above the deals) or after the deals list. Active items appear to all dealers. <span className="text-gray-400">When two or more active banners share the same spot, they rotate automatically as a slideshow.</span></p>
+      <p className="-mt-3 text-sm text-gray-500">Banners on the dealer dashboard — place each at the top (above the deals) or after the deals list. Active items appear to all dealers. <span className="text-gray-400">When a slot has two or more active banners, they rotate as a slideshow (toggle each slot below).</span></p>
+
+      <div className="card p-6">
+        <h2 className="mb-4 text-base font-semibold text-gray-900">Slideshow</h2>
+        <BannerSettingsForm top={rotation.top} bottom={rotation.bottom} />
+      </div>
 
       <div className="card p-6">
         <h2 className="mb-4 text-base font-semibold text-gray-900">New sign</h2>

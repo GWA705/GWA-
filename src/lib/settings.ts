@@ -14,6 +14,22 @@ export const EMAIL_SETTING_KEYS = {
   replyTo: 'email.replyTo',
 } as const;
 
+// Whether each dealer-banner slot rotates as a slideshow when it holds more
+// than one active banner. Stored as 'true'/'false'; unset defaults to on.
+export const BANNER_SETTING_KEYS = {
+  rotateTop: 'banner.rotateTop',
+  rotateBottom: 'banner.rotateBottom',
+} as const;
+
+/** Read the two banner-rotation toggles (default on when unset). */
+export async function getBannerRotation(): Promise<{ top: boolean; bottom: boolean }> {
+  const s = await getSettings([BANNER_SETTING_KEYS.rotateTop, BANNER_SETTING_KEYS.rotateBottom]);
+  return {
+    top: s[BANNER_SETTING_KEYS.rotateTop] !== 'false',
+    bottom: s[BANNER_SETTING_KEYS.rotateBottom] !== 'false',
+  };
+}
+
 let cache: Record<string, string> | null = null;
 
 async function loadAll(): Promise<Record<string, string>> {
