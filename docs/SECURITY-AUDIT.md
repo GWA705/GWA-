@@ -28,8 +28,9 @@ Status key: ✅ fixed · 🟡 in progress · ⬜ planned · 🔷 your action (Re
 - ✅ **CRON endpoint secret** accepted via query string + non-constant-time compare → header-only (`Authorization: Bearer`) with `timingSafeEqual`.
 - ✅ **JWT verify algorithm not pinned** → pinned to `HS256` in session + middleware (defense in depth).
 - ✅ **Announcement image route** missing `nosniff` and ignored the `active` flag → both fixed.
-- 🟡 **No rate limiting / MFA brute-force** (2FA has no attempt cap; login/reset/resend unthrottled) — **Wave 1b**: add a durable rate limiter + MFA attempt lockout + invalidate email code on failure.
-- ⬜ **Outdated `next` (HIGH advisories: SSRF/cache-poisoning/CSP-nonce XSS)** — bump to the latest patched 14.2.x (verify build); plan the Next 16 upgrade.
+- ✅ **No rate limiting / MFA brute-force** → durable DB-backed rate limiter (`src/lib/ratelimit.ts`, holds across Render instances) applied to login (per-IP + per-email), MFA verify, reset, MFA resend/enroll, and push-test. **MFA now shares the 5-attempt/15-min lockout**, and a wrong email code is invalidated so it can't be re-guessed within its TTL.
+- ✅ **Login user-enumeration (timing)** → dummy bcrypt compare on the no-user path so timing is equal.
+- ⬜ **Outdated `next` (HIGH advisories: SSRF/cache-poisoning/CSP-nonce XSS)** — bump to the latest patched 14.2.x (verify build); plan the Next 16 upgrade. _(awaiting your go-ahead)_
 
 ## Wave 2 — Medium
 

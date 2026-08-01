@@ -21,6 +21,7 @@ import { generateResetToken, hashResetToken, PASSWORD_RESET_TTL_MINUTES } from '
 import { sendEmail } from '@/lib/email';
 import { renderEmail } from '@/lib/email-templates';
 import { loginSchema, mfaSchema } from '@/lib/validation';
+import { rateLimit, clientIp } from '@/lib/ratelimit';
 
 export interface FormState {
   error?: string;
@@ -30,11 +31,22 @@ export interface FormState {
 const MAX_FAILED = 5;
 const LOCK_MINUTES = 15;
 
+// A valid bcrypt hash used to equalize response time on the "no such user" path
+// so login timing can't be used to enumerate valid emails. It matches nothing.
+const DUMMY_HASH = '$2a$12$5WCWaDYMRsQgrkaWIpoLbO1SUDrb6/mLFAkBULwro1FQAMe6gjYt2';
+const TOO_MANY: FormState = { error: 'Too many attempts. Please wait a few minutes and try again.' };
+
 /**
  * Issue a session once identity is fully verified — unless the password has
  * expired, in which case route the user through a forced password change first.
  */
 async function finishLogin(user: User, viaMfa: boolean): Promise<never> {
+  // Identity fully proven — clear any failed-attempt lockout (covers the MFA
+  // success path too).
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { failedLoginCount: 0, lockedUntil: null, lastLoginAt: new Date() },
+  });
   if (isPasswordExpired(user.passwordChangedAt)) {
     await createPasswordChangePending(user.id);
     redirect('/change-password');
@@ -67,12 +79,23 @@ export async function loginAction(
   if (!parsed.success) return { error: 'Enter a valid email and password.' };
 
   const email = parsed.data.email.toLowerCase().trim();
+
+  // Per-IP and per-email throttle to blunt credential stuffing / brute force,
+  // on top of the per-account lockout below.
+  const ip = clientIp();
+  const ipLimit = await rateLimit(`login:ip:${ip}`, 30, 600);
+  const emailLimit = await rateLimit(`login:email:${email}`, 10, 600);
+  if (!ipLimit.ok || !emailLimit.ok) return TOO_MANY;
+
   const user = await prisma.user.findUnique({ where: { email }, include: { dealer: true } });
 
   // Generic error message to avoid user enumeration.
   const genericFail: FormState = { error: 'Invalid credentials.' };
 
   if (!user || !user.active) {
+    // Run a dummy bcrypt compare so the no-user path takes the same time as a
+    // real one (prevents timing-based email enumeration).
+    await verifyPassword(parsed.data.password, DUMMY_HASH);
     await audit({ action: 'LOGIN_FAILED', entityType: 'User', detail: `unknown or inactive: ${email}` });
     return genericFail;
   }
@@ -135,10 +158,34 @@ export async function verifyMfaAction(
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user || !user.mfaEnabled) redirect('/login');
 
+  // The second factor is now brute-force protected: the same per-account lockout
+  // as the password step, plus a per-IP throttle.
+  if (user.lockedUntil && user.lockedUntil > new Date()) {
+    return { error: 'Too many attempts. Your account is temporarily locked — try again later.' };
+  }
+  const ipLimit = await rateLimit(`mfa:ip:${clientIp()}`, 30, 600);
+  if (!ipLimit.ok) return TOO_MANY;
+
+  // Record a failed second-factor attempt: increment the shared failure counter,
+  // lock after the threshold, and (for the email method) invalidate the code so
+  // it can't be guessed further within its TTL.
+  const registerMfaFailure = async (detail: string, invalidateEmailCode: boolean) => {
+    const failed = user.failedLoginCount + 1;
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        failedLoginCount: failed,
+        lockedUntil: failed >= MAX_FAILED ? new Date(Date.now() + LOCK_MINUTES * 60_000) : user.lockedUntil,
+        ...(invalidateEmailCode ? { mfaEmailCodeHash: null, mfaEmailCodeExpiresAt: null } : {}),
+      },
+    });
+    await audit({ actorId: user.id, action: 'LOGIN_FAILED', entityType: 'User', entityId: user.id, detail });
+  };
+
   if (user.mfaMethod === 'EMAIL') {
     if (!emailCodeMatches(parsed.data.token, user.mfaEmailCodeHash, user.mfaEmailCodeExpiresAt)) {
-      await audit({ actorId: user.id, action: 'LOGIN_FAILED', entityType: 'User', entityId: user.id, detail: 'bad email MFA code' });
-      return { error: 'Invalid or expired code. Check your email or resend a new code.' };
+      await registerMfaFailure('bad email MFA code', true);
+      return { error: 'Invalid or expired code. Resend a new code and try again.' };
     }
     // Consume the code so it can't be reused.
     await prisma.user.update({ where: { id: user.id }, data: { mfaEmailCodeHash: null, mfaEmailCodeExpiresAt: null } });
@@ -148,7 +195,7 @@ export async function verifyMfaAction(
   if (!user.mfaSecretEnc) redirect('/login');
   const secret = decryptMfaSecret(user.mfaSecretEnc);
   if (!verifyMfaToken(parsed.data.token, secret)) {
-    await audit({ actorId: user.id, action: 'LOGIN_FAILED', entityType: 'User', entityId: user.id, detail: 'bad MFA code' });
+    await registerMfaFailure('bad MFA code', false);
     return { error: 'Invalid code. Try again.' };
   }
 
@@ -161,6 +208,10 @@ export async function resendMfaEmailAction(): Promise<FormState> {
   if (!userId) redirect('/login');
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user || !user.mfaEnabled || user.mfaMethod !== 'EMAIL') redirect('/login');
+  // Cap resends so the email code can't be endlessly refreshed to extend a
+  // brute-force window (and to avoid inbox/SMTP abuse).
+  const limit = await rateLimit(`mfa-resend:${userId}`, 3, 300);
+  if (!limit.ok) return TOO_MANY;
   await issueEmailMfaCode(user);
   return { ok: true };
 }
@@ -190,6 +241,13 @@ export async function requestPasswordResetAction(
   if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
     return { error: 'Enter a valid email address.' };
   }
+
+  // Throttle reset requests per IP and per email so a victim's inbox / SMTP
+  // quota can't be flooded. On block, return the same generic success (no
+  // enumeration, no info about whether an email was actually sent).
+  const ipLimit = await rateLimit(`pwreset:ip:${clientIp()}`, 10, 3600);
+  const emailLimit = await rateLimit(`pwreset:email:${email}`, 3, 3600);
+  if (!ipLimit.ok || !emailLimit.ok) return generic;
 
   const user = await prisma.user.findUnique({ where: { email } });
   if (user && user.active) {

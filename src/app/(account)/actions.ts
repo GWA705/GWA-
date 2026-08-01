@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import { requireSession } from '@/lib/session';
 import { audit } from '@/lib/audit';
+import { rateLimit } from '@/lib/ratelimit';
 import { hashPassword, verifyPassword, validatePasswordStrength } from '@/lib/password';
 import {
   generateMfaSecret,
@@ -121,6 +122,8 @@ export async function confirmMfaAction(
 /** Start email-code 2FA enrollment: email a code the user confirms below. */
 export async function beginEmailMfaAction(): Promise<ActionState> {
   const session = await requireSession();
+  const limit = await rateLimit(`mfa-enroll:${session.userId}`, 3, 300);
+  if (!limit.ok) return { error: 'Too many code requests. Please wait a few minutes and try again.' };
   const user = await prisma.user.findUnique({ where: { id: session.userId } });
   if (!user) return { error: 'Not found.' };
   if (!emailEnabled()) {

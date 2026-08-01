@@ -94,6 +94,18 @@ model AlertAck {
   @@index([alertId])
 }
 
+// A durable fixed-window rate-limit counter, keyed by a caller-defined string
+// (e.g. "login:ip:1.2.3.4"). Backed by the DB so limits hold across the multiple
+// app instances Render runs. Rows are transient; a periodic cleanup can prune
+// expired ones.
+model RateLimit {
+  key     String   @id
+  count   Int      @default(0)
+  resetAt DateTime
+
+  @@index([resetAt])
+}
+
 // A single-use, expiring token backing the "forgot password" self-service
 // reset. Only the SHA-256 hash of the token is stored; the raw token lives
 // only in the emailed link.

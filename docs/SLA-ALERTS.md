@@ -25,8 +25,10 @@ protected endpoint:
 
 ```
 GET/POST /api/cron/attention-alerts
-Authorization: Bearer <CRON_SECRET>      (or ?key=<CRON_SECRET>)
+Authorization: Bearer <CRON_SECRET>
 ```
+(The secret must be sent in the Authorization header — the `?key=` query-string
+form was removed so the secret never lands in access logs.)
 
 The endpoint is safe to call all day — outside 8am–10pm it simply no-ops.
 
