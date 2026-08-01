@@ -3,11 +3,9 @@ import { notFound } from 'next/navigation';
 import { requireDealerAccess } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { canAccessAsDealer } from '@/lib/rbac';
-import { decryptOptional } from '@/lib/crypto';
 import { StatusBadge } from '@/components/StatusBadge';
 import { DocumentList } from '@/components/DocumentList';
 import { PaperworkCards } from '@/components/PaperworkCards';
-import { LoanApplicationDetails } from '@/components/LoanApplicationDetails';
 import { PayoutReceipt } from '@/components/PayoutReceipt';
 import { NoteThread } from '@/components/NoteThread';
 import { NoteForm } from '@/components/NoteForm';
@@ -102,30 +100,37 @@ export default async function DealerApplicationDetail({
         hasPayouts={app.payouts.length > 0}
       />
 
-      {/* Summary */}
+      {/* Customer snapshot — everything the dealer needs to recall this deal at a
+          glance. The detailed application (employment, ID, income, housing) is
+          not shown back to the dealer after intake. */}
       <section className="card p-6">
-        <h2 className="mb-4 text-base font-semibold text-gray-900">Application summary</h2>
+        <h2 className="mb-4 text-base font-semibold text-gray-900">Customer snapshot</h2>
         <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3">
-          <div><dt className="text-gray-500">Province</dt><dd className="font-medium">{app.province}</dd></div>
+          <div className="col-span-2 sm:col-span-3">
+            <dt className="text-gray-500">Product(s) sold</dt>
+            <dd className="font-medium">{app.productsSold.length ? app.productsSold.join(', ') : '—'}</dd>
+          </div>
           <div><dt className="text-gray-500">Program</dt><dd className="font-medium">{programLabel(app.programType, app.programCategory)}</dd></div>
+          <div><dt className="text-gray-500">Salesperson</dt><dd className="font-medium">{app.salespersonName ?? '—'}</dd></div>
+          <div><dt className="text-gray-500">Installer</dt><dd className="font-medium">{app.installerName ?? '—'}</dd></div>
+          <div><dt className="text-gray-500">SOAP included</dt><dd className="font-medium">{app.soapIncluded == null ? '—' : app.soapIncluded ? 'Yes' : 'No'}</dd></div>
           <div><dt className="text-gray-500">Requested</dt><dd className="font-medium">${app.requestedAmount.toString()}</dd></div>
           <div><dt className="text-gray-500">Approved amount</dt><dd className="font-medium">{app.approvedAmount ? `$${app.approvedAmount.toString()}` : '—'}</dd></div>
           <div><dt className="text-gray-500">Finance company</dt><dd className="font-medium">{app.financeCompany?.name ?? '—'}</dd></div>
           <div><dt className="text-gray-500">Date of sale</dt><dd className="font-medium">{app.dateOfSale ? app.dateOfSale.toLocaleDateString('en-CA') : '—'}</dd></div>
           <div><dt className="text-gray-500">Installation date</dt><dd className="font-medium">{app.installationDate ? app.installationDate.toLocaleDateString('en-CA') : '—'}</dd></div>
           <div><dt className="text-gray-500">HD store</dt><dd className="font-medium">{app.homeDepotStore ? app.homeDepotStore.number : '—'}</dd></div>
-          <div><dt className="text-gray-500">Email</dt><dd className="font-medium">{app.applicantEmail}</dd></div>
+          <div><dt className="text-gray-500">City</dt><dd className="font-medium">{app.loanApplication?.city ?? '—'}</dd></div>
+          <div><dt className="text-gray-500">Province</dt><dd className="font-medium">{app.province}</dd></div>
+          <div><dt className="text-gray-500">Postal code</dt><dd className="font-medium">{app.loanApplication?.postalCode ?? '—'}</dd></div>
           <div><dt className="text-gray-500">Phone</dt><dd className="font-medium">{app.applicantPhone}</dd></div>
+          <div><dt className="text-gray-500">Email</dt><dd className="font-medium">{app.applicantEmail}</dd></div>
           <div><dt className="text-gray-500">Financing deal number</dt><dd className="font-medium">{app.financeItNumber ?? '—'}</dd></div>
           <div><dt className="text-gray-500">HD Customer #</dt><dd className="font-medium">{app.hdReference ?? '—'}</dd></div>
         </dl>
         {app.financingNote && (
           <p className="mt-4 rounded bg-gray-50 p-3 text-sm text-gray-600"><span className="font-medium text-gray-700">Financing note: </span>{app.financingNote}</p>
         )}
-        <p className="mt-4 text-xs text-gray-400">
-          Sensitive fields (SIN, banking, ID) are stored encrypted and are only visible to the
-          GWA review team through an audited path.
-        </p>
       </section>
 
       {/* Decisions / reviewer notes */}
@@ -146,16 +151,9 @@ export default async function DealerApplicationDetail({
         </section>
       )}
 
-      {app.loanApplication && (
-        <LoanApplicationDetails
-          loan={app.loanApplication}
-          co={{
-            dob: decryptOptional(app.loanApplication.coDobEnc),
-            address: decryptOptional(app.loanApplication.coAddressEnc),
-            govId: decryptOptional(app.loanApplication.coGovIdNumberEnc),
-          }}
-        />
-      )}
+      {/* The full loan-application details (employment, ID, income, housing,
+          co-applicant) are intentionally NOT shown back to the dealer — the GWA
+          review team has them. */}
 
       {/* Confirmation */}
       <section className="card p-6">
