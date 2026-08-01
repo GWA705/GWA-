@@ -40,6 +40,13 @@ body {
   @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
 }
 
+/* Announcement slideshow cross-fade between banners. */
+.banner-fade { animation: bannerFade 0.5s ease; }
+@keyframes bannerFade { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .banner-fade { animation: none; }
+}
+
 /* ==========================================================================
    Dark theme. The app is built with light Tailwind utilities; rather than add
    `dark:` variants to every element, we remap the handful of neutral + tint
