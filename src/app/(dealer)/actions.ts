@@ -343,6 +343,20 @@ export async function submitFundingAction(applicationId: string): Promise<void> 
   redirect(`/dealer/applications/${applicationId}`);
 }
 
+// Dealer acknowledges a must-read pop-up (pressed X / "I've read this"). Records
+// the acknowledgement so it won't show again for them. Idempotent.
+export async function acknowledgeAlertAction(alertId: string): Promise<void> {
+  const session = await requireDealerAccess();
+  await prisma.alertAck
+    .upsert({
+      where: { alertId_userId: { alertId, userId: session.userId } },
+      create: { alertId, userId: session.userId },
+      update: {},
+    })
+    .catch(() => {});
+  revalidatePath('/dealer');
+}
+
 // Dealer adds a note to the dealer-visible thread on their own deal.
 export async function addDealerNoteAction(
   applicationId: string,

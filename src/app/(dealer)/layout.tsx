@@ -1,6 +1,7 @@
 import { requireDealerAccess } from '@/lib/session';
 import { AppShell } from '@/components/AppShell';
 import { WelcomeTour } from '@/components/WelcomeTour';
+import { AlertModal } from '@/components/AlertModal';
 import { prisma } from '@/lib/db';
 import { stopViewAsAction } from '@/app/(admin)/actions';
 
@@ -18,9 +19,22 @@ export default async function DealerLayout({ children }: { children: React.React
   // First-login welcome tour for real dealers only — not while an admin is
   // impersonating (that would pop the admin's own tour), and only until seen.
   let showTour = false;
+  let dealerAlerts: { id: string; title: string; body: string; linkUrl: string | null }[] = [];
   if (user.role === 'DEALER_USER' && !user.impersonating) {
     const me = await prisma.user.findUnique({ where: { id: user.userId }, select: { tourSeenAt: true } });
     showTour = !me?.tourSeenAt;
+
+    // Must-read pop-ups this dealer user hasn't acknowledged yet (targeted to
+    // all dealers, or specifically to their dealer).
+    dealerAlerts = await prisma.dealerAlert.findMany({
+      where: {
+        active: true,
+        OR: [{ dealerId: null }, { dealerId: user.dealerId ?? '__none__' }],
+        acks: { none: { userId: user.userId } },
+      },
+      orderBy: { createdAt: 'asc' },
+      select: { id: true, title: true, body: true, linkUrl: true },
+    });
   }
 
   return (
@@ -56,6 +70,7 @@ export default async function DealerLayout({ children }: { children: React.React
         {children}
       </AppShell>
       {showTour && <WelcomeTour userName={user.name} />}
+      {dealerAlerts.length > 0 && <AlertModal alerts={dealerAlerts} />}
     </>
   );
 }

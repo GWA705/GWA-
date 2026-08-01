@@ -10,7 +10,7 @@ import crypto from 'crypto';
 import path from 'path';
 import { putDocument, getDocument, deleteDocument } from '@/lib/storage';
 import { ALLOWED_MIME_TYPES, MAX_FILE_BYTES } from '@/lib/constants';
-import { createUserSchema, updateUserSchema, createDealerSchema, createFinanceCompanySchema, announcementSchema, contentSchema } from '@/lib/validation';
+import { createUserSchema, updateUserSchema, createDealerSchema, createFinanceCompanySchema, announcementSchema, contentSchema, dealerAlertSchema } from '@/lib/validation';
 import { redirect } from 'next/navigation';
 import { CONTENT_SECTIONS } from '@/lib/constants';
 import { sendEmail, emailEnabled } from '@/lib/email';
@@ -840,4 +840,69 @@ export async function importHomeDepotStoresAction(): Promise<ActionState> {
   ];
   if (storesUpdated) parts.push(`${storesUpdated} store name${storesUpdated === 1 ? '' : 's'} updated`);
   return { ok: true, message: `Import complete — ${parts.join(', ')}. Re-running is safe (no duplicates).` };
+}
+
+// --- Dealer alerts (forced-acknowledgement pop-ups) ------------------------
+
+export async function createDealerAlertAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await requireRole('ADMIN');
+  const parsed = dealerAlertSchema.safeParse({
+    title: formData.get('title'),
+    body: formData.get('body'),
+    linkUrl: (formData.get('linkUrl') as string) || undefined,
+    dealerId: (formData.get('dealerId') as string) || undefined,
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message || 'Please complete the message.' };
+  }
+  const d = parsed.data;
+  const created = await prisma.dealerAlert.create({
+    data: {
+      title: d.title.trim(),
+      body: d.body.trim(),
+      linkUrl: d.linkUrl?.trim() || null,
+      dealerId: d.dealerId || null,
+      createdById: session.userId,
+    },
+  });
+  await audit({
+    actorId: session.userId,
+    action: 'ALERT_CREATE',
+    entityType: 'DealerAlert',
+    entityId: created.id,
+    detail: `Dealer pop-up created: ${d.title.slice(0, 80)}`,
+  });
+  revalidatePath('/admin/alerts');
+  return { ok: true };
+}
+
+export async function toggleDealerAlertActiveAction(id: string): Promise<void> {
+  const session = await requireRole('ADMIN');
+  const alert = await prisma.dealerAlert.findUnique({ where: { id } });
+  if (!alert) return;
+  await prisma.dealerAlert.update({ where: { id }, data: { active: !alert.active } });
+  await audit({
+    actorId: session.userId,
+    action: 'STATUS_CHANGE',
+    entityType: 'DealerAlert',
+    entityId: id,
+    detail: alert.active ? 'Dealer pop-up deactivated' : 'Dealer pop-up activated',
+  });
+  revalidatePath('/admin/alerts');
+}
+
+export async function deleteDealerAlertAction(id: string): Promise<void> {
+  const session = await requireRole('ADMIN');
+  await prisma.dealerAlert.delete({ where: { id } }).catch(() => {});
+  await audit({
+    actorId: session.userId,
+    action: 'ALERT_DELETE',
+    entityType: 'DealerAlert',
+    entityId: id,
+    detail: 'Dealer pop-up deleted',
+  });
+  revalidatePath('/admin/alerts');
 }

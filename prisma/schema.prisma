@@ -56,6 +56,41 @@ model PushSubscription {
   @@index([userId])
 }
 
+// An admin-managed "must-read" pop-up shown to dealers. Unlike the dashboard
+// sign (Announcement), a dealer has to actively dismiss it, and that dismissal
+// is recorded (AlertAck) so admins can see who has read it and it won't nag them
+// again. dealerId null = shown to every dealer; set = only that dealer.
+model DealerAlert {
+  id          String   @id @default(cuid())
+  title       String
+  body        String   @db.Text
+  linkUrl     String?
+  active      Boolean  @default(true)
+  dealerId    String? // null = all dealers
+  dealer      Dealer?  @relation(fields: [dealerId], references: [id], onDelete: Cascade)
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  acks AlertAck[]
+
+  @@index([active])
+}
+
+// One dealer user's acknowledgement of a DealerAlert (they pressed X / "I've
+// read this"). The unique pair means it shows once per person until dismissed.
+model AlertAck {
+  id             String      @id @default(cuid())
+  alertId        String
+  alert          DealerAlert @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  acknowledgedAt DateTime    @default(now())
+
+  @@unique([alertId, userId])
+  @@index([alertId])
+}
+
 // A single-use, expiring token backing the "forgot password" self-service
 // reset. Only the SHA-256 hash of the token is stored; the raw token lives
 // only in the emailed link.
@@ -147,6 +182,7 @@ model Dealer {
   users            User[]
   applications     Application[]
   homeDepotStores  HomeDepotStore[]
+  dealerAlerts     DealerAlert[]
 }
 
 // Home Depot stores available to a given dealer. The store field on an
@@ -220,6 +256,7 @@ model User {
   confirmations       Confirmation[]
   verificationChecks  VerificationCheck[]
   pushSubscriptions   PushSubscription[]
+  alertAcks           AlertAck[]
 
   @@index([dealerId])
 }

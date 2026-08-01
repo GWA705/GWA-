@@ -259,6 +259,18 @@ export const announcementSchema = z
     path: ['body'],
   });
 
+// Admin-managed must-read pop-up for dealers (forced acknowledgement).
+export const dealerAlertSchema = z.object({
+  title: z.string().min(1, 'Enter a title').max(160),
+  body: z.string().min(1, 'Enter a message').max(4000),
+  linkUrl: z
+    .string()
+    .max(500)
+    .optional()
+    .refine((v) => !v || /^https?:\/\//i.test(v), 'Link must start with http(s)://'),
+  dealerId: z.string().optional(), // '' or omitted = all dealers
+});
+
 export const contentSchema = z.object({
   section: z.enum(['RESOURCE', 'HD_PROMOTION', 'HD_CREDIT_CARD']),
   title: z.string().min(1, 'Enter a title').max(200),
