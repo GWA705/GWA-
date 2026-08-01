@@ -17,6 +17,7 @@ import type { DocumentType } from '@prisma/client';
 
 export interface ActionState {
   error?: string;
+  ok?: boolean;
   fieldErrors?: Record<string, string>;
 }
 
@@ -270,11 +271,53 @@ export async function uploadFundingDocAction(
 }
 
 /** Dealer signals the funding package is complete → moves to FUNDING_SUBMITTED. */
+/**
+ * Save a serial number for each selected product (used when the deal's finance
+ * company requires a serial per product, e.g. UEI). Reads serial_<index> fields
+ * that line up with the deal's productsSold order.
+ */
+export async function setProductSerialsAction(
+  applicationId: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await requireDealerAccess();
+  const app = await prisma.application.findUnique({ where: { id: applicationId } });
+  if (!app || !canAccessAsDealer(session, app.dealerId)) return { error: 'Not found.' };
+
+  const products = app.productsSold;
+  await prisma.$transaction(async (tx) => {
+    for (let i = 0; i < products.length; i += 1) {
+      const value = String(formData.get(`serial_${i}`) || '').trim().slice(0, 120);
+      // Replace this product's serial with the submitted value (blank clears it).
+      await tx.serialNumber.deleteMany({ where: { applicationId, productLabel: products[i] } });
+      if (value) await tx.serialNumber.create({ data: { applicationId, value, productLabel: products[i] } });
+    }
+  });
+  revalidatePath(`/dealer/applications/${applicationId}`);
+  return { ok: true };
+}
+
+// True when every selected product has a non-empty serial number recorded.
+async function productSerialsComplete(applicationId: string): Promise<boolean> {
+  const app = await prisma.application.findUnique({
+    where: { id: applicationId },
+    include: { financeCompany: true, serialNumbers: true },
+  });
+  if (!app?.financeCompany?.requiresSerialPerProduct) return true;
+  const have = new Set(app.serialNumbers.filter((s) => s.value.trim()).map((s) => s.productLabel));
+  return app.productsSold.every((p) => have.has(p));
+}
+
 export async function submitFundingAction(applicationId: string): Promise<void> {
   const session = await requireDealerAccess();
   const app = await prisma.application.findUnique({ where: { id: applicationId } });
   if (!app || !canAccessAsDealer(session, app.dealerId)) redirect('/dealer');
   if (!['APPROVED', 'CONDITIONAL'].includes(app.status)) {
+    redirect(`/dealer/applications/${applicationId}`);
+  }
+  // Enforce the serial-per-product rule before funding can be submitted.
+  if (!(await productSerialsComplete(applicationId))) {
     redirect(`/dealer/applications/${applicationId}`);
   }
 

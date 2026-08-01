@@ -1,20 +1,27 @@
 'use client';
 
-import { toggleFinanceCompanyActiveAction, deleteFinanceCompanyAction } from '@/app/(admin)/actions';
+import { toggleFinanceCompanyActiveAction, toggleFinanceCompanySerialAction, deleteFinanceCompanyAction } from '@/app/(admin)/actions';
 
 export function FinanceCompanyRowActions({
   id,
   name,
   active,
+  requiresSerial,
   canDelete,
 }: {
   id: string;
   name: string;
   active: boolean;
+  requiresSerial: boolean;
   canDelete: boolean;
 }) {
   return (
     <div className="flex flex-wrap justify-end gap-2">
+      <form action={toggleFinanceCompanySerialAction.bind(null, id)}>
+        <button type="submit" className="btn-secondary text-xs" title="Require a serial number for every product on deals through this company">
+          {requiresSerial ? 'Serials: On' : 'Serials: Off'}
+        </button>
+      </form>
       <form action={toggleFinanceCompanyActiveAction.bind(null, id)}>
         <button type="submit" className="btn-secondary text-xs">
           {active ? 'Archive' : 'Unarchive'}

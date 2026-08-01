@@ -98,6 +98,9 @@ model FinanceCompany {
   id        String   @id @default(cuid())
   name      String
   active    Boolean  @default(true)
+  // When true, deals approved through this company require a serial number for
+  // every product the dealer selected before funding can be submitted (e.g. UEI).
+  requiresSerialPerProduct Boolean @default(false)
   createdAt DateTime @default(now())
 
   applications Application[]

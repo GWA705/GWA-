@@ -34,7 +34,12 @@ export default async function FinanceCompaniesPage() {
             ) : (
               companies.map((c) => (
                 <tr key={c.id}>
-                  <td className="px-4 py-3 font-medium">{c.name}</td>
+                  <td className="px-4 py-3 font-medium">
+                    {c.name}
+                    {c.requiresSerialPerProduct && (
+                      <span className="ml-2 badge bg-purple-100 text-purple-800">Serials required</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3">{c._count.applications}</td>
                   <td className="px-4 py-3">
                     <span className={`badge ${c.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
@@ -46,6 +51,7 @@ export default async function FinanceCompaniesPage() {
                       id={c.id}
                       name={c.name}
                       active={c.active}
+                      requiresSerial={c.requiresSerialPerProduct}
                       canDelete={c._count.applications === 0}
                     />
                   </td>

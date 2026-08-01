@@ -16,6 +16,7 @@ import { ConfirmationView } from '@/components/ConfirmationView';
 import { DealProgress } from '@/components/DealProgress';
 import { UploadForm } from '@/components/UploadForm';
 import { SerialNumberForm } from '@/components/SerialNumberForm';
+import { ProductSerialForm } from '@/components/ProductSerialForm';
 import { FUNDING_DOCUMENT_TYPES, STATUS_LABELS, programLabel } from '@/lib/constants';
 import {
   uploadSupportingDocAction,
@@ -60,6 +61,16 @@ export default async function DealerApplicationDetail({
   const canUploadFunding = ['APPROVED', 'CONDITIONAL', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW'].includes(app.status);
   const fundingVisible = canUploadFunding || app.status === 'FUNDED';
   const canSubmitFunding = ['APPROVED', 'CONDITIONAL'].includes(app.status);
+
+  // Serial-per-product rule (e.g. UEI): a serial is required for each selected
+  // product before funding can be submitted.
+  const requiresSerials = !!app.financeCompany?.requiresSerialPerProduct && app.productsSold.length > 0;
+  const serialByProduct = new Map(
+    app.serialNumbers.filter((s) => s.productLabel).map((s) => [s.productLabel as string, s.value]),
+  );
+  const productSerialValues = app.productsSold.map((p) => serialByProduct.get(p) ?? '');
+  const serialsComplete =
+    !requiresSerials || app.productsSold.every((p) => (serialByProduct.get(p) ?? '').trim().length > 0);
 
   const requiredFunding = FUNDING_DOCUMENT_TYPES;
   const missingCount = requiredFunding.filter(
@@ -214,19 +225,37 @@ export default async function DealerApplicationDetail({
           {/* Serial numbers */}
           <div className="mb-6">
             <h3 className="mb-2 text-sm font-medium text-gray-700">Serial number(s)</h3>
-            {app.serialNumbers.length > 0 ? (
-              <ul className="mb-3 space-y-1 text-sm">
-                {app.serialNumbers.map((s) => (
-                  <li key={s.id} className="text-gray-700">
-                    <span className="font-mono">{s.value}</span>
-                    {s.productLabel && <span className="ml-2 text-gray-400">({s.productLabel})</span>}
-                  </li>
-                ))}
-              </ul>
+            {requiresSerials ? (
+              // One required serial per selected product (finance-company rule).
+              canUploadFunding ? (
+                <ProductSerialForm applicationId={app.id} products={app.productsSold} values={productSerialValues} />
+              ) : (
+                <ul className="space-y-1 text-sm">
+                  {app.productsSold.map((p) => (
+                    <li key={p} className="text-gray-700">
+                      <span className="font-mono">{serialByProduct.get(p) || '—'}</span>
+                      <span className="ml-2 text-gray-400">({p})</span>
+                    </li>
+                  ))}
+                </ul>
+              )
             ) : (
-              <p className="mb-3 text-sm text-gray-500">No serial numbers added yet.</p>
+              <>
+                {app.serialNumbers.length > 0 ? (
+                  <ul className="mb-3 space-y-1 text-sm">
+                    {app.serialNumbers.map((s) => (
+                      <li key={s.id} className="text-gray-700">
+                        <span className="font-mono">{s.value}</span>
+                        {s.productLabel && <span className="ml-2 text-gray-400">({s.productLabel})</span>}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mb-3 text-sm text-gray-500">No serial numbers added yet.</p>
+                )}
+                {canUploadFunding && <SerialNumberForm action={addSerialNumberAction.bind(null, app.id)} />}
+              </>
             )}
-            {canUploadFunding && <SerialNumberForm action={addSerialNumberAction.bind(null, app.id)} />}
           </div>
 
           {/* Funding document checklist */}
@@ -288,11 +317,16 @@ export default async function DealerApplicationDetail({
           </div>
 
           {canSubmitFunding && (
-            <form action={submitFunding} className="mt-6 flex items-center justify-end gap-3">
-              {missingCount > 0 && (
+            <form action={submitFunding} className="mt-6 flex flex-wrap items-center justify-end gap-3">
+              {!serialsComplete && (
+                <span className="text-xs font-medium text-amber-700">
+                  Enter a serial number for every product above before submitting.
+                </span>
+              )}
+              {serialsComplete && missingCount > 0 && (
                 <span className="text-xs text-gray-500">{missingCount} still missing — you can submit now and add the rest later</span>
               )}
-              <button type="submit" className="btn-primary">
+              <button type="submit" className="btn-primary" disabled={!serialsComplete}>
                 Submit funding package
               </button>
             </form>

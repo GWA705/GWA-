@@ -391,6 +391,16 @@ export async function toggleFinanceCompanyActiveAction(id: string): Promise<void
   revalidatePath('/admin/finance-companies');
 }
 
+// Toggle the "require a serial number for every product" rule for this company.
+export async function toggleFinanceCompanySerialAction(id: string): Promise<void> {
+  const session = await requireRole('ADMIN');
+  const fc = await prisma.financeCompany.findUnique({ where: { id } });
+  if (!fc) return;
+  await prisma.financeCompany.update({ where: { id }, data: { requiresSerialPerProduct: !fc.requiresSerialPerProduct } });
+  await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'FinanceCompany', entityId: id, detail: `requiresSerialPerProduct=${!fc.requiresSerialPerProduct}` });
+  revalidatePath('/admin/finance-companies');
+}
+
 /**
  * Permanently delete a finance company. Only allowed when no deals reference it
  * — one that has been used on any application must be archived instead so the
