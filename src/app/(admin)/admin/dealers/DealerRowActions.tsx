@@ -7,14 +7,16 @@ export function DealerRowActions({
   name,
   active,
   canDelete,
+  align = 'end',
 }: {
   id: string;
   name: string;
   active: boolean;
   canDelete: boolean;
+  align?: 'start' | 'end';
 }) {
   return (
-    <div className="flex flex-wrap justify-end gap-2">
+    <div className={`flex flex-wrap gap-2 ${align === 'end' ? 'justify-end' : 'justify-start'}`}>
       <form action={viewAsDealerAction.bind(null, id)}>
         <button
           type="submit"
