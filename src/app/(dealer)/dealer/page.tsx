@@ -7,6 +7,7 @@ import { SearchBox } from '@/components/SearchBox';
 import { AnnouncementBanner } from '@/components/AnnouncementBanner';
 import { searchWhere } from '@/lib/search';
 import { programLabel } from '@/lib/constants';
+import { dealerOutstanding } from '@/lib/outstanding';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,6 +33,11 @@ export default async function DealerHome({
       orderBy: { createdAt: 'desc' },
       skip: (page - 1) * perPage,
       take: perPage,
+      include: {
+        documents: { where: { stage: 'FUNDING' }, select: { type: true, verifiedAt: true } },
+        serialNumbers: { select: { productLabel: true, value: true } },
+        financeCompany: { select: { requiresSerialPerProduct: true } },
+      },
     }),
     prisma.announcement.findMany({ where: { active: true }, orderBy: { createdAt: 'desc' } }),
   ]);
@@ -85,15 +91,30 @@ export default async function DealerHome({
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {apps.map((a) => (
+                {apps.map((a) => {
+                  const outstanding = dealerOutstanding({
+                    status: a.status,
+                    productsSold: a.productsSold,
+                    requiresSerials: !!a.financeCompany?.requiresSerialPerProduct && a.productsSold.length > 0,
+                    serialNumbers: a.serialNumbers,
+                    fundingDocs: a.documents,
+                  });
+                  return (
                   <tr key={a.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3">
-                      <Link
-                        href={`/dealer/applications/${a.id}`}
-                        className="font-medium text-brand-700 hover:underline"
-                      >
-                        {a.applicantFirstName} {a.applicantLastName}
-                      </Link>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Link
+                          href={`/dealer/applications/${a.id}`}
+                          className="font-medium text-brand-700 hover:underline"
+                        >
+                          {a.applicantFirstName} {a.applicantLastName}
+                        </Link>
+                        {outstanding.hasAction && (
+                          <span className={`badge ${outstanding.readyToSubmit ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}`}>
+                            {outstanding.readyToSubmit ? 'Ready to submit' : 'Action needed'}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3">{a.province}</td>
                     <td className="px-4 py-3">{programLabel(a.programType, a.programCategory)}</td>
@@ -105,7 +126,8 @@ export default async function DealerHome({
                       {a.createdAt.toLocaleDateString('en-CA')}
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

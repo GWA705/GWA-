@@ -16,6 +16,7 @@ import { UploadForm } from '@/components/UploadForm';
 import { SerialNumberForm } from '@/components/SerialNumberForm';
 import { ProductSerialForm } from '@/components/ProductSerialForm';
 import { FUNDING_DOCUMENT_TYPES, STATUS_LABELS, programLabel } from '@/lib/constants';
+import { dealerOutstanding } from '@/lib/outstanding';
 import {
   uploadSupportingDocAction,
   uploadFundingDocAction,
@@ -75,6 +76,15 @@ export default async function DealerApplicationDetail({
     (t) => t.required && !uploadedFundingTypes.has(t.type),
   ).length;
 
+  // What the dealer still has to do (drives the "What's needed" card up top).
+  const outstanding = dealerOutstanding({
+    status: app.status,
+    productsSold: app.productsSold,
+    requiresSerials,
+    serialNumbers: app.serialNumbers,
+    fundingDocs,
+  });
+
   const submitFunding = submitFundingAction.bind(null, app.id);
 
   return (
@@ -99,6 +109,29 @@ export default async function DealerApplicationDetail({
         hasFundingDocs={app.documents.some((d) => d.stage === 'FUNDING')}
         hasPayouts={app.payouts.length > 0}
       />
+
+      {/* What's needed from you — a self-serve "why is this stuck?" summary,
+          shown only while the ball is in the dealer's court. */}
+      {outstanding.hasAction && (
+        <section className={`card border p-5 ${outstanding.readyToSubmit ? 'border-green-300 bg-green-50' : 'border-amber-300 bg-amber-50'}`}>
+          <h2 className={`mb-2 text-base font-semibold ${outstanding.readyToSubmit ? 'text-green-800' : 'text-amber-900'}`}>
+            {outstanding.readyToSubmit ? '✅ Ready to submit' : '⚠️ What’s needed from you'}
+          </h2>
+          <ul className="space-y-1.5 text-sm text-gray-700">
+            {outstanding.items.map((it, i) => (
+              <li key={i} className="flex items-start gap-2">
+                <span aria-hidden className={outstanding.readyToSubmit ? 'text-green-600' : 'text-amber-600'}>›</span>
+                <span>{it}</span>
+              </li>
+            ))}
+          </ul>
+          {fundingVisible && (
+            <a href="#funding-package" className="mt-3 inline-block text-sm font-semibold text-brand-700 hover:underline">
+              Go to funding package →
+            </a>
+          )}
+        </section>
+      )}
 
       {/* Customer snapshot — everything the dealer needs to recall this deal at a
           glance. The detailed application (employment, ID, income, housing) is
@@ -209,7 +242,7 @@ export default async function DealerApplicationDetail({
 
       {/* Funding stage */}
       {fundingVisible && (
-        <section className="card p-6">
+        <section id="funding-package" className="card scroll-mt-4 p-6">
           <div className="mb-1 flex items-center justify-between">
             <h2 className="text-base font-semibold text-gray-900">Funding package</h2>
             <span className="text-xs text-gray-500">Status: {STATUS_LABELS[app.status]}</span>

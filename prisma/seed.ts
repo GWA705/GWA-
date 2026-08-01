@@ -145,6 +145,21 @@ async function main() {
     console.log(`Seeded ${defaultProducts.length} products.`);
   }
 
+  // Default quick-note templates for reviewers (only if none exist yet).
+  if ((await prisma.noteTemplate.count()) === 0) {
+    const defaultTemplates = [
+      { label: 'Missing void cheque', body: 'We still need a void cheque or PAP form to fund this deal. Please upload it under the funding package.' },
+      { label: 'Photo missing serial', body: 'The installation photo doesn’t clearly show the serial number. Please upload a photo where the serial number is visible.' },
+      { label: 'Signatures missing', body: 'One or more required signatures are missing on the finance/Home Depot documents. Please have them signed and re-upload.' },
+      { label: 'Docs unclear', body: 'The uploaded document is blurry or cut off. Please re-upload a clear, complete copy.' },
+      { label: 'Approved — send funding', body: 'This deal is approved. Please submit the funding package (signed contract, void cheque/PAP, install photos, signed HD documents, and ID) when ready.' },
+    ];
+    await prisma.noteTemplate.createMany({
+      data: defaultTemplates.map((t, i) => ({ ...t, sortOrder: i })),
+    });
+    console.log(`Seeded ${defaultTemplates.length} note templates.`);
+  }
+
   // Sample application (demo only, and only if none exist for this dealer)
   const existing = await prisma.application.count({ where: { dealerId: dealer.id } });
   if (seedDemo && dealerUser && existing === 0) {

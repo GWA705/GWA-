@@ -126,6 +126,13 @@ export default async function StaffApplicationDetail({
     select: { id: true, name: true },
   });
 
+  // Quick-note templates a reviewer can insert with one click.
+  const noteTemplates = await prisma.noteTemplate.findMany({
+    where: { active: true },
+    orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+    select: { label: true, body: true },
+  });
+
   const reveal = searchParams.reveal === '1';
 
   // Protected identity fields (DOB, street address, government ID number — SIN
@@ -274,6 +281,7 @@ export default async function StaffApplicationDetail({
             hidden={{ applicationId: app.id, internal: 'false' }}
             placeholder="Write a note to the dealer…"
             label="Send to dealer"
+            templates={noteTemplates}
           />
         </section>
 
@@ -289,6 +297,7 @@ export default async function StaffApplicationDetail({
             hidden={{ applicationId: app.id, internal: 'true' }}
             placeholder="Internal note (staff only)…"
             label="Add internal note"
+            templates={noteTemplates}
           />
         </section>
 

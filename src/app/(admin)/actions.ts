@@ -480,6 +480,54 @@ export async function deleteProductAction(id: string): Promise<void> {
   revalidatePath('/admin/products');
 }
 
+// --- Quick-note templates --------------------------------------------------
+
+export async function createNoteTemplateAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const session = await requireRole('ADMIN');
+  const label = String(formData.get('label') || '').trim();
+  const body = String(formData.get('body') || '').trim();
+  if (!label || label.length > 60) return { error: 'Enter a short label (up to 60 characters).' };
+  if (!body || body.length > 1000) return { error: 'Enter the note text (up to 1000 characters).' };
+  const count = await prisma.noteTemplate.count();
+  const t = await prisma.noteTemplate.create({ data: { label, body, sortOrder: count } });
+  await audit({ actorId: session.userId, action: 'DEALER_CREATE', entityType: 'NoteTemplate', entityId: t.id, detail: label });
+  revalidatePath('/admin/note-templates');
+  return { ok: true };
+}
+
+export async function updateNoteTemplateAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const session = await requireRole('ADMIN');
+  const id = String(formData.get('id') || '');
+  const label = String(formData.get('label') || '').trim();
+  const body = String(formData.get('body') || '').trim();
+  if (!label || label.length > 60) return { error: 'Enter a short label (up to 60 characters).' };
+  if (!body || body.length > 1000) return { error: 'Enter the note text (up to 1000 characters).' };
+  const t = await prisma.noteTemplate.findUnique({ where: { id } });
+  if (!t) return { error: 'Template not found.' };
+  await prisma.noteTemplate.update({ where: { id }, data: { label, body } });
+  await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'NoteTemplate', entityId: id, detail: label });
+  revalidatePath('/admin/note-templates');
+  return { ok: true };
+}
+
+export async function toggleNoteTemplateActiveAction(id: string): Promise<void> {
+  const session = await requireRole('ADMIN');
+  const t = await prisma.noteTemplate.findUnique({ where: { id } });
+  if (!t) return;
+  await prisma.noteTemplate.update({ where: { id }, data: { active: !t.active } });
+  await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'NoteTemplate', entityId: id, detail: `active=${!t.active}` });
+  revalidatePath('/admin/note-templates');
+}
+
+export async function deleteNoteTemplateAction(id: string): Promise<void> {
+  const session = await requireRole('ADMIN');
+  const t = await prisma.noteTemplate.findUnique({ where: { id } });
+  if (!t) return;
+  await prisma.noteTemplate.delete({ where: { id } });
+  await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'NoteTemplate', entityId: id, detail: `deleted: ${t.label}` });
+  revalidatePath('/admin/note-templates');
+}
+
 // --- Announcements / banner ------------------------------------------------
 
 export async function createAnnouncementAction(

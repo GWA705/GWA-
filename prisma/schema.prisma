@@ -200,6 +200,20 @@ model AppSetting {
   updatedAt DateTime @updatedAt
 }
 
+// Admin-managed quick-note templates a reviewer can insert into a note with one
+// click (e.g. "Missing void cheque", "Photo doesn't show the serial number").
+// Keeps dealer-facing messages consistent and fast to send.
+model NoteTemplate {
+  id        String   @id @default(cuid())
+  label     String // short chip label shown to the reviewer
+  body      String   @db.Text // the text inserted into the note box
+  active    Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([active, sortOrder])
+}
+
 model FinanceCompany {
   id        String   @id @default(cuid())
   name      String
