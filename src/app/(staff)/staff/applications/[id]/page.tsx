@@ -378,7 +378,8 @@ export default async function StaffApplicationDetail({
             applicationId={app.id}
             data={app.confirmation}
             applicantName={`${app.applicantFirstName} ${app.applicantLastName}`}
-            defaultProduct={PROGRAM_CATEGORY_LABELS[app.programCategory]}
+            defaultProduct={app.productsSold.length ? app.productsSold.join(', ') : PROGRAM_CATEGORY_LABELS[app.programCategory]}
+            defaultCity={app.loanApplication?.city ?? ''}
             defaultPhone={app.applicantPhone}
             defaultAmount={(app.approvedAmount ?? app.requestedAmount).toString()}
           />
