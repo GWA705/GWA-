@@ -323,6 +323,19 @@ needed to start. Nothing here is built yet.
 
 ---
 
+51. **FinanceIt true auto-fill (parked).** The reviewer entry view + pop-out
+    window present the application in FinanceIt's field order for fast re-keying.
+    True auto-fill into FinanceIt's own form would need either their API or the
+    field names of their fillable PDF. **Your part:** get FinanceIt's fillable
+    PDF (with form fields) or API docs, and we can populate it directly.
+
+52. **Apply the minimize/snapshot treatment elsewhere (parked).** The reviewer
+    deal page can now collapse the full application to a compact snapshot. If
+    useful, we can bring the same "expand/minimize to a snapshot" pattern to
+    other long sections/pages.
+
+---
+
 ## Notes
 - Items in **A** generally need your action first; **B** are quick builds once
   you decide; **C** are go-live gates (some are organizational, not code);
