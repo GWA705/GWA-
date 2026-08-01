@@ -98,8 +98,8 @@ async function main() {
   // deploy (that would resurrect ones an admin deleted). Gated behind SEED_DEMO.
   if (seedDemo) {
     for (const [id, name] of [
-      ['seed-fc-1', 'FinanceIt'],
-      ['seed-fc-2', 'Financeit Home'],
+      ['seed-fc-1', 'FinanceIT'],
+      ['seed-fc-2', 'FinanceIT Home'],
       ['seed-fc-3', 'SNAP Financial'],
     ] as const) {
       await prisma.financeCompany.upsert({ where: { id }, update: {}, create: { id, name } });

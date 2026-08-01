@@ -96,6 +96,14 @@ const FINANCEIT_EXTRA: RequiredField[] = [
   { name: 'homeDepotStoreId', label: 'Home Depot store' },
 ];
 
+// Borrower identification is mandatory on the typed (Priority) application.
+const TYPED_EXTRA: RequiredField[] = [
+  { name: 'idType', label: 'Photo ID type' },
+  { name: 'govIdNumber', label: 'Photo ID number' },
+  { name: 'idProvince', label: 'Province of issue' },
+  { name: 'idExpiry', label: 'ID expiry date' },
+];
+
 function cleanMessage(msg: string): string {
   if (/enum|expected|invalid/i.test(msg)) return 'required';
   return msg.replace(/\.$/, '').toLowerCase();
@@ -190,6 +198,7 @@ export function NewApplicationForm({
     ...(method === 'FINANCEIT'
       ? FINANCEIT_EXTRA.filter((f) => f.name !== 'homeDepotStoreId' || stores.length > 0)
       : []),
+    ...(method === 'TYPED' ? TYPED_EXTRA : []),
   ];
 
   // Check required fields ourselves so we can list ALL missing ones at once,

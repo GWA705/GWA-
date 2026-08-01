@@ -144,6 +144,23 @@ export const applicationSchema = z.object({
   consent: z
     .union([z.literal('on'), z.literal('true'), z.literal(true)])
     .refine((v) => v === 'on' || v === 'true' || v === true, 'Consent is required'),
+}).superRefine((d, ctx) => {
+  // On the typed application, borrower identification is mandatory: photo ID
+  // type, ID number, province of issue, and expiry date.
+  if (d.entryMethod === 'TYPED') {
+    const required: [keyof typeof d, string][] = [
+      ['idType', 'Photo ID type is required'],
+      ['govIdNumber', 'Photo ID number is required'],
+      ['idProvince', 'Province of issue is required'],
+      ['idExpiry', 'ID expiry date is required'],
+    ];
+    for (const [key, message] of required) {
+      const v = d[key];
+      if (!v || !String(v).trim()) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: [key as string], message });
+      }
+    }
+  }
 });
 
 export type ApplicationInput = z.infer<typeof applicationSchema>;

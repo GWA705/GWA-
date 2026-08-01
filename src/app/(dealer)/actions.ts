@@ -68,7 +68,7 @@ export async function createApplicationAction(
   }
 
   const financeItNumber = d.financeItNumber ? d.financeItNumber.replace(/\s/g, '') : null;
-  // A FinanceIt approval number means the deal is already approved.
+  // A FinanceIT approval number means the deal is already approved.
   const initialStatus = financeItNumber ? 'APPROVED' : 'SUBMITTED';
 
   // Only persist the extended loan-application record for typed entry.

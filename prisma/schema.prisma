@@ -230,7 +230,7 @@ enum Province {
 enum EntryMethod {
   TYPED // entered directly into the site (full loan application)
   PHOTO // uploaded a photo of the paper credit application
-  FINANCEIT // provided a FinanceIt approval number (already approved)
+  FINANCEIT // provided a FinanceIT approval number (already approved)
 }
 
 enum HousingStatus {
@@ -319,7 +319,7 @@ model Application {
   loanReference    String?
   financeReference String?
   hdReference      String?
-  financeItNumber  String? // FinanceIt approval number (approved when present)
+  financeItNumber  String? // FinanceIT approval number (approved when present)
 
   // Applicant identity — names/contact kept plaintext for staff triage.
   applicantFirstName String

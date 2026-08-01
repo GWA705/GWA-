@@ -32,10 +32,11 @@ const baseForm = {
   housingStatus: '',
   monthlyHousingCost: '',
   yearsAtAddress: '',
-  idType: '',
-  govIdNumber: '',
-  idProvince: '',
-  idExpiry: '',
+  // Borrower identification is mandatory on a TYPED application.
+  idType: "Driver's licence",
+  govIdNumber: 'D1234-56789',
+  idProvince: 'ON',
+  idExpiry: '2030-01-01',
   businessName: '',
   positionTitle: '',
   employerAddress: '',
@@ -78,5 +79,26 @@ describe('applicationSchema', () => {
 
   it('rejects an over-long financing deal number', () => {
     expect(applicationSchema.safeParse({ ...baseForm, financeItNumber: 'x'.repeat(61) }).success).toBe(false);
+  });
+
+  it('requires borrower identification on a TYPED application', () => {
+    const r = applicationSchema.safeParse({ ...baseForm, idType: '', govIdNumber: '', idProvince: '', idExpiry: '' });
+    expect(r.success).toBe(false);
+    if (!r.success) {
+      const paths = r.error.issues.map((i) => i.path.join('.'));
+      expect(paths).toEqual(expect.arrayContaining(['idType', 'govIdNumber', 'idProvince', 'idExpiry']));
+    }
+  });
+
+  it('does not require borrower identification on non-TYPED methods', () => {
+    const r = applicationSchema.safeParse({
+      ...baseForm,
+      entryMethod: 'PHOTO',
+      idType: '',
+      govIdNumber: '',
+      idProvince: '',
+      idExpiry: '',
+    });
+    expect(r.success).toBe(true);
   });
 });
