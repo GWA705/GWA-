@@ -39,3 +39,85 @@ body {
 .badge {
   @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
 }
+
+/* ==========================================================================
+   Dark theme. The app is built with light Tailwind utilities; rather than add
+   `dark:` variants to every element, we remap the handful of neutral + tint
+   utilities that surfaces actually use. A clean, slate-tinted palette tuned for
+   contrast/legibility. Toggled by the `dark` class on <html> (see ThemeToggle).
+   ========================================================================== */
+.dark {
+  color-scheme: dark;
+  --d-bg: #0b1220;
+  --d-surface: #131d31;
+  --d-surface-2: #0f1829;
+  --d-fill: #1b2740;
+  --d-hover: rgba(148, 163, 184, 0.10);
+  --d-border: #28334c;
+  --d-border-strong: #384663;
+  --d-text: #e9eef8;
+  --d-text-strong: #f6f8fc;
+  --d-muted: #a5b3cd;
+  --d-dim: #7f8fad;
+}
+.dark body { background-color: var(--d-bg); color: var(--d-text); }
+
+/* Neutrals */
+.dark .bg-white { background-color: var(--d-surface); }
+.dark .bg-gray-50 { background-color: var(--d-surface-2); }
+.dark .bg-gray-100 { background-color: var(--d-fill); }
+.dark .text-gray-900, .dark .text-gray-800 { color: var(--d-text-strong); }
+.dark .text-gray-700 { color: var(--d-text); }
+.dark .text-gray-600, .dark .text-gray-500 { color: var(--d-muted); }
+.dark .text-gray-400, .dark .text-gray-300 { color: var(--d-dim); }
+.dark .border-gray-100, .dark .border-gray-200 { border-color: var(--d-border); }
+.dark .border-gray-300 { border-color: var(--d-border-strong); }
+.dark .ring-gray-200 { --tw-ring-color: var(--d-border); }
+.dark .ring-gray-300 { --tw-ring-color: var(--d-border-strong); }
+.dark .divide-gray-50 > :not([hidden]) ~ :not([hidden]),
+.dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]),
+.dark .divide-gray-200 > :not([hidden]) ~ :not([hidden]) { border-color: var(--d-border); }
+.dark .hover\:bg-gray-50:hover, .dark .hover\:bg-gray-100:hover { background-color: var(--d-hover); }
+
+/* Component surfaces */
+.dark .card { box-shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 30px -18px rgba(0,0,0,.6); }
+.dark .input { background-color: var(--d-surface-2); color: var(--d-text-strong); }
+.dark .input::placeholder { color: var(--d-dim); }
+.dark .btn-secondary { background-color: var(--d-surface); color: var(--d-text); }
+
+/* Semantic tints — translucent fills + lighter text so callouts and badges read
+   well on dark. Covers both the -50 (callouts) and -100 (badges) shades. */
+.dark .bg-red-50, .dark .bg-red-50\/60 { background-color: rgba(239,68,68,.13); }
+.dark .hover\:bg-red-50:hover { background-color: rgba(239,68,68,.18); }
+.dark .bg-red-100 { background-color: rgba(239,68,68,.22); }
+.dark .text-red-800, .dark .text-red-700, .dark .text-red-600 { color: #f7a99b; }
+.dark .border-red-200 { border-color: rgba(239,68,68,.4); }
+
+.dark .bg-amber-50 { background-color: rgba(245,158,11,.13); }
+.dark .bg-amber-100 { background-color: rgba(245,158,11,.22); }
+.dark .text-amber-900, .dark .text-amber-800, .dark .text-amber-700 { color: #f2c078; }
+.dark .border-amber-200 { border-color: rgba(245,158,11,.4); }
+
+.dark .bg-green-50 { background-color: rgba(34,197,94,.13); }
+.dark .bg-green-100 { background-color: rgba(34,197,94,.20); }
+.dark .text-green-800, .dark .text-green-700, .dark .text-green-600 { color: #7fe0a4; }
+
+.dark .bg-emerald-100 { background-color: rgba(16,185,129,.20); }
+.dark .text-emerald-800 { color: #6ee0c2; }
+
+.dark .bg-blue-100 { background-color: rgba(59,130,246,.22); }
+.dark .text-blue-800 { color: #9cc2ff; }
+
+.dark .bg-sky-100 { background-color: rgba(14,165,233,.22); }
+.dark .text-sky-800 { color: #86cbef; }
+
+.dark .bg-indigo-100 { background-color: rgba(99,102,241,.24); }
+.dark .text-indigo-800 { color: #b6b3fb; }
+
+.dark .bg-purple-100 { background-color: rgba(168,85,247,.22); }
+.dark .text-purple-800 { color: #d3aef7; }
+
+/* Brand tints (keep solid brand-600 buttons as-is; lighten the pale tints). */
+.dark .bg-brand-50 { background-color: rgba(37,99,235,.18); }
+.dark .bg-brand-100 { background-color: rgba(37,99,235,.26); }
+.dark .text-brand-700, .dark .text-brand-800 { color: #93b4ff; }

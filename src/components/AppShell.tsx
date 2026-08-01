@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { hasBothPortals, type SessionUser } from '@/lib/session';
 import { roleLabel } from '@/lib/rbac';
 import { logoutAction } from '@/app/(auth)/actions';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 interface NavItem {
   href: string;
@@ -62,6 +63,7 @@ export function AppShell({
               <div className="font-medium text-gray-800">{user.name}</div>
               <div className="text-xs text-gray-500">{roleLabel(user.role)}</div>
             </div>
+            <ThemeToggle />
             <form action={logoutAction}>
               <button className="btn-secondary" type="submit">
                 Sign out

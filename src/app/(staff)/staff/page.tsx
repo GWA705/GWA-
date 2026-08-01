@@ -4,7 +4,7 @@ import { prisma } from '@/lib/db';
 import { SearchBox } from '@/components/SearchBox';
 import { searchWhere } from '@/lib/search';
 import { STATUS_LABELS, programLabel } from '@/lib/constants';
-import { ReviewerQueue, DealTable, type QueueRow, type Tone, type Lanes } from './ReviewerQueue';
+import { ReviewerQueue, DealTable, type QueueRow, type Tone, type Lanes, type PriorityBands } from './ReviewerQueue';
 import type { Application, ApplicationStatus, Dealer } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
@@ -82,10 +82,32 @@ function fmtAmount(a: Deal): string {
   return '$' + Math.round(Number(a.requestedAmount)).toLocaleString('en-CA');
 }
 
+// The one plain-language action a deal needs (Priority view chip).
+function actionFor(a: Deal): { label: string; tone: Tone } {
+  if (a._count.payouts > 0) return { label: 'Paid — done', tone: 'paid' };
+  if (a.status === 'PROBLEM') return { label: 'Fix problem', tone: 'prob' };
+  if (NEW_STATUSES.includes(a.status)) return { label: 'Approve', tone: 'new' };
+  if (needsAttention(a)) {
+    switch (a.lastDealerActionKind) {
+      case 'DOCUMENT': return { label: 'Review docs', tone: 'review' };
+      case 'NOTE': return { label: 'Reply', tone: 'note' };
+      case 'FUNDING': return { label: 'Fund', tone: 'fund' };
+      default:
+        return a.status === 'FUNDING_SUBMITTED'
+          ? { label: 'Fund', tone: 'fund' }
+          : { label: 'Review', tone: 'review' };
+    }
+  }
+  if (a.status === 'FUNDING_REVIEW') return { label: 'Verify & fund', tone: 'fund' };
+  if (FUNDING_STATUSES.includes(a.status)) return { label: 'Awaiting dealer', tone: 'decl' };
+  return { label: 'In progress', tone: 'decl' };
+}
+
 function toRow(a: Deal): QueueRow {
   const attention = needsAttention(a);
   const since = waitingSince(a);
   const activity = activityFor(a);
+  const action = actionFor(a);
   return {
     id: a.id,
     applicant: `${a.applicantFirstName} ${a.applicantLastName}`,
@@ -100,6 +122,8 @@ function toRow(a: Deal): QueueRow {
     waitLabel: waitLabel(since),
     waitHot: attention && minutesSince(since) >= SLA_MINUTES,
     dateLabel: a.createdAt.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' }),
+    actionLabel: action.label,
+    actionTone: action.tone,
   };
 }
 
@@ -152,13 +176,23 @@ export default async function StaffQueue({ searchParams }: { searchParams: { q?:
     all: apps.map(toRow),
   };
 
+  // Priority view: the active pipeline grouped by urgency instead of status.
+  const INACTIVE: ApplicationStatus[] = ['DECLINED', 'WITHDRAWN', 'DRAFT'];
+  const active = apps.filter((a) => !INACTIVE.includes(a.status) && a._count.payouts === 0);
+  const overdue = (a: Deal) => needsAttention(a) && minutesSince(waitingSince(a)) >= SLA_MINUTES;
+  const priority: PriorityBands = {
+    now: active.filter((a) => a.status === 'PROBLEM' || overdue(a)).sort(byWaiting).map(toRow),
+    you: active.filter((a) => a.status !== 'PROBLEM' && !overdue(a) && needsAttention(a)).sort(byWaiting).map(toRow),
+    prog: active.filter((a) => a.status !== 'PROBLEM' && !needsAttention(a)).sort(byWaiting).map(toRow),
+  };
+
   return (
     <div>
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-semibold text-gray-900">Deals</h1>
         <SearchBox action="/staff" q={q} />
       </div>
-      <ReviewerQueue lanes={lanes} />
+      <ReviewerQueue lanes={lanes} priority={priority} />
     </div>
   );
 }

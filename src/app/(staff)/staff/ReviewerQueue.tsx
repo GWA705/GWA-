@@ -19,6 +19,9 @@ export interface QueueRow {
   waitLabel: string;
   waitHot: boolean;
   dateLabel: string;
+  // The one thing this deal needs (Priority view): a plain-language action.
+  actionLabel: string;
+  actionTone: Tone;
 }
 
 export interface Lanes {
@@ -26,6 +29,13 @@ export interface Lanes {
   updates: QueueRow[];
   inFunding: QueueRow[];
   all: QueueRow[];
+}
+
+// Priority view: deals grouped by urgency rather than by status.
+export interface PriorityBands {
+  now: QueueRow[]; // past the 2-hour target, or a Problem — clear first
+  you: QueueRow[]; // needs a decision/reply, still on time
+  prog: QueueRow[]; // in progress or waiting on the dealer
 }
 
 const TONE_CLASS: Record<Tone, string> = {
@@ -107,8 +117,89 @@ function rowsFor(lanes: Lanes, kind: Kind): QueueRow[] {
   return lanes.all;
 }
 
-export function ReviewerQueue({ lanes }: { lanes: Lanes }) {
-  const [view, setView] = useState<'tabs' | 'stacked'>('tabs');
+// A single priority-view row: colour-striped by urgency, with the action chip
+// and an aging wait time. Flex layout that wraps cleanly on a phone.
+function PriorityRow({ r }: { r: QueueRow }) {
+  const stripe = r.tone === 'prob' ? 'bg-red-500' : r.waitHot ? 'bg-red-500' : 'bg-transparent';
+  return (
+    <Link
+      href={`/staff/applications/${r.id}`}
+      className="card flex items-stretch gap-0 overflow-hidden p-0 transition hover:ring-2 hover:ring-brand-500"
+    >
+      <div className={`w-1.5 flex-none ${stripe}`} />
+      <div className="flex flex-1 flex-wrap items-center gap-x-3 gap-y-1 p-3 sm:px-4">
+        <div className="min-w-0 flex-1 basis-48">
+          <div className="flex items-center gap-2">
+            <span className="truncate font-medium text-brand-700">{r.applicant}</span>
+            {r.paid && <span className="badge bg-emerald-100 text-emerald-800">Paid</span>}
+          </div>
+          <div className="truncate text-xs text-gray-500">
+            {r.dealer} · {r.program} · <span className="tabular-nums">{r.amount}</span>
+          </div>
+        </div>
+        <Pill tone={r.actionTone} label={r.actionLabel} />
+        <div className="ml-auto whitespace-nowrap text-right">
+          <div className={`text-sm font-semibold tabular-nums ${r.waitHot ? 'text-red-700' : 'text-gray-600'}`}>
+            {r.waitLabel}
+          </div>
+          <div className="text-[11px] text-gray-400">{r.statusLabel}</div>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+const PRIORITY_BANDS: { key: keyof PriorityBands; title: string; desc: string; accent: string; count: string }[] = [
+  { key: 'now', title: 'Act now', desc: 'Past the 2-hour target or flagged — clear these first', accent: 'text-red-700', count: 'bg-red-600 text-white' },
+  { key: 'you', title: 'Waiting for you', desc: 'Needs a decision or a reply, still on time', accent: 'text-brand-800', count: 'bg-brand-600 text-white' },
+  { key: 'prog', title: 'In progress', desc: 'Moving along or waiting on the dealer', accent: 'text-gray-600', count: 'bg-gray-200 text-gray-600' },
+];
+
+function PriorityView({ priority }: { priority: PriorityBands }) {
+  const attention = priority.now.length;
+  const oldest = priority.now[0]?.waitLabel;
+  return (
+    <div className="space-y-7">
+      {attention > 0 && (
+        <div className="flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 p-4">
+          <span className="text-3xl font-extrabold leading-none text-red-600 tabular-nums">{attention}</span>
+          <div>
+            <div className="text-sm font-semibold text-red-700">need attention now</div>
+            <div className="text-xs text-gray-500">
+              Past the 2-hour target{oldest ? <> · oldest waiting <span className="tabular-nums">{oldest}</span></> : null}
+            </div>
+          </div>
+        </div>
+      )}
+      {PRIORITY_BANDS.map((b) => {
+        const rows = priority[b.key];
+        if (rows.length === 0) return null;
+        return (
+          <section key={b.key}>
+            <div className="mb-2 flex items-baseline gap-2.5">
+              <h2 className={`text-xs font-semibold uppercase tracking-wide ${b.accent}`}>{b.title}</h2>
+              <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${b.count}`}>{rows.length}</span>
+              <span className="ml-auto hidden text-xs text-gray-400 sm:block">{b.desc}</span>
+            </div>
+            <div className="flex flex-col gap-2">
+              {rows.map((r) => (
+                <PriorityRow key={r.id} r={r} />
+              ))}
+            </div>
+          </section>
+        );
+      })}
+      {attention === 0 && priority.you.length === 0 && priority.prog.length === 0 && (
+        <div className="card p-8 text-center text-sm text-gray-500">You&apos;re all caught up. 🎉</div>
+      )}
+    </div>
+  );
+}
+
+type ViewMode = 'priority' | 'tabs' | 'stacked';
+
+export function ReviewerQueue({ lanes, priority }: { lanes: Lanes; priority: PriorityBands }) {
+  const [view, setView] = useState<ViewMode>('priority');
   const [tab, setTab] = useState<Kind>('approve');
   const [perPage, setPerPage] = useState(10);
   const [page, setPage] = useState(1);
@@ -116,7 +207,7 @@ export function ReviewerQueue({ lanes }: { lanes: Lanes }) {
   // Remember each reviewer's layout choice.
   useEffect(() => {
     const saved = typeof window !== 'undefined' ? window.localStorage.getItem('reviewerView') : null;
-    if (saved === 'tabs' || saved === 'stacked') setView(saved);
+    if (saved === 'tabs' || saved === 'stacked' || saved === 'priority') setView(saved);
   }, []);
   useEffect(() => {
     if (typeof window !== 'undefined') window.localStorage.setItem('reviewerView', view);
@@ -146,20 +237,26 @@ export function ReviewerQueue({ lanes }: { lanes: Lanes }) {
       <div className="mb-5 flex items-center gap-2 text-sm">
         <span className="text-gray-400">View</span>
         <div className="inline-flex rounded-full bg-white p-1 ring-1 ring-inset ring-gray-200">
-          {(['tabs', 'stacked'] as const).map((v) => (
+          {([
+            ['priority', 'Priority'],
+            ['tabs', 'Tabs'],
+            ['stacked', 'Stacked'],
+          ] as const).map(([v, label]) => (
             <button
               key={v}
               type="button"
               onClick={() => setView(v)}
               className={`rounded-full px-3.5 py-1 text-sm font-medium ${view === v ? 'bg-brand-600 text-white' : 'text-gray-600 hover:bg-gray-50'}`}
             >
-              {v === 'tabs' ? 'Tabs' : 'Stacked lanes'}
+              {label}
             </button>
           ))}
         </div>
       </div>
 
-      {view === 'tabs' ? (
+      {view === 'priority' ? (
+        <PriorityView priority={priority} />
+      ) : view === 'tabs' ? (
         <>
           <div className="mb-1 flex flex-wrap gap-1 border-b border-gray-200">
             {TABS.map((t) => (
