@@ -61,13 +61,14 @@ Status key: ✅ fixed · 🟡 in progress · ⬜ planned · 🔷 your action (Re
 
 ## FinanceIt API readiness (before processing real deals via API)
 
-**Must-have (not built yet):**
-- ⬜ Inbound webhook with **HMAC signature verification** (raw body + `timingSafeEqual`).
-- ⬜ **Replay protection** (signed timestamp + stored nonce/event-id).
-- ⬜ **Idempotent processing** (unique provider event id in the same tx as the state change; funding/payout idempotent).
-- ⬜ **Outbound client** (`src/lib/financeit.ts`): TLS verified, timeouts, bounded ret/backoff, keys from env only, redacted logging.
-- ⬜ **Audit every API interaction** (in/out) with a redacted record; add a SYSTEM actor.
-- ⬜ **Rate limiting + request-size caps** on the webhook and auth routes.
+**Scaffolding built (dormant until FinanceIt's secret/endpoints/contract are set — see docs/FINANCEIT-API.md):**
+- ✅ Inbound webhook `POST /api/webhooks/financeit` with **HMAC-SHA256 signature verification** (raw body + timing-safe compare).
+- ✅ **Replay protection** (signed, recent timestamp; default ±5 min).
+- ✅ **Idempotent processing** (`WebhookEvent` with unique `[source, eventId]` → retries recorded once, never re-processed).
+- ✅ **Outbound client** (`src/lib/financeit.ts`): TLS on, 10s timeout, bounded backoff on GET, keys from env only, never logged.
+- ✅ **Every delivery recorded + audited** (`WebhookEvent` + `FINANCEIT_WEBHOOK` audit action).
+- ✅ **Rate limiting + 64 KB body cap** on the webhook (auth routes already rate-limited in Wave 1b).
+- ⬜ **Event handlers** — `dispatch()` currently records unknown events as IGNORED (no deal mutation). Wire real approval/funding handlers once FinanceIt's event contract is confirmed.
 - 🔷 **Production KMS** (`KMS_KEY_ID` in ca-central-1) implemented before real PII volume.
 - 🔷 **Confirm Canadian data residency** for compute + DB (committed `render.yaml` says `oregon`; dashboard is source of truth — attest it).
 

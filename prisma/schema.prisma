@@ -94,6 +94,24 @@ model AlertAck {
   @@index([alertId])
 }
 
+// An inbound webhook delivery from a third party (e.g. FinanceIt). Stored for
+// idempotency (the unique [source, eventId] means a retried delivery is only
+// processed once) and as an audit/reconciliation trail of every callback.
+model WebhookEvent {
+  id            String    @id @default(cuid())
+  source        String // e.g. "financeit"
+  eventId       String // the provider's unique delivery/event id
+  eventType     String?
+  status        String    @default("RECEIVED") // RECEIVED | PROCESSED | IGNORED | ERROR
+  applicationId String?
+  error         String?   @db.Text
+  receivedAt    DateTime  @default(now())
+  processedAt   DateTime?
+
+  @@unique([source, eventId])
+  @@index([source, eventType])
+}
+
 // A durable fixed-window rate-limit counter, keyed by a caller-defined string
 // (e.g. "login:ip:1.2.3.4"). Backed by the DB so limits hold across the multiple
 // app instances Render runs. Rows are transient; a periodic cleanup can prune
