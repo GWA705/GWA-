@@ -66,7 +66,10 @@ model DealerAlert {
   body        String   @db.Text
   linkUrl     String?
   active      Boolean  @default(true)
-  dealerId    String? // null = all dealers
+  // Who sees this pop-up: ALL_DEALERS | DEALER (a specific dealer) | REVIEWERS |
+  // ADMINS | STAFF (reviewers + admins) | EVERYONE.
+  audience    String   @default("ALL_DEALERS")
+  dealerId    String? // set only when audience = DEALER
   dealer      Dealer?  @relation(fields: [dealerId], references: [id], onDelete: Cascade)
   createdById String?
   createdAt   DateTime @default(now())

@@ -177,3 +177,19 @@ export async function replayWelcomeTourAction(): Promise<void> {
   await prisma.user.update({ where: { id: session.userId }, data: { tourSeenAt: null } });
   redirect('/dealer');
 }
+
+// Acknowledge a must-read pop-up alert (the user pressed X / "I've read this").
+// Works for any signed-in user — dealers, reviewers, admins. Idempotent.
+export async function acknowledgeAlertAction(alertId: string): Promise<void> {
+  const session = await requireSession();
+  await prisma.alertAck
+    .upsert({
+      where: { alertId_userId: { alertId, userId: session.userId } },
+      create: { alertId, userId: session.userId },
+      update: {},
+    })
+    .catch(() => {});
+  revalidatePath('/dealer');
+  revalidatePath('/staff');
+  revalidatePath('/admin');
+}

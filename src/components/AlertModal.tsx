@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { acknowledgeAlertAction } from '@/app/(dealer)/actions';
+import { acknowledgeAlertAction } from '@/app/(account)/actions';
 
 export type DealerAlertItem = {
   id: string;

@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "DealerAlert" ADD COLUMN "audience" TEXT NOT NULL DEFAULT 'ALL_DEALERS';

@@ -1,8 +1,9 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { createDealerAlertAction, type ActionState } from '@/app/(admin)/actions';
+import { ALERT_AUDIENCES } from '@/lib/alerts';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -16,6 +17,7 @@ function SubmitButton() {
 export function AlertForm({ dealers }: { dealers: { id: string; name: string }[] }) {
   const [state, action] = useFormState(createDealerAlertAction, {} as ActionState);
   const formRef = useRef<HTMLFormElement>(null);
+  const [audience, setAudience] = useState<string>('ALL_DEALERS');
   if (state?.ok) formRef.current?.reset();
 
   return (
@@ -34,15 +36,31 @@ export function AlertForm({ dealers }: { dealers: { id: string; name: string }[]
           <input id="linkUrl" name="linkUrl" className="input" placeholder="https://…" maxLength={500} />
         </div>
         <div>
-          <label className="label" htmlFor="dealerId">Show to</label>
+          <label className="label" htmlFor="audience">Show to</label>
+          <select
+            id="audience"
+            name="audience"
+            className="input"
+            value={audience}
+            onChange={(e) => setAudience(e.target.value)}
+          >
+            {ALERT_AUDIENCES.map((a) => (
+              <option key={a.value} value={a.value}>{a.label}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+      {audience === 'DEALER' && (
+        <div>
+          <label className="label" htmlFor="dealerId">Which dealer</label>
           <select id="dealerId" name="dealerId" className="input" defaultValue="">
-            <option value="">All dealers</option>
+            <option value="">Select a dealer…</option>
             {dealers.map((d) => (
               <option key={d.id} value={d.id}>{d.name}</option>
             ))}
           </select>
         </div>
-      </div>
+      )}
       <div className="flex items-center gap-3">
         <SubmitButton />
         {state?.ok && <span className="text-xs text-green-600">Published — dealers will see it on their next visit.</span>}

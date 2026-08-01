@@ -853,18 +853,25 @@ export async function createDealerAlertAction(
     title: formData.get('title'),
     body: formData.get('body'),
     linkUrl: (formData.get('linkUrl') as string) || undefined,
+    audience: (formData.get('audience') as string) || undefined,
     dealerId: (formData.get('dealerId') as string) || undefined,
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message || 'Please complete the message.' };
   }
   const d = parsed.data;
+  // dealerId only matters for a dealer-specific alert.
+  const dealerId = d.audience === 'DEALER' ? d.dealerId || null : null;
+  if (d.audience === 'DEALER' && !dealerId) {
+    return { error: 'Pick which dealer this pop-up is for.' };
+  }
   const created = await prisma.dealerAlert.create({
     data: {
       title: d.title.trim(),
       body: d.body.trim(),
       linkUrl: d.linkUrl?.trim() || null,
-      dealerId: d.dealerId || null,
+      audience: d.audience,
+      dealerId,
       createdById: session.userId,
     },
   });

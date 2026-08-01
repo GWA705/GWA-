@@ -268,7 +268,11 @@ export const dealerAlertSchema = z.object({
     .max(500)
     .optional()
     .refine((v) => !v || /^https?:\/\//i.test(v), 'Link must start with http(s)://'),
-  dealerId: z.string().optional(), // '' or omitted = all dealers
+  audience: z
+    .enum(['ALL_DEALERS', 'DEALER', 'REVIEWERS', 'ADMINS', 'STAFF', 'EVERYONE'])
+    .optional()
+    .default('ALL_DEALERS'),
+  dealerId: z.string().optional(), // used only when audience = DEALER
 });
 
 export const contentSchema = z.object({
