@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { BannerImage } from './BannerImage';
 
 export interface BannerItem {
@@ -53,6 +53,9 @@ export function AnnouncementCarousel({ items, intervalMs = 6000 }: { items: Bann
   const n = items.length;
   const i = n ? index % n : 0;
 
+  // Swipe tracking (touch + mouse drag).
+  const dragX = useRef<number | null>(null);
+
   // Auto-advance, unless paused, single, or the viewer prefers reduced motion.
   useEffect(() => {
     if (n <= 1 || paused) return;
@@ -64,43 +67,50 @@ export function AnnouncementCarousel({ items, intervalMs = 6000 }: { items: Bann
 
   const go = (next: number) => setIndex(((next % n) + n) % n);
 
+  // A horizontal drag/swipe past ~40px flips to the next/previous banner.
+  function endSwipe(endX: number) {
+    if (dragX.current === null) return;
+    const dx = endX - dragX.current;
+    dragX.current = null;
+    if (Math.abs(dx) > 40) go(dx < 0 ? i + 1 : i - 1);
+  }
+
   if (n === 0) return null;
   if (n === 1) return <BannerCard item={items[0]} />;
 
   return (
     <div
-      className="relative"
+      className="relative touch-pan-y select-none"
       onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
+      onMouseLeave={() => {
+        setPaused(false);
+        dragX.current = null;
+      }}
       onFocusCapture={() => setPaused(true)}
       onBlurCapture={() => setPaused(false)}
+      onTouchStart={(e) => {
+        setPaused(true);
+        dragX.current = e.touches[0].clientX;
+      }}
+      onTouchEnd={(e) => {
+        endSwipe(e.changedTouches[0].clientX);
+        setPaused(false);
+      }}
+      onPointerDown={(e) => {
+        if (e.pointerType === 'mouse') dragX.current = e.clientX;
+      }}
+      onPointerUp={(e) => {
+        if (e.pointerType === 'mouse') endSwipe(e.clientX);
+      }}
       role="group"
       aria-roledescription="carousel"
-      aria-label="Announcements"
+      aria-label="Announcements — swipe to change"
     >
       <div key={items[i].id} className="banner-fade">
         <BannerCard item={items[i]} />
       </div>
 
-      {/* Prev / next */}
-      <button
-        type="button"
-        onClick={() => go(i - 1)}
-        aria-label="Previous announcement"
-        className="absolute left-2 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 text-brand-800 shadow ring-1 ring-black/5 backdrop-blur transition hover:bg-white"
-      >
-        <span aria-hidden>‹</span>
-      </button>
-      <button
-        type="button"
-        onClick={() => go(i + 1)}
-        aria-label="Next announcement"
-        className="absolute right-2 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 text-brand-800 shadow ring-1 ring-black/5 backdrop-blur transition hover:bg-white"
-      >
-        <span aria-hidden>›</span>
-      </button>
-
-      {/* Dots */}
+      {/* Dots — tap to jump; also show which one you're on. */}
       <div className="absolute inset-x-0 bottom-2 z-10 flex justify-center gap-1.5">
         {items.map((it, d) => (
           <button
