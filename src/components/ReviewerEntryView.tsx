@@ -78,6 +78,7 @@ export function ReviewerEntryView({
   pv,
   revealHref,
   hideHref,
+  printHref,
 }: {
   app: AppForEntry;
   loan: LoanApplication | null;
@@ -85,6 +86,7 @@ export function ReviewerEntryView({
   pv: ProtectedValues;
   revealHref: string;
   hideHref: string;
+  printHref?: string;
 }) {
   const hasCo = !!(loan?.coFirstName || loan?.coLastName);
   const otherAddresses = [
@@ -103,15 +105,22 @@ export function ReviewerEntryView({
     <section className="card p-6">
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-base font-semibold text-gray-900">Application — reviewer entry view</h2>
-        {reveal ? (
-          <Link href={hideHref} className="text-xs text-brand-700 hover:underline">
-            Hide protected fields
-          </Link>
-        ) : (
-          <Link href={revealHref} className="btn-secondary text-xs">
-            Reveal protected fields (logged)
-          </Link>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {printHref && (
+            <a href={printHref} target="_blank" rel="noopener noreferrer" className="btn-secondary text-xs">
+              Open full application ↗
+            </a>
+          )}
+          {reveal ? (
+            <Link href={hideHref} className="text-xs text-brand-700 hover:underline">
+              Hide protected fields
+            </Link>
+          ) : (
+            <Link href={revealHref} className="btn-secondary text-xs">
+              Reveal protected fields (logged)
+            </Link>
+          )}
+        </div>
       </div>
       <p className="mb-2 text-xs text-gray-500">
         Read top to bottom — laid out in the order a lender’s application asks for it.
@@ -123,48 +132,48 @@ export function ReviewerEntryView({
         </p>
       )}
 
-      <Group title="Applicant">
-        <Field label="Full name" value={joinName(app.applicantFirstName, loan?.middleName, app.applicantLastName)} />
-        <Field label="Date of birth" value={pv.dob} />
+      <Group title="Personal details">
+        <Field label="First / middle / last name" value={joinName(app.applicantFirstName, loan?.middleName, app.applicantLastName)} />
+        <Field label="Birthdate" value={pv.dob} />
         <Field label="Marital status" value={nonEmpty(loan?.maritalStatus)} />
-        <Field label="Email" value={app.applicantEmail} />
-        <Field label="Mobile phone" value={app.applicantPhone} />
         <Field label="Home phone" value={nonEmpty(loan?.homePhone)} />
+        <Field label="Mobile phone" value={app.applicantPhone} />
+        <Field label="Email" value={app.applicantEmail} />
       </Group>
 
-      <Group title="Home address">
-        <Field label="Street address" value={pv.address} />
+      <Group title="Housing">
+        <Field label="Address" value={pv.address} />
         <Field label="City" value={nonEmpty(loan?.city)} />
         <Field label="Province" value={nonEmpty(loan?.addressProvince) ?? app.province} />
         <Field label="Postal code" value={nonEmpty(loan?.postalCode)} />
-        <Field label="Own / Rent" value={loan?.housingStatus ? HOUSING[loan.housingStatus] : null} />
-        <Field label="Monthly housing cost" value={money(loan?.monthlyHousingCost)} />
-        <Field label="Years at address" value={loan?.yearsAtAddress ?? null} />
+        <Field label="Years at this address" value={loan?.yearsAtAddress ?? null} />
+        <Field label="Monthly housing costs" value={money(loan?.monthlyHousingCost)} />
+        <Field label="Housing status (Own / Rent / Other)" value={loan?.housingStatus ? HOUSING[loan.housingStatus] : null} />
       </Group>
 
       {hasOther && (
         <Group title="Other addresses">
           <Field label="Mailing address" value={otherAddresses[0]} />
-          <Field label="Previous address" value={otherAddresses[1]} />
+          <Field label="Previous address (if moved within 2 yrs)" value={otherAddresses[1]} />
           <Field label="Work-site address" value={otherAddresses[2]} />
         </Group>
       )}
 
-      <Group title="Identification">
-        <Field label="ID type" value={nonEmpty(loan?.idType)} />
-        <Field label="ID number" value={pv.govId} mono />
-        <Field label="Province of issue" value={nonEmpty(loan?.idProvince)} />
-        <Field label="Expiry" value={fmtDate(loan?.idExpiry)} />
+      <Group title="Borrower identification">
+        <Field label="Photo ID card type" value={nonEmpty(loan?.idType)} />
+        <Field label="Photo ID number" value={pv.govId} mono />
+        <Field label="Photo ID province" value={nonEmpty(loan?.idProvince)} />
+        <Field label="Photo ID expiry" value={fmtDate(loan?.idExpiry)} />
       </Group>
 
-      <Group title="Employment & income">
-        <Field label="Employment status" value={loan?.employmentStatus ? EMPLOYMENT[loan.employmentStatus] : null} />
-        <Field label="Employer" value={nonEmpty(loan?.businessName)} />
-        <Field label="Position / title" value={nonEmpty(loan?.positionTitle)} />
+      <Group title="Employment & income information">
+        <Field label="Business name / employer" value={nonEmpty(loan?.businessName)} />
+        <Field label="Position title" value={nonEmpty(loan?.positionTitle)} />
         <Field label="Employer address" value={nonEmpty(loan?.employerAddress)} />
         <Field label="Employer phone" value={nonEmpty(loan?.employerPhone)} />
+        <Field label="Time at job (years)" value={loan?.timeAtJobYears ?? null} />
         <Field label="Gross monthly income" value={money(loan?.grossMonthlyIncome)} />
-        <Field label="Time at job (yrs)" value={loan?.timeAtJobYears ?? null} />
+        <Field label="Employment status" value={loan?.employmentStatus ? EMPLOYMENT[loan.employmentStatus] : null} />
       </Group>
 
       {hasCo && loan && (
@@ -172,34 +181,34 @@ export function ReviewerEntryView({
           <h3 className="mb-1 text-sm font-semibold text-brand-900">
             Co-applicant{nonEmpty(loan.coRelationship) ? ` · ${loan.coRelationship}` : ''}
           </h3>
-          <Group title="Applicant">
-            <Field label="Full name" value={joinName(loan.coFirstName, loan.coMiddleName, loan.coLastName)} />
-            <Field label="Date of birth" value={pv.coDob} />
+          <Group title="Personal details">
+            <Field label="First / middle / last name" value={joinName(loan.coFirstName, loan.coMiddleName, loan.coLastName)} />
+            <Field label="Birthdate" value={pv.coDob} />
             <Field label="Marital status" value={nonEmpty(loan.coMaritalStatus)} />
-            <Field label="Email" value={nonEmpty(loan.coEmail)} />
-            <Field label="Mobile phone" value={nonEmpty(loan.coPhone)} />
             <Field label="Home phone" value={nonEmpty(loan.coHomePhone)} />
+            <Field label="Mobile phone" value={nonEmpty(loan.coPhone)} />
+            <Field label="Email" value={nonEmpty(loan.coEmail)} />
           </Group>
-          <Group title="Home address">
-            <Field label="Street address" value={pv.coAddress} />
+          <Group title="Housing">
+            <Field label="Address" value={pv.coAddress} />
             <Field label="City" value={nonEmpty(loan.coCity)} />
             <Field label="Province" value={nonEmpty(loan.coProvince)} />
             <Field label="Postal code" value={nonEmpty(loan.coPostal)} />
           </Group>
-          <Group title="Identification">
-            <Field label="ID type" value={nonEmpty(loan.coIdType)} />
-            <Field label="ID number" value={pv.coGovId} mono />
-            <Field label="Province of issue" value={nonEmpty(loan.coIdProvince)} />
-            <Field label="Expiry" value={fmtDate(loan.coIdExpiry)} />
+          <Group title="Borrower identification">
+            <Field label="Photo ID card type" value={nonEmpty(loan.coIdType)} />
+            <Field label="Photo ID number" value={pv.coGovId} mono />
+            <Field label="Photo ID province" value={nonEmpty(loan.coIdProvince)} />
+            <Field label="Photo ID expiry" value={fmtDate(loan.coIdExpiry)} />
           </Group>
-          <Group title="Employment & income">
-            <Field label="Employment status" value={loan.coEmploymentStatus ? EMPLOYMENT[loan.coEmploymentStatus] : null} />
-            <Field label="Employer" value={nonEmpty(loan.coBusinessName)} />
-            <Field label="Position / title" value={nonEmpty(loan.coPositionTitle)} />
+          <Group title="Employment & income information">
+            <Field label="Business name / employer" value={nonEmpty(loan.coBusinessName)} />
+            <Field label="Position title" value={nonEmpty(loan.coPositionTitle)} />
             <Field label="Employer address" value={nonEmpty(loan.coEmployerAddress)} />
             <Field label="Employer phone" value={nonEmpty(loan.coEmployerPhone)} />
+            <Field label="Time at job (years)" value={loan.coTimeAtJobYears ?? null} />
             <Field label="Gross monthly income" value={money(loan.coGrossMonthlyIncome)} />
-            <Field label="Time at job (yrs)" value={loan.coTimeAtJobYears ?? null} />
+            <Field label="Employment status" value={loan.coEmploymentStatus ? EMPLOYMENT[loan.coEmploymentStatus] : null} />
           </Group>
         </div>
       )}

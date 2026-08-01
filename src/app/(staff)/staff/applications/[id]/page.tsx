@@ -9,6 +9,7 @@ import { DocumentList } from '@/components/DocumentList';
 import { FundingChecklist } from '@/components/FundingChecklist';
 import { VerificationChecklist, type VerificationState } from '@/components/VerificationChecklist';
 import { ReviewerEntryView } from '@/components/ReviewerEntryView';
+import { CollapsibleEntry } from '@/components/CollapsibleEntry';
 import { PayoutReceipt } from '@/components/PayoutReceipt';
 import { ReviewerPaperworkForm } from './ReviewerPaperworkForm';
 import { NoteThread } from '@/components/NoteThread';
@@ -222,15 +223,39 @@ export default async function StaffApplicationDetail({
           can act without scrolling past the whole deal; back on the right at lg. */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="order-2 space-y-6 lg:order-1 lg:col-span-2">
-        {/* Application in lender-entry order — one panel, read straight down. */}
-        <ReviewerEntryView
-          app={app}
-          loan={loan}
-          reveal={reveal}
-          pv={pv}
-          revealHref={`/staff/applications/${app.id}?reveal=1`}
-          hideHref={`/staff/applications/${app.id}`}
-        />
+        {/* Application in lender-entry order — one panel, read straight down.
+            Minimize it to a snapshot once re-keying is done to tidy the page. */}
+        <CollapsibleEntry
+          storageKey={`entryview:${app.id}`}
+          snapshot={
+            <section className="card p-6">
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="text-base font-semibold text-gray-900">Customer snapshot</h2>
+                <StatusBadge status={app.status} />
+              </div>
+              <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3">
+                <div><dt className="text-gray-500">Customer</dt><dd className="font-medium">{app.applicantFirstName} {app.applicantLastName}</dd></div>
+                <div><dt className="text-gray-500">Phone</dt><dd className="font-medium">{app.applicantPhone}</dd></div>
+                <div><dt className="text-gray-500">City</dt><dd className="font-medium">{app.loanApplication?.city ?? '—'}{app.loanApplication?.addressProvince ? `, ${app.loanApplication.addressProvince}` : ''}</dd></div>
+                <div><dt className="text-gray-500">Product(s)</dt><dd className="font-medium">{app.productsSold.length ? app.productsSold.join(', ') : '—'}</dd></div>
+                <div><dt className="text-gray-500">Amount</dt><dd className="font-medium">{app.approvedAmount ? `$${app.approvedAmount.toString()}` : `$${app.requestedAmount.toString()}`}</dd></div>
+                <div><dt className="text-gray-500">Finance company</dt><dd className="font-medium">{app.financeCompany?.name ?? '—'}</dd></div>
+                <div><dt className="text-gray-500">Financing deal #</dt><dd className="font-medium">{app.financeItNumber ?? '—'}</dd></div>
+                <div><dt className="text-gray-500">HD Customer #</dt><dd className="font-medium">{app.hdReference ?? '—'}</dd></div>
+              </dl>
+            </section>
+          }
+        >
+          <ReviewerEntryView
+            app={app}
+            loan={loan}
+            reveal={reveal}
+            pv={pv}
+            revealHref={`/staff/applications/${app.id}?reveal=1`}
+            hideHref={`/staff/applications/${app.id}`}
+            printHref={`/staff/applications/${app.id}/print`}
+          />
+        </CollapsibleEntry>
 
         {/* Notes to dealer */}
         <section className="card p-6">
