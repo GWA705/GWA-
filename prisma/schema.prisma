@@ -814,6 +814,10 @@ model AuditLog {
   id         String   @id @default(cuid())
   actorId    String?
   actor      User?    @relation(fields: [actorId], references: [id])
+  // Immutable snapshot of who acted, captured at write time, so attribution
+  // survives even if the user is later deleted (actorId is then nulled).
+  actorName  String?
+  actorEmail String?
   action     String   // e.g. "PII_DECRYPT", "APPLICATION_SUBMIT", "DOC_DOWNLOAD"
   entityType String   // e.g. "Application", "Document", "User"
   entityId   String?

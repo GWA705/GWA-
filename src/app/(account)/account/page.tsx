@@ -2,7 +2,8 @@ import Link from 'next/link';
 import { requireSession, defaultLandingFor } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { decryptMfaSecret, buildMfaEnrollment } from '@/lib/mfa';
-import { beginMfaAction, disableMfaAction, replayWelcomeTourAction } from '@/app/(account)/actions';
+import { beginMfaAction, replayWelcomeTourAction } from '@/app/(account)/actions';
+import { DisableMfaForm } from './DisableMfaForm';
 import { ConfirmMfaForm } from './ConfirmMfaForm';
 import { StartEmailMfaButton, ConfirmEmailMfaForm } from './EmailMfaForms';
 import { ProfileForm } from './ProfileForm';
@@ -115,9 +116,7 @@ export default async function AccountPage() {
             <span className="badge bg-green-100 text-green-800">
               Enabled · {user.mfaMethod === 'EMAIL' ? 'Email codes' : 'Authenticator app'}
             </span>
-            <form action={disableMfaAction} className="mt-4">
-              <button type="submit" className="btn-secondary">Disable 2FA</button>
-            </form>
+            <DisableMfaForm />
           </div>
         ) : appPending ? (
           <div className="mt-4 space-y-4">

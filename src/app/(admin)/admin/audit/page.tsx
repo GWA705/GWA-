@@ -187,10 +187,10 @@ export default async function AuditPage({ searchParams }: { searchParams: AuditS
                   <td className="px-4 py-2">
                     {l.actorId ? (
                       <a href={qs({ actorId: l.actorId, page: '1' })} className="text-brand-700 hover:underline">
-                        {l.actor?.name ?? l.actorId}
+                        {l.actor?.name ?? l.actorName ?? l.actorId}
                       </a>
                     ) : (
-                      'system'
+                      l.actorName ?? 'system'
                     )}
                   </td>
                   <td className="px-4 py-2">

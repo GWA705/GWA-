@@ -171,14 +171,23 @@ export async function confirmEmailMfaAction(
   return { ok: true };
 }
 
-export async function disableMfaAction(): Promise<void> {
+export async function disableMfaAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const session = await requireSession();
+  // Require the current password so a hijacked session can't silently remove 2FA.
+  const current = String(formData.get('currentPassword') || '');
+  if (!current) return { error: 'Enter your current password to disable 2FA.' };
+  const user = await prisma.user.findUnique({ where: { id: session.userId } });
+  if (!user) return { error: 'Account not found.' };
+  const ok = await verifyPassword(current, user.passwordHash);
+  if (!ok) return { error: 'Your current password is incorrect.' };
+
   await prisma.user.update({
     where: { id: session.userId },
     data: { mfaEnabled: false, mfaMethod: null, mfaSecretEnc: null, mfaEmailCodeHash: null, mfaEmailCodeExpiresAt: null },
   });
   await audit({ actorId: session.userId, action: 'USER_UPDATE', entityType: 'User', entityId: session.userId, detail: 'MFA disabled' });
   revalidatePath('/account');
+  return { ok: true };
 }
 
 // Mark the welcome tour as seen (called when a dealer finishes or skips it).

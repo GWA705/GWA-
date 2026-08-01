@@ -406,7 +406,7 @@ export default async function StaffApplicationDetail({
               {activity.map((e) => (
                 <li key={e.id} className="flex items-start justify-between gap-3 border-b border-gray-50 pb-2 last:border-0">
                   <span>
-                    <span className="font-medium text-gray-800">{e.actor?.name ?? 'System'}</span>
+                    <span className="font-medium text-gray-800">{e.actor?.name ?? e.actorName ?? 'System'}</span>
                     <span className="text-gray-600"> — {actionLabel(e.action)}</span>
                     {e.detail && <span className="ml-1 text-gray-400">({e.detail})</span>}
                   </span>

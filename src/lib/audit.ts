@@ -56,9 +56,23 @@ function clientIp(): string | null {
  */
 export async function audit(input: AuditInput): Promise<void> {
   try {
+    // Snapshot the actor's name/email so attribution survives a later user
+    // deletion (which nulls actorId). Best-effort lookup.
+    let actorName: string | null = null;
+    let actorEmail: string | null = null;
+    if (input.actorId) {
+      const actor = await prisma.user.findUnique({
+        where: { id: input.actorId },
+        select: { name: true, email: true },
+      });
+      actorName = actor?.name ?? null;
+      actorEmail = actor?.email ?? null;
+    }
     await prisma.auditLog.create({
       data: {
         actorId: input.actorId ?? null,
+        actorName,
+        actorEmail,
         action: input.action,
         entityType: input.entityType,
         entityId: input.entityId ?? null,
