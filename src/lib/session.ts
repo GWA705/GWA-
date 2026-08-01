@@ -38,7 +38,7 @@ async function sign(payload: JWTPayload, ttl: number): Promise<string> {
 
 async function verify(token: string): Promise<JWTPayload | null> {
   try {
-    const { payload } = await jwtVerify(token, secret());
+    const { payload } = await jwtVerify(token, secret(), { algorithms: ['HS256'] });
     return payload;
   } catch {
     return null;

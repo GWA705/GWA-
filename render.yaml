@@ -42,6 +42,8 @@ services:
       - key: APP_URL
         sync: false # set to your Render URL after first deploy (optional)
       - key: SEED_ADMIN_EMAIL
-        value: admin@gwa.example
+        sync: false # set your real admin email in the dashboard
       - key: SEED_ADMIN_PASSWORD
-        value: ChangeMe!Admin123
+        sync: false # set a strong password in the dashboard, or leave unset to
+        # have the seed generate a random one (printed once in the deploy log).
+        # Never commit a real/default admin password here.

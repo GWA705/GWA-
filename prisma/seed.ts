@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import { encryptOptional } from '../src/lib/crypto';
 import { CONSENT_POLICY_VERSION, CONSENT_TEXT } from '../src/lib/constants';
 
@@ -9,9 +10,16 @@ async function hash(pw: string) {
   return bcrypt.hash(pw, 12);
 }
 
+// A strong random bootstrap password (used only when SEED_ADMIN_PASSWORD is not
+// set) so we never ship a known default admin credential.
+function randomPassword() {
+  return crypto.randomBytes(15).toString('base64').replace(/[^A-Za-z0-9]/g, '') + 'Aa1!';
+}
+
 async function main() {
-  const adminEmail = (process.env.SEED_ADMIN_EMAIL || 'admin@gwa.example').toLowerCase();
-  const adminPassword = process.env.SEED_ADMIN_PASSWORD || 'ChangeMe!Admin123';
+  const adminEmail = (process.env.SEED_ADMIN_EMAIL || 'admin@example.com').toLowerCase();
+  const generatedAdminPassword = !process.env.SEED_ADMIN_PASSWORD;
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD || randomPassword();
 
   // Demo accounts (reviewer/dealer with fake @…example emails) are only created
   // when SEED_DEMO=true. In production they're left out, so they can't receive
@@ -29,10 +37,17 @@ async function main() {
         name: 'GWA Administrator',
         role: 'ADMIN',
         passwordHash: await hash(adminPassword),
-        passwordChangedAt: new Date(),
+        // null → treated as "must change" so the bootstrap password is forced to
+        // be changed at first login.
+        passwordChangedAt: null,
       },
     });
     console.log(`Bootstrap admin created: ${admin.email}`);
+    if (generatedAdminPassword) {
+      console.log(
+        `  Temporary admin password (set once — change at first login): ${adminPassword}`,
+      );
+    }
   }
 
   // Reviewer (demo only)

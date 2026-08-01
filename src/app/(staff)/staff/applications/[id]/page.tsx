@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireRole } from '@/lib/session';
 import { prisma } from '@/lib/db';
-import { decryptOptional, maskTail } from '@/lib/crypto';
+import { decryptOptional } from '@/lib/crypto';
 import { audit } from '@/lib/audit';
 import { StatusBadge } from '@/components/StatusBadge';
 import { DocumentList } from '@/components/DocumentList';
@@ -144,12 +144,15 @@ export default async function StaffApplicationDetail({
         coGovId: decryptOptional(loan?.coGovIdNumberEnc) ?? '—',
       }
     : {
+        // Masked branch: never decrypt protected fields (a decrypt without an
+        // explicit, audited reveal would be an unlogged PII access). Show dots
+        // when a value exists, an em dash when empty.
         dob: masked(app.applicantDobEnc),
         address: masked(app.applicantAddressEnc),
-        govId: maskTail(decryptOptional(app.govIdNumberEnc), 3),
+        govId: masked(app.govIdNumberEnc),
         coDob: masked(loan?.coDobEnc),
         coAddress: masked(loan?.coAddressEnc),
-        coGovId: maskTail(decryptOptional(loan?.coGovIdNumberEnc), 3),
+        coGovId: masked(loan?.coGovIdNumberEnc),
       };
 
   if (reveal) {

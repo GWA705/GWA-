@@ -1,16 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
+import crypto from 'crypto';
 import { runAttentionAlerts } from '@/lib/sla';
 
 export const dynamic = 'force-dynamic';
+
+// Constant-time secret comparison that also avoids leaking length.
+function secretMatches(provided: string, expected: string): boolean {
+  const a = crypto.createHash('sha256').update(provided).digest();
+  const b = crypto.createHash('sha256').update(expected).digest();
+  return crypto.timingSafeEqual(a, b);
+}
 
 /**
  * Scheduled endpoint for the 2-hour "new deal not looked at" alert. Meant to be
  * called by a scheduler (e.g. a Render Cron Job) every ~15 minutes. Protected by
  * a shared secret so it can't be triggered by the public.
  *
- * Auth: send the secret as either
+ * Auth: send the secret in the Authorization header only:
  *   Authorization: Bearer <CRON_SECRET>
- * or a query string ?key=<CRON_SECRET>
  *
  * The function itself only sends during business hours (8am–10pm Ontario time),
  * so running the cron all day is fine — off-hours runs simply no-op.
@@ -21,10 +28,11 @@ async function handle(req: NextRequest) {
     return NextResponse.json({ error: 'CRON_SECRET is not configured.' }, { status: 503 });
   }
 
+  // Accept the secret only via the Authorization header — never the query string
+  // (which would land in access logs, history, and Referer).
   const auth = req.headers.get('authorization') || '';
   const bearer = auth.toLowerCase().startsWith('bearer ') ? auth.slice(7).trim() : '';
-  const key = bearer || req.nextUrl.searchParams.get('key') || '';
-  if (key !== secret) {
+  if (!bearer || !secretMatches(bearer, secret)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

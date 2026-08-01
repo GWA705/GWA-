@@ -1,4 +1,5 @@
 import type { Prisma } from '@prisma/client';
+import { formatPhone } from './format';
 
 /**
  * Build a case-insensitive search filter across the fields we let users search:
@@ -27,6 +28,19 @@ export function searchWhere(q: string | undefined): Prisma.ApplicationWhereInput
     { loanApplication: { is: { postalCode: contains } } },
     { loanApplication: { is: { homePhone: contains } } },
   ];
+
+  // Phone numbers match whether typed with or without dashes/spaces. Stored
+  // phones are dashed (705-716-2111); a dealer may search "7057162111". Match
+  // both the digits-only and the formatted form against the phone columns.
+  const digits = term.replace(/\D/g, '');
+  if (digits.length >= 3) {
+    const variants = new Set([digits, formatPhone(digits)]);
+    for (const v of variants) {
+      const c = { contains: v, mode: 'insensitive' as const };
+      or.push({ applicantPhone: c });
+      or.push({ loanApplication: { is: { homePhone: c } } });
+    }
+  }
 
   // "First Last" (either order) — so a full name matches even though the names
   // live in separate columns.

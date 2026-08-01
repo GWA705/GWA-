@@ -9,7 +9,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   if (!session) return new NextResponse('Unauthorized', { status: 401 });
 
   const a = await prisma.announcement.findUnique({ where: { id: params.id } });
-  if (!a || !a.imageStorageKey) return new NextResponse('Not found', { status: 404 });
+  if (!a || !a.active || !a.imageStorageKey) return new NextResponse('Not found', { status: 404 });
 
   try {
     const bytes = await getDocument(a.imageStorageKey);
@@ -17,6 +17,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
       status: 200,
       headers: {
         'Content-Type': a.imageMime || 'image/jpeg',
+        'X-Content-Type-Options': 'nosniff',
         'Cache-Control': 'private, max-age=300',
       },
     });

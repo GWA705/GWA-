@@ -5,6 +5,9 @@ const COOKIE_NAME = 'gwa_session';
 const VIEW_AS_COOKIE_NAME = 'gwa_view_as';
 
 function secret(): Uint8Array {
+  // Fail closed: with no configured secret, verification will reject every
+  // token (there is no valid key to sign with), so requests fall through to the
+  // login redirect rather than being admitted.
   return new TextEncoder().encode(process.env.SESSION_SECRET || '');
 }
 
@@ -12,7 +15,7 @@ async function readClaims(req: NextRequest): Promise<{ role: string | null; deal
   const token = req.cookies.get(COOKIE_NAME)?.value;
   if (!token) return { role: null, dealerId: null };
   try {
-    const { payload } = await jwtVerify(token, secret());
+    const { payload } = await jwtVerify(token, secret(), { algorithms: ['HS256'] });
     const role = (payload.role as string) ?? null;
     let dealerId = (payload.dealerId as string | null) ?? null;
     // An admin "viewing as" a dealer carries the target dealer in a separate
