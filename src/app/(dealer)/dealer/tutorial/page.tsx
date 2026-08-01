@@ -45,17 +45,36 @@ const STEPS: Step[] = [
   },
   {
     n: 4,
-    title: 'Track a deal & upload documents',
+    title: 'Open & track a deal',
     body: [
-      'Open a deal to see its status, chat with the reviewer, and upload paperwork.',
-      'To upload, drag files onto the big drop area or tap “Choose file.” You can drop several at once (PDF or photos).',
-      'When we share paperwork for your customer, or a payout receipt, it shows up right here too.',
+      'Tap any customer to open their deal. You’ll see the summary, review decisions, a “Chat with the Reviewer” box, and everything you’ve uploaded.',
+      'Anything we share back — paperwork for your customer, or a payout receipt — shows up here too.',
     ],
     img: '/tutorial/05-deal.png',
-    alt: 'A deal page showing status, notes, and the document upload area.',
+    alt: 'A deal page showing the status bar, summary, chat and documents.',
   },
   {
     n: 5,
+    title: 'Read the status bar',
+    body: [
+      'Across the top of every deal is a status bar that shows exactly where it is: Submitted → Approved → Docs uploaded → Confirmation → In for funding → Funded → Paid.',
+      'A green check means that step is done, so at a glance you always know what’s finished and what’s next.',
+    ],
+    img: '/tutorial/09-status-bar.png',
+    alt: 'The deal status bar with seven stages from Submitted to Paid.',
+  },
+  {
+    n: 6,
+    title: 'Upload documents (drag & drop)',
+    body: [
+      'To send us paperwork, drag your files straight onto the big drop area — or tap “Choose file.”',
+      'You can drop several files at once (PDFs or photos). If a file lands just outside the box nothing happens — simply drop it again inside the dashed area, then tap Upload.',
+    ],
+    img: '/tutorial/10-upload.png',
+    alt: 'The drag-and-drop document upload area on a deal.',
+  },
+  {
+    n: 7,
     title: 'Resources, HD Promotions & HD Credit Card',
     body: [
       'The top menu has guides, current promotions, and step-by-step help for the Home Depot credit card.',
@@ -65,7 +84,7 @@ const STEPS: Step[] = [
     alt: 'The HD Credit Card help page with preview cards.',
   },
   {
-    n: 6,
+    n: 8,
     title: 'Your account',
     body: [
       'Under “My account” you can update your details, choose which email notifications you get, and turn on extra sign-in security.',
