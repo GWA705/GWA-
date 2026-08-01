@@ -10,7 +10,7 @@ import { encryptOptional } from '@/lib/crypto';
 import { audit } from '@/lib/audit';
 import { storeFiles } from '@/lib/upload';
 import { markDealerAction } from '@/lib/activity';
-import { notifyNewDocuments, notifyNewNote } from '@/lib/notify';
+import { notifyNewDocuments, notifyNewNote, notifyNewSubmission, notifyFundingSubmitted } from '@/lib/notify';
 import { applicationSchema, serialNumberSchema } from '@/lib/validation';
 import { CONSENT_POLICY_VERSION, CONSENT_TEXT } from '@/lib/constants';
 import type { DocumentType } from '@prisma/client';
@@ -202,6 +202,7 @@ export async function createApplicationAction(
 
   await audit({ actorId: session.userId, action: 'APPLICATION_CREATE', entityType: 'Application', entityId: app.id });
   await audit({ actorId: session.userId, action: 'APPLICATION_SUBMIT', entityType: 'Application', entityId: app.id });
+  await notifyNewSubmission(app.id);
 
   redirect(`/dealer/applications/${app.id}`);
 }
@@ -338,6 +339,7 @@ export async function submitFundingAction(applicationId: string): Promise<void> 
     }),
   ]);
   await audit({ actorId: session.userId, action: 'FUNDING_SUBMIT', entityType: 'Application', entityId: applicationId });
+  await notifyFundingSubmitted(applicationId);
   redirect(`/dealer/applications/${applicationId}`);
 }
 

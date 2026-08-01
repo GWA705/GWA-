@@ -3,6 +3,10 @@ import { prisma } from './db';
 import { sendEmail } from './email';
 import { renderEmail } from './email-templates';
 import { STATUS_LABELS } from './constants';
+import { sendPushToRoles } from './push';
+
+// Reviewers/admins who should receive activity notifications.
+const STAFF_ROLES: Role[] = ['REVIEWER', 'ADMIN'];
 
 /**
  * Notification helpers. Each is best-effort — a failure never breaks the action
@@ -75,8 +79,52 @@ export async function notifyNewDocuments(applicationId: string) {
         }),
       });
     }
+    await sendPushToRoles(STAFF_ROLES, {
+      title: 'New documents uploaded',
+      body: `${deal} (${app.dealer.name}) — new document(s) uploaded.`,
+      url: `/staff/applications/${applicationId}`,
+      tag: `docs-${applicationId}`,
+    });
   } catch (e) {
     console.error('[notify] new documents failed', e);
+  }
+}
+
+/** Reviewers/admins are alerted when a dealer submits a new deal. Push only. */
+export async function notifyNewSubmission(applicationId: string) {
+  try {
+    const app = await prisma.application.findUnique({
+      where: { id: applicationId },
+      include: { dealer: true },
+    });
+    if (!app) return;
+    await sendPushToRoles(STAFF_ROLES, {
+      title: 'New deal submitted',
+      body: `${dealLabel(app)} (${app.dealer.name}) — a new deal was submitted.`,
+      url: `/staff/applications/${applicationId}`,
+      tag: `submit-${applicationId}`,
+    });
+  } catch (e) {
+    console.error('[notify] new submission failed', e);
+  }
+}
+
+/** Reviewers/admins are alerted when a dealer submits the funding package. Push only. */
+export async function notifyFundingSubmitted(applicationId: string) {
+  try {
+    const app = await prisma.application.findUnique({
+      where: { id: applicationId },
+      include: { dealer: true },
+    });
+    if (!app) return;
+    await sendPushToRoles(STAFF_ROLES, {
+      title: 'Funding package submitted',
+      body: `${dealLabel(app)} (${app.dealer.name}) — funding package submitted.`,
+      url: `/staff/applications/${applicationId}`,
+      tag: `funding-${applicationId}`,
+    });
+  } catch (e) {
+    console.error('[notify] funding submitted failed', e);
   }
 }
 
@@ -102,6 +150,12 @@ export async function notifyNewNote(applicationId: string, authorRole: Role) {
           }),
         });
       }
+      await sendPushToRoles(STAFF_ROLES, {
+        title: 'New note from a dealer',
+        body: `${deal} — a dealer added a note.`,
+        url: `/staff/applications/${applicationId}`,
+        tag: `note-${applicationId}`,
+      });
     } else {
       const users = await prisma.user.findMany({
         where: { dealerId: app.dealerId, role: 'DEALER_USER', active: true, notifyNewNotes: true },

@@ -7,6 +7,7 @@ import { ConfirmMfaForm } from './ConfirmMfaForm';
 import { StartEmailMfaButton, ConfirmEmailMfaForm } from './EmailMfaForms';
 import { ProfileForm } from './ProfileForm';
 import { ChangePasswordForm } from './ChangePasswordForm';
+import { DesktopNotifications } from '@/components/DesktopNotifications';
 import { isPasswordExpired, PASSWORD_MAX_AGE_DAYS } from '@/lib/password';
 
 export const dynamic = 'force-dynamic';
@@ -67,6 +68,10 @@ export default async function AccountPage() {
             isStaff,
           }}
         />
+      </section>
+
+      <section className="card p-6">
+        <DesktopNotifications />
       </section>
 
       {session.role === 'DEALER_USER' && (

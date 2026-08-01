@@ -39,6 +39,23 @@ model Announcement {
   updatedAt       DateTime @updatedAt
 }
 
+// A browser push-notification subscription (Web Push). One row per browser a
+// user enables desktop notifications in. The endpoint + keys come from the
+// browser's PushManager; we send to them with the VAPID keypair. Stale ones
+// (410/404 on send) are pruned automatically.
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
 // A single-use, expiring token backing the "forgot password" self-service
 // reset. Only the SHA-256 hash of the token is stored; the raw token lives
 // only in the emailed link.
@@ -202,6 +219,7 @@ model User {
   notesAuthored       Note[]
   confirmations       Confirmation[]
   verificationChecks  VerificationCheck[]
+  pushSubscriptions   PushSubscription[]
 
   @@index([dealerId])
 }
