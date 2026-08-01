@@ -12,6 +12,23 @@ export interface UploadResult {
   documentId?: string;
 }
 
+// Identify a file by its magic bytes so we don't trust the client-declared MIME.
+// Returns a supported MIME type, or null when the content isn't recognized.
+function sniffMime(buf: Buffer): string | null {
+  if (buf.length >= 4 && buf.toString('latin1', 0, 4) === '%PDF') return 'application/pdf';
+  if (buf.length >= 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return 'image/jpeg';
+  if (buf.length >= 8 && buf.toString('hex', 0, 8) === '89504e470d0a1a0a') return 'image/png';
+  if (buf.length >= 12 && buf.toString('latin1', 0, 4) === 'RIFF' && buf.toString('latin1', 8, 12) === 'WEBP')
+    return 'image/webp';
+  // HEIC/HEIF: an ISO-BMFF 'ftyp' box with a HEIF-family brand.
+  if (buf.length >= 12 && buf.toString('latin1', 4, 8) === 'ftyp') {
+    const brand = buf.toString('latin1', 8, 12).toLowerCase();
+    const heifBrands = ['heic', 'heix', 'hevc', 'hevx', 'mif1', 'msf1', 'heim', 'heis', 'hevm', 'hevs', 'heif'];
+    if (heifBrands.includes(brand)) return 'image/heic';
+  }
+  return null;
+}
+
 export interface ApplicationContext {
   id: string;
   dealerId: string;
@@ -55,6 +72,14 @@ export async function storeUploadedFile(params: {
   // crashes the whole page.
   try {
     const original = Buffer.from(await file.arrayBuffer());
+
+    // Verify the real content matches a supported type — don't trust the
+    // client-declared MIME (a script/HTML file could claim to be a PDF/image).
+    const sniffed = sniffMime(original);
+    if (!sniffed || !ALLOWED_MIME_TYPES.includes(sniffed)) {
+      return { ok: false, error: 'The file content does not look like a supported document type.' };
+    }
+
     const { bytes, mimeType, converted } = await convertToPdf(original, file.type);
     const isPdf = mimeType === 'application/pdf';
 

@@ -34,17 +34,17 @@ Status key: ✅ fixed · 🟡 in progress · ⬜ planned · 🔷 your action (Re
 
 ## Wave 2 — Medium
 
-- ⬜ **No session revocation**: deactivating/demoting a user or logout doesn't end a live session for up to 8h. Add a `tokenVersion` (bumped on deactivate/role-change/logout) checked in `getSession`/middleware, or re-read `active`/`role` from DB.
+- ✅ **No session revocation** → `getSession` now checks the DB on every read: it rejects tokens for deactivated users and mismatched `tokenVersion`, and uses fresh role/dealer/name. `tokenVersion` is bumped on deactivate, admin user-edit, and password change/reset — killing live sessions immediately. (The user's own password change re-issues their current device so they stay signed in.)
 - ⬜ **Login user-enumeration** (timing: no bcrypt on unknown user; distinct "locked" message) → dummy bcrypt on no-user path + generic message.
 - ✅ **Plaintext sensitive fields** → **income** (annual, gross monthly, co gross monthly, monthly housing cost) and **secondary/employer address street lines** (mailing/previous/worksite/employer/co-employer) are now AES-256-GCM encrypted at rest (new `*Enc` columns; encrypt on write, decrypt-with-legacy-fallback on read; idempotent backfill in the seed nulls the plaintext). `city`/`postalCode` kept plaintext by design (lower sensitivity; search + journal use them; primary street already encrypted). Legacy plaintext columns are nulled by the backfill and will be dropped in a follow-up migration.
 - ⬜ **KMS envelope encryption stubbed** (`wrapDek`/`unwrapDek` throw if `KMS_KEY_ID` set — operational footgun) + weak KDF fallback (unsalted SHA-256 for short secrets). Implement KMS (`@aws-sdk/client-kms` already present) or fix docs; require a 32-byte key.
 - ⬜ **Audit tamper-evidence**: table is append-only by convention only; deleting a user nulls `actorId` (loses attribution). Snapshot actor name/email; restrict DELETE/UPDATE.
 - ⬜ **PII-decrypt audit is best-effort/after-the-fact** → await a hard audit write before decrypting on reveal/print.
-- ⬜ **Upload content-type trusted from client** → sniff magic bytes server-side; structurally validate PDFs. (Mitigated today by `nosniff` on all file routes.)
+- ✅ **Upload content-type trusted from client** → files are now magic-byte sniffed server-side; content that isn't a real PDF/JPEG/PNG/WEBP/HEIC is rejected regardless of the declared MIME.
 - ⬜ **ZIP route builds whole archive in memory / no file-count cap on upload** (REVIEWER/ADMIN only) → stream + cap total bytes and file count.
-- ⬜ **Push endpoint SSRF** (stores any `endpoint`, `/api/push/test` triggers a server POST) + subscription upsert keyed only on endpoint → allow-list push hosts; scope upsert to the user.
+- ✅ **Push endpoint SSRF** → subscribe now rejects any endpoint not on a real push service host (fcm.googleapis.com / Mozilla / Apple / Windows), so the server can't be made to POST to an internal/link-local URL.
 - ⬜ **CSP `style-src 'unsafe-inline'`** → move to hashes/nonce or document as accepted.
-- ⬜ **PII in log-only email path** (recipient + body preview) → redact.
+- ✅ **PII in log-only email path** → recipient is masked and the body preview removed from the log-only line.
 - ⬜ **MFA can be disabled without re-auth** → require current password/OTP.
 - ⬜ **`googleapis`/`uuid` moderate advisory** → bump `googleapis`.
 

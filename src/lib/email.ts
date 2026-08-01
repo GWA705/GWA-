@@ -98,9 +98,10 @@ export async function sendEmail(
   const text = args.text || stripHtml(args.html);
 
   if (!emailEnabled()) {
-    console.log(
-      `[email:log-only] would send → to="${args.to}" subject="${args.subject}" preview="${text.slice(0, 120)}"`,
-    );
+    // Redact the recipient and body so no PII (addresses, deal details) lands in
+    // server logs while email is in log-only mode.
+    const maskedTo = args.to.replace(/^(.).*(@.*)$/, '$1***$2');
+    console.log(`[email:log-only] would send → to="${maskedTo}" subject="${args.subject}"`);
     return { sent: false, reason: 'log-only' };
   }
 

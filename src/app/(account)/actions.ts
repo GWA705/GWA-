@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/db';
-import { requireSession } from '@/lib/session';
+import { requireSession, createSession } from '@/lib/session';
 import { audit } from '@/lib/audit';
 import { rateLimit } from '@/lib/ratelimit';
 import { hashPassword, verifyPassword, validatePasswordStrength } from '@/lib/password';
@@ -82,9 +82,23 @@ export async function changePasswordAction(
   const same = await verifyPassword(password, user.passwordHash);
   if (same) return { error: 'Choose a password different from your current one.' };
 
-  await prisma.user.update({
+  const updated = await prisma.user.update({
     where: { id: user.id },
-    data: { passwordHash: await hashPassword(password), passwordChangedAt: new Date() },
+    data: {
+      passwordHash: await hashPassword(password),
+      passwordChangedAt: new Date(),
+      tokenVersion: { increment: 1 }, // revoke sessions on other devices
+    },
+  });
+  // Re-issue this device's session at the new version so the user stays signed
+  // in here while any other sessions are invalidated.
+  await createSession({
+    userId: session.userId,
+    email: session.email,
+    name: session.name,
+    role: session.role,
+    dealerId: session.dealerId,
+    tokenVersion: updated.tokenVersion,
   });
   await audit({ actorId: user.id, action: 'PASSWORD_CHANGE', entityType: 'User', entityId: user.id });
   return { ok: true };

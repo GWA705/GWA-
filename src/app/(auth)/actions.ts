@@ -57,6 +57,7 @@ async function finishLogin(user: User, viaMfa: boolean): Promise<never> {
     name: user.name,
     role: user.role,
     dealerId: user.dealerId,
+    tokenVersion: user.tokenVersion,
   });
   await audit({
     actorId: user.id,
@@ -315,6 +316,7 @@ export async function resetPasswordAction(
         passwordChangedAt: new Date(),
         failedLoginCount: 0,
         lockedUntil: null,
+        tokenVersion: { increment: 1 }, // revoke any existing sessions
       },
     }),
     prisma.passwordResetToken.update({ where: { id: record.id }, data: { usedAt: new Date() } }),
@@ -350,9 +352,13 @@ export async function forcedChangePasswordAction(
   const same = await verifyPassword(password, user.passwordHash);
   if (same) return { error: 'Choose a password different from your previous one.' };
 
-  await prisma.user.update({
+  const rotated = await prisma.user.update({
     where: { id: user.id },
-    data: { passwordHash: await hashPassword(password), passwordChangedAt: new Date() },
+    data: {
+      passwordHash: await hashPassword(password),
+      passwordChangedAt: new Date(),
+      tokenVersion: { increment: 1 }, // revoke any other existing sessions
+    },
   });
   await audit({ actorId: user.id, action: 'PASSWORD_CHANGE', entityType: 'User', entityId: user.id, detail: 'expired-rotation' });
 
@@ -362,6 +368,7 @@ export async function forcedChangePasswordAction(
     name: user.name,
     role: user.role,
     dealerId: user.dealerId,
+    tokenVersion: rotated.tokenVersion,
   });
   redirect(defaultLandingFor(user.role));
 }

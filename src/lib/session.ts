@@ -2,6 +2,7 @@ import { SignJWT, jwtVerify, type JWTPayload } from 'jose';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import type { Role } from '@prisma/client';
+import { prisma } from './db';
 
 const COOKIE_NAME = 'gwa_session';
 const MFA_COOKIE_NAME = 'gwa_mfa_pending';
@@ -52,8 +53,9 @@ const cookieOptions = {
   path: '/',
 };
 
-export async function createSession(user: SessionUser): Promise<void> {
-  const token = await sign({ ...user }, SESSION_TTL_SECONDS);
+export async function createSession(user: SessionUser & { tokenVersion?: number }): Promise<void> {
+  const { tokenVersion = 0, impersonating: _imp, ...claims } = user;
+  const token = await sign({ ...claims, tv: tokenVersion }, SESSION_TTL_SECONDS);
   cookies().set(COOKIE_NAME, token, { ...cookieOptions, maxAge: SESSION_TTL_SECONDS });
   cookies().delete(MFA_COOKIE_NAME);
   cookies().delete(PWCHANGE_COOKIE_NAME);
@@ -99,12 +101,24 @@ export async function getSession(): Promise<SessionUser | null> {
   if (!token) return null;
   const payload = await verify(token);
   if (!payload || !payload.userId) return null;
+
+  // Authoritative check against the DB so deactivation, role/dealer changes, and
+  // password changes revoke existing sessions immediately (rather than trusting
+  // stale token claims for up to the token's 8h life). Fresh role/dealer/name
+  // are used so an admin edit takes effect on the user's next request.
+  const dbUser = await prisma.user.findUnique({
+    where: { id: payload.userId as string },
+    select: { id: true, email: true, name: true, role: true, dealerId: true, active: true, tokenVersion: true },
+  });
+  if (!dbUser || !dbUser.active) return null;
+  if (((payload.tv as number | undefined) ?? 0) !== dbUser.tokenVersion) return null;
+
   const user: SessionUser = {
-    userId: payload.userId as string,
-    email: payload.email as string,
-    name: payload.name as string,
-    role: payload.role as Role,
-    dealerId: (payload.dealerId as string | null) ?? null,
+    userId: dbUser.id,
+    email: dbUser.email,
+    name: dbUser.name,
+    role: dbUser.role,
+    dealerId: dbUser.dealerId,
   };
 
   // "View as dealer": only an admin can impersonate, and only their own cookie

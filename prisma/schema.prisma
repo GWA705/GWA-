@@ -251,6 +251,12 @@ model User {
   lockedUntil      DateTime?
   lastLoginAt      DateTime?
 
+  // Bumped to immediately invalidate all of this user's existing sessions
+  // (deactivation, role/dealer change, password change). The signed session
+  // token carries the version it was issued at; getSession rejects a token whose
+  // version no longer matches.
+  tokenVersion Int @default(0)
+
   // Password lifecycle. passwordChangedAt drives the 90-day expiry policy;
   // null is treated as "never set" and forces a change at next login.
   passwordChangedAt DateTime?

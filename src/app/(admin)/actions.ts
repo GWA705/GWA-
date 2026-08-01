@@ -266,6 +266,7 @@ export async function updateUserAction(
     dealerId: string | null;
     passwordHash?: string;
     passwordChangedAt?: Date | null;
+    tokenVersion?: { increment: number };
   } = {
     email,
     name: d.name,
@@ -281,6 +282,13 @@ export async function updateUserAction(
     data.passwordChangedAt = null; // force change at next login
   }
 
+  // Revoke the target's existing sessions so a role/dealer/password change takes
+  // effect immediately — but not when an admin edits their own account (that
+  // would log them out mid-action).
+  if (userId !== session.userId) {
+    data.tokenVersion = { increment: 1 };
+  }
+
   await prisma.user.update({ where: { id: userId }, data });
   await audit({ actorId: session.userId, action: 'USER_UPDATE', entityType: 'User', entityId: userId, detail: `edited: ${email} (${d.role})${data.passwordHash ? ' + password reset' : ''}` });
   revalidatePath('/admin/users');
@@ -291,7 +299,11 @@ export async function toggleUserActiveAction(userId: string): Promise<void> {
   const session = await requireRole('ADMIN');
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user || user.id === session.userId) return; // cannot disable self
-  await prisma.user.update({ where: { id: userId }, data: { active: !user.active } });
+  // Deactivating also revokes the user's live sessions immediately.
+  await prisma.user.update({
+    where: { id: userId },
+    data: { active: !user.active, tokenVersion: { increment: 1 } },
+  });
   await audit({ actorId: session.userId, action: 'USER_UPDATE', entityType: 'User', entityId: userId, detail: `active=${!user.active} (${user.active ? 'archived' : 'unarchived'})` });
   revalidatePath('/admin/users');
 }
