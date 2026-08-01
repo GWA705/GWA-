@@ -369,6 +369,7 @@ export const profileSchema = z.object({
   notifyNewNotes: z.coerce.boolean().optional().default(false),
   notifyNewDocuments: z.coerce.boolean().optional().default(false),
   notifyAttentionAlerts: z.coerce.boolean().optional().default(false),
+  notifyIdleReminders: z.coerce.boolean().optional().default(false),
 });
 
 export const statusChangeSchema = z.object({

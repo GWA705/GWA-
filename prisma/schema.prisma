@@ -112,6 +112,27 @@ model WebhookEvent {
   @@index([source, eventType])
 }
 
+// One escalating "your deal is still waiting on you" reminder sent to a dealer
+// for an idle deal (approved awaiting paperwork, conditional, or a flagged
+// problem). Logged so the cadence engine can enforce the per-day cap, the
+// every-other-day step-down, and the twice-a-week tail without re-sending. The
+// schedule itself is admin-configurable (see src/lib/reminders.ts).
+model DealerReminder {
+  id            String      @id @default(cuid())
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  dayNumber     Int // whole days the deal had been waiting when this fired
+  phase         String // 'ramp' | 'weekly'
+  priority      Boolean     @default(false)
+  reason        String?     @db.Text // the "what you're waiting for" blurb that was sent
+  emailedCount  Int         @default(0) // dealer users emailed
+  pushedCount   Int         @default(0) // dealer users push-notified
+  sentAt        DateTime    @default(now())
+
+  @@index([applicationId, sentAt])
+  @@index([sentAt])
+}
+
 // A durable fixed-window rate-limit counter, keyed by a caller-defined string
 // (e.g. "login:ip:1.2.3.4"). Backed by the DB so limits hold across the multiple
 // app instances Render runs. Rows are transient; a periodic cleanup can prune
@@ -263,6 +284,7 @@ model User {
   notifyNewNotes      Boolean @default(true)
   notifyNewDocuments  Boolean @default(true) // for reviewers/admins
   notifyAttentionAlerts Boolean @default(true) // 2-hour "new deal not looked at" alert (reviewers/admins)
+  notifyIdleReminders   Boolean @default(true) // escalating "your deal is waiting on you" reminders (dealers)
   tourSeenAt          DateTime? // when the dealer completed/dismissed the welcome tour (null = not seen)
 
   failedLoginCount Int       @default(0)
@@ -495,6 +517,7 @@ model Application {
   dealNotes       Note[]
   confirmation    Confirmation?
   verificationChecks VerificationCheck[]
+  dealerReminders DealerReminder[]
 
   @@index([dealerId])
   @@index([status])

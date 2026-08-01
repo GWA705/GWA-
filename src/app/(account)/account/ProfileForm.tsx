@@ -12,6 +12,7 @@ interface Profile {
   notifyNewNotes: boolean;
   notifyNewDocuments: boolean;
   notifyAttentionAlerts: boolean;
+  notifyIdleReminders: boolean;
   isStaff: boolean;
 }
 
@@ -64,11 +65,14 @@ export function ProfileForm({ profile }: { profile: Profile }) {
               <Toggle name="notifyAttentionAlerts" label="A deal or upload waits over 2 hours without being looked at" defaultChecked={profile.notifyAttentionAlerts} />
             </>
           ) : (
-            <Toggle name="notifyStatusUpdates" label="A deal's status changes" defaultChecked={profile.notifyStatusUpdates} />
+            <>
+              <Toggle name="notifyStatusUpdates" label="A deal's status changes" defaultChecked={profile.notifyStatusUpdates} />
+              <Toggle name="notifyIdleReminders" label="A deal is waiting on me (reminders until it's actioned)" defaultChecked={profile.notifyIdleReminders} />
+            </>
           )}
           <Toggle name="notifyNewNotes" label="A new note is added on a deal" defaultChecked={profile.notifyNewNotes} />
         </div>
-        <p className="mt-2 text-xs text-gray-400">Email is the only channel today. (Text messaging can be added later.)</p>
+        <p className="mt-2 text-xs text-gray-400">Reminders and alerts are sent by email, and by push if you&apos;ve turned on notifications on this device.</p>
       </div>
 
       <SubmitButton />

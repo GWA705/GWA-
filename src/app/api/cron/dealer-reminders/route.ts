@@ -1,0 +1,52 @@
+import { NextRequest, NextResponse } from 'next/server';
+import crypto from 'crypto';
+import { runDealerReminders } from '@/lib/reminders';
+
+export const dynamic = 'force-dynamic';
+
+// Constant-time secret comparison that also avoids leaking length.
+function secretMatches(provided: string, expected: string): boolean {
+  const a = crypto.createHash('sha256').update(provided).digest();
+  const b = crypto.createHash('sha256').update(expected).digest();
+  return crypto.timingSafeEqual(a, b);
+}
+
+/**
+ * Scheduled endpoint for the escalating dealer "your deal is waiting on you"
+ * reminders. Call it from a scheduler (e.g. a Render Cron Job) every ~15–30
+ * minutes. Protected by a shared secret.
+ *
+ * Auth: send the secret in the Authorization header only:
+ *   Authorization: Bearer <CRON_SECRET>
+ *
+ * The engine only sends inside the configured hours (8am–9pm by default), so
+ * running the cron all day is fine — off-hours runs simply no-op.
+ */
+async function handle(req: NextRequest) {
+  const secret = process.env.CRON_SECRET;
+  if (!secret) {
+    return NextResponse.json({ error: 'CRON_SECRET is not configured.' }, { status: 503 });
+  }
+
+  const auth = req.headers.get('authorization') || '';
+  const bearer = auth.toLowerCase().startsWith('bearer ') ? auth.slice(7).trim() : '';
+  if (!bearer || !secretMatches(bearer, secret)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  try {
+    const result = await runDealerReminders();
+    return NextResponse.json({ ok: true, ...result });
+  } catch (e) {
+    console.error('[cron] dealer-reminders failed', e);
+    return NextResponse.json({ ok: false, error: 'Reminder run failed.' }, { status: 500 });
+  }
+}
+
+export async function GET(req: NextRequest) {
+  return handle(req);
+}
+
+export async function POST(req: NextRequest) {
+  return handle(req);
+}

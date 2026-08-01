@@ -6,6 +6,7 @@ import { requireRole, startViewAs, stopViewAs } from '@/lib/session';
 import { hashPassword, validatePasswordStrength } from '@/lib/password';
 import { audit } from '@/lib/audit';
 import { runAttentionAlerts } from '@/lib/sla';
+import { getReminderConfig, setReminderConfig, runDealerReminders, DEFAULT_REMINDER_CONFIG, type ReminderConfig } from '@/lib/reminders';
 import crypto from 'crypto';
 import path from 'path';
 import { putDocument, getDocument, deleteDocument } from '@/lib/storage';
@@ -767,6 +768,84 @@ export async function runAttentionAlertsNowAction(
   } catch (e) {
     console.error('[admin] runAttentionAlertsNow failed', e);
     return { ok: false, message: 'Could not run the alert check.' };
+  }
+}
+
+// Save the dealer idle-reminder rule set. Numeric fields fall back to the
+// current value when left blank/invalid; the enabled flag is a checkbox.
+export async function saveReminderConfigAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await requireRole('ADMIN');
+  const current = await getReminderConfig();
+
+  const num = (name: keyof ReminderConfig, min: number, max: number): number => {
+    const raw = String(formData.get(name) ?? '').trim();
+    if (raw === '') return current[name] as number;
+    const n = Number(raw);
+    if (!Number.isFinite(n)) return current[name] as number;
+    return Math.min(max, Math.max(min, Math.round(n)));
+  };
+
+  const patch: Partial<ReminderConfig> = {
+    enabled: formData.get('enabled') === 'on',
+    quietStartHour: num('quietStartHour', 0, 23),
+    quietEndHour: num('quietEndHour', 1, 24),
+    morningHour: num('morningHour', 0, 23),
+    afternoonHour: num('afternoonHour', 0, 23),
+    graceHours: num('graceHours', 0, 240),
+    maxPerDay: num('maxPerDay', 1, 6),
+    everyOtherUntilDay: num('everyOtherUntilDay', 2, 30),
+    priorityAfterDay: num('priorityAfterDay', 0, 60),
+    twiceWeeklyGapHours: num('twiceWeeklyGapHours', 24, 336),
+  };
+
+  if (patch.quietEndHour! <= patch.quietStartHour!) {
+    return { error: 'The end hour must be later than the start hour.' };
+  }
+
+  await setReminderConfig(patch);
+  await audit({
+    actorId: session.userId,
+    action: 'USER_UPDATE',
+    entityType: 'AppSetting',
+    entityId: 'reminders',
+    detail: `Dealer reminder rules updated (enabled=${patch.enabled})`,
+  });
+  revalidatePath('/admin/reminders');
+  return { ok: true, message: 'Reminder rules saved.' };
+}
+
+// Reset the reminder rule set to the built-in defaults.
+export async function resetReminderConfigAction(): Promise<void> {
+  const session = await requireRole('ADMIN');
+  await setReminderConfig(DEFAULT_REMINDER_CONFIG);
+  await audit({ actorId: session.userId, action: 'USER_UPDATE', entityType: 'AppSetting', entityId: 'reminders', detail: 'Dealer reminder rules reset to defaults' });
+  revalidatePath('/admin/reminders');
+}
+
+// Run the dealer-reminder sweep on demand (the same work the cron does).
+export async function runDealerRemindersNowAction(
+  _prev: { ok?: boolean; message?: string },
+  _formData: FormData,
+): Promise<{ ok?: boolean; message?: string }> {
+  const session = await requireRole('ADMIN');
+  try {
+    const r = await runDealerReminders();
+    await audit({
+      actorId: session.userId,
+      action: 'STATUS_CHANGE',
+      entityType: 'System',
+      entityId: null,
+      detail: `Dealer-reminder run: ${JSON.stringify(r)}`,
+    });
+    if (!r.ran) return { ok: true, message: `Not sent right now — ${r.reason}.` };
+    if (r.deals === 0) return { ok: true, message: 'Checked — no dealers need a reminder right now.' };
+    return { ok: true, message: `Sent reminders for ${r.deals} deal(s): ${r.emails} email(s), ${r.pushes} push(es).` };
+  } catch (e) {
+    console.error('[admin] runDealerRemindersNow failed', e);
+    return { ok: false, message: 'Could not run the reminder check.' };
   }
 }
 

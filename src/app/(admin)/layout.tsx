@@ -21,6 +21,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         { href: '/admin/products', label: 'Products' },
         { href: '/admin/announcements', label: 'Dealer portal sign' },
         { href: '/admin/alerts', label: 'Pop-up alerts' },
+        { href: '/admin/reminders', label: 'Dealer reminders' },
         { href: '/admin/content', label: 'Content' },
         { href: '/admin/users', label: 'Users' },
         { href: '/admin/email', label: 'Email' },
