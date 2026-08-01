@@ -18,7 +18,7 @@ const STEPS: Step[] = [
   {
     emoji: '➕',
     title: 'Process a new customer',
-    body: '“New customer” is where you start a deal. You’ll pick one of three ways to submit — Fastest (FinanceIT number), Fast (type it in), or Normal (photo upload). The form guides you the rest of the way.',
+    body: '“New customer” is where you start a deal. You’ll pick one of three ways to submit — Express (FinanceIT number), Priority (type it in), or Standard (photo upload). The form guides you the rest of the way.',
   },
   {
     emoji: '📋',

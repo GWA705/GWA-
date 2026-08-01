@@ -36,7 +36,7 @@ const STEPS: Step[] = [
     n: 3,
     title: 'Process a new customer',
     body: [
-      'Pick how you’re entering the deal at the top (fastest is a FinanceIT approval number; or type in the details; or upload documents).',
+      'Pick how you’re entering the deal at the top — Express (a FinanceIT approval number), Priority (type in the details), or Standard (upload documents).',
       'Fill in the customer’s details, then complete the required Sales details — salesperson, installer, SOAP included, and the product(s) sold. These feed the sales journal.',
       'Confirm consent at the bottom and tap Submit. That’s it — it lands on your dashboard and with our team for review.',
     ],

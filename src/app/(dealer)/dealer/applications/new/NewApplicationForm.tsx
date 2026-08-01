@@ -115,6 +115,7 @@ function focusField(name: string) {
 const METHODS: {
   value: Method;
   rank: string;
+  icon: string; // emoji shown in the badge
   title: string;
   blurb: string;
   badge: string; // badge colour
@@ -122,7 +123,8 @@ const METHODS: {
 }[] = [
   {
     value: 'FINANCEIT',
-    rank: 'Fastest',
+    rank: 'Express',
+    icon: '🚀',
     title: 'FinanceIT approval',
     blurb: 'Use your FinanceIT Portal to approve the application and submit your approval FinanceIT loan number below.',
     badge: 'bg-green-100 text-green-800',
@@ -130,7 +132,8 @@ const METHODS: {
   },
   {
     value: 'TYPED',
-    rank: 'Fast',
+    rank: 'Priority',
+    icon: '⚡',
     title: 'Type in the details',
     blurb: 'Need a different financing option? Type in the customer details below (helps with spelling and ensures accuracy of the application).',
     badge: 'bg-blue-100 text-blue-800',
@@ -138,7 +141,8 @@ const METHODS: {
   },
   {
     value: 'PHOTO',
-    rank: 'Normal',
+    rank: 'Standard',
+    icon: '📄',
     title: 'Upload documents',
     blurb: 'Upload application and bill of sale for processing.',
     badge: 'bg-amber-100 text-amber-800',
@@ -268,7 +272,7 @@ export function NewApplicationForm({
               }`}
             >
               <span className={`mb-2 inline-flex w-fit items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${m.badge}`}>
-                {i + 1} · {m.rank}
+                {i + 1} · <span aria-hidden>{m.icon}</span> {m.rank}
               </span>
               <div className="text-sm font-semibold text-gray-900">{m.title}</div>
               <div className="mt-1 text-xs text-gray-500">{m.blurb}</div>
