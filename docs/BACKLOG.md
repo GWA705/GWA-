@@ -49,7 +49,7 @@ we'll organize and prioritize them together later.
 
 ### Wording / labels
 - [ ] **Rename "Supporting documents" → "Documents for approval"** (the docs a dealer uploads at the application stage).
-- [ ] **Phone number format:** display/format phone numbers as `705-716-2111` (auto-format as the user types).
+- [ ] **Phone number format:** display/format phone numbers as `705-812-0320` (auto-format as the user types).
 - [ ] **Postal code format:** display/format Canadian postal codes as `L0L 2T0` (uppercase, space in the middle; auto-format as the user types).
 
 ### Search
@@ -139,7 +139,7 @@ the mechanism now and drop your content/keys in when ready.
 - Digital **loan application** form (from the approved mockup) as the "type it in" method.
 - Three ways to provide the application: type it in / upload a photo / enter a **FinanceIt approval number**.
 - **Financing note** field under Financing details.
-- Input formatting: **phone `705-716-2111`**, **postal `L0L 2T0`**, SIN.
+- Input formatting: **phone `705-812-0320`**, **postal `L0L 2T0`**, SIN.
 - Rename **"Supporting documents" → "Documents for approval."**
 - (Address autocomplete: build later in phase once a lookup provider is chosen.)
 

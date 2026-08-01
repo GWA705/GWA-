@@ -1,6 +1,6 @@
 // Pure input-formatting helpers, safe for client components.
 
-/** 705-716-2111 */
+/** 705-812-0320 */
 export function formatPhone(value: string): string {
   const d = value.replace(/\D/g, '').slice(0, 10);
   if (d.length <= 3) return d;

@@ -2,12 +2,12 @@ import { describe, it, expect } from 'vitest';
 import { formatPhone, formatPostal, formatSin } from '@/lib/format';
 
 describe('input formatting', () => {
-  it('formats phone as 705-716-2111', () => {
-    expect(formatPhone('7057162111')).toBe('705-716-2111');
+  it('formats phone as 705-812-0320', () => {
+    expect(formatPhone('7058120320')).toBe('705-812-0320');
     expect(formatPhone('705')).toBe('705');
-    expect(formatPhone('705716')).toBe('705-716');
-    expect(formatPhone('(705) 716-2111')).toBe('705-716-2111');
-    expect(formatPhone('70571621119999')).toBe('705-716-2111'); // capped at 10 digits
+    expect(formatPhone('705812')).toBe('705-812');
+    expect(formatPhone('(705) 812-0320')).toBe('705-812-0320');
+    expect(formatPhone('70581203209999')).toBe('705-812-0320'); // capped at 10 digits
   });
 
   it('formats postal code as L0L 2T0', () => {

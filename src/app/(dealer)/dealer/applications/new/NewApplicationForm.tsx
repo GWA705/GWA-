@@ -413,8 +413,8 @@ export function NewApplicationForm({
           {typed && <div><label className="label" htmlFor="middleName">Middle name <span className="font-normal text-gray-400">(optional)</span></label><input id="middleName" name="middleName" className={fieldCls('')} /></div>}
           <div><label className="label" htmlFor="applicantDob">Date of birth</label><input id="applicantDob" name="applicantDob" type="date" className={fieldCls('')} /></div>
           <div><label className="label" htmlFor="applicantEmail">Email</label><input id="applicantEmail" name="applicantEmail" type="email" className={fieldCls('applicantEmail')} /><Err state={state} name="applicantEmail" /></div>
-          <div><label className="label" htmlFor="applicantPhone">Mobile phone</label><input id="applicantPhone" name="applicantPhone" className={fieldCls('applicantPhone')} inputMode="numeric" maxLength={12} placeholder="705-716-2111" onInput={phoneFmt} /><Err state={state} name="applicantPhone" /></div>
-          {typed && <div><label className="label" htmlFor="homePhone">Home phone <span className="font-normal text-gray-400">(optional)</span></label><input id="homePhone" name="homePhone" className={fieldCls('')} inputMode="numeric" maxLength={12} placeholder="705-716-2111" onInput={phoneFmt} /></div>}
+          <div><label className="label" htmlFor="applicantPhone">Mobile phone</label><input id="applicantPhone" name="applicantPhone" className={fieldCls('applicantPhone')} inputMode="numeric" maxLength={12} placeholder="705-812-0320" onInput={phoneFmt} /><Err state={state} name="applicantPhone" /></div>
+          {typed && <div><label className="label" htmlFor="homePhone">Home phone <span className="font-normal text-gray-400">(optional)</span></label><input id="homePhone" name="homePhone" className={fieldCls('')} inputMode="numeric" maxLength={12} placeholder="705-812-0320" onInput={phoneFmt} /></div>}
           {typed && (
             <div>
               <label className="label" htmlFor="maritalStatus">Marital status</label>
@@ -523,7 +523,7 @@ export function NewApplicationForm({
               <div><label className="label" htmlFor="businessName">Employer / business name</label><input id="businessName" name="businessName" className={fieldCls('')} /></div>
               <div><label className="label" htmlFor="positionTitle">Position title</label><input id="positionTitle" name="positionTitle" className={fieldCls('')} /></div>
               <div><label className="label" htmlFor="employerAddress">Employer address <span className="font-normal text-gray-400">(optional)</span></label><input id="employerAddress" name="employerAddress" className={fieldCls('')} /></div>
-              <div><label className="label" htmlFor="employerPhone">Employer phone <span className="font-normal text-gray-400">(optional)</span></label><input id="employerPhone" name="employerPhone" className={fieldCls('')} inputMode="numeric" maxLength={12} placeholder="705-716-2111" onInput={phoneFmt} /></div>
+              <div><label className="label" htmlFor="employerPhone">Employer phone <span className="font-normal text-gray-400">(optional)</span></label><input id="employerPhone" name="employerPhone" className={fieldCls('')} inputMode="numeric" maxLength={12} placeholder="705-812-0320" onInput={phoneFmt} /></div>
               <div><label className="label" htmlFor="grossMonthlyIncome">Gross monthly income</label><input id="grossMonthlyIncome" name="grossMonthlyIncome" type="number" step="0.01" min="0" className={fieldCls('')} /></div>
               <div><label className="label" htmlFor="timeAtJobYears">Time at job (years)</label><input id="timeAtJobYears" name="timeAtJobYears" type="number" min="0" className={fieldCls('')} /></div>
               <div>
@@ -574,8 +574,8 @@ export function NewApplicationForm({
                     </select>
                   </div>
                   <div><label className="label" htmlFor="coEmail">Email</label><input id="coEmail" name="coEmail" type="email" className={fieldCls('')} /></div>
-                  <div><label className="label" htmlFor="coPhone">Mobile phone</label><input id="coPhone" name="coPhone" className={fieldCls('')} inputMode="numeric" maxLength={12} placeholder="705-716-2111" onInput={phoneFmt} /></div>
-                  <div><label className="label" htmlFor="coHomePhone">Home phone <span className="font-normal text-gray-400">(optional)</span></label><input id="coHomePhone" name="coHomePhone" className={fieldCls('')} inputMode="numeric" maxLength={12} placeholder="705-716-2111" onInput={phoneFmt} /></div>
+                  <div><label className="label" htmlFor="coPhone">Mobile phone</label><input id="coPhone" name="coPhone" className={fieldCls('')} inputMode="numeric" maxLength={12} placeholder="705-812-0320" onInput={phoneFmt} /></div>
+                  <div><label className="label" htmlFor="coHomePhone">Home phone <span className="font-normal text-gray-400">(optional)</span></label><input id="coHomePhone" name="coHomePhone" className={fieldCls('')} inputMode="numeric" maxLength={12} placeholder="705-812-0320" onInput={phoneFmt} /></div>
                 </div>
 
                 <div>
@@ -628,7 +628,7 @@ export function NewApplicationForm({
                     <div><label className="label" htmlFor="coBusinessName">Employer / business name</label><input id="coBusinessName" name="coBusinessName" className={fieldCls('')} /></div>
                     <div><label className="label" htmlFor="coPositionTitle">Position title</label><input id="coPositionTitle" name="coPositionTitle" className={fieldCls('')} /></div>
                     <div><label className="label" htmlFor="coEmployerAddress">Employer address <span className="font-normal text-gray-400">(optional)</span></label><input id="coEmployerAddress" name="coEmployerAddress" className={fieldCls('')} /></div>
-                    <div><label className="label" htmlFor="coEmployerPhone">Employer phone <span className="font-normal text-gray-400">(optional)</span></label><input id="coEmployerPhone" name="coEmployerPhone" className={fieldCls('')} inputMode="numeric" maxLength={12} placeholder="705-716-2111" onInput={phoneFmt} /></div>
+                    <div><label className="label" htmlFor="coEmployerPhone">Employer phone <span className="font-normal text-gray-400">(optional)</span></label><input id="coEmployerPhone" name="coEmployerPhone" className={fieldCls('')} inputMode="numeric" maxLength={12} placeholder="705-812-0320" onInput={phoneFmt} /></div>
                     <div><label className="label" htmlFor="coGrossMonthlyIncome">Gross monthly income</label><input id="coGrossMonthlyIncome" name="coGrossMonthlyIncome" type="number" step="0.01" min="0" className={fieldCls('')} /></div>
                     <div><label className="label" htmlFor="coTimeAtJobYears">Time at job (years)</label><input id="coTimeAtJobYears" name="coTimeAtJobYears" type="number" min="0" className={fieldCls('')} /></div>
                     <div>

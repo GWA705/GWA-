@@ -136,8 +136,8 @@ export const VERIFICATION_CHECKS: {
 }[] = [
   {
     key: 'PRODUCTS_PHOTO',
-    label: 'Install photo shows every product purchased',
-    help: 'Count the products in the picture and confirm it matches what the customer bought.',
+    label: 'Photo shows all installed products and serial numbers where required',
+    help: 'Count the products in the picture and confirm it matches what the customer bought. Where a serial number is required, confirm it is visible and matches what was entered.',
   },
   {
     key: 'SIGNATURES',
@@ -148,12 +148,6 @@ export const VERIFICATION_CHECKS: {
     key: 'PAP_VOID',
     label: 'Valid PAP form or void cheque on file',
     help: 'Pre-authorized payment banking details are included and legible.',
-  },
-  {
-    key: 'SERIALS_MATCH',
-    label: 'Serial numbers match the installed equipment',
-    help: 'Each serial number entered matches the unit shown in the photo / on the equipment.',
-    serialsOnly: true,
   },
 ];
 

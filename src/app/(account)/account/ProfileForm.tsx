@@ -47,7 +47,7 @@ export function ProfileForm({ profile }: { profile: Profile }) {
         </div>
         <div>
           <label className="label" htmlFor="phone">Phone</label>
-          <input id="phone" name="phone" defaultValue={profile.phone ?? ''} className="input" placeholder="705-716-2111" />
+          <input id="phone" name="phone" defaultValue={profile.phone ?? ''} className="input" placeholder="705-812-0320" />
         </div>
         <div className="sm:col-span-2">
           <label className="label" htmlFor="notificationEmail">Notification email <span className="font-normal text-gray-400">(leave blank to use {profile.email})</span></label>
