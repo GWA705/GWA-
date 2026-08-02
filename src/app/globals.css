@@ -44,9 +44,9 @@ body {
 .banner-fade { animation: bannerFade 0.5s ease; }
 @keyframes bannerFade { from { opacity: 0; } to { opacity: 1; } }
 
-/* Mobile nav drawer slide-in from the right. */
+/* Mobile nav drawer slide-in from the left. */
 .drawer-in { animation: drawerIn 0.22s ease-out; }
-@keyframes drawerIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+@keyframes drawerIn { from { transform: translateX(-100%); } to { transform: translateX(0); } }
 
 @media (prefers-reduced-motion: reduce) {
   .banner-fade, .drawer-in { animation: none; }

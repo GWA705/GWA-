@@ -43,6 +43,13 @@ export function AppShell({
       <header className="border-b border-gray-200 bg-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-x-4 gap-y-2 px-4 py-3 sm:flex-wrap">
           <div className="flex items-center gap-3">
+            <MobileNav
+              userName={user.name}
+              roleLabel={roleLabel(user.role)}
+              nav={nav}
+              portal={portal}
+              showSwitcher={showSwitcher}
+            />
             <span className="text-lg font-semibold text-brand-700">GWA Dealer Portal</span>
             {showSwitcher && (
               <div className="hidden sm:block">
@@ -77,15 +84,6 @@ export function AppShell({
               </button>
             </form>
           </div>
-
-          {/* Mobile: hamburger drawer */}
-          <MobileNav
-            userName={user.name}
-            roleLabel={roleLabel(user.role)}
-            nav={nav}
-            portal={portal}
-            showSwitcher={showSwitcher}
-          />
         </div>
       </header>
       <main className="mx-auto max-w-6xl overflow-x-clip px-4 py-8">{children}</main>
