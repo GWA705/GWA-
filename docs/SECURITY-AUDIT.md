@@ -35,7 +35,7 @@ Status key: ✅ fixed · 🟡 in progress · ⬜ planned · 🔷 your action (Re
 ## Wave 2 — Medium
 
 - ✅ **No session revocation** → `getSession` now checks the DB on every read: it rejects tokens for deactivated users and mismatched `tokenVersion`, and uses fresh role/dealer/name. `tokenVersion` is bumped on deactivate, admin user-edit, and password change/reset — killing live sessions immediately. (The user's own password change re-issues their current device so they stay signed in.)
-- ⬜ **Login user-enumeration** (timing: no bcrypt on unknown user; distinct "locked" message) → dummy bcrypt on no-user path + generic message.
+- ✅ **Login user-enumeration** → dummy bcrypt on the no-user path (constant time) + a generic "Invalid credentials." message. (A distinct "temporarily locked" message remains, which is a deliberate UX trade-off.)
 - ✅ **Plaintext sensitive fields** → **income** (annual, gross monthly, co gross monthly, monthly housing cost) and **secondary/employer address street lines** (mailing/previous/worksite/employer/co-employer) are now AES-256-GCM encrypted at rest (new `*Enc` columns; encrypt on write, decrypt-with-legacy-fallback on read; idempotent backfill in the seed nulls the plaintext). `city`/`postalCode` kept plaintext by design (lower sensitivity; search + journal use them; primary street already encrypted). Legacy plaintext columns are nulled by the backfill and will be dropped in a follow-up migration.
 - 🟡 **KMS envelope encryption footgun** → docs/env now clearly say `KMS_KEY_ID` is **not yet supported — leave blank** (setting it would throw), so no one is misled into breaking encryption. Full KMS support needs the crypto path to go async (currently `encryptOptional` is sync everywhere) — **deferred as a dedicated refactor**. Weak-secret KDF fallback still noted (Render's generated key is high-entropy; require a proper 32-byte key when convenient).
 - ✅ **Audit tamper-evidence (attribution)** → each audit row now stores an immutable `actorName`/`actorEmail` snapshot, so deleting a user no longer erases who did what. (Full WORM/hash-chain enforcement still a later option.)
@@ -43,7 +43,7 @@ Status key: ✅ fixed · 🟡 in progress · ⬜ planned · 🔷 your action (Re
 - ✅ **Upload content-type trusted from client** → files are now magic-byte sniffed server-side; content that isn't a real PDF/JPEG/PNG/WEBP/HEIC is rejected regardless of the declared MIME.
 - ✅ **ZIP route unbounded** → capped at 200 files / 200 MB of decrypted content, with the cap noted in the audit entry. (Full streaming still a later option; admin/reviewer-only.)
 - ✅ **Push endpoint SSRF** → subscribe now rejects any endpoint not on a real push service host (fcm.googleapis.com / Mozilla / Apple / Windows), so the server can't be made to POST to an internal/link-local URL.
-- ⬜ **CSP `style-src 'unsafe-inline'`** → move to hashes/nonce or document as accepted.
+- ✅ **CSP `style-src 'unsafe-inline'`** → **accepted.** Tailwind's utility model and Next's injected styles need inline styles; script-src is already locked down with a per-request nonce + `strict-dynamic`, so this is a documented, low-risk acceptance.
 - ✅ **PII in log-only email path** → recipient is masked and the body preview removed from the log-only line.
 - ✅ **MFA can be disabled without re-auth** → disabling 2FA now requires re-entering the current password.
 - ⬜ **`googleapis`/`uuid` moderate advisory** → deferred (bumping risks the live journal integration; low real-world severity — a bounds check in a transitive dep).
@@ -51,9 +51,10 @@ Status key: ✅ fixed · 🟡 in progress · ⬜ planned · 🔷 your action (Re
 ## Wave 3 — Low / hardening
 
 - ⬜ Password minimum 8 → consider 12 for staff who can fund.
-- ⬜ `reveal=1` is a GET (prefetch/bookmark could trigger an audited decrypt) → consider POST / confirm non-prefetched.
+- ✅ `reveal=1` audited-decrypt link → `prefetch={false}` so Next never pre-triggers the reveal on hover; it decrypts only on a deliberate click.
 - ⬜ `__Host-` cookie prefix; force `secure` in all deployed envs.
-- ⬜ `serverActions.bodySizeLimit` set to match the 15 MB upload intent.
+- ✅ `serverActions.bodySizeLimit` set to `15mb` to match the document-upload intent (default was 1 MB).
+- ✅ **Mandatory two-factor authentication.** Enforced at login: an account with no second factor is routed to a forced `/setup-2fa` enrollment (email code or authenticator) before any session is issued. Policy is admin-configurable at Admin → Security (Everyone / Staff only / Optional; default Everyone).
 - ⬜ Journal write: tag the address decrypt as `PII_DECRYPT`; document the cross-border transfer.
 - ✅ Dealer self-advances a deal to APPROVED via a FinanceIt number at creation — **confirmed intended**; added a reviewer **"Verify financing number"** confirmation (audited, shown on the deal) to solidify the dealer-asserted approval.
 - ⬜ **Encrypt income + secondary/employer addresses** (approved) — next dedicated change, with a data-backfill migration. Keeping `city`/`postalCode` searchable (lower sensitivity; primary street already encrypted). Encrypted values remain viewable to logged-in reviewers/admins.

@@ -5,6 +5,10 @@ const nextConfig = {
   // sharp is a native module — keep it external so it isn't bundled.
   experimental: {
     serverComponentsExternalPackages: ['sharp'],
+    // Match the ~15 MB document-upload intent (server actions default to 1 MB).
+    serverActions: {
+      bodySizeLimit: '15mb',
+    },
   },
   // Security headers are also enforced in middleware.ts; these are a static baseline.
   async headers() {

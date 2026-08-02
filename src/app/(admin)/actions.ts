@@ -16,7 +16,7 @@ import { redirect } from 'next/navigation';
 import { CONTENT_SECTIONS } from '@/lib/constants';
 import { sendEmail, emailEnabled } from '@/lib/email';
 import { renderEmail } from '@/lib/email-templates';
-import { setSetting, EMAIL_SETTING_KEYS, BANNER_SETTING_KEYS } from '@/lib/settings';
+import { setSetting, EMAIL_SETTING_KEYS, BANNER_SETTING_KEYS, SECURITY_SETTING_KEYS, type MfaRequirement } from '@/lib/settings';
 
 export interface ActionState {
   error?: string;
@@ -495,6 +495,20 @@ export async function saveBannerSettingsAction(
   revalidatePath('/admin/announcements');
   revalidatePath('/dealer');
   return { ok: true, message: 'Slideshow settings saved.' };
+}
+
+// Save the two-factor-authentication requirement policy.
+export async function saveSecuritySettingsAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await requireRole('ADMIN');
+  const raw = String(formData.get('mfaRequirement') || '');
+  const value: MfaRequirement = raw === 'staff' || raw === 'off' ? raw : 'everyone';
+  await setSetting(SECURITY_SETTING_KEYS.mfaRequirement, value);
+  await audit({ actorId: session.userId, action: 'USER_UPDATE', entityType: 'AppSetting', entityId: 'security', detail: `MFA requirement: ${value}` });
+  revalidatePath('/admin/security');
+  return { ok: true, message: 'Security settings saved.' };
 }
 
 // --- Quick-note templates --------------------------------------------------

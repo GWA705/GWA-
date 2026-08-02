@@ -1,15 +1,27 @@
 'use server';
 
 import { redirect } from 'next/navigation';
+import { revalidatePath } from 'next/cache';
 import type { User } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { hashPassword, verifyPassword, validatePasswordStrength, isPasswordExpired } from '@/lib/password';
-import { verifyMfaToken, decryptMfaSecret, emailCodeMatches } from '@/lib/mfa';
+import {
+  generateMfaSecret,
+  encryptMfaSecret,
+  verifyMfaToken,
+  decryptMfaSecret,
+  emailCodeMatches,
+} from '@/lib/mfa';
 import { issueEmailMfaCode } from '@/lib/mfa-email';
+import { emailEnabled } from '@/lib/email';
+import { getMfaRequirement, mfaRequiredForRole } from '@/lib/settings';
 import {
   createSession,
   createMfaPending,
   getMfaPendingUserId,
+  createMfaEnrollPending,
+  getMfaEnrollPendingUserId,
+  clearMfaEnrollPending,
   createPasswordChangePending,
   getPasswordChangePendingUserId,
   destroySession,
@@ -143,6 +155,14 @@ export async function loginAction(
     redirect('/mfa');
   }
 
+  // No second factor yet — if the policy requires 2FA for this user, force
+  // enrollment before a full session is issued.
+  const requirement = await getMfaRequirement();
+  if (mfaRequiredForRole(user.role, requirement)) {
+    await createMfaEnrollPending(user.id);
+    redirect('/setup-2fa');
+  }
+
   return finishLogin(user, false);
 }
 
@@ -215,6 +235,73 @@ export async function resendMfaEmailAction(): Promise<FormState> {
   if (!limit.ok) return TOO_MANY;
   await issueEmailMfaCode(user);
   return { ok: true };
+}
+
+// --- Forced 2FA enrollment (mandatory-MFA gate) ---------------------------
+// Reached only via the enroll-pending cookie set at login when the account has
+// no second factor and the policy requires one. On success a full session is
+// issued (finishLogin), so there is no way to bypass 2FA to reach the app.
+
+async function requireEnrollUser() {
+  const userId = await getMfaEnrollPendingUserId();
+  if (!userId) redirect('/login');
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user || !user.active) redirect('/login');
+  return user;
+}
+
+/** Email the one-time setup code (EMAIL method). */
+export async function setupMfaSendEmailAction(): Promise<FormState> {
+  const user = await requireEnrollUser();
+  const limit = await rateLimit(`mfa-setup-email:${user.id}`, 4, 300);
+  if (!limit.ok) return TOO_MANY;
+  if (!emailEnabled()) {
+    return { error: 'Email is not available right now — use an authenticator app instead.' };
+  }
+  await issueEmailMfaCode(user);
+  return { ok: true };
+}
+
+/** Confirm the emailed code and finish enrollment via the EMAIL method. */
+export async function setupMfaConfirmEmailAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  const user = await requireEnrollUser();
+  const ipLimit = await rateLimit(`mfa-setup:ip:${clientIp()}`, 30, 600);
+  if (!ipLimit.ok) return TOO_MANY;
+  const code = String(formData.get('token') || '');
+  if (!emailCodeMatches(code, user.mfaEmailCodeHash, user.mfaEmailCodeExpiresAt)) {
+    return { error: 'Invalid or expired code. Send a new code and try again.' };
+  }
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { mfaEnabled: true, mfaMethod: 'EMAIL', mfaSecretEnc: null, mfaEmailCodeHash: null, mfaEmailCodeExpiresAt: null },
+  });
+  await audit({ actorId: user.id, action: 'MFA_ENROLLED', entityType: 'User', entityId: user.id, detail: 'email (required)' });
+  await clearMfaEnrollPending();
+  return finishLogin(user, true);
+}
+
+/** Generate + store a pending authenticator secret so the page can show a QR. */
+export async function setupMfaBeginAppAction(): Promise<FormState> {
+  const user = await requireEnrollUser();
+  const secret = generateMfaSecret();
+  await prisma.user.update({ where: { id: user.id }, data: { mfaSecretEnc: encryptMfaSecret(secret), mfaEnabled: false } });
+  revalidatePath('/setup-2fa');
+  return { ok: true };
+}
+
+/** Confirm the authenticator code and finish enrollment via the APP method. */
+export async function setupMfaConfirmAppAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  const user = await requireEnrollUser();
+  const ipLimit = await rateLimit(`mfa-setup:ip:${clientIp()}`, 30, 600);
+  if (!ipLimit.ok) return TOO_MANY;
+  if (!user.mfaSecretEnc) return { error: 'Start the authenticator setup first.' };
+  const token = String(formData.get('token') || '');
+  const secret = decryptMfaSecret(user.mfaSecretEnc);
+  if (!verifyMfaToken(token, secret)) return { error: 'Invalid code. Try again.' };
+  await prisma.user.update({ where: { id: user.id }, data: { mfaEnabled: true, mfaMethod: 'APP' } });
+  await audit({ actorId: user.id, action: 'MFA_ENROLLED', entityType: 'User', entityId: user.id, detail: 'app (required)' });
+  await clearMfaEnrollPending();
+  return finishLogin(user, true);
 }
 
 export async function logoutAction(): Promise<void> {

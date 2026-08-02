@@ -21,6 +21,26 @@ export const BANNER_SETTING_KEYS = {
   rotateBottom: 'banner.rotateBottom',
 } as const;
 
+// Who must have two-factor authentication. 'everyone' (default) requires it for
+// all users; 'staff' only reviewers/admins; 'off' makes it optional.
+export const SECURITY_SETTING_KEYS = {
+  mfaRequirement: 'security.mfaRequirement',
+} as const;
+
+export type MfaRequirement = 'everyone' | 'staff' | 'off';
+
+export async function getMfaRequirement(): Promise<MfaRequirement> {
+  const v = await getSetting(SECURITY_SETTING_KEYS.mfaRequirement);
+  return v === 'staff' || v === 'off' ? v : 'everyone';
+}
+
+/** Whether a given role must enroll a second factor under the current policy. */
+export function mfaRequiredForRole(role: string, requirement: MfaRequirement): boolean {
+  if (requirement === 'off') return false;
+  if (requirement === 'staff') return role !== 'DEALER_USER';
+  return true;
+}
+
 /** Read the two banner-rotation toggles (default on when unset). */
 export async function getBannerRotation(): Promise<{ top: boolean; bottom: boolean }> {
   const s = await getSettings([BANNER_SETTING_KEYS.rotateTop, BANNER_SETTING_KEYS.rotateBottom]);

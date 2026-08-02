@@ -6,6 +6,7 @@ import { prisma } from './db';
 
 const COOKIE_NAME = 'gwa_session';
 const MFA_COOKIE_NAME = 'gwa_mfa_pending';
+const MFA_ENROLL_COOKIE_NAME = 'gwa_mfa_enroll';
 const PWCHANGE_COOKIE_NAME = 'gwa_pwchange_pending';
 const VIEW_AS_COOKIE_NAME = 'gwa_view_as';
 const SESSION_TTL_SECONDS = 60 * 60 * 8; // 8 hours
@@ -96,6 +97,28 @@ export async function clearPasswordChangePending(): Promise<void> {
   cookies().delete(PWCHANGE_COOKIE_NAME);
 }
 
+/**
+ * Intermediate state: password (and any existing MFA) verified, but the account
+ * has no second factor and 2FA is required — so enrollment must complete before
+ * a full session is issued. Held in its own short-lived signed cookie.
+ */
+export async function createMfaEnrollPending(userId: string): Promise<void> {
+  const token = await sign({ userId, mfaEnroll: 'pending' }, 60 * 15);
+  cookies().set(MFA_ENROLL_COOKIE_NAME, token, { ...cookieOptions, maxAge: 60 * 15 });
+}
+
+export async function getMfaEnrollPendingUserId(): Promise<string | null> {
+  const token = cookies().get(MFA_ENROLL_COOKIE_NAME)?.value;
+  if (!token) return null;
+  const payload = await verify(token);
+  if (!payload || payload.mfaEnroll !== 'pending') return null;
+  return (payload.userId as string) ?? null;
+}
+
+export async function clearMfaEnrollPending(): Promise<void> {
+  cookies().delete(MFA_ENROLL_COOKIE_NAME);
+}
+
 export async function getSession(): Promise<SessionUser | null> {
   const token = cookies().get(COOKIE_NAME)?.value;
   if (!token) return null;
@@ -156,6 +179,7 @@ async function getViewAs(): Promise<{ dealerId: string; by: string } | null> {
 export async function destroySession(): Promise<void> {
   cookies().delete(COOKIE_NAME);
   cookies().delete(MFA_COOKIE_NAME);
+  cookies().delete(MFA_ENROLL_COOKIE_NAME);
   cookies().delete(PWCHANGE_COOKIE_NAME);
   cookies().delete(VIEW_AS_COOKIE_NAME);
 }

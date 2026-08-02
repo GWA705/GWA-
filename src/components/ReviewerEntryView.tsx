@@ -117,7 +117,7 @@ export function ReviewerEntryView({
               Hide protected fields
             </Link>
           ) : (
-            <Link href={revealHref} className="btn-secondary text-xs">
+            <Link href={revealHref} prefetch={false} className="btn-secondary text-xs">
               Reveal protected fields (logged)
             </Link>
           )}
