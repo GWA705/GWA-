@@ -127,7 +127,11 @@ export async function storeUploadedFile(params: {
   }
 }
 
-/** Store one or more uploaded files (multi-file upload). Returns an error string or null. */
+/**
+ * Store one or more uploaded files (multi-file upload). Returns an error string
+ * on failure, plus `storedTypes` — one DocumentType entry per file successfully
+ * stored — so callers can tell notifications exactly what was uploaded.
+ */
 export async function storeFiles(params: {
   application: ApplicationContext;
   files: File[];
@@ -135,11 +139,11 @@ export async function storeFiles(params: {
   stage: DocumentStage;
   uploadedById: string;
   namePrefix?: string;
-}): Promise<{ error?: string }> {
+}): Promise<{ error?: string; storedTypes?: DocumentType[] }> {
   const real = params.files.filter((f) => f && typeof f !== 'string' && f.size > 0);
   if (real.length === 0) return { error: 'No file provided.' };
 
-  let stored = 0;
+  const storedTypes: DocumentType[] = [];
   for (const file of real) {
     const result = await storeUploadedFile({
       application: params.application,
@@ -150,9 +154,12 @@ export async function storeFiles(params: {
       namePrefix: params.namePrefix,
     });
     if (!result.ok) {
-      return { error: stored > 0 ? `${result.error} (${stored} uploaded before this)` : result.error };
+      return {
+        error: storedTypes.length > 0 ? `${result.error} (${storedTypes.length} uploaded before this)` : result.error,
+        storedTypes,
+      };
     }
-    stored += 1;
+    storedTypes.push(params.type);
   }
-  return {};
+  return { storedTypes };
 }

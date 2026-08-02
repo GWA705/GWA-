@@ -1,8 +1,8 @@
-import type { ApplicationStatus, Role, User } from '@prisma/client';
+import type { ApplicationStatus, DocumentType, Role, User } from '@prisma/client';
 import { prisma } from './db';
 import { sendEmail } from './email';
 import { renderEmail } from './email-templates';
-import { STATUS_LABELS } from './constants';
+import { STATUS_LABELS, DOCUMENT_TYPE_LABELS } from './constants';
 import { sendPushToRoles } from './push';
 
 // Reviewers/admins who should receive activity notifications.
@@ -58,36 +58,77 @@ export async function notifyStatusChange(applicationId: string, toStatus: Applic
   }
 }
 
-/** Reviewers/admins are alerted when a dealer uploads documents. */
-export async function notifyNewDocuments(applicationId: string) {
-  try {
-    const app = await prisma.application.findUnique({ where: { id: applicationId }, include: { dealer: true } });
-    if (!app) return;
-    const staff = await prisma.user.findMany({
-      where: { role: { in: ['REVIEWER', 'ADMIN'] }, active: true, notifyNewDocuments: true },
+// Group uploaded document types into a human list like
+// ["Void cheque / PAP form", "Document for approval (×2)"].
+function summarizeDocTypes(types: DocumentType[]): string[] {
+  const counts = new Map<DocumentType, number>();
+  for (const t of types) counts.set(t, (counts.get(t) ?? 0) + 1);
+  return [...counts.entries()].map(([t, n]) => {
+    const label = DOCUMENT_TYPE_LABELS[t] ?? 'Document';
+    return n > 1 ? `${label} (×${n})` : label;
+  });
+}
+
+// New-document alerts are debounced per deal: a dealer often uploads several
+// documents in a row (each its own form), and we want ONE notification that
+// lists everything — not four buzzes back to back. Each upload (re)starts a
+// short trailing timer; when it fires, we send a single digest naming what was
+// uploaded in the burst. This relies on the app running as a long-lived server
+// (it does). A restart mid-window drops a pending digest, which is acceptable —
+// all notifications here are best-effort.
+const DOC_NOTIFY_DEBOUNCE_MS = 90_000;
+const pendingDocNotifications = new Map<string, { types: DocumentType[]; timer: NodeJS.Timeout }>();
+
+/** Reviewers/admins are alerted when a dealer uploads documents (debounced). */
+export function notifyNewDocuments(applicationId: string, uploadedTypes: DocumentType[]) {
+  if (uploadedTypes.length === 0) return;
+  const existing = pendingDocNotifications.get(applicationId);
+  if (existing) clearTimeout(existing.timer);
+  const types = existing ? [...existing.types, ...uploadedTypes] : [...uploadedTypes];
+  const timer = setTimeout(() => {
+    pendingDocNotifications.delete(applicationId);
+    void flushNewDocuments(applicationId, types).catch((e) =>
+      console.error('[notify] new documents flush failed', e),
+    );
+  }, DOC_NOTIFY_DEBOUNCE_MS);
+  // Don't let a pending digest keep the process alive on its own.
+  if (typeof timer.unref === 'function') timer.unref();
+  pendingDocNotifications.set(applicationId, { types, timer });
+}
+
+async function flushNewDocuments(applicationId: string, types: DocumentType[]) {
+  const app = await prisma.application.findUnique({ where: { id: applicationId }, include: { dealer: true } });
+  if (!app) return;
+  const staff = await prisma.user.findMany({
+    where: { role: { in: ['REVIEWER', 'ADMIN'] }, active: true, notifyNewDocuments: true },
+  });
+  const deal = dealLabel(app);
+  const labels = summarizeDocTypes(types);
+  const count = types.length;
+  const heading = count === 1 ? 'New document uploaded' : `${count} new documents uploaded`;
+  const listHtml = `<ul style="margin:0 0 14px;padding-left:18px;font-size:14px;line-height:1.6;color:#374151;">${labels
+    .map((l) => `<li>${l}</li>`)
+    .join('')}</ul>`;
+
+  for (const u of staff) {
+    await sendEmail({
+      to: recipientEmail(u),
+      subject: `${heading} (${deal})`,
+      html: renderEmail({
+        heading,
+        intro: `The following ${count === 1 ? 'document was' : 'documents were'} uploaded on the deal for ${deal} (${app.dealer.name}):`,
+        bodyHtml: listHtml,
+        ctaLabel: 'Review deal',
+        ctaUrl: `${appUrl()}/staff/applications/${applicationId}`,
+      }),
     });
-    const deal = dealLabel(app);
-    for (const u of staff) {
-      await sendEmail({
-        to: recipientEmail(u),
-        subject: `New documents uploaded (${deal})`,
-        html: renderEmail({
-          heading: 'New documents uploaded',
-          intro: `New document(s) were uploaded on the deal for ${deal} (${app.dealer.name}).`,
-          ctaLabel: 'Review deal',
-          ctaUrl: `${appUrl()}/staff/applications/${applicationId}`,
-        }),
-      });
-    }
-    await sendPushToRoles(STAFF_ROLES, {
-      title: 'New documents uploaded',
-      body: `${deal} (${app.dealer.name}) — new document(s) uploaded.`,
-      url: `/staff/applications/${applicationId}`,
-      tag: `docs-${applicationId}`,
-    });
-  } catch (e) {
-    console.error('[notify] new documents failed', e);
   }
+  await sendPushToRoles(STAFF_ROLES, {
+    title: heading,
+    body: `${deal} (${app.dealer.name}): ${labels.join(', ')}`,
+    url: `/staff/applications/${applicationId}`,
+    tag: `docs-${applicationId}`,
+  });
 }
 
 /** Reviewers/admins are alerted when a dealer submits a new deal. Push only. */

@@ -222,7 +222,7 @@ export async function uploadSupportingDocAction(
   if (result.error) return result;
 
   await markDealerAction(applicationId, 'DOCUMENT');
-  await notifyNewDocuments(applicationId);
+  notifyNewDocuments(applicationId, result.storedTypes ?? []);
   revalidatePath(`/dealer/applications/${applicationId}`);
   return {};
 }
@@ -267,7 +267,7 @@ export async function uploadFundingDocAction(
   if (result.error) return result;
 
   await markDealerAction(applicationId, 'DOCUMENT');
-  await notifyNewDocuments(applicationId);
+  notifyNewDocuments(applicationId, result.storedTypes ?? []);
   revalidatePath(`/dealer/applications/${applicationId}`);
   return {};
 }
