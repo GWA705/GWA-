@@ -51,14 +51,10 @@ export function MobileNav({
   userName,
   roleLabel,
   nav,
-  portal,
-  showSwitcher,
 }: {
   userName: string;
   roleLabel: string;
   nav: NavItem[];
-  portal?: 'dealer' | 'staff' | 'admin';
-  showSwitcher: boolean;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -77,8 +73,6 @@ export function MobileNav({
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [open]);
-
-  const switchBase = 'rounded-full px-3 py-1 text-sm font-medium';
 
   return (
     <div className="sm:hidden">
@@ -118,19 +112,6 @@ export function MobileNav({
                 </svg>
               </button>
             </div>
-
-            {showSwitcher && (
-              <div className="border-b border-gray-100 p-4">
-                <div className="flex items-center gap-1 rounded-full bg-gray-100 p-0.5">
-                  <Link href="/dealer" onClick={() => setOpen(false)} className={`${switchBase} flex-1 text-center ${portal === 'dealer' ? 'bg-white text-brand-700 shadow-sm' : 'text-gray-500'}`}>
-                    Dealer view
-                  </Link>
-                  <Link href="/staff" onClick={() => setOpen(false)} className={`${switchBase} flex-1 text-center ${portal === 'staff' ? 'bg-white text-brand-700 shadow-sm' : 'text-gray-500'}`}>
-                    Reviewer view
-                  </Link>
-                </div>
-              </div>
-            )}
 
             <div className="flex-1 overflow-y-auto p-2">
               {nav.map((item) => (
