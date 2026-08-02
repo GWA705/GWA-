@@ -37,7 +37,7 @@ body {
   @apply rounded-lg bg-white shadow-sm ring-1 ring-gray-200;
 }
 .badge {
-  @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+  @apply inline-flex items-center justify-center rounded-full px-2.5 py-0.5 text-center text-xs font-medium;
 }
 
 /* Announcement slideshow cross-fade between banners. */
