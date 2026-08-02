@@ -66,33 +66,37 @@ export function DealTable({ rows, kind }: { rows: QueueRow[]; kind: Kind }) {
         <thead className="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500">
           <tr>
             <th className="w-1 p-0" />
-            <th className="px-4 py-3">Applicant</th>
-            <th className="px-4 py-3">Dealer</th>
-            {showActivity ? <th className="px-4 py-3">What changed</th> : <th className="px-4 py-3">Program</th>}
-            {!showActivity && !showDate && <th className="px-4 py-3">Amount</th>}
-            <th className="px-4 py-3">Status</th>
-            <th className="px-4 py-3">{showDate ? 'Date' : 'Waiting'}</th>
+            <th className="px-3 py-3 sm:px-4">Applicant</th>
+            <th className="hidden px-3 py-3 sm:table-cell sm:px-4">Dealer</th>
+            {showActivity ? (
+              <th className="px-3 py-3 sm:px-4">What changed</th>
+            ) : (
+              <th className="hidden px-3 py-3 sm:table-cell sm:px-4">Program</th>
+            )}
+            {!showActivity && !showDate && <th className="px-3 py-3 sm:px-4">Amount</th>}
+            <th className="px-3 py-3 sm:px-4">Status</th>
+            <th className="px-3 py-3 sm:px-4">{showDate ? 'Date' : 'Waiting'}</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-100">
           {rows.map((a) => (
             <tr key={a.id} className={a.waitHot ? 'bg-red-50/60 hover:bg-red-50' : 'hover:bg-gray-50'}>
               <td className="w-1 p-0"><div className={`h-full w-1 ${a.waitHot ? 'bg-red-500' : 'bg-transparent'}`} /></td>
-              <td className="px-4 py-3">
+              <td className="px-3 py-3 sm:px-4">
                 <div className="flex items-center gap-2">
                   <Link href={`/staff/applications/${a.id}`} className="font-medium text-brand-700 hover:underline">{a.applicant}</Link>
                   {a.paid && <span className="badge bg-emerald-100 text-emerald-800">Paid</span>}
                 </div>
               </td>
-              <td className="px-4 py-3 text-gray-600">{a.dealer}</td>
+              <td className="hidden px-3 py-3 text-gray-600 sm:table-cell sm:px-4">{a.dealer}</td>
               {showActivity ? (
-                <td className="px-4 py-3">{a.activityLabel && a.activityTone ? <Pill tone={a.activityTone} label={a.activityLabel} /> : <span className="text-gray-300">—</span>}</td>
+                <td className="px-3 py-3 sm:px-4">{a.activityLabel && a.activityTone ? <Pill tone={a.activityTone} label={a.activityLabel} /> : <span className="text-gray-300">—</span>}</td>
               ) : (
-                <td className="px-4 py-3">{a.program}</td>
+                <td className="hidden px-3 py-3 sm:table-cell sm:px-4">{a.program}</td>
               )}
-              {!showActivity && !showDate && <td className="px-4 py-3 tabular-nums">{a.amount}</td>}
-              <td className="px-4 py-3"><Pill tone={a.tone} label={a.statusLabel} /></td>
-              <td className={`px-4 py-3 tabular-nums ${a.waitHot ? 'font-semibold text-red-700' : 'text-gray-500'}`}>
+              {!showActivity && !showDate && <td className="px-3 py-3 tabular-nums sm:px-4">{a.amount}</td>}
+              <td className="px-3 py-3 sm:px-4"><Pill tone={a.tone} label={a.statusLabel} /></td>
+              <td className={`px-3 py-3 tabular-nums sm:px-4 ${a.waitHot ? 'font-semibold text-red-700' : 'text-gray-500'}`}>
                 {showDate ? a.dateLabel : a.waitLabel}
               </td>
             </tr>
