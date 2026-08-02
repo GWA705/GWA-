@@ -3,6 +3,11 @@ import crypto from 'crypto';
 import { runDealerReminders } from '@/lib/reminders';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 300;
+
+// Guards against overlapping runs on this instance: a slow sweep won't be
+// re-entered by the next 15-minute tick while it's still sending.
+let running = false;
 
 // Constant-time secret comparison that also avoids leaking length.
 function secretMatches(provided: string, expected: string): boolean {
@@ -34,13 +39,19 @@ async function handle(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  try {
-    const result = await runDealerReminders();
-    return NextResponse.json({ ok: true, ...result });
-  } catch (e) {
-    console.error('[cron] dealer-reminders failed', e);
-    return NextResponse.json({ ok: false, error: 'Reminder run failed.' }, { status: 500 });
+  // Acknowledge immediately and do the (potentially slow) email/push sending in
+  // the background — this server stays alive between requests, so the work
+  // continues after the response and the scheduler never hits its timeout.
+  if (running) {
+    return NextResponse.json({ ok: true, skipped: 'a run is already in progress' });
   }
+  running = true;
+  void runDealerReminders()
+    .catch((e) => console.error('[cron] dealer-reminders failed', e))
+    .finally(() => {
+      running = false;
+    });
+  return NextResponse.json({ ok: true, started: true });
 }
 
 export async function GET(req: NextRequest) {

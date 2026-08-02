@@ -3,6 +3,10 @@ import crypto from 'crypto';
 import { runAttentionAlerts } from '@/lib/sla';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 300;
+
+// Guards against overlapping runs on this instance.
+let running = false;
 
 // Constant-time secret comparison that also avoids leaking length.
 function secretMatches(provided: string, expected: string): boolean {
@@ -36,13 +40,18 @@ async function handle(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  try {
-    const result = await runAttentionAlerts();
-    return NextResponse.json({ ok: true, ...result });
-  } catch (e) {
-    console.error('[cron] attention-alerts failed', e);
-    return NextResponse.json({ ok: false, error: 'Alert run failed.' }, { status: 500 });
+  // Acknowledge immediately; run the sweep in the background so a slow send
+  // never trips the scheduler's request timeout.
+  if (running) {
+    return NextResponse.json({ ok: true, skipped: 'a run is already in progress' });
   }
+  running = true;
+  void runAttentionAlerts()
+    .catch((e) => console.error('[cron] attention-alerts failed', e))
+    .finally(() => {
+      running = false;
+    });
+  return NextResponse.json({ ok: true, started: true });
 }
 
 export async function GET(req: NextRequest) {
