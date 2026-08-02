@@ -76,7 +76,7 @@ export default async function DealerHome({
 
       {apps.length === 0 ? (
         <div className="card p-8 text-center text-sm text-gray-500">
-          {searchParams.q ? `No applications match “${searchParams.q}”.` : 'No applications yet. Start by creating a new application.'}
+          {searchParams.q ? `No applications match “${searchParams.q}”.` : 'No customers yet — start by clicking “New customer processing”.'}
         </div>
       ) : (
         <>
