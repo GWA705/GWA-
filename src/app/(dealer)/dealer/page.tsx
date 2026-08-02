@@ -80,16 +80,16 @@ export default async function DealerHome({
         </div>
       ) : (
         <>
-          <div className="card overflow-hidden">
+          <div className="card overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200 text-sm">
               <thead className="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500">
                 <tr>
-                  <th className="px-4 py-3">Applicant</th>
-                  <th className="px-4 py-3">Province</th>
-                  <th className="px-4 py-3">Program</th>
-                  <th className="px-4 py-3">Amount</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Submitted</th>
+                  <th className="px-3 py-3 sm:px-4">Applicant</th>
+                  <th className="hidden px-3 py-3 sm:table-cell sm:px-4">Province</th>
+                  <th className="px-3 py-3 sm:px-4">Program</th>
+                  <th className="px-3 py-3 sm:px-4">Amount</th>
+                  <th className="px-3 py-3 sm:px-4">Status</th>
+                  <th className="hidden px-3 py-3 sm:table-cell sm:px-4">Submitted</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -103,7 +103,7 @@ export default async function DealerHome({
                   });
                   return (
                   <tr key={a.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3">
+                    <td className="px-3 py-3 sm:px-4">
                       <div className="flex flex-wrap items-center gap-2">
                         <Link
                           href={`/dealer/applications/${a.id}`}
@@ -118,13 +118,13 @@ export default async function DealerHome({
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-3">{a.province}</td>
-                    <td className="px-4 py-3">{programLabel(a.programType, a.programCategory)}</td>
-                    <td className="px-4 py-3">${a.requestedAmount.toString()}</td>
-                    <td className="px-4 py-3">
+                    <td className="hidden px-3 py-3 sm:table-cell sm:px-4">{a.province}</td>
+                    <td className="px-3 py-3 sm:px-4">{programLabel(a.programType, a.programCategory)}</td>
+                    <td className="px-3 py-3 sm:px-4">${a.requestedAmount.toString()}</td>
+                    <td className="px-3 py-3 sm:px-4">
                       <StatusBadge status={a.status} />
                     </td>
-                    <td className="px-4 py-3 text-gray-500">
+                    <td className="hidden px-3 py-3 text-gray-500 sm:table-cell sm:px-4">
                       {a.createdAt.toLocaleDateString('en-CA')}
                     </td>
                   </tr>
