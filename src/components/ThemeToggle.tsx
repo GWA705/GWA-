@@ -19,7 +19,7 @@ function apply(mode: Mode) {
  * pick one. An inline script in the root layout applies the saved choice before
  * first paint so there's no flash.
  */
-export function ThemeToggle() {
+export function ThemeToggle({ className = 'btn-secondary text-xs' }: { className?: string }) {
   const [mode, setMode] = useState<Mode>('light');
 
   useEffect(() => {
@@ -45,7 +45,7 @@ export function ThemeToggle() {
     <button
       type="button"
       onClick={toggle}
-      className="btn-secondary text-xs"
+      className={className}
       aria-pressed={isDark}
       title={isDark ? 'Dark mode — tap for light' : 'Light mode — tap for dark'}
       aria-label={isDark ? 'Dark mode. Tap for light.' : 'Light mode. Tap for dark.'}

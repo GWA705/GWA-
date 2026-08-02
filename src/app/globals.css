@@ -139,3 +139,71 @@ body {
 .dark .text-brand-900 { color: #dbe6ff; }
 .dark .text-brand-900\/80 { color: #c3d4ff; }
 .dark .border-brand-100 { border-color: rgba(37,99,235,.4); }
+
+/* ==========================================================================
+   Top navigation bar (Option B): a floating, rounded brand-blue bar holding a
+   translucent pill tray for the links. Styled once here so it stays consistent
+   across the dealer, reviewer, and admin portals and in both themes.
+   ========================================================================== */
+.topbar {
+  border-radius: 18px;
+  padding: 14px 18px;
+  background: linear-gradient(180deg, #1d4ed8, #17398f);
+  box-shadow: 0 10px 26px -14px rgba(23, 57, 143, .55);
+}
+.dark .topbar {
+  background: linear-gradient(180deg, #234a9e, #16305f);
+  box-shadow: 0 14px 34px -16px rgba(0, 0, 0, .8);
+}
+.topbar-brand { color: #fff; }
+.topbar-user { color: #fff; font-weight: 600; }
+.topbar-role { color: rgba(255, 255, 255, .72); }
+
+/* The pill tray of links */
+.topnav {
+  display: flex; flex-wrap: wrap; gap: 4px;
+  padding: 5px; border-radius: 12px;
+  background: rgba(255, 255, 255, .12);
+  border: 1px solid rgba(255, 255, 255, .16);
+}
+.topnav a {
+  white-space: nowrap; font-size: 13px; font-weight: 500;
+  color: rgba(255, 255, 255, .86);
+  padding: 7px 13px; border-radius: 8px;
+  transition: background .15s, color .15s, box-shadow .15s;
+}
+.topnav a:hover { color: #fff; background: rgba(255, 255, 255, .16); }
+.topnav a[aria-current="page"] {
+  color: #1e40af; background: #fff; font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .28);
+}
+
+/* Controls that sit on the blue bar (theme toggle, sign out, the mobile
+   hamburger): translucent white so they read as controls over the gradient. */
+.topbar-btn {
+  @apply inline-flex items-center justify-center rounded-lg text-xs font-medium transition;
+  padding: 7px 11px;
+  color: #fff;
+  background: rgba(255, 255, 255, .16);
+  border: 1px solid rgba(255, 255, 255, .28);
+}
+.topbar-btn:hover { background: rgba(255, 255, 255, .26); }
+.topbar-btn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+/* Portal switcher (dealer ↔ reviewer) on the blue bar */
+.topbar-switch {
+  display: inline-flex; align-items: center; gap: 3px;
+  border-radius: 999px; padding: 3px; background: rgba(255, 255, 255, .14);
+}
+.topbar-switch a {
+  border-radius: 999px; padding: 4px 12px; font-size: 12px; font-weight: 500;
+  color: rgba(255, 255, 255, .82); transition: background .15s, color .15s;
+}
+.topbar-switch a:hover { color: #fff; }
+.topbar-switch a[aria-current="true"] {
+  background: #fff; color: #1e40af; font-weight: 600; box-shadow: 0 1px 2px rgba(0, 0, 0, .25);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .topnav a, .topbar-btn, .topbar-switch a { transition: none; }
+}

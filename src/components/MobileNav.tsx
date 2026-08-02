@@ -51,10 +51,13 @@ export function MobileNav({
   userName,
   roleLabel,
   nav,
+  triggerClassName = 'btn-secondary px-2.5',
 }: {
   userName: string;
   roleLabel: string;
   nav: NavItem[];
+  /** Class for the hamburger trigger (drawer internals keep their own styles). */
+  triggerClassName?: string;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -81,7 +84,7 @@ export function MobileNav({
         onClick={() => setOpen(true)}
         aria-label="Open menu"
         aria-expanded={open}
-        className="btn-secondary px-2.5"
+        className={triggerClassName}
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
           <line x1="3" y1="6" x2="21" y2="6" />

@@ -1,9 +1,10 @@
-import Link from 'next/link';
 import { hasBothPortals, type SessionUser } from '@/lib/session';
 import { roleLabel } from '@/lib/rbac';
 import { logoutAction } from '@/app/(auth)/actions';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { MobileNav } from '@/components/MobileNav';
+import { TopNav } from '@/components/TopNav';
+import Link from 'next/link';
 
 interface NavItem {
   href: string;
@@ -12,16 +13,12 @@ interface NavItem {
 
 // Switcher shown to users who can use both portals (an internal user linked to
 // a dealer): jump between the dealer view and the reviewer view with one login.
+// Styled for the blue bar (translucent pills, active pill white).
 function PortalSwitcher({ current }: { current: 'dealer' | 'staff' }) {
-  const base = 'rounded-full px-3 py-1 text-xs font-medium';
   return (
-    <div className="flex items-center gap-1 rounded-full bg-gray-100 p-0.5">
-      <Link href="/dealer" className={`${base} ${current === 'dealer' ? 'bg-white text-brand-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
-        Dealer view
-      </Link>
-      <Link href="/staff" className={`${base} ${current === 'staff' ? 'bg-white text-brand-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
-        Reviewer view
-      </Link>
+    <div className="topbar-switch">
+      <Link href="/dealer" aria-current={current === 'dealer'}>Dealer view</Link>
+      <Link href="/staff" aria-current={current === 'staff'}>Reviewer view</Link>
     </div>
   );
 }
@@ -40,43 +37,35 @@ export function AppShell({
   const showSwitcher = hasBothPortals(user) && (portal === 'dealer' || portal === 'staff');
   return (
     <div className="min-h-screen">
-      <header className="border-b border-gray-200 bg-white">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3">
-          <div className="flex items-center gap-3">
+      <header className="px-3 pt-3 sm:px-4 sm:pt-4">
+        <div className="topbar mx-auto max-w-6xl">
+          {/* Row 1: brand + who's signed in + controls */}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
             <MobileNav
               userName={user.name}
               roleLabel={roleLabel(user.role)}
               nav={nav}
+              triggerClassName="topbar-btn px-2.5"
             />
-            <span className="text-lg font-semibold text-brand-700">GWA Dealer Portal</span>
+            <span className="topbar-brand text-lg font-semibold">GWA Dealer Portal</span>
             {showSwitcher && <PortalSwitcher current={portal as 'dealer' | 'staff'} />}
+            <div className="ml-auto hidden items-center gap-2 sm:flex">
+              <div className="text-right leading-tight">
+                <div className="topbar-user text-sm">{user.name}</div>
+                <div className="topbar-role text-xs">{roleLabel(user.role)}</div>
+              </div>
+              <ThemeToggle className="topbar-btn" />
+              <form action={logoutAction}>
+                <button className="topbar-btn" type="submit">
+                  Sign out
+                </button>
+              </form>
+            </div>
           </div>
 
-          {/* Desktop / tablet: full nav + account cluster */}
-          <div className="order-3 hidden w-full sm:order-2 sm:block sm:w-auto sm:flex-1">
-            <nav className="-mx-1 flex gap-4 overflow-x-auto px-1 text-sm sm:justify-start">
-              {nav.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="whitespace-nowrap py-1 text-gray-600 hover:text-brand-700"
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
-          </div>
-          <div className="order-2 hidden items-center gap-3 text-sm sm:order-3 sm:flex">
-            <div className="text-right">
-              <div className="font-medium text-gray-800">{user.name}</div>
-              <div className="text-xs text-gray-500">{roleLabel(user.role)}</div>
-            </div>
-            <ThemeToggle />
-            <form action={logoutAction}>
-              <button className="btn-secondary" type="submit">
-                Sign out
-              </button>
-            </form>
+          {/* Row 2: the link tray (desktop/tablet; mobile uses the drawer) */}
+          <div className="mt-3 hidden sm:block">
+            <TopNav nav={nav} />
           </div>
         </div>
       </header>
