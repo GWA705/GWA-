@@ -3,7 +3,7 @@ import { requireRole } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { SearchBox } from '@/components/SearchBox';
 import { searchWhere } from '@/lib/search';
-import { STATUS_LABELS, programLabel } from '@/lib/constants';
+import { STATUS_LABELS, PROGRAM_CATEGORY_LABELS, programLabel } from '@/lib/constants';
 import { ReviewerQueue, DealTable, type QueueRow, type Tone, type Lanes, type PriorityBands } from './ReviewerQueue';
 import type { Application, ApplicationStatus, Dealer } from '@prisma/client';
 
@@ -113,6 +113,8 @@ function toRow(a: Deal): QueueRow {
     applicant: `${a.applicantFirstName} ${a.applicantLastName}`,
     dealer: a.dealer.name,
     program: programLabel(a.programType, a.programCategory),
+    programType: a.programType,
+    programCategory: PROGRAM_CATEGORY_LABELS[a.programCategory],
     amount: fmtAmount(a),
     statusLabel: a._count.payouts > 0 ? 'Paid' : STATUS_LABELS[a.status] ?? a.status,
     tone: a._count.payouts > 0 ? 'paid' : toneFor(a.status),

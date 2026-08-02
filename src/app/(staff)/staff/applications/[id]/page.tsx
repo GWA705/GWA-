@@ -16,6 +16,7 @@ import { NoteThread } from '@/components/NoteThread';
 import { NoteForm } from '@/components/NoteForm';
 import { ConfirmationBadge } from '@/components/ConfirmationBadge';
 import { DealProgress } from '@/components/DealProgress';
+import { ProgramBadge } from '@/components/ProgramBadge';
 import { PROGRAM_CATEGORY_LABELS } from '@/lib/constants';
 import { ConfirmationForm } from './ConfirmationForm';
 import { DealReferencesForm } from './DealReferencesForm';
@@ -199,8 +200,9 @@ export default async function StaffApplicationDetail({
     <div className="space-y-6">
       <div>
         <Link href="/staff" className="text-sm text-gray-500 hover:underline">← Back to queue</Link>
-          <div className="mt-2 flex items-center justify-between">
-            <h1 className="text-xl font-semibold text-gray-900">
+          <div className="mt-2 flex items-center justify-between gap-3">
+            <h1 className="flex flex-wrap items-center gap-2 text-xl font-semibold text-gray-900">
+              <ProgramBadge type={app.programType} category={PROGRAM_CATEGORY_LABELS[app.programCategory]} size="lg" />
               {app.applicantFirstName} {app.applicantLastName}
             </h1>
             <StatusBadge status={app.status} />
@@ -246,6 +248,7 @@ export default async function StaffApplicationDetail({
                 <StatusBadge status={app.status} />
               </div>
               <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3">
+                <div><dt className="text-gray-500">Program</dt><dd><ProgramBadge type={app.programType} category={PROGRAM_CATEGORY_LABELS[app.programCategory]} /></dd></div>
                 <div><dt className="text-gray-500">Customer</dt><dd className="font-medium">{app.applicantFirstName} {app.applicantLastName}</dd></div>
                 <div><dt className="text-gray-500">Phone</dt><dd className="font-medium">{app.applicantPhone}</dd></div>
                 <div><dt className="text-gray-500">City</dt><dd className="font-medium">{app.loanApplication?.city ?? '—'}{app.loanApplication?.addressProvince ? `, ${app.loanApplication.addressProvince}` : ''}</dd></div>

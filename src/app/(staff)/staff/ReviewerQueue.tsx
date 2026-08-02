@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import type { ProgramType } from '@prisma/client';
+import { ProgramBadge } from '@/components/ProgramBadge';
 
 // A pre-formatted deal row (all display fields computed on the server).
 export type Tone = 'new' | 'review' | 'appr' | 'fund' | 'funded' | 'paid' | 'prob' | 'decl' | 'note';
@@ -10,6 +12,8 @@ export interface QueueRow {
   applicant: string;
   dealer: string;
   program: string;
+  programType: ProgramType;
+  programCategory: string;
   amount: string;
   statusLabel: string;
   tone: Tone;
@@ -83,16 +87,24 @@ export function DealTable({ rows, kind }: { rows: QueueRow[]; kind: Kind }) {
             <tr key={a.id} className={a.waitHot ? 'bg-red-50/60 hover:bg-red-50' : 'hover:bg-gray-50'}>
               <td className="w-1 p-0"><div className={`h-full w-1 ${a.waitHot ? 'bg-red-500' : 'bg-transparent'}`} /></td>
               <td className="px-3 py-3 sm:px-4">
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <ProgramBadge type={a.programType} />
                   <Link href={`/staff/applications/${a.id}`} className="font-medium text-brand-700 hover:underline">{a.applicant}</Link>
                   {a.paid && <span className="badge bg-emerald-100 text-emerald-800">Paid</span>}
+                </div>
+                {/* On mobile the Dealer + Program columns are hidden — surface both
+                    here so the reviewer still knows who sent it and what it is. */}
+                <div className="mt-1 text-xs text-gray-500 sm:hidden">
+                  {a.dealer} · {a.programCategory}
                 </div>
               </td>
               <td className="hidden px-3 py-3 text-gray-600 sm:table-cell sm:px-4">{a.dealer}</td>
               {showActivity ? (
                 <td className="px-3 py-3 sm:px-4">{a.activityLabel && a.activityTone ? <Pill tone={a.activityTone} label={a.activityLabel} /> : <span className="text-gray-300">—</span>}</td>
               ) : (
-                <td className="hidden px-3 py-3 sm:table-cell sm:px-4">{a.program}</td>
+                <td className="hidden px-3 py-3 sm:table-cell sm:px-4">
+                  <ProgramBadge type={a.programType} category={a.programCategory} />
+                </td>
               )}
               {!showActivity && !showDate && <td className="px-3 py-3 tabular-nums sm:px-4">{a.amount}</td>}
               <td className="px-3 py-3 sm:px-4"><Pill tone={a.tone} label={a.statusLabel} /></td>
@@ -134,6 +146,7 @@ function PriorityRow({ r }: { r: QueueRow }) {
       <div className={`h-full ${stripe}`} />
       <div className="min-w-0 py-3 pl-3 pr-2 sm:pl-4">
         <div className="flex items-center gap-2">
+          <ProgramBadge type={r.programType} />
           <span className="truncate font-medium text-brand-700">{r.applicant}</span>
           {r.paid && <span className="badge bg-emerald-100 text-emerald-800">Paid</span>}
         </div>
