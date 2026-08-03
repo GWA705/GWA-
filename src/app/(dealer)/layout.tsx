@@ -3,6 +3,7 @@ import { AppShell } from '@/components/AppShell';
 import { WelcomeTour } from '@/components/WelcomeTour';
 import { AlertModal } from '@/components/AlertModal';
 import { alertWhereForUser } from '@/lib/alerts';
+import { newContentSectionsForUser, unreadMailCountForUser } from '@/lib/inbox';
 import { prisma } from '@/lib/db';
 import { stopViewAsAction } from '@/app/(admin)/actions';
 
@@ -34,6 +35,12 @@ export default async function DealerLayout({ children }: { children: React.React
     });
   }
 
+  // Attention dots: content sections with something new, and unread mail.
+  const [freshSections, unreadMail] = await Promise.all([
+    newContentSectionsForUser(user.userId),
+    user.dealerId ? unreadMailCountForUser(user.userId, user.dealerId) : Promise.resolve(0),
+  ]);
+
   return (
     <>
       {impersonatingName && (
@@ -57,9 +64,10 @@ export default async function DealerLayout({ children }: { children: React.React
         nav={[
           { href: '/dealer', label: 'Applications' },
           { href: '/dealer/applications/new', label: 'New customer' },
-          { href: '/dealer/resources', label: 'Resources' },
-          { href: '/dealer/hd-promotions', label: 'HD Promotions' },
-          { href: '/dealer/hd-credit-card', label: 'HD Credit Card' },
+          { href: '/dealer/mail', label: 'Mail', badge: unreadMail > 0 },
+          { href: '/dealer/resources', label: 'Resources', badge: freshSections.has('RESOURCE') },
+          { href: '/dealer/hd-promotions', label: 'HD Promotions', badge: freshSections.has('HD_PROMOTION') },
+          { href: '/dealer/hd-credit-card', label: 'HD Credit Card', badge: freshSections.has('HD_CREDIT_CARD') },
           { href: '/dealer/tutorial', label: 'Tutorial' },
           { href: '/account', label: 'My account' },
         ]}

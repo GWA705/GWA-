@@ -204,3 +204,16 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .topnav a, .topbar-btn, .topbar-switch a { transition: none; }
 }
+
+/* "New / unread" attention dot on a nav tab. In the top pill tray it rides the
+   top-right corner of the pill; in the mobile drawer it sits inline (ml-auto). */
+.nav-dot {
+  display: inline-block; width: 8px; height: 8px; border-radius: 999px;
+  background: #ef4444; box-shadow: 0 0 0 2px #eef5ff;
+}
+.topnav a.has-dot { position: relative; }
+.topnav a.has-dot .nav-dot {
+  position: absolute; top: 3px; right: 4px; box-shadow: 0 0 0 2px #eef5ff;
+}
+.topnav a.has-dot[aria-current="page"] .nav-dot { box-shadow: 0 0 0 2px #1d4ed8; }
+.dark .nav-dot { box-shadow: 0 0 0 2px #131a27; }

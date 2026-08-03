@@ -251,6 +251,7 @@ model Dealer {
   applications     Application[]
   homeDepotStores  HomeDepotStore[]
   dealerAlerts     DealerAlert[]
+  mailRecipients   MailRecipient[]
 }
 
 // Home Depot stores available to a given dealer. The store field on an
@@ -333,8 +334,100 @@ model User {
   verificationChecks  VerificationCheck[]
   pushSubscriptions   PushSubscription[]
   alertAcks           AlertAck[]
+  contentReads        ContentSectionRead[]
+  mailsSent           Mail[]              @relation("MailSender")
+  mailReceipts        MailReceipt[]
+  mailAttachmentViews MailAttachmentView[]
 
   @@index([dealerId])
+}
+
+// Per-user read state for a dealer content section (Resources / HD Promotions /
+// HD Credit Card). Drives the "new content" dot on the nav tab: a section is
+// "new" for a user when it has content added/updated after their last view here.
+model ContentSectionRead {
+  id       String         @id @default(cuid())
+  userId   String
+  user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  section  ContentSection
+  viewedAt DateTime       @default(now()) @updatedAt
+
+  @@unique([userId, section])
+}
+
+// Mail sent from GWA (admins/reviewers) to dealers, with file attachments and
+// per-user read receipts — so it's documented who viewed what, and when.
+model Mail {
+  id         String   @id @default(cuid())
+  subject    String
+  body       String   @db.Text
+  requireAck Boolean  @default(false) // ask each reader to confirm they've read it
+  allDealers Boolean  @default(false) // sent to every dealer (vs. selected)
+  senderId   String
+  sender     User     @relation("MailSender", fields: [senderId], references: [id])
+  createdAt  DateTime @default(now())
+
+  recipients  MailRecipient[]
+  attachments MailAttachment[]
+  receipts    MailReceipt[]
+
+  @@index([createdAt])
+}
+
+// A dealer this mail was addressed to (ignored when allDealers is true).
+model MailRecipient {
+  id       String @id @default(cuid())
+  mailId   String
+  mail     Mail   @relation(fields: [mailId], references: [id], onDelete: Cascade)
+  dealerId String
+  dealer   Dealer @relation(fields: [dealerId], references: [id], onDelete: Cascade)
+
+  @@unique([mailId, dealerId])
+}
+
+// A file attached to a piece of mail (encrypted at rest, like documents).
+model MailAttachment {
+  id         String   @id @default(cuid())
+  mailId     String
+  mail       Mail     @relation(fields: [mailId], references: [id], onDelete: Cascade)
+  fileName   String
+  mimeType   String
+  sizeBytes  Int
+  storageKey String
+  checksum   String
+  createdAt  DateTime @default(now())
+
+  views MailAttachmentView[]
+
+  @@index([mailId])
+}
+
+// Per-user receipt for a piece of mail: when they first opened it, and (when
+// the mail requires it) when they acknowledged reading it.
+model MailReceipt {
+  id             String    @id @default(cuid())
+  mailId         String
+  mail           Mail      @relation(fields: [mailId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  openedAt       DateTime  @default(now())
+  acknowledgedAt DateTime?
+
+  @@unique([mailId, userId])
+}
+
+// Per-user record of opening a specific attachment (first + last view + count).
+model MailAttachmentView {
+  id           String         @id @default(cuid())
+  attachmentId String
+  attachment   MailAttachment @relation(fields: [attachmentId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  firstViewedAt DateTime      @default(now())
+  lastViewedAt  DateTime      @default(now())
+  viewCount     Int           @default(1)
+
+  @@unique([attachmentId, userId])
 }
 
 // ---------------------------------------------------------------------------

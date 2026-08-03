@@ -44,6 +44,16 @@ export function newStorageKey(params: {
   return `dealers/${dealerId}/${year}/${month}/week-${week}/${applicationId}/${rand}${ext}`;
 }
 
+// Storage key for a mail attachment (not tied to a dealer/application).
+export function newMailStorageKey(ext: string): string {
+  const e = ext.replace(/[^a-zA-Z0-9.]/g, '') || '.bin';
+  const now = new Date();
+  const year = now.getUTCFullYear();
+  const month = String(now.getUTCMonth() + 1).padStart(2, '0');
+  const rand = crypto.randomBytes(16).toString('hex');
+  return `mail/${year}/${month}/${rand}${e}`;
+}
+
 // --- Local driver ----------------------------------------------------------
 
 function localRoot(): string {

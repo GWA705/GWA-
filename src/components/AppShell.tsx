@@ -9,6 +9,8 @@ import Link from 'next/link';
 interface NavItem {
   href: string;
   label: string;
+  /** Show a "new / unread" attention dot on this tab. */
+  badge?: boolean;
 }
 
 // Switcher shown to users who can use both portals (an internal user linked to

@@ -8,6 +8,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
   const user = await requireRole('REVIEWER', 'ADMIN');
   const nav = [
     { href: '/staff', label: 'Deals' },
+    { href: '/staff/mail', label: 'Mail' },
     { href: '/account', label: 'My account' },
   ];
   if (user.role === 'ADMIN') nav.push({ href: '/admin', label: 'Admin' });

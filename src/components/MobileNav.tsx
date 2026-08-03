@@ -8,6 +8,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 interface NavItem {
   href: string;
   label: string;
+  badge?: boolean;
 }
 
 // A small line-icon chosen by matching keywords in the link label, so the same
@@ -126,6 +127,7 @@ export function MobileNav({
                 >
                   <NavIcon label={item.label} />
                   {item.label}
+                  {item.badge && <span className="nav-dot ml-auto" title="New" aria-label="New" />}
                 </Link>
               ))}
             </div>

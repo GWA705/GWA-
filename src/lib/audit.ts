@@ -29,7 +29,10 @@ export type AuditAction =
   | 'USER_CREATE'
   | 'USER_UPDATE'
   | 'DEALER_CREATE'
-  | 'DEALER_UPDATE';
+  | 'DEALER_UPDATE'
+  | 'MAIL_SEND'
+  | 'MAIL_ACK'
+  | 'MAIL_ATTACH_VIEW';
 
 interface AuditInput {
   actorId?: string | null;

@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 interface NavItem {
   href: string;
   label: string;
+  badge?: boolean;
 }
 
 /**
@@ -27,8 +28,10 @@ export function TopNav({ nav }: { nav: NavItem[] }) {
           key={item.href}
           href={item.href}
           aria-current={item.href === activeHref ? 'page' : undefined}
+          className={item.badge ? 'has-dot' : undefined}
         >
           {item.label}
+          {item.badge && <span className="nav-dot" title="New" aria-label="New" />}
         </Link>
       ))}
     </nav>
