@@ -30,6 +30,51 @@ export interface ItemActionState {
   ok?: boolean;
 }
 
+export interface CategoryActionState {
+  error?: string;
+  ok?: boolean;
+}
+
+/** Create or rename/reorder a marketplace category. */
+export async function saveCategoryAction(_prev: CategoryActionState, formData: FormData): Promise<CategoryActionState> {
+  await requireRole('ADMIN');
+  const id = (formData.get('id') ?? '').toString() || null;
+  const name = (formData.get('name') ?? '').toString().trim();
+  const sortOrder = Number.parseInt((formData.get('sortOrder') ?? '0').toString(), 10) || 0;
+  if (!name) return { error: 'Category name is required.' };
+  try {
+    if (id) {
+      await prisma.marketplaceCategory.update({ where: { id }, data: { name, sortOrder } });
+    } else {
+      await prisma.marketplaceCategory.create({ data: { name, sortOrder } });
+    }
+  } catch (err) {
+    console.error('[marketplace] saveCategoryAction failed', err);
+    return { error: 'Could not save this category. Please try again.' };
+  }
+  revalidatePath('/admin/marketplace');
+  revalidatePath('/dealer/marketplace');
+  return { ok: true };
+}
+
+export async function toggleCategoryActiveAction(id: string) {
+  await requireRole('ADMIN');
+  const c = await prisma.marketplaceCategory.findUnique({ where: { id }, select: { active: true } });
+  if (!c) return;
+  await prisma.marketplaceCategory.update({ where: { id }, data: { active: !c.active } });
+  revalidatePath('/admin/marketplace');
+  revalidatePath('/dealer/marketplace');
+}
+
+export async function deleteCategoryAction(id: string) {
+  await requireRole('ADMIN');
+  // Items in this category are kept — the FK sets their categoryId to null, so
+  // they simply become uncategorized.
+  await prisma.marketplaceCategory.delete({ where: { id } }).catch(() => {});
+  revalidatePath('/admin/marketplace');
+  revalidatePath('/dealer/marketplace');
+}
+
 function parseOptions(raw: string): string[] {
   return raw
     .split(',')
@@ -47,6 +92,7 @@ export async function saveItemAction(_prev: ItemActionState, formData: FormData)
   const options = parseOptions((formData.get('options') ?? '').toString());
   const sortOrder = Number.parseInt((formData.get('sortOrder') ?? '0').toString(), 10) || 0;
   const active = formData.get('active') === 'on';
+  const categoryId = (formData.get('categoryId') ?? '').toString() || null;
 
   if (!name) return { error: 'Item name is required.' };
 
@@ -61,7 +107,7 @@ export async function saveItemAction(_prev: ItemActionState, formData: FormData)
     if (id) {
       const existing = await prisma.marketplaceItem.findUnique({ where: { id }, select: { imageStorageKey: true } });
       if (!existing) return { error: 'That item no longer exists — reload the page and try again.' };
-      await prisma.marketplaceItem.update({ where: { id }, data: { name, description, options, sortOrder, active } });
+      await prisma.marketplaceItem.update({ where: { id }, data: { name, description, options, sortOrder, active, categoryId } });
       if (hasNewImage) {
         const stored = await storeItemImage(id, image!);
         if ('error' in stored) return { error: stored.error };
@@ -73,7 +119,7 @@ export async function saveItemAction(_prev: ItemActionState, formData: FormData)
       }
     } else {
       const created = await prisma.marketplaceItem.create({
-        data: { name, description, options, sortOrder, active, createdById: session.userId },
+        data: { name, description, options, sortOrder, active, categoryId, createdById: session.userId },
       });
       if (hasNewImage) {
         const stored = await storeItemImage(created.id, image!);

@@ -6,17 +6,25 @@ export const dynamic = 'force-dynamic';
 
 export default async function DealerMarketplace({ searchParams }: { searchParams: { ok?: string } }) {
   await requireDealerAccess();
-  const rows = await prisma.marketplaceItem.findMany({
-    where: { active: true },
-    orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
-    select: { id: true, name: true, description: true, options: true, imageStorageKey: true },
-  });
+  const [categories, rows] = await Promise.all([
+    prisma.marketplaceCategory.findMany({
+      where: { active: true },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      select: { id: true, name: true },
+    }),
+    prisma.marketplaceItem.findMany({
+      where: { active: true },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      select: { id: true, name: true, description: true, options: true, imageStorageKey: true, categoryId: true },
+    }),
+  ]);
   const items = rows.map((r) => ({
     id: r.id,
     name: r.name,
     description: r.description,
     options: r.options,
     hasImage: !!r.imageStorageKey,
+    categoryId: r.categoryId,
   }));
 
   return (
@@ -35,7 +43,7 @@ export default async function DealerMarketplace({ searchParams }: { searchParams
       {items.length === 0 ? (
         <div className="card p-8 text-center text-sm text-gray-500">Nothing available to order right now.</div>
       ) : (
-        <MarketplaceOrderForm items={items} />
+        <MarketplaceOrderForm items={items} categories={categories} />
       )}
     </div>
   );

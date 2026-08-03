@@ -12,6 +12,12 @@ interface Item {
   sortOrder: number;
   active: boolean;
   hasImage?: boolean;
+  categoryId?: string | null;
+}
+
+interface CategoryOption {
+  id: string;
+  name: string;
 }
 
 const initial: ItemActionState = {};
@@ -25,7 +31,7 @@ function SubmitButton({ isEdit }: { isEdit: boolean }) {
   );
 }
 
-export function ItemForm({ item }: { item?: Item }) {
+export function ItemForm({ item, categories }: { item?: Item; categories: CategoryOption[] }) {
   const [state, action] = useFormState(saveItemAction, initial);
   const isEdit = !!item;
   const formRef = useRef<HTMLFormElement>(null);
@@ -46,9 +52,18 @@ export function ItemForm({ item }: { item?: Item }) {
           <input name="name" defaultValue={item?.name ?? ''} className="input" />
         </div>
         <div>
-          <label className="label">Options <span className="font-normal text-gray-400">(sizes, comma-separated — optional)</span></label>
-          <input name="options" defaultValue={item?.options.join(', ') ?? ''} className="input" placeholder="S, M, L, XL" />
+          <label className="label">Category</label>
+          <select name="categoryId" defaultValue={item?.categoryId ?? ''} className="input">
+            <option value="">— Uncategorized —</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
         </div>
+      </div>
+      <div>
+        <label className="label">Options <span className="font-normal text-gray-400">(sizes, comma-separated — optional)</span></label>
+        <input name="options" defaultValue={item?.options.join(', ') ?? ''} className="input" placeholder="S, M, L, XL" />
       </div>
       <div>
         <label className="label">Description <span className="font-normal text-gray-400">(optional)</span></label>

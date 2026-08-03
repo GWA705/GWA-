@@ -355,6 +355,21 @@ model User {
 // Marketplace: items GWA makes available for dealers to order (clothing, gear,
 // signage). No prices and no payment — it's an ordering system. A submitted
 // order emails whoever handles fulfillment.
+// A grouping for marketplace items (e.g. Apparel, Signage, Sample Kits). Admins
+// can add/rename/reorder/hide these at any time.
+model MarketplaceCategory {
+  id        String   @id @default(cuid())
+  name      String
+  sortOrder Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items MarketplaceItem[]
+
+  @@index([active])
+}
+
 model MarketplaceItem {
   id             String   @id @default(cuid())
   name           String
@@ -365,6 +380,10 @@ model MarketplaceItem {
   imageSizeBytes  Int?
   active         Boolean  @default(true)
   sortOrder      Int      @default(0)
+  // Optional grouping. If the category is deleted, items are kept and become
+  // uncategorized (the FK is set null) rather than being removed.
+  categoryId String?
+  category   MarketplaceCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   createdById String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -372,6 +391,7 @@ model MarketplaceItem {
   orderItems OrderItem[]
 
   @@index([active])
+  @@index([categoryId])
 }
 
 model Order {
