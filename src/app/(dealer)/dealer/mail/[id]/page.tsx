@@ -57,15 +57,13 @@ export default async function DealerMailItem({ params }: { params: { id: string 
             {mail.attachments.map((a, i) => (
               <li key={a.id} className="flex items-center justify-between gap-3 py-3">
                 <div className="min-w-0 flex-1">
-                  <a
-                    href={`/api/mail/attachments/${a.id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <Link
+                    href={`/dealer/mail/${mail.id}/attachment/${a.id}`}
                     title={a.fileName}
                     className="block truncate font-medium text-brand-700 hover:underline"
                   >
                     📄 {friendlyFileName(a.fileName, i)}
-                  </a>
+                  </Link>
                   <div className="text-xs text-gray-400">{fmtSize(a.sizeBytes)}</div>
                 </div>
                 <a href={`/api/mail/attachments/${a.id}?download=1`} className="btn-secondary shrink-0 text-xs">Download</a>
