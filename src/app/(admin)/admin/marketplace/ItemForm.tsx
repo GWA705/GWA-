@@ -10,6 +10,7 @@ interface Item {
   options: string[];
   sortOrder: number;
   active: boolean;
+  hasImage?: boolean;
 }
 
 const initial: ItemActionState = {};
@@ -44,6 +45,22 @@ export function ItemForm({ item }: { item?: Item }) {
       <div>
         <label className="label">Description <span className="font-normal text-gray-400">(optional)</span></label>
         <textarea name="description" defaultValue={item?.description ?? ''} rows={2} className="input" />
+      </div>
+      <div>
+        <label className="label">Photo <span className="font-normal text-gray-400">(auto-sized &amp; formatted on upload)</span></label>
+        <div className="flex items-center gap-3">
+          {item?.hasImage && (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img src={`/api/marketplace/items/${item.id}/image`} alt="" className="h-14 w-14 rounded object-cover ring-1 ring-gray-200" />
+          )}
+          <input name="image" type="file" accept="image/*" className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-md file:border-0 file:bg-brand-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-brand-700 hover:file:bg-brand-100" />
+        </div>
+        {item?.hasImage && (
+          <label className="mt-2 flex items-center gap-2 text-xs text-gray-500">
+            <input type="checkbox" name="removeImage" className="h-3.5 w-3.5" />
+            Remove current photo
+          </label>
+        )}
       </div>
       <div className="flex flex-wrap items-end gap-4">
         <div className="w-28">

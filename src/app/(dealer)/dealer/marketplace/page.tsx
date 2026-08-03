@@ -6,11 +6,18 @@ export const dynamic = 'force-dynamic';
 
 export default async function DealerMarketplace({ searchParams }: { searchParams: { ok?: string } }) {
   await requireDealerAccess();
-  const items = await prisma.marketplaceItem.findMany({
+  const rows = await prisma.marketplaceItem.findMany({
     where: { active: true },
     orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
-    select: { id: true, name: true, description: true, options: true },
+    select: { id: true, name: true, description: true, options: true, imageStorageKey: true },
   });
+  const items = rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    description: r.description,
+    options: r.options,
+    hasImage: !!r.imageStorageKey,
+  }));
 
   return (
     <div>

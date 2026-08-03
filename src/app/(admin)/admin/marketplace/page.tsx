@@ -44,19 +44,37 @@ export default async function AdminMarketplace() {
             {items.map((item) => (
               <div key={item.id} className={`card p-4 ${item.active ? '' : 'bg-gray-50/60'}`}>
                 <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-medium text-gray-900">{item.name}</span>
-                      {!item.active && <span className="badge bg-gray-100 text-gray-600">Hidden</span>}
-                      {item.options.length > 0 && <span className="badge bg-brand-50 text-brand-700">{item.options.join(' · ')}</span>}
+                  <div className="flex min-w-0 items-start gap-3">
+                    {item.imageStorageKey && (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img src={`/api/marketplace/items/${item.id}/image`} alt="" className="h-14 w-14 shrink-0 rounded object-cover ring-1 ring-gray-200" />
+                    )}
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-medium text-gray-900">{item.name}</span>
+                        {!item.active && <span className="badge bg-gray-100 text-gray-600">Hidden</span>}
+                        {item.options.length > 0 && <span className="badge bg-brand-50 text-brand-700">{item.options.join(' · ')}</span>}
+                      </div>
+                      {item.description && <p className="mt-1 text-sm text-gray-500">{item.description}</p>}
                     </div>
-                    {item.description && <p className="mt-1 text-sm text-gray-500">{item.description}</p>}
                   </div>
                   <ItemRowActions id={item.id} active={item.active} />
                 </div>
                 <details className="mt-3 border-t border-gray-100 pt-3">
                   <summary className="cursor-pointer text-sm font-medium text-brand-700">Edit</summary>
-                  <div className="mt-3"><ItemForm item={item} /></div>
+                  <div className="mt-3">
+                    <ItemForm
+                      item={{
+                        id: item.id,
+                        name: item.name,
+                        description: item.description,
+                        options: item.options,
+                        sortOrder: item.sortOrder,
+                        active: item.active,
+                        hasImage: !!item.imageStorageKey,
+                      }}
+                    />
+                  </div>
                 </details>
               </div>
             ))}

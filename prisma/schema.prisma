@@ -356,12 +356,14 @@ model User {
 // signage). No prices and no payment — it's an ordering system. A submitted
 // order emails whoever handles fulfillment.
 model MarketplaceItem {
-  id          String   @id @default(cuid())
-  name        String
-  description String?  @db.Text
-  options     String[] @default([]) // e.g. sizes: S, M, L, XL — optional
-  active      Boolean  @default(true)
-  sortOrder   Int      @default(0)
+  id             String   @id @default(cuid())
+  name           String
+  description    String?  @db.Text
+  options        String[] @default([]) // e.g. sizes: S, M, L, XL — optional
+  imageStorageKey String? // product photo (normalized + resized on upload)
+  imageMime       String?
+  active         Boolean  @default(true)
+  sortOrder      Int      @default(0)
   createdById String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

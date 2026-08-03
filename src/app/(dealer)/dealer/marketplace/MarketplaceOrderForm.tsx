@@ -8,6 +8,7 @@ interface Item {
   name: string;
   description: string | null;
   options: string[];
+  hasImage: boolean;
 }
 
 const initial: OrderActionState = {};
@@ -34,7 +35,14 @@ export function MarketplaceOrderForm({ items }: { items: Item[] }) {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {items.map((item) => (
-          <div key={item.id} className="card flex flex-col p-4">
+          <div key={item.id} className="card flex flex-col overflow-hidden p-0">
+            {item.hasImage ? (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img src={`/api/marketplace/items/${item.id}/image`} alt={item.name} className="aspect-square w-full bg-gray-50 object-cover" />
+            ) : (
+              <div className="flex aspect-square w-full items-center justify-center bg-gray-50 text-4xl text-gray-300" aria-hidden>👕</div>
+            )}
+            <div className="flex flex-1 flex-col p-4">
             <div className="font-medium text-gray-900">{item.name}</div>
             {item.description && <p className="mt-1 text-sm text-gray-500">{item.description}</p>}
             <div className="mt-auto flex items-end gap-2 pt-4">
@@ -52,6 +60,7 @@ export function MarketplaceOrderForm({ items }: { items: Item[] }) {
                 <label className="label" htmlFor={`qty_${item.id}`}>Qty</label>
                 <input id={`qty_${item.id}`} name={`qty_${item.id}`} type="number" min="0" defaultValue={0} className="input" />
               </div>
+            </div>
             </div>
           </div>
         ))}
