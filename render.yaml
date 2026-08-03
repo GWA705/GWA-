@@ -2,15 +2,20 @@
 # Render reads this file to create a web service + a PostgreSQL database and
 # wire them together. See docs/DEPLOY-RENDER.md for the step-by-step guide.
 #
-# IMPORTANT: This is a STAGING / DEMO setup for TEST DATA ONLY. The free tier
-# hosts data in the US and uploaded files are not persistent. Do NOT enter real
-# customer SINs or banking details here — see docs/COMPLIANCE.md before going
-# live with real data in a Canadian region.
+# DATA RESIDENCY NOTE: this service and its database run in Render's Oregon
+# (US) region — Render has no Canadian region. Uploaded files can live in
+# Canada via S3 in ca-central-1 (see docs/STORAGE-S3.md), but the database
+# does not. For real customer PII under PIPEDA, move the database to a
+# Canadian-region host and repoint DATABASE_URL — see docs/COMPLIANCE.md.
+# Sensitive DB fields (SIN, income, addresses) are encrypted at rest.
 
 databases:
   - name: gwa-db
     databaseName: gwa
-    plan: free
+    # Paid, persistent plan (matches the live database). Do not set back to
+    # 'free' — Render blocks downgrading an upgraded database, and free
+    # databases are tiny and expire.
+    plan: basic-1gb
     region: oregon
 
 services:
