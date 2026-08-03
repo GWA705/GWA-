@@ -3,7 +3,6 @@ import { prisma } from '@/lib/db';
 import { toggleContentActiveAction, deleteContentAction } from '@/app/(admin)/actions';
 import { CONTENT_SECTIONS, CONTENT_SECTION_LABELS } from '@/lib/constants';
 import { ContentForm } from './ContentForm';
-import { ContentThumbForm } from './ContentThumbForm';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,20 +39,25 @@ export default async function ContentPage() {
               secItems.map((c) => (
                 <div key={c.id} className="card p-4">
                   <div className="flex items-start justify-between gap-4">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className={`badge ${c.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
-                          {c.active ? 'Visible' : 'Hidden'}
-                        </span>
-                        <span className="font-medium text-gray-900">{c.title}</span>
-                        <span className="text-xs text-gray-400">#{c.sortOrder}</span>
+                    <div className="flex min-w-0 items-start gap-3">
+                      {c.thumbStorageKey && (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img src={`/api/content/${c.id}/file?thumb=1`} alt="" className="h-12 w-12 shrink-0 rounded object-cover ring-1 ring-gray-200" />
+                      )}
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className={`badge ${c.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+                            {c.active ? 'Visible' : 'Hidden'}
+                          </span>
+                          <span className="font-medium text-gray-900">{c.title}</span>
+                          <span className="text-xs text-gray-400">#{c.sortOrder}</span>
+                        </div>
+                        {c.body && <p className="mt-1 line-clamp-2 whitespace-pre-wrap text-sm text-gray-600">{c.body}</p>}
+                        {c.linkUrl && <p className="mt-1 truncate text-xs text-brand-700">{c.linkUrl}</p>}
+                        {c.fileName && <p className="mt-1 truncate text-xs text-gray-500">📎 {c.fileName}</p>}
                       </div>
-                      {c.body && <p className="mt-1 line-clamp-2 whitespace-pre-wrap text-sm text-gray-600">{c.body}</p>}
-                      {c.linkUrl && <p className="mt-1 truncate text-xs text-brand-700">{c.linkUrl}</p>}
-                      {c.fileName && <p className="mt-1 truncate text-xs text-gray-500">📎 {c.fileName}</p>}
                     </div>
                     <div className="flex flex-none flex-col gap-2">
-                      <ContentThumbForm id={c.id} hasThumb={!!c.thumbStorageKey} />
                       <form action={toggleContentActiveAction.bind(null, c.id)}>
                         <button type="submit" className="btn-secondary w-full text-xs">{c.active ? 'Hide' : 'Show'}</button>
                       </form>
@@ -63,7 +67,7 @@ export default async function ContentPage() {
                     </div>
                   </div>
                   <details className="mt-3 border-t border-gray-100 pt-3">
-                    <summary className="cursor-pointer text-sm font-medium text-brand-700">Edit</summary>
+                    <summary className="btn-secondary inline-block cursor-pointer text-xs">Edit details, link &amp; cover</summary>
                     <div className="mt-3">
                       <ContentForm
                         item={{
@@ -74,6 +78,7 @@ export default async function ContentPage() {
                           linkUrl: c.linkUrl,
                           sortOrder: c.sortOrder,
                           fileName: c.fileName,
+                          hasThumb: !!c.thumbStorageKey,
                         }}
                       />
                     </div>

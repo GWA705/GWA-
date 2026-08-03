@@ -824,6 +824,23 @@ export async function updateContentAction(
     await prisma.contentItem.update({ where: { id }, data: { fileStorageKey: null, fileMime: null, fileName: null } });
   }
 
+  // Optionally replace or remove the cover thumbnail (image only).
+  const thumb = formData.get('thumb') as File | null;
+  const hasNewThumb = !!thumb && typeof thumb !== 'string' && thumb.size > 0;
+  const removeThumb = formData.get('removeThumb') === 'on';
+  if (hasNewThumb) {
+    if (thumb!.size > MAX_FILE_BYTES) return { error: 'Cover image is too large (max 15 MB).' };
+    if (!thumb!.type.startsWith('image/')) return { error: 'Cover must be an image (JPG, PNG, WEBP).' };
+    const ext = path.extname(thumb!.name).slice(0, 12).replace(/[^a-zA-Z0-9.]/g, '') || '.img';
+    const key = `content/${id}/thumb-${crypto.randomBytes(6).toString('hex')}${ext}`;
+    await putDocument(key, Buffer.from(await thumb!.arrayBuffer()));
+    if (existing.thumbStorageKey) await deleteDocument(existing.thumbStorageKey).catch(() => {});
+    await prisma.contentItem.update({ where: { id }, data: { thumbStorageKey: key, thumbMime: thumb!.type } });
+  } else if (removeThumb && existing.thumbStorageKey) {
+    await deleteDocument(existing.thumbStorageKey).catch(() => {});
+    await prisma.contentItem.update({ where: { id }, data: { thumbStorageKey: null, thumbMime: null } });
+  }
+
   await audit({ actorId: session.userId, action: 'CONTENT_UPDATE', entityType: 'ContentItem', entityId: id, detail: `edited: ${d.title}` });
   revalidateContent(d.section);
   if (existing.section !== d.section) revalidateContent(existing.section); // moved between tabs

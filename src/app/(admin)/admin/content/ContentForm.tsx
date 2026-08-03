@@ -19,6 +19,7 @@ export interface ContentItemLite {
   linkUrl: string | null;
   sortOrder: number;
   fileName: string | null;
+  hasThumb?: boolean;
 }
 
 function SubmitButton({ isEdit }: { isEdit: boolean }) {
@@ -87,12 +88,23 @@ export function ContentForm({ defaultSection, item }: { defaultSection?: string;
           </label>
         )}
       </div>
-      {!isEdit && (
-        <div>
-          <label className="label">Cover thumbnail <span className="font-normal text-gray-400">(optional — shown on the card)</span></label>
-          <FileDropInput name="thumb" accept=".jpg,.jpeg,.png,.webp" multiple={false} variant="compact" hint="JPG, PNG, or WEBP" buttonLabel="Choose image" />
-        </div>
-      )}
+      <div>
+        <label className="label">Cover thumbnail <span className="font-normal text-gray-400">(optional — shown on the card)</span></label>
+        {isEdit && item?.hasThumb && (
+          <div className="mb-1 flex items-center gap-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={`/api/content/${item.id}/file?thumb=1`} alt="" className="h-12 w-12 rounded object-cover ring-1 ring-gray-200" />
+            <span className="text-xs text-gray-500">Current cover</span>
+          </div>
+        )}
+        <FileDropInput name="thumb" accept=".jpg,.jpeg,.png,.webp" multiple={false} variant="compact" hint={item?.hasThumb ? 'Upload to replace the cover' : 'JPG, PNG, or WEBP'} buttonLabel="Choose image" />
+        {isEdit && item?.hasThumb && (
+          <label className="mt-1 flex items-center gap-2 text-xs text-gray-500">
+            <input type="checkbox" name="removeThumb" className="h-3.5 w-3.5" />
+            Remove current cover
+          </label>
+        )}
+      </div>
       <SubmitButton isEdit={isEdit} />
     </form>
   );

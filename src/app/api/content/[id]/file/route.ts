@@ -11,7 +11,10 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   if (!session) return new NextResponse('Unauthorized', { status: 401 });
 
   const item = await prisma.contentItem.findUnique({ where: { id: params.id } });
-  if (!item || !item.active) return new NextResponse('Not found', { status: 404 });
+  // Staff can preview hidden items (e.g. the cover in the admin editor);
+  // dealers only ever see active content.
+  const isStaff = session.role === 'REVIEWER' || session.role === 'ADMIN';
+  if (!item || (!item.active && !isStaff)) return new NextResponse('Not found', { status: 404 });
 
   // ?thumb=1 serves the optional custom cover image instead of the attachment.
   const wantThumb = req.nextUrl.searchParams.get('thumb') === '1';
