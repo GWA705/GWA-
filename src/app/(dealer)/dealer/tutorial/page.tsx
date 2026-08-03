@@ -78,6 +78,23 @@ const STEPS: Step[] = [
   },
   {
     n: 7,
+    title: 'Mail from GWA',
+    body: [
+      'The Mail tab is where GWA sends you messages and files — bulletins, promos, and paperwork. A dot on the Mail tab means something new is waiting.',
+      'Open a message to read it and see any attachments as small previews, just like your email. Tap an attachment to view it right inside the portal (there’s a “Back to message” button), or tap Download to save it.',
+      'If a message asks you to confirm you’ve read it, tap “I have read this” so our team knows it reached you.',
+    ],
+  },
+  {
+    n: 8,
+    title: 'Marketplace — order gear',
+    body: [
+      'The Marketplace tab lists items you can order — clothing, signage, and more. There are no prices and nothing to pay; it’s simply an order form.',
+      'Pick a size or option where offered, set the quantity, add a note if you need to, and tap Submit order. Our team gets it and takes care of the rest.',
+    ],
+  },
+  {
+    n: 9,
     title: 'Resources, HD Promotions & HD Credit Card',
     body: [
       'The top menu has guides, current promotions, and step-by-step help for the Home Depot credit card.',
@@ -87,7 +104,7 @@ const STEPS: Step[] = [
     alt: 'The HD Credit Card help page with preview cards.',
   },
   {
-    n: 8,
+    n: 10,
     title: 'Your account',
     body: [
       'Under “My account” you can update your details, choose which email notifications you get, and turn on extra sign-in security.',
@@ -97,7 +114,7 @@ const STEPS: Step[] = [
     alt: 'The My account page with profile, notifications, security, and replay-tour options.',
   },
   {
-    n: 9,
+    n: 11,
     title: 'Get notifications & pop-ups on your phone',
     body: [
       'The portal can pop up a notification on your phone or computer the moment there’s activity on a deal — even when the portal isn’t open. These come on top of the emails you already get.',
@@ -175,14 +192,17 @@ export default async function TutorialPage() {
               </div>
             )}
             {s.img && (
-              <div className="border-t border-gray-100 bg-gray-50 p-4">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={s.img}
-                  alt={s.alt}
-                  loading="lazy"
-                  className="mx-auto w-full rounded-lg border border-gray-200 bg-white shadow-sm"
-                />
+              <div className="border-t border-gray-100 bg-gray-50 p-4 text-center">
+                <a href={s.img} target="_blank" rel="noopener noreferrer" className="inline-block">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={s.img}
+                    alt={s.alt}
+                    loading="lazy"
+                    className="mx-auto max-h-96 w-auto rounded-lg border border-gray-200 bg-white shadow-sm"
+                  />
+                </a>
+                <p className="mt-2 text-xs text-gray-400">Tap the image to enlarge</p>
               </div>
             )}
           </li>
