@@ -5,6 +5,8 @@ import { STATUS_LABELS, STATUS_COLORS } from '@/lib/constants';
 import type { ApplicationStatus } from '@prisma/client';
 import { StorageCheck } from './StorageCheck';
 import { StoreImport } from './StoreImport';
+import { StorageMeter } from './StorageMeter';
+import { getStorageUsage } from '@/lib/storage-usage';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,6 +38,7 @@ export default async function AdminOverview() {
     activeCount,
     fundedForAvg,
     dealerRows,
+    storageUsage,
   ] = await Promise.all([
     prisma.dealer.count(),
     prisma.user.count(),
@@ -67,6 +70,7 @@ export default async function AdminOverview() {
         },
       },
     }),
+    getStorageUsage(),
   ]);
 
   // Average days from creation to payment (last 90 days).
@@ -192,6 +196,7 @@ export default async function AdminOverview() {
       </div>
 
       <div className="space-y-4">
+        <StorageMeter usage={storageUsage} />
         <StorageCheck />
         <StoreImport />
       </div>

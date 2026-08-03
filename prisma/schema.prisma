@@ -362,6 +362,7 @@ model MarketplaceItem {
   options        String[] @default([]) // e.g. sizes: S, M, L, XL — optional
   imageStorageKey String? // product photo (normalized + resized on upload)
   imageMime       String?
+  imageSizeBytes  Int?
   active         Boolean  @default(true)
   sortOrder      Int      @default(0)
   createdById String?

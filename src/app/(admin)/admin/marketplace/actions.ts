@@ -11,14 +11,14 @@ import { normalizeProductImage } from '@/lib/image';
 import { MAX_FILE_BYTES } from '@/lib/constants';
 
 // Validate + normalize an uploaded photo and store it, returning the new key.
-async function storeItemImage(itemId: string, file: File): Promise<{ storageKey: string; mime: string } | { error: string }> {
+async function storeItemImage(itemId: string, file: File): Promise<{ storageKey: string; mime: string; sizeBytes: number } | { error: string }> {
   if (file.size > MAX_FILE_BYTES) return { error: `Image is too large (max ${Math.floor(MAX_FILE_BYTES / 1024 / 1024)} MB).` };
   if (!file.type.startsWith('image/')) return { error: 'The photo must be an image (JPG, PNG, WEBP, HEIC).' };
   try {
     const { bytes, mime } = await normalizeProductImage(Buffer.from(await file.arrayBuffer()));
     const key = `marketplace/${itemId}/img-${crypto.randomBytes(6).toString('hex')}.webp`;
     await putDocument(key, bytes);
-    return { storageKey: key, mime };
+    return { storageKey: key, mime, sizeBytes: bytes.length };
   } catch (err) {
     console.error('[marketplace] image processing failed', err);
     return { error: 'Could not process that image. Try a different file.' };
@@ -61,10 +61,10 @@ export async function saveItemAction(_prev: ItemActionState, formData: FormData)
       const stored = await storeItemImage(id, image!);
       if ('error' in stored) return { error: stored.error };
       if (existing?.imageStorageKey) await deleteDocument(existing.imageStorageKey).catch(() => {});
-      await prisma.marketplaceItem.update({ where: { id }, data: { imageStorageKey: stored.storageKey, imageMime: stored.mime } });
+      await prisma.marketplaceItem.update({ where: { id }, data: { imageStorageKey: stored.storageKey, imageMime: stored.mime, imageSizeBytes: stored.sizeBytes } });
     } else if (removeImage && existing?.imageStorageKey) {
       await deleteDocument(existing.imageStorageKey).catch(() => {});
-      await prisma.marketplaceItem.update({ where: { id }, data: { imageStorageKey: null, imageMime: null } });
+      await prisma.marketplaceItem.update({ where: { id }, data: { imageStorageKey: null, imageMime: null, imageSizeBytes: null } });
     }
   } else {
     const created = await prisma.marketplaceItem.create({
@@ -73,7 +73,7 @@ export async function saveItemAction(_prev: ItemActionState, formData: FormData)
     if (hasNewImage) {
       const stored = await storeItemImage(created.id, image!);
       if ('error' in stored) return { error: stored.error };
-      await prisma.marketplaceItem.update({ where: { id: created.id }, data: { imageStorageKey: stored.storageKey, imageMime: stored.mime } });
+      await prisma.marketplaceItem.update({ where: { id: created.id }, data: { imageStorageKey: stored.storageKey, imageMime: stored.mime, imageSizeBytes: stored.sizeBytes } });
     }
   }
   revalidatePath('/admin/marketplace');
