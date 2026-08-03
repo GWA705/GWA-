@@ -22,7 +22,9 @@ services:
   - type: web
     name: gwa-portal
     runtime: node
-    plan: free
+    # Paid Standard plan (matches the live service): always-on (no free-tier
+    # spin-down) with 2 GB RAM for image/PDF processing headroom.
+    plan: standard
     region: oregon
     buildCommand: npm install && npm run build
     # Waits for the database, applies migrations, seeds, then starts (see script).
