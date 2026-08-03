@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { createOrderAction, type OrderActionState } from './actions';
 
@@ -31,12 +32,59 @@ function SubmitButton() {
   );
 }
 
-function ItemCard({ item }: { item: Item }) {
+// Full-size image shown over the marketplace; closes on ✕, backdrop click, or Esc.
+function Lightbox({ src, alt, onClose }: { src: string; alt: string; onClose: () => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label={alt}
+    >
+      <div className="relative max-h-full max-w-3xl" onClick={(e) => e.stopPropagation()}>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          className="absolute -right-3 -top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white text-lg text-gray-700 shadow-lg ring-1 ring-gray-200 hover:bg-gray-100"
+        >
+          ✕
+        </button>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={src} alt={alt} className="max-h-[85vh] w-auto rounded-lg bg-white object-contain shadow-2xl" />
+      </div>
+    </div>
+  );
+}
+
+function ItemCard({ item, onImageClick }: { item: Item; onImageClick: (src: string, alt: string) => void }) {
+  const imgSrc = `/api/marketplace/items/${item.id}/image`;
   return (
     <div className="card flex flex-col overflow-hidden p-0">
       {item.hasImage ? (
-        /* eslint-disable-next-line @next/next/no-img-element */
-        <img src={`/api/marketplace/items/${item.id}/image`} alt={item.name} className="aspect-square w-full bg-gray-50 object-cover" />
+        <button
+          type="button"
+          onClick={() => onImageClick(imgSrc, item.name)}
+          className="block aspect-square w-full cursor-zoom-in bg-gray-50"
+          aria-label={`View ${item.name} larger`}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={imgSrc} alt={item.name} className="h-full w-full object-cover" />
+        </button>
       ) : (
         <div className="flex aspect-square w-full items-center justify-center bg-gray-50 text-4xl text-gray-300" aria-hidden>👕</div>
       )}
@@ -79,11 +127,11 @@ function ItemCard({ item }: { item: Item }) {
   );
 }
 
-function ItemGrid({ items }: { items: Item[] }) {
+function ItemGrid({ items, onImageClick }: { items: Item[]; onImageClick: (src: string, alt: string) => void }) {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {items.map((item) => (
-        <ItemCard key={item.id} item={item} />
+        <ItemCard key={item.id} item={item} onImageClick={onImageClick} />
       ))}
     </div>
   );
@@ -91,6 +139,8 @@ function ItemGrid({ items }: { items: Item[] }) {
 
 export function MarketplaceOrderForm({ items, categories }: { items: Item[]; categories: Category[] }) {
   const [state, action] = useFormState(createOrderAction, initial);
+  const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(null);
+  const openImage = (src: string, alt: string) => setLightbox({ src, alt });
 
   // Group items under their category (in the admin-defined order). Items with no
   // category — or whose category is hidden — fall into an "Other" section.
@@ -102,6 +152,7 @@ export function MarketplaceOrderForm({ items, categories }: { items: Item[]; cat
   const useHeadings = sections.length > 0;
 
   return (
+    <>
     <form action={action} className="space-y-8">
       {state.error && (
         <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800" role="alert">
@@ -114,18 +165,18 @@ export function MarketplaceOrderForm({ items, categories }: { items: Item[]; cat
           {sections.map((s) => (
             <section key={s.name} className="space-y-3">
               <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">{s.name}</h2>
-              <ItemGrid items={s.items} />
+              <ItemGrid items={s.items} onImageClick={openImage} />
             </section>
           ))}
           {other.length > 0 && (
             <section className="space-y-3">
               <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">Other</h2>
-              <ItemGrid items={other} />
+              <ItemGrid items={other} onImageClick={openImage} />
             </section>
           )}
         </>
       ) : (
-        <ItemGrid items={items} />
+        <ItemGrid items={items} onImageClick={openImage} />
       )}
 
       <div className="card p-4">
@@ -137,5 +188,7 @@ export function MarketplaceOrderForm({ items, categories }: { items: Item[]; cat
         <SubmitButton />
       </div>
     </form>
+    {lightbox && <Lightbox src={lightbox.src} alt={lightbox.alt} onClose={() => setLightbox(null)} />}
+    </>
   );
 }
