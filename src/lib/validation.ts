@@ -27,6 +27,10 @@ const blankToUndef = (v: unknown) => (v === '' || v == null ? undefined : v);
 
 export const applicationSchema = z.object({
   entryMethod: z.enum(['TYPED', 'PHOTO', 'FINANCEIT']).optional().default('TYPED'),
+  paymentMethod: z.preprocess(
+    blankToUndef,
+    z.enum(['FINANCEIT', 'CASH', 'CHEQUE', 'CREDIT_CARD', 'HD_CREDIT_CARD']).optional(),
+  ),
   province: z.enum(PROVINCE_VALUES),
   programType: z.enum(['HD', 'GWA']),
   programCategory: z.enum(['WATER', 'AIR', 'SMELL_BUSTERS', 'HVAC']),
@@ -159,6 +163,16 @@ export const applicationSchema = z.object({
       if (!v || !String(v).trim()) {
         ctx.addIssue({ code: z.ZodIssueCode.custom, path: [key as string], message });
       }
+    }
+  }
+  // Express (payment-arranged) deal: a payment type is required, and a FinanceIT
+  // deal must carry its approval number.
+  if (d.entryMethod === 'FINANCEIT') {
+    if (!d.paymentMethod) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['paymentMethod'], message: 'Select how the customer paid' });
+    }
+    if (d.paymentMethod === 'FINANCEIT' && (!d.financeItNumber || !d.financeItNumber.trim())) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['financeItNumber'], message: 'FinanceIT approval number is required' });
     }
   }
 });

@@ -6,6 +6,7 @@ import type {
   Province,
   ProgramType,
   ProgramCategory,
+  PaymentMethod,
 } from '@prisma/client';
 
 export const CONFIRMATION_STATUS_LABELS: Record<ConfirmationStatus, string> = {
@@ -26,6 +27,24 @@ export const PROGRAM_TYPES: { value: ProgramType; label: string }[] = [
   { value: 'HD', label: 'HD' },
   { value: 'GWA', label: 'GWA' },
 ];
+
+// Payment types for an Express (payment-arranged) deal. FinanceIT is financed
+// (needs an approval number); the rest are already-paid deals.
+export const PAYMENT_METHODS: { value: PaymentMethod; label: string }[] = [
+  { value: 'FINANCEIT', label: 'FinanceIT' },
+  { value: 'CASH', label: 'Cash' },
+  { value: 'CHEQUE', label: 'Cheque' },
+  { value: 'CREDIT_CARD', label: 'Credit card' },
+  { value: 'HD_CREDIT_CARD', label: 'Home Depot Credit Card' },
+];
+
+export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
+  FINANCEIT: 'FinanceIT',
+  CASH: 'Cash',
+  CHEQUE: 'Cheque',
+  CREDIT_CARD: 'Credit card',
+  HD_CREDIT_CARD: 'Home Depot Credit Card',
+};
 
 export const PROGRAM_CATEGORIES: { value: ProgramCategory; label: string }[] = [
   { value: 'WATER', label: 'Water' },

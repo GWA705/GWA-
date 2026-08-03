@@ -12,7 +12,7 @@ import { storeFiles } from '@/lib/upload';
 import { markDealerAction } from '@/lib/activity';
 import { notifyNewDocuments, notifyNewNote, notifyNewSubmission, notifyFundingSubmitted } from '@/lib/notify';
 import { applicationSchema, serialNumberSchema } from '@/lib/validation';
-import { CONSENT_POLICY_VERSION, CONSENT_TEXT } from '@/lib/constants';
+import { CONSENT_POLICY_VERSION, CONSENT_TEXT, PAYMENT_METHOD_LABELS } from '@/lib/constants';
 import type { DocumentType } from '@prisma/client';
 
 export interface ActionState {
@@ -68,8 +68,10 @@ export async function createApplicationAction(
   }
 
   const financeItNumber = d.financeItNumber ? d.financeItNumber.replace(/\s/g, '') : null;
-  // A FinanceIT approval number means the deal is already approved.
-  const initialStatus = financeItNumber ? 'APPROVED' : 'SUBMITTED';
+  // Express (payment-arranged) deals — and any deal carrying a FinanceIT approval
+  // number — come in already approved. Everything else starts as Submitted.
+  const paymentMethod = d.entryMethod === 'FINANCEIT' ? (d.paymentMethod ?? null) : null;
+  const initialStatus = d.entryMethod === 'FINANCEIT' || financeItNumber ? 'APPROVED' : 'SUBMITTED';
 
   // Only persist the extended loan-application record for typed entry.
   const loanApplicationData =
@@ -147,6 +149,7 @@ export async function createApplicationAction(
       createdById: session.userId,
       status: initialStatus,
       entryMethod: d.entryMethod,
+      paymentMethod,
       province: d.province,
       programType: d.programType,
       programCategory: d.programCategory,
@@ -195,7 +198,9 @@ export async function createApplicationAction(
           actorId: session.userId,
           note: financeItNumber
             ? `Submitted — approved, financing deal #${financeItNumber}`
-            : 'Application submitted',
+            : paymentMethod
+              ? `Submitted — approved, paid by ${PAYMENT_METHOD_LABELS[paymentMethod]}`
+              : 'Application submitted',
         },
       },
     },

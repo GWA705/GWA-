@@ -17,7 +17,7 @@ import { NoteForm } from '@/components/NoteForm';
 import { ConfirmationBadge } from '@/components/ConfirmationBadge';
 import { DealProgress } from '@/components/DealProgress';
 import { ProgramBadge } from '@/components/ProgramBadge';
-import { PROGRAM_CATEGORY_LABELS } from '@/lib/constants';
+import { PROGRAM_CATEGORY_LABELS, PAYMENT_METHOD_LABELS } from '@/lib/constants';
 import { ConfirmationForm } from './ConfirmationForm';
 import { DealReferencesForm } from './DealReferencesForm';
 import { WriteToJournalButton } from './WriteToJournalButton';
@@ -254,6 +254,7 @@ export default async function StaffApplicationDetail({
                 <div><dt className="text-gray-500">City</dt><dd className="font-medium">{app.loanApplication?.city ?? '—'}{app.loanApplication?.addressProvince ? `, ${app.loanApplication.addressProvince}` : ''}</dd></div>
                 <div><dt className="text-gray-500">Product(s)</dt><dd className="font-medium">{app.productsSold.length ? app.productsSold.join(', ') : '—'}</dd></div>
                 <div><dt className="text-gray-500">Amount</dt><dd className="font-medium">{app.approvedAmount ? `$${app.approvedAmount.toString()}` : `$${app.requestedAmount.toString()}`}</dd></div>
+                {app.paymentMethod && <div><dt className="text-gray-500">Payment</dt><dd className="font-medium">{PAYMENT_METHOD_LABELS[app.paymentMethod]}</dd></div>}
                 <div><dt className="text-gray-500">Finance company</dt><dd className="font-medium">{app.financeCompany?.name ?? '—'}</dd></div>
                 <div><dt className="text-gray-500">Financing deal #</dt><dd className="font-medium">{app.financeItNumber ?? '—'}</dd></div>
                 <div><dt className="text-gray-500">HD Customer #</dt><dd className="font-medium">{app.hdReference ?? '—'}</dd></div>

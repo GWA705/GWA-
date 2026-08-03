@@ -361,7 +361,18 @@ enum Province {
 enum EntryMethod {
   TYPED // entered directly into the site (full loan application)
   PHOTO // uploaded a photo of the paper credit application
-  FINANCEIT // provided a FinanceIT approval number (already approved)
+  FINANCEIT // Express: payment already arranged / approved (see paymentMethod)
+}
+
+// How the customer paid on an Express (payment-arranged) deal. FINANCEIT means
+// financed and requires an approval number; the rest are already-paid deals for
+// which GWA produces the HD paperwork.
+enum PaymentMethod {
+  FINANCEIT
+  CASH
+  CHEQUE
+  CREDIT_CARD
+  HD_CREDIT_CARD
 }
 
 enum HousingStatus {
@@ -435,6 +446,9 @@ model Application {
 
   // How this application was provided by the dealer.
   entryMethod EntryMethod @default(TYPED)
+
+  // For Express (payment-arranged) deals: how the customer paid.
+  paymentMethod PaymentMethod?
 
   // Confirmation-call status (surfaced to the dealer with a colour badge).
   confirmationStatus ConfirmationStatus @default(PENDING)

@@ -9,7 +9,9 @@ import {
   PROGRAM_TYPES,
   PROGRAM_CATEGORIES,
   PHOTO_ID_TYPES,
+  PAYMENT_METHODS,
 } from '@/lib/constants';
+import type { PaymentMethod } from '@prisma/client';
 import { formatPhone, formatPostal } from '@/lib/format';
 import { AddressAutocompleteInput } from '@/components/AddressAutocompleteInput';
 
@@ -59,6 +61,7 @@ const FIELD_LABELS: Record<string, string> = {
   installationDate: 'Installation date',
   homeDepotStoreId: 'Home Depot store',
   consent: 'Consent',
+  paymentMethod: 'Payment type',
   financeItNumber: 'Financing deal number',
   salespersonName: "Salesperson's name",
   installerName: "Installer's name",
@@ -86,11 +89,11 @@ const BASE_REQUIRED: RequiredField[] = [
   { name: 'consent', label: 'Consent', checkbox: true },
 ];
 
-// Extra fields required for the Fastest / FinanceIT path, where the deal is
-// submitted as already approved: the FinanceIT number plus the full deal
-// details (dates + store). Home Depot store only when the dealer has stores.
+// Extra fields required for the Express (payment-arranged) path, where the deal
+// is submitted as already approved: the full deal details (dates + store). The
+// FinanceIT number is required only when the payment type is FinanceIT (added
+// separately). Home Depot store only when the dealer has stores.
 const FINANCEIT_EXTRA: RequiredField[] = [
-  { name: 'financeItNumber', label: 'Financing deal number' },
   { name: 'dateOfSale', label: 'Date of sale' },
   { name: 'installationDate', label: 'Installation date' },
   { name: 'homeDepotStoreId', label: 'Home Depot store' },
@@ -135,8 +138,8 @@ const METHODS: {
     value: 'FINANCEIT',
     rank: 'Express',
     icon: '🚀',
-    title: 'FinanceIT approval',
-    blurb: 'Use your FinanceIT Portal to approve the application and submit your approval FinanceIT loan number below.',
+    title: 'Payment arranged',
+    blurb: 'Customer is approved or has already paid. Pick how they paid — GWA produces the HD paperwork. FinanceIT needs its approval number.',
     badge: 'bg-green-100 text-green-800',
     selected: 'border-green-600 bg-green-50 ring-2 ring-green-600/40',
     dot: 'bg-green-600',
@@ -175,7 +178,12 @@ export function NewApplicationForm({
 }) {
   const [state, action] = useFormState(createApplicationAction, initial);
   const [method, setMethod] = useState<Method>('TYPED');
+  const [payment, setPayment] = useState<PaymentMethod>('FINANCEIT');
   const typed = method === 'TYPED';
+  const express = method === 'FINANCEIT';
+  // The FinanceIT approval number is only needed when the Express deal was
+  // financed through FinanceIT.
+  const needsFinanceNumber = express && payment === 'FINANCEIT';
   const summaryRef = useRef<HTMLDivElement>(null);
   const [clientErrors, setClientErrors] = useState<Record<string, string>>({});
   // Entering a co-applicant first name opens the full co-applicant questionnaire.
@@ -199,13 +207,12 @@ export function NewApplicationForm({
   const fieldCls = (name: string, base = 'input') =>
     errorNames.has(name) ? `${base} bg-red-50 ring-2 ring-red-400` : `${base} ${METHOD_RING[method]}`;
 
-  // Fields required for the current entry method. The Fastest / FinanceIT path
-  // also requires the FinanceIT number and full deal details.
+  // Fields required for the current entry method. Express requires full deal
+  // details (and the FinanceIT number only when paid via FinanceIT).
   const requiredFields: RequiredField[] = [
     ...BASE_REQUIRED,
-    ...(method === 'FINANCEIT'
-      ? FINANCEIT_EXTRA.filter((f) => f.name !== 'homeDepotStoreId' || stores.length > 0)
-      : []),
+    ...(express ? FINANCEIT_EXTRA.filter((f) => f.name !== 'homeDepotStoreId' || stores.length > 0) : []),
+    ...(needsFinanceNumber ? [{ name: 'financeItNumber', label: 'Financing deal number' }] : []),
     ...(method === 'TYPED' ? TYPED_EXTRA : []),
   ];
 
@@ -245,6 +252,7 @@ export function NewApplicationForm({
   return (
     <form action={action} onSubmit={handleSubmit} className="space-y-8">
       <input type="hidden" name="entryMethod" value={method} />
+      <input type="hidden" name="paymentMethod" value={express ? payment : ''} />
 
       {(state.error || errorEntries.length > 0) && (
         <div ref={summaryRef} className="rounded-md border border-red-200 bg-red-50 p-4 text-sm" role="alert">
@@ -321,10 +329,39 @@ export function NewApplicationForm({
             under “Documents for approval.”
           </p>
         )}
-        {method === 'FINANCEIT' && (
-          <p className="mt-4 rounded bg-green-50 p-3 text-sm text-green-800">
-            Enter your FinanceIT loan number below — the deal will be marked as approved.
-          </p>
+        {express && (
+          <div className="mt-4 rounded-lg bg-green-50 p-4 ring-1 ring-green-200">
+            <p className="label mb-2 text-green-900">How did the customer pay?</p>
+            <div role="radiogroup" aria-label="Payment type" className="flex flex-wrap gap-2">
+              {PAYMENT_METHODS.map((p) => {
+                const active = payment === p.value;
+                return (
+                  <button
+                    key={p.value}
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    onClick={() => setPayment(p.value)}
+                    className={`rounded-full px-3.5 py-1.5 text-sm font-medium ring-1 transition ${
+                      active
+                        ? 'bg-green-600 text-white ring-green-600'
+                        : 'bg-white text-gray-700 ring-gray-300 hover:ring-green-400'
+                    }`}
+                  >
+                    {p.label}
+                  </button>
+                );
+              })}
+            </div>
+            {errorNames.has('paymentMethod') && (
+              <p className="mt-2 text-xs text-red-600">Select how the customer paid.</p>
+            )}
+            <p className="mt-3 text-sm text-green-800">
+              {needsFinanceNumber
+                ? 'Enter your FinanceIT loan number in Financing details below — the deal will be marked approved.'
+                : `Paid by ${PAYMENT_METHODS.find((p) => p.value === payment)?.label}. The deal will be marked approved and sent to GWA to produce the HD paperwork.`}
+            </p>
+          </div>
         )}
       </section>
 
@@ -356,36 +393,40 @@ export function NewApplicationForm({
         </div>
 
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className={method === 'FINANCEIT' ? 'rounded-lg bg-green-50 p-3 ring-1 ring-green-300' : ''}>
-            <label className="label" htmlFor="financeItNumber">
-              Financing deal number{' '}
-              {method === 'FINANCEIT'
-                ? <span className="font-semibold text-green-700">← enter your FinanceIT number here</span>
-                : <span className="font-normal text-gray-400">(if applicable)</span>}
-            </label>
-            <input
-              id="financeItNumber"
-              name="financeItNumber"
-              maxLength={60}
-              className={
-                errorNames.has('financeItNumber')
-                  ? 'input bg-red-50 ring-2 ring-red-400'
-                  : method === 'FINANCEIT'
-                    ? 'input bg-white ring-2 ring-green-400 focus:ring-green-500'
-                    : `input ${METHOD_RING[method]}`
-              }
-              placeholder={method === 'FINANCEIT' ? 'FinanceIT loan number' : 'If applicable'}
-              autoComplete="off"
-            />
-            {method === 'FINANCEIT' ? (
-              <p className="mt-1 text-xs text-green-700">
-                Copy the approval number from your FinanceIT portal (for example <span className="font-mono font-semibold">7779477</span>). Double-check it matches before submitting — entering it marks the deal approved.
-              </p>
-            ) : (
-              <p className="mt-1 text-xs text-gray-400">Entering this indicates the deal is already approved.</p>
-            )}
-            <Err state={state} name="financeItNumber" />
-          </div>
+          {/* The FinanceIT number only applies when the deal was financed. It is
+              hidden for Express deals paid another way (cash/cheque/CC/HDCC). */}
+          {!(express && !needsFinanceNumber) && (
+            <div className={needsFinanceNumber ? 'rounded-lg bg-green-50 p-3 ring-1 ring-green-300' : ''}>
+              <label className="label" htmlFor="financeItNumber">
+                Financing deal number{' '}
+                {needsFinanceNumber
+                  ? <span className="font-semibold text-green-700">← enter your FinanceIT number here</span>
+                  : <span className="font-normal text-gray-400">(if applicable)</span>}
+              </label>
+              <input
+                id="financeItNumber"
+                name="financeItNumber"
+                maxLength={60}
+                className={
+                  errorNames.has('financeItNumber')
+                    ? 'input bg-red-50 ring-2 ring-red-400'
+                    : needsFinanceNumber
+                      ? 'input bg-white ring-2 ring-green-400 focus:ring-green-500'
+                      : `input ${METHOD_RING[method]}`
+                }
+                placeholder={needsFinanceNumber ? 'FinanceIT loan number' : 'If applicable'}
+                autoComplete="off"
+              />
+              {needsFinanceNumber ? (
+                <p className="mt-1 text-xs text-green-700">
+                  Copy the approval number from your FinanceIT portal (for example <span className="font-mono font-semibold">7779477</span>). Double-check it matches before submitting — entering it marks the deal approved.
+                </p>
+              ) : (
+                <p className="mt-1 text-xs text-gray-400">Entering this indicates the deal is already approved.</p>
+              )}
+              <Err state={state} name="financeItNumber" />
+            </div>
+          )}
           <div>
             <label className="label" htmlFor="financingNote">Financing note</label>
             <textarea id="financingNote" name="financingNote" rows={2} className={fieldCls('')} placeholder="What kind of financing deal or promotion would you like with this?" />
