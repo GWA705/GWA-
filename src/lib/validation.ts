@@ -25,6 +25,31 @@ const str = (max: number) => z.string().max(max).optional();
 // Optional dropdown: an unselected <select> posts "" — treat that as "not provided".
 const blankToUndef = (v: unknown) => (v === '' || v == null ? undefined : v);
 
+/**
+ * Normalize a person's name to proper capitalization regardless of how it was
+ * typed: "jesmond gauci" -> "Jesmond Gauci", "SEAN JAIKO" -> "Sean Jaiko",
+ * "kim j" -> "Kim J". Collapses whitespace and capitalizes after spaces,
+ * hyphens, and apostrophes (so "anne-marie" -> "Anne-Marie", "o'brien" ->
+ * "O'Brien"), with a Mc-prefix rule ("mcdonald" -> "McDonald").
+ */
+export function formatPersonName(raw: string): string {
+  const cleaned = raw.trim().replace(/\s+/g, ' ');
+  if (!cleaned) return cleaned;
+  return cleaned
+    .toLowerCase()
+    .replace(/(^|[\s\-'’])([a-zà-ÿ])/g, (_, sep: string, ch: string) => sep + ch.toUpperCase())
+    .replace(/\bMc([a-zà-ÿ])/g, (_, ch: string) => 'Mc' + ch.toUpperCase());
+}
+
+// Optional person-name field: validated to a max length, then normalized to
+// proper case only when a value is present.
+const optName = (max: number) =>
+  z
+    .string()
+    .max(max)
+    .optional()
+    .transform((v) => (v && v.trim() ? formatPersonName(v) : v));
+
 export const applicationSchema = z.object({
   entryMethod: z.enum(['TYPED', 'PHOTO', 'FINANCEIT']).optional().default('TYPED'),
   paymentMethod: z.preprocess(
@@ -40,7 +65,7 @@ export const applicationSchema = z.object({
     .max(1_000_000),
 
   // Extended loan-application fields (typed entry) — all optional.
-  middleName: str(80),
+  middleName: optName(80),
   homePhone: str(30),
   maritalStatus: str(30),
   housingStatus: z.preprocess(blankToUndef, z.enum(['OWN', 'RENT', 'OTHER']).optional()),
@@ -80,8 +105,8 @@ export const applicationSchema = z.object({
 
   // Sales-journal detail fields (dealer-entered). productsSold is multi-value
   // and read via formData.getAll(), so it is not part of this object schema.
-  salespersonName: str(120),
-  installerName: str(120),
+  salespersonName: optName(120),
+  installerName: optName(120),
   soapIncluded: z.preprocess(blankToUndef, z.enum(['YES', 'NO']).optional()),
 
   // Reference numbers
@@ -91,8 +116,8 @@ export const applicationSchema = z.object({
   // Financing deal number — any short reference from the finance company.
   financeItNumber: z.string().trim().max(60).optional(),
 
-  applicantFirstName: z.string().min(1).max(80),
-  applicantLastName: z.string().min(1).max(80),
+  applicantFirstName: z.string().min(1).max(80).transform(formatPersonName),
+  applicantLastName: z.string().min(1).max(80).transform(formatPersonName),
   applicantEmail: z.string().email().max(160),
   applicantPhone: z.string().min(7).max(30),
 
@@ -105,7 +130,7 @@ export const applicationSchema = z.object({
   bankAccount: z.string().max(120).optional(),
   govIdNumber: z.string().max(80).optional(),
 
-  coApplicantName: z.string().max(160).optional(),
+  coApplicantName: optName(160),
   coApplicantSin: z
     .string()
     .optional()
@@ -114,9 +139,9 @@ export const applicationSchema = z.object({
   // Co-applicant details (typed entry) — revealed when a name is entered; the
   // same set of questions as the main applicant. All optional at the schema
   // level; SIN/banking are not collected (same as the main applicant).
-  coFirstName: str(80),
-  coLastName: str(80),
-  coMiddleName: str(80),
+  coFirstName: optName(80),
+  coLastName: optName(80),
+  coMiddleName: optName(80),
   coDob: z.string().optional(),
   coEmail: z.preprocess(blankToUndef, z.string().email().max(160).optional()),
   coPhone: str(30),
@@ -189,8 +214,8 @@ export const editDealSchema = z.object({
   requestedAmount: z.coerce.number().positive('Amount must be greater than 0').max(1_000_000),
   approvedAmount: optionalNumber,
 
-  applicantFirstName: z.string().min(1, 'First name is required').max(80),
-  applicantLastName: z.string().min(1, 'Last name is required').max(80),
+  applicantFirstName: z.string().min(1, 'First name is required').max(80).transform(formatPersonName),
+  applicantLastName: z.string().min(1, 'Last name is required').max(80).transform(formatPersonName),
   applicantEmail: z.string().email('Enter a valid email').max(160),
   applicantPhone: z.string().min(7, 'Enter a valid phone').max(30),
   applicantDob: z.string().optional(),
@@ -204,12 +229,12 @@ export const editDealSchema = z.object({
 
   // Sales-journal detail fields (editable by reviewers). productsSold is
   // multi-value and read via formData.getAll(), not through this object schema.
-  salespersonName: str(120),
-  installerName: str(120),
+  salespersonName: optName(120),
+  installerName: optName(120),
   soapIncluded: z.preprocess(blankToUndef, z.enum(['YES', 'NO']).optional()),
 
   // LoanApplication (extended) fields.
-  middleName: str(80),
+  middleName: optName(80),
   homePhone: str(30),
   maritalStatus: str(30),
   housingStatus: z.preprocess(blankToUndef, z.enum(['OWN', 'RENT', 'OTHER']).optional()),

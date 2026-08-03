@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { applicationSchema } from '@/lib/validation';
+import { applicationSchema, formatPersonName } from '@/lib/validation';
 
 // Minimal valid TYPED submission as the form actually posts it: every optional
 // field present but blank (empty <select> options post "", empty inputs post "").
@@ -48,6 +48,47 @@ const baseForm = {
   notes: '',
   consent: 'on',
 };
+
+describe('formatPersonName', () => {
+  it('capitalizes the first letter of each name part', () => {
+    expect(formatPersonName('jesmond gauci')).toBe('Jesmond Gauci');
+    expect(formatPersonName('sean jaiko')).toBe('Sean Jaiko');
+    expect(formatPersonName('kim j')).toBe('Kim J');
+  });
+
+  it('normalizes ALL CAPS and mixed case', () => {
+    expect(formatPersonName('SEAN JAIKO')).toBe('Sean Jaiko');
+    expect(formatPersonName('mARY sMITH')).toBe('Mary Smith');
+  });
+
+  it('collapses and trims extra whitespace', () => {
+    expect(formatPersonName('  mary   smith  ')).toBe('Mary Smith');
+  });
+
+  it('handles hyphens, apostrophes, and Mc/Mac prefixes', () => {
+    expect(formatPersonName('anne-marie')).toBe('Anne-Marie');
+    expect(formatPersonName("o'brien")).toBe("O'Brien");
+    expect(formatPersonName('mcdonald')).toBe('McDonald');
+  });
+
+  it('leaves an empty string empty', () => {
+    expect(formatPersonName('')).toBe('');
+    expect(formatPersonName('   ')).toBe('');
+  });
+});
+
+describe('applicationSchema name normalization', () => {
+  it('formats applicant first/last name however it is typed', () => {
+    const r = applicationSchema.parse({ ...baseForm, applicantFirstName: 'jesmond', applicantLastName: 'gauci' });
+    expect(r.applicantFirstName).toBe('Jesmond');
+    expect(r.applicantLastName).toBe('Gauci');
+  });
+
+  it('normalizes a co-applicant name', () => {
+    const r = applicationSchema.parse({ ...baseForm, coApplicantName: 'kim j' });
+    expect(r.coApplicantName).toBe('Kim J');
+  });
+});
 
 describe('applicationSchema', () => {
   it('accepts a valid submission with blank optional dropdowns/inputs', () => {
