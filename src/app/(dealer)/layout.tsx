@@ -65,6 +65,7 @@ export default async function DealerLayout({ children }: { children: React.React
           { href: '/dealer', label: 'Applications' },
           { href: '/dealer/applications/new', label: 'New customer' },
           { href: '/dealer/mail', label: 'Mail', badge: unreadMail > 0 },
+          { href: '/dealer/marketplace', label: 'Marketplace' },
           { href: '/dealer/resources', label: 'Resources', badge: freshSections.has('RESOURCE') },
           { href: '/dealer/hd-promotions', label: 'HD Promotions', badge: freshSections.has('HD_PROMOTION') },
           { href: '/dealer/hd-credit-card', label: 'HD Credit Card', badge: freshSections.has('HD_CREDIT_CARD') },

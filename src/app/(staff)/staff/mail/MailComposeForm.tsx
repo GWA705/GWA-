@@ -15,9 +15,17 @@ function SubmitButton() {
   );
 }
 
-export function MailComposeForm({ dealers }: { dealers: { id: string; name: string }[] }) {
+interface DealerOption {
+  id: string;
+  name: string;
+  type: 'DISTRIBUTOR' | 'DEALER';
+}
+
+export function MailComposeForm({ dealers }: { dealers: DealerOption[] }) {
   const [state, action] = useFormState(sendMailAction, initial);
   const [allDealers, setAllDealers] = useState(false);
+  const distributors = dealers.filter((d) => d.type === 'DISTRIBUTOR');
+  const regular = dealers.filter((d) => d.type === 'DEALER');
 
   return (
     <form action={action} className="space-y-5">
@@ -44,16 +52,25 @@ export function MailComposeForm({ dealers }: { dealers: { id: string; name: stri
           All dealers
         </label>
         {!allDealers && (
-          <div className="mt-1 grid max-h-56 grid-cols-1 gap-1 overflow-y-auto rounded-md border border-gray-200 p-2 sm:grid-cols-2">
-            {dealers.length === 0 ? (
-              <p className="p-2 text-xs text-gray-400">No active dealers.</p>
-            ) : (
-              dealers.map((d) => (
-                <label key={d.id} className="flex items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-gray-50">
-                  <input type="checkbox" name="dealerIds" value={d.id} className="h-4 w-4" />
-                  <span className="truncate">{d.name}</span>
-                </label>
-              ))
+          <div className="mt-1 max-h-64 space-y-3 overflow-y-auto rounded-md border border-gray-200 p-3">
+            {dealers.length === 0 && <p className="text-xs text-gray-400">No active dealers.</p>}
+            {[
+              { label: 'Distributors', list: distributors },
+              { label: 'Dealers', list: regular },
+            ].map((group) =>
+              group.list.length === 0 ? null : (
+                <div key={group.label}>
+                  <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-400">{group.label}</div>
+                  <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
+                    {group.list.map((d) => (
+                      <label key={d.id} className="flex items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-gray-50">
+                        <input type="checkbox" name="dealerIds" value={d.id} className="h-4 w-4" />
+                        <span className="truncate">{d.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              ),
             )}
           </div>
         )}

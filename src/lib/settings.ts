@@ -29,6 +29,11 @@ export const SECURITY_SETTING_KEYS = {
 
 export type MfaRequirement = 'everyone' | 'staff' | 'off';
 
+// Where marketplace order emails go. When unset, orders email all admins.
+export const MARKETPLACE_SETTING_KEYS = {
+  orderEmail: 'marketplace.orderEmail',
+} as const;
+
 export async function getMfaRequirement(): Promise<MfaRequirement> {
   const v = await getSetting(SECURITY_SETTING_KEYS.mfaRequirement);
   return v === 'staff' || v === 'off' ? v : 'everyone';

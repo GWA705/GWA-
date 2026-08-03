@@ -240,18 +240,27 @@ model Product {
 
 // A dealership (external partner). Tenancy boundary: dealer users only ever
 // see applications belonging to their own dealer.
+// Distributors are separated from regular dealers so recipient pickers (Mail,
+// marketplace orders) can group them — no separate login, just organization.
+enum DealerType {
+  DISTRIBUTOR
+  DEALER
+}
+
 model Dealer {
-  id        String   @id @default(cuid())
+  id        String     @id @default(cuid())
   name      String
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  type      DealerType @default(DEALER)
+  active    Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
 
   users            User[]
   applications     Application[]
   homeDepotStores  HomeDepotStore[]
   dealerAlerts     DealerAlert[]
   mailRecipients   MailRecipient[]
+  orders           Order[]
 }
 
 // Home Depot stores available to a given dealer. The store field on an
@@ -338,8 +347,54 @@ model User {
   mailsSent           Mail[]              @relation("MailSender")
   mailReceipts        MailReceipt[]
   mailAttachmentViews MailAttachmentView[]
+  ordersCreated       Order[]             @relation("OrderCreatedBy")
 
   @@index([dealerId])
+}
+
+// Marketplace: items GWA makes available for dealers to order (clothing, gear,
+// signage). No prices and no payment — it's an ordering system. A submitted
+// order emails whoever handles fulfillment.
+model MarketplaceItem {
+  id          String   @id @default(cuid())
+  name        String
+  description String?  @db.Text
+  options     String[] @default([]) // e.g. sizes: S, M, L, XL — optional
+  active      Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  orderItems OrderItem[]
+
+  @@index([active])
+}
+
+model Order {
+  id          String   @id @default(cuid())
+  dealerId    String
+  dealer      Dealer   @relation(fields: [dealerId], references: [id])
+  createdById String
+  createdBy   User     @relation("OrderCreatedBy", fields: [createdById], references: [id])
+  note        String?  @db.Text
+  status      String   @default("SUBMITTED") // SUBMITTED | FULFILLED | CANCELLED
+  createdAt   DateTime @default(now())
+
+  items OrderItem[]
+
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id       String           @id @default(cuid())
+  orderId  String
+  order    Order            @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  itemId   String?
+  item     MarketplaceItem? @relation(fields: [itemId], references: [id])
+  itemName String // snapshot of the item name at order time
+  option   String? // chosen option (e.g. size), if any
+  quantity Int
 }
 
 // Per-user read state for a dealer content section (Resources / HD Promotions /

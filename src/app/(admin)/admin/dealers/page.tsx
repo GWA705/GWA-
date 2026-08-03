@@ -2,6 +2,7 @@ import { requireRole } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { DealerForm } from './DealerForm';
 import { DealerRowActions } from './DealerRowActions';
+import { DealerTypeSelect } from './DealerTypeSelect';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,6 +34,7 @@ export default async function DealersPage() {
                 {d.active ? 'Active' : 'Archived'}
               </span>
             </div>
+            <div className="mt-3"><DealerTypeSelect id={d.id} type={d.type} /></div>
             <div className="mt-3 border-t border-gray-100 pt-3">
               <DealerRowActions
                 id={d.id}
@@ -52,6 +54,7 @@ export default async function DealersPage() {
           <thead className="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500">
             <tr>
               <th className="px-4 py-3">Name</th>
+              <th className="px-4 py-3">Type</th>
               <th className="px-4 py-3">Users</th>
               <th className="px-4 py-3">Applications</th>
               <th className="px-4 py-3">Status</th>
@@ -62,6 +65,7 @@ export default async function DealersPage() {
             {dealers.map((d) => (
               <tr key={d.id} className={d.active ? '' : 'bg-gray-50/60'}>
                 <td className="px-4 py-3 font-medium">{d.name}</td>
+                <td className="px-4 py-3"><DealerTypeSelect id={d.id} type={d.type} /></td>
                 <td className="px-4 py-3">{d._count.users}</td>
                 <td className="px-4 py-3">{d._count.applications}</td>
                 <td className="px-4 py-3">

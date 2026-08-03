@@ -9,7 +9,7 @@ export default async function StaffMail() {
   await requireRole('REVIEWER', 'ADMIN');
 
   const [dealers, mails] = await Promise.all([
-    prisma.dealer.findMany({ where: { active: true }, orderBy: { name: 'asc' }, select: { id: true, name: true } }),
+    prisma.dealer.findMany({ where: { active: true }, orderBy: { name: 'asc' }, select: { id: true, name: true, type: true } }),
     prisma.mail.findMany({
       orderBy: { createdAt: 'desc' },
       take: 100,

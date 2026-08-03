@@ -133,13 +133,22 @@ export async function createDealerAction(
   formData: FormData,
 ): Promise<ActionState> {
   const session = await requireRole('ADMIN');
-  const parsed = createDealerSchema.safeParse({ name: formData.get('name') });
+  const parsed = createDealerSchema.safeParse({ name: formData.get('name'), type: formData.get('type') || undefined });
   if (!parsed.success) return { error: 'Enter a dealer name.' };
 
-  const dealer = await prisma.dealer.create({ data: { name: parsed.data.name } });
-  await audit({ actorId: session.userId, action: 'DEALER_CREATE', entityType: 'Dealer', entityId: dealer.id, detail: dealer.name });
+  const dealer = await prisma.dealer.create({ data: { name: parsed.data.name, type: parsed.data.type } });
+  await audit({ actorId: session.userId, action: 'DEALER_CREATE', entityType: 'Dealer', entityId: dealer.id, detail: `${dealer.name} (${dealer.type})` });
   revalidatePath('/admin/dealers');
   return { ok: true };
+}
+
+// Change a dealer's type (Distributor ↔ Dealer) — used for organizing where
+// recipient pickers group them.
+export async function setDealerTypeAction(dealerId: string, type: 'DISTRIBUTOR' | 'DEALER') {
+  const session = await requireRole('ADMIN');
+  await prisma.dealer.update({ where: { id: dealerId }, data: { type } });
+  await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'Dealer', entityId: dealerId, detail: `type → ${type}` });
+  revalidatePath('/admin/dealers');
 }
 
 export async function createUserAction(

@@ -370,6 +370,7 @@ export const updateUserSchema = z.object({
 
 export const createDealerSchema = z.object({
   name: z.string().min(1).max(160),
+  type: z.enum(['DISTRIBUTOR', 'DEALER']).optional().default('DEALER'),
 });
 
 export const profileSchema = z.object({
