@@ -777,6 +777,59 @@ export async function createContentAction(
   return { ok: true };
 }
 
+export async function updateContentAction(
+  id: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await requireRole('ADMIN');
+  const existing = await prisma.contentItem.findUnique({ where: { id } });
+  if (!existing) return { error: 'Item not found.' };
+
+  const parsed = contentSchema.safeParse({
+    section: formData.get('section'),
+    title: formData.get('title'),
+    body: (formData.get('body') as string) || undefined,
+    linkUrl: (formData.get('linkUrl') as string) || undefined,
+    sortOrder: (formData.get('sortOrder') as string) || undefined,
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Please check the form.' };
+  const d = parsed.data;
+
+  await prisma.contentItem.update({
+    where: { id },
+    data: {
+      section: d.section,
+      title: d.title,
+      body: d.body || null,
+      linkUrl: d.linkUrl || null,
+      sortOrder: d.sortOrder ?? 0,
+    },
+  });
+
+  // Optionally replace or remove the attachment.
+  const file = formData.get('file') as File | null;
+  const hasNewFile = !!file && typeof file !== 'string' && file.size > 0;
+  const removeFile = formData.get('removeFile') === 'on';
+  if (hasNewFile) {
+    if (file!.size > MAX_FILE_BYTES) return { error: 'File is too large (max 15 MB).' };
+    if (!ALLOWED_MIME_TYPES.includes(file!.type)) return { error: 'File must be a PDF or image (PDF, JPG, PNG, WEBP).' };
+    const ext = path.extname(file!.name).slice(0, 12).replace(/[^a-zA-Z0-9.]/g, '') || '.bin';
+    const key = `content/${id}/${crypto.randomBytes(8).toString('hex')}${ext}`;
+    await putDocument(key, Buffer.from(await file!.arrayBuffer()));
+    if (existing.fileStorageKey) await deleteDocument(existing.fileStorageKey).catch(() => {});
+    await prisma.contentItem.update({ where: { id }, data: { fileStorageKey: key, fileMime: file!.type, fileName: file!.name.slice(0, 200) } });
+  } else if (removeFile && existing.fileStorageKey) {
+    await deleteDocument(existing.fileStorageKey).catch(() => {});
+    await prisma.contentItem.update({ where: { id }, data: { fileStorageKey: null, fileMime: null, fileName: null } });
+  }
+
+  await audit({ actorId: session.userId, action: 'CONTENT_UPDATE', entityType: 'ContentItem', entityId: id, detail: `edited: ${d.title}` });
+  revalidateContent(d.section);
+  if (existing.section !== d.section) revalidateContent(existing.section); // moved between tabs
+  return { ok: true };
+}
+
 export async function toggleContentActiveAction(id: string): Promise<void> {
   const session = await requireRole('ADMIN');
   const c = await prisma.contentItem.findUnique({ where: { id } });

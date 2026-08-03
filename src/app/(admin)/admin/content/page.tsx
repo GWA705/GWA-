@@ -38,28 +38,46 @@ export default async function ContentPage() {
               <div className="card p-6 text-center text-sm text-gray-400">Nothing posted here yet.</div>
             ) : (
               secItems.map((c) => (
-                <div key={c.id} className="card flex items-start justify-between gap-4 p-4">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className={`badge ${c.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
-                        {c.active ? 'Visible' : 'Hidden'}
-                      </span>
-                      <span className="font-medium text-gray-900">{c.title}</span>
-                      <span className="text-xs text-gray-400">#{c.sortOrder}</span>
+                <div key={c.id} className="card p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className={`badge ${c.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+                          {c.active ? 'Visible' : 'Hidden'}
+                        </span>
+                        <span className="font-medium text-gray-900">{c.title}</span>
+                        <span className="text-xs text-gray-400">#{c.sortOrder}</span>
+                      </div>
+                      {c.body && <p className="mt-1 line-clamp-2 whitespace-pre-wrap text-sm text-gray-600">{c.body}</p>}
+                      {c.linkUrl && <p className="mt-1 truncate text-xs text-brand-700">{c.linkUrl}</p>}
+                      {c.fileName && <p className="mt-1 truncate text-xs text-gray-500">📎 {c.fileName}</p>}
                     </div>
-                    {c.body && <p className="mt-1 line-clamp-2 whitespace-pre-wrap text-sm text-gray-600">{c.body}</p>}
-                    {c.linkUrl && <p className="mt-1 truncate text-xs text-brand-700">{c.linkUrl}</p>}
-                    {c.fileName && <p className="mt-1 truncate text-xs text-gray-500">📎 {c.fileName}</p>}
+                    <div className="flex flex-none flex-col gap-2">
+                      <ContentThumbForm id={c.id} hasThumb={!!c.thumbStorageKey} />
+                      <form action={toggleContentActiveAction.bind(null, c.id)}>
+                        <button type="submit" className="btn-secondary w-full text-xs">{c.active ? 'Hide' : 'Show'}</button>
+                      </form>
+                      <form action={deleteContentAction.bind(null, c.id)}>
+                        <button type="submit" className="btn-danger w-full text-xs">Delete</button>
+                      </form>
+                    </div>
                   </div>
-                  <div className="flex flex-none flex-col gap-2">
-                    <ContentThumbForm id={c.id} hasThumb={!!c.thumbStorageKey} />
-                    <form action={toggleContentActiveAction.bind(null, c.id)}>
-                      <button type="submit" className="btn-secondary w-full text-xs">{c.active ? 'Hide' : 'Show'}</button>
-                    </form>
-                    <form action={deleteContentAction.bind(null, c.id)}>
-                      <button type="submit" className="btn-danger w-full text-xs">Delete</button>
-                    </form>
-                  </div>
+                  <details className="mt-3 border-t border-gray-100 pt-3">
+                    <summary className="cursor-pointer text-sm font-medium text-brand-700">Edit</summary>
+                    <div className="mt-3">
+                      <ContentForm
+                        item={{
+                          id: c.id,
+                          section: c.section,
+                          title: c.title,
+                          body: c.body,
+                          linkUrl: c.linkUrl,
+                          sortOrder: c.sortOrder,
+                          fileName: c.fileName,
+                        }}
+                      />
+                    </div>
+                  </details>
                 </div>
               ))
             )}
