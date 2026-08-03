@@ -80,12 +80,30 @@ export default async function MailReceipts({ params }: { params: { id: string } 
         <div className="whitespace-pre-wrap text-sm leading-relaxed text-gray-700">{mail.body}</div>
         {mail.attachments.length > 0 && (
           <ul className="mt-4 divide-y divide-gray-100 border-t border-gray-100">
-            {mail.attachments.map((a, i) => (
-              <li key={a.id} className="flex items-center justify-between gap-3 py-2 text-sm">
-                <a href={`/api/mail/attachments/${a.id}`} target="_blank" rel="noopener noreferrer" title={a.fileName} className="block min-w-0 flex-1 truncate font-medium text-brand-700 hover:underline">📄 {friendlyFileName(a.fileName, i)}</a>
-                <span className="shrink-0 text-xs text-gray-500">{viewersByAttachment.get(a.id) ?? 0} viewer(s)</span>
-              </li>
-            ))}
+            {mail.attachments.map((a, i) => {
+              const viewer = `/staff/mail/${mail.id}/attachment/${a.id}`;
+              const isImage = a.mimeType.startsWith('image/');
+              const ext = a.fileName.includes('.') ? a.fileName.slice(a.fileName.lastIndexOf('.') + 1).toUpperCase() : 'FILE';
+              return (
+                <li key={a.id} className="flex items-center gap-3 py-3 text-sm">
+                  <Link href={viewer} className="shrink-0" title={a.fileName}>
+                    {isImage ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img src={`/api/mail/attachments/${a.id}/thumb`} alt="" className="h-12 w-12 rounded-md object-cover ring-1 ring-gray-200" />
+                    ) : (
+                      <div className="flex h-12 w-12 flex-col items-center justify-center rounded-md bg-brand-50 ring-1 ring-brand-100">
+                        <span className="text-base leading-none">📄</span>
+                        <span className="mt-0.5 text-[9px] font-semibold text-brand-700">{ext}</span>
+                      </div>
+                    )}
+                  </Link>
+                  <Link href={viewer} title={a.fileName} className="block min-w-0 flex-1 truncate font-medium text-brand-700 hover:underline">
+                    {friendlyFileName(a.fileName, i)}
+                  </Link>
+                  <span className="shrink-0 text-xs text-gray-500">{viewersByAttachment.get(a.id) ?? 0} viewer(s)</span>
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>
