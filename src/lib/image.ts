@@ -5,6 +5,16 @@
 //  - re-encode as compressed WebP.
 // sharp is imported lazily so the native binary only loads when an image is
 // actually processed.
+// A small square thumbnail (cropped to fill) for inline attachment previews.
+export async function thumbnailImage(input: Buffer, maxDim = 256): Promise<Buffer> {
+  const sharp = (await import('sharp')).default;
+  return sharp(input)
+    .rotate()
+    .resize(maxDim, maxDim, { fit: 'cover', position: 'centre' })
+    .webp({ quality: 70 })
+    .toBuffer();
+}
+
 export async function normalizeProductImage(
   input: Buffer,
   maxDim = 1200,

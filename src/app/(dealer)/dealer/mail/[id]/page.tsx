@@ -54,21 +54,33 @@ export default async function DealerMailItem({ params }: { params: { id: string 
         <section className="card p-6">
           <h2 className="mb-3 text-base font-semibold text-gray-900">Attachments</h2>
           <ul className="divide-y divide-gray-100">
-            {mail.attachments.map((a, i) => (
-              <li key={a.id} className="flex items-center justify-between gap-3 py-3">
-                <div className="min-w-0 flex-1">
-                  <Link
-                    href={`/dealer/mail/${mail.id}/attachment/${a.id}`}
-                    title={a.fileName}
-                    className="block truncate font-medium text-brand-700 hover:underline"
-                  >
-                    📄 {friendlyFileName(a.fileName, i)}
+            {mail.attachments.map((a, i) => {
+              const viewer = `/dealer/mail/${mail.id}/attachment/${a.id}`;
+              const isImage = a.mimeType.startsWith('image/');
+              const ext = a.fileName.includes('.') ? a.fileName.slice(a.fileName.lastIndexOf('.') + 1).toUpperCase() : 'FILE';
+              return (
+                <li key={a.id} className="flex items-center gap-3 py-3">
+                  <Link href={viewer} className="shrink-0" title={a.fileName}>
+                    {isImage ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img src={`/api/mail/attachments/${a.id}/thumb`} alt="" className="h-14 w-14 rounded-md object-cover ring-1 ring-gray-200" />
+                    ) : (
+                      <div className="flex h-14 w-14 flex-col items-center justify-center rounded-md bg-brand-50 ring-1 ring-brand-100">
+                        <span className="text-lg leading-none">📄</span>
+                        <span className="mt-0.5 text-[10px] font-semibold text-brand-700">{ext}</span>
+                      </div>
+                    )}
                   </Link>
-                  <div className="text-xs text-gray-400">{fmtSize(a.sizeBytes)}</div>
-                </div>
-                <a href={`/api/mail/attachments/${a.id}?download=1`} className="btn-secondary shrink-0 text-xs">Download</a>
-              </li>
-            ))}
+                  <div className="min-w-0 flex-1">
+                    <Link href={viewer} title={a.fileName} className="block truncate font-medium text-brand-700 hover:underline">
+                      {friendlyFileName(a.fileName, i)}
+                    </Link>
+                    <div className="text-xs text-gray-400">{fmtSize(a.sizeBytes)}</div>
+                  </div>
+                  <a href={`/api/mail/attachments/${a.id}?download=1`} className="btn-secondary shrink-0 text-xs">Download</a>
+                </li>
+              );
+            })}
           </ul>
           <p className="mt-3 text-xs text-gray-400">Opening or downloading a file is recorded for compliance.</p>
         </section>
