@@ -54,28 +54,38 @@ export async function saveItemAction(_prev: ItemActionState, formData: FormData)
   const hasNewImage = !!image && typeof image !== 'string' && image.size > 0;
   const removeImage = formData.get('removeImage') === 'on';
 
-  if (id) {
-    const existing = await prisma.marketplaceItem.findUnique({ where: { id }, select: { imageStorageKey: true } });
-    await prisma.marketplaceItem.update({ where: { id }, data: { name, description, options, sortOrder, active } });
-    if (hasNewImage) {
-      const stored = await storeItemImage(id, image!);
-      if ('error' in stored) return { error: stored.error };
-      if (existing?.imageStorageKey) await deleteDocument(existing.imageStorageKey).catch(() => {});
-      await prisma.marketplaceItem.update({ where: { id }, data: { imageStorageKey: stored.storageKey, imageMime: stored.mime, imageSizeBytes: stored.sizeBytes } });
-    } else if (removeImage && existing?.imageStorageKey) {
-      await deleteDocument(existing.imageStorageKey).catch(() => {});
-      await prisma.marketplaceItem.update({ where: { id }, data: { imageStorageKey: null, imageMime: null, imageSizeBytes: null } });
+  // Any failure below (DB, storage, image processing) is returned to the form as
+  // a friendly message rather than thrown — an unhandled throw here would tear
+  // down the whole page with a generic "client-side exception" error.
+  try {
+    if (id) {
+      const existing = await prisma.marketplaceItem.findUnique({ where: { id }, select: { imageStorageKey: true } });
+      if (!existing) return { error: 'That item no longer exists — reload the page and try again.' };
+      await prisma.marketplaceItem.update({ where: { id }, data: { name, description, options, sortOrder, active } });
+      if (hasNewImage) {
+        const stored = await storeItemImage(id, image!);
+        if ('error' in stored) return { error: stored.error };
+        if (existing.imageStorageKey) await deleteDocument(existing.imageStorageKey).catch(() => {});
+        await prisma.marketplaceItem.update({ where: { id }, data: { imageStorageKey: stored.storageKey, imageMime: stored.mime, imageSizeBytes: stored.sizeBytes } });
+      } else if (removeImage && existing.imageStorageKey) {
+        await deleteDocument(existing.imageStorageKey).catch(() => {});
+        await prisma.marketplaceItem.update({ where: { id }, data: { imageStorageKey: null, imageMime: null, imageSizeBytes: null } });
+      }
+    } else {
+      const created = await prisma.marketplaceItem.create({
+        data: { name, description, options, sortOrder, active, createdById: session.userId },
+      });
+      if (hasNewImage) {
+        const stored = await storeItemImage(created.id, image!);
+        if ('error' in stored) return { error: stored.error };
+        await prisma.marketplaceItem.update({ where: { id: created.id }, data: { imageStorageKey: stored.storageKey, imageMime: stored.mime, imageSizeBytes: stored.sizeBytes } });
+      }
     }
-  } else {
-    const created = await prisma.marketplaceItem.create({
-      data: { name, description, options, sortOrder, active, createdById: session.userId },
-    });
-    if (hasNewImage) {
-      const stored = await storeItemImage(created.id, image!);
-      if ('error' in stored) return { error: stored.error };
-      await prisma.marketplaceItem.update({ where: { id: created.id }, data: { imageStorageKey: stored.storageKey, imageMime: stored.mime, imageSizeBytes: stored.sizeBytes } });
-    }
+  } catch (err) {
+    console.error('[marketplace] saveItemAction failed', err);
+    return { error: 'Could not save this item. Please try again in a moment.' };
   }
+
   revalidatePath('/admin/marketplace');
   revalidatePath('/dealer/marketplace');
   return { ok: true };
