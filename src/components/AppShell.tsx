@@ -37,8 +37,8 @@ export function AppShell({
   const showSwitcher = hasBothPortals(user) && (portal === 'dealer' || portal === 'staff');
   return (
     <div className="min-h-screen">
-      <header className="px-3 pt-3 sm:px-4 sm:pt-4">
-        <div className="topbar mx-auto max-w-6xl">
+      <header className="border-b border-gray-200 bg-white">
+        <div className="mx-auto max-w-6xl px-4 py-3">
           {/* Row 1: brand + who's signed in + controls */}
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
             <MobileNav
@@ -47,12 +47,12 @@ export function AppShell({
               nav={nav}
               triggerClassName="topbar-btn px-2.5"
             />
-            <span className="topbar-brand text-lg font-semibold">GWA Dealer Portal</span>
+            <span className="text-lg font-semibold text-brand-700">GWA Dealer Portal</span>
             {showSwitcher && <PortalSwitcher current={portal as 'dealer' | 'staff'} />}
             <div className="ml-auto hidden items-center gap-2 sm:flex">
               <div className="text-right leading-tight">
-                <div className="topbar-user text-sm">{user.name}</div>
-                <div className="topbar-role text-xs">{roleLabel(user.role)}</div>
+                <div className="text-sm font-semibold text-brand-800">{user.name}</div>
+                <div className="text-xs text-gray-500">{roleLabel(user.role)}</div>
               </div>
               <ThemeToggle className="topbar-btn" />
               <form action={logoutAction}>
