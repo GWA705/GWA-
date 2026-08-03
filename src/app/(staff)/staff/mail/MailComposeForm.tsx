@@ -3,8 +3,14 @@
 import { useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { sendMailAction, type MailActionState } from './actions';
+import { friendlyFileName } from '@/lib/filenames';
 
 const initial: MailActionState = {};
+
+function splitName(name: string): { base: string; ext: string } {
+  const dot = name.lastIndexOf('.');
+  return dot > 0 ? { base: name.slice(0, dot), ext: name.slice(dot) } : { base: name, ext: '' };
+}
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -24,6 +30,7 @@ interface DealerOption {
 export function MailComposeForm({ dealers }: { dealers: DealerOption[] }) {
   const [state, action] = useFormState(sendMailAction, initial);
   const [allDealers, setAllDealers] = useState(false);
+  const [files, setFiles] = useState<File[]>([]);
   const [query, setQuery] = useState('');
   // Track selection in state so checking a dealer, then filtering the list,
   // doesn't drop the selection when its checkbox unmounts.
@@ -117,7 +124,35 @@ export function MailComposeForm({ dealers }: { dealers: DealerOption[] }) {
 
       <div>
         <label className="label" htmlFor="files">Attachments <span className="font-normal text-gray-400">(PDF or images)</span></label>
-        <input id="files" name="files" type="file" multiple accept="application/pdf,image/*" className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-md file:border-0 file:bg-brand-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-brand-700 hover:file:bg-brand-100" />
+        <input
+          id="files"
+          name="files"
+          type="file"
+          multiple
+          accept="application/pdf,image/*"
+          onChange={(e) => setFiles(Array.from(e.target.files ?? []))}
+          className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-md file:border-0 file:bg-brand-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-brand-700 hover:file:bg-brand-100"
+        />
+        {files.length > 0 && (
+          <div className="mt-3 space-y-2 rounded-md border border-gray-200 p-3">
+            <p className="text-xs text-gray-500">Give each file a name dealers will see (optional):</p>
+            {files.map((f, i) => {
+              const { base, ext } = splitName(f.name);
+              return (
+                <div key={`${i}-${f.name}`} className="flex items-center gap-2">
+                  <input
+                    name="fileNames"
+                    defaultValue={splitName(friendlyFileName(f.name)).base}
+                    placeholder={base}
+                    className="input flex-1 text-sm"
+                    aria-label={`Name for ${f.name}`}
+                  />
+                  {ext && <span className="shrink-0 text-xs text-gray-400">{ext}</span>}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <label className="flex items-start gap-2 rounded-md bg-amber-50 p-3 text-sm text-amber-900">
