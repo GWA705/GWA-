@@ -35,10 +35,28 @@ services:
         generateValue: true
       - key: MASTER_ENCRYPTION_KEY
         generateValue: true
+      # File storage. The default (local disk at /tmp) is EPHEMERAL — uploads
+      # are wiped on every redeploy — so it is for TEST DATA ONLY. Before real
+      # customer documents, switch to S3 in ca-central-1 (Canada): set
+      # STORAGE_DRIVER=s3 and the S3_* / AWS_* vars below in the Render
+      # dashboard. Full walkthrough in docs/STORAGE-S3.md.
       - key: STORAGE_DRIVER
         value: local
       - key: LOCAL_STORAGE_DIR
         value: /tmp/storage
+      # --- Production S3 storage (uncomment / set in dashboard to enable) ---
+      # - key: STORAGE_DRIVER            # override the 'local' value above with 's3'
+      #   value: s3
+      # - key: S3_BUCKET
+      #   sync: false                    # e.g. gwa-portal-documents
+      # - key: S3_REGION
+      #   value: ca-central-1
+      # - key: S3_SSE
+      #   value: AES256
+      # - key: AWS_ACCESS_KEY_ID
+      #   sync: false                    # least-privilege IAM user (see docs)
+      # - key: AWS_SECRET_ACCESS_KEY
+      #   sync: false
       - key: APP_URL
         sync: false # set to your Render URL after first deploy (optional)
       - key: SEED_ADMIN_EMAIL

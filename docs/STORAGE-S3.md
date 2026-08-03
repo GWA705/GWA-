@@ -47,7 +47,16 @@ information in Canada (PIPEDA / Quebec Law 25).
   (use case: "Application running outside AWS"). Copy the **Access key ID**
   and **Secret access key** — you only see the secret once.
 
-### 3. Set environment variables (Vercel → Settings → Environment Variables)
+### 3. Set environment variables on your host
+
+Set these on whichever host runs the app.
+
+**Render** (this project's deployment): open your Web Service → **Environment**
+→ **Add Environment Variable** for each row below, then **Save Changes**. The
+existing `STORAGE_DRIVER=local` value must be **changed to `s3`** (and the
+`LOCAL_STORAGE_DIR` line can be removed — it's ignored once the driver is S3).
+
+**Vercel**: Settings → Environment Variables (same names/values).
 
 | Name | Value |
 |---|---|
@@ -63,12 +72,29 @@ Also make sure the app's other secrets are set the same way:
 
 > ⚠️ **`MASTER_ENCRYPTION_KEY` must stay the same forever.** It's the key that
 > decrypts every stored file. If it changes, previously uploaded files can't be
-> decrypted. Keep a secure backup of it.
+> decrypted. On Render this was auto-generated on first deploy — copy its
+> current value (Environment tab) into a password manager **before** changing
+> anything, so it's never lost.
 
 ### 4. Redeploy
-Trigger a redeploy so the new environment variables take effect. Upload a
-document on a deal, then re-open it and confirm it downloads. Done — uploads
-now persist.
+Saving environment variables on Render triggers a redeploy automatically (on
+Vercel, trigger one). Once it's live, upload a document on a deal, then re-open
+it and confirm it downloads. Do a redeploy a second time and confirm the file
+is **still** there — that proves it's in S3, not on the ephemeral disk.
+
+---
+
+## Data residency: the database is separate
+
+Switching to S3 in `ca-central-1` keeps **uploaded files** in Canada. It does
+**not** move the Postgres database, which holds applicant names, addresses, and
+(encrypted) SINs. Render's managed Postgres runs in US regions, so for full
+PIPEDA residency the database eventually needs a Canadian-region host too.
+
+Mitigation already in place: the most sensitive fields (SIN, income, street
+addresses) are **application-encrypted at rest** in the database, so even the
+US-hosted rows are ciphertext. Treat the DB-region move as a separate,
+lower-urgency task — see `docs/COMPLIANCE.md`.
 
 ---
 
