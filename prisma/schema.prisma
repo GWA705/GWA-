@@ -380,6 +380,13 @@ model MarketplaceItem {
   imageSizeBytes  Int?
   active         Boolean  @default(true)
   sortOrder      Int      @default(0)
+  // "ORDER" = physical item dealers order (qty/options). "DOWNLOAD" = a file
+  // dealers download (fileStorageKey below), not ordered.
+  kind           String   @default("ORDER")
+  fileStorageKey String? // downloadable file (DOWNLOAD items)
+  fileName       String?
+  fileMime       String?
+  fileSizeBytes  Int?
   // Optional grouping. If the category is deleted, items are kept and become
   // uncategorized (the FK is set null) rather than being removed.
   categoryId String?

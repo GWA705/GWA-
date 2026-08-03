@@ -220,6 +220,17 @@ export const ALLOWED_MIME_TYPES = [
   'image/webp',
 ];
 
+// Files a dealer can download from a marketplace item (e.g. print-ready signage,
+// artwork, guides). Broader than application uploads: also allows zipped bundles.
+export const MARKETPLACE_FILE_MIME_TYPES = [
+  'application/pdf',
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'application/zip',
+  'application/x-zip-compressed',
+];
+
 // Dealer-facing content sections (top-nav tabs). Each has a route slug, label,
 // and a short blurb shown at the top of the page / empty state.
 export const CONTENT_SECTIONS: {

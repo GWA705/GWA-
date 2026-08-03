@@ -8,7 +8,7 @@ import { audit } from '@/lib/audit';
 import { setSetting, MARKETPLACE_SETTING_KEYS } from '@/lib/settings';
 import { putDocument, deleteDocument } from '@/lib/storage';
 import { normalizeProductImage } from '@/lib/image';
-import { MAX_FILE_BYTES } from '@/lib/constants';
+import { MAX_FILE_BYTES, MARKETPLACE_FILE_MIME_TYPES } from '@/lib/constants';
 
 // Validate + normalize an uploaded photo and store it, returning the new key.
 async function storeItemImage(itemId: string, file: File): Promise<{ storageKey: string; mime: string; sizeBytes: number } | { error: string }> {
@@ -22,6 +22,30 @@ async function storeItemImage(itemId: string, file: File): Promise<{ storageKey:
   } catch (err) {
     console.error('[marketplace] image processing failed', err);
     return { error: 'Could not process that image. Try a different file.' };
+  }
+}
+
+// Keep a filename safe to echo back in a Content-Disposition header later.
+function safeFileName(name: string): string {
+  const base = name.split(/[\\/]/).pop() || 'download';
+  return base.replace(/[^\w.\- ]+/g, '_').slice(0, 120) || 'download';
+}
+
+// Validate + store a downloadable file (PDF / image / zip) for a DOWNLOAD item.
+async function storeItemFile(itemId: string, file: File): Promise<{ storageKey: string; fileName: string; mime: string; sizeBytes: number } | { error: string }> {
+  if (file.size > MAX_FILE_BYTES) return { error: `File is too large (max ${Math.floor(MAX_FILE_BYTES / 1024 / 1024)} MB).` };
+  if (!MARKETPLACE_FILE_MIME_TYPES.includes(file.type)) {
+    return { error: 'Unsupported file type. Upload a PDF, image (JPG/PNG/WEBP), or ZIP.' };
+  }
+  try {
+    const bytes = Buffer.from(await file.arrayBuffer());
+    const ext = (file.name.match(/\.[a-zA-Z0-9]{1,8}$/)?.[0] || '').toLowerCase();
+    const key = `marketplace/${itemId}/file-${crypto.randomBytes(6).toString('hex')}${ext}`;
+    await putDocument(key, bytes);
+    return { storageKey: key, fileName: safeFileName(file.name), mime: file.type, sizeBytes: bytes.length };
+  } catch (err) {
+    console.error('[marketplace] file storage failed', err);
+    return { error: 'Could not save that file. Try again.' };
   }
 }
 
@@ -93,6 +117,7 @@ export async function saveItemAction(_prev: ItemActionState, formData: FormData)
   const sortOrder = Number.parseInt((formData.get('sortOrder') ?? '0').toString(), 10) || 0;
   const active = formData.get('active') === 'on';
   const categoryId = (formData.get('categoryId') ?? '').toString() || null;
+  const kind = (formData.get('kind') ?? 'ORDER').toString() === 'DOWNLOAD' ? 'DOWNLOAD' : 'ORDER';
 
   if (!name) return { error: 'Item name is required.' };
 
@@ -100,14 +125,18 @@ export async function saveItemAction(_prev: ItemActionState, formData: FormData)
   const hasNewImage = !!image && typeof image !== 'string' && image.size > 0;
   const removeImage = formData.get('removeImage') === 'on';
 
+  const file = formData.get('file') as File | null;
+  const hasNewFile = !!file && typeof file !== 'string' && file.size > 0;
+  const removeFile = formData.get('removeFile') === 'on';
+
   // Any failure below (DB, storage, image processing) is returned to the form as
   // a friendly message rather than thrown — an unhandled throw here would tear
   // down the whole page with a generic "client-side exception" error.
   try {
     if (id) {
-      const existing = await prisma.marketplaceItem.findUnique({ where: { id }, select: { imageStorageKey: true } });
+      const existing = await prisma.marketplaceItem.findUnique({ where: { id }, select: { imageStorageKey: true, fileStorageKey: true } });
       if (!existing) return { error: 'That item no longer exists — reload the page and try again.' };
-      await prisma.marketplaceItem.update({ where: { id }, data: { name, description, options, sortOrder, active, categoryId } });
+      await prisma.marketplaceItem.update({ where: { id }, data: { name, description, options, sortOrder, active, categoryId, kind } });
       if (hasNewImage) {
         const stored = await storeItemImage(id, image!);
         if ('error' in stored) return { error: stored.error };
@@ -117,14 +146,28 @@ export async function saveItemAction(_prev: ItemActionState, formData: FormData)
         await deleteDocument(existing.imageStorageKey).catch(() => {});
         await prisma.marketplaceItem.update({ where: { id }, data: { imageStorageKey: null, imageMime: null, imageSizeBytes: null } });
       }
+      if (hasNewFile) {
+        const stored = await storeItemFile(id, file!);
+        if ('error' in stored) return { error: stored.error };
+        if (existing.fileStorageKey) await deleteDocument(existing.fileStorageKey).catch(() => {});
+        await prisma.marketplaceItem.update({ where: { id }, data: { fileStorageKey: stored.storageKey, fileName: stored.fileName, fileMime: stored.mime, fileSizeBytes: stored.sizeBytes } });
+      } else if (removeFile && existing.fileStorageKey) {
+        await deleteDocument(existing.fileStorageKey).catch(() => {});
+        await prisma.marketplaceItem.update({ where: { id }, data: { fileStorageKey: null, fileName: null, fileMime: null, fileSizeBytes: null } });
+      }
     } else {
       const created = await prisma.marketplaceItem.create({
-        data: { name, description, options, sortOrder, active, categoryId, createdById: session.userId },
+        data: { name, description, options, sortOrder, active, categoryId, kind, createdById: session.userId },
       });
       if (hasNewImage) {
         const stored = await storeItemImage(created.id, image!);
         if ('error' in stored) return { error: stored.error };
         await prisma.marketplaceItem.update({ where: { id: created.id }, data: { imageStorageKey: stored.storageKey, imageMime: stored.mime, imageSizeBytes: stored.sizeBytes } });
+      }
+      if (hasNewFile) {
+        const stored = await storeItemFile(created.id, file!);
+        if ('error' in stored) return { error: stored.error };
+        await prisma.marketplaceItem.update({ where: { id: created.id }, data: { fileStorageKey: stored.storageKey, fileName: stored.fileName, fileMime: stored.mime, fileSizeBytes: stored.sizeBytes } });
       }
     }
   } catch (err) {

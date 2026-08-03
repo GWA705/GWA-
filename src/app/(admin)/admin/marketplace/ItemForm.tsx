@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { saveItemAction, type ItemActionState } from './actions';
 
@@ -13,6 +13,9 @@ interface Item {
   active: boolean;
   hasImage?: boolean;
   categoryId?: string | null;
+  kind?: string;
+  hasFile?: boolean;
+  fileName?: string | null;
 }
 
 interface CategoryOption {
@@ -35,11 +38,16 @@ export function ItemForm({ item, categories }: { item?: Item; categories: Catego
   const [state, action] = useFormState(saveItemAction, initial);
   const isEdit = !!item;
   const formRef = useRef<HTMLFormElement>(null);
+  const [kind, setKind] = useState<string>(item?.kind === 'DOWNLOAD' ? 'DOWNLOAD' : 'ORDER');
+  const isDownload = kind === 'DOWNLOAD';
 
   // Clear the "Add an item" form (including the file input) after a successful
   // add so it's ready for the next one. Edit forms keep their values.
   useEffect(() => {
-    if (state.ok && !isEdit) formRef.current?.reset();
+    if (state.ok && !isEdit) {
+      formRef.current?.reset();
+      setKind('ORDER');
+    }
   }, [state, isEdit]);
 
   return (
@@ -62,15 +70,40 @@ export function ItemForm({ item, categories }: { item?: Item; categories: Catego
         </div>
       </div>
       <div>
-        <label className="label">Options <span className="font-normal text-gray-400">(sizes, comma-separated — optional)</span></label>
-        <input name="options" defaultValue={item?.options.join(', ') ?? ''} className="input" placeholder="S, M, L, XL" />
+        <label className="label">Type</label>
+        <select name="kind" value={kind} onChange={(e) => setKind(e.target.value)} className="input">
+          <option value="ORDER">Orderable item (dealers choose a quantity)</option>
+          <option value="DOWNLOAD">Downloadable file (dealers download it)</option>
+        </select>
       </div>
+      {isDownload ? (
+        <div>
+          <label className="label">File <span className="font-normal text-gray-400">(PDF, image, or ZIP — max 15&nbsp;MB)</span></label>
+          {item?.hasFile && (
+            <p className="mb-1 text-xs text-gray-500">
+              Current file: <span className="font-medium text-gray-700">{item.fileName || 'attached'}</span>
+            </p>
+          )}
+          <input name="file" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.zip,application/pdf,image/*,application/zip" className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-md file:border-0 file:bg-brand-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-brand-700 hover:file:bg-brand-100" />
+          {item?.hasFile && (
+            <label className="mt-2 flex items-center gap-2 text-xs text-gray-500">
+              <input type="checkbox" name="removeFile" className="h-3.5 w-3.5" />
+              Remove current file
+            </label>
+          )}
+        </div>
+      ) : (
+        <div>
+          <label className="label">Options <span className="font-normal text-gray-400">(sizes, comma-separated — optional)</span></label>
+          <input name="options" defaultValue={item?.options.join(', ') ?? ''} className="input" placeholder="S, M, L, XL" />
+        </div>
+      )}
       <div>
         <label className="label">Description <span className="font-normal text-gray-400">(optional)</span></label>
         <textarea name="description" defaultValue={item?.description ?? ''} rows={2} className="input" />
       </div>
       <div>
-        <label className="label">Photo <span className="font-normal text-gray-400">(auto-sized &amp; formatted on upload)</span></label>
+        <label className="label">Photo <span className="font-normal text-gray-400">(optional thumbnail — auto-sized on upload)</span></label>
         <div className="flex items-center gap-3">
           {item?.hasImage && (
             /* eslint-disable-next-line @next/next/no-img-element */

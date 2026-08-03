@@ -33,7 +33,8 @@ export type AuditAction =
   | 'MAIL_SEND'
   | 'MAIL_ACK'
   | 'MAIL_ATTACH_VIEW'
-  | 'ORDER_SUBMIT';
+  | 'ORDER_SUBMIT'
+  | 'MARKETPLACE_FILE_DOWNLOAD';
 
 interface AuditInput {
   actorId?: string | null;

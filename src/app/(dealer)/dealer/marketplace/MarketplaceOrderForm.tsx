@@ -10,6 +10,9 @@ interface Item {
   options: string[];
   hasImage: boolean;
   categoryId: string | null;
+  kind: string;
+  hasFile: boolean;
+  fileName: string | null;
 }
 
 interface Category {
@@ -40,22 +43,37 @@ function ItemCard({ item }: { item: Item }) {
       <div className="flex flex-1 flex-col p-4">
         <div className="font-medium text-gray-900">{item.name}</div>
         {item.description && <p className="mt-1 text-sm text-gray-500">{item.description}</p>}
-        <div className="mt-auto flex items-end gap-2 pt-4">
-          {item.options.length > 0 && (
-            <div className="flex-1">
-              <label className="label" htmlFor={`opt_${item.id}`}>Option</label>
-              <select id={`opt_${item.id}`} name={`opt_${item.id}`} className="input">
-                {item.options.map((o) => (
-                  <option key={o} value={o}>{o}</option>
-                ))}
-              </select>
-            </div>
-          )}
-          <div className="w-20">
-            <label className="label" htmlFor={`qty_${item.id}`}>Qty</label>
-            <input id={`qty_${item.id}`} name={`qty_${item.id}`} type="number" min="0" defaultValue={0} className="input" />
+        {item.kind === 'DOWNLOAD' ? (
+          <div className="mt-auto pt-4">
+            {item.hasFile ? (
+              <a
+                href={`/api/marketplace/items/${item.id}/file`}
+                className="btn-primary inline-flex w-full items-center justify-center gap-2"
+              >
+                ⬇ Download{item.fileName ? '' : ' file'}
+              </a>
+            ) : (
+              <p className="text-sm text-gray-400">Coming soon</p>
+            )}
           </div>
-        </div>
+        ) : (
+          <div className="mt-auto flex items-end gap-2 pt-4">
+            {item.options.length > 0 && (
+              <div className="flex-1">
+                <label className="label" htmlFor={`opt_${item.id}`}>Option</label>
+                <select id={`opt_${item.id}`} name={`opt_${item.id}`} className="input">
+                  {item.options.map((o) => (
+                    <option key={o} value={o}>{o}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+            <div className="w-20">
+              <label className="label" htmlFor={`qty_${item.id}`}>Qty</label>
+              <input id={`qty_${item.id}`} name={`qty_${item.id}`} type="number" min="0" defaultValue={0} className="input" />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

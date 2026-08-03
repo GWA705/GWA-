@@ -22,7 +22,8 @@ export async function createOrderAction(_prev: OrderActionState, formData: FormD
   const session = await requireDealerAccess();
   if (!session.dealerId) return { error: 'Your account is not linked to a dealer.' };
 
-  const items = await prisma.marketplaceItem.findMany({ where: { active: true } });
+  // Only orderable items — DOWNLOAD items are files, never part of an order.
+  const items = await prisma.marketplaceItem.findMany({ where: { active: true, kind: 'ORDER' } });
   const note = (formData.get('note') ?? '').toString().trim() || null;
 
   const lines: { itemId: string; itemName: string; option: string | null; quantity: number }[] = [];

@@ -102,9 +102,18 @@ export default async function AdminMarketplace() {
                               <div className="flex flex-wrap items-center gap-2">
                                 <span className="font-medium text-gray-900">{item.name}</span>
                                 {!item.active && <span className="badge bg-gray-100 text-gray-600">Hidden</span>}
-                                {item.options.length > 0 && <span className="badge bg-brand-50 text-brand-700">{item.options.join(' · ')}</span>}
+                                {item.kind === 'DOWNLOAD' && <span className="badge bg-emerald-50 text-emerald-700">Download</span>}
+                                {item.kind !== 'DOWNLOAD' && item.options.length > 0 && <span className="badge bg-brand-50 text-brand-700">{item.options.join(' · ')}</span>}
                               </div>
                               {item.description && <p className="mt-1 text-sm text-gray-500">{item.description}</p>}
+                              {item.kind === 'DOWNLOAD' && item.fileStorageKey && (
+                                <a href={`/api/marketplace/items/${item.id}/file`} className="mt-1 inline-block text-xs font-medium text-brand-700 underline">
+                                  {item.fileName || 'Download file'}
+                                </a>
+                              )}
+                              {item.kind === 'DOWNLOAD' && !item.fileStorageKey && (
+                                <p className="mt-1 text-xs text-amber-600">No file uploaded yet — edit to add one.</p>
+                              )}
                             </div>
                           </div>
                           <ItemRowActions id={item.id} active={item.active} />
@@ -123,6 +132,9 @@ export default async function AdminMarketplace() {
                                 active: item.active,
                                 hasImage: !!item.imageStorageKey,
                                 categoryId: item.categoryId,
+                                kind: item.kind,
+                                hasFile: !!item.fileStorageKey,
+                                fileName: item.fileName,
                               }}
                             />
                           </div>
