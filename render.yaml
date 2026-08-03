@@ -35,28 +35,27 @@ services:
         generateValue: true
       - key: MASTER_ENCRYPTION_KEY
         generateValue: true
-      # File storage. The default (local disk at /tmp) is EPHEMERAL — uploads
-      # are wiped on every redeploy — so it is for TEST DATA ONLY. Before real
-      # customer documents, switch to S3 in ca-central-1 (Canada): set
-      # STORAGE_DRIVER=s3 and the S3_* / AWS_* vars below in the Render
-      # dashboard. Full walkthrough in docs/STORAGE-S3.md.
+      # File storage driver. Managed in the DASHBOARD (sync: false) so it can be
+      # set to 's3' for production without a Blueprint sync reverting it to local.
+      # If left unset the app defaults to local disk (/tmp) — TEST DATA ONLY,
+      # since that is wiped on every redeploy. For production, set STORAGE_DRIVER=s3
+      # plus the S3_* / AWS_* vars in the dashboard — walkthrough in
+      # docs/STORAGE-S3.md. These storage vars are all dashboard-owned so the
+      # Blueprint never clobbers a live production storage configuration.
       - key: STORAGE_DRIVER
-        value: local
+        sync: false
       - key: LOCAL_STORAGE_DIR
-        value: /tmp/storage
-      # --- Production S3 storage (uncomment / set in dashboard to enable) ---
-      # - key: STORAGE_DRIVER            # override the 'local' value above with 's3'
-      #   value: s3
-      # - key: S3_BUCKET
-      #   sync: false                    # e.g. gwa-portal-documents
-      # - key: S3_REGION
-      #   value: ca-central-1
-      # - key: S3_SSE
-      #   value: AES256
-      # - key: AWS_ACCESS_KEY_ID
-      #   sync: false                    # least-privilege IAM user (see docs)
-      # - key: AWS_SECRET_ACCESS_KEY
-      #   sync: false
+        sync: false
+      - key: S3_BUCKET
+        sync: false
+      - key: S3_REGION
+        sync: false
+      - key: S3_SSE
+        sync: false
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
       - key: APP_URL
         sync: false # set to your Render URL after first deploy (optional)
       - key: SEED_ADMIN_EMAIL
