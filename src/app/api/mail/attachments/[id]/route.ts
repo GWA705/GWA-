@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { getSession } from '@/lib/session';
 import { getDocument } from '@/lib/storage';
 import { audit } from '@/lib/audit';
+import { friendlyFileName } from '@/lib/filenames';
 
 // Authenticated, access-controlled mail-attachment download. Every open by a
 // dealer user is recorded (first/last view + count) so it's documented who
@@ -62,7 +63,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     status: 200,
     headers: {
       'Content-Type': att.mimeType || 'application/octet-stream',
-      'Content-Disposition': `${asDownload ? 'attachment' : 'inline'}; filename="${encodeURIComponent(att.fileName)}"`,
+      'Content-Disposition': `${asDownload ? 'attachment' : 'inline'}; filename="${encodeURIComponent(friendlyFileName(att.fileName))}"`,
       'Cache-Control': 'private, no-store',
       'X-Content-Type-Options': 'nosniff',
     },

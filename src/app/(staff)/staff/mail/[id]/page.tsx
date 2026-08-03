@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireRole } from '@/lib/session';
 import { prisma } from '@/lib/db';
+import { friendlyFileName } from '@/lib/filenames';
 
 export const dynamic = 'force-dynamic';
 
@@ -79,9 +80,9 @@ export default async function MailReceipts({ params }: { params: { id: string } 
         <div className="whitespace-pre-wrap text-sm leading-relaxed text-gray-700">{mail.body}</div>
         {mail.attachments.length > 0 && (
           <ul className="mt-4 divide-y divide-gray-100 border-t border-gray-100">
-            {mail.attachments.map((a) => (
+            {mail.attachments.map((a, i) => (
               <li key={a.id} className="flex items-center justify-between gap-3 py-2 text-sm">
-                <a href={`/api/mail/attachments/${a.id}`} target="_blank" rel="noopener noreferrer" className="truncate font-medium text-brand-700 hover:underline">📄 {a.fileName}</a>
+                <a href={`/api/mail/attachments/${a.id}`} target="_blank" rel="noopener noreferrer" title={a.fileName} className="block min-w-0 flex-1 truncate font-medium text-brand-700 hover:underline">📄 {friendlyFileName(a.fileName, i)}</a>
                 <span className="shrink-0 text-xs text-gray-500">{viewersByAttachment.get(a.id) ?? 0} viewer(s)</span>
               </li>
             ))}

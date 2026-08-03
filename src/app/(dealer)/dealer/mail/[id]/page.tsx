@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { requireDealerAccess } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { mailWhereForDealer } from '@/lib/inbox';
+import { friendlyFileName } from '@/lib/filenames';
 import { acknowledgeMailAction } from '../actions';
 
 export const dynamic = 'force-dynamic';
@@ -53,20 +54,21 @@ export default async function DealerMailItem({ params }: { params: { id: string 
         <section className="card p-6">
           <h2 className="mb-3 text-base font-semibold text-gray-900">Attachments</h2>
           <ul className="divide-y divide-gray-100">
-            {mail.attachments.map((a) => (
+            {mail.attachments.map((a, i) => (
               <li key={a.id} className="flex items-center justify-between gap-3 py-3">
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <a
                     href={`/api/mail/attachments/${a.id}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="truncate font-medium text-brand-700 hover:underline"
+                    title={a.fileName}
+                    className="block truncate font-medium text-brand-700 hover:underline"
                   >
-                    📄 {a.fileName}
+                    📄 {friendlyFileName(a.fileName, i)}
                   </a>
                   <div className="text-xs text-gray-400">{fmtSize(a.sizeBytes)}</div>
                 </div>
-                <a href={`/api/mail/attachments/${a.id}?download=1`} className="btn-secondary text-xs">Download</a>
+                <a href={`/api/mail/attachments/${a.id}?download=1`} className="btn-secondary shrink-0 text-xs">Download</a>
               </li>
             ))}
           </ul>
