@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { saveItemAction, type ItemActionState } from './actions';
 
@@ -27,9 +28,16 @@ function SubmitButton({ isEdit }: { isEdit: boolean }) {
 export function ItemForm({ item }: { item?: Item }) {
   const [state, action] = useFormState(saveItemAction, initial);
   const isEdit = !!item;
+  const formRef = useRef<HTMLFormElement>(null);
+
+  // Clear the "Add an item" form (including the file input) after a successful
+  // add so it's ready for the next one. Edit forms keep their values.
+  useEffect(() => {
+    if (state.ok && !isEdit) formRef.current?.reset();
+  }, [state, isEdit]);
 
   return (
-    <form action={action} className="space-y-3">
+    <form ref={formRef} action={action} className="space-y-3">
       {item && <input type="hidden" name="id" value={item.id} />}
       {state.error && <p className="text-sm text-red-600">{state.error}</p>}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -71,7 +79,10 @@ export function ItemForm({ item }: { item?: Item }) {
           <input type="checkbox" name="active" defaultChecked={item ? item.active : true} className="h-4 w-4" />
           Active (visible to dealers)
         </label>
-        <div className="ml-auto"><SubmitButton isEdit={isEdit} /></div>
+        <div className="ml-auto flex items-center gap-3">
+          {state.ok && <span className="text-xs text-green-600">✓ {isEdit ? 'Saved' : 'Added'}</span>}
+          <SubmitButton isEdit={isEdit} />
+        </div>
       </div>
     </form>
   );
