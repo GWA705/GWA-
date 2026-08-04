@@ -2,21 +2,13 @@
 # Render reads this file to create a web service + a PostgreSQL database and
 # wire them together. See docs/DEPLOY-RENDER.md for the step-by-step guide.
 #
-# DATA RESIDENCY NOTE: this service and its database run in Render's Oregon
-# (US) region — Render has no Canadian region. Uploaded files can live in
-# Canada via S3 in ca-central-1 (see docs/STORAGE-S3.md), but the database
-# does not. For real customer PII under PIPEDA, move the database to a
-# Canadian-region host and repoint DATABASE_URL — see docs/COMPLIANCE.md.
-# Sensitive DB fields (SIN, income, addresses) are encrypted at rest.
-
-databases:
-  - name: gwa-db
-    databaseName: gwa
-    # Paid, persistent plan (matches the live database). Do not set back to
-    # 'free' — Render blocks downgrading an upgraded database, and free
-    # databases are tiny and expire.
-    plan: basic-1gb
-    region: oregon
+# DATA RESIDENCY: the database is hosted on AWS RDS in ca-central-1 (Canada)
+# for PIPEDA residency — it is NOT managed by this Blueprint. DATABASE_URL is
+# set in the Render dashboard (sync: false). Uploaded files also live in Canada
+# via S3 ca-central-1 (docs/STORAGE-S3.md). The web service itself still runs in
+# Render's Oregon region (Render has no Canadian region); sensitive DB fields
+# (SIN, income, addresses) are application-encrypted at rest. See
+# docs/COMPLIANCE.md.
 
 services:
   - type: web
@@ -33,10 +25,9 @@ services:
     envVars:
       - key: NODE_VERSION
         value: 20.18.0
+      # External AWS RDS (ca-central-1) connection string — set in the dashboard.
       - key: DATABASE_URL
-        fromDatabase:
-          name: gwa-db
-          property: connectionString
+        sync: false
       # Auto-generated strong secrets — you never have to create these by hand.
       - key: SESSION_SECRET
         generateValue: true
