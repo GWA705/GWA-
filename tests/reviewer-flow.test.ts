@@ -28,6 +28,12 @@ describe('currentPhaseIndex', () => {
     expect(currentPhaseIndex({ ...base, status: 'APPROVED', reviewerDocsSent: true })).toBe(3);
   });
 
+  it('DOCS_SENT is awaiting install (phase 3), or review if the package is already back', () => {
+    expect(currentPhaseIndex({ ...base, status: 'DOCS_SENT' })).toBe(3);
+    expect(currentPhaseIndex({ ...base, status: 'DOCS_SENT', fundingDocsReceived: true })).toBe(4);
+    expect(dealerFacingStatus({ ...base, status: 'DOCS_SENT' })).toBe('Awaiting your signed documents');
+  });
+
   it('dealer returning the signed package jumps to review (phase 4)', () => {
     expect(currentPhaseIndex({ ...base, status: 'APPROVED', reviewerDocsSent: true, fundingDocsReceived: true })).toBe(4);
     expect(currentPhaseIndex({ ...base, status: 'FUNDING_SUBMITTED' })).toBe(4);

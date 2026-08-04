@@ -263,7 +263,7 @@ export async function uploadFundingDocAction(
   const session = await requireDealerAccess();
   const app = await prisma.application.findUnique({ where: { id: applicationId } });
   if (!app || !canAccessAsDealer(session, app.dealerId)) return { error: 'Not found.' };
-  if (!['APPROVED', 'CONDITIONAL', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW'].includes(app.status)) {
+  if (!['APPROVED', 'CONDITIONAL', 'DOCS_SENT', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW'].includes(app.status)) {
     return { error: 'Funding documents can only be uploaded after approval.' };
   }
 
@@ -320,7 +320,7 @@ export async function submitFundingAction(applicationId: string): Promise<void> 
   const session = await requireDealerAccess();
   const app = await prisma.application.findUnique({ where: { id: applicationId } });
   if (!app || !canAccessAsDealer(session, app.dealerId)) redirect('/dealer');
-  if (!['APPROVED', 'CONDITIONAL'].includes(app.status)) {
+  if (!['APPROVED', 'CONDITIONAL', 'DOCS_SENT'].includes(app.status)) {
     redirect(`/dealer/applications/${applicationId}`);
   }
   // Enforce the serial-per-product rule before funding can be submitted.

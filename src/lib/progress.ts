@@ -31,6 +31,7 @@ const STATUS_RANK: Record<ApplicationStatus, number> = {
   UNDER_REVIEW: 1,
   CONDITIONAL: 2,
   APPROVED: 2,
+  DOCS_SENT: 2,
   FUNDING_SUBMITTED: 3,
   FUNDING_REVIEW: 5,
   FUNDED: 6,

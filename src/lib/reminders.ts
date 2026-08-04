@@ -83,7 +83,7 @@ export async function setReminderConfig(patch: Partial<ReminderConfig>): Promise
 // ---------------------------------------------------------------------------
 
 // Statuses where the ball is squarely in the dealer's court.
-const DEALER_COURT: ApplicationStatus[] = ['APPROVED', 'CONDITIONAL', 'PROBLEM'];
+const DEALER_COURT: ApplicationStatus[] = ['APPROVED', 'CONDITIONAL', 'DOCS_SENT', 'PROBLEM'];
 
 export function awaitingDealer(app: Pick<Application, 'status'>): boolean {
   return DEALER_COURT.includes(app.status);

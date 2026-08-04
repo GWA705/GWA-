@@ -11,7 +11,7 @@ import { getStorageUsage } from '@/lib/storage-usage';
 export const dynamic = 'force-dynamic';
 
 const ACTIVE: ApplicationStatus[] = [
-  'SUBMITTED', 'UNDER_REVIEW', 'CONDITIONAL', 'APPROVED', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW', 'PROBLEM',
+  'SUBMITTED', 'UNDER_REVIEW', 'CONDITIONAL', 'APPROVED', 'DOCS_SENT', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW', 'PROBLEM',
 ];
 
 function money(n: number): string {

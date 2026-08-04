@@ -299,6 +299,21 @@ export async function uploadReviewerPaperworkAction(
   });
   if (result.error) return result;
 
+  // Sending install paperwork advances an approved deal to "awaiting install",
+  // so the dealer's status flips automatically the moment the documents are out.
+  if (app.status === 'APPROVED' || app.status === 'CONDITIONAL') {
+    await prisma.application.update({ where: { id: applicationId }, data: { status: 'DOCS_SENT' } });
+    await prisma.statusEvent.create({
+      data: {
+        applicationId,
+        from: app.status,
+        to: 'DOCS_SENT',
+        actorId: session.userId,
+        note: 'Install documents sent to dealer',
+      },
+    });
+  }
+
   await markReviewerAction(applicationId);
   revalidatePath(`/staff/applications/${applicationId}`);
   return {};
