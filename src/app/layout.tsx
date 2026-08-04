@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
+import { StagingBanner } from '@/components/StagingBanner';
 
 export const metadata: Metadata = {
   title: 'GWA Dealer Portal',
@@ -27,6 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" suppressHydrationWarning>
       <body>
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+        <StagingBanner />
         {children}
       </body>
     </html>
