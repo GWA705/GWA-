@@ -24,14 +24,12 @@ export default async function DealerMailItem({ params }: { params: { id: string 
   });
   if (!mail) notFound();
 
-  // Record that this user opened the mail (keeps the first-open timestamp).
-  await prisma.mailReceipt.upsert({
+  // Record that this user opened the mail (keeps the first-open timestamp), and
+  // use the upsert's own return value instead of a second read-back round trip.
+  const receipt = await prisma.mailReceipt.upsert({
     where: { mailId_userId: { mailId: mail.id, userId: session.userId } },
     create: { mailId: mail.id, userId: session.userId },
     update: {},
-  });
-  const receipt = await prisma.mailReceipt.findUnique({
-    where: { mailId_userId: { mailId: mail.id, userId: session.userId } },
     select: { acknowledgedAt: true },
   });
   const acknowledged = !!receipt?.acknowledgedAt;

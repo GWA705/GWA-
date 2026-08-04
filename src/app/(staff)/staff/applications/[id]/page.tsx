@@ -77,7 +77,11 @@ export default async function StaffApplicationDetail({
   searchParams: { reveal?: string };
 }) {
   const user = await requireRole('REVIEWER', 'ADMIN');
-  const app = await prisma.application.findUnique({
+  // The deal and the two independent lookups (finance companies, note
+  // templates) run concurrently so their now-cross-region round trips overlap
+  // instead of stacking one after another.
+  const [app, financeCompanies, noteTemplates] = await Promise.all([
+    prisma.application.findUnique({
     where: { id: params.id },
     include: {
       dealer: true,
@@ -97,7 +101,18 @@ export default async function StaffApplicationDetail({
       confirmation: { include: { confirmedBy: true } },
       verificationChecks: { include: { checkedBy: true } },
     },
-  });
+    }),
+    prisma.financeCompany.findMany({
+      where: { active: true },
+      orderBy: { name: 'asc' },
+      select: { id: true, name: true },
+    }),
+    prisma.noteTemplate.findMany({
+      where: { active: true },
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+      select: { label: true, body: true },
+    }),
+  ]);
   if (!app) notFound();
 
   // Rule 2 — funding verification checklist. The serial-match item only applies
@@ -120,19 +135,6 @@ export default async function StaffApplicationDetail({
 
   const dealerNotes = app.dealNotes.filter((n) => !n.internal);
   const internalNotes = app.dealNotes.filter((n) => n.internal);
-
-  const financeCompanies = await prisma.financeCompany.findMany({
-    where: { active: true },
-    orderBy: { name: 'asc' },
-    select: { id: true, name: true },
-  });
-
-  // Quick-note templates a reviewer can insert with one click.
-  const noteTemplates = await prisma.noteTemplate.findMany({
-    where: { active: true },
-    orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-    select: { label: true, body: true },
-  });
 
   const reveal = searchParams.reveal === '1';
 
