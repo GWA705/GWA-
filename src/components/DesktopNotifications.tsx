@@ -56,7 +56,23 @@ export function DesktopNotifications() {
     navigator.serviceWorker
       .getRegistration()
       .then((reg) => reg?.pushManager.getSubscription())
-      .then((sub) => setStatus(sub ? 'on' : 'off'))
+      .then((sub) => {
+        if (!sub) {
+          setStatus('off');
+          return;
+        }
+        setStatus('on');
+        // Re-sync this browser's subscription to the server so the database
+        // always has it. Self-heals the case where the saved subscription was
+        // lost (e.g. a database migration/restore) while the browser still
+        // holds one — otherwise the UI shows "on" but test/real pushes go
+        // nowhere. The subscribe route upserts by endpoint, so repeating is safe.
+        fetch('/api/push/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ subscription: sub.toJSON(), userAgent: navigator.userAgent }),
+        }).catch(() => {});
+      })
       .catch(() => setStatus('off'));
   }, [supported]);
 
