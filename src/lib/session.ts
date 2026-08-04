@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { SignJWT, jwtVerify, type JWTPayload } from 'jose';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
@@ -119,7 +120,11 @@ export async function clearMfaEnrollPending(): Promise<void> {
   cookies().delete(MFA_ENROLL_COOKIE_NAME);
 }
 
-export async function getSession(): Promise<SessionUser | null> {
+// Memoized per request (React cache): a page + its layout + components often all
+// call this, and each call otherwise hits the DB — now a cross-region round trip.
+// cache() collapses them to a single lookup per request. Safe: the session can't
+// change within one request render.
+export const getSession = cache(async function getSession(): Promise<SessionUser | null> {
   const token = cookies().get(COOKIE_NAME)?.value;
   if (!token) return null;
   const payload = await verify(token);
@@ -155,7 +160,7 @@ export async function getSession(): Promise<SessionUser | null> {
     }
   }
   return user;
-}
+});
 
 /** Start "view as dealer" for an admin. Signed + bound to the admin's userId. */
 export async function startViewAs(dealerId: string, adminUserId: string): Promise<void> {
