@@ -140,21 +140,24 @@ export const STATUS_LABELS: Record<ApplicationStatus, string> = {
   CONDITIONAL: 'Conditionally approved',
   APPROVED: 'Approved',
   DECLINED: 'Declined',
-  FUNDING_SUBMITTED: 'Funding submitted',
+  FUNDING_SUBMITTED: 'Reviewing signed docs',
   FUNDING_REVIEW: 'In for funding',
   FUNDED: 'Funded',
   PROBLEM: 'Problem',
   WITHDRAWN: 'Withdrawn',
 };
 
-// Statuses a reviewer can set manually (all meaningful states except DRAFT).
+// Statuses a reviewer can set manually. The deal's status now advances on its
+// own as the reviewer works the flow, so this is a fallback for jumping back or
+// flagging a Problem. "Reviewing signed docs" (FUNDING_SUBMITTED) is omitted —
+// it's set automatically when the dealer returns the signed package, and it read
+// as a duplicate of "In for funding" in the menu.
 export const MANUAL_STATUS_OPTIONS: ApplicationStatus[] = [
   'SUBMITTED',
   'UNDER_REVIEW',
   'APPROVED',
   'CONDITIONAL',
   'DECLINED',
-  'FUNDING_SUBMITTED',
   'FUNDING_REVIEW',
   'FUNDED',
   'PROBLEM',

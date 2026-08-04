@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import type { ReactNode } from 'react';
 import { notFound } from 'next/navigation';
 import { requireRole } from '@/lib/session';
 import { prisma } from '@/lib/db';
@@ -30,6 +31,8 @@ import { WriteToJournalButton } from './WriteToJournalButton';
 import { DecisionForm } from './DecisionForm';
 import { PayoutForm } from './PayoutForm';
 import { StatusChangeForm } from './StatusChangeForm';
+import { ReviewerWorkspace } from './ReviewerWorkspace';
+import { reviewerPhaseStates, dealerFacingStatus } from '@/lib/reviewerFlow';
 import {
   startReviewAction,
   uploadReviewerPaperworkAction,
@@ -204,6 +207,329 @@ export default async function StaffApplicationDetail({
     take: 200,
   });
 
+  // ---- Phase-driven workspace assembly ------------------------------------
+  // The reviewer page lays itself out around the real workflow (see
+  // lib/reviewerFlow). Each phase's section content is built here and handed to
+  // ReviewerWorkspace, which arranges it as either a guided Flow or Tabs.
+  const flowSignals = {
+    status: app.status,
+    reviewerDocsSent: reviewerDocs.length > 0,
+    fundingDocsReceived: fundingDocs.length > 0,
+    hasPayouts: app.payouts.length > 0,
+  };
+  const dealerStatus = dealerFacingStatus(flowSignals);
+
+  const phaseBody: Record<string, ReactNode> = {
+    // 1 · Review & decide
+    decide: (
+      <div className="space-y-6">
+        <CollapsibleEntry
+          storageKey={`entryview:${app.id}`}
+          snapshot={
+            <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3">
+              <div><dt className="text-gray-500">Program</dt><dd><ProgramBadge type={app.programType} category={PROGRAM_CATEGORY_LABELS[app.programCategory]} /></dd></div>
+              <div><dt className="text-gray-500">Customer</dt><dd className="font-medium">{app.applicantFirstName} {app.applicantLastName}</dd></div>
+              <div><dt className="text-gray-500">Phone</dt><dd className="font-medium">{app.applicantPhone}</dd></div>
+              <div><dt className="text-gray-500">City</dt><dd className="font-medium">{app.loanApplication?.city ?? '—'}{app.loanApplication?.addressProvince ? `, ${app.loanApplication.addressProvince}` : ''}</dd></div>
+              <div><dt className="text-gray-500">Product(s)</dt><dd className="font-medium">{app.productsSold.length ? app.productsSold.join(', ') : '—'}</dd></div>
+              <div><dt className="text-gray-500">Amount</dt><dd className="font-medium">{app.approvedAmount ? `$${app.approvedAmount.toString()}` : `$${app.requestedAmount.toString()}`}</dd></div>
+              {app.paymentMethod && <div><dt className="text-gray-500">Payment</dt><dd className="font-medium">{PAYMENT_METHOD_LABELS[app.paymentMethod]}</dd></div>}
+              <div><dt className="text-gray-500">Finance company</dt><dd className="font-medium">{app.financeCompany?.name ?? '—'}</dd></div>
+              <div><dt className="text-gray-500">Financing deal #</dt><dd className="font-medium">{app.financeItNumber ?? '—'}</dd></div>
+              <div><dt className="text-gray-500">HD Customer #</dt><dd className="font-medium">{app.hdReference ?? '—'}</dd></div>
+            </dl>
+          }
+        >
+          <ReviewerEntryView
+            app={app}
+            loan={loan}
+            reveal={reveal}
+            pv={pv}
+            revealHref={`/staff/applications/${app.id}?reveal=1`}
+            hideHref={`/staff/applications/${app.id}`}
+            printHref={`/staff/applications/${app.id}/print`}
+          />
+        </CollapsibleEntry>
+        <div className="border-t border-gray-100 pt-4">
+          <h3 className="mb-3 text-sm font-medium text-gray-700">Application documents</h3>
+          <DocumentList documents={applicationDocs} />
+        </div>
+      </div>
+    ),
+    // 2 · Produce install documents
+    produce: (
+      <div>
+        <p className="mb-4 text-xs text-gray-500">Upload paperwork the dealer can view and download. Files are converted to PDF.</p>
+        <div className="mb-4">
+          <DocumentList documents={reviewerDocs} />
+        </div>
+        <div className="border-t border-gray-100 pt-4">
+          <ReviewerPaperworkForm
+            action={uploadReviewerPaperworkAction.bind(null, app.id)}
+            categories={REVIEWER_PAPERWORK_TYPES}
+          />
+        </div>
+      </div>
+    ),
+    // 3 · Sent — awaiting install (dealer returns signed docs)
+    await: null,
+    // 4 · Review signed documents
+    review: (
+      <div className="space-y-6">
+        {app.serialNumbers.length > 0 && (
+          <div>
+            <h3 className="mb-1 text-sm font-medium text-gray-700">Serial numbers</h3>
+            <ul className="text-sm">
+              {app.serialNumbers.map((s) => (
+                <li key={s.id} className="font-mono text-gray-700">
+                  {s.value}{s.productLabel && <span className="ml-2 font-sans text-gray-400">({s.productLabel})</span>}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        <FundingChecklist fundingDocs={fundingDocs} applicationId={app.id} status={app.status} />
+        <div className="border-t border-gray-100 pt-4">
+          <h3 className="mb-1 text-sm font-medium text-gray-700">Funding verification</h3>
+          <p className="mb-3 text-xs text-gray-500">
+            Confirm each item before funding. Flagging a problem sends a note to the dealer.
+          </p>
+          <VerificationChecklist
+            applicationId={app.id}
+            items={verificationItems}
+            states={verificationStates}
+          />
+        </div>
+        <div className="border-t border-gray-100 pt-4">
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="text-sm font-medium text-gray-700">Confirmation call</h3>
+            <ConfirmationBadge status={app.confirmationStatus} />
+          </div>
+          <p className="mb-4 text-xs text-gray-500">UEI confirmation script — work through it on the call, check all six boxes, then Confirm.</p>
+          <ConfirmationForm
+            applicationId={app.id}
+            data={app.confirmation}
+            applicantName={`${app.applicantFirstName} ${app.applicantLastName}`}
+            defaultProduct={app.productsSold.length ? app.productsSold.join(', ') : PROGRAM_CATEGORY_LABELS[app.programCategory]}
+            defaultCity={app.loanApplication?.city ?? ''}
+            defaultPhone={app.applicantPhone}
+            defaultAmount={(app.approvedAmount ?? app.requestedAmount).toString()}
+          />
+        </div>
+      </div>
+    ),
+    // 5 · Submit to finance company
+    submit: (
+      <div>
+        <DealReferencesForm
+          applicationId={app.id}
+          financeItNumber={app.financeItNumber}
+          hdReference={app.hdReference}
+          financed={dealIsFinanced(app.paymentMethod)}
+          hdRequired={hdReferenceRequired(app.programType)}
+        />
+        {missingRequiredReferences(app).length === 0 && (
+          <WriteToJournalButton
+            applicationId={app.id}
+            syncedAt={app.journalSyncedAt ? app.journalSyncedAt.toISOString() : null}
+            tab={app.journalTab}
+            row={app.journalRow}
+          />
+        )}
+        {dealIsFinanced(app.paymentMethod) && (
+          <div className="mt-4 border-t border-gray-100 pt-4">
+            {app.financeNumberVerifiedAt ? (
+              <>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="badge bg-green-100 text-green-800">✓ Financing # verified</span>
+                  <form action={toggleFinanceNumberVerifiedAction.bind(null, app.id)}>
+                    <button type="submit" className="text-xs text-gray-500 hover:underline">Undo</button>
+                  </form>
+                </div>
+                <p className="mt-1 text-xs text-gray-400">
+                  by {app.financeNumberVerifiedBy?.name ?? '—'} · {app.financeNumberVerifiedAt.toLocaleString('en-CA')}
+                </p>
+              </>
+            ) : (
+              <>
+                <form action={toggleFinanceNumberVerifiedAction.bind(null, app.id)}>
+                  <button type="submit" className="btn-secondary text-xs" disabled={!app.financeItNumber}>
+                    Verify financing number
+                  </button>
+                </form>
+                <p className="mt-1 text-xs text-gray-400">
+                  {app.financeItNumber
+                    ? 'Confirm the FinanceIT number is valid to solidify this approval.'
+                    : 'Add the financing deal number first, then verify it.'}
+                </p>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    ),
+    // 6 · Awaiting funding
+    funding: null,
+    // 7 · Pay dealer
+    pay: (
+      <div>
+        <div className="mb-5">
+          <PayoutReceipt payouts={app.payouts} />
+        </div>
+        <div className="border-t border-gray-100 pt-4">
+          <h3 className="mb-3 text-sm font-medium text-gray-700">Record a payout</h3>
+          <PayoutForm applicationId={app.id} />
+        </div>
+      </div>
+    ),
+  };
+
+  const phaseSummary: Record<string, string> = {
+    decide: 'Decision recorded',
+    produce: `${reviewerDocs.length} document${reviewerDocs.length === 1 ? '' : 's'} sent to the dealer`,
+    await: 'Signed package received',
+    review: 'Documents reviewed',
+    submit: 'Submitted to the finance company',
+    funding: 'Funded',
+    pay: 'Paid',
+  };
+
+  const phaseAuto: Record<string, string> = {
+    decide: 'Approving sets the deal to Approved — the dealer sees "Approved — preparing your documents."',
+    produce: 'When the dealer returns the signed package, the deal moves to review on its own.',
+    review: 'Confirm every item to send the deal for funding — the dealer sees "Submitted to finance company."',
+    submit: 'Sending it in sets the status to In for funding.',
+    pay: 'Recording the payout completes the deal.',
+  };
+
+  const phases = reviewerPhaseStates(flowSignals).map((p) => ({
+    ...p,
+    body: phaseBody[p.id],
+    summary: phaseSummary[p.id],
+    autoNote: p.state === 'done' ? undefined : phaseAuto[p.id],
+  }));
+
+  // Notes + history — always available, not tied to a phase.
+  const comms = (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-sm font-semibold text-gray-900">Notes to dealer</h3>
+        <p className="mb-3 text-xs text-gray-500">Visible to the dealer on this deal.</p>
+        <div className="mb-4">
+          <NoteThread notes={dealerNotes} emptyText="No messages with the dealer yet." />
+        </div>
+        <NoteForm
+          action={addStaffNoteAction}
+          hidden={{ applicationId: app.id, internal: 'false' }}
+          placeholder="Write a note to the dealer…"
+          label="Send to dealer"
+          templates={noteTemplates}
+        />
+      </div>
+      <div className="rounded-lg border border-amber-200 p-4">
+        <h3 className="text-sm font-semibold text-gray-900">Internal notes</h3>
+        <p className="mb-3 text-xs text-amber-700">Only Reviewers and Admins can see these — never shown to the dealer.</p>
+        <div className="mb-4">
+          <NoteThread notes={internalNotes} emptyText="No internal notes yet." />
+        </div>
+        <NoteForm
+          action={addStaffNoteAction}
+          hidden={{ applicationId: app.id, internal: 'true' }}
+          placeholder="Internal note (staff only)…"
+          label="Add internal note"
+          templates={noteTemplates}
+        />
+      </div>
+      <div className="border-t border-gray-100 pt-4">
+        <h3 className="mb-3 text-sm font-semibold text-gray-900">History</h3>
+        <ul className="space-y-2 text-sm">
+          {app.statusEvents.map((e) => (
+            <li key={e.id} className="flex items-center justify-between">
+              <span>
+                {e.from ? `${STATUS_LABELS[e.from]} → ` : ''}
+                <span className="font-medium">{STATUS_LABELS[e.to]}</span>
+                {e.note && <span className="ml-2 text-gray-500">— {e.note}</span>}
+                <span className="ml-2 text-xs text-gray-400">by {e.actor.name}</span>
+              </span>
+              <span className="text-xs text-gray-400">{e.createdAt.toLocaleString('en-CA')}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div className="border-t border-gray-100 pt-4">
+        <h3 className="mb-1 text-sm font-semibold text-gray-900">Activity log</h3>
+        <p className="mb-3 text-xs text-gray-500">Everything that happened on this deal, and which team member did it.</p>
+        {activity.length === 0 ? (
+          <p className="text-sm text-gray-500">No activity recorded yet.</p>
+        ) : (
+          <ul className="space-y-2 text-sm">
+            {activity.map((e) => (
+              <li key={e.id} className="flex items-start justify-between gap-3 border-b border-gray-50 pb-2 last:border-0">
+                <span>
+                  <span className="font-medium text-gray-800">{e.actor?.name ?? e.actorName ?? 'System'}</span>
+                  <span className="text-gray-600"> — {actionLabel(e.action)}</span>
+                  {e.detail && <span className="ml-1 text-gray-400">({e.detail})</span>}
+                </span>
+                <span className="flex-none text-xs text-gray-400">{e.createdAt.toLocaleString('en-CA')}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+      {app.decisions.length > 0 && (
+        <div className="border-t border-gray-100 pt-4">
+          <h3 className="mb-3 text-sm font-semibold text-gray-900">Decision log</h3>
+          <ul className="space-y-2 text-sm">
+            {app.decisions.map((d) => (
+              <li key={d.id} className="rounded border border-gray-100 bg-gray-50 p-2">
+                <span className="font-medium">{d.type.replace('_', ' ')}</span>
+                {d.notes && <p className="text-gray-600">{d.notes}</p>}
+                <p className="text-xs text-gray-400">{d.decidedBy.name} · {d.createdAt.toLocaleString('en-CA')}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {app.consents.length > 0 && (
+        <div className="border-t border-gray-100 pt-4 text-xs text-gray-500">
+          <h3 className="mb-2 text-sm font-semibold text-gray-900">Consent</h3>
+          <p>Captured {app.consents[0].capturedAt.toLocaleString('en-CA')}</p>
+          <p>Policy version: {app.consents[0].policyVersion}</p>
+          {app.consents[0].ipAddress && <p>IP: {app.consents[0].ipAddress}</p>}
+        </div>
+      )}
+    </div>
+  );
+
+  // Persistent right rail — the decision/action controls, always in reach.
+  const rail = (
+    <section className="card p-6">
+      <h2 className="mb-4 text-base font-semibold text-gray-900">Decision</h2>
+      {app.status === 'SUBMITTED' && (
+        <form action={startReview} className="mb-4">
+          <button type="submit" className="btn-secondary w-full">Start review</button>
+        </form>
+      )}
+      {options.some((o) => o.value === 'FUND') && !verificationComplete && (
+        <p className="mb-4 rounded bg-amber-50 p-2 text-xs text-amber-800">
+          Complete the funding verification checklist (every item Confirmed) before this deal can be funded.
+        </p>
+      )}
+      <DecisionForm
+        applicationId={app.id}
+        options={options}
+        financeCompanies={financeCompanies}
+        defaultAmount={app.requestedAmount.toString()}
+      />
+      <div className="mt-5 border-t border-gray-100 pt-4">
+        <StatusChangeForm applicationId={app.id} current={app.status} />
+        <p className="mt-2 text-xs text-gray-400">
+          The flow sets the status for you as you work. Use this only to jump back or flag a Problem.
+        </p>
+      </div>
+    </section>
+  );
+
   return (
     <div className="space-y-6">
       <div>
@@ -241,320 +567,12 @@ export default async function StaffApplicationDetail({
           hasPayouts={app.payouts.length > 0}
         />
 
-      {/* Below the header/progress: actions column first on mobile so a reviewer
-          can act without scrolling past the whole deal; back on the right at lg. */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="order-2 space-y-6 lg:order-1 lg:col-span-2">
-        {/* Application in lender-entry order — one panel, read straight down.
-            Minimize it to a snapshot once re-keying is done to tidy the page. */}
-        <CollapsibleEntry
-          storageKey={`entryview:${app.id}`}
-          snapshot={
-            <section className="card p-6">
-              <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-base font-semibold text-gray-900">Customer snapshot</h2>
-                <StatusBadge status={app.status} />
-              </div>
-              <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3">
-                <div><dt className="text-gray-500">Program</dt><dd><ProgramBadge type={app.programType} category={PROGRAM_CATEGORY_LABELS[app.programCategory]} /></dd></div>
-                <div><dt className="text-gray-500">Customer</dt><dd className="font-medium">{app.applicantFirstName} {app.applicantLastName}</dd></div>
-                <div><dt className="text-gray-500">Phone</dt><dd className="font-medium">{app.applicantPhone}</dd></div>
-                <div><dt className="text-gray-500">City</dt><dd className="font-medium">{app.loanApplication?.city ?? '—'}{app.loanApplication?.addressProvince ? `, ${app.loanApplication.addressProvince}` : ''}</dd></div>
-                <div><dt className="text-gray-500">Product(s)</dt><dd className="font-medium">{app.productsSold.length ? app.productsSold.join(', ') : '—'}</dd></div>
-                <div><dt className="text-gray-500">Amount</dt><dd className="font-medium">{app.approvedAmount ? `$${app.approvedAmount.toString()}` : `$${app.requestedAmount.toString()}`}</dd></div>
-                {app.paymentMethod && <div><dt className="text-gray-500">Payment</dt><dd className="font-medium">{PAYMENT_METHOD_LABELS[app.paymentMethod]}</dd></div>}
-                <div><dt className="text-gray-500">Finance company</dt><dd className="font-medium">{app.financeCompany?.name ?? '—'}</dd></div>
-                <div><dt className="text-gray-500">Financing deal #</dt><dd className="font-medium">{app.financeItNumber ?? '—'}</dd></div>
-                <div><dt className="text-gray-500">HD Customer #</dt><dd className="font-medium">{app.hdReference ?? '—'}</dd></div>
-              </dl>
-            </section>
-          }
-        >
-          <ReviewerEntryView
-            app={app}
-            loan={loan}
-            reveal={reveal}
-            pv={pv}
-            revealHref={`/staff/applications/${app.id}?reveal=1`}
-            hideHref={`/staff/applications/${app.id}`}
-            printHref={`/staff/applications/${app.id}/print`}
-          />
-        </CollapsibleEntry>
-
-        {/* Notes to dealer */}
-        <section className="card p-6">
-          <h2 className="text-base font-semibold text-gray-900">Notes to dealer</h2>
-          <p className="mb-3 text-xs text-gray-500">Visible to the dealer on this deal.</p>
-          <div className="mb-4">
-            <NoteThread notes={dealerNotes} emptyText="No messages with the dealer yet." />
-          </div>
-          <NoteForm
-            action={addStaffNoteAction}
-            hidden={{ applicationId: app.id, internal: 'false' }}
-            placeholder="Write a note to the dealer…"
-            label="Send to dealer"
-            templates={noteTemplates}
-          />
-        </section>
-
-        {/* Internal notes */}
-        <section className="card border-amber-200 p-6">
-          <h2 className="text-base font-semibold text-gray-900">Internal notes</h2>
-          <p className="mb-3 text-xs text-amber-700">Only Reviewers and Admins can see these — never shown to the dealer.</p>
-          <div className="mb-4">
-            <NoteThread notes={internalNotes} emptyText="No internal notes yet." />
-          </div>
-          <NoteForm
-            action={addStaffNoteAction}
-            hidden={{ applicationId: app.id, internal: 'true' }}
-            placeholder="Internal note (staff only)…"
-            label="Add internal note"
-            templates={noteTemplates}
-          />
-        </section>
-
-        {/* Documents */}
-        <section className="card p-6">
-          <h2 className="mb-3 text-base font-semibold text-gray-900">Application documents</h2>
-          <DocumentList documents={applicationDocs} />
-        </section>
-
-        {(['APPROVED', 'CONDITIONAL', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW', 'FUNDED'].includes(app.status) ||
-          fundingDocs.length > 0 ||
-          app.serialNumbers.length > 0) && (
-          <section className="card p-6">
-            <h2 className="mb-3 text-base font-semibold text-gray-900">Funding package</h2>
-            {app.serialNumbers.length > 0 && (
-              <div className="mb-4">
-                <h3 className="mb-1 text-sm font-medium text-gray-700">Serial numbers</h3>
-                <ul className="text-sm">
-                  {app.serialNumbers.map((s) => (
-                    <li key={s.id} className="font-mono text-gray-700">
-                      {s.value}{s.productLabel && <span className="ml-2 font-sans text-gray-400">({s.productLabel})</span>}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            <FundingChecklist fundingDocs={fundingDocs} applicationId={app.id} status={app.status} />
-
-            <div className="mt-6 border-t border-gray-100 pt-4">
-              <h3 className="mb-1 text-sm font-medium text-gray-700">Funding verification</h3>
-              <p className="mb-3 text-xs text-gray-500">
-                Confirm each item before funding. Flagging a problem sends a note to the dealer.
-              </p>
-              <VerificationChecklist
-                applicationId={app.id}
-                items={verificationItems}
-                states={verificationStates}
-              />
-            </div>
-          </section>
-        )}
-
-        {/* Paperwork for the dealer (HD / Financing) */}
-        <section className="card p-6">
-          <h2 className="mb-1 text-base font-semibold text-gray-900">Paperwork for dealer</h2>
-          <p className="mb-4 text-xs text-gray-500">Upload paperwork the dealer can view and download. Files are converted to PDF.</p>
-          <div className="mb-4">
-            <DocumentList documents={reviewerDocs} />
-          </div>
-          <div className="border-t border-gray-100 pt-4">
-            <ReviewerPaperworkForm
-              action={uploadReviewerPaperworkAction.bind(null, app.id)}
-              categories={REVIEWER_PAPERWORK_TYPES}
-            />
-          </div>
-        </section>
-
-        {/* Payout / receipt */}
-        <section className="card p-6">
-          <h2 className="mb-3 text-base font-semibold text-gray-900">Payout / receipt</h2>
-          <div className="mb-5">
-            <PayoutReceipt payouts={app.payouts} />
-          </div>
-          <div className="border-t border-gray-100 pt-4">
-            <h3 className="mb-3 text-sm font-medium text-gray-700">Record a payout</h3>
-            <PayoutForm applicationId={app.id} />
-          </div>
-        </section>
-
-        {/* Confirmation call */}
-        <section className="card p-6">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-base font-semibold text-gray-900">Confirmation call</h2>
-            <ConfirmationBadge status={app.confirmationStatus} />
-          </div>
-          <p className="mb-4 text-xs text-gray-500">UEI confirmation script — work through it on the call, check all six boxes, then Confirm.</p>
-          <ConfirmationForm
-            applicationId={app.id}
-            data={app.confirmation}
-            applicantName={`${app.applicantFirstName} ${app.applicantLastName}`}
-            defaultProduct={app.productsSold.length ? app.productsSold.join(', ') : PROGRAM_CATEGORY_LABELS[app.programCategory]}
-            defaultCity={app.loanApplication?.city ?? ''}
-            defaultPhone={app.applicantPhone}
-            defaultAmount={(app.approvedAmount ?? app.requestedAmount).toString()}
-          />
-        </section>
-
-        {/* History */}
-        <section className="card p-6">
-          <h2 className="mb-3 text-base font-semibold text-gray-900">History</h2>
-          <ul className="space-y-2 text-sm">
-            {app.statusEvents.map((e) => (
-              <li key={e.id} className="flex items-center justify-between">
-                <span>
-                  {e.from ? `${STATUS_LABELS[e.from]} → ` : ''}
-                  <span className="font-medium">{STATUS_LABELS[e.to]}</span>
-                  {e.note && <span className="ml-2 text-gray-500">— {e.note}</span>}
-                  <span className="ml-2 text-xs text-gray-400">by {e.actor.name}</span>
-                </span>
-                <span className="text-xs text-gray-400">{e.createdAt.toLocaleString('en-CA')}</span>
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        {/* Full activity log — who did what, across all reviewers */}
-        <section className="card p-6">
-          <h2 className="mb-1 text-base font-semibold text-gray-900">Activity log</h2>
-          <p className="mb-3 text-xs text-gray-500">
-            Everything that happened on this deal, and which team member did it.
-          </p>
-          {activity.length === 0 ? (
-            <p className="text-sm text-gray-500">No activity recorded yet.</p>
-          ) : (
-            <ul className="space-y-2 text-sm">
-              {activity.map((e) => (
-                <li key={e.id} className="flex items-start justify-between gap-3 border-b border-gray-50 pb-2 last:border-0">
-                  <span>
-                    <span className="font-medium text-gray-800">{e.actor?.name ?? e.actorName ?? 'System'}</span>
-                    <span className="text-gray-600"> — {actionLabel(e.action)}</span>
-                    {e.detail && <span className="ml-1 text-gray-400">({e.detail})</span>}
-                  </span>
-                  <span className="flex-none text-xs text-gray-400">{e.createdAt.toLocaleString('en-CA')}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      </div>
-
-      {/* Decision sidebar — first on mobile, right-hand column at lg. */}
-      <div className="order-1 space-y-6 lg:order-2">
-        <section className="card p-6">
-          <h2 className="mb-4 text-base font-semibold text-gray-900">Decision</h2>
-          {app.status === 'SUBMITTED' && (
-            <form action={startReview} className="mb-4">
-              <button type="submit" className="btn-secondary w-full">Start review</button>
-            </form>
-          )}
-          {app.status === 'FUNDING_SUBMITTED' && (
-            <p className="mb-4 rounded bg-amber-50 p-2 text-xs text-amber-800">
-              Confirm the funding documents in the checklist above, then move this deal to
-              “In for funding.”
-            </p>
-          )}
-          {options.some((o) => o.value === 'FUND') && !verificationComplete && (
-            <p className="mb-4 rounded bg-amber-50 p-2 text-xs text-amber-800">
-              Complete the funding verification checklist above (every item Confirmed) before this
-              deal can be funded.
-            </p>
-          )}
-          <DecisionForm
-            applicationId={app.id}
-            options={options}
-            financeCompanies={financeCompanies}
-            defaultAmount={app.requestedAmount.toString()}
-          />
-
-          <div className="mt-5 border-t border-gray-100 pt-4">
-            <StatusChangeForm applicationId={app.id} current={app.status} />
-            <p className="mt-2 text-xs text-gray-400">
-              Change the status at any time (e.g. flag a Problem, or move it back).
-            </p>
-          </div>
-        </section>
-
-        {['APPROVED', 'CONDITIONAL', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW', 'FUNDED'].includes(app.status) && (
-          <section className="card p-6">
-            <h2 className="mb-3 text-base font-semibold text-gray-900">Deal reference numbers</h2>
-            <DealReferencesForm
-              applicationId={app.id}
-              financeItNumber={app.financeItNumber}
-              hdReference={app.hdReference}
-              financed={dealIsFinanced(app.paymentMethod)}
-              hdRequired={hdReferenceRequired(app.programType)}
-            />
-            {missingRequiredReferences(app).length === 0 && (
-              <WriteToJournalButton
-                applicationId={app.id}
-                syncedAt={app.journalSyncedAt ? app.journalSyncedAt.toISOString() : null}
-                tab={app.journalTab}
-                row={app.journalRow}
-              />
-            )}
-
-            {/* Reviewer confirms the financing number to solidify the approval.
-                Only financed deals carry a financing number to verify. */}
-            {dealIsFinanced(app.paymentMethod) && (
-            <div className="mt-4 border-t border-gray-100 pt-4">
-              {app.financeNumberVerifiedAt ? (
-                <>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="badge bg-green-100 text-green-800">✓ Financing # verified</span>
-                    <form action={toggleFinanceNumberVerifiedAction.bind(null, app.id)}>
-                      <button type="submit" className="text-xs text-gray-500 hover:underline">Undo</button>
-                    </form>
-                  </div>
-                  <p className="mt-1 text-xs text-gray-400">
-                    by {app.financeNumberVerifiedBy?.name ?? '—'} · {app.financeNumberVerifiedAt.toLocaleString('en-CA')}
-                  </p>
-                </>
-              ) : (
-                <>
-                  <form action={toggleFinanceNumberVerifiedAction.bind(null, app.id)}>
-                    <button type="submit" className="btn-secondary text-xs" disabled={!app.financeItNumber}>
-                      Verify financing number
-                    </button>
-                  </form>
-                  <p className="mt-1 text-xs text-gray-400">
-                    {app.financeItNumber
-                      ? 'Confirm the FinanceIT number is valid to solidify this approval.'
-                      : 'Add the financing deal number first, then verify it.'}
-                  </p>
-                </>
-              )}
-            </div>
-            )}
-          </section>
-        )}
-
-        {app.decisions.length > 0 && (
-          <section className="card p-6">
-            <h2 className="mb-3 text-base font-semibold text-gray-900">Decision log</h2>
-            <ul className="space-y-2 text-sm">
-              {app.decisions.map((d) => (
-                <li key={d.id} className="rounded border border-gray-100 bg-gray-50 p-2">
-                  <span className="font-medium">{d.type.replace('_', ' ')}</span>
-                  {d.notes && <p className="text-gray-600">{d.notes}</p>}
-                  <p className="text-xs text-gray-400">{d.decidedBy.name} · {d.createdAt.toLocaleString('en-CA')}</p>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-
-        {app.consents.length > 0 && (
-          <section className="card p-6 text-xs text-gray-500">
-            <h2 className="mb-2 text-sm font-semibold text-gray-900">Consent</h2>
-            <p>Captured {app.consents[0].capturedAt.toLocaleString('en-CA')}</p>
-            <p>Policy version: {app.consents[0].policyVersion}</p>
-            {app.consents[0].ipAddress && <p>IP: {app.consents[0].ipAddress}</p>}
-          </section>
-        )}
-      </div>
-      </div>
+      <ReviewerWorkspace
+        phases={phases}
+        comms={comms}
+        rail={rail}
+        dealerStatus={dealerStatus}
+      />
     </div>
   );
 }

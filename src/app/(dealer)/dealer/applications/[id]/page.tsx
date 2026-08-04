@@ -16,6 +16,7 @@ import { UploadForm } from '@/components/UploadForm';
 import { SerialNumberForm } from '@/components/SerialNumberForm';
 import { ProductSerialForm } from '@/components/ProductSerialForm';
 import { FUNDING_DOCUMENT_TYPES, STATUS_LABELS, programLabel } from '@/lib/constants';
+import { dealerFacingStatus } from '@/lib/reviewerFlow';
 import { dealerOutstanding } from '@/lib/outstanding';
 import {
   uploadSupportingDocAction,
@@ -87,6 +88,14 @@ export default async function DealerApplicationDetail({
 
   const submitFunding = submitFundingAction.bind(null, app.id);
 
+  // Plain-language "where your deal stands", kept in step with the reviewer's flow.
+  const whereYouStand = dealerFacingStatus({
+    status: app.status,
+    reviewerDocsSent: app.documents.some((d) => d.stage === 'REVIEWER'),
+    fundingDocsReceived: app.documents.some((d) => d.stage === 'FUNDING'),
+    hasPayouts: app.payouts.length > 0,
+  });
+
   return (
     <div className="space-y-6">
       <div>
@@ -99,6 +108,9 @@ export default async function DealerApplicationDetail({
           </h1>
           <StatusBadge status={app.status} />
         </div>
+        <p className="mt-2 text-sm text-gray-600">
+          Where your deal stands: <span className="font-semibold text-brand-700">{whereYouStand}</span>
+        </p>
       </div>
 
       {/* Progress tracker */}
