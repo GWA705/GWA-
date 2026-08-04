@@ -58,6 +58,11 @@ export function MailComposeForm({ dealers }: { dealers: DealerOption[] }) {
       )}
 
       <div>
+        <label className="label" htmlFor="senderLabel">From <span className="font-normal text-gray-400">(name dealers see)</span></label>
+        <input id="senderLabel" name="senderLabel" className="input" maxLength={80} defaultValue="GWA" />
+      </div>
+
+      <div>
         <label className="label" htmlFor="subject">Subject</label>
         <input id="subject" name="subject" className="input" maxLength={200} />
       </div>

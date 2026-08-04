@@ -450,6 +450,9 @@ model Mail {
   allDealers Boolean  @default(false) // sent to every dealer (vs. selected)
   senderId   String
   sender     User     @relation("MailSender", fields: [senderId], references: [id])
+  // What dealers see as the "From" name. Falls back to the sender's user name
+  // for older messages that predate this field.
+  senderLabel String?
   createdAt  DateTime @default(now())
 
   recipients  MailRecipient[]

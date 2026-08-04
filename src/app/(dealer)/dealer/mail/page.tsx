@@ -14,6 +14,8 @@ export default async function DealerMailbox() {
         include: {
           sender: { select: { name: true } },
           attachments: { select: { id: true } },
+          // senderLabel is a scalar and comes back automatically; sender.name is
+          // the fallback for older messages.
           receipts: { where: { userId: session.userId }, select: { openedAt: true, acknowledgedAt: true } },
         },
       })
@@ -23,7 +25,7 @@ export default async function DealerMailbox() {
     <div>
       <div className="mb-5">
         <h1 className="text-xl font-semibold text-gray-900">Mail</h1>
-        <p className="mt-1 text-sm text-gray-500">Messages and files from GWA. Opening a message records that you&apos;ve seen it.</p>
+        <p className="mt-1 text-sm text-gray-500">Messages and files from GWA.</p>
       </div>
 
       {mails.length === 0 ? (
@@ -45,7 +47,7 @@ export default async function DealerMailbox() {
                     )}
                   </div>
                   <div className="mt-0.5 text-xs text-gray-500">
-                    From {m.sender.name} · {m.createdAt.toLocaleDateString('en-CA', { year: 'numeric', month: 'short', day: 'numeric' })}
+                    From {m.senderLabel || m.sender.name} · {m.createdAt.toLocaleDateString('en-CA', { year: 'numeric', month: 'short', day: 'numeric' })}
                   </div>
                 </div>
               </Link>

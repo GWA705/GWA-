@@ -20,6 +20,7 @@ export async function sendMailAction(_prev: MailActionState, formData: FormData)
 
   const subject = (formData.get('subject') ?? '').toString().trim();
   const body = (formData.get('body') ?? '').toString().trim();
+  const senderLabel = (formData.get('senderLabel') ?? '').toString().trim() || null;
   const requireAck = formData.get('requireAck') === 'on';
   const allDealers = formData.get('allDealers') === 'on';
   const dealerIds = formData.getAll('dealerIds').map(String).filter(Boolean);
@@ -52,6 +53,7 @@ export async function sendMailAction(_prev: MailActionState, formData: FormData)
     data: {
       subject,
       body,
+      senderLabel,
       requireAck,
       allDealers,
       senderId: session.userId,

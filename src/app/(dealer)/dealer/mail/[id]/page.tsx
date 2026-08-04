@@ -42,7 +42,7 @@ export default async function DealerMailItem({ params }: { params: { id: string 
         <Link href="/dealer/mail" className="text-sm text-gray-500 hover:underline">← Back to Mail</Link>
         <h1 className="mt-2 text-xl font-semibold text-gray-900">{mail.subject}</h1>
         <p className="mt-1 text-sm text-gray-500">
-          From {mail.sender.name} · {mail.createdAt.toLocaleString('en-CA')}
+          From {mail.senderLabel || mail.sender.name} · {mail.createdAt.toLocaleString('en-CA')}
         </p>
       </div>
 
