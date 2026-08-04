@@ -13,12 +13,12 @@ const STEPS: Step[] = [
   {
     emoji: '👋',
     title: 'Welcome to the GWA Dealer Portal',
-    body: 'This quick tour shows you where everything is. It takes about 30 seconds — you can replay it any time from “My account.”',
+    body: 'This quick tour shows you where everything is. It takes under a minute — you can replay it any time from “My account.”',
   },
   {
     emoji: '➕',
     title: 'Process a new customer',
-    body: '“New customer” is where you start a deal. You’ll pick one of three ways to submit — Express (FinanceIT number), Priority (type it in), or Standard (photo upload). The form guides you the rest of the way.',
+    body: '“New customer” is where you start a deal. You’ll pick one of three ways to submit — Express (Financeit number), Priority (type it in), or Standard (photo upload). The form guides you the rest of the way.',
   },
   {
     emoji: '📋',
@@ -36,14 +36,24 @@ const STEPS: Step[] = [
     body: 'Each deal has a notes area to message our reviewers directly — ask a question or add context, and you’ll get an email when they reply.',
   },
   {
+    emoji: '✉️',
+    title: 'Mail from GWA',
+    body: 'The Mail tab is where we send you messages and files — bulletins, promos, and paperwork. A dot means something new; open a message to read it and grab any attachments. Some ask you to tap “I have read this.”',
+  },
+  {
+    emoji: '🛍️',
+    title: 'Marketplace',
+    body: 'Order branded gear (apparel, signage, sample kits) and download ready-to-use files like print-ready signage — all organized by category. There are no prices; just choose what you need and submit.',
+  },
+  {
     emoji: '📚',
     title: 'Resources & promotions',
     body: 'The Resources, HD Promotions, and HD Credit Card tabs hold guides and current promos. Check back — we keep them up to date.',
   },
   {
-    emoji: '⚙️',
-    title: 'Your account',
-    body: 'In “My account” you can update your details, set which emails you get, turn on extra sign-in security, and replay this tour. That’s it — you’re ready to go!',
+    emoji: '📱',
+    title: 'Install it & get notified',
+    body: 'From “My account” you can add the portal to your phone’s home screen (it opens like an app) and turn on notifications so you get a pop-up when a deal needs you. You can also update your details, sign-in security, and replay this tour there. You’re ready to go!',
   },
 ];
 
