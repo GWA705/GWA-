@@ -9,6 +9,13 @@ import { sha256 } from '@/lib/crypto';
 import { audit } from '@/lib/audit';
 import { MAX_FILE_BYTES, ALLOWED_MIME_TYPES } from '@/lib/constants';
 import { friendlyFileName } from '@/lib/filenames';
+import { optimizeAttachmentImage } from '@/lib/image';
+
+// Swap a filename's extension (used when an image is converted, e.g. HEIC→JPG).
+function replaceExt(name: string, ext: string): string {
+  const dot = name.lastIndexOf('.');
+  return `${dot > 0 ? name.slice(0, dot) : name}${ext}`;
+}
 
 export interface MailActionState {
   error?: string;
@@ -65,16 +72,37 @@ export async function sendMailAction(_prev: MailActionState, formData: FormData)
   for (let i = 0; i < files.length; i += 1) {
     const file = files[i];
     try {
-      const bytes = Buffer.from(await file.arrayBuffer());
-      const ext = file.name.includes('.') ? file.name.slice(file.name.lastIndexOf('.')) : '';
+      let bytes = Buffer.from(await file.arrayBuffer());
+      let mimeType = file.type;
+      const origExt = file.name.includes('.') ? file.name.slice(file.name.lastIndexOf('.')) : '';
+      let ext = origExt;
+
+      // Shrink large image attachments while keeping them clearly readable.
+      // PDFs and other files are stored untouched. Any failure — or a result
+      // that isn't actually smaller — falls back to the original bytes.
+      if (file.type.startsWith('image/')) {
+        try {
+          const opt = await optimizeAttachmentImage(bytes, file.type);
+          if (opt && opt.bytes.length < bytes.length) {
+            bytes = Buffer.from(opt.bytes);
+            mimeType = opt.mime;
+            ext = opt.ext;
+          }
+        } catch (e) {
+          console.error('[mail] attachment optimize failed, storing original', e);
+        }
+      }
+
       // Prefer the sender's name; keep the real extension if they left it off.
-      // Fall back to a cleaned-up version of the device filename.
+      // Fall back to a cleaned-up version of the device filename (with the
+      // extension corrected if the image format was converted).
       const typed = (customNames[i] ?? '').trim();
       let displayName: string;
       if (typed) {
         displayName = ext && !typed.toLowerCase().endsWith(ext.toLowerCase()) ? `${typed}${ext}` : typed;
       } else {
-        displayName = friendlyFileName(file.name);
+        const friendly = friendlyFileName(file.name);
+        displayName = ext !== origExt ? replaceExt(friendly, ext) : friendly;
       }
       const key = newMailStorageKey(ext);
       await putDocument(key, bytes);
@@ -82,7 +110,7 @@ export async function sendMailAction(_prev: MailActionState, formData: FormData)
         data: {
           mailId: mail.id,
           fileName: displayName.slice(0, 255),
-          mimeType: file.type,
+          mimeType,
           sizeBytes: bytes.length,
           storageKey: key,
           checksum: sha256(bytes),
