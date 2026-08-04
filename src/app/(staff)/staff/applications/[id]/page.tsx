@@ -17,7 +17,13 @@ import { NoteForm } from '@/components/NoteForm';
 import { ConfirmationBadge } from '@/components/ConfirmationBadge';
 import { DealProgress } from '@/components/DealProgress';
 import { ProgramBadge } from '@/components/ProgramBadge';
-import { PROGRAM_CATEGORY_LABELS, PAYMENT_METHOD_LABELS } from '@/lib/constants';
+import {
+  PROGRAM_CATEGORY_LABELS,
+  PAYMENT_METHOD_LABELS,
+  dealIsFinanced,
+  hdReferenceRequired,
+  missingRequiredReferences,
+} from '@/lib/constants';
 import { ConfirmationForm } from './ConfirmationForm';
 import { DealReferencesForm } from './DealReferencesForm';
 import { WriteToJournalButton } from './WriteToJournalButton';
@@ -477,8 +483,10 @@ export default async function StaffApplicationDetail({
               applicationId={app.id}
               financeItNumber={app.financeItNumber}
               hdReference={app.hdReference}
+              financed={dealIsFinanced(app.paymentMethod)}
+              hdRequired={hdReferenceRequired(app.programType)}
             />
-            {app.hdReference && app.financeItNumber && (
+            {missingRequiredReferences(app).length === 0 && (
               <WriteToJournalButton
                 applicationId={app.id}
                 syncedAt={app.journalSyncedAt ? app.journalSyncedAt.toISOString() : null}
@@ -487,7 +495,9 @@ export default async function StaffApplicationDetail({
               />
             )}
 
-            {/* Reviewer confirms the financing number to solidify the approval. */}
+            {/* Reviewer confirms the financing number to solidify the approval.
+                Only financed deals carry a financing number to verify. */}
+            {dealIsFinanced(app.paymentMethod) && (
             <div className="mt-4 border-t border-gray-100 pt-4">
               {app.financeNumberVerifiedAt ? (
                 <>
@@ -516,6 +526,7 @@ export default async function StaffApplicationDetail({
                 </>
               )}
             </div>
+            )}
           </section>
         )}
 
