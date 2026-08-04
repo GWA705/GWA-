@@ -46,6 +46,54 @@ export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   HD_CREDIT_CARD: 'Home Depot Credit Card',
 };
 
+// Payment methods that settle the deal outside of financing. These deals have no
+// loan/approval number, so the Financing deal number is never required for them.
+export const NON_FINANCE_PAYMENT_METHODS: PaymentMethod[] = ['CASH', 'CHEQUE', 'CREDIT_CARD', 'HD_CREDIT_CARD'];
+
+// Whether a deal is financed (and therefore needs a Financing deal number). A
+// null paymentMethod is a regular finance-company application (TYPED/PHOTO entry),
+// which is financed; only the explicit already-paid methods are not.
+export function dealIsFinanced(paymentMethod: PaymentMethod | null | undefined): boolean {
+  return !paymentMethod || !NON_FINANCE_PAYMENT_METHODS.includes(paymentMethod);
+}
+
+// Whether the HD Customer # applies to a deal. Only HD-program deals carry one.
+export function hdReferenceRequired(programType: ProgramType): boolean {
+  return programType === 'HD';
+}
+
+// The reference numbers a deal must carry before it can move into funding or be
+// written to the sales journal. The HD Customer # is required only on HD-program
+// deals (GWA deals don't have one); the Financing deal number is required only
+// for financed deals (not cash/cheque/credit/HD credit card).
+export function missingRequiredReferences(app: {
+  hdReference: string | null;
+  financeItNumber: string | null;
+  paymentMethod: PaymentMethod | null;
+  programType: ProgramType;
+}): string[] {
+  const missing: string[] = [];
+  if (app.programType === 'HD' && !app.hdReference) missing.push('the HD Customer #');
+  if (dealIsFinanced(app.paymentMethod) && !app.financeItNumber) missing.push('the Financing deal number');
+  return missing;
+}
+
+// Builds the gate error message, or null when all required references are present.
+export function referenceGateError(
+  app: {
+    hdReference: string | null;
+    financeItNumber: string | null;
+    paymentMethod: PaymentMethod | null;
+    programType: ProgramType;
+  },
+  verb: string,
+): string | null {
+  const missing = missingRequiredReferences(app);
+  if (missing.length === 0) return null;
+  const list = missing.length === 2 ? `${missing[0]} and ${missing[1]}` : missing[0];
+  return `Add ${list} before ${verb}.`;
+}
+
 export const PROGRAM_CATEGORIES: { value: ProgramCategory; label: string }[] = [
   { value: 'WATER', label: 'Water' },
   { value: 'AIR', label: 'Air' },

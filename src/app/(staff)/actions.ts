@@ -25,6 +25,7 @@ import {
   REVIEWER_PAPERWORK_TYPES,
   VERIFICATION_CHECKS,
   applicableVerificationChecks,
+  referenceGateError,
 } from '@/lib/constants';
 import type { ApplicationStatus, DecisionType, DocumentType, VerificationStatus } from '@prisma/client';
 
@@ -154,9 +155,11 @@ export async function recordDecisionAction(
     return { error: `Cannot ${type.replace('_', ' ').toLowerCase()} an application in status ${app.status}.` };
   }
 
-  // Funding a deal requires both reference numbers on file.
-  if (type === 'FUND' && (!app.hdReference || !app.financeItNumber)) {
-    return { error: 'Add both the HD Customer # and the Financing deal number before funding this deal.' };
+  // Funding a deal requires its reference numbers on file. The Financing deal
+  // number is only required for financed deals (not cash/credit/HD credit card).
+  if (type === 'FUND') {
+    const refError = referenceGateError(app, 'funding this deal');
+    if (refError) return { error: refError };
   }
 
   // Hard gate (Rule 2): every applicable verification check must be Confirmed
@@ -546,13 +549,13 @@ export async function changeStatusAction(
   if (!app) return { error: 'Application not found.' };
   if (app.status === status) return { ok: true };
 
-  // A deal can't move into funding (or anything past it) until both reference
-  // numbers are recorded.
+  // A deal can't move into funding (or anything past it) until its required
+  // reference numbers are recorded. The Financing deal number is only required
+  // for financed deals (not cash/credit/HD credit card).
   const FUNDING_OR_BEYOND: ApplicationStatus[] = ['FUNDING_SUBMITTED', 'FUNDING_REVIEW', 'FUNDED'];
-  if (FUNDING_OR_BEYOND.includes(status) && (!app.hdReference || !app.financeItNumber)) {
-    return {
-      error: 'Add both the HD Customer # and the Financing deal number before moving this deal into funding.',
-    };
+  if (FUNDING_OR_BEYOND.includes(status)) {
+    const refError = referenceGateError(app, 'moving this deal into funding');
+    if (refError) return { error: refError };
   }
 
   await prisma.$transaction([
@@ -809,9 +812,8 @@ export async function writeToJournalAction(
     include: { homeDepotStore: true, dealer: true, loanApplication: true },
   });
   if (!app) return { error: 'Deal not found.' };
-  if (!app.hdReference || !app.financeItNumber) {
-    return { error: 'Add both the HD Customer # and the Financing deal number before writing to the journal.' };
-  }
+  const refError = referenceGateError(app, 'writing to the journal');
+  if (refError) return { error: refError };
 
   const fmtDate = (d: Date | null | undefined) => (d ? d.toISOString().slice(0, 10) : null);
   const fmtAmount = (a: unknown) => (a == null ? null : Number(a).toFixed(2));
