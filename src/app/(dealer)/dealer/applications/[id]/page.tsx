@@ -58,9 +58,9 @@ export default async function DealerApplicationDetail({
 
   // The dealer can upload funding documents throughout the funding window —
   // before AND after submitting — right up until the deal is funded.
-  const canUploadFunding = ['APPROVED', 'CONDITIONAL', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW'].includes(app.status);
+  const canUploadFunding = ['APPROVED', 'CONDITIONAL', 'DOCS_SENT', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW'].includes(app.status);
   const fundingVisible = canUploadFunding || app.status === 'FUNDED';
-  const canSubmitFunding = ['APPROVED', 'CONDITIONAL'].includes(app.status);
+  const canSubmitFunding = ['APPROVED', 'CONDITIONAL', 'DOCS_SENT'].includes(app.status);
 
   // Serial-per-product rule (e.g. UEI): a serial is required for each selected
   // product before funding can be submitted.

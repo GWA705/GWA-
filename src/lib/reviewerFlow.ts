@@ -47,6 +47,10 @@ export function currentPhaseIndex(s: FlowSignals): number {
     case 'DECLINED':
     case 'WITHDRAWN':
       return 1;
+    case 'DOCS_SENT':
+      // Install paperwork is out; waiting on the dealer's signed package. If it's
+      // already back, jump ahead to review.
+      return s.fundingDocsReceived ? 4 : 3;
     case 'CONDITIONAL':
     case 'APPROVED':
     case 'PROBLEM':

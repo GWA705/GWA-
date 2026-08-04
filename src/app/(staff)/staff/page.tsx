@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic';
 const SLA_MINUTES = 120;
 
 const NEW_STATUSES: ApplicationStatus[] = ['SUBMITTED', 'UNDER_REVIEW'];
-const FUNDING_STATUSES: ApplicationStatus[] = ['APPROVED', 'CONDITIONAL', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW', 'FUNDED'];
+const FUNDING_STATUSES: ApplicationStatus[] = ['APPROVED', 'CONDITIONAL', 'DOCS_SENT', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW', 'FUNDED'];
 const TERMINAL: ApplicationStatus[] = ['FUNDED', 'DECLINED', 'WITHDRAWN', 'DRAFT'];
 
 type Deal = Application & { dealer: Dealer; _count: { payouts: number } };
@@ -54,7 +54,8 @@ function toneFor(status: ApplicationStatus): Tone {
     case 'SUBMITTED': return 'new';
     case 'UNDER_REVIEW': return 'review';
     case 'APPROVED':
-    case 'CONDITIONAL': return 'appr';
+    case 'CONDITIONAL':
+    case 'DOCS_SENT': return 'appr';
     case 'FUNDING_SUBMITTED':
     case 'FUNDING_REVIEW': return 'fund';
     case 'FUNDED': return 'funded';

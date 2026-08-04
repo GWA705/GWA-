@@ -594,8 +594,9 @@ enum ApplicationStatus {
   UNDER_REVIEW
   CONDITIONAL // approved pending additional documents
   APPROVED
+  DOCS_SENT // install paperwork sent to the dealer; awaiting the signed package back
   DECLINED
-  FUNDING_SUBMITTED // dealer has uploaded the funding package
+  FUNDING_SUBMITTED // dealer has returned the signed package; reviewer checking it
   FUNDING_REVIEW
   FUNDED
   PROBLEM // something needs attention / is blocked
