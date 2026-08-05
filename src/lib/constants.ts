@@ -205,7 +205,14 @@ export const VERIFICATION_CHECKS: {
   label: string;
   help?: string;
   serialsOnly?: boolean;
+  taxOnly?: boolean;
 }[] = [
+  {
+    key: 'TAX_EXEMPTION',
+    label: 'Tax exemption verified & registered with HD',
+    help: 'Status card seen and valid; exemption (full or provincial-only) registered with Home Depot before final payment.',
+    taxOnly: true,
+  },
   {
     key: 'PRODUCTS_PHOTO',
     label: 'Photo shows all installed products and serial numbers where required',
@@ -225,9 +232,14 @@ export const VERIFICATION_CHECKS: {
 
 // The verification checklist items that apply to a deal. The serial-match item
 // only applies when the finance company requires a serial per product (e.g.
-// UEI). Shared by the FUND hard-gate and the checklist UI.
-export function applicableVerificationChecks(requiresSerials: boolean) {
-  return VERIFICATION_CHECKS.filter((c) => !c.serialsOnly || requiresSerials);
+// UEI); the tax-exemption item only applies to a flagged tax-exempt deal.
+// Shared by the FUND hard-gate and the checklist UI.
+export function applicableVerificationChecks(requiresSerials: boolean, taxExempt = false) {
+  return VERIFICATION_CHECKS.filter((c) => {
+    if (c.serialsOnly && !requiresSerials) return false;
+    if (c.taxOnly && !taxExempt) return false;
+    return true;
+  });
 }
 
 export const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {

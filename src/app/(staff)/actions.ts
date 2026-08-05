@@ -170,7 +170,7 @@ export async function recordDecisionAction(
       include: { financeCompany: true, verificationChecks: true },
     });
     const requiresSerials = !!withChecks?.financeCompany?.requiresSerialPerProduct;
-    const applicable = applicableVerificationChecks(requiresSerials);
+    const applicable = applicableVerificationChecks(requiresSerials, !!withChecks?.taxExempt);
     const byKey = new Map((withChecks?.verificationChecks ?? []).map((v) => [v.key, v.status]));
     const outstanding = applicable.filter((c) => byKey.get(c.key) !== 'CONFIRMED');
     if (outstanding.length > 0) {
@@ -381,6 +381,12 @@ export async function updateDealAction(
       govIdNumberEnc: encryptOptional(d.govIdNumber),
       dateOfSale: d.dateOfSale ? new Date(d.dateOfSale) : null,
       installationDate: d.installationDate ? new Date(d.installationDate) : null,
+      taxExempt: d.taxExempt,
+      deliveredToReserve: d.taxExempt ? d.deliveredToReserve : false,
+      statusCardNumberEnc: d.taxExempt
+        ? (d.statusCardNumber ? encryptOptional(d.statusCardNumber) : app.statusCardNumberEnc)
+        : null,
+      bandName: d.taxExempt ? (d.bandName || null) : null,
       financingNote: d.financingNote || null,
       notes: d.notes || null,
       // Sales-journal detail fields (reviewer backfill).
