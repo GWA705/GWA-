@@ -35,8 +35,10 @@ export function ReviewerPaperworkForm({
   const formRef = useRef<HTMLFormElement>(null);
   const [names, setNames] = useState<string[]>([]);
   const [category, setCategory] = useState('');
+  const [customLabel, setCustomLabel] = useState('');
 
-  const ready = !!category && names.length > 0;
+  const isOther = category === 'OTHER';
+  const ready = !!category && (!isOther || customLabel.trim().length > 0) && names.length > 0;
 
   return (
     <form
@@ -45,6 +47,7 @@ export function ReviewerPaperworkForm({
         await formAction(fd);
         formRef.current?.reset();
         setCategory('');
+        setCustomLabel('');
       }}
       className="space-y-3"
     >
@@ -63,6 +66,23 @@ export function ReviewerPaperworkForm({
           ))}
         </select>
       </div>
+
+      {isOther && (
+        <div>
+          <label className="label" htmlFor="customLabel">Name this document</label>
+          <input
+            id="customLabel"
+            name="customLabel"
+            className="input max-w-md"
+            placeholder="e.g. Warranty certificate"
+            value={customLabel}
+            maxLength={40}
+            autoComplete="off"
+            onChange={(e) => setCustomLabel(e.target.value)}
+          />
+          <p className="mt-1 text-xs text-gray-400">Shown to the dealer as the document’s category.</p>
+        </div>
+      )}
 
       <FileDropInput name="file" accept={accept} onFilesChange={setNames} />
 
