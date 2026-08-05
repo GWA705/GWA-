@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { updateDealAction } from '@/app/(staff)/actions';
 import { PROVINCES, PROGRAM_TYPES, PROGRAM_CATEGORIES, PHOTO_ID_TYPES } from '@/lib/constants';
-import { maxAdultDob } from '@/lib/validation';
+import { DateOfBirthInput } from '@/components/DateOfBirthInput';
 
 type State = { error?: string; fieldErrors?: Record<string, string> };
 
@@ -162,7 +162,7 @@ export function EditDealForm({
           <div><label className="label" htmlFor="applicantFirstName">First name</label><input id="applicantFirstName" name="applicantFirstName" defaultValue={v.applicantFirstName} className="input" /><Err state={state} name="applicantFirstName" /></div>
           <div><label className="label" htmlFor="applicantLastName">Last name</label><input id="applicantLastName" name="applicantLastName" defaultValue={v.applicantLastName} className="input" /><Err state={state} name="applicantLastName" /></div>
           <div><label className="label" htmlFor="middleName">Middle name</label><input id="middleName" name="middleName" defaultValue={v.middleName} className="input" /></div>
-          <div><label className="label" htmlFor="applicantDob">Date of birth</label><input id="applicantDob" name="applicantDob" type="date" max={maxAdultDob()} defaultValue={v.applicantDob} className="input" />{state.fieldErrors?.applicantDob && <p className="mt-1 text-xs text-red-600">{state.fieldErrors.applicantDob}</p>}</div>
+          <div><label className="label" htmlFor="applicantDob">Date of birth</label><DateOfBirthInput name="applicantDob" id="applicantDob" defaultValue={v.applicantDob} invalid={!!state.fieldErrors?.applicantDob} />{state.fieldErrors?.applicantDob && <p className="mt-1 text-xs text-red-600">{state.fieldErrors.applicantDob}</p>}</div>
           <div><label className="label" htmlFor="applicantEmail">Email</label><input id="applicantEmail" name="applicantEmail" type="email" defaultValue={v.applicantEmail} className="input" /><Err state={state} name="applicantEmail" /></div>
           <div><label className="label" htmlFor="applicantPhone">Mobile phone</label><input id="applicantPhone" name="applicantPhone" defaultValue={v.applicantPhone} className="input" /><Err state={state} name="applicantPhone" /></div>
           <div><label className="label" htmlFor="homePhone">Home phone</label><input id="homePhone" name="homePhone" defaultValue={v.homePhone} className="input" /></div>

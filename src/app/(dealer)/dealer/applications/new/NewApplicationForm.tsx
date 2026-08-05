@@ -13,8 +13,8 @@ import {
 } from '@/lib/constants';
 import type { PaymentMethod } from '@prisma/client';
 import { formatPhone, formatPostal } from '@/lib/format';
-import { maxAdultDob } from '@/lib/validation';
 import { AddressAutocompleteInput } from '@/components/AddressAutocompleteInput';
+import { DateOfBirthInput } from '@/components/DateOfBirthInput';
 
 const initial: ActionState = {};
 
@@ -494,7 +494,7 @@ export function NewApplicationForm({
           <div><label className="label" htmlFor="applicantFirstName">First name</label><input id="applicantFirstName" name="applicantFirstName" className={fieldCls('applicantFirstName')} /><Err state={state} name="applicantFirstName" /></div>
           <div><label className="label" htmlFor="applicantLastName">Last name</label><input id="applicantLastName" name="applicantLastName" className={fieldCls('applicantLastName')} /><Err state={state} name="applicantLastName" /></div>
           {typed && <div><label className="label" htmlFor="middleName">Middle name <span className="font-normal text-gray-400">(optional)</span></label><input id="middleName" name="middleName" className={fieldCls('')} /></div>}
-          <div><label className="label" htmlFor="applicantDob">Date of birth</label><input id="applicantDob" name="applicantDob" type="date" max={maxAdultDob()} className={fieldCls('applicantDob')} /><Err state={state} name="applicantDob" /></div>
+          <div><label className="label" htmlFor="applicantDob">Date of birth</label><DateOfBirthInput name="applicantDob" id="applicantDob" invalid={errorNames.has('applicantDob')} /><Err state={state} name="applicantDob" /></div>
           <div><label className="label" htmlFor="applicantEmail">Email</label><input id="applicantEmail" name="applicantEmail" type="email" className={fieldCls('applicantEmail')} /><Err state={state} name="applicantEmail" /></div>
           <div><label className="label" htmlFor="applicantPhone">Mobile phone</label><input id="applicantPhone" name="applicantPhone" className={fieldCls('applicantPhone')} inputMode="numeric" maxLength={12} placeholder="705-812-0320" onInput={phoneFmt} /><Err state={state} name="applicantPhone" /></div>
           {typed && <div><label className="label" htmlFor="homePhone">Home phone <span className="font-normal text-gray-400">(optional)</span></label><input id="homePhone" name="homePhone" className={fieldCls('')} inputMode="numeric" maxLength={12} placeholder="705-812-0320" onInput={phoneFmt} /></div>}
@@ -647,7 +647,7 @@ export function NewApplicationForm({
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div><label className="label" htmlFor="coMiddleName">Middle name <span className="font-normal text-gray-400">(optional)</span></label><input id="coMiddleName" name="coMiddleName" className={fieldCls('')} /></div>
                   <div><label className="label" htmlFor="coRelationship">Relationship to applicant</label><input id="coRelationship" name="coRelationship" className={fieldCls('')} placeholder="e.g. Spouse" /></div>
-                  <div><label className="label" htmlFor="coDob">Date of birth</label><input id="coDob" name="coDob" type="date" max={maxAdultDob()} className={fieldCls('')} /><Err state={state} name="coDob" /></div>
+                  <div><label className="label" htmlFor="coDob">Date of birth</label><DateOfBirthInput name="coDob" id="coDob" invalid={errorNames.has('coDob')} /><Err state={state} name="coDob" /></div>
                   <div>
                     <label className="label" htmlFor="coMaritalStatus">Marital status</label>
                     <select id="coMaritalStatus" name="coMaritalStatus" className={fieldCls('')}>
