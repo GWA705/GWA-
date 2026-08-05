@@ -143,3 +143,26 @@ describe('applicationSchema', () => {
     expect(r.success).toBe(true);
   });
 });
+
+describe('minimum applicant age', () => {
+  it('rejects an under-18 applicant', () => {
+    const r = applicationSchema.safeParse({ ...baseForm, applicantDob: '2020-01-01' });
+    expect(r.success).toBe(false);
+    if (!r.success) {
+      expect(r.error.issues.some((i) => i.path.join('.') === 'applicantDob')).toBe(true);
+    }
+  });
+
+  it('accepts an adult applicant', () => {
+    expect(applicationSchema.safeParse({ ...baseForm, applicantDob: '1990-01-01' }).success).toBe(true);
+  });
+
+  it('rejects an under-18 co-applicant', () => {
+    const r = applicationSchema.safeParse({ ...baseForm, coDob: '2020-01-01' });
+    expect(r.success).toBe(false);
+  });
+
+  it('still accepts a blank birthdate (optional on some paths)', () => {
+    expect(applicationSchema.safeParse({ ...baseForm, applicantDob: '' }).success).toBe(true);
+  });
+});

@@ -7,6 +7,31 @@ const PROVINCE_VALUES = [
 // Canadian SIN: 9 digits (spaces/dashes tolerated on input).
 const sinRegex = /^\d{3}[\s-]?\d{3}[\s-]?\d{3}$/;
 
+// Minimum applicant age for a credit application.
+export const MIN_APPLICANT_AGE = 18;
+
+/** Whole years between a 'YYYY-MM-DD' birthdate and today, or null if unparseable. */
+export function ageInYears(dob: string, today: Date = new Date()): number | null {
+  const d = new Date(`${dob}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return null;
+  let age = today.getFullYear() - d.getFullYear();
+  const m = today.getMonth() - d.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < d.getDate())) age -= 1;
+  return age;
+}
+
+/** True when the birthdate is a valid date and the person is at least 18. */
+export function isAdult(dob: string): boolean {
+  const age = ageInYears(dob);
+  return age !== null && age >= MIN_APPLICANT_AGE;
+}
+
+/** The latest DOB (YYYY-MM-DD) that still satisfies the minimum age — for input `max`. */
+export function maxAdultDob(today: Date = new Date()): string {
+  const d = new Date(today.getFullYear() - MIN_APPLICANT_AGE, today.getMonth(), today.getDate());
+  return d.toISOString().slice(0, 10);
+}
+
 const optionalDate = z
   .string()
   .optional()
@@ -190,6 +215,14 @@ export const applicationSchema = z.object({
       }
     }
   }
+  // Applicants (and co-applicants) must be adults. Only checked when a birthdate
+  // is entered, since DOB is optional on some entry paths.
+  if (d.applicantDob && d.applicantDob.trim() && !isAdult(d.applicantDob)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['applicantDob'], message: 'Applicant must be at least 18 years old' });
+  }
+  if (d.coDob && d.coDob.trim() && !isAdult(d.coDob)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['coDob'], message: 'Co-applicant must be at least 18 years old' });
+  }
   // Express (payment-arranged) deal: a payment type is required, and a FinanceIT
   // deal must carry its approval number.
   if (d.entryMethod === 'FINANCEIT') {
@@ -253,6 +286,10 @@ export const editDealSchema = z.object({
   grossMonthlyIncome: optionalNumber,
   timeAtJobYears: optionalInt,
   employmentStatus: z.preprocess(blankToUndef, z.enum(['EMPLOYED', 'SELF_EMPLOYED', 'RETIRED', 'OTHER']).optional()),
+}).superRefine((d, ctx) => {
+  if (d.applicantDob && d.applicantDob.trim() && !isAdult(d.applicantDob)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['applicantDob'], message: 'Applicant must be at least 18 years old' });
+  }
 });
 
 export type EditDealInput = z.infer<typeof editDealSchema>;
