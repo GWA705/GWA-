@@ -12,7 +12,7 @@ import { storeFiles } from '@/lib/upload';
 import { markDealerAction } from '@/lib/activity';
 import { notifyNewDocuments, notifyNewNote, notifyNewSubmission, notifyFundingSubmitted } from '@/lib/notify';
 import { applicationSchema, serialNumberSchema } from '@/lib/validation';
-import { CONSENT_POLICY_VERSION, CONSENT_TEXT, PAYMENT_METHOD_LABELS } from '@/lib/constants';
+import { CONSENT_POLICY_VERSION, CONSENT_TEXT, PAYMENT_METHOD_LABELS, FUNDING_DOCUMENT_TYPES } from '@/lib/constants';
 import type { DocumentType } from '@prisma/client';
 
 export interface ActionState {
@@ -277,6 +277,60 @@ export async function uploadFundingDocAction(
 
   await markDealerAction(applicationId, 'DOCUMENT');
   notifyNewDocuments(applicationId, result.storedTypes ?? []);
+  revalidatePath(`/dealer/applications/${applicationId}`);
+  return {};
+}
+
+/**
+ * Batch upload: one submit carrying many files, each with its own category (and,
+ * for OTHER, a typed label). Powers the single "snap & send" uploader. The
+ * client appends file/category/customLabel in matching order so the arrays line
+ * up by index.
+ */
+export async function uploadFundingBatchAction(
+  applicationId: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await requireDealerAccess();
+  const app = await prisma.application.findUnique({ where: { id: applicationId } });
+  if (!app || !canAccessAsDealer(session, app.dealerId)) return { error: 'Not found.' };
+  if (!['APPROVED', 'CONDITIONAL', 'DOCS_SENT', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW'].includes(app.status)) {
+    return { error: 'Funding documents can only be uploaded after approval.' };
+  }
+
+  const files = formData.getAll('file') as File[];
+  const categories = formData.getAll('category').map(String);
+  const customLabels = formData.getAll('customLabel').map(String);
+  if (files.length === 0) return { error: 'Add at least one file.' };
+  if (categories.length !== files.length) return { error: 'Tag every file with a category.' };
+
+  const allowed = new Set(FUNDING_DOCUMENT_TYPES.map((t) => t.type as string));
+  const storedTypes: DocumentType[] = [];
+  for (let i = 0; i < files.length; i++) {
+    const category = categories[i];
+    if (!allowed.has(category)) return { error: 'Choose a category for every file.' };
+    const docType = category as DocumentType;
+    let namePrefix: string | undefined;
+    if (docType === 'OTHER') {
+      const custom = (customLabels[i] ?? '').trim().replace(/[^\w\s-]/g, '').slice(0, 40);
+      if (!custom) return { error: 'Name each "Other" document before sending.' };
+      namePrefix = custom;
+    }
+    const result = await storeFiles({
+      application: app,
+      files: [files[i]],
+      type: docType,
+      stage: 'FUNDING',
+      uploadedById: session.userId,
+      namePrefix,
+    });
+    if (result.error) return result;
+    storedTypes.push(...(result.storedTypes ?? []));
+  }
+
+  await markDealerAction(applicationId, 'DOCUMENT');
+  notifyNewDocuments(applicationId, storedTypes);
   revalidatePath(`/dealer/applications/${applicationId}`);
   return {};
 }

@@ -264,6 +264,7 @@ export const REVIEWER_PAPERWORK_TYPES: { type: DocumentType; label: string }[] =
   { type: 'HD_WAIVER', label: 'HD Waiver' },
   { type: 'RELEASE_OF_FUNDS', label: 'Release of funds / completion certificate' },
   { type: 'FINANCING_PAPERWORK', label: 'Financing paperwork' },
+  { type: 'OTHER', label: 'Other (type a name)' },
 ];
 
 // Short filename prefix added to reviewer→dealer paperwork so dealers can tell

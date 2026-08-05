@@ -282,6 +282,14 @@ export async function uploadReviewerPaperworkAction(
   if (!allowed.includes(category)) return { error: 'Choose a paperwork type first.' };
   const docType = category as DocumentType;
 
+  // "Other" carries a typed label that becomes the document's category name.
+  let namePrefix = REVIEWER_PAPERWORK_PREFIX[docType];
+  if (docType === 'OTHER') {
+    const custom = String(formData.get('customLabel') || '').trim().replace(/[^\w\s-]/g, '').slice(0, 40);
+    if (!custom) return { error: 'Type a name for this document.' };
+    namePrefix = custom;
+  }
+
   const files = formData.getAll('file') as File[];
   const result = await storeFiles({
     application: {
@@ -295,7 +303,7 @@ export async function uploadReviewerPaperworkAction(
     type: docType,
     stage: 'REVIEWER',
     uploadedById: session.userId,
-    namePrefix: REVIEWER_PAPERWORK_PREFIX[docType],
+    namePrefix,
   });
   if (result.error) return result;
 
