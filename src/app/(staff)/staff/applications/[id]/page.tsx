@@ -33,6 +33,7 @@ import { PayoutForm } from './PayoutForm';
 import { StatusChangeForm } from './StatusChangeForm';
 import { ReviewerWorkspace } from './ReviewerWorkspace';
 import { reviewerPhaseStates, dealerFacingStatus } from '@/lib/reviewerFlow';
+import { exemptionSummary } from '@/lib/tax';
 import {
   startReviewAction,
   uploadReviewerPaperworkAction,
@@ -128,6 +129,7 @@ export default async function StaffApplicationDetail({
   // when the finance company requires a serial per product (e.g. UEI).
   const verificationItems = applicableVerificationChecks(
     !!app.financeCompany?.requiresSerialPerProduct,
+    app.taxExempt,
   );
   const verificationStates: Record<string, VerificationState> = {};
   for (const v of app.verificationChecks) {
@@ -566,6 +568,26 @@ export default async function StaffApplicationDetail({
           hasFundingDocs={app.documents.some((d) => d.stage === 'FUNDING')}
           hasPayouts={app.payouts.length > 0}
         />
+
+        {app.taxExempt && (() => {
+          const ex = exemptionSummary({ taxExempt: true, province: app.province, deliveredToReserve: app.deliveredToReserve });
+          const statusCard = reveal ? (decryptOptional(app.statusCardNumberEnc) ?? '—') : masked(app.statusCardNumberEnc);
+          return (
+            <section className="card border border-amber-200 bg-amber-50 p-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="badge bg-amber-200 text-amber-900">🪶 Tax exempt · {ex.label}</span>
+                <span className="text-sm text-amber-900">{ex.detail}</span>
+              </div>
+              <dl className="mt-3 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+                <div><dt className="text-gray-500">Status card #</dt><dd className="font-medium">{statusCard}{!reveal && app.statusCardNumberEnc && <a href={`/staff/applications/${app.id}?reveal=1`} className="ml-2 text-xs text-brand-600 hover:underline">reveal</a>}</dd></div>
+                <div><dt className="text-gray-500">Band / First Nation</dt><dd className="font-medium">{app.bandName ?? '—'}</dd></div>
+                <div><dt className="text-gray-500">On reserve</dt><dd className="font-medium">{app.deliveredToReserve ? 'Yes' : 'No'}</dd></div>
+                <div><dt className="text-gray-500">Province</dt><dd className="font-medium">{app.province}</dd></div>
+              </dl>
+              <p className="mt-2 text-xs text-amber-800">Verify the status card and register this exemption with Home Depot before final payment (see the funding verification checklist).</p>
+            </section>
+          );
+        })()}
 
       <ReviewerWorkspace
         phases={phases}

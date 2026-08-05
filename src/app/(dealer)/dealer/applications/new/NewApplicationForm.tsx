@@ -187,6 +187,7 @@ export function NewApplicationForm({
   const needsFinanceNumber = express && payment === 'FINANCEIT';
   const summaryRef = useRef<HTMLDivElement>(null);
   const [clientErrors, setClientErrors] = useState<Record<string, string>>({});
+  const [taxExempt, setTaxExempt] = useState(false);
   // Entering a co-applicant first name opens the full co-applicant questionnaire.
   const [coFirstName, setCoFirstName] = useState('');
   const hasCoApplicant = coFirstName.trim().length > 0;
@@ -733,6 +734,41 @@ export function NewApplicationForm({
           </section>
         </>
       )}
+
+      {/* First Nations tax exemption (always available) */}
+      <section className="card p-6">
+        <h2 className="mb-1 text-base font-semibold text-gray-900">First Nations tax exemption</h2>
+        <p className="mb-3 text-xs text-gray-500">For a status First Nations customer. The reviewer verifies the status card and registers the exemption with Home Depot before payment.</p>
+        <label className="flex items-start gap-2 rounded p-2 text-sm text-gray-700">
+          <input
+            type="checkbox"
+            name="taxExempt"
+            value="on"
+            checked={taxExempt}
+            onChange={(e) => setTaxExempt(e.target.checked)}
+            className="mt-0.5 rounded border-gray-300"
+          />
+          <span>This customer is tax-exempt (has a valid Certificate of Indian Status)</span>
+        </label>
+        {taxExempt && (
+          <div className="mt-3 space-y-4 border-t border-gray-100 pt-4">
+            <label className="flex items-start gap-2 text-sm text-gray-700">
+              <input type="checkbox" name="deliveredToReserve" value="on" className="mt-0.5 rounded border-gray-300" />
+              <span>Delivered / installed on a reserve <span className="text-gray-400">(full GST + provincial exemption; otherwise the provincial portion only)</span></span>
+            </label>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label className="label" htmlFor="statusCardNumber">Status card number <span className="font-normal text-gray-400">(can be added later)</span></label>
+                <input id="statusCardNumber" name="statusCardNumber" className={fieldCls('')} autoComplete="off" placeholder="Certificate of Indian Status #" />
+              </div>
+              <div>
+                <label className="label" htmlFor="bandName">Band / First Nation</label>
+                <input id="bandName" name="bandName" className={fieldCls('')} autoComplete="off" placeholder="e.g. band name" />
+              </div>
+            </div>
+          </div>
+        )}
+      </section>
 
       {/* Consent (always) */}
       <section className="card p-6">

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { updateDealAction } from '@/app/(staff)/actions';
 import { PROVINCES, PROGRAM_TYPES, PROGRAM_CATEGORIES, PHOTO_ID_TYPES } from '@/lib/constants';
@@ -23,6 +24,10 @@ export interface EditInitial {
   govIdNumber: string;
   dateOfSale: string;
   installationDate: string;
+  taxExempt: boolean;
+  deliveredToReserve: boolean;
+  statusCardNumber: string;
+  bandName: string;
   financingNote: string;
   notes: string;
   salespersonName: string;
@@ -76,6 +81,7 @@ export function EditDealForm({
   const [state, action] = useFormState(updateDealAction.bind(null, applicationId), {} as State);
   const v = initial;
   const selected = new Set(v.productsSold);
+  const [taxExempt, setTaxExempt] = useState(v.taxExempt);
 
   return (
     <form action={action} className="space-y-6">
@@ -237,6 +243,27 @@ export function EditDealForm({
             </select>
           </div>
         </div>
+      </section>
+
+      <section className="card p-6">
+        <h2 className="mb-1 text-base font-semibold text-gray-900">First Nations tax exemption</h2>
+        <p className="mb-3 text-xs text-gray-500">Capture / confirm the status card and exemption to register with Home Depot before payment.</p>
+        <label className="flex items-start gap-2 text-sm text-gray-700">
+          <input type="checkbox" name="taxExempt" value="on" checked={taxExempt} onChange={(e) => setTaxExempt(e.target.checked)} className="mt-0.5 rounded border-gray-300" />
+          <span>Tax-exempt (valid Certificate of Indian Status)</span>
+        </label>
+        {taxExempt && (
+          <div className="mt-3 space-y-4 border-t border-gray-100 pt-4">
+            <label className="flex items-start gap-2 text-sm text-gray-700">
+              <input type="checkbox" name="deliveredToReserve" value="on" defaultChecked={v.deliveredToReserve} className="mt-0.5 rounded border-gray-300" />
+              <span>Delivered / installed on a reserve <span className="text-gray-400">(full exemption; otherwise provincial portion only)</span></span>
+            </label>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div><label className="label" htmlFor="statusCardNumber">Status card number</label><input id="statusCardNumber" name="statusCardNumber" defaultValue={v.statusCardNumber} autoComplete="off" className="input" /></div>
+              <div><label className="label" htmlFor="bandName">Band / First Nation</label><input id="bandName" name="bandName" defaultValue={v.bandName} autoComplete="off" className="input" /></div>
+            </div>
+          </div>
+        )}
       </section>
 
       <div className="flex items-center justify-end gap-3">
