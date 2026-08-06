@@ -12,8 +12,9 @@ import { storeFiles } from '@/lib/upload';
 import { markDealerAction } from '@/lib/activity';
 import { notifyNewDocuments, notifyNewNote, notifyNewSubmission, notifyFundingSubmitted } from '@/lib/notify';
 import { applicationSchema, serialNumberSchema } from '@/lib/validation';
-import { CONSENT_POLICY_VERSION, CONSENT_TEXT, PAYMENT_METHOD_LABELS, FUNDING_DOCUMENT_TYPES } from '@/lib/constants';
-import type { DocumentType } from '@prisma/client';
+import { CONSENT_POLICY_VERSION, CONSENT_TEXT, PAYMENT_METHOD_LABELS, FUNDING_DOCUMENT_TYPES, SPLIT_PAYMENT_METHODS } from '@/lib/constants';
+import { validateSplits } from '@/lib/payments';
+import type { DocumentType, PaymentMethod } from '@prisma/client';
 
 export interface ActionState {
   error?: string;
@@ -72,6 +73,23 @@ export async function createApplicationAction(
   // number — come in already approved. Everything else starts as Submitted.
   const paymentMethod = d.entryMethod === 'FINANCEIT' ? (d.paymentMethod ?? null) : null;
   const initialStatus = d.entryMethod === 'FINANCEIT' || financeItNumber ? 'APPROVED' : 'SUBMITTED';
+
+  // Split / multi-method payment (optional). The client posts parallel
+  // splitMethod / splitAmount arrays that line up by index.
+  const isSplit = String(formData.get('isSplitPayment') || '') === 'on';
+  let splitLines: { method: PaymentMethod; amount: number }[] = [];
+  let financedAmount: number | null = null;
+  if (isSplit) {
+    const methods = formData.getAll('splitMethod').map(String);
+    const amounts = formData.getAll('splitAmount').map((v) => Number(v));
+    const allowed = new Set(SPLIT_PAYMENT_METHODS.map((m) => m.value as string));
+    splitLines = methods
+      .map((m, i) => ({ method: m as PaymentMethod, amount: amounts[i] }))
+      .filter((l) => allowed.has(l.method) && Number(l.amount) > 0);
+    const v = validateSplits(splitLines, d.requestedAmount);
+    if (!v.ok) return { error: v.error ?? 'Check the split-payment amounts.', fieldErrors: { isSplitPayment: v.error ?? '' } };
+    financedAmount = v.financed;
+  }
 
   // Only persist the extended loan-application record for typed entry.
   const loanApplicationData =
@@ -149,7 +167,13 @@ export async function createApplicationAction(
       createdById: session.userId,
       status: initialStatus,
       entryMethod: d.entryMethod,
-      paymentMethod,
+      // A split deal's single paymentMethod is ambiguous — the lines are the truth.
+      paymentMethod: isSplit ? null : paymentMethod,
+      isSplitPayment: isSplit,
+      financedAmount,
+      paymentSplits: isSplit
+        ? { create: splitLines.map((l, i) => ({ method: l.method, amount: l.amount, sortOrder: i })) }
+        : undefined,
       province: d.province,
       programType: d.programType,
       programCategory: d.programCategory,

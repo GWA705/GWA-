@@ -27,6 +27,7 @@ import {
   applicableVerificationChecks,
   referenceGateError,
 } from '@/lib/constants';
+import { dealHasFinancing, financedAmountOf } from '@/lib/payments';
 import type { ApplicationStatus, DecisionType, DocumentType, VerificationStatus } from '@prisma/client';
 
 export interface ActionState {
@@ -158,7 +159,7 @@ export async function recordDecisionAction(
   // Funding a deal requires its reference numbers on file. The Financing deal
   // number is only required for financed deals (not cash/credit/HD credit card).
   if (type === 'FUND') {
-    const refError = referenceGateError(app, 'funding this deal');
+    const refError = referenceGateError({ ...app, financed: dealHasFinancing(app) }, 'funding this deal');
     if (refError) return { error: refError };
   }
 
@@ -599,7 +600,7 @@ export async function changeStatusAction(
   // for financed deals (not cash/credit/HD credit card).
   const FUNDING_OR_BEYOND: ApplicationStatus[] = ['FUNDING_SUBMITTED', 'FUNDING_REVIEW', 'FUNDED'];
   if (FUNDING_OR_BEYOND.includes(status)) {
-    const refError = referenceGateError(app, 'moving this deal into funding');
+    const refError = referenceGateError({ ...app, financed: dealHasFinancing(app) }, 'moving this deal into funding');
     if (refError) return { error: refError };
   }
 
@@ -857,7 +858,7 @@ export async function writeToJournalAction(
     include: { homeDepotStore: true, dealer: true, loanApplication: true },
   });
   if (!app) return { error: 'Deal not found.' };
-  const refError = referenceGateError(app, 'writing to the journal');
+  const refError = referenceGateError({ ...app, financed: dealHasFinancing(app) }, 'writing to the journal');
   if (refError) return { error: refError };
 
   const fmtDate = (d: Date | null | undefined) => (d ? d.toISOString().slice(0, 10) : null);
@@ -879,7 +880,7 @@ export async function writeToJournalAction(
     installer: app.installerName,
     products: app.productsSold.length ? app.productsSold.join(', ') : null,
     soap: app.soapIncluded == null ? null : app.soapIncluded ? 'Yes' : 'No',
-    financedAmount: fmtAmount(app.approvedAmount),
+    financedAmount: fmtAmount(financedAmountOf(app)),
     term: null,
     address: decryptOptional(app.applicantAddressEnc),
     city: app.loanApplication?.city ?? null,

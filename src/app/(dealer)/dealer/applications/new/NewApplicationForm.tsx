@@ -15,6 +15,7 @@ import type { PaymentMethod } from '@prisma/client';
 import { formatPhone, formatPostal } from '@/lib/format';
 import { AddressAutocompleteInput } from '@/components/AddressAutocompleteInput';
 import { DateOfBirthInput } from '@/components/DateOfBirthInput';
+import { SplitPaymentInput } from '@/components/SplitPaymentInput';
 
 const initial: ActionState = {};
 
@@ -188,6 +189,7 @@ export function NewApplicationForm({
   const summaryRef = useRef<HTMLDivElement>(null);
   const [clientErrors, setClientErrors] = useState<Record<string, string>>({});
   const [taxExempt, setTaxExempt] = useState(false);
+  const [amount, setAmount] = useState('');
   // Entering a co-applicant first name opens the full co-applicant questionnaire.
   const [coFirstName, setCoFirstName] = useState('');
   const hasCoApplicant = coFirstName.trim().length > 0;
@@ -389,9 +391,13 @@ export function NewApplicationForm({
           </div>
           <div>
             <label className="label" htmlFor="requestedAmount">Requested amount (CAD)</label>
-            <input id="requestedAmount" name="requestedAmount" type="number" step="0.01" min="0" className={fieldCls('requestedAmount')} />
+            <input id="requestedAmount" name="requestedAmount" type="number" step="0.01" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} className={fieldCls('requestedAmount')} />
             <Err state={state} name="requestedAmount" />
           </div>
+        </div>
+
+        <div className="mt-4">
+          <SplitPaymentInput total={Number(amount) || 0} />
         </div>
 
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
