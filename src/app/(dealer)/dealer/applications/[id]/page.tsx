@@ -24,8 +24,10 @@ import {
   addSerialNumberAction,
   submitFundingAction,
   addDealerNoteAction,
+  deleteOwnDocumentAction,
 } from '@/app/(dealer)/actions';
 import { FundingUploader } from '@/components/FundingUploader';
+import { DeleteDocumentButton } from '@/components/DeleteDocumentButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -230,7 +232,7 @@ export default async function DealerApplicationDetail({
       {/* Documents for approval */}
       <section className="card p-6">
         <h2 className="mb-3 text-base font-semibold text-gray-900">Documents for approval</h2>
-        <DocumentList documents={applicationDocs} />
+        <DocumentList documents={applicationDocs} deleteAction={deleteOwnDocumentAction} />
         <div className="mt-4 border-t border-gray-100 pt-4">
           <UploadForm action={uploadSupportingDocAction.bind(null, app.id)} label="Upload document" />
         </div>
@@ -352,7 +354,11 @@ export default async function DealerApplicationDetail({
                           <a href={`/api/documents/${u.id}`} target="_blank" rel="noopener noreferrer" className="break-all text-brand-700 hover:underline">
                             {u.fileName}
                           </a>
-                          {u.verifiedAt && <span className="text-green-600">✓ confirmed by GWA</span>}
+                          {u.verifiedAt ? (
+                            <span className="text-green-600">✓ confirmed by GWA</span>
+                          ) : (
+                            canUploadFunding && <DeleteDocumentButton documentId={u.id} fileName={u.fileName} action={deleteOwnDocumentAction} />
+                          )}
                         </li>
                       ))}
                     </ul>

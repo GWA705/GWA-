@@ -23,6 +23,7 @@ export type AuditAction =
   | 'STATUS_CHANGE'
   | 'DOC_UPLOAD'
   | 'DOC_DOWNLOAD'
+  | 'DOCUMENT_DELETE'
   | 'JOURNAL_WRITE'
   | 'FUNDING_SUBMIT'
   | 'FUNDING_DECISION'

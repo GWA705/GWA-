@@ -9,6 +9,7 @@ import { markReviewerAction } from '@/lib/activity';
 import { encryptOptional, decryptOptional } from '@/lib/crypto';
 import { writeDealToJournal, journalEnabled, type JournalDeal } from '@/lib/journal';
 import { storeFiles } from '@/lib/upload';
+import { deleteDocument } from '@/lib/storage';
 import { notifyStatusChange, notifyNewNote } from '@/lib/notify';
 import {
   decisionSchema,
@@ -52,6 +53,38 @@ function nextStatus(type: DecisionType): ApplicationStatus | null {
     default:
       return null;
   }
+}
+
+/**
+ * Reviewer/admin deletes a document (e.g. a wrong install-paperwork file, to be
+ * re-uploaded). Removes the stored file and the row, and audits it. A funding
+ * document that's already been confirmed is protected — un-verify it first.
+ */
+export async function deleteDocumentAction(documentId: string): Promise<{ error?: string }> {
+  const session = await requireRole('REVIEWER', 'ADMIN');
+  const doc = await prisma.document.findUnique({ where: { id: documentId } });
+  if (!doc) return { error: 'Document not found.' };
+  if (doc.verifiedAt) return { error: 'This document is confirmed — un-confirm it first, then delete.' };
+
+  try {
+    await deleteDocument(doc.storageKey);
+  } catch (e) {
+    // A missing storage object shouldn't block removing the row.
+    console.error('[deleteDocument] storage delete failed', e);
+  }
+  await prisma.document.delete({ where: { id: documentId } });
+
+  await markReviewerAction(doc.applicationId);
+  await audit({
+    actorId: session.userId,
+    action: 'DOCUMENT_DELETE',
+    entityType: 'Document',
+    entityId: documentId,
+    detail: `Deleted ${doc.fileName}`,
+  });
+  revalidatePath(`/staff/applications/${doc.applicationId}`);
+  revalidatePath(`/dealer/applications/${doc.applicationId}`);
+  return {};
 }
 
 /** Reviewer records/updates deal reference numbers after approval. */

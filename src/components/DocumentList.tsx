@@ -1,5 +1,6 @@
 import type { Document } from '@prisma/client';
 import { DOCUMENT_TYPE_LABELS } from '@/lib/constants';
+import { DeleteDocumentButton } from '@/components/DeleteDocumentButton';
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -7,7 +8,14 @@ function formatSize(bytes: number): string {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
-export function DocumentList({ documents }: { documents: Document[] }) {
+export function DocumentList({
+  documents,
+  deleteAction,
+}: {
+  documents: Document[];
+  // When provided (staff pages), each row gets a Delete button.
+  deleteAction?: (id: string) => Promise<{ error?: string }>;
+}) {
   if (documents.length === 0) {
     return <p className="text-sm text-gray-500">No documents uploaded yet.</p>;
   }
@@ -30,6 +38,7 @@ export function DocumentList({ documents }: { documents: Document[] }) {
             </span>
           </div>
           <span className="flex-none text-xs text-gray-400">{d.createdAt.toLocaleDateString('en-CA')}</span>
+          {deleteAction && <DeleteDocumentButton documentId={d.id} fileName={d.fileName} action={deleteAction} />}
         </li>
       ))}
     </ul>
