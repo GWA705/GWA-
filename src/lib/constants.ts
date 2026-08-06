@@ -40,11 +40,28 @@ export const PAYMENT_METHODS: { value: PaymentMethod; label: string }[] = [
 
 export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   FINANCEIT: 'FinanceIT',
+  FINANCE_COMPANY: 'Finance company',
   CASH: 'Cash',
   CHEQUE: 'Cheque',
   CREDIT_CARD: 'Credit card',
   HD_CREDIT_CARD: 'Home Depot Credit Card',
 };
+
+// Methods available for a split-payment line (each line = method + amount).
+export const SPLIT_PAYMENT_METHODS: { value: PaymentMethod; label: string; financed: boolean }[] = [
+  { value: 'FINANCEIT', label: 'FinanceIT', financed: true },
+  { value: 'FINANCE_COMPANY', label: 'Finance company', financed: true },
+  { value: 'CASH', label: 'Cash', financed: false },
+  { value: 'CHEQUE', label: 'Cheque', financed: false },
+  { value: 'CREDIT_CARD', label: 'Personal credit card', financed: false },
+  { value: 'HD_CREDIT_CARD', label: 'Home Depot Credit Card', financed: false },
+];
+
+// Methods that count as financing — their amounts make up the financed portion.
+export const FINANCED_PAYMENT_METHODS: PaymentMethod[] = ['FINANCEIT', 'FINANCE_COMPANY'];
+export function isFinancedMethod(m: PaymentMethod): boolean {
+  return FINANCED_PAYMENT_METHODS.includes(m);
+}
 
 // Payment methods that settle the deal outside of financing. These deals have no
 // loan/approval number, so the Financing deal number is never required for them.
@@ -69,12 +86,12 @@ export function hdReferenceRequired(programType: ProgramType): boolean {
 export function missingRequiredReferences(app: {
   hdReference: string | null;
   financeItNumber: string | null;
-  paymentMethod: PaymentMethod | null;
+  financed: boolean; // does the deal have a financed portion (see lib/payments)
   programType: ProgramType;
 }): string[] {
   const missing: string[] = [];
   if (app.programType === 'HD' && !app.hdReference) missing.push('the HD Customer #');
-  if (dealIsFinanced(app.paymentMethod) && !app.financeItNumber) missing.push('the Financing deal number');
+  if (app.financed && !app.financeItNumber) missing.push('the Financing deal number');
   return missing;
 }
 
@@ -83,7 +100,7 @@ export function referenceGateError(
   app: {
     hdReference: string | null;
     financeItNumber: string | null;
-    paymentMethod: PaymentMethod | null;
+    financed: boolean;
     programType: ProgramType;
   },
   verb: string,

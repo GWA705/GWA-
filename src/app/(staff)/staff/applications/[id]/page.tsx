@@ -34,6 +34,8 @@ import { StatusChangeForm } from './StatusChangeForm';
 import { ReviewerWorkspace } from './ReviewerWorkspace';
 import { reviewerPhaseStates, dealerFacingStatus } from '@/lib/reviewerFlow';
 import { exemptionSummary } from '@/lib/tax';
+import { dealHasFinancing, financedAmountOf } from '@/lib/payments';
+import { PaymentBreakdown } from '@/components/PaymentBreakdown';
 import {
   startReviewAction,
   uploadReviewerPaperworkAction,
@@ -110,6 +112,7 @@ export default async function StaffApplicationDetail({
       dealNotes: { orderBy: { createdAt: 'asc' }, include: { author: true } },
       confirmation: { include: { confirmedBy: true } },
       verificationChecks: { include: { checkedBy: true } },
+      paymentSplits: { orderBy: { sortOrder: 'asc' } },
     },
     }),
     prisma.financeCompany.findMany({
@@ -220,6 +223,8 @@ export default async function StaffApplicationDetail({
     hasPayouts: app.payouts.length > 0,
   };
   const dealerStatus = dealerFacingStatus(flowSignals);
+  const dealFinanced = dealHasFinancing(app);
+  const financedAmt = financedAmountOf(app);
 
   const phaseBody: Record<string, ReactNode> = {
     // 1 · Review & decide
@@ -235,6 +240,7 @@ export default async function StaffApplicationDetail({
               <div><dt className="text-gray-500">City</dt><dd className="font-medium">{app.loanApplication?.city ?? '—'}{app.loanApplication?.addressProvince ? `, ${app.loanApplication.addressProvince}` : ''}</dd></div>
               <div><dt className="text-gray-500">Product(s)</dt><dd className="font-medium">{app.productsSold.length ? app.productsSold.join(', ') : '—'}</dd></div>
               <div><dt className="text-gray-500">Amount</dt><dd className="font-medium">{app.approvedAmount ? `$${app.approvedAmount.toString()}` : `$${app.requestedAmount.toString()}`}</dd></div>
+              {app.isSplitPayment && <div><dt className="text-gray-500">Financed</dt><dd className="font-medium text-brand-700">${financedAmt.toLocaleString('en-CA', { minimumFractionDigits: 2 })} <span className="text-xs font-normal text-gray-400">(split)</span></dd></div>}
               {app.paymentMethod && <div><dt className="text-gray-500">Payment</dt><dd className="font-medium">{PAYMENT_METHOD_LABELS[app.paymentMethod]}</dd></div>}
               <div><dt className="text-gray-500">Finance company</dt><dd className="font-medium">{app.financeCompany?.name ?? '—'}</dd></div>
               <div><dt className="text-gray-500">Financing deal #</dt><dd className="font-medium">{app.financeItNumber ?? '—'}</dd></div>
@@ -252,6 +258,15 @@ export default async function StaffApplicationDetail({
             printHref={`/staff/applications/${app.id}/print`}
           />
         </CollapsibleEntry>
+        {app.isSplitPayment && app.paymentSplits.length > 0 && (
+          <div className="border-t border-gray-100 pt-4">
+            <PaymentBreakdown
+              splits={app.paymentSplits}
+              total={Number(app.approvedAmount ?? app.requestedAmount)}
+              financed={financedAmt}
+            />
+          </div>
+        )}
         <div className="border-t border-gray-100 pt-4">
           <h3 className="mb-3 text-sm font-medium text-gray-700">Application documents</h3>
           <DocumentList documents={applicationDocs} />
@@ -327,10 +342,10 @@ export default async function StaffApplicationDetail({
           applicationId={app.id}
           financeItNumber={app.financeItNumber}
           hdReference={app.hdReference}
-          financed={dealIsFinanced(app.paymentMethod)}
+          financed={dealFinanced}
           hdRequired={hdReferenceRequired(app.programType)}
         />
-        {missingRequiredReferences(app).length === 0 && (
+        {missingRequiredReferences({ ...app, financed: dealFinanced }).length === 0 && (
           <WriteToJournalButton
             applicationId={app.id}
             syncedAt={app.journalSyncedAt ? app.journalSyncedAt.toISOString() : null}
@@ -338,7 +353,7 @@ export default async function StaffApplicationDetail({
             row={app.journalRow}
           />
         )}
-        {dealIsFinanced(app.paymentMethod) && (
+        {dealFinanced && (
           <div className="mt-4 border-t border-gray-100 pt-4">
             {app.financeNumberVerifiedAt ? (
               <>

@@ -550,10 +550,25 @@ enum EntryMethod {
 // which GWA produces the HD paperwork.
 enum PaymentMethod {
   FINANCEIT
+  FINANCE_COMPANY // financed through a partner finance company (not FinanceIt)
   CASH
   CHEQUE
   CREDIT_CARD
   HD_CREDIT_CARD
+}
+
+// One line of a split-payment deal: a method and the amount paid that way. A
+// deal's lines sum to its total; the financing lines make up financedAmount.
+model PaymentSplit {
+  id            String        @id @default(cuid())
+  applicationId String
+  application   Application   @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  method        PaymentMethod
+  amount        Decimal       @db.Decimal(12, 2)
+  sortOrder     Int           @default(0)
+  createdAt     DateTime      @default(now())
+
+  @@index([applicationId])
 }
 
 enum HousingStatus {
@@ -631,6 +646,14 @@ model Application {
 
   // For Express (payment-arranged) deals: how the customer paid.
   paymentMethod PaymentMethod?
+
+  // Split / multi-method payment. When isSplitPayment is true the deal total is
+  // divided across paymentSplits (up to 3 lines); financedAmount is the portion
+  // going through a financing method (FinanceIt / a finance company) — the number
+  // the finance company funds and the loan/HD paperwork is written for.
+  isSplitPayment Boolean          @default(false)
+  financedAmount Decimal?         @db.Decimal(12, 2)
+  paymentSplits  PaymentSplit[]
 
   // Confirmation-call status (surfaced to the dealer with a colour badge).
   confirmationStatus ConfirmationStatus @default(PENDING)
