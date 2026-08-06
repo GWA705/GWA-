@@ -248,6 +248,7 @@ export type ApplicationInput = z.infer<typeof applicationSchema>;
 // (everything except the encrypted consent record). Core fields that are
 // non-null on the Application are required; the rest are optional.
 export const editDealSchema = z.object({
+  dealerId: z.string().min(1, 'Choose a dealer'),
   province: z.enum(PROVINCE_VALUES),
   programType: z.enum(['HD', 'GWA']),
   programCategory: z.enum(['WATER', 'AIR', 'SMELL_BUSTERS', 'HVAC']),

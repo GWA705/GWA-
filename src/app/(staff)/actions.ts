@@ -347,6 +347,14 @@ export async function updateDealAction(
   }
   const d = parsed.data;
 
+  // Reassigning a deal to a different dealer moves which dealership sees/owns it.
+  // Validate the target dealer exists and record the move.
+  const dealerChanged = d.dealerId !== app.dealerId;
+  if (dealerChanged) {
+    const target = await prisma.dealer.findUnique({ where: { id: d.dealerId }, select: { id: true, name: true } });
+    if (!target) return { error: 'That dealer no longer exists.', fieldErrors: { dealerId: 'Unknown dealer' } };
+  }
+
   const loanData = {
     middleName: d.middleName || null,
     homePhone: d.homePhone || null,
@@ -375,6 +383,7 @@ export async function updateDealAction(
   await prisma.application.update({
     where: { id: applicationId },
     data: {
+      dealerId: d.dealerId,
       province: d.province,
       programType: d.programType,
       programCategory: d.programCategory,
@@ -421,8 +430,15 @@ export async function updateDealAction(
     action: 'APPLICATION_UPDATE',
     entityType: 'Application',
     entityId: applicationId,
-    detail: 'Deal edited by reviewer',
+    detail: dealerChanged
+      ? `Deal edited by reviewer; reassigned dealer ${app.dealerId} → ${d.dealerId}`
+      : 'Deal edited by reviewer',
   });
+  if (dealerChanged) {
+    // The old dealer's cache and the new dealer's list both need refreshing.
+    revalidatePath('/dealer');
+    revalidatePath('/staff');
+  }
   revalidatePath(`/staff/applications/${applicationId}`);
   redirect(`/staff/applications/${applicationId}`);
 }

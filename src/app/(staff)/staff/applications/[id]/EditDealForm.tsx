@@ -10,6 +10,7 @@ import { DateOfBirthInput } from '@/components/DateOfBirthInput';
 type State = { error?: string; fieldErrors?: Record<string, string> };
 
 export interface EditInitial {
+  dealerId: string;
   province: string;
   programType: string;
   programCategory: string;
@@ -73,10 +74,12 @@ export function EditDealForm({
   applicationId,
   initial,
   products,
+  dealers,
 }: {
   applicationId: string;
   initial: EditInitial;
   products: { id: string; name: string }[];
+  dealers: { id: string; name: string }[];
 }) {
   const [state, action] = useFormState(updateDealAction.bind(null, applicationId), {} as State);
   const v = initial;
@@ -90,6 +93,18 @@ export function EditDealForm({
           {state.error}
         </div>
       )}
+
+      <section className="card p-6">
+        <h2 className="mb-1 text-base font-semibold text-gray-900">Dealer</h2>
+        <p className="mb-3 text-xs text-gray-500">Which dealership this deal belongs to. Change it to reclassify a deal (e.g. one entered under a test dealer) — it then shows in that dealer’s portal instead.</p>
+        <div className="max-w-md">
+          <label className="label" htmlFor="dealerId">Dealer</label>
+          <select id="dealerId" name="dealerId" defaultValue={v.dealerId} className="input">
+            {dealers.map((dl) => (<option key={dl.id} value={dl.id}>{dl.name}</option>))}
+          </select>
+          <Err state={state} name="dealerId" />
+        </div>
+      </section>
 
       <section className="card p-6">
         <h2 className="mb-4 text-base font-semibold text-gray-900">Deal details</h2>
