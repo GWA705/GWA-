@@ -9,6 +9,7 @@ import { canAccessAsDealer } from '@/lib/rbac';
 import { encryptOptional } from '@/lib/crypto';
 import { audit } from '@/lib/audit';
 import { storeFiles } from '@/lib/upload';
+import { deleteDocument } from '@/lib/storage';
 import { markDealerAction } from '@/lib/activity';
 import { notifyNewDocuments, notifyNewNote, notifyNewSubmission, notifyFundingSubmitted } from '@/lib/notify';
 import { applicationSchema, serialNumberSchema } from '@/lib/validation';
@@ -356,6 +357,36 @@ export async function uploadFundingBatchAction(
   await markDealerAction(applicationId, 'DOCUMENT');
   notifyNewDocuments(applicationId, storedTypes);
   revalidatePath(`/dealer/applications/${applicationId}`);
+  return {};
+}
+
+/**
+ * Dealer deletes one of their OWN uploads (a wrong file, to re-upload). Guarded:
+ * only their dealer's deal, never GWA's paperwork, and not once GWA has confirmed
+ * the file.
+ */
+export async function deleteOwnDocumentAction(documentId: string): Promise<{ error?: string }> {
+  const session = await requireDealerAccess();
+  const doc = await prisma.document.findUnique({ where: { id: documentId }, include: { application: true } });
+  if (!doc || !canAccessAsDealer(session, doc.application.dealerId)) return { error: 'Not found.' };
+  if (doc.stage === 'REVIEWER') return { error: 'This document was sent by GWA and can’t be deleted here.' };
+  if (doc.verifiedAt) return { error: 'GWA has confirmed this file — contact them to change it.' };
+
+  try {
+    await deleteDocument(doc.storageKey);
+  } catch (e) {
+    console.error('[deleteOwnDocument] storage delete failed', e);
+  }
+  await prisma.document.delete({ where: { id: documentId } });
+  await audit({
+    actorId: session.userId,
+    action: 'DOCUMENT_DELETE',
+    entityType: 'Document',
+    entityId: documentId,
+    detail: `Dealer deleted ${doc.fileName}`,
+  });
+  revalidatePath(`/dealer/applications/${doc.applicationId}`);
+  revalidatePath(`/staff/applications/${doc.applicationId}`);
   return {};
 }
 

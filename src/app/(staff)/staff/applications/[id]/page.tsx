@@ -41,6 +41,7 @@ import {
   uploadReviewerPaperworkAction,
   addStaffNoteAction,
   toggleFinanceNumberVerifiedAction,
+  deleteDocumentAction,
 } from '@/app/(staff)/actions';
 import { STATUS_LABELS, REVIEWER_PAPERWORK_TYPES, applicableVerificationChecks } from '@/lib/constants';
 import type { ApplicationStatus } from '@prisma/client';
@@ -269,7 +270,7 @@ export default async function StaffApplicationDetail({
         )}
         <div className="border-t border-gray-100 pt-4">
           <h3 className="mb-3 text-sm font-medium text-gray-700">Application documents</h3>
-          <DocumentList documents={applicationDocs} />
+          <DocumentList documents={applicationDocs} deleteAction={deleteDocumentAction} />
         </div>
       </div>
     ),
@@ -278,7 +279,7 @@ export default async function StaffApplicationDetail({
       <div>
         <p className="mb-4 text-xs text-gray-500">Upload paperwork the dealer can view and download. Files are converted to PDF.</p>
         <div className="mb-4">
-          <DocumentList documents={reviewerDocs} />
+          <DocumentList documents={reviewerDocs} deleteAction={deleteDocumentAction} />
         </div>
         <div className="border-t border-gray-100 pt-4">
           <ReviewerPaperworkForm
