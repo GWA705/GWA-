@@ -1,14 +1,16 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { updateDealAction } from '@/app/(staff)/actions';
 import { PROVINCES, PROGRAM_TYPES, PROGRAM_CATEGORIES, PHOTO_ID_TYPES } from '@/lib/constants';
-import { maxAdultDob } from '@/lib/validation';
+import { DateOfBirthInput } from '@/components/DateOfBirthInput';
 
 type State = { error?: string; fieldErrors?: Record<string, string> };
 
 export interface EditInitial {
+  dealerId: string;
   province: string;
   programType: string;
   programCategory: string;
@@ -23,6 +25,10 @@ export interface EditInitial {
   govIdNumber: string;
   dateOfSale: string;
   installationDate: string;
+  taxExempt: boolean;
+  deliveredToReserve: boolean;
+  statusCardNumber: string;
+  bandName: string;
   financingNote: string;
   notes: string;
   salespersonName: string;
@@ -68,14 +74,17 @@ export function EditDealForm({
   applicationId,
   initial,
   products,
+  dealers,
 }: {
   applicationId: string;
   initial: EditInitial;
   products: { id: string; name: string }[];
+  dealers: { id: string; name: string }[];
 }) {
   const [state, action] = useFormState(updateDealAction.bind(null, applicationId), {} as State);
   const v = initial;
   const selected = new Set(v.productsSold);
+  const [taxExempt, setTaxExempt] = useState(v.taxExempt);
 
   return (
     <form action={action} className="space-y-6">
@@ -84,6 +93,18 @@ export function EditDealForm({
           {state.error}
         </div>
       )}
+
+      <section className="card p-6">
+        <h2 className="mb-1 text-base font-semibold text-gray-900">Dealer</h2>
+        <p className="mb-3 text-xs text-gray-500">Which dealership this deal belongs to. Change it to reclassify a deal (e.g. one entered under a test dealer) — it then shows in that dealer’s portal instead.</p>
+        <div className="max-w-md">
+          <label className="label" htmlFor="dealerId">Dealer</label>
+          <select id="dealerId" name="dealerId" defaultValue={v.dealerId} className="input">
+            {dealers.map((dl) => (<option key={dl.id} value={dl.id}>{dl.name}</option>))}
+          </select>
+          <Err state={state} name="dealerId" />
+        </div>
+      </section>
 
       <section className="card p-6">
         <h2 className="mb-4 text-base font-semibold text-gray-900">Deal details</h2>
@@ -156,7 +177,7 @@ export function EditDealForm({
           <div><label className="label" htmlFor="applicantFirstName">First name</label><input id="applicantFirstName" name="applicantFirstName" defaultValue={v.applicantFirstName} className="input" /><Err state={state} name="applicantFirstName" /></div>
           <div><label className="label" htmlFor="applicantLastName">Last name</label><input id="applicantLastName" name="applicantLastName" defaultValue={v.applicantLastName} className="input" /><Err state={state} name="applicantLastName" /></div>
           <div><label className="label" htmlFor="middleName">Middle name</label><input id="middleName" name="middleName" defaultValue={v.middleName} className="input" /></div>
-          <div><label className="label" htmlFor="applicantDob">Date of birth</label><input id="applicantDob" name="applicantDob" type="date" max={maxAdultDob()} defaultValue={v.applicantDob} className="input" />{state.fieldErrors?.applicantDob && <p className="mt-1 text-xs text-red-600">{state.fieldErrors.applicantDob}</p>}</div>
+          <div><label className="label" htmlFor="applicantDob">Date of birth</label><DateOfBirthInput name="applicantDob" id="applicantDob" defaultValue={v.applicantDob} invalid={!!state.fieldErrors?.applicantDob} />{state.fieldErrors?.applicantDob && <p className="mt-1 text-xs text-red-600">{state.fieldErrors.applicantDob}</p>}</div>
           <div><label className="label" htmlFor="applicantEmail">Email</label><input id="applicantEmail" name="applicantEmail" type="email" defaultValue={v.applicantEmail} className="input" /><Err state={state} name="applicantEmail" /></div>
           <div><label className="label" htmlFor="applicantPhone">Mobile phone</label><input id="applicantPhone" name="applicantPhone" defaultValue={v.applicantPhone} className="input" /><Err state={state} name="applicantPhone" /></div>
           <div><label className="label" htmlFor="homePhone">Home phone</label><input id="homePhone" name="homePhone" defaultValue={v.homePhone} className="input" /></div>
@@ -237,6 +258,27 @@ export function EditDealForm({
             </select>
           </div>
         </div>
+      </section>
+
+      <section className="card p-6">
+        <h2 className="mb-1 text-base font-semibold text-gray-900">First Nations tax exemption</h2>
+        <p className="mb-3 text-xs text-gray-500">Capture / confirm the status card and exemption to register with Home Depot before payment.</p>
+        <label className="flex items-start gap-2 text-sm text-gray-700">
+          <input type="checkbox" name="taxExempt" value="on" checked={taxExempt} onChange={(e) => setTaxExempt(e.target.checked)} className="mt-0.5 rounded border-gray-300" />
+          <span>Tax-exempt (valid Certificate of Indian Status)</span>
+        </label>
+        {taxExempt && (
+          <div className="mt-3 space-y-4 border-t border-gray-100 pt-4">
+            <label className="flex items-start gap-2 text-sm text-gray-700">
+              <input type="checkbox" name="deliveredToReserve" value="on" defaultChecked={v.deliveredToReserve} className="mt-0.5 rounded border-gray-300" />
+              <span>Delivered / installed on a reserve <span className="text-gray-400">(full exemption; otherwise provincial portion only)</span></span>
+            </label>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div><label className="label" htmlFor="statusCardNumber">Status card number</label><input id="statusCardNumber" name="statusCardNumber" defaultValue={v.statusCardNumber} autoComplete="off" className="input" /></div>
+              <div><label className="label" htmlFor="bandName">Band / First Nation</label><input id="bandName" name="bandName" defaultValue={v.bandName} autoComplete="off" className="input" /></div>
+            </div>
+          </div>
+        )}
       </section>
 
       <div className="flex items-center justify-end gap-3">

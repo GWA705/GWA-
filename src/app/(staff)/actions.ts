@@ -170,7 +170,7 @@ export async function recordDecisionAction(
       include: { financeCompany: true, verificationChecks: true },
     });
     const requiresSerials = !!withChecks?.financeCompany?.requiresSerialPerProduct;
-    const applicable = applicableVerificationChecks(requiresSerials);
+    const applicable = applicableVerificationChecks(requiresSerials, !!withChecks?.taxExempt);
     const byKey = new Map((withChecks?.verificationChecks ?? []).map((v) => [v.key, v.status]));
     const outstanding = applicable.filter((c) => byKey.get(c.key) !== 'CONFIRMED');
     if (outstanding.length > 0) {
@@ -282,6 +282,14 @@ export async function uploadReviewerPaperworkAction(
   if (!allowed.includes(category)) return { error: 'Choose a paperwork type first.' };
   const docType = category as DocumentType;
 
+  // "Other" carries a typed label that becomes the document's category name.
+  let namePrefix = REVIEWER_PAPERWORK_PREFIX[docType];
+  if (docType === 'OTHER') {
+    const custom = String(formData.get('customLabel') || '').trim().replace(/[^\w\s-]/g, '').slice(0, 40);
+    if (!custom) return { error: 'Type a name for this document.' };
+    namePrefix = custom;
+  }
+
   const files = formData.getAll('file') as File[];
   const result = await storeFiles({
     application: {
@@ -295,7 +303,7 @@ export async function uploadReviewerPaperworkAction(
     type: docType,
     stage: 'REVIEWER',
     uploadedById: session.userId,
-    namePrefix: REVIEWER_PAPERWORK_PREFIX[docType],
+    namePrefix,
   });
   if (result.error) return result;
 
@@ -339,6 +347,14 @@ export async function updateDealAction(
   }
   const d = parsed.data;
 
+  // Reassigning a deal to a different dealer moves which dealership sees/owns it.
+  // Validate the target dealer exists and record the move.
+  const dealerChanged = d.dealerId !== app.dealerId;
+  if (dealerChanged) {
+    const target = await prisma.dealer.findUnique({ where: { id: d.dealerId }, select: { id: true, name: true } });
+    if (!target) return { error: 'That dealer no longer exists.', fieldErrors: { dealerId: 'Unknown dealer' } };
+  }
+
   const loanData = {
     middleName: d.middleName || null,
     homePhone: d.homePhone || null,
@@ -367,6 +383,7 @@ export async function updateDealAction(
   await prisma.application.update({
     where: { id: applicationId },
     data: {
+      dealerId: d.dealerId,
       province: d.province,
       programType: d.programType,
       programCategory: d.programCategory,
@@ -381,6 +398,12 @@ export async function updateDealAction(
       govIdNumberEnc: encryptOptional(d.govIdNumber),
       dateOfSale: d.dateOfSale ? new Date(d.dateOfSale) : null,
       installationDate: d.installationDate ? new Date(d.installationDate) : null,
+      taxExempt: d.taxExempt,
+      deliveredToReserve: d.taxExempt ? d.deliveredToReserve : false,
+      statusCardNumberEnc: d.taxExempt
+        ? (d.statusCardNumber ? encryptOptional(d.statusCardNumber) : app.statusCardNumberEnc)
+        : null,
+      bandName: d.taxExempt ? (d.bandName || null) : null,
       financingNote: d.financingNote || null,
       notes: d.notes || null,
       // Sales-journal detail fields (reviewer backfill).
@@ -407,8 +430,15 @@ export async function updateDealAction(
     action: 'APPLICATION_UPDATE',
     entityType: 'Application',
     entityId: applicationId,
-    detail: 'Deal edited by reviewer',
+    detail: dealerChanged
+      ? `Deal edited by reviewer; reassigned dealer ${app.dealerId} → ${d.dealerId}`
+      : 'Deal edited by reviewer',
   });
+  if (dealerChanged) {
+    // The old dealer's cache and the new dealer's list both need refreshing.
+    revalidatePath('/dealer');
+    revalidatePath('/staff');
+  }
   revalidatePath(`/staff/applications/${applicationId}`);
   redirect(`/staff/applications/${applicationId}`);
 }

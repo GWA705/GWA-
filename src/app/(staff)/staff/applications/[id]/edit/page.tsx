@@ -31,6 +31,14 @@ export default async function EditDealPage({ params }: { params: { id: string } 
     select: { id: true, name: true },
   });
 
+  // Dealers for the reassignment dropdown — the deal's own dealer is always
+  // included even if it's since been archived, so the current value is valid.
+  const dealers = await prisma.dealer.findMany({
+    where: { OR: [{ active: true }, { id: app.dealerId }] },
+    orderBy: { name: 'asc' },
+    select: { id: true, name: true },
+  });
+
   // Editing reveals the protected identity fields — record the access.
   await audit({
     actorId: user.userId,
@@ -42,6 +50,7 @@ export default async function EditDealPage({ params }: { params: { id: string } 
 
   const l = app.loanApplication;
   const initial: EditInitial = {
+    dealerId: app.dealerId,
     province: app.province,
     programType: app.programType,
     programCategory: app.programCategory,
@@ -56,6 +65,10 @@ export default async function EditDealPage({ params }: { params: { id: string } 
     govIdNumber: decryptOptional(app.govIdNumberEnc) ?? '',
     dateOfSale: ymd(app.dateOfSale),
     installationDate: ymd(app.installationDate),
+    taxExempt: app.taxExempt,
+    deliveredToReserve: app.deliveredToReserve,
+    statusCardNumber: decryptOptional(app.statusCardNumberEnc) ?? '',
+    bandName: app.bandName ?? '',
     financingNote: app.financingNote ?? '',
     notes: app.notes ?? '',
     salespersonName: app.salespersonName ?? '',
@@ -92,7 +105,7 @@ export default async function EditDealPage({ params }: { params: { id: string } 
         </h1>
         <p className="mt-1 text-sm text-gray-500">Update applicant and deal details. Changes are logged.</p>
       </div>
-      <EditDealForm applicationId={app.id} initial={initial} products={products} />
+      <EditDealForm applicationId={app.id} initial={initial} products={products} dealers={dealers} />
     </div>
   );
 }

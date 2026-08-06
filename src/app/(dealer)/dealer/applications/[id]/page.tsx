@@ -20,11 +20,12 @@ import { dealerFacingStatus } from '@/lib/reviewerFlow';
 import { dealerOutstanding } from '@/lib/outstanding';
 import {
   uploadSupportingDocAction,
-  uploadFundingDocAction,
+  uploadFundingBatchAction,
   addSerialNumberAction,
   submitFundingAction,
   addDealerNoteAction,
 } from '@/app/(dealer)/actions';
+import { FundingUploader } from '@/components/FundingUploader';
 
 export const dynamic = 'force-dynamic';
 
@@ -305,6 +306,13 @@ export default async function DealerApplicationDetail({
           <div className="space-y-3">
             <h3 className="text-sm font-medium text-gray-700">Funding documents</h3>
             <p className="text-xs text-gray-500">Upload these as you get them — you don&apos;t have to add them all at once.</p>
+
+            {canUploadFunding && (
+              <FundingUploader
+                action={uploadFundingBatchAction.bind(null, app.id)}
+                categories={FUNDING_DOCUMENT_TYPES.map((t) => ({ type: t.type, label: t.label }))}
+              />
+            )}
             {requiredFunding.map((t) => {
               const uploaded = fundingDocs.filter((d) => d.type === t.type);
               const confirmed = uploaded.some((d) => d.verifiedAt);
@@ -348,11 +356,6 @@ export default async function DealerApplicationDetail({
                         </li>
                       ))}
                     </ul>
-                  )}
-                  {canUploadFunding && (
-                    <div className="mt-2">
-                      <UploadForm action={uploadFundingDocAction.bind(null, app.id, t.type)} label="Upload" variant="compact" />
-                    </div>
                   )}
                 </div>
               );

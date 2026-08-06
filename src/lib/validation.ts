@@ -195,6 +195,13 @@ export const applicationSchema = z.object({
 
   homeownershipRequired: z.coerce.boolean().optional().default(false),
 
+  // First Nations tax exemption (all optional; status card # may be added later,
+  // during funding).
+  taxExempt: z.coerce.boolean().optional().default(false),
+  deliveredToReserve: z.coerce.boolean().optional().default(false),
+  statusCardNumber: z.string().max(40).optional(),
+  bandName: z.string().max(120).optional(),
+
   consent: z
     .union([z.literal('on'), z.literal('true'), z.literal(true)])
     .refine((v) => v === 'on' || v === 'true' || v === true, 'Consent is required'),
@@ -241,6 +248,7 @@ export type ApplicationInput = z.infer<typeof applicationSchema>;
 // (everything except the encrypted consent record). Core fields that are
 // non-null on the Application are required; the rest are optional.
 export const editDealSchema = z.object({
+  dealerId: z.string().min(1, 'Choose a dealer'),
   province: z.enum(PROVINCE_VALUES),
   programType: z.enum(['HD', 'GWA']),
   programCategory: z.enum(['WATER', 'AIR', 'SMELL_BUSTERS', 'HVAC']),
@@ -286,6 +294,12 @@ export const editDealSchema = z.object({
   grossMonthlyIncome: optionalNumber,
   timeAtJobYears: optionalInt,
   employmentStatus: z.preprocess(blankToUndef, z.enum(['EMPLOYED', 'SELF_EMPLOYED', 'RETIRED', 'OTHER']).optional()),
+
+  // First Nations tax exemption (editable by reviewers during funding).
+  taxExempt: z.coerce.boolean().optional().default(false),
+  deliveredToReserve: z.coerce.boolean().optional().default(false),
+  statusCardNumber: z.string().max(40).optional(),
+  bandName: z.string().max(120).optional(),
 }).superRefine((d, ctx) => {
   if (d.applicantDob && d.applicantDob.trim() && !isAdult(d.applicantDob)) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['applicantDob'], message: 'Applicant must be at least 18 years old' });

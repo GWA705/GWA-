@@ -648,6 +648,17 @@ model Application {
   hdReference      String?
   financeItNumber  String? // FinanceIT approval number (approved when present)
 
+  // First Nations tax exemption (Indian Act s.87 + Ontario point-of-sale rebate).
+  // v1 flags + captures the info so the reviewer can register the exemption with
+  // HD and confirm it before payout; amount calculation is a later addition.
+  // Full relief (GST + provincial) applies only when delivered to a reserve;
+  // off-reserve in Ontario gets the provincial portion only. Status card number
+  // is sensitive → stored encrypted.
+  taxExempt           Boolean @default(false)
+  deliveredToReserve  Boolean @default(false)
+  statusCardNumberEnc String? // Certificate of Indian Status number (encrypted)
+  bandName            String? // band / First Nation name, for HD registration
+
   // A reviewer confirms the financing (FinanceIT) number is valid to solidify an
   // approval — important for dealer-auto-approved (FinanceIT) deals, where the
   // "approved" state is dealer-asserted until a reviewer verifies the number.
