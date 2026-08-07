@@ -553,6 +553,7 @@ enum PaymentMethod {
   FINANCE_COMPANY // financed through a partner finance company (not FinanceIt)
   CASH
   CHEQUE
+  E_TRANSFER
   CREDIT_CARD
   HD_CREDIT_CARD
 }
