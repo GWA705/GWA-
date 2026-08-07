@@ -3,7 +3,7 @@ import { prisma } from './db';
 import { sendEmail } from './email';
 import { renderEmail } from './email-templates';
 import { STATUS_LABELS, DOCUMENT_TYPE_LABELS } from './constants';
-import { sendPushToRoles } from './push';
+import { sendPushToRoles, sendPushToUser } from './push';
 
 // Reviewers/admins who should receive activity notifications.
 const STAFF_ROLES: Role[] = ['REVIEWER', 'ADMIN'];
@@ -216,5 +216,80 @@ export async function notifyNewNote(applicationId: string, authorRole: Role) {
     }
   } catch (e) {
     console.error('[notify] new note failed', e);
+  }
+}
+
+/**
+ * A mail thread got a reply. When a dealer replies, notify GWA staff (the mail
+ * sender + staff who watch new notes) by email and push. When staff reply back,
+ * notify that dealer's users. Best-effort; never breaks the reply itself.
+ */
+export async function notifyMailReply(
+  mailId: string,
+  dealerId: string,
+  fromStaff: boolean,
+) {
+  try {
+    const mail = await prisma.mail.findUnique({
+      where: { id: mailId },
+      select: { subject: true, senderId: true },
+    });
+    if (!mail) return;
+    const subject = mail.subject;
+
+    if (!fromStaff) {
+      // Dealer replied → tell staff. Email the sender + any staff who opted into
+      // note notifications, and push to all staff.
+      const staff = await prisma.user.findMany({
+        where: {
+          active: true,
+          role: { in: ['REVIEWER', 'ADMIN'] },
+          OR: [{ id: mail.senderId }, { notifyNewNotes: true }],
+        },
+      });
+      for (const u of staff) {
+        await sendEmail({
+          to: recipientEmail(u),
+          subject: `New reply from a dealer — ${subject}`,
+          html: renderEmail({
+            heading: 'New mail reply from a dealer',
+            intro: `A dealer replied to your message “${subject}”.`,
+            ctaLabel: 'Open the thread',
+            ctaUrl: `${appUrl()}/staff/mail/${mailId}`,
+          }),
+        });
+      }
+      await sendPushToRoles(STAFF_ROLES, {
+        title: 'New mail reply from a dealer',
+        body: subject,
+        url: `/staff/mail/${mailId}`,
+        tag: `mailreply-${mailId}`,
+      });
+    } else {
+      // Staff replied → tell the dealer's users.
+      const users = await prisma.user.findMany({
+        where: { dealerId, role: 'DEALER_USER', active: true },
+      });
+      for (const u of users) {
+        await sendEmail({
+          to: recipientEmail(u),
+          subject: `New reply from GWA — ${subject}`,
+          html: renderEmail({
+            heading: 'New reply from GWA',
+            intro: `GWA replied on the message “${subject}”.`,
+            ctaLabel: 'Open the message',
+            ctaUrl: `${appUrl()}/dealer/mail/${mailId}`,
+          }),
+        });
+        await sendPushToUser(u.id, {
+          title: 'New reply from GWA',
+          body: subject,
+          url: `/dealer/mail/${mailId}`,
+          tag: `mailreply-${mailId}`,
+        });
+      }
+    }
+  } catch (e) {
+    console.error('[notify] mail reply failed', e);
   }
 }

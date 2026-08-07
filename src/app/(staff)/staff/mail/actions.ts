@@ -10,6 +10,7 @@ import { audit } from '@/lib/audit';
 import { MAX_FILE_BYTES, ALLOWED_MIME_TYPES } from '@/lib/constants';
 import { friendlyFileName } from '@/lib/filenames';
 import { optimizeAttachmentImage } from '@/lib/image';
+import { notifyMailReply } from '@/lib/notify';
 
 // Swap a filename's extension (used when an image is converted, e.g. HEIC→JPG).
 function replaceExt(name: string, ext: string): string {
@@ -29,6 +30,7 @@ export async function sendMailAction(_prev: MailActionState, formData: FormData)
   const body = (formData.get('body') ?? '').toString().trim();
   const senderLabel = (formData.get('senderLabel') ?? '').toString().trim() || null;
   const requireAck = formData.get('requireAck') === 'on';
+  const allowReplies = formData.get('allowReplies') === 'on';
   const allDealers = formData.get('allDealers') === 'on';
   const dealerIds = formData.getAll('dealerIds').map(String).filter(Boolean);
 
@@ -62,6 +64,7 @@ export async function sendMailAction(_prev: MailActionState, formData: FormData)
       body,
       senderLabel,
       requireAck,
+      allowReplies,
       allDealers,
       senderId: session.userId,
       recipients: allDealers ? undefined : { create: recipients.map((d) => ({ dealerId: d.id })) },
@@ -134,4 +137,46 @@ export async function sendMailAction(_prev: MailActionState, formData: FormData)
 
   revalidatePath('/staff/mail');
   redirect(`/staff/mail/${mail.id}`);
+}
+
+/**
+ * Staff reply back within a mail thread (one conversation per dealer). Requires
+ * the 'mail' section; the mail must exist, allow replies, and actually be
+ * addressed to the given dealer. Posting also marks that dealer's prior replies
+ * as read.
+ */
+export async function postStaffMailReplyAction(
+  mailId: string,
+  dealerId: string,
+  _prev: MailActionState,
+  formData: FormData,
+): Promise<MailActionState> {
+  const session = await requireStaffSection('mail');
+  const body = (formData.get('body') ?? '').toString().trim();
+  if (!body) return { error: 'Write a reply first.' };
+  if (body.length > 5000) return { error: 'Reply is too long (max 5000 characters).' };
+
+  const mail = await prisma.mail.findUnique({
+    where: { id: mailId },
+    select: { id: true, allowReplies: true, allDealers: true, recipients: { select: { dealerId: true } } },
+  });
+  if (!mail || !mail.allowReplies) return { error: 'This message is not open for replies.' };
+  const addressed = mail.allDealers || mail.recipients.some((r) => r.dealerId === dealerId);
+  if (!addressed) return { error: 'That dealer is not a recipient of this message.' };
+
+  await prisma.$transaction([
+    prisma.mailReply.create({
+      data: { mailId, dealerId, authorId: session.userId, fromStaff: true, body },
+    }),
+    // Answering the thread clears the unread flag on the dealer's replies.
+    prisma.mailReply.updateMany({
+      where: { mailId, dealerId, fromStaff: false, staffReadAt: null },
+      data: { staffReadAt: new Date() },
+    }),
+  ]);
+
+  await audit({ actorId: session.userId, action: 'MAIL_REPLY', entityType: 'Mail', entityId: mailId, detail: `staff reply to dealer ${dealerId}` });
+  await notifyMailReply(mailId, dealerId, true);
+  revalidatePath(`/staff/mail/${mailId}`);
+  return {};
 }

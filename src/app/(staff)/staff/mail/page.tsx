@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 export default async function StaffMail() {
   await requireStaffSection('mail');
 
-  const [dealers, mails] = await Promise.all([
+  const [dealers, mails, unreadReplies] = await Promise.all([
     prisma.dealer.findMany({ where: { active: true }, orderBy: { name: 'asc' }, select: { id: true, name: true, type: true } }),
     prisma.mail.findMany({
       orderBy: { createdAt: 'desc' },
@@ -18,7 +18,14 @@ export default async function StaffMail() {
         _count: { select: { attachments: true, recipients: true, receipts: true } },
       },
     }),
+    // Unread dealer replies per mail (fromStaff=false, not yet seen by staff).
+    prisma.mailReply.groupBy({
+      by: ['mailId'],
+      where: { fromStaff: false, staffReadAt: null },
+      _count: { _all: true },
+    }),
   ]);
+  const unreadByMail = new Map(unreadReplies.map((u) => [u.mailId, u._count._all]));
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -39,6 +46,9 @@ export default async function StaffMail() {
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-medium text-gray-900">{m.subject}</span>
                   {m.requireAck && <span className="badge bg-amber-100 text-amber-800">Ack required</span>}
+                  {(unreadByMail.get(m.id) ?? 0) > 0 && (
+                    <span className="badge bg-green-100 text-green-800">{unreadByMail.get(m.id)} new repl{unreadByMail.get(m.id) === 1 ? 'y' : 'ies'}</span>
+                  )}
                   {m._count.attachments > 0 && <span className="badge bg-gray-100 text-gray-600">📎 {m._count.attachments}</span>}
                 </div>
                 <div className="mt-0.5 text-xs text-gray-500">

@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db';
 import { mailWhereForDealer } from '@/lib/inbox';
 import { friendlyFileName } from '@/lib/filenames';
 import { acknowledgeMailAction } from '../actions';
+import { DealerReplyForm } from './DealerReplyForm';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,6 +34,15 @@ export default async function DealerMailItem({ params }: { params: { id: string 
     select: { acknowledgedAt: true },
   });
   const acknowledged = !!receipt?.acknowledgedAt;
+
+  // The reply thread for this dealer (only when the message allows replies).
+  const replies = mail.allowReplies
+    ? await prisma.mailReply.findMany({
+        where: { mailId: mail.id, dealerId: session.dealerId },
+        orderBy: { createdAt: 'asc' },
+        include: { author: { select: { name: true } } },
+      })
+    : [];
 
   return (
     <div className="space-y-6">
@@ -81,6 +91,29 @@ export default async function DealerMailItem({ params }: { params: { id: string 
             })}
           </ul>
           <p className="mt-3 text-xs text-gray-400">Opening or downloading a file is recorded for compliance.</p>
+        </section>
+      )}
+
+      {mail.allowReplies && (
+        <section className="card p-6">
+          <h2 className="mb-3 text-base font-semibold text-gray-900">Reply to GWA</h2>
+          {replies.length > 0 && (
+            <ul className="mb-4 space-y-3">
+              {replies.map((r) => (
+                <li
+                  key={r.id}
+                  className={`rounded-lg p-3 text-sm ${r.fromStaff ? 'bg-brand-50' : 'bg-gray-50'}`}
+                >
+                  <div className="mb-1 flex items-center justify-between gap-2 text-xs text-gray-500">
+                    <span className="font-medium text-gray-700">{r.fromStaff ? 'GWA' : r.author.name}</span>
+                    <span>{r.createdAt.toLocaleString('en-CA')}</span>
+                  </div>
+                  <div className="whitespace-pre-wrap text-gray-800">{r.body}</div>
+                </li>
+              ))}
+            </ul>
+          )}
+          <DealerReplyForm mailId={mail.id} />
         </section>
       )}
 

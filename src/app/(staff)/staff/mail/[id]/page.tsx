@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { requireStaffSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { friendlyFileName } from '@/lib/filenames';
+import { StaffReplyForm } from './StaffReplyForm';
 
 export const dynamic = 'force-dynamic';
 
@@ -50,6 +51,39 @@ export default async function MailReceipts({ params }: { params: { id: string } 
 
   const openedCount = users.filter((u) => receiptByUser.get(u.id)?.openedAt).length;
   const ackCount = users.filter((u) => receiptByUser.get(u.id)?.acknowledgedAt).length;
+
+  // Reply threads (one per dealer) when this message allows replies. Viewing the
+  // page marks any unread dealer replies as read.
+  type ReplyRow = {
+    id: string;
+    dealerId: string;
+    fromStaff: boolean;
+    body: string;
+    createdAt: Date;
+    staffReadAt: Date | null;
+    author: { name: string };
+    dealer: { name: string };
+  };
+  let replyGroups: { dealerId: string; dealerName: string; replies: ReplyRow[] }[] = [];
+  if (mail.allowReplies) {
+    const replies = (await prisma.mailReply.findMany({
+      where: { mailId: mail.id },
+      orderBy: { createdAt: 'asc' },
+      include: { author: { select: { name: true } }, dealer: { select: { name: true } } },
+    })) as ReplyRow[];
+    if (replies.some((r) => !r.fromStaff && r.staffReadAt === null)) {
+      await prisma.mailReply.updateMany({
+        where: { mailId: mail.id, fromStaff: false, staffReadAt: null },
+        data: { staffReadAt: new Date() },
+      });
+    }
+    const byDealer = new Map<string, { dealerId: string; dealerName: string; replies: ReplyRow[] }>();
+    for (const r of replies) {
+      if (!byDealer.has(r.dealerId)) byDealer.set(r.dealerId, { dealerId: r.dealerId, dealerName: r.dealer.name, replies: [] });
+      byDealer.get(r.dealerId)!.replies.push(r);
+    }
+    replyGroups = [...byDealer.values()].sort((a, b) => a.dealerName.localeCompare(b.dealerName));
+  }
 
   return (
     <div className="space-y-6">
@@ -107,6 +141,37 @@ export default async function MailReceipts({ params }: { params: { id: string } 
           </ul>
         )}
       </section>
+
+      {mail.allowReplies && (
+        <section className="card p-6">
+          <div className="mb-3 flex items-center gap-2">
+            <h2 className="text-base font-semibold text-gray-900">Replies</h2>
+            <span className="badge bg-green-100 text-green-800">Replies on</span>
+          </div>
+          {replyGroups.length === 0 && (
+            <p className="text-sm text-gray-500">No replies yet. Dealers who received this can reply here.</p>
+          )}
+          <div className="space-y-5">
+            {replyGroups.map((g) => (
+              <div key={g.dealerId} className="rounded-lg border border-gray-200 p-4">
+                <div className="mb-2 text-sm font-semibold text-gray-800">{g.dealerName}</div>
+                <ul className="space-y-2">
+                  {g.replies.map((r) => (
+                    <li key={r.id} className={`rounded-md p-3 text-sm ${r.fromStaff ? 'bg-brand-50' : 'bg-gray-50'}`}>
+                      <div className="mb-1 flex items-center justify-between gap-2 text-xs text-gray-500">
+                        <span className="font-medium text-gray-700">{r.fromStaff ? `GWA · ${r.author.name}` : r.author.name}</span>
+                        <span>{r.createdAt.toLocaleString('en-CA')}</span>
+                      </div>
+                      <div className="whitespace-pre-wrap text-gray-800">{r.body}</div>
+                    </li>
+                  ))}
+                </ul>
+                <StaffReplyForm mailId={mail.id} dealerId={g.dealerId} />
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="card overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200 text-sm">

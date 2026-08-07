@@ -260,6 +260,7 @@ model Dealer {
   homeDepotStores  HomeDepotStore[]
   dealerAlerts     DealerAlert[]
   mailRecipients   MailRecipient[]
+  mailReplies      MailReply[]
   orders           Order[]
 }
 
@@ -355,6 +356,7 @@ model User {
   alertAcks           AlertAck[]
   contentReads        ContentSectionRead[]
   mailsSent           Mail[]              @relation("MailSender")
+  mailReplies         MailReply[]         @relation("MailReplyAuthor")
   mailReceipts        MailReceipt[]
   mailAttachmentViews MailAttachmentView[]
   ordersCreated       Order[]             @relation("OrderCreatedBy")
@@ -457,6 +459,9 @@ model Mail {
   subject    String
   body       String   @db.Text
   requireAck Boolean  @default(false) // ask each reader to confirm they've read it
+  // When true, dealers who received this mail can reply to it (a two-way thread,
+  // one conversation per dealer). Off by default — set per message at send time.
+  allowReplies Boolean @default(false)
   allDealers Boolean  @default(false) // sent to every dealer (vs. selected)
   senderId   String
   sender     User     @relation("MailSender", fields: [senderId], references: [id])
@@ -468,8 +473,33 @@ model Mail {
   recipients  MailRecipient[]
   attachments MailAttachment[]
   receipts    MailReceipt[]
+  replies     MailReply[]
 
   @@index([createdAt])
+}
+
+// A reply on a piece of mail (only when Mail.allowReplies). Replies form one
+// conversation per dealer: a dealer user's reply carries their dealerId; a staff
+// reply back carries the dealer whose thread it answers. staffReadAt marks when
+// GWA staff have seen a dealer's reply (drives the unread indicator).
+model MailReply {
+  id         String   @id @default(cuid())
+  mailId     String
+  mail       Mail     @relation(fields: [mailId], references: [id], onDelete: Cascade)
+  dealerId   String
+  dealer     Dealer   @relation(fields: [dealerId], references: [id], onDelete: Cascade)
+  authorId   String
+  author     User     @relation("MailReplyAuthor", fields: [authorId], references: [id])
+  // True when written by GWA staff (reviewer/admin) replying back; false when
+  // written by a dealer user. Snapshotted so display doesn't depend on the
+  // author's current role.
+  fromStaff  Boolean  @default(false)
+  body       String   @db.Text
+  staffReadAt DateTime? // when staff first saw this (dealer replies only)
+  createdAt  DateTime @default(now())
+
+  @@index([mailId, dealerId])
+  @@index([mailId, staffReadAt])
 }
 
 // A dealer this mail was addressed to (ignored when allDealers is true).

@@ -167,6 +167,13 @@ export function MailComposeForm({ dealers }: { dealers: DealerOption[] }) {
         </span>
       </label>
 
+      <label className="flex items-start gap-2 rounded-md bg-green-50 p-3 text-sm text-green-900">
+        <input type="checkbox" name="allowReplies" className="mt-0.5 h-4 w-4" />
+        <span>
+          <span className="font-medium">Allow replies</span> — let dealers reply to this message. Their replies come back here as a thread (one per dealer). Leave off for read-only announcements.
+        </span>
+      </label>
+
       <div className="flex justify-end">
         <SubmitButton />
       </div>

@@ -33,6 +33,7 @@ export type AuditAction =
   | 'DEALER_UPDATE'
   | 'MAIL_SEND'
   | 'MAIL_ACK'
+  | 'MAIL_REPLY'
   | 'MAIL_ATTACH_VIEW'
   | 'ORDER_SUBMIT'
   | 'MARKETPLACE_FILE_DOWNLOAD';
