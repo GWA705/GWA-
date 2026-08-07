@@ -34,6 +34,7 @@ export const PAYMENT_METHODS: { value: PaymentMethod; label: string }[] = [
   { value: 'FINANCEIT', label: 'FinanceIT' },
   { value: 'CASH', label: 'Cash' },
   { value: 'CHEQUE', label: 'Cheque' },
+  { value: 'E_TRANSFER', label: 'E-Transfer' },
   { value: 'CREDIT_CARD', label: 'Credit card' },
   { value: 'HD_CREDIT_CARD', label: 'Home Depot Credit Card' },
 ];
@@ -43,6 +44,7 @@ export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   FINANCE_COMPANY: 'Finance company',
   CASH: 'Cash',
   CHEQUE: 'Cheque',
+  E_TRANSFER: 'E-Transfer',
   CREDIT_CARD: 'Credit card',
   HD_CREDIT_CARD: 'Home Depot Credit Card',
 };
@@ -53,6 +55,7 @@ export const SPLIT_PAYMENT_METHODS: { value: PaymentMethod; label: string; finan
   { value: 'FINANCE_COMPANY', label: 'Finance company', financed: true },
   { value: 'CASH', label: 'Cash', financed: false },
   { value: 'CHEQUE', label: 'Cheque', financed: false },
+  { value: 'E_TRANSFER', label: 'E-Transfer', financed: false },
   { value: 'CREDIT_CARD', label: 'Personal credit card', financed: false },
   { value: 'HD_CREDIT_CARD', label: 'Home Depot Credit Card', financed: false },
 ];
