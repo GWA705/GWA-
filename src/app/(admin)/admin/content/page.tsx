@@ -1,4 +1,4 @@
-import { requireRole } from '@/lib/session';
+import { requireAdminSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { toggleContentActiveAction, deleteContentAction } from '@/app/(admin)/actions';
 import { CONTENT_SECTIONS, CONTENT_SECTION_LABELS } from '@/lib/constants';
@@ -7,7 +7,7 @@ import { ContentForm } from './ContentForm';
 export const dynamic = 'force-dynamic';
 
 export default async function ContentPage() {
-  await requireRole('ADMIN');
+  await requireAdminSection('content');
   const items = await prisma.contentItem.findMany({
     orderBy: [{ section: 'asc' }, { sortOrder: 'asc' }, { createdAt: 'desc' }],
   });

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { requireRole } from '@/lib/session';
+import { requireStaffSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { decryptOptional, readEnc } from '@/lib/crypto';
 import { audit } from '@/lib/audit';
@@ -18,7 +18,7 @@ const decDate = (enc: string | null) => {
 const num = (n: { toString(): string } | null | undefined) => (n === null || n === undefined ? '' : n.toString());
 
 export default async function EditDealPage({ params }: { params: { id: string } }) {
-  const user = await requireRole('REVIEWER', 'ADMIN');
+  const user = await requireStaffSection('review-queue');
   const app = await prisma.application.findUnique({
     where: { id: params.id },
     include: { loanApplication: true },

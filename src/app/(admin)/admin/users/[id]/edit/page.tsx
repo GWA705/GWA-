@@ -1,13 +1,13 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { requireRole } from '@/lib/session';
+import { requireAdminSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { EditUserForm } from '../../EditUserForm';
 
 export const dynamic = 'force-dynamic';
 
 export default async function EditUserPage({ params }: { params: { id: string } }) {
-  await requireRole('ADMIN');
+  await requireAdminSection('users');
   const [user, dealers] = await Promise.all([
     prisma.user.findUnique({ where: { id: params.id } }),
     prisma.dealer.findMany({ where: { active: true }, orderBy: { name: 'asc' }, select: { id: true, name: true } }),

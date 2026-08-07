@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { notFound } from 'next/navigation';
-import { requireRole } from '@/lib/session';
+import { requireStaffSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { decryptOptional } from '@/lib/crypto';
 import { audit } from '@/lib/audit';
@@ -89,7 +89,7 @@ export default async function StaffApplicationDetail({
   params: { id: string };
   searchParams: { reveal?: string };
 }) {
-  const user = await requireRole('REVIEWER', 'ADMIN');
+  const user = await requireStaffSection('review-queue');
   // The deal and the two independent lookups (finance companies, note
   // templates) run concurrently so their now-cross-region round trips overlap
   // instead of stacking one after another.

@@ -1,4 +1,4 @@
-import { requireRole } from '@/lib/session';
+import { requireAdminSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { toggleAnnouncementActiveAction, toggleAnnouncementPositionAction, deleteAnnouncementAction } from '@/app/(admin)/actions';
 import { AnnouncementForm } from './AnnouncementForm';
@@ -9,7 +9,7 @@ import { getBannerRotation } from '@/lib/settings';
 export const dynamic = 'force-dynamic';
 
 export default async function AnnouncementsPage() {
-  await requireRole('ADMIN');
+  await requireAdminSection('announcements');
   const [announcements, rotation] = await Promise.all([
     prisma.announcement.findMany({ orderBy: { createdAt: 'desc' } }),
     getBannerRotation(),

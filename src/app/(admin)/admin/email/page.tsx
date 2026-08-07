@@ -1,4 +1,4 @@
-import { requireRole } from '@/lib/session';
+import { requireAdminSection } from '@/lib/session';
 import { emailEnabled, getEmailIdentityInfo } from '@/lib/email';
 import { TestEmailForm } from './TestEmailForm';
 import { EmailIdentityForm } from './EmailIdentityForm';
@@ -7,7 +7,7 @@ import { AttentionAlertRunner } from './AttentionAlertRunner';
 export const dynamic = 'force-dynamic';
 
 export default async function EmailSettingsPage() {
-  const admin = await requireRole('ADMIN');
+  const admin = await requireAdminSection('email');
   const enabled = emailEnabled();
   const identity = await getEmailIdentityInfo();
 

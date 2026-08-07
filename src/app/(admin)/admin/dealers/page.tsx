@@ -1,4 +1,4 @@
-import { requireRole } from '@/lib/session';
+import { requireAdminSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { DealerForm } from './DealerForm';
 import { DealerRowActions } from './DealerRowActions';
@@ -7,7 +7,7 @@ import { DealerTypeSelect } from './DealerTypeSelect';
 export const dynamic = 'force-dynamic';
 
 export default async function DealersPage() {
-  await requireRole('ADMIN');
+  await requireAdminSection('dealers');
   const dealers = await prisma.dealer.findMany({
     orderBy: { createdAt: 'desc' },
     include: { _count: { select: { users: true, applications: true } } },

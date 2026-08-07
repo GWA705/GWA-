@@ -1,4 +1,4 @@
-import { requireRole } from '@/lib/session';
+import { requireAdminSection } from '@/lib/session';
 import { getReminderConfig } from '@/lib/reminders';
 import { pushEnabled } from '@/lib/push';
 import { emailEnabled } from '@/lib/email';
@@ -8,7 +8,7 @@ import { ReminderRunner } from './ReminderRunner';
 export const dynamic = 'force-dynamic';
 
 export default async function RemindersPage() {
-  await requireRole('ADMIN');
+  await requireAdminSection('reminders');
   const config = await getReminderConfig();
   const email = emailEnabled();
   const push = pushEnabled();

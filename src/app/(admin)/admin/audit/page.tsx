@@ -1,4 +1,4 @@
-import { requireRole } from '@/lib/session';
+import { requireAdminSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import type { Prisma } from '@prisma/client';
 
@@ -18,7 +18,7 @@ interface AuditSearch {
 }
 
 export default async function AuditPage({ searchParams }: { searchParams: AuditSearch }) {
-  await requireRole('ADMIN');
+  await requireAdminSection('audit');
 
   const page = Math.max(1, parseInt(searchParams.page || '1', 10) || 1);
   const q = (searchParams.q || '').trim();

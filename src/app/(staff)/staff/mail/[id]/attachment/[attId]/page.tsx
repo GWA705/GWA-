@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { requireRole } from '@/lib/session';
+import { requireStaffSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { friendlyFileName } from '@/lib/filenames';
 
@@ -13,7 +13,7 @@ export default async function StaffAttachmentViewer({
 }: {
   params: { id: string; attId: string };
 }) {
-  await requireRole('REVIEWER', 'ADMIN');
+  await requireStaffSection('mail');
 
   const mail = await prisma.mail.findUnique({
     where: { id: params.id },

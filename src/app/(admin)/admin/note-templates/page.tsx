@@ -1,4 +1,4 @@
-import { requireRole } from '@/lib/session';
+import { requireAdminSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { NoteTemplateForm } from './NoteTemplateForm';
 import { NoteTemplateRow } from './NoteTemplateRow';
@@ -6,7 +6,7 @@ import { NoteTemplateRow } from './NoteTemplateRow';
 export const dynamic = 'force-dynamic';
 
 export default async function NoteTemplatesPage() {
-  await requireRole('ADMIN');
+  await requireAdminSection('note-templates');
   const templates = await prisma.noteTemplate.findMany({
     orderBy: [{ active: 'desc' }, { sortOrder: 'asc' }, { createdAt: 'asc' }],
   });

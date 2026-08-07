@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { requireRole } from '@/lib/session';
+import { requireStaffSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { SearchBox } from '@/components/SearchBox';
 import { searchWhere } from '@/lib/search';
@@ -133,7 +133,7 @@ function toRow(a: Deal): QueueRow {
 const byWaiting = (a: Deal, b: Deal) => waitingSince(a).getTime() - waitingSince(b).getTime();
 
 export default async function StaffQueue({ searchParams }: { searchParams: { q?: string } }) {
-  await requireRole('REVIEWER', 'ADMIN');
+  await requireStaffSection('review-queue');
   const q = (searchParams.q ?? '').trim();
   const search = searchWhere(q);
 

@@ -1,4 +1,4 @@
-import { requireRole } from '@/lib/session';
+import { requireAdminSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { getMfaRequirement } from '@/lib/settings';
 import { SecuritySettingsForm } from './SecuritySettingsForm';
@@ -6,7 +6,7 @@ import { SecuritySettingsForm } from './SecuritySettingsForm';
 export const dynamic = 'force-dynamic';
 
 export default async function SecurityPage() {
-  await requireRole('ADMIN');
+  await requireAdminSection('security');
   const [requirement, totalActive, withMfa, staffWithout] = await Promise.all([
     getMfaRequirement(),
     prisma.user.count({ where: { active: true } }),

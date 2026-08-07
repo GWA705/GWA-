@@ -2,7 +2,7 @@
 
 import crypto from 'crypto';
 import { revalidatePath } from 'next/cache';
-import { requireRole } from '@/lib/session';
+import { requireAdminSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { audit } from '@/lib/audit';
 import { setSetting, MARKETPLACE_SETTING_KEYS } from '@/lib/settings';
@@ -61,7 +61,7 @@ export interface CategoryActionState {
 
 /** Create or rename/reorder a marketplace category. */
 export async function saveCategoryAction(_prev: CategoryActionState, formData: FormData): Promise<CategoryActionState> {
-  await requireRole('ADMIN');
+  await requireAdminSection('marketplace');
   const id = (formData.get('id') ?? '').toString() || null;
   const name = (formData.get('name') ?? '').toString().trim();
   const sortOrder = Number.parseInt((formData.get('sortOrder') ?? '0').toString(), 10) || 0;
@@ -82,7 +82,7 @@ export async function saveCategoryAction(_prev: CategoryActionState, formData: F
 }
 
 export async function toggleCategoryActiveAction(id: string) {
-  await requireRole('ADMIN');
+  await requireAdminSection('marketplace');
   const c = await prisma.marketplaceCategory.findUnique({ where: { id }, select: { active: true } });
   if (!c) return;
   await prisma.marketplaceCategory.update({ where: { id }, data: { active: !c.active } });
@@ -91,7 +91,7 @@ export async function toggleCategoryActiveAction(id: string) {
 }
 
 export async function deleteCategoryAction(id: string) {
-  await requireRole('ADMIN');
+  await requireAdminSection('marketplace');
   // Items in this category are kept — the FK sets their categoryId to null, so
   // they simply become uncategorized.
   await prisma.marketplaceCategory.delete({ where: { id } }).catch(() => {});
@@ -109,7 +109,7 @@ function parseOptions(raw: string): string[] {
 
 /** Create or update a marketplace item. */
 export async function saveItemAction(_prev: ItemActionState, formData: FormData): Promise<ItemActionState> {
-  const session = await requireRole('ADMIN');
+  const session = await requireAdminSection('marketplace');
   const id = (formData.get('id') ?? '').toString() || null;
   const name = (formData.get('name') ?? '').toString().trim();
   const description = (formData.get('description') ?? '').toString().trim() || null;
@@ -181,7 +181,7 @@ export async function saveItemAction(_prev: ItemActionState, formData: FormData)
 }
 
 export async function toggleItemActiveAction(id: string) {
-  await requireRole('ADMIN');
+  await requireAdminSection('marketplace');
   const item = await prisma.marketplaceItem.findUnique({ where: { id }, select: { active: true } });
   if (!item) return;
   await prisma.marketplaceItem.update({ where: { id }, data: { active: !item.active } });
@@ -190,7 +190,7 @@ export async function toggleItemActiveAction(id: string) {
 }
 
 export async function deleteItemAction(id: string) {
-  await requireRole('ADMIN');
+  await requireAdminSection('marketplace');
   // Keep past orders intact — only delete when nothing references the item.
   const uses = await prisma.orderItem.count({ where: { itemId: id } });
   if (uses > 0) {
@@ -204,7 +204,7 @@ export async function deleteItemAction(id: string) {
 
 /** Save where marketplace order emails should go (blank = all admins). */
 export async function saveOrderEmailAction(_prev: { ok?: boolean }, formData: FormData): Promise<{ ok?: boolean }> {
-  const session = await requireRole('ADMIN');
+  const session = await requireAdminSection('marketplace');
   await setSetting(MARKETPLACE_SETTING_KEYS.orderEmail, (formData.get('orderEmail') ?? '').toString());
   await audit({ actorId: session.userId, action: 'CONTENT_UPDATE', entityType: 'AppSetting', entityId: MARKETPLACE_SETTING_KEYS.orderEmail });
   revalidatePath('/admin/marketplace');

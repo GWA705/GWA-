@@ -1,12 +1,12 @@
 import Link from 'next/link';
-import { requireRole } from '@/lib/session';
+import { requireStaffSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { MailComposeForm } from './MailComposeForm';
 
 export const dynamic = 'force-dynamic';
 
 export default async function StaffMail() {
-  await requireRole('REVIEWER', 'ADMIN');
+  await requireStaffSection('mail');
 
   const [dealers, mails] = await Promise.all([
     prisma.dealer.findMany({ where: { active: true }, orderBy: { name: 'asc' }, select: { id: true, name: true, type: true } }),

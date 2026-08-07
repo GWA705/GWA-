@@ -288,6 +288,16 @@ model User {
   role         Role
   active       Boolean @default(true)
 
+  // Back-end access control (ADMIN role only). A Super Admin has full access to
+  // every admin section AND is the only one who can grant/revoke other admins'
+  // access (see /admin/access). A scoped admin sees only the sections listed in
+  // adminSections (keys from ADMIN_SECTIONS in src/lib/constants.ts); the rest
+  // are hidden from their nav and blocked at the route. Both fields are ignored
+  // for non-admin roles. Existing admins are migrated to superAdmin = true so no
+  // one is locked out until a Super Admin scopes them down.
+  superAdmin    Boolean  @default(false)
+  adminSections String[] @default([])
+
   // Multi-factor auth. Method is 'APP' (authenticator TOTP) or 'EMAIL' (a code
   // emailed at login). Secret is application-encrypted (APP only).
   mfaEnabled       Boolean @default(false)

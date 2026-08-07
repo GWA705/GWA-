@@ -4,6 +4,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import type { Role } from '@prisma/client';
 import { prisma } from './db';
+import { ADMIN_SECTIONS } from './constants';
 
 const COOKIE_NAME = 'gwa_session';
 const MFA_COOKIE_NAME = 'gwa_mfa_pending';
@@ -18,6 +19,11 @@ export interface SessionUser {
   name: string;
   role: Role;
   dealerId: string | null;
+  // Back-end access control (ADMIN only; false/[] for everyone else). superAdmin
+  // = full access + can manage others' access; adminSections = the section keys a
+  // scoped admin may reach. Read fresh from the DB each request (not the token).
+  superAdmin: boolean;
+  adminSections: string[];
   // True when an admin is currently "viewing as" a dealer. When set, dealerId is
   // the impersonated dealer's id (so all dealer-portal scoping just works).
   impersonating?: boolean;
@@ -136,7 +142,7 @@ export const getSession = cache(async function getSession(): Promise<SessionUser
   // are used so an admin edit takes effect on the user's next request.
   const dbUser = await prisma.user.findUnique({
     where: { id: payload.userId as string },
-    select: { id: true, email: true, name: true, role: true, dealerId: true, active: true, tokenVersion: true },
+    select: { id: true, email: true, name: true, role: true, dealerId: true, active: true, tokenVersion: true, superAdmin: true, adminSections: true },
   });
   if (!dbUser || !dbUser.active) return null;
   if (((payload.tv as number | undefined) ?? 0) !== dbUser.tokenVersion) return null;
@@ -147,6 +153,9 @@ export const getSession = cache(async function getSession(): Promise<SessionUser
     name: dbUser.name,
     role: dbUser.role,
     dealerId: dbUser.dealerId,
+    // Only admins carry back-end permissions; keep them empty for other roles.
+    superAdmin: dbUser.role === 'ADMIN' ? dbUser.superAdmin : false,
+    adminSections: dbUser.role === 'ADMIN' ? dbUser.adminSections : [],
   };
 
   // "View as dealer": only an admin can impersonate, and only their own cookie
@@ -201,6 +210,60 @@ export async function requireRole(...roles: Role[]): Promise<SessionUser> {
   const session = await requireSession();
   if (!roles.includes(session.role)) {
     redirect(defaultLandingFor(session.role));
+  }
+  return session;
+}
+
+/**
+ * The best landing page for an admin, respecting their back-end permissions.
+ * Super Admins land on the Overview; a scoped admin lands on the first section
+ * they're allowed (in ADMIN_SECTIONS order). An admin with no sections at all
+ * falls back to their account page.
+ */
+export function adminLandingFor(user: SessionUser): string {
+  if (user.role !== 'ADMIN') return defaultLandingFor(user.role);
+  if (user.superAdmin) return '/admin';
+  const first = ADMIN_SECTIONS.find((s) => user.adminSections.includes(s.key));
+  return first ? first.href : '/account';
+}
+
+/**
+ * Require that the current user is an admin allowed to reach `sectionKey` (a key
+ * from ADMIN_SECTIONS). Super Admins pass every check; a scoped admin passes
+ * only for sections in their list. Anyone else is redirected to a page they can
+ * actually reach. Call this at the top of every back-end page/action.
+ */
+export async function requireAdminSection(sectionKey: string): Promise<SessionUser> {
+  const session = await requireSession();
+  const allowed =
+    session.role === 'ADMIN' && (session.superAdmin || session.adminSections.includes(sectionKey));
+  if (!allowed) {
+    redirect(session.role === 'ADMIN' ? adminLandingFor(session) : defaultLandingFor(session.role));
+  }
+  return session;
+}
+
+/**
+ * Guard a shared staff-area page (Mail, the Deals queue) that both reviewers and
+ * admins use. Reviewers always have full staff access; an admin passes only when
+ * they hold the matching back-end section ('mail' or 'review-queue'). This lets a
+ * scoped admin be given, say, Mail without the deal queue.
+ */
+export async function requireStaffSection(sectionKey: string): Promise<SessionUser> {
+  const session = await requireSession();
+  if (session.role === 'REVIEWER') return session;
+  if (session.role === 'ADMIN') {
+    if (session.superAdmin || session.adminSections.includes(sectionKey)) return session;
+    redirect(adminLandingFor(session));
+  }
+  redirect(defaultLandingFor(session.role));
+}
+
+/** Require the current user to be a Super Admin (manage other admins' access). */
+export async function requireSuperAdmin(): Promise<SessionUser> {
+  const session = await requireSession();
+  if (session.role !== 'ADMIN' || !session.superAdmin) {
+    redirect(session.role === 'ADMIN' ? adminLandingFor(session) : defaultLandingFor(session.role));
   }
   return session;
 }

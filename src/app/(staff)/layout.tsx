@@ -3,15 +3,21 @@ import { AppShell } from '@/components/AppShell';
 import { AlertModal } from '@/components/AlertModal';
 import { alertWhereForUser } from '@/lib/alerts';
 import { prisma } from '@/lib/db';
+import { canAdminSection, hasAnyAdminSection } from '@/lib/rbac';
 
 export default async function StaffLayout({ children }: { children: React.ReactNode }) {
   const user = await requireRole('REVIEWER', 'ADMIN');
-  const nav = [
-    { href: '/staff', label: 'Deals' },
-    { href: '/staff/mail', label: 'Mail' },
-    { href: '/account', label: 'My account' },
-  ];
-  if (user.role === 'ADMIN') nav.push({ href: '/admin', label: 'Admin' });
+  // Reviewers get the full staff nav. An admin only sees the staff areas they're
+  // permitted: the Deals queue ('review-queue') and Mail ('mail'). Route guards
+  // enforce the same rules.
+  const canDeals = user.role === 'REVIEWER' || canAdminSection(user, 'review-queue');
+  const canMail = user.role === 'REVIEWER' || canAdminSection(user, 'mail');
+  const nav: { href: string; label: string }[] = [];
+  if (canDeals) nav.push({ href: '/staff', label: 'Deals' });
+  if (canMail) nav.push({ href: '/staff/mail', label: 'Mail' });
+  nav.push({ href: '/account', label: 'My account' });
+  // Admins with any back-end access get a jump link back to the admin area.
+  if (user.role === 'ADMIN' && hasAnyAdminSection(user)) nav.push({ href: '/admin', label: 'Admin' });
 
   const alerts = await prisma.dealerAlert.findMany({
     where: alertWhereForUser(user.role, user.dealerId, user.userId),
