@@ -1,4 +1,4 @@
-import { requireRole } from '@/lib/session';
+import { requireAdminSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { getSetting, MARKETPLACE_SETTING_KEYS } from '@/lib/settings';
 import { ItemForm } from './ItemForm';
@@ -10,7 +10,7 @@ import { CategoryRowActions } from './CategoryRowActions';
 export const dynamic = 'force-dynamic';
 
 export default async function AdminMarketplace() {
-  await requireRole('ADMIN');
+  await requireAdminSection('marketplace');
 
   const [orderEmail, categories, items, orders] = await Promise.all([
     getSetting(MARKETPLACE_SETTING_KEYS.orderEmail),

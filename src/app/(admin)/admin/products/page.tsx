@@ -1,4 +1,4 @@
-import { requireRole } from '@/lib/session';
+import { requireAdminSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { ProductForm } from './ProductForm';
 import { ProductRowActions } from './ProductRowActions';
@@ -6,7 +6,7 @@ import { ProductRowActions } from './ProductRowActions';
 export const dynamic = 'force-dynamic';
 
 export default async function ProductsPage() {
-  await requireRole('ADMIN');
+  await requireAdminSection('products');
   const products = await prisma.product.findMany({
     orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
   });

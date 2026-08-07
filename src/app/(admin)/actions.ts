@@ -2,7 +2,8 @@
 
 import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/db';
-import { requireRole, startViewAs, stopViewAs } from '@/lib/session';
+import { requireAdminSection, requireSuperAdmin, startViewAs, stopViewAs } from '@/lib/session';
+import { ADMIN_SECTION_KEYS } from '@/lib/constants';
 import { hashPassword, validatePasswordStrength } from '@/lib/password';
 import { audit } from '@/lib/audit';
 import { runAttentionAlerts } from '@/lib/sla';
@@ -31,7 +32,7 @@ export async function saveEmailIdentityAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const session = await requireRole('ADMIN');
+  const session = await requireAdminSection('email');
   const fromName = String(formData.get('fromName') || '').trim();
   const fromEmail = String(formData.get('fromEmail') || '').trim();
   const replyTo = String(formData.get('replyTo') || '').trim();
@@ -52,7 +53,7 @@ export async function saveEmailIdentityAction(
 // Surfaces the real error (e.g. an S3 auth/permission failure) so document-
 // upload problems can be diagnosed without digging through server logs.
 export async function testStorageAction(): Promise<ActionState> {
-  const session = await requireRole('ADMIN');
+  const session = await requireAdminSection('email');
   const key = `healthcheck/${crypto.randomBytes(8).toString('hex')}.txt`;
   const payload = Buffer.from(`storage-check ${key}`);
   try {
@@ -83,7 +84,7 @@ export async function sendTestEmailAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const session = await requireRole('ADMIN');
+  const session = await requireAdminSection('email');
   const to = String(formData.get('to') || '').trim();
   if (!to || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) {
     return { error: 'Enter a valid email address.' };
@@ -132,7 +133,7 @@ export async function createDealerAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const session = await requireRole('ADMIN');
+  const session = await requireAdminSection('dealers');
   const parsed = createDealerSchema.safeParse({ name: formData.get('name'), type: formData.get('type') || undefined });
   if (!parsed.success) return { error: 'Enter a dealer name.' };
 
@@ -145,7 +146,7 @@ export async function createDealerAction(
 // Change a dealer's type (Distributor ↔ Dealer) — used for organizing where
 // recipient pickers group them.
 export async function setDealerTypeAction(dealerId: string, type: 'DISTRIBUTOR' | 'DEALER') {
-  const session = await requireRole('ADMIN');
+  const session = await requireAdminSection('dealers');
   await prisma.dealer.update({ where: { id: dealerId }, data: { type } });
   await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'Dealer', entityId: dealerId, detail: `type → ${type}` });
   revalidatePath('/admin/dealers');
@@ -155,7 +156,7 @@ export async function createUserAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const session = await requireRole('ADMIN');
+  const session = await requireAdminSection('users');
   const parsed = createUserSchema.safeParse({
     email: formData.get('email'),
     name: formData.get('name'),
@@ -241,7 +242,7 @@ export async function updateUserAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const session = await requireRole('ADMIN');
+  const session = await requireAdminSection('users');
   const parsed = updateUserSchema.safeParse({
     email: formData.get('email'),
     name: formData.get('name'),
@@ -306,7 +307,7 @@ export async function updateUserAction(
 }
 
 export async function toggleUserActiveAction(userId: string): Promise<void> {
-  const session = await requireRole('ADMIN');
+  const session = await requireAdminSection('users');
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user || user.id === session.userId) return; // cannot disable self
   // Deactivating also revokes the user's live sessions immediately.
@@ -327,7 +328,7 @@ export async function toggleUserActiveAction(userId: string): Promise<void> {
  * Admins cannot delete their own account.
  */
 export async function deleteUserAction(userId: string): Promise<void> {
-  const session = await requireRole('ADMIN');
+  const session = await requireAdminSection('users');
   if (userId === session.userId) return; // cannot delete self
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -359,7 +360,7 @@ export async function deleteUserAction(userId: string): Promise<void> {
 }
 
 export async function toggleDealerActiveAction(dealerId: string): Promise<void> {
-  const session = await requireRole('ADMIN');
+  const session = await requireAdminSection('dealers');
   const dealer = await prisma.dealer.findUnique({ where: { id: dealerId } });
   if (!dealer) return;
   await prisma.dealer.update({ where: { id: dealerId }, data: { active: !dealer.active } });
@@ -373,7 +374,7 @@ export async function toggleDealerActiveAction(dealerId: string): Promise<void> 
  * information and the audit trail, so those must be archived instead.
  */
 export async function deleteDealerAction(dealerId: string): Promise<void> {
-  const session = await requireRole('ADMIN');
+  const session = await requireAdminSection('dealers');
   const dealer = await prisma.dealer.findUnique({
     where: { id: dealerId },
     include: { _count: { select: { users: true, applications: true } } },
@@ -394,7 +395,7 @@ export async function createFinanceCompanyAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const session = await requireRole('ADMIN');
+  const session = await requireAdminSection('finance');
   const parsed = createFinanceCompanySchema.safeParse({ name: formData.get('name') });
   if (!parsed.success) return { error: 'Enter a finance company name.' };
 
@@ -405,7 +406,7 @@ export async function createFinanceCompanyAction(
 }
 
 export async function toggleFinanceCompanyActiveAction(id: string): Promise<void> {
-  const session = await requireRole('ADMIN');
+  const session = await requireAdminSection('finance');
   const fc = await prisma.financeCompany.findUnique({ where: { id } });
   if (!fc) return;
   await prisma.financeCompany.update({ where: { id }, data: { active: !fc.active } });
@@ -415,7 +416,7 @@ export async function toggleFinanceCompanyActiveAction(id: string): Promise<void
 
 // Toggle the "require a serial number for every product" rule for this company.
 export async function toggleFinanceCompanySerialAction(id: string): Promise<void> {
-  const session = await requireRole('ADMIN');
+  const session = await requireAdminSection('finance');
   const fc = await prisma.financeCompany.findUnique({ where: { id } });
   if (!fc) return;
   await prisma.financeCompany.update({ where: { id }, data: { requiresSerialPerProduct: !fc.requiresSerialPerProduct } });
@@ -429,7 +430,7 @@ export async function toggleFinanceCompanySerialAction(id: string): Promise<void
  * historical record stays intact.
  */
 export async function deleteFinanceCompanyAction(id: string): Promise<void> {
-  const session = await requireRole('ADMIN');
+  const session = await requireAdminSection('finance');
   const fc = await prisma.financeCompany.findUnique({
     where: { id },
     include: { _count: { select: { applications: true } } },
@@ -444,7 +445,7 @@ export async function deleteFinanceCompanyAction(id: string): Promise<void> {
 // --- Products (sales-journal dropdown, admin-managed) ----------------------
 
 export async function createProductAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const session = await requireRole('ADMIN');
+  const session = await requireAdminSection('products');
   const name = String(formData.get('name') || '').trim();
   if (!name || name.length > 120) return { error: 'Enter a product name (up to 120 characters).' };
   const existing = await prisma.product.findFirst({ where: { name } });
@@ -456,7 +457,7 @@ export async function createProductAction(_prev: ActionState, formData: FormData
 }
 
 export async function renameProductAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const session = await requireRole('ADMIN');
+  const session = await requireAdminSection('products');
   const id = String(formData.get('id') || '');
   const name = String(formData.get('name') || '').trim();
   if (!name || name.length > 120) return { error: 'Enter a product name (up to 120 characters).' };
@@ -469,7 +470,7 @@ export async function renameProductAction(_prev: ActionState, formData: FormData
 }
 
 export async function toggleProductActiveAction(id: string): Promise<void> {
-  const session = await requireRole('ADMIN');
+  const session = await requireAdminSection('products');
   const p = await prisma.product.findUnique({ where: { id } });
   if (!p) return;
   await prisma.product.update({ where: { id }, data: { active: !p.active } });
@@ -481,7 +482,7 @@ export async function toggleProductActiveAction(id: string): Promise<void> {
 // the deal), so a delete never affects historical records — it just removes the
 // dropdown option.
 export async function deleteProductAction(id: string): Promise<void> {
-  const session = await requireRole('ADMIN');
+  const session = await requireAdminSection('products');
   const p = await prisma.product.findUnique({ where: { id } });
   if (!p) return;
   await prisma.product.delete({ where: { id } });
@@ -495,7 +496,7 @@ export async function saveBannerSettingsAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const session = await requireRole('ADMIN');
+  const session = await requireAdminSection('announcements');
   const top = formData.get('rotateTop') === 'on';
   const bottom = formData.get('rotateBottom') === 'on';
   await setSetting(BANNER_SETTING_KEYS.rotateTop, top ? 'true' : 'false');
@@ -511,7 +512,7 @@ export async function saveSecuritySettingsAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const session = await requireRole('ADMIN');
+  const session = await requireAdminSection('security');
   const raw = String(formData.get('mfaRequirement') || '');
   const value: MfaRequirement = raw === 'staff' || raw === 'off' ? raw : 'everyone';
   await setSetting(SECURITY_SETTING_KEYS.mfaRequirement, value);
@@ -523,7 +524,7 @@ export async function saveSecuritySettingsAction(
 // --- Quick-note templates --------------------------------------------------
 
 export async function createNoteTemplateAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const session = await requireRole('ADMIN');
+  const session = await requireAdminSection('note-templates');
   const label = String(formData.get('label') || '').trim();
   const body = String(formData.get('body') || '').trim();
   if (!label || label.length > 60) return { error: 'Enter a short label (up to 60 characters).' };
@@ -536,7 +537,7 @@ export async function createNoteTemplateAction(_prev: ActionState, formData: For
 }
 
 export async function updateNoteTemplateAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const session = await requireRole('ADMIN');
+  const session = await requireAdminSection('note-templates');
   const id = String(formData.get('id') || '');
   const label = String(formData.get('label') || '').trim();
   const body = String(formData.get('body') || '').trim();
@@ -551,7 +552,7 @@ export async function updateNoteTemplateAction(_prev: ActionState, formData: For
 }
 
 export async function toggleNoteTemplateActiveAction(id: string): Promise<void> {
-  const session = await requireRole('ADMIN');
+  const session = await requireAdminSection('note-templates');
   const t = await prisma.noteTemplate.findUnique({ where: { id } });
   if (!t) return;
   await prisma.noteTemplate.update({ where: { id }, data: { active: !t.active } });
@@ -560,7 +561,7 @@ export async function toggleNoteTemplateActiveAction(id: string): Promise<void> 
 }
 
 export async function deleteNoteTemplateAction(id: string): Promise<void> {
-  const session = await requireRole('ADMIN');
+  const session = await requireAdminSection('note-templates');
   const t = await prisma.noteTemplate.findUnique({ where: { id } });
   if (!t) return;
   await prisma.noteTemplate.delete({ where: { id } });
@@ -574,7 +575,7 @@ export async function createAnnouncementAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const session = await requireRole('ADMIN');
+  const session = await requireAdminSection('announcements');
   const file = formData.get('image') as File | null;
   const hasImage = !!file && typeof file !== 'string' && file.size > 0;
 
@@ -632,7 +633,7 @@ export async function setAnnouncementImageAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const session = await requireRole('ADMIN');
+  const session = await requireAdminSection('announcements');
   const a = await prisma.announcement.findUnique({ where: { id } });
   if (!a) return { error: 'Announcement not found.' };
 
@@ -676,7 +677,7 @@ export async function setAnnouncementImageAction(
 }
 
 export async function toggleAnnouncementActiveAction(id: string): Promise<void> {
-  const session = await requireRole('ADMIN');
+  const session = await requireAdminSection('announcements');
   const a = await prisma.announcement.findUnique({ where: { id } });
   if (!a) return;
   await prisma.announcement.update({ where: { id }, data: { active: !a.active } });
@@ -687,7 +688,7 @@ export async function toggleAnnouncementActiveAction(id: string): Promise<void> 
 
 // Flip a sign between the top of the dealer dashboard and after the deals list.
 export async function toggleAnnouncementPositionAction(id: string): Promise<void> {
-  const session = await requireRole('ADMIN');
+  const session = await requireAdminSection('announcements');
   const a = await prisma.announcement.findUnique({ where: { id } });
   if (!a) return;
   const next = a.position === 'BOTTOM' ? 'TOP' : 'BOTTOM';
@@ -698,7 +699,7 @@ export async function toggleAnnouncementPositionAction(id: string): Promise<void
 }
 
 export async function deleteAnnouncementAction(id: string): Promise<void> {
-  const session = await requireRole('ADMIN');
+  const session = await requireAdminSection('announcements');
   const a = await prisma.announcement.findUnique({ where: { id } });
   if (!a) return;
   if (a.imageStorageKey) await deleteDocument(a.imageStorageKey).catch(() => {});
@@ -721,7 +722,7 @@ export async function createContentAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const session = await requireRole('ADMIN');
+  const session = await requireAdminSection('content');
   const file = formData.get('file') as File | null;
   const hasFile = !!file && typeof file !== 'string' && file.size > 0;
 
@@ -782,7 +783,7 @@ export async function updateContentAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const session = await requireRole('ADMIN');
+  const session = await requireAdminSection('content');
   const existing = await prisma.contentItem.findUnique({ where: { id } });
   if (!existing) return { error: 'Item not found.' };
 
@@ -848,7 +849,7 @@ export async function updateContentAction(
 }
 
 export async function toggleContentActiveAction(id: string): Promise<void> {
-  const session = await requireRole('ADMIN');
+  const session = await requireAdminSection('content');
   const c = await prisma.contentItem.findUnique({ where: { id } });
   if (!c) return;
   await prisma.contentItem.update({ where: { id }, data: { active: !c.active } });
@@ -857,7 +858,7 @@ export async function toggleContentActiveAction(id: string): Promise<void> {
 }
 
 export async function deleteContentAction(id: string): Promise<void> {
-  const session = await requireRole('ADMIN');
+  const session = await requireAdminSection('content');
   const c = await prisma.contentItem.findUnique({ where: { id } });
   if (!c) return;
   if (c.fileStorageKey) await deleteDocument(c.fileStorageKey).catch(() => {});
@@ -869,7 +870,7 @@ export async function deleteContentAction(id: string): Promise<void> {
 
 // Set, replace, or remove a content item's custom cover thumbnail (image only).
 export async function setContentThumbnailAction(id: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
-  const session = await requireRole('ADMIN');
+  const session = await requireAdminSection('content');
   const item = await prisma.contentItem.findUnique({ where: { id } });
   if (!item) return { error: 'Item not found.' };
 
@@ -910,7 +911,7 @@ export async function runAttentionAlertsNowAction(
   _prev: { ok?: boolean; message?: string },
   _formData: FormData,
 ): Promise<{ ok?: boolean; message?: string }> {
-  const session = await requireRole('ADMIN');
+  const session = await requireAdminSection('email');
   try {
     const r = await runAttentionAlerts();
     await audit({
@@ -935,7 +936,7 @@ export async function saveReminderConfigAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const session = await requireRole('ADMIN');
+  const session = await requireAdminSection('reminders');
   const current = await getReminderConfig();
 
   const num = (name: keyof ReminderConfig, min: number, max: number): number => {
@@ -977,7 +978,7 @@ export async function saveReminderConfigAction(
 
 // Reset the reminder rule set to the built-in defaults.
 export async function resetReminderConfigAction(): Promise<void> {
-  const session = await requireRole('ADMIN');
+  const session = await requireAdminSection('reminders');
   await setReminderConfig(DEFAULT_REMINDER_CONFIG);
   await audit({ actorId: session.userId, action: 'USER_UPDATE', entityType: 'AppSetting', entityId: 'reminders', detail: 'Dealer reminder rules reset to defaults' });
   revalidatePath('/admin/reminders');
@@ -988,7 +989,7 @@ export async function runDealerRemindersNowAction(
   _prev: { ok?: boolean; message?: string },
   _formData: FormData,
 ): Promise<{ ok?: boolean; message?: string }> {
-  const session = await requireRole('ADMIN');
+  const session = await requireAdminSection('reminders');
   try {
     const r = await runDealerReminders();
     await audit({
@@ -1010,7 +1011,7 @@ export async function runDealerRemindersNowAction(
 // Admin: start "view as dealer" — see exactly what a dealer sees, to
 // troubleshoot an issue. Bound to this admin's session and audit-logged.
 export async function viewAsDealerAction(dealerId: string): Promise<void> {
-  const session = await requireRole('ADMIN');
+  const session = await requireAdminSection('dealers');
   const dealer = await prisma.dealer.findUnique({ where: { id: dealerId } });
   if (!dealer) redirect('/admin/dealers');
   await startViewAs(dealerId, session.userId);
@@ -1026,7 +1027,7 @@ export async function viewAsDealerAction(dealerId: string): Promise<void> {
 
 // Admin: stop impersonating and return to the admin area.
 export async function stopViewAsAction(): Promise<void> {
-  const session = await requireRole('ADMIN');
+  const session = await requireAdminSection('dealers');
   stopViewAs();
   await audit({
     actorId: session.userId,
@@ -1044,7 +1045,7 @@ export async function stopViewAsAction(): Promise<void> {
  * (matched on dealer + store number) — safe to run repeatedly. Admin only.
  */
 export async function importHomeDepotStoresAction(): Promise<ActionState> {
-  const session = await requireRole('ADMIN');
+  const session = await requireAdminSection('dealers');
   const { HD_STORE_IMPORT } = await import('@/lib/hdStores');
 
   let dealersCreated = 0;
@@ -1097,7 +1098,7 @@ export async function createDealerAlertAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const session = await requireRole('ADMIN');
+  const session = await requireAdminSection('alerts');
   const parsed = dealerAlertSchema.safeParse({
     title: formData.get('title'),
     body: formData.get('body'),
@@ -1136,7 +1137,7 @@ export async function createDealerAlertAction(
 }
 
 export async function toggleDealerAlertActiveAction(id: string): Promise<void> {
-  const session = await requireRole('ADMIN');
+  const session = await requireAdminSection('alerts');
   const alert = await prisma.dealerAlert.findUnique({ where: { id } });
   if (!alert) return;
   await prisma.dealerAlert.update({ where: { id }, data: { active: !alert.active } });
@@ -1151,7 +1152,7 @@ export async function toggleDealerAlertActiveAction(id: string): Promise<void> {
 }
 
 export async function deleteDealerAlertAction(id: string): Promise<void> {
-  const session = await requireRole('ADMIN');
+  const session = await requireAdminSection('alerts');
   await prisma.dealerAlert.delete({ where: { id } }).catch(() => {});
   await audit({
     actorId: session.userId,
@@ -1161,4 +1162,62 @@ export async function deleteDealerAlertAction(id: string): Promise<void> {
     detail: 'Dealer pop-up deleted',
   });
   revalidatePath('/admin/alerts');
+}
+
+// --- Super-Admin: manage another admin's back-end access --------------------
+// Only a Super Admin can grant/revoke sections and the Super-Admin flag itself.
+// Guards prevent locking everyone out: you can't change your own Super-Admin
+// status, and the system always keeps at least one Super Admin.
+export async function saveAdminAccessAction(
+  userId: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await requireSuperAdmin();
+
+  const target = await prisma.user.findUnique({ where: { id: userId } });
+  if (!target) return { error: 'User not found.' };
+  if (target.role !== 'ADMIN') return { error: 'Only administrators have back-end access. Change the role first in Users.' };
+
+  const wantSuper = formData.get('superAdmin') === 'on';
+  // Keep only recognised section keys, in canonical order, de-duplicated.
+  const picked = new Set(formData.getAll('sections').map(String));
+  const sections = ADMIN_SECTION_KEYS.filter((k) => picked.has(k));
+
+  // You can't demote yourself from Super Admin (prevents self-lockout).
+  if (userId === session.userId && !wantSuper) {
+    return { error: "You can't remove your own Super-Admin access." };
+  }
+  // Never leave the system without a Super Admin.
+  if (target.superAdmin && !wantSuper) {
+    const otherSupers = await prisma.user.count({
+      where: { role: 'ADMIN', superAdmin: true, active: true, id: { not: userId } },
+    });
+    if (otherSupers === 0) {
+      return { error: 'At least one Super Admin is required. Promote someone else first.' };
+    }
+  }
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      superAdmin: wantSuper,
+      // A Super Admin implicitly has everything; store the picked sections too so
+      // that if they're later demoted, their last section grant is preserved.
+      adminSections: sections,
+      // Revoke the target's live sessions so the change applies immediately —
+      // except when editing yourself (that would sign you out mid-action).
+      ...(userId === session.userId ? {} : { tokenVersion: { increment: 1 } }),
+    },
+  });
+
+  await audit({
+    actorId: session.userId,
+    action: 'USER_UPDATE',
+    entityType: 'User',
+    entityId: userId,
+    detail: `admin access: ${wantSuper ? 'Super Admin' : `sections=[${sections.join(', ') || 'none'}]`}`,
+  });
+  revalidatePath('/admin/access');
+  return { ok: true, message: `Access updated for ${target.name}.` };
 }

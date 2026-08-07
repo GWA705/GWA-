@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { requireRole } from '@/lib/session';
+import { requireStaffSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { putDocument, newMailStorageKey } from '@/lib/storage';
 import { sha256 } from '@/lib/crypto';
@@ -23,7 +23,7 @@ export interface MailActionState {
 
 /** Admins/Reviewers compose and send mail to dealers, with file attachments. */
 export async function sendMailAction(_prev: MailActionState, formData: FormData): Promise<MailActionState> {
-  const session = await requireRole('REVIEWER', 'ADMIN');
+  const session = await requireStaffSection('mail');
 
   const subject = (formData.get('subject') ?? '').toString().trim();
   const body = (formData.get('body') ?? '').toString().trim();

@@ -1,4 +1,4 @@
-import { requireRole } from '@/lib/session';
+import { requireAdminSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { roleLabel } from '@/lib/rbac';
 import { UserForm } from './UserForm';
@@ -7,7 +7,7 @@ import { UsersDirectory, type DirGroup, type DirUser } from './UsersDirectory';
 export const dynamic = 'force-dynamic';
 
 export default async function UsersPage() {
-  const admin = await requireRole('ADMIN');
+  const admin = await requireAdminSection('users');
   const [users, dealers] = await Promise.all([
     prisma.user.findMany({
       orderBy: { createdAt: 'desc' },

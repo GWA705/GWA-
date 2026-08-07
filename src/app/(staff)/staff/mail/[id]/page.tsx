@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { requireRole } from '@/lib/session';
+import { requireStaffSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { friendlyFileName } from '@/lib/filenames';
 
@@ -10,7 +10,7 @@ const fmt = (d: Date | null | undefined) =>
   d ? d.toLocaleString('en-CA', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—';
 
 export default async function MailReceipts({ params }: { params: { id: string } }) {
-  await requireRole('REVIEWER', 'ADMIN');
+  await requireStaffSection('mail');
 
   const mail = await prisma.mail.findUnique({
     where: { id: params.id },

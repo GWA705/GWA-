@@ -100,6 +100,8 @@ export async function changePasswordAction(
     name: session.name,
     role: session.role,
     dealerId: session.dealerId,
+    superAdmin: session.superAdmin,
+    adminSections: session.adminSections,
     tokenVersion: updated.tokenVersion,
   });
   await audit({ actorId: user.id, action: 'PASSWORD_CHANGE', entityType: 'User', entityId: user.id });

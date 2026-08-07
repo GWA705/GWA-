@@ -36,6 +36,9 @@ async function main() {
         email: adminEmail,
         name: 'GWA Administrator',
         role: 'ADMIN',
+        // The bootstrap admin is a Super Admin so a fresh environment always has
+        // full back-end access and someone who can grant access to others.
+        superAdmin: true,
         passwordHash: await hash(adminPassword),
         // null → treated as "must change" so the bootstrap password is forced to
         // be changed at first login.

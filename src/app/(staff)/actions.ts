@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/db';
-import { requireRole } from '@/lib/session';
+import { requireStaffSection } from '@/lib/session';
 import { audit } from '@/lib/audit';
 import { markReviewerAction } from '@/lib/activity';
 import { encryptOptional, decryptOptional } from '@/lib/crypto';
@@ -61,7 +61,7 @@ function nextStatus(type: DecisionType): ApplicationStatus | null {
  * document that's already been confirmed is protected — un-verify it first.
  */
 export async function deleteDocumentAction(documentId: string): Promise<{ error?: string }> {
-  const session = await requireRole('REVIEWER', 'ADMIN');
+  const session = await requireStaffSection('review-queue');
   const doc = await prisma.document.findUnique({ where: { id: documentId } });
   if (!doc) return { error: 'Document not found.' };
   if (doc.verifiedAt) return { error: 'This document is confirmed — un-confirm it first, then delete.' };
@@ -93,7 +93,7 @@ export async function setDealReferencesAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const session = await requireRole('REVIEWER', 'ADMIN');
+  const session = await requireStaffSection('review-queue');
   const parsed = dealReferencesSchema.safeParse({
     applicationId,
     financeItNumber: (formData.get('financeItNumber') as string) ?? '',
@@ -126,7 +126,7 @@ export async function setDealReferencesAction(
  * (FinanceIT) deals where "approved" was dealer-asserted until now.
  */
 export async function toggleFinanceNumberVerifiedAction(applicationId: string): Promise<void> {
-  const session = await requireRole('REVIEWER', 'ADMIN');
+  const session = await requireStaffSection('review-queue');
   const app = await prisma.application.findUnique({ where: { id: applicationId } });
   if (!app) return;
   const verifying = app.financeNumberVerifiedAt === null;
@@ -170,7 +170,7 @@ export async function recordDecisionAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const session = await requireRole('REVIEWER', 'ADMIN');
+  const session = await requireStaffSection('review-queue');
 
   const parsed = decisionSchema.safeParse({
     applicationId: formData.get('applicationId'),
@@ -264,7 +264,7 @@ export async function recordDecisionAction(
 
 /** Move a submitted application into review (reviewer picks it up). */
 export async function startReviewAction(applicationId: string): Promise<void> {
-  const session = await requireRole('REVIEWER', 'ADMIN');
+  const session = await requireStaffSection('review-queue');
   const app = await prisma.application.findUnique({ where: { id: applicationId } });
   if (!app) return;
   if (app.status === 'SUBMITTED') {
@@ -283,7 +283,7 @@ export async function startReviewAction(applicationId: string): Promise<void> {
 
 /** Move a submitted funding package into review. */
 export async function startFundingReviewAction(applicationId: string): Promise<void> {
-  const session = await requireRole('REVIEWER', 'ADMIN');
+  const session = await requireStaffSection('review-queue');
   const app = await prisma.application.findUnique({ where: { id: applicationId } });
   if (!app) return;
   if (app.status === 'FUNDING_SUBMITTED') {
@@ -307,7 +307,7 @@ export async function uploadReviewerPaperworkAction(
   _prev: { error?: string },
   formData: FormData,
 ): Promise<{ error?: string }> {
-  const session = await requireRole('REVIEWER', 'ADMIN');
+  const session = await requireStaffSection('review-queue');
   const app = await prisma.application.findUnique({ where: { id: applicationId } });
   if (!app) return { error: 'Not found.' };
 
@@ -369,7 +369,7 @@ export async function updateDealAction(
   _prev: { error?: string; fieldErrors?: Record<string, string> },
   formData: FormData,
 ): Promise<{ error?: string; fieldErrors?: Record<string, string> }> {
-  const session = await requireRole('REVIEWER', 'ADMIN');
+  const session = await requireStaffSection('review-queue');
   const app = await prisma.application.findUnique({ where: { id: applicationId } });
   if (!app) return { error: 'Deal not found.' };
 
@@ -482,7 +482,7 @@ export async function recordPayoutAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const session = await requireRole('REVIEWER', 'ADMIN');
+  const session = await requireStaffSection('review-queue');
   const parsed = payoutSchema.safeParse({
     applicationId: formData.get('applicationId'),
     amount: formData.get('amount'),
@@ -523,7 +523,7 @@ export async function recordPayoutAction(
 
 // Reviewer toggles a funding document's "completed/verified" state.
 export async function toggleDocumentVerifiedAction(documentId: string): Promise<void> {
-  const session = await requireRole('REVIEWER', 'ADMIN');
+  const session = await requireStaffSection('review-queue');
   const doc = await prisma.document.findUnique({ where: { id: documentId } });
   if (!doc) return;
   const verify = doc.verifiedAt === null;
@@ -547,7 +547,7 @@ export async function toggleDocumentVerifiedAction(documentId: string): Promise<
 
 // Reviewer marks every uploaded funding document as completed in one click.
 export async function verifyAllFundingDocsAction(applicationId: string): Promise<void> {
-  const session = await requireRole('REVIEWER', 'ADMIN');
+  const session = await requireStaffSection('review-queue');
   await prisma.document.updateMany({
     where: { applicationId, stage: 'FUNDING', verifiedAt: null },
     data: { verifiedAt: new Date(), verifiedById: session.userId },
@@ -568,7 +568,7 @@ export async function verifyAllFundingDocsAction(applicationId: string): Promise
  * required funding document type has at least one verified/completed document.
  */
 export async function moveToInForFundingAction(applicationId: string): Promise<void> {
-  const session = await requireRole('REVIEWER', 'ADMIN');
+  const session = await requireStaffSection('review-queue');
   const app = await prisma.application.findUnique({
     where: { id: applicationId },
     include: { documents: { where: { stage: 'FUNDING' } } },
@@ -615,7 +615,7 @@ export async function changeStatusAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const session = await requireRole('REVIEWER', 'ADMIN');
+  const session = await requireStaffSection('review-queue');
   const parsed = statusChangeSchema.safeParse({
     applicationId: formData.get('applicationId'),
     status: formData.get('status'),
@@ -669,7 +669,7 @@ export async function addStaffNoteAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const session = await requireRole('REVIEWER', 'ADMIN');
+  const session = await requireStaffSection('review-queue');
   const parsed = noteSchema.safeParse({
     applicationId: formData.get('applicationId'),
     body: formData.get('body'),
@@ -695,7 +695,7 @@ export async function saveConfirmationAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const session = await requireRole('REVIEWER', 'ADMIN');
+  const session = await requireStaffSection('review-queue');
   const parsed = confirmationSchema.safeParse({
     applicationId: formData.get('applicationId'),
     intent: formData.get('intent'),
@@ -806,7 +806,7 @@ export async function setVerificationCheckAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const session = await requireRole('REVIEWER', 'ADMIN');
+  const session = await requireStaffSection('review-queue');
 
   const key = String(formData.get('key') || '');
   const status = String(formData.get('status') || '') as VerificationStatus;
@@ -878,7 +878,7 @@ export async function writeToJournalAction(
   _prev: ActionState,
   _formData: FormData,
 ): Promise<ActionState> {
-  const session = await requireRole('REVIEWER', 'ADMIN');
+  const session = await requireStaffSection('review-queue');
   if (!journalEnabled()) {
     return {
       error:

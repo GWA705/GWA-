@@ -382,3 +382,43 @@ collect, use, and disclose the personal information provided in this application
 administering this credit application, and to obtain a consumer credit report \
 where applicable. The applicant may withdraw consent and request access to their \
 personal information subject to legal and contractual restrictions.`;
+
+// ---------------------------------------------------------------------------
+// Back-end admin sections (granular access control)
+// ---------------------------------------------------------------------------
+// The single source of truth for every gate-able area of the admin/back-end.
+// A Super Admin has all of these; a scoped admin has only the keys stored in
+// User.adminSections. Order here is also the nav order and the order used to
+// pick a scoped admin's landing page (first one they're allowed).
+export interface AdminSection {
+  key: string;
+  label: string;
+  href: string;
+  // A one-line description shown on the Admin access management screen.
+  hint?: string;
+}
+
+export const ADMIN_SECTIONS: AdminSection[] = [
+  { key: 'overview', label: 'Overview', href: '/admin', hint: 'Dashboard KPIs' },
+  { key: 'dealers', label: 'Dealers', href: '/admin/dealers' },
+  { key: 'finance', label: 'Finance companies', href: '/admin/finance-companies' },
+  { key: 'products', label: 'Products', href: '/admin/products' },
+  { key: 'announcements', label: 'Dealer portal sign', href: '/admin/announcements' },
+  { key: 'alerts', label: 'Pop-up alerts', href: '/admin/alerts' },
+  { key: 'reminders', label: 'Dealer reminders', href: '/admin/reminders' },
+  { key: 'note-templates', label: 'Quick notes', href: '/admin/note-templates' },
+  { key: 'content', label: 'Content', href: '/admin/content', hint: 'Resources / promos' },
+  { key: 'marketplace', label: 'Marketplace', href: '/admin/marketplace' },
+  { key: 'mail', label: 'Mail', href: '/staff/mail', hint: 'Send + reply toggle' },
+  { key: 'users', label: 'Users', href: '/admin/users' },
+  { key: 'security', label: 'Security', href: '/admin/security' },
+  { key: 'email', label: 'Email settings', href: '/admin/email' },
+  { key: 'audit', label: 'Audit log', href: '/admin/audit' },
+  { key: 'review-queue', label: 'Review queue', href: '/staff', hint: 'Deals queue' },
+];
+
+export const ADMIN_SECTION_KEYS: string[] = ADMIN_SECTIONS.map((s) => s.key);
+
+export function isAdminSectionKey(key: string): boolean {
+  return ADMIN_SECTION_KEYS.includes(key);
+}

@@ -1,4 +1,4 @@
-import { requireRole } from '@/lib/session';
+import { requireAdminSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { audienceLabel } from '@/lib/alerts';
 import { AlertForm } from './AlertForm';
@@ -7,7 +7,7 @@ import { AlertRowActions } from './AlertRowActions';
 export const dynamic = 'force-dynamic';
 
 export default async function DealerAlertsPage() {
-  await requireRole('ADMIN');
+  await requireAdminSection('alerts');
 
   const [alerts, dealers, dealerUserCount, reviewerCount, adminCount] = await Promise.all([
     prisma.dealerAlert.findMany({

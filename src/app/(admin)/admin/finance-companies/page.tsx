@@ -1,4 +1,4 @@
-import { requireRole } from '@/lib/session';
+import { requireAdminSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { FinanceCompanyForm } from './FinanceCompanyForm';
 import { FinanceCompanyRowActions } from './FinanceCompanyRowActions';
@@ -6,7 +6,7 @@ import { FinanceCompanyRowActions } from './FinanceCompanyRowActions';
 export const dynamic = 'force-dynamic';
 
 export default async function FinanceCompaniesPage() {
-  await requireRole('ADMIN');
+  await requireAdminSection('finance');
   const companies = await prisma.financeCompany.findMany({
     orderBy: { name: 'asc' },
     include: { _count: { select: { applications: true } } },

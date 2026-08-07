@@ -14,6 +14,32 @@ export function isAdmin(user: SessionUser): boolean {
   return user.role === 'ADMIN';
 }
 
+/**
+ * A Super Admin: an administrator with full back-end access who is the only one
+ * allowed to grant/revoke other admins' section access.
+ */
+export function isSuperAdmin(user: SessionUser): boolean {
+  return user.role === 'ADMIN' && user.superAdmin === true;
+}
+
+/**
+ * Can this user reach a given back-end section (a key from ADMIN_SECTIONS)?
+ * Only admins have back-end access; a Super Admin has every section, a scoped
+ * admin only the keys in their adminSections list. Enforced server-side on
+ * every admin route — never trust the filtered nav alone.
+ */
+export function canAdminSection(user: SessionUser, key: string): boolean {
+  if (user.role !== 'ADMIN') return false;
+  if (user.superAdmin) return true;
+  return (user.adminSections ?? []).includes(key);
+}
+
+/** True when an admin can reach at least one back-end section. */
+export function hasAnyAdminSection(user: SessionUser): boolean {
+  if (user.role !== 'ADMIN') return false;
+  return user.superAdmin || (user.adminSections ?? []).length > 0;
+}
+
 export function isDealer(user: SessionUser): boolean {
   return user.role === 'DEALER_USER';
 }

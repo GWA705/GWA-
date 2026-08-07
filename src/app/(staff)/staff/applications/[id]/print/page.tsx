@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { requireRole } from '@/lib/session';
+import { requireStaffSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { decryptOptional } from '@/lib/crypto';
 import { audit } from '@/lib/audit';
@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic';
 // while the reviewer re-keys it (or printed). Protected fields are revealed here
 // (it's the reviewer's working copy) and the access is audited.
 export default async function ApplicationPrintView({ params }: { params: { id: string } }) {
-  const user = await requireRole('REVIEWER', 'ADMIN');
+  const user = await requireStaffSection('review-queue');
   const app = await prisma.application.findUnique({
     where: { id: params.id },
     include: {

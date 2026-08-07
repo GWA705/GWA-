@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { requireRole } from '@/lib/session';
+import { requireAdminSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { STATUS_LABELS, STATUS_COLORS } from '@/lib/constants';
 import type { ApplicationStatus } from '@prisma/client';
@@ -19,7 +19,7 @@ function money(n: number): string {
 }
 
 export default async function AdminOverview() {
-  await requireRole('ADMIN');
+  await requireAdminSection('overview');
 
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);

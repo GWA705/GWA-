@@ -69,6 +69,8 @@ async function finishLogin(user: User, viaMfa: boolean): Promise<never> {
     name: user.name,
     role: user.role,
     dealerId: user.dealerId,
+    superAdmin: user.superAdmin,
+    adminSections: user.adminSections,
     tokenVersion: user.tokenVersion,
   });
   await audit({
@@ -455,6 +457,8 @@ export async function forcedChangePasswordAction(
     name: user.name,
     role: user.role,
     dealerId: user.dealerId,
+    superAdmin: user.superAdmin,
+    adminSections: user.adminSections,
     tokenVersion: rotated.tokenVersion,
   });
   redirect(defaultLandingFor(user.role));
