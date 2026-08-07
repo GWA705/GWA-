@@ -25,6 +25,9 @@ services:
     envVars:
       - key: NODE_VERSION
         value: 20.18.0
+      # Display all dates/times in Eastern (Ontario business); Render runs in UTC.
+      - key: TZ
+        value: America/Toronto
       # External AWS RDS (ca-central-1) connection string — set in the dashboard.
       - key: DATABASE_URL
         sync: false
