@@ -337,7 +337,6 @@ export async function runDealerReminders(now: Date = new Date()): Promise<Remind
         .replace(/>/g, '&gt;')}</p>`,
       ctaLabel: 'Open the deal',
       ctaUrl: dealUrl,
-      footerNote: 'You can turn these reminders off under My account → notifications.',
     });
 
     let emailedCount = 0;

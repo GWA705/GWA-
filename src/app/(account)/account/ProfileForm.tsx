@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { updateProfileAction, type ActionState } from '@/app/(account)/actions';
 
@@ -26,9 +27,27 @@ function SubmitButton() {
 }
 
 function Toggle({ name, label, defaultChecked }: { name: string; label: string; defaultChecked: boolean }) {
+  const [checked, setChecked] = useState(defaultChecked);
   return (
     <label className="flex items-center gap-2 text-sm text-gray-700">
-      <input type="checkbox" name={name} defaultChecked={defaultChecked} className="h-4 w-4 rounded border-gray-300" />
+      <input
+        type="checkbox"
+        name={name}
+        checked={checked}
+        onChange={(e) => {
+          const next = e.target.checked;
+          // Turning a notification OFF is a decision worth confirming — the user
+          // may miss important updates. Turning one back on needs no prompt.
+          if (!next) {
+            const ok = window.confirm(
+              `Are you sure you want to turn this off?\n\n“${label}”\n\nYou will not be notified of important updates.`,
+            );
+            if (!ok) return; // keep it on
+          }
+          setChecked(next);
+        }}
+        className="h-4 w-4 rounded border-gray-300"
+      />
       {label}
     </label>
   );
