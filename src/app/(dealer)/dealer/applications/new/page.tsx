@@ -15,7 +15,7 @@ export default async function NewApplicationPage() {
       })
     : [];
 
-  const products = await productChecklistOptions();
+  const products = await productChecklistOptions(user.dealerId);
 
   return (
     <div className="mx-auto max-w-3xl">

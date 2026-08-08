@@ -26,7 +26,7 @@ export default async function EditDealPage({ params }: { params: { id: string } 
   });
   if (!app) notFound();
 
-  const products = await productChecklistOptions();
+  const products = await productChecklistOptions(app.dealerId);
 
   // Dealers for the reassignment dropdown — the deal's own dealer is always
   // included even if it's since been archived, so the current value is valid.
