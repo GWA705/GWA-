@@ -400,6 +400,12 @@ model MarketplaceItem {
   imageSizeBytes  Int?
   active         Boolean  @default(true)
   sortOrder      Int      @default(0)
+  // Featured in the "New Arrivals" strip at the top of the marketplace. Curated
+  // by admins — an item keeps its normal category too.
+  featured       Boolean  @default(false)
+  // Merchandising tags shown as coloured badges. Values from a fixed set
+  // (MARKETPLACE_TAGS in constants): NEW, SALE, CLEARANCE, POPULAR.
+  tags           String[] @default([])
   // "ORDER" = physical item dealers order (qty/options). "DOWNLOAD" = a file
   // dealers download (fileStorageKey below), not ordered.
   kind           String   @default("ORDER")

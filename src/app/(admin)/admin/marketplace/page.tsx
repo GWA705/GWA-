@@ -1,6 +1,7 @@
 import { requireAdminSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { getSetting, MARKETPLACE_SETTING_KEYS } from '@/lib/settings';
+import { MARKETPLACE_TAGS } from '@/lib/constants';
 import { ItemForm } from './ItemForm';
 import { ItemRowActions } from './ItemRowActions';
 import { OrderEmailForm } from './OrderEmailForm';
@@ -102,6 +103,10 @@ export default async function AdminMarketplace() {
                               <div className="flex flex-wrap items-center gap-2">
                                 <span className="font-medium text-gray-900">{item.name}</span>
                                 {!item.active && <span className="badge bg-gray-100 text-gray-600">Hidden</span>}
+                                {item.featured && <span className="badge bg-amber-100 text-amber-800">✨ New Arrivals</span>}
+                                {MARKETPLACE_TAGS.filter((t) => item.tags.includes(t.key)).map((t) => (
+                                  <span key={t.key} className={`badge ${t.badgeClass}`}>{t.label}</span>
+                                ))}
                                 {item.kind === 'DOWNLOAD' && <span className="badge bg-emerald-50 text-emerald-700">Download</span>}
                                 {item.kind !== 'DOWNLOAD' && item.options.length > 0 && <span className="badge bg-brand-50 text-brand-700">{item.options.join(' · ')}</span>}
                               </div>
@@ -135,6 +140,8 @@ export default async function AdminMarketplace() {
                                 kind: item.kind,
                                 hasFile: !!item.fileStorageKey,
                                 fileName: item.fileName,
+                                featured: item.featured,
+                                tags: item.tags,
                               }}
                             />
                           </div>

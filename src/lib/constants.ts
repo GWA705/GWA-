@@ -422,3 +422,26 @@ export const ADMIN_SECTION_KEYS: string[] = ADMIN_SECTIONS.map((s) => s.key);
 export function isAdminSectionKey(key: string): boolean {
   return ADMIN_SECTION_KEYS.includes(key);
 }
+
+// ---------------------------------------------------------------------------
+// Marketplace merchandising tags (fixed set, coloured badges)
+// ---------------------------------------------------------------------------
+export interface MarketplaceTag {
+  key: string;
+  label: string;
+  // Tailwind classes for the coloured badge shown on item cards.
+  badgeClass: string;
+}
+
+export const MARKETPLACE_TAGS: MarketplaceTag[] = [
+  { key: 'NEW', label: 'New', badgeClass: 'bg-green-600 text-white' },
+  { key: 'SALE', label: 'Sale', badgeClass: 'bg-red-600 text-white' },
+  { key: 'CLEARANCE', label: 'Clearance', badgeClass: 'bg-orange-600 text-white' },
+  { key: 'POPULAR', label: 'Popular', badgeClass: 'bg-purple-600 text-white' },
+];
+
+export const MARKETPLACE_TAG_KEYS: string[] = MARKETPLACE_TAGS.map((t) => t.key);
+
+export function marketplaceTag(key: string): MarketplaceTag | undefined {
+  return MARKETPLACE_TAGS.find((t) => t.key === key);
+}

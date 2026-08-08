@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { requireAdminSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { toTitleCase, sentenceOrNull } from '@/lib/textcase';
+import { MARKETPLACE_TAG_KEYS } from '@/lib/constants';
 import { audit } from '@/lib/audit';
 import { setSetting, MARKETPLACE_SETTING_KEYS } from '@/lib/settings';
 import { putDocument, deleteDocument } from '@/lib/storage';
@@ -117,6 +118,10 @@ export async function saveItemAction(_prev: ItemActionState, formData: FormData)
   const options = parseOptions((formData.get('options') ?? '').toString());
   const sortOrder = Number.parseInt((formData.get('sortOrder') ?? '0').toString(), 10) || 0;
   const active = formData.get('active') === 'on';
+  const featured = formData.get('featured') === 'on';
+  // Keep only recognised tag keys, in the canonical order.
+  const picked = new Set(formData.getAll('tags').map(String));
+  const tags = MARKETPLACE_TAG_KEYS.filter((k) => picked.has(k));
   const categoryId = (formData.get('categoryId') ?? '').toString() || null;
   const kind = (formData.get('kind') ?? 'ORDER').toString() === 'DOWNLOAD' ? 'DOWNLOAD' : 'ORDER';
 
@@ -137,7 +142,7 @@ export async function saveItemAction(_prev: ItemActionState, formData: FormData)
     if (id) {
       const existing = await prisma.marketplaceItem.findUnique({ where: { id }, select: { imageStorageKey: true, fileStorageKey: true } });
       if (!existing) return { error: 'That item no longer exists — reload the page and try again.' };
-      await prisma.marketplaceItem.update({ where: { id }, data: { name, description, options, sortOrder, active, categoryId, kind } });
+      await prisma.marketplaceItem.update({ where: { id }, data: { name, description, options, sortOrder, active, featured, tags, categoryId, kind } });
       if (hasNewImage) {
         const stored = await storeItemImage(id, image!);
         if ('error' in stored) return { error: stored.error };
@@ -158,7 +163,7 @@ export async function saveItemAction(_prev: ItemActionState, formData: FormData)
       }
     } else {
       const created = await prisma.marketplaceItem.create({
-        data: { name, description, options, sortOrder, active, categoryId, kind, createdById: session.userId },
+        data: { name, description, options, sortOrder, active, featured, tags, categoryId, kind, createdById: session.userId },
       });
       if (hasNewImage) {
         const stored = await storeItemImage(created.id, image!);

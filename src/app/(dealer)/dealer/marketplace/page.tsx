@@ -15,7 +15,7 @@ export default async function DealerMarketplace({ searchParams }: { searchParams
     prisma.marketplaceItem.findMany({
       where: { active: true },
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
-      select: { id: true, name: true, description: true, options: true, imageStorageKey: true, categoryId: true, kind: true, fileStorageKey: true, fileName: true },
+      select: { id: true, name: true, description: true, options: true, imageStorageKey: true, categoryId: true, kind: true, fileStorageKey: true, fileName: true, featured: true, tags: true },
     }),
   ]);
   const items = rows.map((r) => ({
@@ -28,6 +28,8 @@ export default async function DealerMarketplace({ searchParams }: { searchParams
     kind: r.kind,
     hasFile: !!r.fileStorageKey,
     fileName: r.fileName,
+    featured: r.featured,
+    tags: r.tags,
   }));
 
   return (

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { saveItemAction, type ItemActionState } from './actions';
+import { MARKETPLACE_TAGS } from '@/lib/constants';
 
 interface Item {
   id: string;
@@ -11,6 +12,8 @@ interface Item {
   options: string[];
   sortOrder: number;
   active: boolean;
+  featured?: boolean;
+  tags?: string[];
   hasImage?: boolean;
   categoryId?: string | null;
   kind?: string;
@@ -118,6 +121,25 @@ export function ItemForm({ item, categories }: { item?: Item; categories: Catego
           </label>
         )}
       </div>
+      <div className="rounded-md border border-gray-200 p-3">
+        <label className="flex items-center gap-2 text-sm font-medium text-gray-800">
+          <input type="checkbox" name="featured" defaultChecked={item?.featured ?? false} className="h-4 w-4" />
+          ✨ Feature in New Arrivals
+        </label>
+        <p className="mt-1 text-xs text-gray-500">Shows this item in the scrolling strip at the top of the marketplace. It keeps its normal category too.</p>
+        <div className="mt-3">
+          <span className="label">Tags <span className="font-normal text-gray-400">(shown as badges)</span></span>
+          <div className="mt-1 flex flex-wrap gap-3">
+            {MARKETPLACE_TAGS.map((t) => (
+              <label key={t.key} className="flex items-center gap-1.5 text-sm text-gray-700">
+                <input type="checkbox" name="tags" value={t.key} defaultChecked={item?.tags?.includes(t.key) ?? false} className="h-4 w-4" />
+                <span className={`badge ${t.badgeClass}`}>{t.label}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      </div>
+
       <div className="flex flex-wrap items-end gap-4">
         <div className="w-28">
           <label className="label">Sort order</label>
