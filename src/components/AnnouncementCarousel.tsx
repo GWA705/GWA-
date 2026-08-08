@@ -106,9 +106,21 @@ export function AnnouncementCarousel({ items, intervalMs = 6000 }: { items: Bann
       aria-roledescription="carousel"
       aria-label="Announcements — swipe to change"
     >
-      <div key={items[i].id} className="banner-fade">
-        <BannerCard item={items[i]} />
-      </div>
+      {/* All slides stay mounted and cross-fade by opacity — the images load
+          once and are never refetched, so advancing never blanks/reloads the
+          banner. The active slide is in normal flow (it sets the height); the
+          rest sit behind it. */}
+      {items.map((it, d) => (
+        <div
+          key={it.id}
+          aria-hidden={d !== i}
+          className={`transition-opacity duration-500 ${
+            d === i ? 'relative opacity-100' : 'pointer-events-none absolute inset-0 opacity-0'
+          }`}
+        >
+          <BannerCard item={it} />
+        </div>
+      ))}
 
       {/* Dots — tap to jump; also show which one you're on. */}
       <div className="absolute inset-x-0 bottom-2 z-10 flex justify-center gap-1.5">
