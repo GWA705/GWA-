@@ -104,19 +104,21 @@ export default async function DealerHome({
                   return (
                   <tr key={a.id} className="hover:bg-gray-50">
                     <td className="px-3 py-3 sm:px-4">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Link
-                          href={`/dealer/applications/${a.id}`}
-                          className="font-medium text-brand-700 hover:underline"
+                      <Link
+                        href={`/dealer/applications/${a.id}`}
+                        className="block font-medium text-brand-700 hover:underline"
+                      >
+                        {a.applicantFirstName} {a.applicantLastName}
+                      </Link>
+                      {outstanding.hasAction && (
+                        <span
+                          className={`mt-1 inline-flex w-fit items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                            outstanding.readyToSubmit ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'
+                          }`}
                         >
-                          {a.applicantFirstName} {a.applicantLastName}
-                        </Link>
-                        {outstanding.hasAction && (
-                          <span className={`badge ${outstanding.readyToSubmit ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}`}>
-                            {outstanding.readyToSubmit ? 'Ready to submit' : 'Action needed'}
-                          </span>
-                        )}
-                      </div>
+                          {outstanding.readyToSubmit ? '✓ Ready to submit' : '⚠ Action needed'}
+                        </span>
+                      )}
                     </td>
                     <td className="hidden px-3 py-3 sm:table-cell sm:px-4">{a.province}</td>
                     <td className="px-3 py-3 sm:px-4">{programLabel(a.programType, a.programCategory)}</td>
