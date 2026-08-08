@@ -112,7 +112,7 @@ function ItemImage({ item, onImageClick, className }: { item: Item; onImageClick
 
 function ItemCard({ item, onImageClick, hidden }: { item: Item; onImageClick: (src: string, alt: string) => void; hidden?: boolean }) {
   return (
-    <div className={`card flex flex-col overflow-hidden p-0 ${hidden ? 'hidden' : ''}`}>
+    <div className={`card flex flex-col overflow-hidden p-0 transition hover:shadow-md ${hidden ? 'hidden' : ''}`}>
       <ItemImage item={item} onImageClick={onImageClick} />
       <div className="flex flex-1 flex-col p-4">
         <div className="font-medium text-gray-900">{item.name}</div>
@@ -182,12 +182,15 @@ function NewArrivalsRail({ items, onImageClick }: { items: Item[]; onImageClick:
   }, [items.length]);
 
   return (
-    <section className="mb-6">
-      <div className="mb-2 flex items-center justify-between">
-        <h2 className="flex items-center gap-2 text-base font-semibold text-gray-900">✨ New Arrivals</h2>
+    <section className="mb-8 rounded-2xl border border-gray-200 bg-gray-50/70 p-4 sm:p-5">
+      <div className="mb-3 flex items-center justify-between">
+        <div>
+          <h2 className="flex items-center gap-2 text-lg font-semibold text-gray-900">✨ New Arrivals</h2>
+          <p className="text-xs text-gray-500">Just added to the marketplace</p>
+        </div>
         <div className="hidden gap-2 sm:flex">
-          <button type="button" onClick={() => nudge(-1)} aria-label="Previous" className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 hover:bg-gray-50">‹</button>
-          <button type="button" onClick={() => nudge(1)} aria-label="Next" className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 hover:bg-gray-50">›</button>
+          <button type="button" onClick={() => nudge(-1)} aria-label="Previous" className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 shadow-sm transition hover:bg-gray-50">‹</button>
+          <button type="button" onClick={() => nudge(1)} aria-label="Next" className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 shadow-sm transition hover:bg-gray-50">›</button>
         </div>
       </div>
       <div
@@ -195,18 +198,18 @@ function NewArrivalsRail({ items, onImageClick }: { items: Item[]; onImageClick:
         onMouseEnter={() => { paused.current = true; }}
         onMouseLeave={() => { paused.current = false; }}
         onTouchStart={() => { paused.current = true; }}
-        className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin]"
+        className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin]"
       >
         {items.map((item) => (
-          <div key={item.id} className="w-44 shrink-0 snap-start sm:w-48">
-            <div className="card flex flex-col overflow-hidden p-0">
-              <ItemImage item={item} onImageClick={onImageClick} />
-              <div className="p-3">
-                <div className="text-sm font-medium leading-snug text-gray-900">{item.name}</div>
-                {item.description && <p className="mt-0.5 line-clamp-2 text-xs text-gray-500">{item.description}</p>}
-              </div>
+          // Few items grow to fill the row (no empty gap on desktop); many items
+          // keep a comfortable width and the row scrolls.
+          <article key={item.id} className="group flex min-w-[15rem] max-w-[22rem] flex-1 basis-64 snap-start flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+            <ItemImage item={item} onImageClick={onImageClick} />
+            <div className="p-4">
+              <div className="font-semibold leading-snug text-gray-900">{item.name}</div>
+              {item.description && <p className="mt-1 line-clamp-2 text-sm text-gray-500">{item.description}</p>}
             </div>
-          </div>
+          </article>
         ))}
       </div>
     </section>
