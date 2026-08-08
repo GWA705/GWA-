@@ -95,15 +95,18 @@ function ItemImage({ item, onImageClick, className }: { item: Item; onImageClick
     <button
       type="button"
       onClick={() => onImageClick(imgSrc, item.name)}
-      className={`relative block aspect-square w-full cursor-zoom-in bg-gray-50 ${className ?? ''}`}
+      className={`relative block aspect-square w-full cursor-zoom-in border-b border-gray-200 bg-[#ffffff] ${className ?? ''}`}
       aria-label={`View ${item.name} larger`}
     >
+      {/* Fit the whole product in a uniform white tile (no cropping), so text-y
+          items like cards/envelopes stay fully legible and every card is the
+          same height. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={imgSrc} alt={item.name} className="h-full w-full object-cover" />
+      <img src={imgSrc} alt={item.name} className="h-full w-full object-contain p-3" />
       <TagBadges tags={item.tags} />
     </button>
   ) : (
-    <div className={`relative flex aspect-square w-full items-center justify-center bg-gray-50 text-4xl text-gray-300 ${className ?? ''}`} aria-hidden>
+    <div className={`relative flex aspect-square w-full items-center justify-center border-b border-gray-200 bg-[#ffffff] text-4xl text-gray-300 ${className ?? ''}`} aria-hidden>
       👕
       <TagBadges tags={item.tags} />
     </div>
