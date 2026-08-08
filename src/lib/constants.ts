@@ -50,15 +50,22 @@ export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
 };
 
 // Methods available for a split-payment line (each line = method + amount).
+// At intake there's a single "Financed" line (its amount auto-fills as the
+// remainder of the total); which finance company + loan number applies is set by
+// the reviewer at approval. FINANCE_COMPANY is the generic financed value.
 export const SPLIT_PAYMENT_METHODS: { value: PaymentMethod; label: string; financed: boolean }[] = [
-  { value: 'FINANCEIT', label: 'FinanceIT', financed: true },
-  { value: 'FINANCE_COMPANY', label: 'Finance company', financed: true },
+  { value: 'FINANCE_COMPANY', label: 'Financed', financed: true },
   { value: 'CASH', label: 'Cash', financed: false },
   { value: 'CHEQUE', label: 'Cheque', financed: false },
   { value: 'E_TRANSFER', label: 'E-Transfer', financed: false },
   { value: 'CREDIT_CARD', label: 'Personal credit card', financed: false },
   { value: 'HD_CREDIT_CARD', label: 'Home Depot Credit Card', financed: false },
 ];
+
+// The single "Financed" method used for the auto-filled financing line.
+export const FINANCED_SPLIT_METHOD: PaymentMethod = 'FINANCE_COMPANY';
+// Non-financed methods a dealer can add as extra split lines (down payments).
+export const NON_FINANCED_SPLIT_METHODS = SPLIT_PAYMENT_METHODS.filter((m) => !m.financed);
 
 // Methods that count as financing — their amounts make up the financed portion.
 export const FINANCED_PAYMENT_METHODS: PaymentMethod[] = ['FINANCEIT', 'FINANCE_COMPANY'];
@@ -96,6 +103,35 @@ export function missingRequiredReferences(app: {
   if (app.programType === 'HD' && !app.hdReference) missing.push('the HD Customer #');
   if (app.financed && !app.financeItNumber) missing.push('the Financing deal number');
   return missing;
+}
+
+// What a deal must have before it can be marked Approved (or Conditional): the
+// finance company it's approved on, its loan/approval number, and — for HD-
+// program deals only — the HD Customer #. GWA deals need no HD Customer #.
+export function approvalGateError(app: {
+  financeCompanyId: string | null;
+  financeItNumber: string | null; // the loan / approval number
+  hdReference: string | null;
+  programType: ProgramType;
+}): string | null {
+  const missing: string[] = [];
+  if (!app.financeCompanyId) missing.push('a finance company');
+  if (!app.financeItNumber || !app.financeItNumber.trim()) missing.push('the loan / approval number');
+  if (app.programType === 'HD' && (!app.hdReference || !app.hdReference.trim())) missing.push('the HD Customer #');
+  if (missing.length === 0) return null;
+  const list =
+    missing.length === 1 ? missing[0] : `${missing.slice(0, -1).join(', ')} and ${missing[missing.length - 1]}`;
+  return `Add ${list} before approving this deal.`;
+}
+
+// The origin of an HD Customer # from its prefix: 701 = a lead created at the
+// Home Depot store (customer profile already existed); 800 = a profile GWA
+// created. Returns null for anything else.
+export function hdOriginLabel(hdReference: string | null | undefined): string | null {
+  const v = (hdReference ?? '').trim();
+  if (v.startsWith('701')) return 'Home Depot lead';
+  if (v.startsWith('800')) return 'GWA-created';
+  return null;
 }
 
 // Builds the gate error message, or null when all required references are present.

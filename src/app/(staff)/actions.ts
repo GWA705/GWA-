@@ -28,6 +28,7 @@ import {
   VERIFICATION_CHECKS,
   applicableVerificationChecks,
   referenceGateError,
+  approvalGateError,
 } from '@/lib/constants';
 import { dealHasFinancing, financedAmountOf } from '@/lib/payments';
 import type { ApplicationStatus, DecisionType, DocumentType, VerificationStatus } from '@prisma/client';
@@ -179,9 +180,11 @@ export async function recordDecisionAction(
     notes: formData.get('notes') || undefined,
     approvedAmount: formData.get('approvedAmount') ?? undefined,
     financeCompanyId: formData.get('financeCompanyId') || undefined,
+    financeItNumber: (formData.get('financeItNumber') as string) || undefined,
+    hdReference: (formData.get('hdReference') as string) || undefined,
   });
   if (!parsed.success) return { error: 'Invalid decision.' };
-  const { applicationId, type, notes, approvedAmount, financeCompanyId } = parsed.data;
+  const { applicationId, type, notes, approvedAmount, financeCompanyId, financeItNumber, hdReference } = parsed.data;
 
   const app = await prisma.application.findUnique({ where: { id: applicationId } });
   if (!app) return { error: 'Application not found.' };
@@ -217,12 +220,32 @@ export async function recordDecisionAction(
 
   const to = nextStatus(type);
 
-  // On an approval, record the approved amount, finance company, and approver.
+  // On an approval, record the approved amount, finance company, loan/approval
+  // number, HD Customer #, and approver.
   const isApproval = type === 'APPROVE' || type === 'CONDITIONAL';
+  // Effective values (what was just entered, else what's already on the deal).
+  const effFinanceCompanyId = financeCompanyId ?? app.financeCompanyId;
+  const effFinanceItNumber = (financeItNumber?.trim() || null) ?? app.financeItNumber;
+  const effHdReference = (hdReference?.trim() || null) ?? app.hdReference;
+
+  // Gate: nothing reaches an approved state without the finance company + loan
+  // number (+ HD Customer # for HD deals).
+  if (isApproval) {
+    const gate = approvalGateError({
+      financeCompanyId: effFinanceCompanyId,
+      financeItNumber: effFinanceItNumber,
+      hdReference: effHdReference,
+      programType: app.programType,
+    });
+    if (gate) return { error: gate };
+  }
+
   const approvalData = isApproval
     ? {
         approvedAmount: approvedAmount ?? app.approvedAmount ?? app.requestedAmount,
-        financeCompanyId: financeCompanyId ?? app.financeCompanyId,
+        financeCompanyId: effFinanceCompanyId,
+        financeItNumber: effFinanceItNumber,
+        hdReference: effHdReference,
         approvedById: session.userId,
       }
     : {};
@@ -629,9 +652,24 @@ export async function changeStatusAction(
   if (!app) return { error: 'Application not found.' };
   if (app.status === status) return { ok: true };
 
+  // A deal can't reach an approved state (or anything past it) without the
+  // finance company + loan number (+ HD Customer # for HD deals). Use the Approve
+  // form to add them — the manual status change can't collect them.
+  const APPROVED_OR_BEYOND: ApplicationStatus[] = [
+    'CONDITIONAL', 'APPROVED', 'DOCS_SENT', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW', 'FUNDED',
+  ];
+  if (APPROVED_OR_BEYOND.includes(status)) {
+    const gate = approvalGateError({
+      financeCompanyId: app.financeCompanyId,
+      financeItNumber: app.financeItNumber,
+      hdReference: app.hdReference,
+      programType: app.programType,
+    });
+    if (gate) return { error: `${gate} (Use the Approve form to add them.)` };
+  }
+
   // A deal can't move into funding (or anything past it) until its required
-  // reference numbers are recorded. The Financing deal number is only required
-  // for financed deals (not cash/credit/HD credit card).
+  // reference numbers are recorded.
   const FUNDING_OR_BEYOND: ApplicationStatus[] = ['FUNDING_SUBMITTED', 'FUNDING_REVIEW', 'FUNDED'];
   if (FUNDING_OR_BEYOND.includes(status)) {
     const refError = referenceGateError({ ...app, financed: dealHasFinancing(app) }, 'moving this deal into funding');

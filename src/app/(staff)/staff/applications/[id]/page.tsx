@@ -538,6 +538,10 @@ export default async function StaffApplicationDetail({
         options={options}
         financeCompanies={financeCompanies}
         defaultAmount={app.requestedAmount.toString()}
+        defaultFinanceCompanyId={app.financeCompanyId}
+        defaultFinanceItNumber={app.financeItNumber}
+        defaultHdReference={app.hdReference}
+        hdRequired={hdReferenceRequired(app.programType)}
       />
       <div className="mt-5 border-t border-gray-100 pt-4">
         <StatusChangeForm applicationId={app.id} current={app.status} />

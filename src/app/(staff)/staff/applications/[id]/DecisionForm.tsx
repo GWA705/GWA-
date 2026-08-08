@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { recordDecisionAction, type ActionState } from '@/app/(staff)/actions';
+import { hdOriginLabel } from '@/lib/constants';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -18,15 +19,25 @@ export function DecisionForm({
   options,
   financeCompanies,
   defaultAmount,
+  defaultFinanceCompanyId,
+  defaultFinanceItNumber,
+  defaultHdReference,
+  hdRequired,
 }: {
   applicationId: string;
   options: { value: string; label: string }[];
   financeCompanies: { id: string; name: string }[];
   defaultAmount: string;
+  defaultFinanceCompanyId?: string | null;
+  defaultFinanceItNumber?: string | null;
+  defaultHdReference?: string | null;
+  hdRequired: boolean;
 }) {
   const [state, action] = useFormState(recordDecisionAction, {} as ActionState);
   const [type, setType] = useState(options[0]?.value ?? '');
   const isApproval = type === 'APPROVE' || type === 'CONDITIONAL';
+  const [hd, setHd] = useState(defaultHdReference ?? '');
+  const origin = hdOriginLabel(hd);
 
   if (options.length === 0) {
     return <p className="text-sm text-gray-500">Use “Change status” below to update this deal.</p>;
@@ -57,14 +68,26 @@ export function DecisionForm({
             <input id="approvedAmount" name="approvedAmount" type="number" step="0.01" min="0" defaultValue={defaultAmount} className="input" />
           </div>
           <div>
-            <label className="label" htmlFor="financeCompanyId">Finance company</label>
-            <select id="financeCompanyId" name="financeCompanyId" className="input">
+            <label className="label" htmlFor="financeCompanyId">Finance company <span className="text-red-500">*</span></label>
+            <select id="financeCompanyId" name="financeCompanyId" defaultValue={defaultFinanceCompanyId ?? ''} className="input">
               <option value="">Select…</option>
               {financeCompanies.map((c) => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
           </div>
+          <div>
+            <label className="label" htmlFor="financeItNumber">Loan / approval number <span className="text-red-500">*</span></label>
+            <input id="financeItNumber" name="financeItNumber" defaultValue={defaultFinanceItNumber ?? ''} className="input" autoComplete="off" placeholder="From the finance company (or FinanceIt)" />
+          </div>
+          {hdRequired && (
+            <div>
+              <label className="label" htmlFor="hdReference">HD Customer # <span className="text-red-500">*</span></label>
+              <input id="hdReference" name="hdReference" value={hd} onChange={(e) => setHd(e.target.value)} className="input" autoComplete="off" placeholder="Starts with 701 or 800" />
+              {origin && <p className="mt-1 text-xs font-medium text-brand-700">{origin === 'Home Depot lead' ? '🏬' : '🆕'} {origin}</p>}
+            </div>
+          )}
+          <p className="text-xs text-gray-500">Finance company, loan number{hdRequired ? ', and HD Customer #' : ''} are required before this deal can be approved.</p>
         </div>
       )}
 

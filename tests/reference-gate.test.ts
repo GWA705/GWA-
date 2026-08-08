@@ -4,6 +4,8 @@ import {
   hdReferenceRequired,
   missingRequiredReferences,
   referenceGateError,
+  approvalGateError,
+  hdOriginLabel,
 } from '@/lib/constants';
 
 // A deal is financed unless it was paid by an explicit non-finance method.
@@ -86,5 +88,48 @@ describe('referenceGateError', () => {
         'writing to the journal',
       ),
     ).toBe('Add the Financing deal number before writing to the journal.');
+  });
+});
+
+// Approval gate — nothing reaches Approved/Conditional without a finance company
+// + loan number (+ HD Customer # for HD deals; GWA deals are exempt).
+describe('approvalGateError', () => {
+  it('requires finance company, loan number, and HD # for an empty HD deal', () => {
+    expect(
+      approvalGateError({ programType: 'HD', financeCompanyId: null, financeItNumber: null, hdReference: null }),
+    ).toBe('Add a finance company, the loan / approval number and the HD Customer # before approving this deal.');
+  });
+
+  it('does not require an HD # for a GWA deal', () => {
+    expect(
+      approvalGateError({ programType: 'GWA', financeCompanyId: 'fc1', financeItNumber: 'L-1', hdReference: null }),
+    ).toBeNull();
+  });
+
+  it('still requires the loan number for a GWA deal', () => {
+    expect(
+      approvalGateError({ programType: 'GWA', financeCompanyId: 'fc1', financeItNumber: '  ', hdReference: null }),
+    ).toBe('Add the loan / approval number before approving this deal.');
+  });
+
+  it('passes once an HD deal has all three', () => {
+    expect(
+      approvalGateError({ programType: 'HD', financeCompanyId: 'fc1', financeItNumber: 'L-1', hdReference: '800123' }),
+    ).toBeNull();
+  });
+});
+
+// HD Customer # origin — 701 = store lead, 800 = GWA-created, else unknown.
+describe('hdOriginLabel', () => {
+  it('labels 701 numbers as a Home Depot lead', () => {
+    expect(hdOriginLabel('701456')).toBe('Home Depot lead');
+  });
+  it('labels 800 numbers as GWA-created', () => {
+    expect(hdOriginLabel('800999')).toBe('GWA-created');
+  });
+  it('returns null for other prefixes or empty input', () => {
+    expect(hdOriginLabel('123')).toBeNull();
+    expect(hdOriginLabel(null)).toBeNull();
+    expect(hdOriginLabel('')).toBeNull();
   });
 });

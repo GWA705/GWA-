@@ -318,6 +318,10 @@ export const decisionSchema = z.object({
     z.coerce.number().positive().max(1_000_000).optional(),
   ),
   financeCompanyId: z.string().optional(),
+  // Captured at approval so the deal can be gated: the loan/approval number and
+  // (for HD deals) the HD Customer #.
+  financeItNumber: z.string().max(80).optional(),
+  hdReference: z.string().max(80).optional(),
 });
 
 export const createFinanceCompanySchema = z.object({

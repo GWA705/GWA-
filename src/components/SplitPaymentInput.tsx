@@ -1,11 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { SPLIT_PAYMENT_METHODS, PAYMENT_METHOD_LABELS } from '@/lib/constants';
-import { MAX_PAYMENT_SPLITS, financedFromSplits, totalFromSplits, toCents } from '@/lib/payments';
+import { NON_FINANCED_SPLIT_METHODS, FINANCED_SPLIT_METHOD } from '@/lib/constants';
+import { MAX_PAYMENT_SPLITS, totalFromSplits, toCents } from '@/lib/payments';
 import type { PaymentMethod } from '@prisma/client';
 
-interface Line {
+interface OtherLine {
   key: string;
   method: PaymentMethod | '';
   amount: string;
@@ -14,13 +14,17 @@ interface Line {
 const money = (n: number) => `$${n.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 let seq = 0;
-const newLine = (method: PaymentMethod | '' = '', amount = ''): Line => ({ key: `l${seq++}`, method, amount });
+const newLine = (method: PaymentMethod | '' = '', amount = ''): OtherLine => ({ key: `l${seq++}`, method, amount });
 
 /**
- * Split / multi-method payment entry. A toggle reveals up to three payment lines
- * (method + amount); a live readout shows how much is still unallocated against
- * the deal total and how much of it is financed. Posts `isSplitPayment` plus
- * repeated `splitMethod` / `splitAmount` fields the server reads with getAll().
+ * Split / multi-method payment entry. There is always one auto-filled "Financed"
+ * line whose amount is the remainder of the deal total after the other payment
+ * lines (down payments) are subtracted — so the split always balances to the
+ * total and the dealer only types the extra lines. Which finance company + loan
+ * number applies is set later by the reviewer at approval.
+ *
+ * Posts `isSplitPayment` plus repeated `splitMethod` / `splitAmount` fields
+ * (financed line first), which the server reads with getAll().
  */
 export function SplitPaymentInput({
   total,
@@ -31,33 +35,29 @@ export function SplitPaymentInput({
   defaultOn?: boolean;
   defaultSplits?: { method: PaymentMethod; amount: number }[];
 }) {
+  const financedValues = new Set(['FINANCEIT', 'FINANCE_COMPANY']);
+  const initialOthers = defaultSplits.filter((s) => !financedValues.has(s.method));
   const [on, setOn] = useState(defaultOn);
-  const [lines, setLines] = useState<Line[]>(
-    defaultSplits.length >= 2
-      ? defaultSplits.map((s) => newLine(s.method, String(s.amount)))
-      : [newLine('FINANCEIT'), newLine('CASH')],
+  const [others, setOthers] = useState<OtherLine[]>(
+    initialOthers.length > 0 ? initialOthers.map((s) => newLine(s.method, String(s.amount))) : [newLine()],
   );
 
-  const parsed = lines
+  const othersParsed = others
     .filter((l) => l.method && Number(l.amount) > 0)
     .map((l) => ({ method: l.method as PaymentMethod, amount: Number(l.amount) }));
-  const allocated = totalFromSplits(parsed);
-  const financed = financedFromSplits(parsed);
-  const remaining = toCents(total - allocated);
-  const balanced = total > 0 && Math.abs(remaining) < 0.005 && parsed.length >= 2;
+  const othersSum = totalFromSplits(othersParsed);
+  const financed = Math.max(0, toCents(total - othersSum));
+  const over = othersSum > total + 0.005;
 
-  function update(key: string, patch: Partial<Line>) {
-    setLines((prev) => prev.map((l) => (l.key === key ? { ...l, ...patch } : l)));
+  function update(key: string, patch: Partial<OtherLine>) {
+    setOthers((prev) => prev.map((l) => (l.key === key ? { ...l, ...patch } : l)));
   }
   function remove(key: string) {
-    setLines((prev) => (prev.length <= 2 ? prev : prev.filter((l) => l.key !== key)));
+    setOthers((prev) => prev.filter((l) => l.key !== key));
   }
   function add() {
-    setLines((prev) => (prev.length >= MAX_PAYMENT_SPLITS ? prev : [...prev, newLine()]));
-  }
-  // Fill the last empty amount with whatever's left, for speed.
-  function fillRemaining(key: string) {
-    if (remaining > 0) update(key, { amount: remaining.toFixed(2) });
+    // Financed line + others must stay within the max split count.
+    setOthers((prev) => (prev.length >= MAX_PAYMENT_SPLITS - 1 ? prev : [...prev, newLine()]));
   }
 
   return (
@@ -70,62 +70,75 @@ export function SplitPaymentInput({
 
       {on && (
         <div className="mt-3 space-y-2 border-t border-gray-100 pt-3">
-          {lines.map((l, i) => {
-            const fin = l.method && SPLIT_PAYMENT_METHODS.find((m) => m.value === l.method)?.financed;
-            return (
-              <div key={l.key} className="flex items-center gap-2">
-                <select
-                  name="splitMethod"
-                  value={l.method}
-                  onChange={(e) => update(l.key, { method: e.target.value as PaymentMethod })}
-                  className={`input flex-[1.4] text-sm ${fin ? 'font-medium text-brand-700' : ''}`}
-                >
-                  <option value="">Method…</option>
-                  {SPLIT_PAYMENT_METHODS.map((m) => (
-                    <option key={m.value} value={m.value}>{m.label}{m.financed ? ' (financed)' : ''}</option>
-                  ))}
-                </select>
-                <div className="relative flex-1">
-                  <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-xs text-gray-400">$</span>
-                  <input
-                    name="splitAmount"
-                    inputMode="decimal"
-                    placeholder="0.00"
-                    value={l.amount}
-                    onChange={(e) => update(l.key, { amount: e.target.value.replace(/[^\d.]/g, '') })}
-                    onFocus={() => !l.amount && fillRemaining(l.key)}
-                    className="input pl-5 text-right text-sm tabular-nums"
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={() => remove(l.key)}
-                  disabled={lines.length <= 2}
-                  className="w-6 flex-none text-gray-400 hover:text-gray-600 disabled:opacity-30"
-                  aria-label="Remove line"
-                >
-                  ✕
-                </button>
-              </div>
-            );
-          })}
+          {/* Financed line — auto-fills as the remainder; read-only. */}
+          <div className="flex items-center gap-2">
+            <div className="input flex-[1.4] cursor-default bg-brand-50 text-sm font-medium text-brand-700">Financed (auto)</div>
+            <div className="relative flex-1">
+              <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-xs text-gray-400">$</span>
+              <input
+                readOnly
+                value={financed.toFixed(2)}
+                tabIndex={-1}
+                className="input pl-5 text-right text-sm font-semibold tabular-nums text-brand-700"
+                aria-label="Financed amount (auto-calculated)"
+              />
+            </div>
+            <span className="w-6 flex-none" aria-hidden />
+            {/* Submitted values for the financed line. */}
+            <input type="hidden" name="splitMethod" value={FINANCED_SPLIT_METHOD} />
+            <input type="hidden" name="splitAmount" value={financed.toFixed(2)} />
+          </div>
 
-          {lines.length < MAX_PAYMENT_SPLITS && (
+          {/* Other (non-financed) lines — down payments, entered manually. */}
+          {others.map((l) => (
+            <div key={l.key} className="flex items-center gap-2">
+              <select
+                name="splitMethod"
+                value={l.method}
+                onChange={(e) => update(l.key, { method: e.target.value as PaymentMethod })}
+                className="input flex-[1.4] text-sm"
+              >
+                <option value="">Method…</option>
+                {NON_FINANCED_SPLIT_METHODS.map((m) => (
+                  <option key={m.value} value={m.value}>{m.label}</option>
+                ))}
+              </select>
+              <div className="relative flex-1">
+                <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-xs text-gray-400">$</span>
+                <input
+                  name="splitAmount"
+                  inputMode="decimal"
+                  placeholder="0.00"
+                  value={l.amount}
+                  onChange={(e) => update(l.key, { amount: e.target.value.replace(/[^\d.]/g, '') })}
+                  className="input pl-5 text-right text-sm tabular-nums"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => remove(l.key)}
+                className="w-6 flex-none text-gray-400 hover:text-gray-600"
+                aria-label="Remove line"
+              >
+                ✕
+              </button>
+            </div>
+          ))}
+
+          {others.length < MAX_PAYMENT_SPLITS - 1 && (
             <button type="button" onClick={add} className="w-full rounded-md border border-dashed border-brand-300 py-1.5 text-xs font-medium text-brand-600 hover:bg-brand-50">
-              + Add payment method
+              + Add a down payment / other method
             </button>
           )}
 
-          <div className={`flex items-center justify-between rounded-md px-3 py-2 text-xs ${balanced ? 'bg-green-50 text-green-800' : 'bg-amber-50 text-amber-800'}`}>
-            <span>Allocated {money(allocated)} of {money(total)}</span>
-            <span className="font-semibold">{balanced ? 'Balanced ✓' : remaining >= 0 ? `${money(remaining)} left` : `${money(Math.abs(remaining))} over`}</span>
-          </div>
-          <div className="flex items-center justify-between rounded-md bg-brand-50 px-3 py-2 text-sm">
-            <span className="font-semibold text-brand-700">Amount financed</span>
-            <span className="font-bold tabular-nums text-brand-700">{money(financed)}</span>
+          <div className={`flex items-center justify-between rounded-md px-3 py-2 text-xs ${over ? 'bg-amber-50 text-amber-800' : 'bg-green-50 text-green-800'}`}>
+            <span>Deal total {money(total)}</span>
+            <span className="font-semibold">
+              {over ? `Other payments exceed the total by ${money(othersSum - total)}` : `Financed ${money(financed)} + other ${money(othersSum)}`}
+            </span>
           </div>
           <p className="text-xs text-gray-400">
-            The {PAYMENT_METHOD_LABELS.FINANCEIT} / {PAYMENT_METHOD_LABELS.FINANCE_COMPANY} portion is what gets a loan number; cash &amp; card portions don&apos;t.
+            Enter the deal total above and any down payments here — the financed amount fills in automatically.
           </p>
         </div>
       )}
