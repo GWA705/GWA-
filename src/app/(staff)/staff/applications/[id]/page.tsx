@@ -32,7 +32,7 @@ import { DecisionForm } from './DecisionForm';
 import { PayoutForm } from './PayoutForm';
 import { StatusChangeForm } from './StatusChangeForm';
 import { ReviewerWorkspace } from './ReviewerWorkspace';
-import { reviewerPhaseStates, dealerFacingStatus } from '@/lib/reviewerFlow';
+import { reviewerPhaseStates, dealerFacingStatus, currentPhaseIndex, type PhaseState } from '@/lib/reviewerFlow';
 import { exemptionSummary } from '@/lib/tax';
 import { dealHasFinancing, financedAmountOf } from '@/lib/payments';
 import { PaymentBreakdown } from '@/components/PaymentBreakdown';
@@ -318,25 +318,28 @@ export default async function StaffApplicationDetail({
             states={verificationStates}
           />
         </div>
-        <div className="border-t border-gray-100 pt-4">
-          <div className="mb-3 flex items-center justify-between">
-            <h3 className="text-sm font-medium text-gray-700">Confirmation call</h3>
-            <ConfirmationBadge status={app.confirmationStatus} />
-          </div>
-          <p className="mb-4 text-xs text-gray-500">UEI confirmation script — work through it on the call, check all six boxes, then Confirm.</p>
-          <ConfirmationForm
-            applicationId={app.id}
-            data={app.confirmation}
-            applicantName={`${app.applicantFirstName} ${app.applicantLastName}`}
-            defaultProduct={app.productsSold.length ? app.productsSold.join(', ') : PROGRAM_CATEGORY_LABELS[app.programCategory]}
-            defaultCity={app.loanApplication?.city ?? ''}
-            defaultPhone={app.applicantPhone}
-            defaultAmount={(app.approvedAmount ?? app.requestedAmount).toString()}
-          />
-        </div>
       </div>
     ),
-    // 5 · Submit to finance company
+    // 5 · Confirmation call — its own step (often done later, added to over time)
+    confirm: (
+      <div>
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="text-sm font-medium text-gray-700">Confirmation call</h3>
+          <ConfirmationBadge status={app.confirmationStatus} />
+        </div>
+        <p className="mb-4 text-xs text-gray-500">UEI confirmation script — work through it on the call, check all six boxes, then Confirm. You can open this any time and add to it as the call happens.</p>
+        <ConfirmationForm
+          applicationId={app.id}
+          data={app.confirmation}
+          applicantName={`${app.applicantFirstName} ${app.applicantLastName}`}
+          defaultProduct={app.productsSold.length ? app.productsSold.join(', ') : PROGRAM_CATEGORY_LABELS[app.programCategory]}
+          defaultCity={app.loanApplication?.city ?? ''}
+          defaultPhone={app.applicantPhone}
+          defaultAmount={(app.approvedAmount ?? app.requestedAmount).toString()}
+        />
+      </div>
+    ),
+    // 6 · Submit to finance company
     submit: (
       <div>
         <DealReferencesForm
@@ -407,6 +410,7 @@ export default async function StaffApplicationDetail({
     produce: `${reviewerDocs.length} document${reviewerDocs.length === 1 ? '' : 's'} sent to the dealer`,
     await: 'Signed package received',
     review: 'Documents reviewed',
+    confirm: 'Confirmation call complete',
     submit: 'Submitted to the finance company',
     funding: 'Funded',
     pay: 'Paid',
@@ -420,12 +424,23 @@ export default async function StaffApplicationDetail({
     pay: 'Recording the payout completes the deal.',
   };
 
-  const phases = reviewerPhaseStates(flowSignals).map((p) => ({
-    ...p,
-    body: phaseBody[p.id],
-    summary: phaseSummary[p.id],
-    autoNote: p.state === 'done' ? undefined : phaseAuto[p.id],
-  }));
+  // The confirmation call runs on its own clock — it's Done once confirmed, and
+  // otherwise available (You're here) as soon as the deal reaches the review
+  // stage, so a reviewer can add to it whenever the call actually happens.
+  const reviewReached = currentPhaseIndex(flowSignals) >= 4;
+  const confirmState: PhaseState =
+    app.confirmationStatus === 'COMPLETED' ? 'done' : reviewReached ? 'now' : 'todo';
+
+  const phases = reviewerPhaseStates(flowSignals).map((p) => {
+    const state = p.id === 'confirm' ? confirmState : p.state;
+    return {
+      ...p,
+      state,
+      body: phaseBody[p.id],
+      summary: phaseSummary[p.id],
+      autoNote: state === 'done' ? undefined : phaseAuto[p.id],
+    };
+  });
 
   // Notes + history — always available, not tied to a phase.
   const comms = (

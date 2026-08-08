@@ -39,23 +39,23 @@ describe('currentPhaseIndex', () => {
     expect(currentPhaseIndex({ ...base, status: 'FUNDING_SUBMITTED' })).toBe(4);
   });
 
-  it('in-for-funding sits at phase 6 until paid', () => {
-    expect(currentPhaseIndex({ ...base, status: 'FUNDING_REVIEW' })).toBe(6);
-    expect(currentPhaseIndex({ ...base, status: 'FUNDING_REVIEW', hasPayouts: true })).toBe(7);
+  it('in-for-funding sits at phase 7 until paid', () => {
+    expect(currentPhaseIndex({ ...base, status: 'FUNDING_REVIEW' })).toBe(7);
+    expect(currentPhaseIndex({ ...base, status: 'FUNDING_REVIEW', hasPayouts: true })).toBe(8);
   });
 
-  it('funded is the pay phase (7)', () => {
-    expect(currentPhaseIndex({ ...base, status: 'FUNDED' })).toBe(7);
+  it('funded is the pay phase (8)', () => {
+    expect(currentPhaseIndex({ ...base, status: 'FUNDED' })).toBe(8);
   });
 });
 
 describe('reviewerPhaseStates', () => {
   it('marks earlier phases done, current now, later todo', () => {
     const states = reviewerPhaseStates({ ...base, status: 'FUNDING_SUBMITTED' }); // phase 4
-    expect(states.map((s) => s.state)).toEqual(['done', 'done', 'done', 'now', 'todo', 'todo', 'todo']);
+    expect(states.map((s) => s.state)).toEqual(['done', 'done', 'done', 'now', 'todo', 'todo', 'todo', 'todo']);
   });
 
-  it('returns all seven phases in order', () => {
+  it('returns all phases in order', () => {
     expect(reviewerPhaseStates(base)).toHaveLength(REVIEWER_PHASES.length);
   });
 });

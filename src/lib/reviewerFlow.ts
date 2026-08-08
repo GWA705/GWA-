@@ -1,18 +1,22 @@
 import type { ApplicationStatus } from '@prisma/client';
 
 /**
- * The reviewer's real-world workflow, as seven ordered phases. The reviewer page
+ * The reviewer's real-world workflow, as eight ordered phases. The reviewer page
  * lays itself out around these so the page follows the job instead of showing
  * every section at once. Each phase also carries the plain-language label the
  * DEALER sees while the deal sits in that phase, so status stays in sync on both
  * sides without anyone touching a dropdown.
+ *
+ * "Confirmation call" is its own phase (not part of Review), because it often
+ * isn't done in the same sitting — the reviewer needs to open it independently
+ * and add to it whenever the call happens.
  */
 
 export type PhaseState = 'done' | 'now' | 'todo';
 
 export interface ReviewerPhase {
   id: string;
-  index: number; // 1..7
+  index: number; // 1..8
   title: string; // reviewer-facing
   sub: string; // short reviewer hint
   dealerLabel: string; // what the dealer sees during this phase
@@ -23,9 +27,10 @@ export const REVIEWER_PHASES: ReviewerPhase[] = [
   { id: 'produce', index: 2, title: 'Produce install documents', sub: 'Upload the paperwork the dealer needs to install', dealerLabel: 'Approved — preparing your documents' },
   { id: 'await', index: 3, title: 'Sent — awaiting install', sub: 'Dealer installs and returns the signed documents', dealerLabel: 'Awaiting your signed documents' },
   { id: 'review', index: 4, title: 'Review signed documents', sub: 'Confirm every signed document and photo is correct', dealerLabel: 'Reviewing your documents' },
-  { id: 'submit', index: 5, title: 'Submit to finance company', sub: 'Record the deal numbers and send it in', dealerLabel: 'Submitted to finance company' },
-  { id: 'funding', index: 6, title: 'Awaiting funding', sub: 'Wait for the funder, then mark it Funded', dealerLabel: 'In for funding' },
-  { id: 'pay', index: 7, title: 'Pay dealer', sub: 'Record the payout — the deal is complete', dealerLabel: 'Funded — paying the dealer' },
+  { id: 'confirm', index: 5, title: 'Confirmation call', sub: 'Work the UEI confirmation script with the customer', dealerLabel: 'Reviewing your documents' },
+  { id: 'submit', index: 6, title: 'Submit to finance company', sub: 'Record the deal numbers and send it in', dealerLabel: 'Submitted to finance company' },
+  { id: 'funding', index: 7, title: 'Awaiting funding', sub: 'Wait for the funder, then mark it Funded', dealerLabel: 'In for funding' },
+  { id: 'pay', index: 8, title: 'Pay dealer', sub: 'Record the payout — the deal is complete', dealerLabel: 'Funded — paying the dealer' },
 ];
 
 // Signals used (alongside status) to place a deal that the current status set
@@ -62,9 +67,9 @@ export function currentPhaseIndex(s: FlowSignals): number {
     case 'FUNDING_SUBMITTED':
       return 4; // dealer returned the package, reviewer is checking it
     case 'FUNDING_REVIEW':
-      return s.hasPayouts ? 7 : 6; // in for funding / awaiting funder
+      return s.hasPayouts ? 8 : 7; // in for funding / awaiting funder
     case 'FUNDED':
-      return 7;
+      return 8;
     default:
       return 1;
   }
