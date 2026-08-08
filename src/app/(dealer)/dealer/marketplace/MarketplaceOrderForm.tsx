@@ -229,7 +229,9 @@ function CategoryBar({
   onSelect: (key: string) => void;
 }) {
   return (
-    <div className="mb-5 flex gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
+    // Dedicated, wrapping chip area — every category stays visible and tappable
+    // (no horizontal scroll that hides the last few on a phone).
+    <div className="mb-5 flex flex-wrap gap-2">
       {chips.map((c) => {
         const on = c.key === active;
         return (
@@ -251,6 +253,66 @@ function CategoryBar({
   );
 }
 
+// One category on the storefront. On the "All" view each category is minimized
+// to a tappable header (so the page stays short); tapping expands its products
+// inline. When a single category is selected from the chips it always shows
+// expanded. Grids are hidden with CSS rather than unmounted, so any quantities a
+// dealer has already typed are never lost when they collapse/switch categories.
+function SectionBlock({
+  sectionKey,
+  name,
+  secItems,
+  active,
+  open,
+  onToggle,
+  onImageClick,
+  visible,
+}: {
+  sectionKey: string;
+  name: string;
+  secItems: Item[];
+  active: string;
+  open: boolean;
+  onToggle: (key: string) => void;
+  onImageClick: (src: string, alt: string) => void;
+  visible: boolean;
+}) {
+  const collapsible = active === ALL;
+  const gridHidden = collapsible && !open;
+  return (
+    <section className={`space-y-3 ${visible ? '' : 'hidden'}`}>
+      {collapsible ? (
+        <button
+          type="button"
+          onClick={() => onToggle(sectionKey)}
+          aria-expanded={open}
+          className="flex w-full items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3.5 text-left shadow-sm transition hover:bg-gray-50"
+        >
+          <span className="flex items-center gap-2">
+            <span className="font-semibold text-gray-900">{name}</span>
+            <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">{secItems.length}</span>
+          </span>
+          <svg
+            viewBox="0 0 20 20"
+            className={`h-5 w-5 flex-none text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            aria-hidden
+          >
+            <path d="M6 8l4 4 4-4" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+      ) : (
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">{name}</h2>
+      )}
+      <div className={gridHidden ? 'hidden' : ''}>
+        <ItemGrid items={secItems} active={active} onImageClick={onImageClick} />
+      </div>
+    </section>
+  );
+}
+
 function ItemGrid({ items, active, onImageClick }: { items: Item[]; active: string; onImageClick: (src: string, alt: string) => void }) {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -267,6 +329,16 @@ export function MarketplaceOrderForm({ items, categories }: { items: Item[]; cat
   const [state, action] = useFormState(createOrderAction, initial);
   const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(null);
   const [active, setActive] = useState<string>(ALL);
+  // Which categories are expanded on the "All" view. Empty by default so the page
+  // lands short — the dealer opens only the category they want to browse.
+  const [openKeys, setOpenKeys] = useState<Set<string>>(new Set());
+  const toggle = (key: string) =>
+    setOpenKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
   const openImage = (src: string, alt: string) => setLightbox({ src, alt });
 
   const activeIds = new Set(categories.map((c) => c.id));
@@ -307,18 +379,37 @@ export function MarketplaceOrderForm({ items, categories }: { items: Item[]; cat
           </div>
         )}
 
-        {sections.map((s) => (
-          <section key={s.key} className={`space-y-3 ${sectionVisible(s.key, s.items) ? '' : 'hidden'}`}>
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">{s.name}</h2>
-            <ItemGrid items={s.items} active={active} onImageClick={openImage} />
-          </section>
-        ))}
-        {other.length > 0 && (
-          <section className={`space-y-3 ${sectionVisible(OTHER, other) ? '' : 'hidden'}`}>
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">Other</h2>
-            <ItemGrid items={other} active={active} onImageClick={openImage} />
-          </section>
+        {active === ALL && (
+          <p className="-mt-3 text-xs text-gray-500">Tap a category to see what&apos;s inside.</p>
         )}
+
+        <div className="space-y-3">
+          {sections.map((s) => (
+            <SectionBlock
+              key={s.key}
+              sectionKey={s.key}
+              name={s.name}
+              secItems={s.items}
+              active={active}
+              open={openKeys.has(s.key)}
+              onToggle={toggle}
+              onImageClick={openImage}
+              visible={sectionVisible(s.key, s.items)}
+            />
+          ))}
+          {other.length > 0 && (
+            <SectionBlock
+              sectionKey={OTHER}
+              name="Other"
+              secItems={other}
+              active={active}
+              open={openKeys.has(OTHER)}
+              onToggle={toggle}
+              onImageClick={openImage}
+              visible={sectionVisible(OTHER, other)}
+            />
+          )}
+        </div>
 
         <div className="card p-4">
           <label className="label" htmlFor="note">Note <span className="font-normal text-gray-400">(optional)</span></label>
