@@ -1,7 +1,9 @@
 'use client';
 
+import { useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { setVerificationCheckAction, type ActionState } from '@/app/(staff)/actions';
+import { InfoPopover } from '@/components/InfoPopover';
 
 export type VerificationItem = { key: string; label: string; help?: string };
 export type VerificationState = {
@@ -48,49 +50,68 @@ function ChecklistItem({
     {} as ActionState,
   );
   const status = current.status;
+  // The problem-note box stays hidden until the reviewer chooses to flag a
+  // problem, so each row is compact by default.
+  const [flagging, setFlagging] = useState(false);
 
   return (
     <form action={action} className="rounded-md border border-gray-200 p-3">
       <input type="hidden" name="key" value={item.key} />
       <div className="flex flex-wrap items-start justify-between gap-2">
-        <div className="min-w-0">
+        <div className="flex min-w-0 items-center gap-1.5">
           <p className="text-sm font-medium text-gray-900">{item.label}</p>
-          {item.help && <p className="mt-0.5 text-xs text-gray-500">{item.help}</p>}
+          {item.help && <InfoPopover label={`About: ${item.label}`}>{item.help}</InfoPopover>}
         </div>
         <StatusPill status={status} />
       </div>
 
-      {status === 'PROBLEM' && current.note && (
+      {status === 'PROBLEM' && current.note && !flagging && (
         <p className="mt-2 rounded bg-red-50 p-2 text-xs text-red-800">
           <span className="font-medium">Flagged: </span>
           {current.note}
         </p>
       )}
 
-      <div className="mt-3">
-        <label className="label text-xs" htmlFor={`note_${item.key}`}>
-          Problem note (required to flag a problem — the dealer is notified)
-        </label>
-        <textarea
-          id={`note_${item.key}`}
-          name="note"
-          rows={2}
-          defaultValue={current.note ?? ''}
-          placeholder="Describe what's wrong…"
-          className="input text-sm"
-        />
-      </div>
+      {flagging && (
+        <div className="mt-3">
+          <label className="label text-xs" htmlFor={`note_${item.key}`}>
+            Problem note (required — the dealer is notified)
+          </label>
+          <textarea
+            id={`note_${item.key}`}
+            name="note"
+            rows={2}
+            autoFocus
+            defaultValue={current.note ?? ''}
+            placeholder="Describe what's wrong…"
+            className="input text-sm"
+          />
+        </div>
+      )}
 
       <div className="mt-2 flex flex-wrap items-center gap-2">
-        <ActionButton
-          value="CONFIRMED"
-          className={status === 'CONFIRMED' ? 'btn-primary text-xs' : 'btn-secondary text-xs'}
-        >
-          {status === 'CONFIRMED' ? '✓ Confirmed' : 'Confirm'}
-        </ActionButton>
-        <ActionButton value="PROBLEM" className="btn-danger text-xs">
-          Flag problem
-        </ActionButton>
+        {flagging ? (
+          <>
+            <ActionButton value="PROBLEM" className="btn-danger text-xs">
+              Submit problem
+            </ActionButton>
+            <button type="button" onClick={() => setFlagging(false)} className="btn-secondary text-xs">
+              Cancel
+            </button>
+          </>
+        ) : (
+          <>
+            <ActionButton
+              value="CONFIRMED"
+              className={status === 'CONFIRMED' ? 'btn-primary text-xs' : 'btn-secondary text-xs'}
+            >
+              {status === 'CONFIRMED' ? '✓ Confirmed' : 'Confirm'}
+            </ActionButton>
+            <button type="button" onClick={() => setFlagging(true)} className="btn-danger text-xs">
+              Flag problem
+            </button>
+          </>
+        )}
         {status !== 'PENDING' && current.checkedByName && (
           <span className="text-xs text-gray-400">
             {current.checkedByName}
