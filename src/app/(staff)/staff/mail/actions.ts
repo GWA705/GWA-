@@ -35,18 +35,33 @@ export async function sendMailAction(_prev: MailActionState, formData: FormData)
   const distributorsOnly = formData.get('distributorsOnly') === 'on';
   const allDealers = formData.get('allDealers') === 'on';
   const dealerIds = formData.getAll('dealerIds').map(String).filter(Boolean);
+  const userIds = formData.getAll('userIds').map(String).filter(Boolean);
 
   if (!subject) return { error: 'Add a subject.' };
   if (!body) return { error: 'Add a message.' };
-  if (!allDealers && dealerIds.length === 0) {
-    return { error: 'Choose at least one dealer, or select “All dealers.”' };
+  if (!allDealers && dealerIds.length === 0 && userIds.length === 0) {
+    return { error: 'Choose at least one dealer or person, or select “All dealers.”' };
   }
 
+  // Resolve whole-dealer recipients (all users at those dealers).
   const recipients = allDealers
     ? []
     : await prisma.dealer.findMany({ where: { id: { in: dealerIds }, active: true }, select: { id: true } });
-  if (!allDealers && recipients.length === 0) {
-    return { error: 'None of the selected dealers were found.' };
+  // Resolve individually-addressed users (must be active dealer users). Skip any
+  // whose dealer is already covered by a whole-dealer selection.
+  const coveredDealers = new Set(recipients.map((d) => d.id));
+  const userRows = allDealers || userIds.length === 0
+    ? []
+    : await prisma.user.findMany({
+        where: { id: { in: userIds }, active: true, role: 'DEALER_USER' },
+        select: { id: true, dealerId: true },
+      });
+  const userRecipientIds = userRows
+    .filter((u) => !u.dealerId || !coveredDealers.has(u.dealerId))
+    .map((u) => u.id);
+
+  if (!allDealers && recipients.length === 0 && userRecipientIds.length === 0) {
+    return { error: 'None of the selected dealers or people were found.' };
   }
 
   // Validate attachments up-front so we don't create a half-formed mail.
@@ -70,7 +85,8 @@ export async function sendMailAction(_prev: MailActionState, formData: FormData)
       distributorsOnly,
       allDealers,
       senderId: session.userId,
-      recipients: allDealers ? undefined : { create: recipients.map((d) => ({ dealerId: d.id })) },
+      recipients: allDealers || recipients.length === 0 ? undefined : { create: recipients.map((d) => ({ dealerId: d.id })) },
+      userRecipients: userRecipientIds.length === 0 ? undefined : { create: userRecipientIds.map((id) => ({ userId: id })) },
     },
   });
 
@@ -135,7 +151,7 @@ export async function sendMailAction(_prev: MailActionState, formData: FormData)
     action: 'MAIL_SEND',
     entityType: 'Mail',
     entityId: mail.id,
-    detail: `${allDealers ? 'all dealers' : `${recipients.length} dealer(s)`}${requireAck ? ', acknowledgement required' : ''}`,
+    detail: `${allDealers ? 'all dealers' : [recipients.length ? `${recipients.length} dealer(s)` : '', userRecipientIds.length ? `${userRecipientIds.length} person(s)` : ''].filter(Boolean).join(' + ')}${requireAck ? ', acknowledgement required' : ''}`,
   });
 
   revalidatePath('/staff/mail');

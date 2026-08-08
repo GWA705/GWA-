@@ -19,6 +19,7 @@ export default async function MailReceipts({ params }: { params: { id: string } 
       sender: { select: { name: true } },
       attachments: { orderBy: { createdAt: 'asc' } },
       recipients: { include: { dealer: { select: { id: true, name: true } } } },
+      userRecipients: { select: { userId: true } },
     },
   });
   if (!mail) notFound();
@@ -26,15 +27,19 @@ export default async function MailReceipts({ params }: { params: { id: string } 
   const dealerIds = mail.allDealers
     ? (await prisma.dealer.findMany({ where: { active: true }, select: { id: true } })).map((d) => d.id)
     : mail.recipients.map((r) => r.dealerId);
+  const explicitUserIds = mail.userRecipients.map((u) => u.userId);
 
   const [users, receipts, views] = await Promise.all([
     prisma.user.findMany({
       where: {
-        dealerId: { in: dealerIds },
         role: 'DEALER_USER',
         active: true,
-        // A distributors-only message reaches only the distributor users.
-        ...(mail.distributorsOnly ? { isDistributor: true } : {}),
+        OR: [
+          // Everyone at a whole-dealer recipient (distributors only if flagged).
+          { dealerId: { in: dealerIds }, ...(mail.distributorsOnly ? { isDistributor: true } : {}) },
+          // Plus anyone addressed individually.
+          { id: { in: explicitUserIds } },
+        ],
       },
       select: { id: true, name: true, email: true, dealer: { select: { name: true } } },
       orderBy: [{ dealer: { name: 'asc' } }, { name: 'asc' }],
@@ -101,7 +106,12 @@ export default async function MailReceipts({ params }: { params: { id: string } 
         </div>
         <p className="mt-1 text-sm text-gray-500">
           Sent by {mail.sender.name} · {mail.createdAt.toLocaleString('en-CA')} ·{' '}
-          {mail.allDealers ? 'All dealers' : `${mail.recipients.length} dealer(s)`}
+          {mail.allDealers
+            ? 'All dealers'
+            : [
+                mail.recipients.length ? `${mail.recipients.length} dealer(s)` : '',
+                explicitUserIds.length ? `${explicitUserIds.length} person(s)` : '',
+              ].filter(Boolean).join(' + ') || 'no recipients'}
         </p>
         {!mail.allDealers && mail.recipients.length > 0 && (
           <p className="mt-1 text-xs text-gray-400">{mail.recipients.map((r) => r.dealer.name).join(', ')}</p>

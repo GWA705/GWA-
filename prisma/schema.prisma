@@ -365,6 +365,7 @@ model User {
   contentReads        ContentSectionRead[]
   mailsSent           Mail[]              @relation("MailSender")
   mailReplies         MailReply[]         @relation("MailReplyAuthor")
+  mailUserRecipients  MailUserRecipient[] @relation("MailUserRecipient")
   mailReceipts        MailReceipt[]
   mailAttachmentViews MailAttachmentView[]
   ordersCreated       Order[]             @relation("OrderCreatedBy")
@@ -487,12 +488,28 @@ model Mail {
   senderLabel String?
   createdAt  DateTime @default(now())
 
-  recipients  MailRecipient[]
+  recipients      MailRecipient[]
+  userRecipients  MailUserRecipient[]
   attachments MailAttachment[]
   receipts    MailReceipt[]
   replies     MailReply[]
 
   @@index([createdAt])
+}
+
+// A specific user this mail was addressed to (in addition to any whole-dealer
+// recipients). Lets staff message individual people at a dealer rather than
+// everyone there. An explicit user recipient always sees the mail, regardless
+// of the distributors-only flag.
+model MailUserRecipient {
+  id     String @id @default(cuid())
+  mailId String
+  mail   Mail   @relation(fields: [mailId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation("MailUserRecipient", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([mailId, userId])
+  @@index([userId])
 }
 
 // A reply on a piece of mail (only when Mail.allowReplies). Replies form one

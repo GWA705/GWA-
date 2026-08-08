@@ -19,7 +19,7 @@ export default async function DealerAttachmentViewer({
   if (!session.dealerId) notFound();
 
   const mail = await prisma.mail.findFirst({
-    where: { id: params.id, ...mailWhereForDealer(session.dealerId, session.isDistributor) },
+    where: { id: params.id, ...mailWhereForDealer(session.userId, session.dealerId, session.isDistributor) },
     select: { id: true, subject: true, attachments: { where: { id: params.attId }, select: { id: true, fileName: true, mimeType: true } } },
   });
   const att = mail?.attachments[0];
