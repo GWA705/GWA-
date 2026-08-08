@@ -56,7 +56,7 @@ function Field({ label, value, mono }: { label: string; value: React.ReactNode; 
   return (
     <div className="flex flex-col gap-0.5 border-b border-gray-100 py-2 last:border-0 sm:flex-row sm:items-baseline sm:gap-4">
       <dt className="text-xs uppercase tracking-wide text-gray-400 sm:w-56 sm:flex-none">{label}</dt>
-      <dd className={`text-sm font-medium text-gray-900 sm:flex-1 ${mono ? 'font-mono' : ''}`}>
+      <dd className={`min-w-0 break-words text-sm font-medium text-gray-900 sm:flex-1 ${mono ? 'font-mono' : ''}`}>
         {value === null || value === undefined || value === '' ? <span className="text-gray-300">—</span> : value}
       </dd>
     </div>

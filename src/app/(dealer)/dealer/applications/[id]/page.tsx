@@ -153,7 +153,7 @@ export default async function DealerApplicationDetail({
           not shown back to the dealer after intake. */}
       <section className="card p-6">
         <h2 className="mb-4 text-base font-semibold text-gray-900">Customer snapshot</h2>
-        <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3">
+        <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3 [&>div]:min-w-0 [&_dd]:break-words">
           <div className="col-span-2 sm:col-span-3">
             <dt className="text-gray-500">Product(s) sold</dt>
             <dd className="font-medium">{app.productsSold.length ? app.productsSold.join(', ') : '—'}</dd>

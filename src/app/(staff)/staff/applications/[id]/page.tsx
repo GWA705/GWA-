@@ -234,7 +234,7 @@ export default async function StaffApplicationDetail({
         <CollapsibleEntry
           storageKey={`entryview:${app.id}`}
           snapshot={
-            <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3">
+            <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3 [&>div]:min-w-0 [&_dd]:break-words">
               <div><dt className="text-gray-500">Program</dt><dd><ProgramBadge type={app.programType} category={PROGRAM_CATEGORY_LABELS[app.programCategory]} /></dd></div>
               <div><dt className="text-gray-500">Customer</dt><dd className="font-medium">{app.applicantFirstName} {app.applicantLastName}</dd></div>
               <div><dt className="text-gray-500">Phone</dt><dd className="font-medium">{app.applicantPhone}</dd></div>
@@ -598,7 +598,7 @@ export default async function StaffApplicationDetail({
                 <span className="badge bg-amber-200 text-amber-900">🪶 Tax exempt · {ex.label}</span>
                 <span className="text-sm text-amber-900">{ex.detail}</span>
               </div>
-              <dl className="mt-3 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+              <dl className="mt-3 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4 [&>div]:min-w-0 [&_dd]:break-words">
                 <div><dt className="text-gray-500">Status card #</dt><dd className="font-medium">{statusCard}{!reveal && app.statusCardNumberEnc && <a href={`/staff/applications/${app.id}?reveal=1`} className="ml-2 text-xs text-brand-600 hover:underline">reveal</a>}</dd></div>
                 <div><dt className="text-gray-500">Band / First Nation</dt><dd className="font-medium">{app.bandName ?? '—'}</dd></div>
                 <div><dt className="text-gray-500">On reserve</dt><dd className="font-medium">{app.deliveredToReserve ? 'Yes' : 'No'}</dd></div>
