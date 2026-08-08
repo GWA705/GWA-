@@ -1,6 +1,7 @@
 import type { Document } from '@prisma/client';
 import { DOCUMENT_TYPE_LABELS } from '@/lib/constants';
 import { DeleteDocumentButton } from '@/components/DeleteDocumentButton';
+import { DocViewer } from '@/components/DocViewer';
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -24,17 +25,17 @@ export function DocumentList({
       {documents.map((d) => (
         <li key={d.id} className="flex items-center justify-between gap-3 py-2">
           <div className="min-w-0 flex-1">
-            <a
-              href={`/api/documents/${d.id}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block truncate font-medium text-brand-700 hover:underline"
+            <DocViewer
+              id={d.id}
+              fileName={d.fileName}
+              mimeType={d.mimeType}
+              className="block w-full truncate text-left font-medium text-brand-700 hover:underline"
               title={d.fileName}
             >
               {/* Lead with the uploader's label (what it is); fall back to the
                   file name for documents that don't carry one. */}
               {d.label || d.fileName}
-            </a>
+            </DocViewer>
             <span className="text-xs text-gray-400">
               {DOCUMENT_TYPE_LABELS[d.type]} · {formatSize(d.sizeBytes)}
             </span>

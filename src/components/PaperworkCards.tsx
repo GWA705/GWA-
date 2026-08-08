@@ -1,5 +1,6 @@
 import type { Document } from '@prisma/client';
 import { DOCUMENT_TYPE_LABELS } from '@/lib/constants';
+import { DocViewer } from '@/components/DocViewer';
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -65,14 +66,15 @@ export function PaperworkCards({ documents }: { documents: Document[] }) {
               {formatSize(d.sizeBytes)} · {d.createdAt.toLocaleDateString('en-CA')}
             </p>
             <div className="mt-3 flex gap-2">
-              <a
-                href={`/api/documents/${d.id}`}
-                target="_blank"
-                rel="noopener noreferrer"
+              <DocViewer
+                id={d.id}
+                fileName={d.fileName}
+                mimeType={d.mimeType}
+                title={DOCUMENT_TYPE_LABELS[d.type]}
                 className="rounded-md border border-green-600 px-3 py-1.5 text-xs font-semibold text-green-700 shadow-sm transition hover:bg-green-50"
               >
                 View
-              </a>
+              </DocViewer>
               <a
                 href={`/api/documents/${d.id}?download=1`}
                 className="rounded-md bg-green-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-green-700"

@@ -28,6 +28,7 @@ import {
 } from '@/app/(dealer)/actions';
 import { FundingUploader } from '@/components/FundingUploader';
 import { DeleteDocumentButton } from '@/components/DeleteDocumentButton';
+import { DocViewer } from '@/components/DocViewer';
 
 export const dynamic = 'force-dynamic';
 
@@ -360,9 +361,9 @@ export default async function DealerApplicationDetail({
                     <ul className="mt-2 space-y-1 pl-7 text-xs text-gray-500">
                       {uploaded.map((u) => (
                         <li key={u.id} className="flex flex-wrap items-center gap-2">
-                          <a href={`/api/documents/${u.id}`} target="_blank" rel="noopener noreferrer" className="break-all text-brand-700 hover:underline">
+                          <DocViewer id={u.id} fileName={u.fileName} mimeType={u.mimeType} className="break-all text-left text-brand-700 hover:underline">
                             {u.fileName}
-                          </a>
+                          </DocViewer>
                           {u.verifiedAt ? (
                             <span className="text-green-600">✓ confirmed by GWA</span>
                           ) : (

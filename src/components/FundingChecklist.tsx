@@ -7,6 +7,7 @@ import {
   deleteDocumentAction,
 } from '@/app/(staff)/actions';
 import { DeleteDocumentButton } from '@/components/DeleteDocumentButton';
+import { DocViewer } from '@/components/DocViewer';
 
 /**
  * Reviewer funding checklist. Each required document shows green ✓ when a
@@ -81,9 +82,9 @@ export function FundingChecklist({
                     const done = !!f.verifiedAt;
                     return (
                       <li key={f.id} className="flex items-center justify-between gap-3 text-xs">
-                        <a href={`/api/documents/${f.id}`} target="_blank" rel="noopener noreferrer" className="min-w-0 flex-1 truncate text-brand-700 hover:underline">
+                        <DocViewer id={f.id} fileName={f.fileName} mimeType={f.mimeType} className="min-w-0 flex-1 truncate text-left text-brand-700 hover:underline">
                           {f.fileName}
-                        </a>
+                        </DocViewer>
                         <DeleteDocumentButton documentId={f.id} fileName={f.fileName} action={deleteDocumentAction} />
                         <form action={toggle}>
                           <button
