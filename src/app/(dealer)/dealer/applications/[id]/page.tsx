@@ -247,8 +247,9 @@ export default async function DealerApplicationDetail({
         </section>
       )}
 
-      {/* Payout receipt */}
-      {app.payouts.length > 0 && (
+      {/* Payout receipt — money paid to the dealer, so only the distributor
+          (owner / main contact) sees it, not every dealer user. */}
+      {user.isDistributor && app.payouts.length > 0 && (
         <section className="card p-6">
           <h2 className="mb-3 text-base font-semibold text-gray-900">Payout receipt</h2>
           <PayoutReceipt payouts={app.payouts} />

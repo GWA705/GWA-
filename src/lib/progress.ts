@@ -48,8 +48,10 @@ export function dealProgress(s: ProgressSignals): ProgressStage[] {
     { key: 'approved', label: 'Approved', done: rank >= 2 },
     { key: 'docs', label: 'Docs uploaded', done: s.hasFundingDocs || rank >= 3 },
     { key: 'confirmation', label: 'Confirmation', done: s.confirmationStatus === 'COMPLETED' },
-    { key: 'funding', label: 'In for funding', done: rank >= 5 },
-    { key: 'funded', label: 'Funded', done: rank >= 6 },
+    // A recorded payout means the deal reached funding and was funded — so these
+    // earlier milestones can never lag behind "Paid".
+    { key: 'funding', label: 'In for funding', done: rank >= 5 || s.hasPayouts },
+    { key: 'funded', label: 'Funded', done: rank >= 6 || s.hasPayouts },
     { key: 'paid', label: 'Paid', done: s.hasPayouts },
   ];
 }
