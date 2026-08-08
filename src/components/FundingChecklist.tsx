@@ -1,13 +1,13 @@
 import type { Document, ApplicationStatus } from '@prisma/client';
 import { FUNDING_DOCUMENT_TYPES } from '@/lib/constants';
 import {
-  toggleDocumentVerifiedAction,
   verifyAllFundingDocsAction,
   moveToInForFundingAction,
   deleteDocumentAction,
 } from '@/app/(staff)/actions';
 import { DeleteDocumentButton } from '@/components/DeleteDocumentButton';
 import { DocViewer } from '@/components/DocViewer';
+import { VerifyDocButton } from '@/components/VerifyDocButton';
 
 /**
  * Reviewer funding checklist. Each required document shows green ✓ when a
@@ -77,34 +77,15 @@ export function FundingChecklist({
 
               {files.length > 0 && (
                 <ul className="mt-2 space-y-1.5 pl-7">
-                  {files.map((f) => {
-                    const toggle = toggleDocumentVerifiedAction.bind(null, f.id);
-                    const done = !!f.verifiedAt;
-                    return (
-                      <li key={f.id} className="flex items-center justify-between gap-3 text-xs">
-                        <DocViewer id={f.id} fileName={f.fileName} mimeType={f.mimeType} className="min-w-0 flex-1 truncate text-left text-brand-700 hover:underline">
-                          {f.fileName}
-                        </DocViewer>
-                        <DeleteDocumentButton documentId={f.id} fileName={f.fileName} action={deleteDocumentAction} />
-                        <form action={toggle}>
-                          <button
-                            type="submit"
-                            className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset transition ${
-                              done
-                                ? 'bg-green-50 text-green-700 ring-green-200 hover:bg-green-100'
-                                : 'bg-white text-gray-600 ring-gray-300 hover:bg-gray-50'
-                            }`}
-                            title={done ? 'Mark as not completed' : 'View, then mark completed'}
-                          >
-                            <span className={`flex h-4 w-4 items-center justify-center rounded border ${done ? 'border-green-600 bg-green-600 text-white' : 'border-gray-400'}`}>
-                              {done ? '✓' : ''}
-                            </span>
-                            {done ? 'Completed' : 'Mark completed'}
-                          </button>
-                        </form>
-                      </li>
-                    );
-                  })}
+                  {files.map((f) => (
+                    <li key={f.id} className="flex items-center justify-between gap-3 text-xs">
+                      <DocViewer id={f.id} fileName={f.fileName} mimeType={f.mimeType} className="min-w-0 flex-1 truncate text-left text-brand-700 hover:underline">
+                        {f.fileName}
+                      </DocViewer>
+                      <DeleteDocumentButton documentId={f.id} fileName={f.fileName} action={deleteDocumentAction} />
+                      <VerifyDocButton documentId={f.id} done={!!f.verifiedAt} />
+                    </li>
+                  ))}
                 </ul>
               )}
             </li>
