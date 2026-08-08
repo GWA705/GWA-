@@ -240,8 +240,10 @@ model Product {
 
 // A dealership (external partner). Tenancy boundary: dealer users only ever
 // see applications belonging to their own dealer.
-// Distributors are separated from regular dealers so recipient pickers (Mail,
-// marketplace orders) can group them — no separate login, just organization.
+// DEPRECATED: DealerType/Dealer.type is no longer used or shown. "Distributor"
+// is now a person-level flag on User (User.isDistributor) — the owner / main
+// contact for a dealer. The column is retained (defaulting to DEALER) only to
+// avoid a destructive migration; nothing reads it.
 enum DealerType {
   DISTRIBUTOR
   DEALER
@@ -311,6 +313,12 @@ model User {
   // Dealer users belong to a dealer; internal staff have dealerId = null.
   dealerId String?
   dealer   Dealer? @relation(fields: [dealerId], references: [id])
+
+  // A distributor is the owner / main contact person for their dealer. They have
+  // the same abilities as a regular dealer user, but are flagged so they can be
+  // targeted separately (e.g. mail sent to owners only). Only meaningful for
+  // DEALER_USER; always false for internal staff.
+  isDistributor Boolean @default(false)
 
   // Profile & notification preferences
   phone             String?
@@ -462,6 +470,9 @@ model Mail {
   // When true, dealers who received this mail can reply to it (a two-way thread,
   // one conversation per dealer). Off by default — set per message at send time.
   allowReplies Boolean @default(false)
+  // When true, only distributor users (the owners / main contacts) at the
+  // addressed dealers see this mail — not every user at those dealers.
+  distributorsOnly Boolean @default(false)
   allDealers Boolean  @default(false) // sent to every dealer (vs. selected)
   senderId   String
   sender     User     @relation("MailSender", fields: [senderId], references: [id])

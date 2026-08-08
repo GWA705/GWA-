@@ -18,7 +18,7 @@ export function EditUserForm({
   user,
   dealers,
 }: {
-  user: { id: string; name: string; email: string; role: string; dealerId: string | null };
+  user: { id: string; name: string; email: string; role: string; dealerId: string | null; isDistributor: boolean };
   dealers: { id: string; name: string }[];
 }) {
   const [state, action] = useFormState(updateUserAction.bind(null, user.id), {} as ActionState);
@@ -60,6 +60,19 @@ export function EditUserForm({
             </p>
           )}
         </div>
+        {role === 'DEALER_USER' && (
+          <div className="sm:col-span-2">
+            <label className="flex items-start gap-2 text-sm text-gray-700">
+              <input type="checkbox" name="isDistributor" defaultChecked={user.isDistributor} className="mt-0.5 rounded border-gray-300" />
+              <span>
+                This person is the <strong>distributor</strong> (owner / main contact) for this dealer
+                <span className="block text-xs text-gray-400">
+                  Same access as a dealer user — flagged as the owner so you can send mail to distributors only.
+                </span>
+              </span>
+            </label>
+          </div>
+        )}
         <div className="sm:col-span-2">
           <label className="label" htmlFor="newPassword">New temporary password <span className="font-normal text-gray-400">(leave blank to keep current)</span></label>
           <input id="newPassword" name="newPassword" type="text" className="input" placeholder="Only fill this to reset their password" />

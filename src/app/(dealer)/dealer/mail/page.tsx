@@ -9,7 +9,7 @@ export default async function DealerMailbox() {
   const session = await requireDealerAccess();
   const mails = session.dealerId
     ? await prisma.mail.findMany({
-        where: mailWhereForDealer(session.dealerId),
+        where: mailWhereForDealer(session.dealerId, session.isDistributor),
         orderBy: { createdAt: 'desc' },
         include: {
           sender: { select: { name: true } },

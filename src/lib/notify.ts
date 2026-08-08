@@ -232,7 +232,7 @@ export async function notifyMailReply(
   try {
     const mail = await prisma.mail.findUnique({
       where: { id: mailId },
-      select: { subject: true, senderId: true },
+      select: { subject: true, senderId: true, distributorsOnly: true },
     });
     if (!mail) return;
     const subject = mail.subject;
@@ -266,9 +266,15 @@ export async function notifyMailReply(
         tag: `mailreply-${mailId}`,
       });
     } else {
-      // Staff replied → tell the dealer's users.
+      // Staff replied → tell the dealer's users (only distributors when the
+      // original mail was distributors-only).
       const users = await prisma.user.findMany({
-        where: { dealerId, role: 'DEALER_USER', active: true },
+        where: {
+          dealerId,
+          role: 'DEALER_USER',
+          active: true,
+          ...(mail.distributorsOnly ? { isDistributor: true } : {}),
+        },
       });
       for (const u of users) {
         await sendEmail({

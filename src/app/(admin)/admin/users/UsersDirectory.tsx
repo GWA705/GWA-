@@ -8,6 +8,7 @@ export type DirUser = {
   name: string;
   email: string;
   roleLabel: string;
+  isDistributor: boolean;
   mfaEnabled: boolean;
   active: boolean;
   canDelete: boolean;
@@ -77,7 +78,12 @@ export function UsersDirectory({ groups }: { groups: DirGroup[] }) {
                   <tr key={u.id}>
                     <td className="px-4 py-3 font-medium">{u.name}</td>
                     <td className="px-4 py-3 text-gray-600">{u.email}</td>
-                    <td className="px-4 py-3">{u.roleLabel}</td>
+                    <td className="px-4 py-3">
+                      {u.roleLabel}
+                      {u.isDistributor && (
+                        <span className="ml-2 badge bg-brand-50 text-brand-700">Distributor</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3">{u.mfaEnabled ? '✓' : '—'}</td>
                     <td className="px-4 py-3">
                       <span className={`badge ${u.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>

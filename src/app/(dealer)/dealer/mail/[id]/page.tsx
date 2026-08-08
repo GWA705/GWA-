@@ -20,7 +20,7 @@ export default async function DealerMailItem({ params }: { params: { id: string 
   if (!session.dealerId) notFound();
 
   const mail = await prisma.mail.findFirst({
-    where: { id: params.id, ...mailWhereForDealer(session.dealerId) },
+    where: { id: params.id, ...mailWhereForDealer(session.dealerId, session.isDistributor) },
     include: { sender: { select: { name: true } }, attachments: { orderBy: { createdAt: 'asc' } } },
   });
   if (!mail) notFound();

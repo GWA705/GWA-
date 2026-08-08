@@ -58,6 +58,20 @@ export function UserForm({ dealers }: { dealers: { id: string; name: string }[] 
             </p>
           )}
         </div>
+        {role === 'DEALER_USER' && (
+          <div className="sm:col-span-2">
+            <label className="flex items-start gap-2 text-sm text-gray-700">
+              <input type="checkbox" name="isDistributor" className="mt-0.5 rounded border-gray-300" />
+              <span>
+                This person is the <strong>distributor</strong> (owner / main contact) for this dealer
+                <span className="block text-xs text-gray-400">
+                  Same access as a dealer user — but flagged as the owner so you can send mail to
+                  distributors only.
+                </span>
+              </span>
+            </label>
+          </div>
+        )}
         <div className="sm:col-span-2">
           <label className="label" htmlFor="password">Temporary password</label>
           <input id="password" name="password" type="text" required className="input" placeholder="e.g. BrightRiver!47" />

@@ -1,15 +1,22 @@
 import type { ContentSection } from '@prisma/client';
 import { prisma } from './db';
 
-// Mail is visible to a dealer when it was sent to all dealers or addressed to
-// that specific dealer.
-export function mailWhereForDealer(dealerId: string) {
-  return { OR: [{ allDealers: true }, { recipients: { some: { dealerId } } }] };
+// Mail is visible to a dealer user when it was sent to all dealers or addressed
+// to their dealer — AND, if it's a "distributors only" message, only when this
+// user is a distributor (the owner / main contact) for that dealer.
+export function mailWhereForDealer(dealerId: string, isDistributor: boolean) {
+  return {
+    AND: [
+      { OR: [{ allDealers: true }, { recipients: { some: { dealerId } } }] },
+      // Non-distributors never see distributor-only mail.
+      ...(isDistributor ? [] : [{ distributorsOnly: false }]),
+    ],
+  };
 }
 
 /** Count of mail this user hasn't opened yet (drives the Mail nav dot). */
-export async function unreadMailCountForUser(userId: string, dealerId: string): Promise<number> {
-  const where = mailWhereForDealer(dealerId);
+export async function unreadMailCountForUser(userId: string, dealerId: string, isDistributor: boolean): Promise<number> {
+  const where = mailWhereForDealer(dealerId, isDistributor);
   const [total, opened] = await Promise.all([
     prisma.mail.count({ where }),
     prisma.mailReceipt.count({ where: { userId, mail: where } }),

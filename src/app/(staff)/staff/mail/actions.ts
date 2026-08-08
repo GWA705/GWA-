@@ -31,6 +31,7 @@ export async function sendMailAction(_prev: MailActionState, formData: FormData)
   const senderLabel = (formData.get('senderLabel') ?? '').toString().trim() || null;
   const requireAck = formData.get('requireAck') === 'on';
   const allowReplies = formData.get('allowReplies') === 'on';
+  const distributorsOnly = formData.get('distributorsOnly') === 'on';
   const allDealers = formData.get('allDealers') === 'on';
   const dealerIds = formData.getAll('dealerIds').map(String).filter(Boolean);
 
@@ -65,6 +66,7 @@ export async function sendMailAction(_prev: MailActionState, formData: FormData)
       senderLabel,
       requireAck,
       allowReplies,
+      distributorsOnly,
       allDealers,
       senderId: session.userId,
       recipients: allDealers ? undefined : { create: recipients.map((d) => ({ dealerId: d.id })) },

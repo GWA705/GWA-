@@ -100,6 +100,7 @@ export async function changePasswordAction(
     name: session.name,
     role: session.role,
     dealerId: session.dealerId,
+    isDistributor: session.isDistributor,
     superAdmin: session.superAdmin,
     adminSections: session.adminSections,
     tokenVersion: updated.tokenVersion,

@@ -19,6 +19,9 @@ export interface SessionUser {
   name: string;
   role: Role;
   dealerId: string | null;
+  // A dealer user who is the owner / main contact for their dealer. Lets mail
+  // and other messaging target distributors specifically. False for staff.
+  isDistributor: boolean;
   // Back-end access control (ADMIN only; false/[] for everyone else). superAdmin
   // = full access + can manage others' access; adminSections = the section keys a
   // scoped admin may reach. Read fresh from the DB each request (not the token).
@@ -142,7 +145,7 @@ export const getSession = cache(async function getSession(): Promise<SessionUser
   // are used so an admin edit takes effect on the user's next request.
   const dbUser = await prisma.user.findUnique({
     where: { id: payload.userId as string },
-    select: { id: true, email: true, name: true, role: true, dealerId: true, active: true, tokenVersion: true, superAdmin: true, adminSections: true },
+    select: { id: true, email: true, name: true, role: true, dealerId: true, active: true, tokenVersion: true, superAdmin: true, adminSections: true, isDistributor: true },
   });
   if (!dbUser || !dbUser.active) return null;
   if (((payload.tv as number | undefined) ?? 0) !== dbUser.tokenVersion) return null;
@@ -153,6 +156,8 @@ export const getSession = cache(async function getSession(): Promise<SessionUser
     name: dbUser.name,
     role: dbUser.role,
     dealerId: dbUser.dealerId,
+    // Distributor flag is only meaningful for dealer users.
+    isDistributor: dbUser.role === 'DEALER_USER' ? dbUser.isDistributor : false,
     // Only admins carry back-end permissions; keep them empty for other roles.
     superAdmin: dbUser.role === 'ADMIN' ? dbUser.superAdmin : false,
     adminSections: dbUser.role === 'ADMIN' ? dbUser.adminSections : [],

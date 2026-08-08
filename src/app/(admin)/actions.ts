@@ -134,22 +134,13 @@ export async function createDealerAction(
   formData: FormData,
 ): Promise<ActionState> {
   const session = await requireAdminSection('dealers');
-  const parsed = createDealerSchema.safeParse({ name: formData.get('name'), type: formData.get('type') || undefined });
+  const parsed = createDealerSchema.safeParse({ name: formData.get('name') });
   if (!parsed.success) return { error: 'Enter a dealer name.' };
 
-  const dealer = await prisma.dealer.create({ data: { name: parsed.data.name, type: parsed.data.type } });
-  await audit({ actorId: session.userId, action: 'DEALER_CREATE', entityType: 'Dealer', entityId: dealer.id, detail: `${dealer.name} (${dealer.type})` });
+  const dealer = await prisma.dealer.create({ data: { name: parsed.data.name } });
+  await audit({ actorId: session.userId, action: 'DEALER_CREATE', entityType: 'Dealer', entityId: dealer.id, detail: dealer.name });
   revalidatePath('/admin/dealers');
   return { ok: true };
-}
-
-// Change a dealer's type (Distributor ↔ Dealer) — used for organizing where
-// recipient pickers group them.
-export async function setDealerTypeAction(dealerId: string, type: 'DISTRIBUTOR' | 'DEALER') {
-  const session = await requireAdminSection('dealers');
-  await prisma.dealer.update({ where: { id: dealerId }, data: { type } });
-  await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'Dealer', entityId: dealerId, detail: `type → ${type}` });
-  revalidatePath('/admin/dealers');
 }
 
 export async function createUserAction(
@@ -180,6 +171,9 @@ export async function createUserAction(
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) return { error: 'A user with that email already exists.' };
 
+  // The distributor flag only applies to dealer users (owner / main contact).
+  const isDistributor = d.role === 'DEALER_USER' && formData.get('isDistributor') === 'on';
+
   const user = await prisma.user.create({
     data: {
       email,
@@ -188,6 +182,7 @@ export async function createUserAction(
       // Dealer users must have a dealer; reviewers/admins may optionally be
       // linked to one to also get that dealer's portal (one login, both views).
       dealerId: d.dealerId || null,
+      isDistributor,
       passwordHash: await hashPassword(d.password),
       // null forces a password change at first login (the temp password is
       // treated as already expired) — see isPasswordExpired().
@@ -275,6 +270,7 @@ export async function updateUserAction(
     name: string;
     role: typeof d.role;
     dealerId: string | null;
+    isDistributor: boolean;
     passwordHash?: string;
     passwordChangedAt?: Date | null;
     tokenVersion?: { increment: number };
@@ -284,6 +280,8 @@ export async function updateUserAction(
     role: d.role,
     // Reviewers/admins may be linked to a dealer for dual portal access.
     dealerId: d.dealerId || null,
+    // Distributor (owner / main contact) applies only to dealer users.
+    isDistributor: d.role === 'DEALER_USER' && formData.get('isDistributor') === 'on',
   };
 
   if (d.newPassword && d.newPassword.trim()) {

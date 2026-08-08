@@ -13,11 +13,11 @@ import type { SessionUser } from '@/lib/session';
 
 // Base back-end permission fields default to "no admin access" for every fixture;
 // individual tests override superAdmin/adminSections where they matter.
-const noAdmin = { superAdmin: false, adminSections: [] as string[] };
+const noAdmin = { isDistributor: false, superAdmin: false, adminSections: [] as string[] };
 const dealerA: SessionUser = { userId: 'u1', email: 'a@x', name: 'A', role: 'DEALER_USER', dealerId: 'dealer-A', ...noAdmin };
 const dealerB: SessionUser = { userId: 'u2', email: 'b@x', name: 'B', role: 'DEALER_USER', dealerId: 'dealer-B', ...noAdmin };
 const reviewer: SessionUser = { userId: 'u3', email: 'r@x', name: 'R', role: 'REVIEWER', dealerId: null, ...noAdmin };
-const admin: SessionUser = { userId: 'u4', email: 'ad@x', name: 'Ad', role: 'ADMIN', dealerId: null, superAdmin: true, adminSections: [] };
+const admin: SessionUser = { userId: 'u4', email: 'ad@x', name: 'Ad', role: 'ADMIN', dealerId: null, isDistributor: false, superAdmin: true, adminSections: [] };
 
 describe('tenant isolation', () => {
   it('lets a dealer access only their own applications', () => {

@@ -29,7 +29,7 @@ export async function postDealerMailReplyAction(
 
   // The mail must be visible to this dealer AND open for replies.
   const mail = await prisma.mail.findFirst({
-    where: { id: mailId, allowReplies: true, ...mailWhereForDealer(session.dealerId) },
+    where: { id: mailId, allowReplies: true, ...mailWhereForDealer(session.dealerId, session.isDistributor) },
     select: { id: true },
   });
   if (!mail) return { error: 'This message is not open for replies.' };
@@ -52,7 +52,7 @@ export async function acknowledgeMailAction(mailId: string) {
 
   // The mail must be visible to this dealer.
   const mail = await prisma.mail.findFirst({
-    where: { id: mailId, ...mailWhereForDealer(session.dealerId) },
+    where: { id: mailId, ...mailWhereForDealer(session.dealerId, session.isDistributor) },
     select: { id: true },
   });
   if (!mail) return;

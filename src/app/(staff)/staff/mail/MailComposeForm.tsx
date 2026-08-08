@@ -24,7 +24,6 @@ function SubmitButton() {
 interface DealerOption {
   id: string;
   name: string;
-  type: 'DISTRIBUTOR' | 'DEALER';
 }
 
 export function MailComposeForm({ dealers }: { dealers: DealerOption[] }) {
@@ -37,8 +36,6 @@ export function MailComposeForm({ dealers }: { dealers: DealerOption[] }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const q = query.trim().toLowerCase();
   const shown = q ? dealers.filter((d) => d.name.toLowerCase().includes(q)) : dealers;
-  const distributors = shown.filter((d) => d.type === 'DISTRIBUTOR');
-  const regular = shown.filter((d) => d.type === 'DEALER');
 
   function toggle(id: string) {
     setSelected((prev) => {
@@ -100,24 +97,14 @@ export function MailComposeForm({ dealers }: { dealers: DealerOption[] }) {
               {dealers.length > 0 && shown.length === 0 && (
                 <p className="text-xs text-gray-400">No dealers match “{query}”.</p>
               )}
-              {[
-                { label: 'Distributors', list: distributors },
-                { label: 'Dealers', list: regular },
-              ].map((group) =>
-                group.list.length === 0 ? null : (
-                  <div key={group.label}>
-                    <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-400">{group.label}</div>
-                    <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
-                      {group.list.map((d) => (
-                        <label key={d.id} className="flex items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-gray-50">
-                          <input type="checkbox" checked={selected.has(d.id)} onChange={() => toggle(d.id)} className="h-4 w-4" />
-                          <span className="truncate">{d.name}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                ),
-              )}
+              <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
+                {shown.map((d) => (
+                  <label key={d.id} className="flex items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-gray-50">
+                    <input type="checkbox" checked={selected.has(d.id)} onChange={() => toggle(d.id)} className="h-4 w-4" />
+                    <span className="truncate">{d.name}</span>
+                  </label>
+                ))}
+              </div>
             </div>
             {/* Selected ids submit here so filtering the list never drops them. */}
             {[...selected].map((id) => (
@@ -171,6 +158,13 @@ export function MailComposeForm({ dealers }: { dealers: DealerOption[] }) {
         <input type="checkbox" name="allowReplies" className="mt-0.5 h-4 w-4" />
         <span>
           <span className="font-medium">Allow replies</span> — let dealers reply to this message. Their replies come back here as a thread (one per dealer). Leave off for read-only announcements.
+        </span>
+      </label>
+
+      <label className="flex items-start gap-2 rounded-md bg-brand-50 p-3 text-sm text-brand-900">
+        <input type="checkbox" name="distributorsOnly" className="mt-0.5 h-4 w-4" />
+        <span>
+          <span className="font-medium">Distributors only</span> — send only to the distributor (owner / main contact) at each selected dealer, not every user there.
         </span>
       </label>
 

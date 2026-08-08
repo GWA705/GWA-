@@ -29,7 +29,13 @@ export default async function MailReceipts({ params }: { params: { id: string } 
 
   const [users, receipts, views] = await Promise.all([
     prisma.user.findMany({
-      where: { dealerId: { in: dealerIds }, role: 'DEALER_USER', active: true },
+      where: {
+        dealerId: { in: dealerIds },
+        role: 'DEALER_USER',
+        active: true,
+        // A distributors-only message reaches only the distributor users.
+        ...(mail.distributorsOnly ? { isDistributor: true } : {}),
+      },
       select: { id: true, name: true, email: true, dealer: { select: { name: true } } },
       orderBy: [{ dealer: { name: 'asc' } }, { name: 'asc' }],
     }),

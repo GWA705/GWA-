@@ -41,6 +41,7 @@ export default async function UsersPage() {
     name: u.name,
     email: u.email,
     roleLabel: roleLabel(u.role),
+    isDistributor: u.isDistributor,
     mfaEnabled: u.mfaEnabled,
     active: u.active,
     canDelete: Object.values(u._count).reduce((a, b) => a + b, 0) === 0,

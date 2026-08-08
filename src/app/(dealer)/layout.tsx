@@ -38,7 +38,7 @@ export default async function DealerLayout({ children }: { children: React.React
   // Attention dots: content sections with something new, and unread mail.
   const [freshSections, unreadMail] = await Promise.all([
     newContentSectionsForUser(user.userId),
-    user.dealerId ? unreadMailCountForUser(user.userId, user.dealerId) : Promise.resolve(0),
+    user.dealerId ? unreadMailCountForUser(user.userId, user.dealerId, user.isDistributor) : Promise.resolve(0),
   ]);
 
   return (
