@@ -40,9 +40,9 @@ import {
   startReviewAction,
   uploadReviewerPaperworkAction,
   addStaffNoteAction,
-  toggleFinanceNumberVerifiedAction,
   deleteDocumentAction,
 } from '@/app/(staff)/actions';
+import { VerifyFinanceNumberButton } from '@/components/VerifyFinanceNumberButton';
 import { STATUS_LABELS, REVIEWER_PAPERWORK_TYPES, applicableVerificationChecks } from '@/lib/constants';
 import type { ApplicationStatus } from '@prisma/client';
 
@@ -358,34 +358,13 @@ export default async function StaffApplicationDetail({
           />
         )}
         {dealFinanced && (
-          <div className="mt-4 border-t border-gray-100 pt-4">
-            {app.financeNumberVerifiedAt ? (
-              <>
-                <div className="flex items-center justify-between gap-2">
-                  <span className="badge bg-green-100 text-green-800">✓ Financing # verified</span>
-                  <form action={toggleFinanceNumberVerifiedAction.bind(null, app.id)}>
-                    <button type="submit" className="text-xs text-gray-500 hover:underline">Undo</button>
-                  </form>
-                </div>
-                <p className="mt-1 text-xs text-gray-400">
-                  by {app.financeNumberVerifiedBy?.name ?? '—'} · {app.financeNumberVerifiedAt.toLocaleString('en-CA')}
-                </p>
-              </>
-            ) : (
-              <>
-                <form action={toggleFinanceNumberVerifiedAction.bind(null, app.id)}>
-                  <button type="submit" className="btn-secondary text-xs" disabled={!app.financeItNumber}>
-                    Verify financing number
-                  </button>
-                </form>
-                <p className="mt-1 text-xs text-gray-400">
-                  {app.financeItNumber
-                    ? 'Confirm the FinanceIT number is valid to solidify this approval.'
-                    : 'Add the financing deal number first, then verify it.'}
-                </p>
-              </>
-            )}
-          </div>
+          <VerifyFinanceNumberButton
+            applicationId={app.id}
+            verified={!!app.financeNumberVerifiedAt}
+            canVerify={!!app.financeItNumber}
+            verifiedByName={app.financeNumberVerifiedBy?.name ?? null}
+            verifiedAt={app.financeNumberVerifiedAt ? app.financeNumberVerifiedAt.toLocaleString('en-CA') : null}
+          />
         )}
       </div>
     ),
