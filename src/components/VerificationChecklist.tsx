@@ -23,14 +23,16 @@ function ActionButton({
   value,
   className,
   children,
+  onClick,
 }: {
   value: string;
   className: string;
   children: React.ReactNode;
+  onClick?: () => void;
 }) {
   const { pending } = useFormStatus();
   return (
-    <button type="submit" name="status" value={value} className={className} disabled={pending}>
+    <button type="submit" name="status" value={value} className={className} disabled={pending} onClick={onClick}>
       {children}
     </button>
   );
@@ -49,7 +51,11 @@ function ChecklistItem({
     setVerificationCheckAction.bind(null, applicationId),
     {} as ActionState,
   );
-  const status = current.status;
+  // Optimistic status — the pill and Confirm button flip the instant the reviewer
+  // clicks, while the save runs in the background. The row re-mounts (its key
+  // includes the stored status) once the server confirms, clearing this.
+  const [optimistic, setOptimistic] = useState<VerificationState['status'] | null>(null);
+  const status = optimistic ?? current.status;
   // The problem-note box stays hidden until the reviewer chooses to flag a
   // problem, so each row is compact by default.
   const [flagging, setFlagging] = useState(false);
@@ -92,7 +98,7 @@ function ChecklistItem({
       <div className="mt-2 flex flex-wrap items-center gap-2">
         {flagging ? (
           <>
-            <ActionButton value="PROBLEM" className="btn-danger text-xs">
+            <ActionButton value="PROBLEM" className="btn-danger text-xs" onClick={() => setOptimistic('PROBLEM')}>
               Submit problem
             </ActionButton>
             <button type="button" onClick={() => setFlagging(false)} className="btn-secondary text-xs">
@@ -104,6 +110,7 @@ function ChecklistItem({
             <ActionButton
               value="CONFIRMED"
               className={status === 'CONFIRMED' ? 'btn-primary text-xs' : 'btn-secondary text-xs'}
+              onClick={() => setOptimistic('CONFIRMED')}
             >
               {status === 'CONFIRMED' ? '✓ Confirmed' : 'Confirm'}
             </ActionButton>
