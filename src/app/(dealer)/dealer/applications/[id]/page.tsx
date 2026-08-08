@@ -234,7 +234,15 @@ export default async function DealerApplicationDetail({
         <h2 className="mb-3 text-base font-semibold text-gray-900">Documents for approval</h2>
         <DocumentList documents={applicationDocs} deleteAction={deleteOwnDocumentAction} />
         <div className="mt-4 border-t border-gray-100 pt-4">
-          <UploadForm action={uploadSupportingDocAction.bind(null, app.id)} label="Upload document" />
+          <UploadForm
+            action={uploadSupportingDocAction.bind(null, app.id)}
+            label="Upload document"
+            categories={[
+              { value: 'BILL_OF_SALE', label: 'Bill of Sale' },
+              { value: 'APPLICATION_INFO', label: 'Application info' },
+              { value: 'OTHER', label: 'Other (type it)' },
+            ]}
+          />
         </div>
       </section>
 

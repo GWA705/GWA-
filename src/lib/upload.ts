@@ -53,8 +53,10 @@ export async function storeUploadedFile(params: {
   uploadedById: string;
   /** Optional category prefix for the stored file name (e.g. "HD 1"). */
   namePrefix?: string;
+  /** Optional human label for what the document is (shown instead of filename). */
+  label?: string | null;
 }): Promise<UploadResult> {
-  const { file, application, type, stage, uploadedById, namePrefix } = params;
+  const { file, application, type, stage, uploadedById, namePrefix, label } = params;
 
   if (!file || typeof file === 'string' || file.size === 0) {
     return { ok: false, error: 'No file provided.' };
@@ -102,6 +104,7 @@ export async function storeUploadedFile(params: {
         applicationId: application.id,
         type,
         stage,
+        label: label?.trim() || null,
         fileName: displayName,
         originalName: file.name.slice(0, 255),
         mimeType,
@@ -139,6 +142,7 @@ export async function storeFiles(params: {
   stage: DocumentStage;
   uploadedById: string;
   namePrefix?: string;
+  label?: string | null;
 }): Promise<{ error?: string; storedTypes?: DocumentType[] }> {
   const real = params.files.filter((f) => f && typeof f !== 'string' && f.size > 0);
   if (real.length === 0) return { error: 'No file provided.' };
@@ -152,6 +156,7 @@ export async function storeFiles(params: {
       stage: params.stage,
       uploadedById: params.uploadedById,
       namePrefix: params.namePrefix,
+      label: params.label,
     });
     if (!result.ok) {
       return {

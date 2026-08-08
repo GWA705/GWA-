@@ -31,7 +31,9 @@ export function DocumentList({
               className="block truncate font-medium text-brand-700 hover:underline"
               title={d.fileName}
             >
-              {d.fileName}
+              {/* Lead with the uploader's label (what it is); fall back to the
+                  file name for documents that don't carry one. */}
+              {d.label || d.fileName}
             </a>
             <span className="text-xs text-gray-400">
               {DOCUMENT_TYPE_LABELS[d.type]} · {formatSize(d.sizeBytes)}

@@ -253,8 +253,25 @@ export async function uploadSupportingDocAction(
   const app = await prisma.application.findUnique({ where: { id: applicationId } });
   if (!app || !canAccessAsDealer(session, app.dealerId)) return { error: 'Not found.' };
 
+  // The uploader tags what the document is (Bill of Sale / Application info /
+  // Other → typed). Stored as the document's label and shown as its title.
+  const CATEGORY_LABELS: Record<string, string> = {
+    BILL_OF_SALE: 'Bill of Sale',
+    APPLICATION_INFO: 'Application info',
+  };
+  const category = String(formData.get('docCategory') || '');
+  let label: string | null = null;
+  if (category === 'OTHER') {
+    label = toTitleCase(String(formData.get('docCategoryOther') || '').trim());
+    if (!label) return { error: 'Enter what the document is.' };
+  } else if (CATEGORY_LABELS[category]) {
+    label = CATEGORY_LABELS[category];
+  } else {
+    return { error: 'Choose what the document is.' };
+  }
+
   const files = formData.getAll('file') as File[];
-  const result = await storeFiles({ application: app, files, type: 'SUPPORTING', stage: 'APPLICATION', uploadedById: session.userId });
+  const result = await storeFiles({ application: app, files, type: 'SUPPORTING', stage: 'APPLICATION', uploadedById: session.userId, label });
   if (result.error) return result;
 
   await markDealerAction(applicationId, 'DOCUMENT');

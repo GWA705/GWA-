@@ -884,6 +884,11 @@ model Document {
   type  DocumentType
   stage DocumentStage
 
+  // Human label for what this document is, chosen by the uploader (e.g. "Bill of
+  // Sale", "Application info", or free text). Shown as the document's title in
+  // place of the raw file name when set.
+  label String?
+
   fileName     String // standardized display name (customer + date + timestamp)
   originalName String? // the file name as uploaded
   mimeType     String
