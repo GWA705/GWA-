@@ -204,6 +204,23 @@ export const STATUS_LABELS: Record<ApplicationStatus, string> = {
   WITHDRAWN: 'Withdrawn',
 };
 
+// Short status labels for tight spaces (the dealer's list on a phone, status
+// bubbles). Same meaning, fewer words so the badge fits on one line.
+export const STATUS_LABELS_SHORT: Record<ApplicationStatus, string> = {
+  DRAFT: 'Draft',
+  SUBMITTED: 'Submitted',
+  UNDER_REVIEW: 'In review',
+  CONDITIONAL: 'Conditional',
+  APPROVED: 'Approved',
+  DOCS_SENT: 'Docs sent',
+  DECLINED: 'Declined',
+  FUNDING_SUBMITTED: 'Reviewing docs',
+  FUNDING_REVIEW: 'In funding',
+  FUNDED: 'Funded',
+  PROBLEM: 'Problem',
+  WITHDRAWN: 'Withdrawn',
+};
+
 // Statuses a reviewer can set manually. The deal's status now advances on its
 // own as the reviewer works the flow, so this is a fallback for jumping back or
 // flagging a Problem. "Reviewing signed docs" (FUNDING_SUBMITTED) is omitted —

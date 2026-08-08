@@ -80,7 +80,47 @@ export default async function DealerHome({
         </div>
       ) : (
         <>
-          <div className="card overflow-x-auto">
+          {/* Mobile: a stacked card per application so nothing runs off the
+              screen. The full table appears from the sm breakpoint up. */}
+          <ul className="space-y-3 sm:hidden">
+            {apps.map((a) => {
+              const outstanding = dealerOutstanding({
+                status: a.status,
+                productsSold: a.productsSold,
+                requiresSerials: !!a.financeCompany?.requiresSerialPerProduct && a.productsSold.length > 0,
+                serialNumbers: a.serialNumbers,
+                fundingDocs: a.documents,
+              });
+              return (
+                <li key={a.id}>
+                  <Link href={`/dealer/applications/${a.id}`} className="card block p-4 hover:bg-gray-50">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="font-medium text-brand-700">
+                          {a.applicantFirstName} {a.applicantLastName}
+                        </div>
+                        <div className="mt-0.5 text-xs text-gray-500">
+                          {programLabel(a.programType, a.programCategory)} · ${a.requestedAmount.toString()}
+                        </div>
+                      </div>
+                      <StatusBadge status={a.status} short />
+                    </div>
+                    {outstanding.hasAction && (
+                      <span
+                        className={`mt-2 inline-flex w-fit items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                          outstanding.readyToSubmit ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'
+                        }`}
+                      >
+                        {outstanding.readyToSubmit ? '✓ Ready to submit' : '⚠ Action needed'}
+                      </span>
+                    )}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+
+          <div className="card hidden overflow-x-auto sm:block">
             <table className="min-w-full divide-y divide-gray-200 text-sm">
               <thead className="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500">
                 <tr>
