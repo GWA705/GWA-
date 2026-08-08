@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/db';
 import { requireAdminSection, requireSuperAdmin, startViewAs, stopViewAs } from '@/lib/session';
 import { ADMIN_SECTION_KEYS } from '@/lib/constants';
+import { toTitleCase, toSentenceCase, titleOrNull, sentenceOrNull } from '@/lib/textcase';
 import { hashPassword, validatePasswordStrength } from '@/lib/password';
 import { audit } from '@/lib/audit';
 import { runAttentionAlerts } from '@/lib/sla';
@@ -137,7 +138,7 @@ export async function createDealerAction(
   const parsed = createDealerSchema.safeParse({ name: formData.get('name') });
   if (!parsed.success) return { error: 'Enter a dealer name.' };
 
-  const dealer = await prisma.dealer.create({ data: { name: parsed.data.name } });
+  const dealer = await prisma.dealer.create({ data: { name: toTitleCase(parsed.data.name) } });
   await audit({ actorId: session.userId, action: 'DEALER_CREATE', entityType: 'Dealer', entityId: dealer.id, detail: dealer.name });
   revalidatePath('/admin/dealers');
   return { ok: true };
@@ -177,7 +178,7 @@ export async function createUserAction(
   const user = await prisma.user.create({
     data: {
       email,
-      name: d.name,
+      name: toTitleCase(d.name),
       role: d.role,
       // Dealer users must have a dealer; reviewers/admins may optionally be
       // linked to one to also get that dealer's portal (one login, both views).
@@ -276,7 +277,7 @@ export async function updateUserAction(
     tokenVersion?: { increment: number };
   } = {
     email,
-    name: d.name,
+    name: toTitleCase(d.name),
     role: d.role,
     // Reviewers/admins may be linked to a dealer for dual portal access.
     dealerId: d.dealerId || null,
@@ -397,7 +398,7 @@ export async function createFinanceCompanyAction(
   const parsed = createFinanceCompanySchema.safeParse({ name: formData.get('name') });
   if (!parsed.success) return { error: 'Enter a finance company name.' };
 
-  const fc = await prisma.financeCompany.create({ data: { name: parsed.data.name } });
+  const fc = await prisma.financeCompany.create({ data: { name: toTitleCase(parsed.data.name) } });
   await audit({ actorId: session.userId, action: 'DEALER_CREATE', entityType: 'FinanceCompany', entityId: fc.id, detail: fc.name });
   revalidatePath('/admin/finance-companies');
   return { ok: true };
@@ -444,7 +445,7 @@ export async function deleteFinanceCompanyAction(id: string): Promise<void> {
 
 export async function createProductAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const session = await requireAdminSection('products');
-  const name = String(formData.get('name') || '').trim();
+  const name = toTitleCase(String(formData.get('name') || '').trim());
   if (!name || name.length > 120) return { error: 'Enter a product name (up to 120 characters).' };
   const existing = await prisma.product.findFirst({ where: { name } });
   if (existing) return { error: 'That product already exists.' };
@@ -457,7 +458,7 @@ export async function createProductAction(_prev: ActionState, formData: FormData
 export async function renameProductAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const session = await requireAdminSection('products');
   const id = String(formData.get('id') || '');
-  const name = String(formData.get('name') || '').trim();
+  const name = toTitleCase(String(formData.get('name') || '').trim());
   if (!name || name.length > 120) return { error: 'Enter a product name (up to 120 characters).' };
   const p = await prisma.product.findUnique({ where: { id } });
   if (!p) return { error: 'Product not found.' };
@@ -523,8 +524,8 @@ export async function saveSecuritySettingsAction(
 
 export async function createNoteTemplateAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const session = await requireAdminSection('note-templates');
-  const label = String(formData.get('label') || '').trim();
-  const body = String(formData.get('body') || '').trim();
+  const label = toTitleCase(String(formData.get('label') || '').trim());
+  const body = toSentenceCase(String(formData.get('body') || '').trim());
   if (!label || label.length > 60) return { error: 'Enter a short label (up to 60 characters).' };
   if (!body || body.length > 1000) return { error: 'Enter the note text (up to 1000 characters).' };
   const count = await prisma.noteTemplate.count();
@@ -537,8 +538,8 @@ export async function createNoteTemplateAction(_prev: ActionState, formData: For
 export async function updateNoteTemplateAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const session = await requireAdminSection('note-templates');
   const id = String(formData.get('id') || '');
-  const label = String(formData.get('label') || '').trim();
-  const body = String(formData.get('body') || '').trim();
+  const label = toTitleCase(String(formData.get('label') || '').trim());
+  const body = toSentenceCase(String(formData.get('body') || '').trim());
   if (!label || label.length > 60) return { error: 'Enter a short label (up to 60 characters).' };
   if (!body || body.length > 1000) return { error: 'Enter the note text (up to 1000 characters).' };
   const t = await prisma.noteTemplate.findUnique({ where: { id } });
@@ -597,7 +598,7 @@ export async function createAnnouncementAction(
   }
 
   const created = await prisma.announcement.create({
-    data: { title: d.title || null, body: d.body || null, linkUrl: d.linkUrl || null, position: d.position },
+    data: { title: titleOrNull(d.title), body: sentenceOrNull(d.body), linkUrl: d.linkUrl || null, position: d.position },
   });
 
   if (hasImage) {
@@ -737,8 +738,8 @@ export async function createContentAction(
   const created = await prisma.contentItem.create({
     data: {
       section: d.section,
-      title: d.title,
-      body: d.body || null,
+      title: toTitleCase(d.title),
+      body: sentenceOrNull(d.body),
       linkUrl: d.linkUrl || null,
       sortOrder: d.sortOrder ?? 0,
       createdById: session.userId,
@@ -799,8 +800,8 @@ export async function updateContentAction(
     where: { id },
     data: {
       section: d.section,
-      title: d.title,
-      body: d.body || null,
+      title: toTitleCase(d.title),
+      body: sentenceOrNull(d.body),
       linkUrl: d.linkUrl || null,
       sortOrder: d.sortOrder ?? 0,
     },
@@ -1115,8 +1116,8 @@ export async function createDealerAlertAction(
   }
   const created = await prisma.dealerAlert.create({
     data: {
-      title: d.title.trim(),
-      body: d.body.trim(),
+      title: toTitleCase(d.title),
+      body: toSentenceCase(d.body),
       linkUrl: d.linkUrl?.trim() || null,
       audience: d.audience,
       dealerId,

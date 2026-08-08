@@ -11,6 +11,7 @@ import { MAX_FILE_BYTES, ALLOWED_MIME_TYPES } from '@/lib/constants';
 import { friendlyFileName } from '@/lib/filenames';
 import { optimizeAttachmentImage } from '@/lib/image';
 import { notifyMailReply } from '@/lib/notify';
+import { toTitleCase } from '@/lib/textcase';
 
 // Swap a filename's extension (used when an image is converted, e.g. HEIC→JPG).
 function replaceExt(name: string, ext: string): string {
@@ -26,7 +27,7 @@ export interface MailActionState {
 export async function sendMailAction(_prev: MailActionState, formData: FormData): Promise<MailActionState> {
   const session = await requireStaffSection('mail');
 
-  const subject = (formData.get('subject') ?? '').toString().trim();
+  const subject = toTitleCase((formData.get('subject') ?? '').toString().trim());
   const body = (formData.get('body') ?? '').toString().trim();
   const senderLabel = (formData.get('senderLabel') ?? '').toString().trim() || null;
   const requireAck = formData.get('requireAck') === 'on';

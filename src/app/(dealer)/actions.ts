@@ -7,6 +7,7 @@ import { prisma } from '@/lib/db';
 import { requireDealerAccess } from '@/lib/session';
 import { canAccessAsDealer } from '@/lib/rbac';
 import { encryptOptional } from '@/lib/crypto';
+import { toTitleCase, titleOrNull } from '@/lib/textcase';
 import { audit } from '@/lib/audit';
 import { storeFiles } from '@/lib/upload';
 import { deleteDocument } from '@/lib/storage';
@@ -159,8 +160,9 @@ export async function createApplicationAction(
       : undefined;
 
   // Keep the plaintext co-applicant name on the Application for search/back-compat.
-  const coApplicantName =
-    [d.coFirstName, d.coLastName].filter(Boolean).join(' ').trim() || d.coApplicantName || null;
+  const coApplicantName = titleOrNull(
+    [d.coFirstName, d.coLastName].filter(Boolean).join(' ').trim() || d.coApplicantName || null,
+  );
 
   const app = await prisma.application.create({
     data: {
@@ -183,8 +185,8 @@ export async function createApplicationAction(
       installationDate: d.installationDate ? new Date(d.installationDate) : null,
       homeDepotStoreId,
       financingNote: d.financingNote || null,
-      salespersonName: d.salespersonName || null,
-      installerName: d.installerName || null,
+      salespersonName: titleOrNull(d.salespersonName),
+      installerName: titleOrNull(d.installerName),
       soapIncluded: d.soapIncluded === 'YES' ? true : d.soapIncluded === 'NO' ? false : null,
       productsSold,
       loanReference: d.loanReference || null,
@@ -196,8 +198,8 @@ export async function createApplicationAction(
       statusCardNumberEnc: d.taxExempt ? encryptOptional(d.statusCardNumber || null) : null,
       bandName: d.taxExempt ? (d.bandName || null) : null,
       loanApplication: loanApplicationData,
-      applicantFirstName: d.applicantFirstName,
-      applicantLastName: d.applicantLastName,
+      applicantFirstName: toTitleCase(d.applicantFirstName),
+      applicantLastName: toTitleCase(d.applicantLastName),
       applicantEmail: d.applicantEmail,
       applicantPhone: d.applicantPhone,
       // SIN and banking are intentionally NOT collected/stored in the portal.
@@ -209,7 +211,7 @@ export async function createApplicationAction(
         const v = d.incomeAnnual ?? (d.grossMonthlyIncome ? Math.round(d.grossMonthlyIncome * 12) : null);
         return encryptOptional(v != null ? String(v) : null);
       })(),
-      employer: d.employer || d.businessName || null,
+      employer: titleOrNull(d.employer || d.businessName),
       notes: d.notes || null,
       homeownershipRequired: d.homeownershipRequired ?? false,
       lastDealerActionAt: new Date(),

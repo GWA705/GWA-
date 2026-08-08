@@ -7,6 +7,7 @@ import { requireStaffSection } from '@/lib/session';
 import { audit } from '@/lib/audit';
 import { markReviewerAction } from '@/lib/activity';
 import { encryptOptional, decryptOptional } from '@/lib/crypto';
+import { toTitleCase, titleOrNull } from '@/lib/textcase';
 import { writeDealToJournal, journalEnabled, type JournalDeal } from '@/lib/journal';
 import { storeFiles } from '@/lib/upload';
 import { deleteDocument } from '@/lib/storage';
@@ -423,8 +424,8 @@ export async function updateDealAction(
       programCategory: d.programCategory,
       requestedAmount: d.requestedAmount,
       approvedAmount: d.approvedAmount ?? null,
-      applicantFirstName: d.applicantFirstName,
-      applicantLastName: d.applicantLastName,
+      applicantFirstName: toTitleCase(d.applicantFirstName),
+      applicantLastName: toTitleCase(d.applicantLastName),
       applicantEmail: d.applicantEmail,
       applicantPhone: d.applicantPhone,
       applicantDobEnc: encryptOptional(d.applicantDob),
@@ -441,15 +442,15 @@ export async function updateDealAction(
       financingNote: d.financingNote || null,
       notes: d.notes || null,
       // Sales-journal detail fields (reviewer backfill).
-      salespersonName: d.salespersonName || null,
-      installerName: d.installerName || null,
+      salespersonName: titleOrNull(d.salespersonName),
+      installerName: titleOrNull(d.installerName),
       soapIncluded: d.soapIncluded === 'YES' ? true : d.soapIncluded === 'NO' ? false : null,
       productsSold: formData.getAll('productsSold').map(String).map((s) => s.trim()).filter(Boolean).slice(0, 50),
       incomeAnnualEnc: d.grossMonthlyIncome
         ? encryptOptional(String(Math.round(d.grossMonthlyIncome * 12)))
         : app.incomeAnnualEnc ?? encryptOptional(app.incomeAnnual != null ? String(app.incomeAnnual) : null),
       incomeAnnual: null,
-      employer: d.businessName || app.employer,
+      employer: titleOrNull(d.businessName) || app.employer,
       // Create the extended record if the deal never had one (e.g. a photo/
       // FinanceIT entry), so ID and employment details can be filled in.
       loanApplication: {

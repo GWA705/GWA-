@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import { revalidatePath } from 'next/cache';
 import { requireAdminSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
+import { toTitleCase, sentenceOrNull } from '@/lib/textcase';
 import { audit } from '@/lib/audit';
 import { setSetting, MARKETPLACE_SETTING_KEYS } from '@/lib/settings';
 import { putDocument, deleteDocument } from '@/lib/storage';
@@ -63,7 +64,7 @@ export interface CategoryActionState {
 export async function saveCategoryAction(_prev: CategoryActionState, formData: FormData): Promise<CategoryActionState> {
   await requireAdminSection('marketplace');
   const id = (formData.get('id') ?? '').toString() || null;
-  const name = (formData.get('name') ?? '').toString().trim();
+  const name = toTitleCase((formData.get('name') ?? '').toString().trim());
   const sortOrder = Number.parseInt((formData.get('sortOrder') ?? '0').toString(), 10) || 0;
   if (!name) return { error: 'Category name is required.' };
   try {
@@ -111,8 +112,8 @@ function parseOptions(raw: string): string[] {
 export async function saveItemAction(_prev: ItemActionState, formData: FormData): Promise<ItemActionState> {
   const session = await requireAdminSection('marketplace');
   const id = (formData.get('id') ?? '').toString() || null;
-  const name = (formData.get('name') ?? '').toString().trim();
-  const description = (formData.get('description') ?? '').toString().trim() || null;
+  const name = toTitleCase((formData.get('name') ?? '').toString().trim());
+  const description = sentenceOrNull((formData.get('description') ?? '').toString());
   const options = parseOptions((formData.get('options') ?? '').toString());
   const sortOrder = Number.parseInt((formData.get('sortOrder') ?? '0').toString(), 10) || 0;
   const active = formData.get('active') === 'on';
