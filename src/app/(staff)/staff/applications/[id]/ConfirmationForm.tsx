@@ -105,8 +105,9 @@ export function ConfirmationForm({
       </div>
 
       <p className="rounded bg-gray-50 p-3 text-xs text-gray-600">
-        “Hi, may I speak with {applicantName}. My name is [you] and I'm calling from TDC… go over your
-        recent purchase… this call may be recorded… your application was approved. I just have a couple
+        “Hi, may I speak with {applicantName}. My name is [you] and I'm calling from Home Depot Home
+        Services / Georgian Water and Air… just wanted to go over your payment option and confirm the
+        details with you… this call may be recorded… your application was approved. I just have a couple
         of questions for you:”
       </p>
 

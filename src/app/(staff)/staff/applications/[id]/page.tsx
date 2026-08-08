@@ -327,7 +327,7 @@ export default async function StaffApplicationDetail({
           <h3 className="text-sm font-medium text-gray-700">Confirmation call</h3>
           <ConfirmationBadge status={app.confirmationStatus} />
         </div>
-        <p className="mb-4 text-xs text-gray-500">UEI confirmation script — work through it on the call, check all six boxes, then Confirm. You can open this any time and add to it as the call happens.</p>
+        <p className="mb-4 text-xs text-gray-500">Confirmation script — work through it on the call, check all six boxes, then Confirm. You can open this any time and add to it as the call happens.</p>
         <ConfirmationForm
           applicationId={app.id}
           data={app.confirmation}

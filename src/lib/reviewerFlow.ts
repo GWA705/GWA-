@@ -27,7 +27,7 @@ export const REVIEWER_PHASES: ReviewerPhase[] = [
   { id: 'produce', index: 2, title: 'Produce install documents', sub: 'Upload the paperwork the dealer needs to install', dealerLabel: 'Approved — preparing your documents' },
   { id: 'await', index: 3, title: 'Sent — awaiting install', sub: 'Dealer installs and returns the signed documents', dealerLabel: 'Awaiting your signed documents' },
   { id: 'review', index: 4, title: 'Review signed documents', sub: 'Confirm every signed document and photo is correct', dealerLabel: 'Reviewing your documents' },
-  { id: 'confirm', index: 5, title: 'Confirmation call', sub: 'Work the UEI confirmation script with the customer', dealerLabel: 'Reviewing your documents' },
+  { id: 'confirm', index: 5, title: 'Confirmation call', sub: 'Work the confirmation script with the customer', dealerLabel: 'Reviewing your documents' },
   { id: 'submit', index: 6, title: 'Submit to finance company', sub: 'Record the deal numbers and send it in', dealerLabel: 'Submitted to finance company' },
   { id: 'funding', index: 7, title: 'Awaiting funding', sub: 'Wait for the funder, then mark it Funded', dealerLabel: 'In for funding' },
   { id: 'pay', index: 8, title: 'Pay dealer', sub: 'Record the payout — the deal is complete', dealerLabel: 'Funded — paying the dealer' },
