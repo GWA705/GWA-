@@ -8,6 +8,7 @@ import { audit } from '@/lib/audit';
 import { markReviewerAction } from '@/lib/activity';
 import { encryptOptional, decryptOptional } from '@/lib/crypto';
 import { toTitleCase, titleOrNull } from '@/lib/textcase';
+import { mergeProductsSold } from '@/lib/products';
 import { writeDealToJournal, journalEnabled, type JournalDeal } from '@/lib/journal';
 import { storeFiles } from '@/lib/upload';
 import { deleteDocument } from '@/lib/storage';
@@ -468,7 +469,10 @@ export async function updateDealAction(
       salespersonName: titleOrNull(d.salespersonName),
       installerName: titleOrNull(d.installerName),
       soapIncluded: d.soapIncluded === 'YES' ? true : d.soapIncluded === 'NO' ? false : null,
-      productsSold: formData.getAll('productsSold').map(String).map((s) => s.trim()).filter(Boolean).slice(0, 50),
+      productsSold: mergeProductsSold(
+        formData.getAll('productsSold').map(String),
+        formData.get('productsSoldOther') as string | null,
+      ),
       incomeAnnualEnc: d.grossMonthlyIncome
         ? encryptOptional(String(Math.round(d.grossMonthlyIncome * 12)))
         : app.incomeAnnualEnc ?? encryptOptional(app.incomeAnnual != null ? String(app.incomeAnnual) : null),

@@ -1,5 +1,6 @@
 import { requireDealerAccess } from '@/lib/session';
 import { prisma } from '@/lib/db';
+import { productChecklistOptions } from '@/lib/products';
 import { NewApplicationForm } from './NewApplicationForm';
 
 export const dynamic = 'force-dynamic';
@@ -14,11 +15,7 @@ export default async function NewApplicationPage() {
       })
     : [];
 
-  const products = await prisma.product.findMany({
-    where: { active: true },
-    orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
-    select: { id: true, name: true },
-  });
+  const products = await productChecklistOptions();
 
   return (
     <div className="mx-auto max-w-3xl">

@@ -4,6 +4,7 @@ import { requireStaffSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { decryptOptional, readEnc } from '@/lib/crypto';
 import { audit } from '@/lib/audit';
+import { productChecklistOptions } from '@/lib/products';
 import { EditDealForm, type EditInitial } from '../EditDealForm';
 
 export const dynamic = 'force-dynamic';
@@ -25,11 +26,7 @@ export default async function EditDealPage({ params }: { params: { id: string } 
   });
   if (!app) notFound();
 
-  const products = await prisma.product.findMany({
-    where: { active: true },
-    orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
-    select: { id: true, name: true },
-  });
+  const products = await productChecklistOptions();
 
   // Dealers for the reassignment dropdown — the deal's own dealer is always
   // included even if it's since been archived, so the current value is valid.

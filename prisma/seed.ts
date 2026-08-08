@@ -140,7 +140,7 @@ async function main() {
   if ((await prisma.product.count()) === 0) {
     const defaultProducts = [
       'WS', 'City', 'Country', 'UV12', 'UV20', 'SIM', 'HEPA', 'RPS UV',
-      'SOAP', 'WHCCF', 'BEYOND', 'ANGEL', 'Guardian Home Air', 'Elevate PH+',
+      'WHCCF', 'BEYOND', 'ANGEL', 'Guardian Home Air', 'Elevate PH+',
     ];
     await prisma.product.createMany({
       data: defaultProducts.map((name, i) => ({ name, sortOrder: i })),

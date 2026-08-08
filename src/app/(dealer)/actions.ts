@@ -14,6 +14,7 @@ import { deleteDocument } from '@/lib/storage';
 import { markDealerAction } from '@/lib/activity';
 import { notifyNewDocuments, notifyNewNote, notifyNewSubmission, notifyFundingSubmitted } from '@/lib/notify';
 import { applicationSchema, serialNumberSchema } from '@/lib/validation';
+import { mergeProductsSold } from '@/lib/products';
 import { CONSENT_POLICY_VERSION, CONSENT_TEXT, PAYMENT_METHOD_LABELS, FUNDING_DOCUMENT_TYPES, SPLIT_PAYMENT_METHODS } from '@/lib/constants';
 import { validateSplits } from '@/lib/payments';
 import type { DocumentType, PaymentMethod } from '@prisma/client';
@@ -46,8 +47,11 @@ export async function createApplicationAction(
     return { error: 'Please correct the highlighted fields.', fieldErrors };
   }
   const d = parsed.data;
-  // Products are a multi-select, so they arrive as repeated form fields.
-  const productsSold = formData.getAll('productsSold').map(String).map((s) => s.trim()).filter(Boolean).slice(0, 50);
+  // Products are a multi-select (repeated fields) plus a free-text "Other" entry.
+  const productsSold = mergeProductsSold(
+    formData.getAll('productsSold').map(String),
+    formData.get('productsSoldOther') as string | null,
+  );
 
   // Sales details are required at intake so the journal is complete.
   const salesErrors: Record<string, string> = {};

@@ -176,7 +176,7 @@ export function NewApplicationForm({
   products,
 }: {
   stores: Store[];
-  products: { id: string; name: string }[];
+  products: { id: string; name: string; promoted?: boolean }[];
 }) {
   const [state, action] = useFormState(createApplicationAction, initial);
   const [method, setMethod] = useState<Method>('TYPED');
@@ -231,9 +231,12 @@ export function NewApplicationForm({
       const empty = f.checkbox ? !(el as HTMLInputElement).checked : !(el.value || '').trim();
       if (empty) errs[f.name] = 'required';
     }
-    // Products: require at least one when the catalog has options.
+    // Products: require at least one — a checked box or a typed "Other" entry.
     const productBoxes = form.querySelectorAll('input[name="productsSold"]');
-    if (productBoxes.length > 0 && !Array.from(productBoxes).some((el) => (el as HTMLInputElement).checked)) {
+    const otherEl = form.elements.namedItem('productsSoldOther') as HTMLInputElement | null;
+    const anyChecked = Array.from(productBoxes).some((el) => (el as HTMLInputElement).checked);
+    const anyOther = !!(otherEl?.value || '').trim();
+    if (productBoxes.length > 0 && !anyChecked && !anyOther) {
       errs['productsSold'] = 'required';
     }
     if (Object.keys(errs).length > 0) {
@@ -478,18 +481,27 @@ export function NewApplicationForm({
         </div>
         <div className="mt-4">
           <span className="label">Product(s) sold</span>
-          {products.length === 0 ? (
-            <p className="mt-1 text-xs text-gray-400">No products set up yet — an admin can add them under Admin → Products.</p>
-          ) : (
-            <div className="mt-1 grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {products.map((p) => (
-                <label key={p.id} className="flex items-center gap-2 rounded border border-gray-200 px-3 py-2 text-sm">
-                  <input type="checkbox" name="productsSold" value={p.name} className="h-4 w-4" />
-                  <span>{p.name}</span>
-                </label>
-              ))}
-            </div>
-          )}
+          <div className="mt-1 grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {products.map((p) => (
+              <label key={p.id} className="flex items-center gap-2 rounded border border-gray-200 px-3 py-2 text-sm">
+                <input type="checkbox" name="productsSold" value={p.name} className="h-4 w-4" />
+                <span>{p.name}</span>
+              </label>
+            ))}
+          </div>
+          {/* Other — free-text for a product not in the list. Anything typed here
+              on more than two deals is added to the list automatically. */}
+          <div className="mt-2">
+            <label className="flex flex-col gap-1 rounded border border-dashed border-gray-300 px-3 py-2 text-sm">
+              <span className="font-medium text-gray-700">Other</span>
+              <input
+                name="productsSoldOther"
+                className="input"
+                placeholder="Type a product not listed (separate several with commas)"
+                autoComplete="off"
+              />
+            </label>
+          </div>
         </div>
       </section>
 
