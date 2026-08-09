@@ -95,6 +95,9 @@ export function UploadForm({
       )}
 
       <FileDropInput name="file" accept={accept} variant={variant} onFilesChange={setNames} />
+      <p className="text-xs text-amber-700">
+        ⚠ Do not upload payment cards. Credit Cards, HD Consumer Cards, and FinanceIT one-time-use cards are automatically rejected.
+      </p>
       <div className="flex items-center gap-3">
         <SubmitButton label={label} disabled={names.length === 0 || categoryMissing} />
         {categoryMissing && names.length > 0 && (

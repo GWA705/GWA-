@@ -98,7 +98,8 @@ export function FundingUploader({
       {/* Capture zone */}
       <div className="rounded-xl border-2 border-dashed border-brand-200 bg-brand-50 p-4 text-center">
         <p className="text-sm font-semibold text-gray-800">Add your documents</p>
-        <p className="mb-3 text-xs text-gray-500">Snap each page or choose files — add as many as you like, tag them below.</p>
+        <p className="mb-1 text-xs text-gray-500">Snap each page or choose files — add as many as you like, tag them below.</p>
+        <p className="mb-3 text-xs text-amber-700">⚠ Do not upload payment cards — Credit Cards, HD Consumer Cards, and FinanceIT one-time-use cards are automatically rejected.</p>
         <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
           <button type="button" className="btn-primary text-sm" onClick={() => camRef.current?.click()}>
             📷 Take photo

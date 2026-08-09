@@ -128,4 +128,4 @@ export function findCardData(text: string): CardScanResult {
 
 /** Dealer-facing message shown when card data is blocked. */
 export const CARD_BLOCK_MESSAGE =
-  "For your customer's security, please remove credit card details before submitting — we never need a card number, expiry, or CVV. Cover or black them out and try again.";
+  'The GWA Dealer Portal does not accept any Credit Card, HD Consumer Card, or FinanceIT one-time-use payment cards. Please call the GWA office at 705-812-0320 or 1-866-840-2789 during business hours, 11 am to 7:30 pm Monday to Friday, to approve credit card transactions.';
