@@ -107,6 +107,8 @@ const TYPED_EXTRA: RequiredField[] = [
   { name: 'govIdNumber', label: 'Photo ID number' },
   { name: 'idProvince', label: 'Province of issue' },
   { name: 'idExpiry', label: 'ID expiry date' },
+  { name: 'employerAddress', label: 'Employer address' },
+  { name: 'employerPhone', label: 'Employer phone' },
 ];
 
 function cleanMessage(msg: string): string {
@@ -623,8 +625,8 @@ export function NewApplicationForm({
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div><label className="label" htmlFor="businessName">Employer / business name</label><input id="businessName" name="businessName" className={fieldCls('')} /></div>
               <div><label className="label" htmlFor="positionTitle">Position title</label><input id="positionTitle" name="positionTitle" className={fieldCls('')} /></div>
-              <div><label className="label" htmlFor="employerAddress">Employer address <span className="font-normal text-gray-400">(optional)</span></label><input id="employerAddress" name="employerAddress" className={fieldCls('')} /></div>
-              <div><label className="label" htmlFor="employerPhone">Employer phone <span className="font-normal text-gray-400">(optional)</span></label><input id="employerPhone" name="employerPhone" className={fieldCls('')} inputMode="numeric" maxLength={12} placeholder="705-812-0320" onInput={phoneFmt} /></div>
+              <div><label className="label" htmlFor="employerAddress">Employer address</label><AddressAutocompleteInput id="employerAddress" name="employerAddress" className={fieldCls('employerAddress')} placeholder="Start typing the address…" /><Err state={state} name="employerAddress" /></div>
+              <div><label className="label" htmlFor="employerPhone">Employer phone</label><input id="employerPhone" name="employerPhone" className={fieldCls('employerPhone')} inputMode="numeric" maxLength={12} placeholder="705-812-0320" onInput={phoneFmt} /><Err state={state} name="employerPhone" /></div>
               <div><label className="label" htmlFor="grossMonthlyIncome">Gross monthly income</label><input id="grossMonthlyIncome" name="grossMonthlyIncome" type="number" step="0.01" min="0" className={fieldCls('')} /></div>
               <div><label className="label" htmlFor="timeAtJobYears">Time at job (years)</label><input id="timeAtJobYears" name="timeAtJobYears" type="number" min="0" className={fieldCls('')} /></div>
               <div>
