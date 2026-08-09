@@ -141,7 +141,7 @@ function PriorityRow({ r }: { r: QueueRow }) {
   return (
     <Link
       href={`/staff/applications/${r.id}`}
-      className="card grid grid-cols-[5px_minmax(0,1fr)_auto_84px] items-center overflow-hidden p-0 transition hover:ring-2 hover:ring-brand-500"
+      className="card grid grid-cols-[5px_minmax(0,1fr)_auto] items-center overflow-hidden p-0 transition hover:ring-2 hover:ring-brand-500 sm:grid-cols-[5px_minmax(0,1fr)_auto_84px]"
     >
       <div className={`h-full ${stripe}`} />
       <div className="min-w-0 py-3 pl-3 pr-2 sm:pl-4">
@@ -153,15 +153,23 @@ function PriorityRow({ r }: { r: QueueRow }) {
         <div className="truncate text-xs text-gray-500">
           {r.dealer} · {r.program} · <span className="tabular-nums">{r.amount}</span>
         </div>
+        {/* On mobile the action chip sits under the meta line so it can never
+            collide with the wait/status column on the right (narrow screens
+            don't have room for both side by side). */}
+        <div className="mt-1.5 sm:hidden">
+          <Pill tone={r.actionTone} label={r.actionLabel} />
+        </div>
       </div>
-      <div className="justify-self-end px-2">
+      {/* Action chip — its own column on sm+ only. */}
+      <div className="hidden justify-self-end px-2 sm:block">
         <Pill tone={r.actionTone} label={r.actionLabel} />
       </div>
+      {/* Wait time always; the dealer-facing status only where there's room. */}
       <div className="justify-self-end whitespace-nowrap py-3 pr-3 text-right sm:pr-4">
         <div className={`text-sm font-semibold tabular-nums ${r.waitHot ? 'text-red-700' : 'text-gray-600'}`}>
           {r.waitLabel}
         </div>
-        <div className="text-[11px] text-gray-400">{r.statusLabel}</div>
+        <div className="hidden text-[11px] text-gray-400 sm:block">{r.statusLabel}</div>
       </div>
     </Link>
   );
