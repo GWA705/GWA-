@@ -24,19 +24,21 @@ interface Category {
   name: string;
 }
 
+// A single line in the cart: an item, a chosen option (size), and a quantity.
+// Multiple sizes of the same item are separate lines (e.g. 3×S and 3×L).
+interface CartLine {
+  itemId: string;
+  itemName: string;
+  option: string | null;
+  qty: number;
+}
+
 const initial: OrderActionState = {};
 const NEW_ARRIVALS = '__new__';
 const ALL = '__all__';
 const OTHER = '__other__';
 
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <button type="submit" className="btn-primary" disabled={pending}>
-      {pending ? 'Submitting…' : 'Submit order'}
-    </button>
-  );
-}
+const lineKey = (itemId: string, option: string | null) => `${itemId}::${option ?? ''}`;
 
 function TagBadges({ tags }: { tags: string[] }) {
   const shown = MARKETPLACE_TAGS.filter((t) => tags.includes(t.key));
@@ -98,9 +100,6 @@ function ItemImage({ item, onImageClick, className }: { item: Item; onImageClick
       className={`relative block aspect-square w-full cursor-zoom-in border-b border-gray-200 bg-[#ffffff] ${className ?? ''}`}
       aria-label={`View ${item.name} larger`}
     >
-      {/* Fit the whole product in a uniform white tile (no cropping), so text-y
-          items like cards/envelopes stay fully legible and every card is the
-          same height. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={imgSrc} alt={item.name} className="h-full w-full object-contain p-3" />
       <TagBadges tags={item.tags} />
@@ -113,7 +112,71 @@ function ItemImage({ item, onImageClick, className }: { item: Item; onImageClick
   );
 }
 
-function ItemCard({ item, onImageClick, hidden }: { item: Item; onImageClick: (src: string, alt: string) => void; hidden?: boolean }) {
+// Order controls for one product: pick a size/option and quantity, then Add to
+// cart. Adding the same item in a different size creates a separate cart line, so
+// a dealer can order 3×S and 3×L of one shirt.
+function OrderControls({ item, onAdd }: { item: Item; onAdd: (item: Item, option: string | null, qty: number) => void }) {
+  const [option, setOption] = useState(item.options[0] ?? '');
+  const [qty, setQty] = useState(1);
+  const [added, setAdded] = useState(false);
+
+  function add() {
+    const q = Math.max(1, qty);
+    onAdd(item, item.options.length > 0 ? option : null, q);
+    setQty(1);
+    setAdded(true);
+    window.setTimeout(() => setAdded(false), 1300);
+  }
+
+  return (
+    <div className="mt-auto space-y-2 pt-4">
+      <div className="flex items-end gap-2">
+        {item.options.length > 0 && (
+          <div className="flex-1">
+            <label className="label" htmlFor={`opt_${item.id}`}>Size / option</label>
+            <select id={`opt_${item.id}`} value={option} onChange={(e) => setOption(e.target.value)} className="input">
+              {item.options.map((o) => (
+                <option key={o} value={o}>{o}</option>
+              ))}
+            </select>
+          </div>
+        )}
+        <div className="w-20">
+          <label className="label" htmlFor={`qty_${item.id}`}>Qty</label>
+          <input
+            id={`qty_${item.id}`}
+            type="number"
+            min="1"
+            value={qty}
+            onChange={(e) => setQty(Math.max(1, Number.parseInt(e.target.value || '1', 10) || 1))}
+            className="input"
+          />
+        </div>
+      </div>
+      <button
+        type="button"
+        onClick={add}
+        className={`w-full rounded-md px-3 py-2 text-sm font-semibold transition ${
+          added ? 'bg-green-600 text-white' : 'bg-brand-600 text-white hover:bg-brand-700'
+        }`}
+      >
+        {added ? '✓ Added to cart' : '+ Add to cart'}
+      </button>
+    </div>
+  );
+}
+
+function ItemCard({
+  item,
+  onImageClick,
+  onAdd,
+  hidden,
+}: {
+  item: Item;
+  onImageClick: (src: string, alt: string) => void;
+  onAdd: (item: Item, option: string | null, qty: number) => void;
+  hidden?: boolean;
+}) {
   return (
     <div className={`card flex flex-col overflow-hidden p-0 transition hover:shadow-md ${hidden ? 'hidden' : ''}`}>
       <ItemImage item={item} onImageClick={onImageClick} />
@@ -134,31 +197,13 @@ function ItemCard({ item, onImageClick, hidden }: { item: Item; onImageClick: (s
             )}
           </div>
         ) : (
-          <div className="mt-auto flex items-end gap-2 pt-4">
-            {item.options.length > 0 && (
-              <div className="flex-1">
-                <label className="label" htmlFor={`opt_${item.id}`}>Option</label>
-                <select id={`opt_${item.id}`} name={`opt_${item.id}`} className="input">
-                  {item.options.map((o) => (
-                    <option key={o} value={o}>{o}</option>
-                  ))}
-                </select>
-              </div>
-            )}
-            <div className="w-20">
-              <label className="label" htmlFor={`qty_${item.id}`}>Qty</label>
-              <input id={`qty_${item.id}`} name={`qty_${item.id}`} type="number" min="0" defaultValue={0} className="input" />
-            </div>
-          </div>
+          <OrderControls item={item} onAdd={onAdd} />
         )}
       </div>
     </div>
   );
 }
 
-// The scrolling "New Arrivals" highlight strip. Auto-advances gently and can be
-// swiped (mobile) or nudged with the arrows (desktop). Auto-motion is disabled
-// for anyone who prefers reduced motion.
 function NewArrivalsRail({ items, onImageClick }: { items: Item[]; onImageClick: (src: string, alt: string) => void }) {
   const scroller = useRef<HTMLDivElement>(null);
   const paused = useRef(false);
@@ -167,7 +212,6 @@ function NewArrivalsRail({ items, onImageClick }: { items: Item[]; onImageClick:
     const el = scroller.current;
     if (!el) return;
     const step = Math.max(200, Math.round(el.clientWidth * 0.8));
-    // Wrap back to the start once we've reached the end.
     if (dir === 1 && el.scrollLeft + el.clientWidth >= el.scrollWidth - 8) {
       el.scrollTo({ left: 0, behavior: 'smooth' });
     } else {
@@ -204,8 +248,6 @@ function NewArrivalsRail({ items, onImageClick }: { items: Item[]; onImageClick:
         className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin]"
       >
         {items.map((item) => (
-          // Few items grow to fill the row (no empty gap on desktop); many items
-          // keep a comfortable width and the row scrolls.
           <article key={item.id} className="group flex min-w-[15rem] max-w-[22rem] flex-1 basis-64 snap-start flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
             <ItemImage item={item} onImageClick={onImageClick} />
             <div className="p-4">
@@ -229,8 +271,6 @@ function CategoryBar({
   onSelect: (key: string) => void;
 }) {
   return (
-    // Dedicated, wrapping chip area — every category stays visible and tappable
-    // (no horizontal scroll that hides the last few on a phone).
     <div className="mb-5 flex flex-wrap gap-2">
       {chips.map((c) => {
         const on = c.key === active;
@@ -253,11 +293,6 @@ function CategoryBar({
   );
 }
 
-// One category on the storefront. On the "All" view each category is minimized
-// to a tappable header (so the page stays short); tapping expands its products
-// inline. When a single category is selected from the chips it always shows
-// expanded. Grids are hidden with CSS rather than unmounted, so any quantities a
-// dealer has already typed are never lost when they collapse/switch categories.
 function SectionBlock({
   sectionKey,
   name,
@@ -266,6 +301,7 @@ function SectionBlock({
   open,
   onToggle,
   onImageClick,
+  onAdd,
   visible,
 }: {
   sectionKey: string;
@@ -275,6 +311,7 @@ function SectionBlock({
   open: boolean;
   onToggle: (key: string) => void;
   onImageClick: (src: string, alt: string) => void;
+  onAdd: (item: Item, option: string | null, qty: number) => void;
   visible: boolean;
 }) {
   const collapsible = active === ALL;
@@ -307,20 +344,122 @@ function SectionBlock({
         <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">{name}</h2>
       )}
       <div className={gridHidden ? 'hidden' : ''}>
-        <ItemGrid items={secItems} active={active} onImageClick={onImageClick} />
+        <ItemGrid items={secItems} active={active} onImageClick={onImageClick} onAdd={onAdd} />
       </div>
     </section>
   );
 }
 
-function ItemGrid({ items, active, onImageClick }: { items: Item[]; active: string; onImageClick: (src: string, alt: string) => void }) {
+function ItemGrid({
+  items,
+  active,
+  onImageClick,
+  onAdd,
+}: {
+  items: Item[];
+  active: string;
+  onImageClick: (src: string, alt: string) => void;
+  onAdd: (item: Item, option: string | null, qty: number) => void;
+}) {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {items.map((item) => (
-        // Hide (don't unmount) non-featured cards while the New Arrivals filter is
-        // on, so any quantities already typed elsewhere are never lost.
-        <ItemCard key={item.id} item={item} onImageClick={onImageClick} hidden={active === NEW_ARRIVALS && !item.featured} />
+        <ItemCard key={item.id} item={item} onImageClick={onImageClick} onAdd={onAdd} hidden={active === NEW_ARRIVALS && !item.featured} />
       ))}
+    </div>
+  );
+}
+
+function SubmitButton({ disabled }: { disabled: boolean }) {
+  const { pending } = useFormStatus();
+  return (
+    <button type="submit" className="btn-primary w-full" disabled={pending || disabled}>
+      {pending ? 'Submitting…' : 'Submit order'}
+    </button>
+  );
+}
+
+// Slide-over cart: review lines, adjust quantities, add a note, and submit the
+// whole order at once.
+function CartDrawer({
+  open,
+  onClose,
+  lines,
+  onQty,
+  onRemove,
+  action,
+  error,
+}: {
+  open: boolean;
+  onClose: () => void;
+  lines: CartLine[];
+  onQty: (key: string, qty: number) => void;
+  onRemove: (key: string) => void;
+  action: (formData: FormData) => void;
+  error?: string;
+}) {
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [open, onClose]);
+
+  if (!open) return null;
+  const cartJson = JSON.stringify(lines.map((l) => ({ itemId: l.itemId, option: l.option, quantity: l.qty })));
+  const totalUnits = lines.reduce((s, l) => s + l.qty, 0);
+
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end bg-black/50" onClick={onClose} role="dialog" aria-modal="true" aria-label="Your order">
+      <aside className="flex h-full w-full max-w-md flex-col bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
+          <h2 className="text-base font-semibold text-gray-900">Your order {lines.length > 0 && <span className="text-gray-400">· {totalUnits} item{totalUnits === 1 ? '' : 's'}</span>}</h2>
+          <button type="button" onClick={onClose} aria-label="Close" className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100">✕</button>
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
+          {lines.length === 0 ? (
+            <p className="mt-8 text-center text-sm text-gray-500">Your cart is empty. Add items — including several sizes of the same product — then submit them together.</p>
+          ) : (
+            <ul className="divide-y divide-gray-100">
+              {lines.map((l) => (
+                <li key={lineKey(l.itemId, l.option)} className="flex items-center gap-3 py-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-medium text-gray-900">{l.itemName}</div>
+                    {l.option && <div className="text-xs text-gray-500">{l.option}</div>}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button type="button" onClick={() => onQty(lineKey(l.itemId, l.option), l.qty - 1)} aria-label="Decrease" className="h-7 w-7 rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50">−</button>
+                    <input
+                      type="number"
+                      min="1"
+                      value={l.qty}
+                      onChange={(e) => onQty(lineKey(l.itemId, l.option), Math.max(1, Number.parseInt(e.target.value || '1', 10) || 1))}
+                      className="w-12 rounded-md border border-gray-200 py-1 text-center text-sm tabular-nums"
+                      aria-label={`Quantity of ${l.itemName}${l.option ? ` ${l.option}` : ''}`}
+                    />
+                    <button type="button" onClick={() => onQty(lineKey(l.itemId, l.option), l.qty + 1)} aria-label="Increase" className="h-7 w-7 rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50">+</button>
+                  </div>
+                  <button type="button" onClick={() => onRemove(lineKey(l.itemId, l.option))} aria-label={`Remove ${l.itemName}`} className="ml-1 text-gray-400 hover:text-red-600">✕</button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <form action={action} className="border-t border-gray-200 px-4 py-3">
+          <input type="hidden" name="cart" value={cartJson} />
+          {error && <div className="mb-3 rounded-md border border-red-200 bg-red-50 p-2.5 text-sm text-red-800" role="alert">{error}</div>}
+          <label className="label" htmlFor="note">Note <span className="font-normal text-gray-400">(optional)</span></label>
+          <textarea id="note" name="note" rows={2} className="input mb-3" placeholder="Anything the fulfillment team should know…" />
+          <SubmitButton disabled={lines.length === 0} />
+        </form>
+      </aside>
     </div>
   );
 }
@@ -329,9 +468,10 @@ export function MarketplaceOrderForm({ items, categories }: { items: Item[]; cat
   const [state, action] = useFormState(createOrderAction, initial);
   const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(null);
   const [active, setActive] = useState<string>(ALL);
-  // Which categories are expanded on the "All" view. Empty by default so the page
-  // lands short — the dealer opens only the category they want to browse.
   const [openKeys, setOpenKeys] = useState<Set<string>>(new Set());
+  const [cart, setCart] = useState<CartLine[]>([]);
+  const [cartOpen, setCartOpen] = useState(false);
+
   const toggle = (key: string) =>
     setOpenKeys((prev) => {
       const next = new Set(prev);
@@ -341,6 +481,28 @@ export function MarketplaceOrderForm({ items, categories }: { items: Item[]; cat
     });
   const openImage = (src: string, alt: string) => setLightbox({ src, alt });
 
+  // Add to cart — same item + option increments that line; a different size is a
+  // new line, so 3×S and 3×L of one shirt sit side by side.
+  function addToCart(item: Item, option: string | null, qty: number) {
+    setCart((prev) => {
+      const key = lineKey(item.id, option);
+      const existing = prev.find((l) => lineKey(l.itemId, l.option) === key);
+      if (existing) {
+        return prev.map((l) => (lineKey(l.itemId, l.option) === key ? { ...l, qty: Math.min(9999, l.qty + qty) } : l));
+      }
+      return [...prev, { itemId: item.id, itemName: item.name, option, qty: Math.min(9999, qty) }];
+    });
+  }
+  function setQty(key: string, qty: number) {
+    if (qty < 1) { setCart((prev) => prev.filter((l) => lineKey(l.itemId, l.option) !== key)); return; }
+    setCart((prev) => prev.map((l) => (lineKey(l.itemId, l.option) === key ? { ...l, qty: Math.min(9999, qty) } : l)));
+  }
+  function remove(key: string) {
+    setCart((prev) => prev.filter((l) => lineKey(l.itemId, l.option) !== key));
+  }
+
+  const totalUnits = cart.reduce((s, l) => s + l.qty, 0);
+
   const activeIds = new Set(categories.map((c) => c.id));
   const featured = items.filter((it) => it.featured);
   const sections = categories
@@ -348,7 +510,6 @@ export function MarketplaceOrderForm({ items, categories }: { items: Item[]; cat
     .filter((s) => s.items.length > 0);
   const other = items.filter((it) => !it.categoryId || !activeIds.has(it.categoryId));
 
-  // Category chips: All, New Arrivals (if any), each populated category, Other.
   const chips = [
     { key: ALL, label: 'All', count: items.length },
     ...(featured.length > 0 ? [{ key: NEW_ARRIVALS, label: '✨ New Arrivals', count: featured.length }] : []),
@@ -356,7 +517,6 @@ export function MarketplaceOrderForm({ items, categories }: { items: Item[]; cat
     ...(other.length > 0 ? [{ key: OTHER, label: 'Other', count: other.length }] : []),
   ];
 
-  // Whether a section is shown for the current filter.
   const sectionVisible = (key: string, secItems: Item[]) => {
     if (active === ALL) return true;
     if (active === key) return true;
@@ -372,54 +532,62 @@ export function MarketplaceOrderForm({ items, categories }: { items: Item[]; cat
         <NewArrivalsRail items={featured} onImageClick={openImage} />
       )}
 
-      <form action={action} className="space-y-8">
-        {state.error && (
-          <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800" role="alert">
-            {state.error}
-          </div>
+      {active === ALL && (
+        <p className="mb-3 text-xs text-gray-500">Tap a category to see what&apos;s inside.</p>
+      )}
+
+      <div className="space-y-3 pb-24">
+        {sections.map((s) => (
+          <SectionBlock
+            key={s.key}
+            sectionKey={s.key}
+            name={s.name}
+            secItems={s.items}
+            active={active}
+            open={openKeys.has(s.key)}
+            onToggle={toggle}
+            onImageClick={openImage}
+            onAdd={addToCart}
+            visible={sectionVisible(s.key, s.items)}
+          />
+        ))}
+        {other.length > 0 && (
+          <SectionBlock
+            sectionKey={OTHER}
+            name="Other"
+            secItems={other}
+            active={active}
+            open={openKeys.has(OTHER)}
+            onToggle={toggle}
+            onImageClick={openImage}
+            onAdd={addToCart}
+            visible={sectionVisible(OTHER, other)}
+          />
         )}
+      </div>
 
-        {active === ALL && (
-          <p className="-mt-3 text-xs text-gray-500">Tap a category to see what&apos;s inside.</p>
+      {/* Floating cart button — always reachable while browsing. */}
+      <button
+        type="button"
+        onClick={() => setCartOpen(true)}
+        className="fixed bottom-5 right-5 z-40 inline-flex items-center gap-2 rounded-full bg-brand-600 px-5 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-brand-700"
+      >
+        🛒 Cart
+        {totalUnits > 0 && (
+          <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-white px-1.5 text-xs font-bold text-brand-700 tabular-nums">{totalUnits}</span>
         )}
+      </button>
 
-        <div className="space-y-3">
-          {sections.map((s) => (
-            <SectionBlock
-              key={s.key}
-              sectionKey={s.key}
-              name={s.name}
-              secItems={s.items}
-              active={active}
-              open={openKeys.has(s.key)}
-              onToggle={toggle}
-              onImageClick={openImage}
-              visible={sectionVisible(s.key, s.items)}
-            />
-          ))}
-          {other.length > 0 && (
-            <SectionBlock
-              sectionKey={OTHER}
-              name="Other"
-              secItems={other}
-              active={active}
-              open={openKeys.has(OTHER)}
-              onToggle={toggle}
-              onImageClick={openImage}
-              visible={sectionVisible(OTHER, other)}
-            />
-          )}
-        </div>
+      <CartDrawer
+        open={cartOpen}
+        onClose={() => setCartOpen(false)}
+        lines={cart}
+        onQty={setQty}
+        onRemove={remove}
+        action={action}
+        error={state.error}
+      />
 
-        <div className="card p-4">
-          <label className="label" htmlFor="note">Note <span className="font-normal text-gray-400">(optional)</span></label>
-          <textarea id="note" name="note" rows={3} className="input" placeholder="Anything the fulfillment team should know…" />
-        </div>
-
-        <div className="flex justify-end">
-          <SubmitButton />
-        </div>
-      </form>
       {lightbox && <Lightbox src={lightbox.src} alt={lightbox.alt} onClose={() => setLightbox(null)} />}
     </>
   );

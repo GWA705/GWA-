@@ -26,15 +26,36 @@ export async function createOrderAction(_prev: OrderActionState, formData: FormD
   const items = await prisma.marketplaceItem.findMany({ where: { active: true, kind: 'ORDER' } });
   const note = (formData.get('note') ?? '').toString().trim() || null;
 
-  const lines: { itemId: string; itemName: string; option: string | null; quantity: number }[] = [];
-  for (const item of items) {
-    const qty = Number.parseInt((formData.get(`qty_${item.id}`) ?? '0').toString(), 10);
-    if (!Number.isFinite(qty) || qty <= 0) continue;
-    const option = item.options.length > 0 ? (formData.get(`opt_${item.id}`) ?? '').toString() || null : null;
-    lines.push({ itemId: item.id, itemName: item.name, option, quantity: Math.min(qty, 9999) });
+  // The cart arrives as a JSON array of { itemId, option, quantity } lines — one
+  // per size, so the same item can appear more than once (e.g. 3×S and 3×L).
+  const byId = new Map(items.map((i) => [i.id, i]));
+  let cart: unknown = [];
+  try {
+    cart = JSON.parse((formData.get('cart') ?? '[]').toString());
+  } catch {
+    cart = [];
   }
 
-  if (lines.length === 0) return { error: 'Choose a quantity for at least one item.' };
+  const lines: { itemId: string; itemName: string; option: string | null; quantity: number }[] = [];
+  if (Array.isArray(cart)) {
+    for (const raw of cart.slice(0, 500)) {
+      const c = raw as { itemId?: unknown; option?: unknown; quantity?: unknown };
+      const item = typeof c.itemId === 'string' ? byId.get(c.itemId) : undefined;
+      if (!item) continue;
+      const qty = Number.parseInt(String(c.quantity ?? ''), 10);
+      if (!Number.isFinite(qty) || qty <= 0) continue;
+      // Only accept an option the item actually offers; otherwise fall back.
+      const option =
+        item.options.length > 0
+          ? typeof c.option === 'string' && item.options.includes(c.option)
+            ? c.option
+            : item.options[0]
+          : null;
+      lines.push({ itemId: item.id, itemName: item.name, option, quantity: Math.min(qty, 9999) });
+    }
+  }
+
+  if (lines.length === 0) return { error: 'Add at least one item to your cart before submitting.' };
 
   const order = await prisma.order.create({
     data: {
