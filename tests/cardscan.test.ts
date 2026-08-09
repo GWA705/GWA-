@@ -42,6 +42,19 @@ describe('findCardData (hard block)', () => {
   it('does NOT block a 16-digit number that fails Luhn', () => {
     expect(findCardData('1234 5678 9012 3456').blocked).toBe(false);
   });
+  it('blocks the HD Consumer Credit card (6035 2944 prefix), always', () => {
+    expect(findCardData('Account Number 6035 2944 5186 4487').blocked).toBe(true);
+    expect(findCardData('6035 2944 0000 0000').blocked).toBe(true); // even if Luhn-invalid
+  });
+  it('blocks a store/private card in clear card context (not a major brand)', () => {
+    const doc =
+      'Name: Omer M Sagbo  Credit Limit: $3,000  Account Number: 6039 2944 5186 4483  Purchase APR: 28.80%  Temporary Security Code: 417';
+    expect(findCardData(doc).blocked).toBe(true);
+  });
+  it('does NOT block a lone non-brand 16-digit number with no card context', () => {
+    // No major-brand prefix, no surrounding card words → not treated as a card.
+    expect(findCardData('Batch id 8888 8888 8888 8887').blocked).toBe(false);
+  });
   it('records corroborating signals without leaking digits', () => {
     const r = findCardData('VISA 4111 1111 1111 1111 exp 08/27 CVV 123');
     expect(r.blocked).toBe(true);

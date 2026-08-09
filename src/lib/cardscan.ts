@@ -51,42 +51,78 @@ export function cardBrand(digits: string): string | null {
 
 // Candidate: 13–19 digits with optional single spaces or dashes between them.
 const CANDIDATE_RE = /\d(?:[ -]?\d){12,18}/g;
-const BRAND_WORD_RE = /\b(visa|mastercard|master\s?card|amex|american\s?express|discover)\b/gi;
+const BRAND_WORD_RE = /\b(visa|mastercard|master\s?card|amex|american\s?express|discover)\b/i;
 const EXPIRY_RE = /\b(0[1-9]|1[0-2])\s?[/\-]\s?(\d{2}|\d{4})\b/;
 const CVV_CONTEXT_RE = /\b(cvv|cvc|cvv2|cvc2|security\s?code|card\s?verification)\b/i;
 
+// "Strong" card indicators — two or more in a document, or one right beside the
+// number, means it's card data even when the number isn't a major-brand BIN
+// (e.g. store / private-label / finance cards like the HD consumer card).
+const STRONG_CONTEXT: RegExp[] = [
+  /credit\s*limit/i,
+  /security\s*code|\bcvv2?\b|\bcvc2?\b/i,
+  /\bapr\b|annual\s*percentage\s*rate/i,
+  /card\s*holder|cardholder/i,
+  /card\s*number/i,
+  /scan\s*barcode\s*to\s*pay/i,
+];
+// Context that, when it sits right next to the number, ties it to a card.
+const NEAR_CONTEXT_RE =
+  /(credit\s*limit|account\s*number|card\s*number|security\s*code|\bcvv2?\b|\bcvc2?\b|\bapr\b|cardholder|card\s*holder|exp(?:iry|iration|\.)?)/i;
+
 /**
- * Scan free text for payment-card data. `blocked` is true when a Luhn-valid PAN
- * with a known brand prefix is present (the hard-block trigger). Brand words,
- * expiry, and CVV context are recorded as corroborating signals only.
+ * Scan free text for payment-card data. `blocked` is true when a card number is
+ * present, detected two ways:
+ *   1. A Luhn-valid number matching a major-brand prefix (Visa/MC/Amex/…), or
+ *   2. A Luhn-valid 13–19 digit number sitting in clear card context — a card
+ *      keyword right beside it, or two+ strong card indicators in the document.
+ * (2) catches store / private-label / finance cards whose BIN isn't a major
+ * brand, while staying precise: a void cheque's short account number isn't a
+ * 13–19 digit Luhn number, so it won't trip.
  */
 export function findCardData(text: string): CardScanResult {
   const signals: string[] = [];
   if (!text) return { blocked: false, signals };
+
+  const strongCount =
+    STRONG_CONTEXT.filter((re) => re.test(text)).length + (BRAND_WORD_RE.test(text) ? 1 : 0);
 
   let pan = false;
   const brandsFound = new Set<string>();
   for (const m of text.matchAll(CANDIDATE_RE)) {
     const digits = m[0].replace(/[^\d]/g, '');
     if (digits.length < 13 || digits.length > 19) continue;
+
+    // Home Depot Consumer Credit card — a known card that always starts
+    // 6035 2944. Always block, regardless of Luhn/context.
+    if (digits.startsWith('60352944')) {
+      pan = true;
+      brandsFound.add('HD Card');
+      continue;
+    }
+
     if (!luhnValid(digits)) continue;
+
     const brand = cardBrand(digits);
     if (brand) {
       pan = true;
       brandsFound.add(brand);
+      continue;
+    }
+    // Non-major-brand but Luhn-valid: block if it's clearly in card context.
+    const idx = m.index ?? 0;
+    const near = NEAR_CONTEXT_RE.test(text.slice(Math.max(0, idx - 80), idx + m[0].length + 80));
+    if (near || strongCount >= 2) {
+      pan = true;
+      brandsFound.add('card');
     }
   }
 
-  if (pan) {
-    signals.push(`pan:${[...brandsFound].join('/') || 'card'}`);
-  }
-  const words = text.match(BRAND_WORD_RE);
-  if (words) signals.push('brand-word');
+  if (pan) signals.push(`pan:${[...brandsFound].join('/') || 'card'}`);
+  if (BRAND_WORD_RE.test(text)) signals.push('brand-word');
   if (EXPIRY_RE.test(text)) signals.push('expiry');
   if (CVV_CONTEXT_RE.test(text)) signals.push('cvv-context');
 
-  // Hard block only on a real PAN. (Brand words / expiry / CVV alone are not
-  // enough — they appear in legitimate, non-card contexts.)
   return { blocked: pan, signals };
 }
 
