@@ -914,6 +914,10 @@ model Document {
   // low-text/scan flags) computed on upload to help the reviewer. Assistive
   // only — never blocks anything. Shape: see lib/docanalysis-format DocAnalysis.
   analysis Json?
+  // True when the doc is a scan/photo awaiting OCR (Tier 2). A scheduled job
+  // reads pending ones; reviewers can also trigger it on demand. Cleared once
+  // read (success or give-up) so it never reprocesses in a loop.
+  ocrPending Boolean @default(false)
 
   createdAt DateTime @default(now())
 

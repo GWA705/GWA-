@@ -8,7 +8,8 @@ import {
 import { DeleteDocumentButton } from '@/components/DeleteDocumentButton';
 import { DocViewer } from '@/components/DocViewer';
 import { VerifyDocButton } from '@/components/VerifyDocButton';
-import { summarizeAnalysis, type ChipTone } from '@/lib/docanalysis-format';
+import { summarizeAnalysis, ocrEligible, type ChipTone } from '@/lib/docanalysis-format';
+import { OcrButton } from '@/components/OcrButton';
 
 const CHIP_CLASS: Record<ChipTone, string> = {
   good: 'bg-green-50 text-green-700 ring-green-200',
@@ -16,9 +17,10 @@ const CHIP_CLASS: Record<ChipTone, string> = {
   neutral: 'bg-gray-50 text-gray-600 ring-gray-200',
 };
 
-function AutoCheckChips({ analysis }: { analysis: unknown }) {
+function AutoCheckChips({ documentId, analysis }: { documentId: string; analysis: unknown }) {
   const chips = summarizeAnalysis(analysis);
-  if (chips.length === 0) return null;
+  const canOcr = ocrEligible(analysis);
+  if (chips.length === 0 && !canOcr) return null;
   return (
     <div className="mt-1 flex flex-wrap items-center gap-1.5 pl-7">
       <span className="text-[11px] font-medium uppercase tracking-wide text-gray-400">Auto-check</span>
@@ -27,6 +29,7 @@ function AutoCheckChips({ analysis }: { analysis: unknown }) {
           {c.label}
         </span>
       ))}
+      {canOcr && <OcrButton documentId={documentId} />}
     </div>
   );
 }
@@ -108,7 +111,7 @@ export function FundingChecklist({
                         <DeleteDocumentButton documentId={f.id} fileName={f.fileName} action={deleteDocumentAction} />
                         <VerifyDocButton documentId={f.id} done={!!f.verifiedAt} />
                       </div>
-                      <AutoCheckChips analysis={f.analysis} />
+                      <AutoCheckChips documentId={f.id} analysis={f.analysis} />
                     </li>
                   ))}
                 </ul>

@@ -2,9 +2,10 @@
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
-  // sharp is a native module — keep it external so it isn't bundled.
+  // Native / heavy modules — external so they aren't bundled (sharp is native;
+  // unpdf/tesseract.js/@napi-rs/canvas carry WASM/prebuilt binaries for OCR).
   experimental: {
-    serverComponentsExternalPackages: ['sharp', 'unpdf'],
+    serverComponentsExternalPackages: ['sharp', 'unpdf', 'tesseract.js', '@napi-rs/canvas'],
     // Match the ~15 MB document-upload intent (server actions default to 1 MB).
     serverActions: {
       bodySizeLimit: '15mb',

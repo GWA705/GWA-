@@ -104,8 +104,12 @@ export async function storeUploadedFile(params: {
     // Assistive pre-check (page count, dates, e-signature signals). Best-effort:
     // a failure here must never block the upload, so it's caught and dropped.
     let analysis: Prisma.InputJsonValue | undefined;
+    let ocrPending = false;
     try {
-      analysis = (await analyzeDocument(bytes, mimeType)) as unknown as Prisma.InputJsonValue;
+      const result = await analyzeDocument(bytes, mimeType);
+      analysis = result as unknown as Prisma.InputJsonValue;
+      // Queue OCR (Tier 2) for anything the text-layer pass couldn't read.
+      ocrPending = !!result.scanned;
     } catch (e) {
       console.error('[upload] document pre-check failed (non-blocking)', e);
     }
@@ -123,6 +127,7 @@ export async function storeUploadedFile(params: {
         storageKey: key,
         checksum: sha256(bytes),
         uploadedById,
+        ocrPending,
         ...(analysis ? { analysis } : {}),
       },
     });

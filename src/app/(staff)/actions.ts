@@ -573,6 +573,17 @@ export async function toggleDocumentVerifiedAction(documentId: string): Promise<
   revalidatePath(`/staff/applications/${doc.applicationId}`);
 }
 
+/** Reviewer triggers OCR (Tier 2) on a scanned/photo document on demand. */
+export async function runDocumentOcrAction(documentId: string): Promise<void> {
+  const session = await requireStaffSection('review-queue');
+  const doc = await prisma.document.findUnique({ where: { id: documentId }, select: { applicationId: true } });
+  if (!doc) return;
+  const { runDocumentOcr } = await import('@/lib/ocr');
+  await runDocumentOcr(documentId);
+  void session;
+  revalidatePath(`/staff/applications/${doc.applicationId}`);
+}
+
 // Reviewer marks every uploaded funding document as completed in one click.
 export async function verifyAllFundingDocsAction(applicationId: string): Promise<void> {
   const session = await requireStaffSection('review-queue');

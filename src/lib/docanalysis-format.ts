@@ -31,6 +31,13 @@ function asAnalysis(raw: unknown): Partial<DocAnalysis> | null {
   return raw as Partial<DocAnalysis>;
 }
 
+/** Whether an on-demand "Read this scan" (OCR) makes sense for this document. */
+export function ocrEligible(raw: unknown): boolean {
+  const a = asAnalysis(raw);
+  if (!a) return false;
+  return !!a.scanned && !a.ocr?.used;
+}
+
 /**
  * Turn a stored analysis blob into a short list of reviewer-facing chips. Purely
  * assistive — the reviewer still confirms every document.
