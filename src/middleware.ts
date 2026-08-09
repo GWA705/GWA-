@@ -66,7 +66,7 @@ function buildCsp(nonce: string): string {
     "style-src 'self' 'unsafe-inline'",
     scriptSrc,
     `connect-src 'self'${gConnect}`,
-    "frame-ancestors 'none'",
+    "frame-ancestors 'self'",
     "form-action 'self'",
     "base-uri 'self'",
     "object-src 'none'",
@@ -75,7 +75,9 @@ function buildCsp(nonce: string): string {
 
 function applyStaticHeaders(res: NextResponse): NextResponse {
   res.headers.set('X-Content-Type-Options', 'nosniff');
-  res.headers.set('X-Frame-Options', 'DENY');
+  // SAMEORIGIN (not DENY) so the in-app document viewer can embed the portal's
+  // own PDF endpoints in an iframe; cross-origin framing is still blocked.
+  res.headers.set('X-Frame-Options', 'SAMEORIGIN');
   res.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
   if (process.env.NODE_ENV === 'production') {
