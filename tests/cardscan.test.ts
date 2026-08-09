@@ -46,6 +46,10 @@ describe('findCardData (hard block)', () => {
     expect(findCardData('Account Number 6035 2944 5186 4487').blocked).toBe(true);
     expect(findCardData('6035 2944 0000 0000').blocked).toBe(true); // even if Luhn-invalid
   });
+  it('blocks the FinanceIT one-time-use card (4356 0121 prefix), always', () => {
+    expect(findCardData('ACCOUNT NUMBER 4356 0121 4750 9993').blocked).toBe(true);
+    expect(findCardData('4356 0121 0000 0000').blocked).toBe(true); // even if Luhn-invalid
+  });
   it('blocks a store/private card in clear card context (not a major brand)', () => {
     const doc =
       'Name: Omer M Sagbo  Credit Limit: $3,000  Account Number: 6039 2944 5186 4483  Purchase APR: 28.80%  Temporary Security Code: 417';

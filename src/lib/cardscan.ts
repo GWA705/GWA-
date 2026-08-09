@@ -49,6 +49,13 @@ export function cardBrand(digits: string): string | null {
   return null;
 }
 
+// Specific cards GWA never accepts — always blocked by their leading digits,
+// regardless of Luhn/context (robust even if OCR misreads the later digits).
+const KNOWN_CARD_PREFIXES: { prefix: string; label: string }[] = [
+  { prefix: '60352944', label: 'HD Card' }, // Home Depot Consumer Credit card
+  { prefix: '43560121', label: 'FinanceIT Card' }, // FinanceIT one-time-use Visa prepaid
+];
+
 // Candidate: 13–19 digits with optional single spaces or dashes between them.
 const CANDIDATE_RE = /\d(?:[ -]?\d){12,18}/g;
 const BRAND_WORD_RE = /\b(visa|mastercard|master\s?card|amex|american\s?express|discover)\b/i;
@@ -93,11 +100,12 @@ export function findCardData(text: string): CardScanResult {
     const digits = m[0].replace(/[^\d]/g, '');
     if (digits.length < 13 || digits.length > 19) continue;
 
-    // Home Depot Consumer Credit card — a known card that always starts
-    // 6035 2944. Always block, regardless of Luhn/context.
-    if (digits.startsWith('60352944')) {
+    // Specific cards GWA never accepts — blocked by prefix regardless of
+    // Luhn/context, so they're caught even if OCR garbles the later digits.
+    const known = KNOWN_CARD_PREFIXES.find((k) => digits.startsWith(k.prefix));
+    if (known) {
       pan = true;
-      brandsFound.add('HD Card');
+      brandsFound.add(known.label);
       continue;
     }
 
