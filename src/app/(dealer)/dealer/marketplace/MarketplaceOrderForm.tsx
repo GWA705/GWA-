@@ -471,6 +471,18 @@ export function MarketplaceOrderForm({ items, categories }: { items: Item[]; cat
   const [openKeys, setOpenKeys] = useState<Set<string>>(new Set());
   const [cart, setCart] = useState<CartLine[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+
+  // On a successful submit the action returns { ok: true } (rather than
+  // redirecting, which errored on Next 14) — clear the cart and confirm here.
+  useEffect(() => {
+    if (state?.ok) {
+      setCart([]);
+      setCartOpen(false);
+      setSubmitted(true);
+      if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [state]);
 
   const toggle = (key: string) =>
     setOpenKeys((prev) => {
@@ -484,6 +496,7 @@ export function MarketplaceOrderForm({ items, categories }: { items: Item[]; cat
   // Add to cart — same item + option increments that line; a different size is a
   // new line, so 3×S and 3×L of one shirt sit side by side.
   function addToCart(item: Item, option: string | null, qty: number) {
+    setSubmitted(false);
     setCart((prev) => {
       const key = lineKey(item.id, option);
       const existing = prev.find((l) => lineKey(l.itemId, l.option) === key);
@@ -526,6 +539,12 @@ export function MarketplaceOrderForm({ items, categories }: { items: Item[]; cat
 
   return (
     <>
+      {submitted && (
+        <div className="mb-5 rounded-md border border-green-200 bg-green-50 p-4 text-sm text-green-800">
+          ✓ Your order was submitted. Thanks — we&apos;ll be in touch.
+        </div>
+      )}
+
       <CategoryBar chips={chips} active={active} onSelect={setActive} />
 
       {featured.length > 0 && (active === ALL || active === NEW_ARRIVALS) && (

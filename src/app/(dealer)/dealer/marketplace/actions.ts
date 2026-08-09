@@ -1,6 +1,5 @@
 'use server';
 
-import { redirect } from 'next/navigation';
 import { requireDealerAccess } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { sendEmail, type EmailAttachment } from '@/lib/email';
@@ -11,6 +10,7 @@ import { audit } from '@/lib/audit';
 
 export interface OrderActionState {
   error?: string;
+  ok?: boolean;
 }
 
 function appUrl(): string {
@@ -137,5 +137,8 @@ export async function createOrderAction(_prev: OrderActionState, formData: FormD
     console.error('[marketplace] order email failed', e);
   }
 
-  redirect('/dealer/marketplace?ok=1');
+  // Return success rather than redirect(): a redirect() thrown from inside a
+  // useFormState action surfaces as an error to the dealer on Next 14 (the order
+  // still saves). The client clears the cart and shows the confirmation.
+  return { ok: true };
 }
