@@ -8,6 +8,7 @@ import { MARKETPLACE_TAGS } from '@/lib/constants';
 interface Item {
   id: string;
   name: string;
+  partNumber?: string | null;
   description: string | null;
   options: string[];
   sortOrder: number;
@@ -71,6 +72,10 @@ export function ItemForm({ item, categories }: { item?: Item; categories: Catego
             ))}
           </select>
         </div>
+      </div>
+      <div>
+        <label className="label">Part number <span className="font-normal text-gray-400">(internal — shown on the order email to fulfillment, never to dealers)</span></label>
+        <input name="partNumber" defaultValue={item?.partNumber ?? ''} className="input" placeholder="e.g. GWA-TS-GRY-M" autoComplete="off" />
       </div>
       <div>
         <label className="label">Type</label>

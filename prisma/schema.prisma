@@ -394,6 +394,9 @@ model MarketplaceCategory {
 model MarketplaceItem {
   id             String   @id @default(cuid())
   name           String
+  // Internal part / SKU number for the fulfillment team. Shown in the order
+  // email so the filler can pull each item; not shown to dealers.
+  partNumber     String?
   description    String?  @db.Text
   options        String[] @default([]) // e.g. sizes: S, M, L, XL — optional
   imageStorageKey String? // product photo (normalized + resized on upload)
@@ -447,11 +450,12 @@ model OrderItem {
   id       String           @id @default(cuid())
   orderId  String
   order    Order            @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  itemId   String?
-  item     MarketplaceItem? @relation(fields: [itemId], references: [id])
-  itemName String // snapshot of the item name at order time
-  option   String? // chosen option (e.g. size), if any
-  quantity Int
+  itemId     String?
+  item       MarketplaceItem? @relation(fields: [itemId], references: [id])
+  itemName   String // snapshot of the item name at order time
+  partNumber String? // snapshot of the part/SKU number at order time
+  option     String? // chosen option (e.g. size), if any
+  quantity   Int
 }
 
 // Per-user read state for a dealer content section (Resources / HD Promotions /

@@ -102,6 +102,7 @@ export default async function AdminMarketplace() {
                             <div className="min-w-0">
                               <div className="flex flex-wrap items-center gap-2">
                                 <span className="font-medium text-gray-900">{item.name}</span>
+                                {item.partNumber && <span className="badge bg-gray-100 font-mono text-gray-600">#{item.partNumber}</span>}
                                 {!item.active && <span className="badge bg-gray-100 text-gray-600">Hidden</span>}
                                 {item.featured && <span className="badge bg-amber-100 text-amber-800">✨ New Arrivals</span>}
                                 {MARKETPLACE_TAGS.filter((t) => item.tags.includes(t.key)).map((t) => (
@@ -131,6 +132,7 @@ export default async function AdminMarketplace() {
                               item={{
                                 id: item.id,
                                 name: item.name,
+                                partNumber: item.partNumber,
                                 description: item.description,
                                 options: item.options,
                                 sortOrder: item.sortOrder,
@@ -170,7 +172,10 @@ export default async function AdminMarketplace() {
                 </div>
                 <ul className="mt-2 space-y-0.5 text-sm text-gray-700">
                   {o.items.map((li) => (
-                    <li key={li.id}>{li.quantity} × {li.itemName}{li.option ? ` — ${li.option}` : ''}</li>
+                    <li key={li.id}>
+                      {li.quantity} × {li.itemName}{li.option ? ` — ${li.option}` : ''}
+                      {li.partNumber && <span className="ml-2 font-mono text-xs text-gray-400">#{li.partNumber}</span>}
+                    </li>
                   ))}
                 </ul>
                 {o.note && <p className="mt-2 text-sm text-gray-500"><span className="font-medium">Note:</span> {o.note}</p>}

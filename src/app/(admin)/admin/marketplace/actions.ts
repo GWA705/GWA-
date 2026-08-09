@@ -114,6 +114,7 @@ export async function saveItemAction(_prev: ItemActionState, formData: FormData)
   const session = await requireAdminSection('marketplace');
   const id = (formData.get('id') ?? '').toString() || null;
   const name = toTitleCase((formData.get('name') ?? '').toString().trim());
+  const partNumber = (formData.get('partNumber') ?? '').toString().trim() || null;
   const description = sentenceOrNull((formData.get('description') ?? '').toString());
   const options = parseOptions((formData.get('options') ?? '').toString());
   const sortOrder = Number.parseInt((formData.get('sortOrder') ?? '0').toString(), 10) || 0;
@@ -142,7 +143,7 @@ export async function saveItemAction(_prev: ItemActionState, formData: FormData)
     if (id) {
       const existing = await prisma.marketplaceItem.findUnique({ where: { id }, select: { imageStorageKey: true, fileStorageKey: true } });
       if (!existing) return { error: 'That item no longer exists — reload the page and try again.' };
-      await prisma.marketplaceItem.update({ where: { id }, data: { name, description, options, sortOrder, active, featured, tags, categoryId, kind } });
+      await prisma.marketplaceItem.update({ where: { id }, data: { name, partNumber, description, options, sortOrder, active, featured, tags, categoryId, kind } });
       if (hasNewImage) {
         const stored = await storeItemImage(id, image!);
         if ('error' in stored) return { error: stored.error };
@@ -163,7 +164,7 @@ export async function saveItemAction(_prev: ItemActionState, formData: FormData)
       }
     } else {
       const created = await prisma.marketplaceItem.create({
-        data: { name, description, options, sortOrder, active, featured, tags, categoryId, kind, createdById: session.userId },
+        data: { name, partNumber, description, options, sortOrder, active, featured, tags, categoryId, kind, createdById: session.userId },
       });
       if (hasNewImage) {
         const stored = await storeItemImage(created.id, image!);

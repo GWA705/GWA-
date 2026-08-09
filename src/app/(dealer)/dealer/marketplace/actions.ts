@@ -37,7 +37,7 @@ export async function createOrderAction(_prev: OrderActionState, formData: FormD
     cart = [];
   }
 
-  const lines: { itemId: string; itemName: string; option: string | null; quantity: number }[] = [];
+  const lines: { itemId: string; itemName: string; partNumber: string | null; option: string | null; quantity: number }[] = [];
   if (Array.isArray(cart)) {
     for (const raw of cart.slice(0, 500)) {
       const c = raw as { itemId?: unknown; option?: unknown; quantity?: unknown };
@@ -52,7 +52,7 @@ export async function createOrderAction(_prev: OrderActionState, formData: FormD
             ? c.option
             : item.options[0]
           : null;
-      lines.push({ itemId: item.id, itemName: item.name, option, quantity: Math.min(qty, 9999) });
+      lines.push({ itemId: item.id, itemName: item.name, partNumber: item.partNumber, option, quantity: Math.min(qty, 9999) });
     }
   }
 
@@ -63,7 +63,7 @@ export async function createOrderAction(_prev: OrderActionState, formData: FormD
       dealerId: session.dealerId,
       createdById: session.userId,
       note,
-      items: { create: lines.map((l) => ({ itemId: l.itemId, itemName: l.itemName, option: l.option, quantity: l.quantity })) },
+      items: { create: lines.map((l) => ({ itemId: l.itemId, itemName: l.itemName, partNumber: l.partNumber, option: l.option, quantity: l.quantity })) },
     },
     include: { dealer: { select: { name: true } }, createdBy: { select: { name: true } } },
   });
@@ -114,7 +114,10 @@ export async function createOrderAction(_prev: OrderActionState, formData: FormD
         const thumb = cid
           ? `<td style="width:60px;padding:6px 12px 6px 0;vertical-align:middle;"><img src="cid:${cid}" width="48" height="48" alt="" style="width:48px;height:48px;object-fit:contain;border:1px solid #e5e7eb;border-radius:8px;background:#fff;"></td>`
           : '<td style="width:0;padding:0;"></td>';
-        return `<tr>${thumb}<td style="padding:6px 0;font-size:14px;color:#374151;vertical-align:middle;"><strong>${l.quantity} ×</strong> ${l.itemName}${l.option ? ` — ${l.option}` : ''}</td></tr>`;
+        const part = l.partNumber
+          ? `<span style="margin-left:8px;font-family:monospace;font-size:12px;color:#6b7280;">#${l.partNumber}</span>`
+          : '';
+        return `<tr>${thumb}<td style="padding:6px 0;font-size:14px;color:#374151;vertical-align:middle;"><strong>${l.quantity} ×</strong> ${l.itemName}${l.option ? ` — ${l.option}` : ''}${part}</td></tr>`;
       })
       .join('');
     const listHtml = `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 14px;border-collapse:collapse;">${rowsHtml}</table>`;
