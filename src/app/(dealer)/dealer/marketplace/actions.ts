@@ -3,8 +3,9 @@
 import { redirect } from 'next/navigation';
 import { requireDealerAccess } from '@/lib/session';
 import { prisma } from '@/lib/db';
-import { sendEmail } from '@/lib/email';
+import { sendEmail, type EmailAttachment } from '@/lib/email';
 import { renderEmail } from '@/lib/email-templates';
+import { getDocument } from '@/lib/storage';
 import { getSetting, MARKETPLACE_SETTING_KEYS } from '@/lib/settings';
 import { audit } from '@/lib/audit';
 
@@ -79,9 +80,45 @@ export async function createOrderAction(_prev: OrderActionState, formData: FormD
       const admins = await prisma.user.findMany({ where: { role: 'ADMIN', active: true }, select: { email: true, notificationEmail: true } });
       recipients = admins.map((a) => a.notificationEmail || a.email);
     }
-    const listHtml = `<ul style="margin:0 0 14px;padding-left:18px;font-size:14px;line-height:1.7;color:#374151;">${lines
-      .map((l) => `<li>${l.quantity} × ${l.itemName}${l.option ? ` — ${l.option}` : ''}</li>`)
-      .join('')}</ul>`;
+
+    // Attach each ordered item's photo inline, so the email shows a small
+    // thumbnail beside every line. Load each item's image once (deduped), and
+    // skip any that fail so a missing image never blocks the email.
+    const attachments: EmailAttachment[] = [];
+    const cidByItem = new Map<string, string>();
+    const seen = new Set<string>();
+    for (const l of lines) {
+      if (seen.has(l.itemId)) continue;
+      seen.add(l.itemId);
+      const item = byId.get(l.itemId);
+      if (!item?.imageStorageKey) continue;
+      try {
+        const bytes = await getDocument(item.imageStorageKey);
+        const cid = `item-${l.itemId}@gwa`;
+        const ext = (item.imageMime?.split('/')[1] || 'jpg').replace('jpeg', 'jpg');
+        attachments.push({
+          filename: `${l.itemName}.${ext}`.replace(/[^\w.\- ]/g, '_'),
+          content: bytes,
+          contentType: item.imageMime || 'image/jpeg',
+          cid,
+        });
+        cidByItem.set(l.itemId, cid);
+      } catch (e) {
+        console.error('[marketplace] order image attach failed', l.itemId, e);
+      }
+    }
+
+    const rowsHtml = lines
+      .map((l) => {
+        const cid = cidByItem.get(l.itemId);
+        const thumb = cid
+          ? `<td style="width:60px;padding:6px 12px 6px 0;vertical-align:middle;"><img src="cid:${cid}" width="48" height="48" alt="" style="width:48px;height:48px;object-fit:contain;border:1px solid #e5e7eb;border-radius:8px;background:#fff;"></td>`
+          : '<td style="width:0;padding:0;"></td>';
+        return `<tr>${thumb}<td style="padding:6px 0;font-size:14px;color:#374151;vertical-align:middle;"><strong>${l.quantity} ×</strong> ${l.itemName}${l.option ? ` — ${l.option}` : ''}</td></tr>`;
+      })
+      .join('');
+    const listHtml = `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 14px;border-collapse:collapse;">${rowsHtml}</table>`;
+
     for (const to of recipients) {
       await sendEmail({
         to,
@@ -93,6 +130,7 @@ export async function createOrderAction(_prev: OrderActionState, formData: FormD
           ctaLabel: 'View orders',
           ctaUrl: `${appUrl()}/admin/marketplace`,
         }),
+        attachments,
       });
     }
   } catch (e) {

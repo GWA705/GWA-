@@ -13,11 +13,20 @@ import { getSettings, EMAIL_SETTING_KEYS } from './settings';
  * emails link back to the portal instead.
  */
 
+export interface EmailAttachment {
+  filename: string;
+  content: Buffer;
+  contentType?: string;
+  /** Set to reference the image inline in the HTML via <img src="cid:..."> */
+  cid?: string;
+}
+
 export interface SendEmailArgs {
   to: string;
   subject: string;
   html: string;
   text?: string;
+  attachments?: EmailAttachment[];
 }
 
 export function emailEnabled(): boolean {
@@ -101,7 +110,8 @@ export async function sendEmail(
     // Redact the recipient and body so no PII (addresses, deal details) lands in
     // server logs while email is in log-only mode.
     const maskedTo = args.to.replace(/^(.).*(@.*)$/, '$1***$2');
-    console.log(`[email:log-only] would send → to="${maskedTo}" subject="${args.subject}"`);
+    const extra = args.attachments?.length ? ` attachments=${args.attachments.length}` : '';
+    console.log(`[email:log-only] would send → to="${maskedTo}" subject="${args.subject}"${extra}`);
     return { sent: false, reason: 'log-only' };
   }
 
@@ -114,6 +124,16 @@ export async function sendEmail(
       subject: args.subject,
       html: args.html,
       text,
+      ...(args.attachments?.length
+        ? {
+            attachments: args.attachments.map((a) => ({
+              filename: a.filename,
+              content: a.content,
+              contentType: a.contentType,
+              cid: a.cid,
+            })),
+          }
+        : {}),
     });
     return { sent: true };
   } catch (err) {
