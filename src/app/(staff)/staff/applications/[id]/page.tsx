@@ -32,7 +32,7 @@ import { DecisionForm } from './DecisionForm';
 import { PayoutForm } from './PayoutForm';
 import { StatusChangeForm } from './StatusChangeForm';
 import { ReviewerWorkspace } from './ReviewerWorkspace';
-import { reviewerPhaseStates, dealerFacingStatus, currentPhaseIndex, type PhaseState } from '@/lib/reviewerFlow';
+import { reviewerPhaseStates, dealerFacingStatus, currentPhaseIndex, hasDealerReturned, type PhaseState } from '@/lib/reviewerFlow';
 import { exemptionSummary } from '@/lib/tax';
 import { dealHasFinancing, financedAmountOf } from '@/lib/payments';
 import { PaymentBreakdown } from '@/components/PaymentBreakdown';
@@ -195,6 +195,21 @@ export default async function StaffApplicationDetail({
   const applicationDocs = app.documents.filter((d) => d.stage === 'APPLICATION');
   const fundingDocs = app.documents.filter((d) => d.stage === 'FUNDING');
   const reviewerDocs = app.documents.filter((d) => d.stage === 'REVIEWER');
+
+  // When the install paperwork first went out (earliest reviewer-stage doc).
+  // Anything the dealer uploads AFTER this point is a returned document, even if
+  // it lands in the "Documents for approval" box instead of the funding package.
+  const installSentAt = reviewerDocs.length
+    ? reviewerDocs.reduce((min, d) => (d.createdAt < min ? d.createdAt : min), reviewerDocs[0].createdAt)
+    : null;
+  const returnedApplicationDocs = installSentAt
+    ? applicationDocs.filter((d) => d.createdAt > installSentAt)
+    : [];
+  // The deal has heard back from the dealer if a funding-package doc arrived OR
+  // the dealer added anything new since the paperwork was sent — so a return
+  // uploaded to the wrong place still advances the flow to "Review".
+  const dealerReturnedDocs = hasDealerReturned(app.documents);
+
   const options = decisionOptions(app.status);
   const startReview = startReviewAction.bind(null, app.id);
 
@@ -220,7 +235,7 @@ export default async function StaffApplicationDetail({
   const flowSignals = {
     status: app.status,
     reviewerDocsSent: reviewerDocs.length > 0,
-    fundingDocsReceived: fundingDocs.length > 0,
+    fundingDocsReceived: dealerReturnedDocs,
     hasPayouts: app.payouts.length > 0,
   };
   const dealerStatus = dealerFacingStatus(flowSignals);
@@ -277,7 +292,7 @@ export default async function StaffApplicationDetail({
     // 2 · Produce install documents
     produce: (
       <div>
-        <p className="mb-4 text-xs text-gray-500">Upload paperwork the dealer can view and download. Files are converted to PDF.</p>
+        <p className="mb-4 text-xs text-gray-500">Upload paperwork the dealer can view and download — send as many as you need, now or later. Files are converted to PDF.</p>
         <div className="mb-4">
           <DocumentList documents={reviewerDocs} deleteAction={deleteDocumentAction} />
         </div>
@@ -289,11 +304,38 @@ export default async function StaffApplicationDetail({
         </div>
       </div>
     ),
-    // 3 · Sent — awaiting install (dealer returns signed docs)
-    await: null,
+    // 3 · Sent — awaiting install. Not a dead "waiting" step: the reviewer often
+    // needs to send more than one document, so keep the paperwork sender open
+    // here too. Sending the first doc no longer closes off adding the rest.
+    await: (
+      <div>
+        <p className="mb-4 text-xs text-gray-500">
+          Waiting on the dealer&apos;s signed package. You can still send more paperwork below — the deal moves to review on its own the moment the dealer sends anything back.
+        </p>
+        <div className="mb-2 text-sm font-medium text-gray-700">Documents you&apos;ve sent the dealer</div>
+        <div className="mb-4">
+          <DocumentList documents={reviewerDocs} deleteAction={deleteDocumentAction} />
+        </div>
+        <div className="border-t border-gray-100 pt-4">
+          <ReviewerPaperworkForm
+            action={uploadReviewerPaperworkAction.bind(null, app.id)}
+            categories={REVIEWER_PAPERWORK_TYPES}
+          />
+        </div>
+      </div>
+    ),
     // 4 · Review signed documents
     review: (
       <div className="space-y-6">
+        {returnedApplicationDocs.length > 0 && (
+          <div className="rounded-md border border-amber-200 bg-amber-50 p-3">
+            <h3 className="mb-1 text-sm font-medium text-amber-900">Returned by the dealer</h3>
+            <p className="mb-2 text-xs text-amber-700">
+              These arrived in the dealer&apos;s &ldquo;Documents for approval&rdquo; area after the install paperwork went out — treat them as part of the signed package.
+            </p>
+            <DocumentList documents={returnedApplicationDocs} deleteAction={deleteDocumentAction} />
+          </div>
+        )}
         {app.serialNumbers.length > 0 && (
           <div>
             <h3 className="mb-1 text-sm font-medium text-gray-700">Serial numbers</h3>

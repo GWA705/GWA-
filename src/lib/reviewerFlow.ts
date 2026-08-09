@@ -43,6 +43,25 @@ export interface FlowSignals {
   hasPayouts: boolean;
 }
 
+/**
+ * Has the dealer sent anything back since the install paperwork went out?
+ * True when a funding-package doc arrived OR the dealer added any document after
+ * the reviewer's paperwork was sent — so a return uploaded to the wrong place
+ * (the "Documents for approval" box) still counts and advances the flow.
+ */
+export function hasDealerReturned(
+  docs: { stage: string; createdAt: Date }[],
+): boolean {
+  if (docs.some((d) => d.stage === 'FUNDING')) return true;
+  const reviewerDocs = docs.filter((d) => d.stage === 'REVIEWER');
+  if (reviewerDocs.length === 0) return false;
+  const installSentAt = reviewerDocs.reduce(
+    (min, d) => (d.createdAt < min ? d.createdAt : min),
+    reviewerDocs[0].createdAt,
+  );
+  return docs.some((d) => d.stage === 'APPLICATION' && d.createdAt > installSentAt);
+}
+
 /** The phase index (1..7) a deal is currently in. */
 export function currentPhaseIndex(s: FlowSignals): number {
   switch (s.status) {

@@ -16,7 +16,7 @@ import { UploadForm } from '@/components/UploadForm';
 import { SerialNumberForm } from '@/components/SerialNumberForm';
 import { ProductSerialForm } from '@/components/ProductSerialForm';
 import { FUNDING_DOCUMENT_TYPES, STATUS_LABELS, programLabel } from '@/lib/constants';
-import { dealerFacingStatus } from '@/lib/reviewerFlow';
+import { dealerFacingStatus, hasDealerReturned } from '@/lib/reviewerFlow';
 import { dealerOutstanding } from '@/lib/outstanding';
 import {
   uploadSupportingDocAction,
@@ -92,11 +92,15 @@ export default async function DealerApplicationDetail({
 
   const submitFunding = submitFundingAction.bind(null, app.id);
 
+  // Once the dealer has returned anything (even to the wrong upload box), the
+  // deal is "back with GWA" — keep this in step with the reviewer's flow.
+  const dealerReturned = hasDealerReturned(app.documents);
+
   // Plain-language "where your deal stands", kept in step with the reviewer's flow.
   const whereYouStand = dealerFacingStatus({
     status: app.status,
     reviewerDocsSent: app.documents.some((d) => d.stage === 'REVIEWER'),
-    fundingDocsReceived: app.documents.some((d) => d.stage === 'FUNDING'),
+    fundingDocsReceived: dealerReturned,
     hasPayouts: app.payouts.length > 0,
   });
 
@@ -122,7 +126,7 @@ export default async function DealerApplicationDetail({
         status={app.status}
         approvedById={app.approvedById}
         confirmationStatus={app.confirmationStatus}
-        hasFundingDocs={app.documents.some((d) => d.stage === 'FUNDING')}
+        hasFundingDocs={dealerReturned}
         hasPayouts={app.payouts.length > 0}
       />
 

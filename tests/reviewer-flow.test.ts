@@ -3,6 +3,7 @@ import {
   currentPhaseIndex,
   reviewerPhaseStates,
   dealerFacingStatus,
+  hasDealerReturned,
   REVIEWER_PHASES,
   type FlowSignals,
 } from '@/lib/reviewerFlow';
@@ -57,6 +58,31 @@ describe('reviewerPhaseStates', () => {
 
   it('returns all phases in order', () => {
     expect(reviewerPhaseStates(base)).toHaveLength(REVIEWER_PHASES.length);
+  });
+});
+
+describe('hasDealerReturned', () => {
+  const sent = new Date('2026-01-10T12:00:00Z'); // install paperwork out
+  const rev = { stage: 'REVIEWER', createdAt: sent };
+
+  it('is false before any dealer return', () => {
+    expect(hasDealerReturned([rev])).toBe(false);
+    expect(hasDealerReturned([{ stage: 'APPLICATION', createdAt: new Date('2026-01-01T00:00:00Z') }])).toBe(false);
+  });
+
+  it('true when a funding-package doc arrives', () => {
+    expect(hasDealerReturned([rev, { stage: 'FUNDING', createdAt: new Date('2026-01-11T00:00:00Z') }])).toBe(true);
+  });
+
+  it('true when the dealer uploads to the wrong box (application doc) AFTER paperwork was sent', () => {
+    expect(hasDealerReturned([rev, { stage: 'APPLICATION', createdAt: new Date('2026-01-12T00:00:00Z') }])).toBe(true);
+  });
+
+  it('ignores the ORIGINAL application docs uploaded before paperwork went out', () => {
+    expect(hasDealerReturned([
+      { stage: 'APPLICATION', createdAt: new Date('2026-01-01T00:00:00Z') },
+      rev,
+    ])).toBe(false);
   });
 });
 
