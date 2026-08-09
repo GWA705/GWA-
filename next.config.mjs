@@ -4,7 +4,7 @@ const nextConfig = {
   poweredByHeader: false,
   // sharp is a native module — keep it external so it isn't bundled.
   experimental: {
-    serverComponentsExternalPackages: ['sharp'],
+    serverComponentsExternalPackages: ['sharp', 'unpdf'],
     // Match the ~15 MB document-upload intent (server actions default to 1 MB).
     serverActions: {
       bodySizeLimit: '15mb',

@@ -910,6 +910,11 @@ model Document {
   verifiedById String?
   verifiedBy   User?     @relation("DocumentVerifier", fields: [verifiedById], references: [id])
 
+  // Automated pre-check results (page count, dates found, e-signature signals,
+  // low-text/scan flags) computed on upload to help the reviewer. Assistive
+  // only — never blocks anything. Shape: see lib/docanalysis-format DocAnalysis.
+  analysis Json?
+
   createdAt DateTime @default(now())
 
   @@index([applicationId])

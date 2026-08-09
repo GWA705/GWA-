@@ -4,7 +4,9 @@ import { putDocument, newStorageKey } from './storage';
 import { sha256 } from './crypto';
 import { audit } from './audit';
 import { convertToPdf, buildDocumentName } from './pdf';
+import { analyzeDocument } from './docanalysis';
 import { MAX_FILE_BYTES, ALLOWED_MIME_TYPES } from './constants';
+import type { Prisma } from '@prisma/client';
 
 export interface UploadResult {
   ok: boolean;
@@ -99,6 +101,15 @@ export async function storeUploadedFile(params: {
     const key = newStorageKey({ dealerId: application.dealerId, applicationId: application.id, ext, when });
     await putDocument(key, bytes);
 
+    // Assistive pre-check (page count, dates, e-signature signals). Best-effort:
+    // a failure here must never block the upload, so it's caught and dropped.
+    let analysis: Prisma.InputJsonValue | undefined;
+    try {
+      analysis = (await analyzeDocument(bytes, mimeType)) as unknown as Prisma.InputJsonValue;
+    } catch (e) {
+      console.error('[upload] document pre-check failed (non-blocking)', e);
+    }
+
     const doc = await prisma.document.create({
       data: {
         applicationId: application.id,
@@ -112,6 +123,7 @@ export async function storeUploadedFile(params: {
         storageKey: key,
         checksum: sha256(bytes),
         uploadedById,
+        ...(analysis ? { analysis } : {}),
       },
     });
 

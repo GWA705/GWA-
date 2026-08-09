@@ -8,6 +8,28 @@ import {
 import { DeleteDocumentButton } from '@/components/DeleteDocumentButton';
 import { DocViewer } from '@/components/DocViewer';
 import { VerifyDocButton } from '@/components/VerifyDocButton';
+import { summarizeAnalysis, type ChipTone } from '@/lib/docanalysis-format';
+
+const CHIP_CLASS: Record<ChipTone, string> = {
+  good: 'bg-green-50 text-green-700 ring-green-200',
+  warn: 'bg-amber-50 text-amber-800 ring-amber-200',
+  neutral: 'bg-gray-50 text-gray-600 ring-gray-200',
+};
+
+function AutoCheckChips({ analysis }: { analysis: unknown }) {
+  const chips = summarizeAnalysis(analysis);
+  if (chips.length === 0) return null;
+  return (
+    <div className="mt-1 flex flex-wrap items-center gap-1.5 pl-7">
+      <span className="text-[11px] font-medium uppercase tracking-wide text-gray-400">Auto-check</span>
+      {chips.map((c, i) => (
+        <span key={i} className={`rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset ${CHIP_CLASS[c.tone]}`}>
+          {c.label}
+        </span>
+      ))}
+    </div>
+  );
+}
 
 /**
  * Reviewer funding checklist. Each required document shows green ✓ when a
@@ -78,12 +100,15 @@ export function FundingChecklist({
               {files.length > 0 && (
                 <ul className="mt-2 space-y-1.5 pl-7">
                   {files.map((f) => (
-                    <li key={f.id} className="flex items-center justify-between gap-3 text-xs">
-                      <DocViewer id={f.id} fileName={f.fileName} mimeType={f.mimeType} className="min-w-0 flex-1 truncate text-left text-brand-700 hover:underline">
-                        {f.fileName}
-                      </DocViewer>
-                      <DeleteDocumentButton documentId={f.id} fileName={f.fileName} action={deleteDocumentAction} />
-                      <VerifyDocButton documentId={f.id} done={!!f.verifiedAt} />
+                    <li key={f.id}>
+                      <div className="flex items-center justify-between gap-3 text-xs">
+                        <DocViewer id={f.id} fileName={f.fileName} mimeType={f.mimeType} className="min-w-0 flex-1 truncate text-left text-brand-700 hover:underline">
+                          {f.fileName}
+                        </DocViewer>
+                        <DeleteDocumentButton documentId={f.id} fileName={f.fileName} action={deleteDocumentAction} />
+                        <VerifyDocButton documentId={f.id} done={!!f.verifiedAt} />
+                      </div>
+                      <AutoCheckChips analysis={f.analysis} />
                     </li>
                   ))}
                 </ul>
