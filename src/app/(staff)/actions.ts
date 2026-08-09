@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import { requireStaffSection } from '@/lib/session';
 import { audit } from '@/lib/audit';
+import { findCardData, CARD_BLOCK_MESSAGE } from '@/lib/cardscan';
 import { markReviewerAction } from '@/lib/activity';
 import { encryptOptional, decryptOptional } from '@/lib/crypto';
 import { toTitleCase, titleOrNull } from '@/lib/textcase';
@@ -731,6 +732,13 @@ export async function addStaffNoteAction(
   });
   if (!parsed.success) return { error: 'Write a note first.' };
   const { applicationId, body, internal } = parsed.data;
+
+  // Hard block: never store payment-card data.
+  const card = findCardData(body);
+  if (card.blocked) {
+    await audit({ actorId: session.userId, action: 'CARD_DATA_BLOCKED', entityType: 'Application', entityId: applicationId, detail: `Note blocked — card data detected (${card.signals.join(', ')})` });
+    return { error: CARD_BLOCK_MESSAGE };
+  }
 
   const app = await prisma.application.findUnique({ where: { id: applicationId } });
   if (!app) return { error: 'Application not found.' };

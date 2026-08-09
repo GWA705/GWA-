@@ -1,6 +1,10 @@
 # Credit-card-data upload block — build spec
 
-Status: **planned (not built)**. Design to build from when ready.
+Status: **BUILT (hard-block) 2026-08-09.** Live in `lib/cardscan.ts`, wired into
+document uploads (`lib/upload.ts`, block-before-store with text-layer + inline
+OCR) and note text (dealer + staff). Blocks log a `CARD_DATA_BLOCKED` audit
+event with signals only (never the digits). Mail-body scanning + an admin
+"blocked uploads" view remain as future enhancements.
 
 ## Why
 The portal is built on the premise that **no credit card data is ever collected**

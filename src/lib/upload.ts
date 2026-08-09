@@ -5,6 +5,8 @@ import { sha256 } from './crypto';
 import { audit } from './audit';
 import { convertToPdf, buildDocumentName } from './pdf';
 import { analyzeDocument } from './docanalysis';
+import { extractTextForScan } from './ocr';
+import { findCardData, CARD_BLOCK_MESSAGE } from './cardscan';
 import { MAX_FILE_BYTES, ALLOWED_MIME_TYPES } from './constants';
 import type { Prisma } from '@prisma/client';
 
@@ -86,6 +88,27 @@ export async function storeUploadedFile(params: {
 
     const { bytes, mimeType, converted } = await convertToPdf(original, file.type);
     const isPdf = mimeType === 'application/pdf';
+
+    // Hard block: never store payment-card data. Scan the readable text (text
+    // layer, or OCR for scans/photos) BEFORE storing; if a card number is found,
+    // reject the upload and keep nothing. Fail-open on a scan error so a hiccup
+    // never blocks a legitimate upload.
+    try {
+      const scanText = await extractTextForScan(bytes, mimeType);
+      const card = findCardData(scanText);
+      if (card.blocked) {
+        await audit({
+          actorId: uploadedById,
+          action: 'CARD_DATA_BLOCKED',
+          entityType: 'Application',
+          entityId: application.id,
+          detail: `Upload blocked — card data detected (${card.signals.join(', ')})`,
+        });
+        return { ok: false, error: CARD_BLOCK_MESSAGE };
+      }
+    } catch (e) {
+      console.error('[upload] card-data scan failed (allowing upload)', e);
+    }
 
     const when = new Date();
     const displayName = buildDocumentName({

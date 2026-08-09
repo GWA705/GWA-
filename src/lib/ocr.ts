@@ -1,7 +1,7 @@
 import path from 'node:path';
 import sharp from 'sharp';
 import { createWorker } from 'tesseract.js';
-import { renderPageAsImage } from 'unpdf';
+import { renderPageAsImage, getDocumentProxy, extractText } from 'unpdf';
 import { Prisma } from '@prisma/client';
 import { prisma } from './db';
 import { getDocument } from './storage';
@@ -76,6 +76,31 @@ export async function ocrBytes(
   } finally {
     await worker.terminate();
   }
+}
+
+/**
+ * Best-effort text extraction for the card-data guard: read a PDF's text layer,
+ * and if it's a scan/photo (little or no text), fall back to OCR. Bounded page
+ * count keeps it fast enough to run inline at upload.
+ */
+export async function extractTextForScan(bytes: Buffer, mimeType: string, maxPages = 5): Promise<string> {
+  if (mimeType === 'application/pdf') {
+    try {
+      const pdf = await getDocumentProxy(new Uint8Array(bytes));
+      const { text } = await extractText(pdf, { mergePages: true });
+      const t = String(text ?? '');
+      if (t.replace(/\s+/g, '').length >= 20) return t; // has a real text layer
+    } catch {
+      /* fall through to OCR */
+    }
+    const { text } = await ocrBytes(bytes, mimeType, maxPages);
+    return text;
+  }
+  if (mimeType.startsWith('image/')) {
+    const { text } = await ocrBytes(bytes, mimeType, 1);
+    return text;
+  }
+  return '';
 }
 
 /**

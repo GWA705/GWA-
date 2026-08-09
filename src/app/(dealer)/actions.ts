@@ -9,6 +9,7 @@ import { canAccessAsDealer } from '@/lib/rbac';
 import { encryptOptional } from '@/lib/crypto';
 import { toTitleCase, titleOrNull } from '@/lib/textcase';
 import { audit } from '@/lib/audit';
+import { findCardData, CARD_BLOCK_MESSAGE } from '@/lib/cardscan';
 import { storeFiles } from '@/lib/upload';
 import { deleteDocument } from '@/lib/storage';
 import { markDealerAction } from '@/lib/activity';
@@ -497,6 +498,13 @@ export async function addDealerNoteAction(
 
   const body = String(formData.get('body') || '').trim();
   if (!body) return { error: 'Write a note first.' };
+
+  // Hard block: never store payment-card data.
+  const card = findCardData(body);
+  if (card.blocked) {
+    await audit({ actorId: session.userId, action: 'CARD_DATA_BLOCKED', entityType: 'Application', entityId: applicationId, detail: `Note blocked — card data detected (${card.signals.join(', ')})` });
+    return { error: CARD_BLOCK_MESSAGE };
+  }
 
   await prisma.note.create({
     data: { applicationId, authorId: session.userId, body: body.slice(0, 4000), internal: false },

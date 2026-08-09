@@ -36,7 +36,8 @@ export type AuditAction =
   | 'MAIL_REPLY'
   | 'MAIL_ATTACH_VIEW'
   | 'ORDER_SUBMIT'
-  | 'MARKETPLACE_FILE_DOWNLOAD';
+  | 'MARKETPLACE_FILE_DOWNLOAD'
+  | 'CARD_DATA_BLOCKED';
 
 interface AuditInput {
   actorId?: string | null;
