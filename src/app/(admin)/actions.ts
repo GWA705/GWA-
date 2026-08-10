@@ -193,13 +193,21 @@ export async function createUserAction(
   await audit({ actorId: session.userId, action: 'USER_CREATE', entityType: 'User', entityId: user.id, detail: `${email} (${d.role})` });
   revalidatePath('/admin/users');
 
+  // A new admin has NO sections until granted — without this reminder they land
+  // on their account page with nothing to do. Reviewers/dealers get access from
+  // their role, so no note is needed.
+  const adminNote =
+    d.role === 'ADMIN'
+      ? ' Note: this admin has no sections yet — grant their access under Admin → Manage access, or they won’t be able to open anything.'
+      : '';
+
   // Optionally email the new user their login details.
   const sendInvite = formData.get('sendInvite') === 'on';
   if (!sendInvite) {
-    return { ok: true, message: 'User created. They must change the temporary password at first login. (No email sent.)' };
+    return { ok: true, message: `User created. They must change the temporary password at first login. (No email sent.)${adminNote}` };
   }
   if (!emailEnabled()) {
-    return { ok: true, message: 'User created, but email is off (log-only) — no invite was sent. Share the temporary password securely.' };
+    return { ok: true, message: `User created, but email is off (log-only) — no invite was sent. Share the temporary password securely.${adminNote}` };
   }
 
   const portalUrl = process.env.APP_URL || 'https://portal.ghsbarrie.ca';

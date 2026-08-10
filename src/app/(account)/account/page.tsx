@@ -1,8 +1,9 @@
 import Link from 'next/link';
-import { requireSession, defaultLandingFor } from '@/lib/session';
+import { requireSession, defaultLandingFor, adminLandingFor } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { decryptMfaSecret, buildMfaEnrollment } from '@/lib/mfa';
 import { beginMfaAction, replayWelcomeTourAction } from '@/app/(account)/actions';
+import { logoutAction } from '@/app/(auth)/actions';
 import { DisableMfaForm } from './DisableMfaForm';
 import { ConfirmMfaForm } from './ConfirmMfaForm';
 import { StartEmailMfaButton, ConfirmEmailMfaForm } from './EmailMfaForms';
@@ -46,14 +47,40 @@ export default async function AccountPage() {
 
   const isStaff = session.role === 'REVIEWER' || session.role === 'ADMIN';
 
+  // Where "Back" should go. For an admin this respects their granted sections
+  // (an admin with none resolves to /account — i.e. nowhere to go). When there's
+  // no real destination we hide the Back link and explain why, so a freshly
+  // created admin who hasn't been granted access isn't stuck bouncing here.
+  const landing = session.role === 'ADMIN' ? adminLandingFor(session) : defaultLandingFor(session.role);
+  const stranded = landing === '/account';
+
   return (
     <div className="mx-auto max-w-2xl space-y-6 px-4 py-10">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <h1 className="text-xl font-semibold text-gray-900">My account</h1>
-        <Link href={defaultLandingFor(session.role)} className="text-sm text-gray-500 hover:underline">
-          ← Back
-        </Link>
+        <div className="flex items-center gap-4">
+          {!stranded && (
+            <Link href={landing} className="text-sm text-gray-500 hover:underline">
+              ← Back
+            </Link>
+          )}
+          {/* Always give a way out — this page has no nav shell of its own. */}
+          <form action={logoutAction}>
+            <button type="submit" className="text-sm text-gray-500 hover:underline">Sign out</button>
+          </form>
+        </div>
       </div>
+
+      {stranded && (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 p-4">
+          <h2 className="text-sm font-semibold text-amber-900">Your account doesn’t have access to any area yet</h2>
+          <p className="mt-1 text-sm text-amber-800">
+            You can manage your profile, password and 2FA below, but no portal section has been
+            assigned to you yet. Ask a GWA Super Admin to grant your access (Admin → Manage access),
+            then use <strong>Sign out</strong> above and sign back in.
+          </p>
+        </div>
+      )}
 
       <section className="card p-6">
         <h2 className="mb-4 text-base font-semibold text-gray-900">Profile &amp; notifications</h2>
