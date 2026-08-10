@@ -6,6 +6,7 @@ import { useFormState, useFormStatus } from 'react-dom';
 import { updateDealAction } from '@/app/(staff)/actions';
 import { PROVINCES, PROGRAM_TYPES, PROGRAM_CATEGORIES, PHOTO_ID_TYPES } from '@/lib/constants';
 import { DateOfBirthInput } from '@/components/DateOfBirthInput';
+import { ProductPicker } from '@/components/ProductPicker';
 
 type State = { error?: string; fieldErrors?: Record<string, string> };
 
@@ -78,12 +79,11 @@ export function EditDealForm({
 }: {
   applicationId: string;
   initial: EditInitial;
-  products: { id: string; name: string; promoted?: boolean }[];
+  products: { id: string; name: string; journalName?: string | null; promoted?: boolean }[];
   dealers: { id: string; name: string }[];
 }) {
   const [state, action] = useFormState(updateDealAction.bind(null, applicationId), {} as State);
   const v = initial;
-  const selected = new Set(v.productsSold);
   // Preserve any product already on this deal that isn't in the current list
   // (e.g. an archived product) so editing never silently drops it.
   const optionNames = new Set(products.map((p) => p.name.toLowerCase()));
@@ -161,24 +161,8 @@ export function EditDealForm({
         </div>
         <div className="mt-4">
           <span className="label">Product(s) sold</span>
-          <div className="mt-1 grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {options.map((p) => (
-              <label key={p.id} className="flex items-center gap-2 rounded border border-gray-200 px-3 py-2 text-sm">
-                <input type="checkbox" name="productsSold" value={p.name} defaultChecked={selected.has(p.name)} className="h-4 w-4" />
-                <span>{p.name}</span>
-              </label>
-            ))}
-          </div>
-          <div className="mt-2">
-            <label className="flex flex-col gap-1 rounded border border-dashed border-gray-300 px-3 py-2 text-sm">
-              <span className="font-medium text-gray-700">Other</span>
-              <input
-                name="productsSoldOther"
-                className="input"
-                placeholder="Type a product not listed (separate several with commas)"
-                autoComplete="off"
-              />
-            </label>
+          <div className="mt-1">
+            <ProductPicker products={options} selected={v.productsSold} />
           </div>
         </div>
       </section>

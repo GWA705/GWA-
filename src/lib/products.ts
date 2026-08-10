@@ -3,6 +3,8 @@ import { prisma } from '@/lib/db';
 export interface ProductOption {
   id: string;
   name: string;
+  /** Abbreviated code written to the journal (e.g. "UV12"); null → use full name. */
+  journalName?: string | null;
   /** True when this option was surfaced automatically (typed via "Other" on 3+ deals). */
   promoted?: boolean;
 }
@@ -23,12 +25,12 @@ export async function productChecklistOptions(dealerId?: string | null): Promise
     prisma.product.findMany({
       where: { active: true },
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
-      select: { id: true, name: true },
+      select: { id: true, name: true, journalName: true },
     }),
     prisma.product.findMany({ select: { name: true } }),
   ]);
 
-  const base = active.map((p) => ({ id: p.id, name: p.name }));
+  const base = active.map((p) => ({ id: p.id, name: p.name, journalName: p.journalName }));
   if (!dealerId) return base;
 
   // This dealer's own repeat "Other" entries.
@@ -52,6 +54,23 @@ export async function productChecklistOptions(dealerId?: string | null): Promise
   promoted.sort((a, b) => a.name.localeCompare(b.name));
 
   return [...base, ...promoted];
+}
+
+/**
+ * Map the deal's stored product NAMES to what should be written to the sales
+ * journal: each product's abbreviated `journalName` when set, otherwise the full
+ * name (so free-text "Other" entries and abbreviation-less products still write
+ * something sensible). Matching is case-insensitive and preserves order.
+ */
+export async function journalProductNames(names: string[]): Promise<string[]> {
+  if (names.length === 0) return [];
+  const products = await prisma.product.findMany({ select: { name: true, journalName: true } });
+  const abbrev = new Map<string, string>();
+  for (const p of products) {
+    const j = (p.journalName ?? '').trim();
+    if (j) abbrev.set(p.name.trim().toLowerCase(), j);
+  }
+  return names.map((n) => abbrev.get(n.trim().toLowerCase()) ?? n);
 }
 
 /**

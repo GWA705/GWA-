@@ -443,14 +443,26 @@ export async function deleteFinanceCompanyAction(id: string): Promise<void> {
 
 // --- Products (sales-journal dropdown, admin-managed) ----------------------
 
+// Short journal code (e.g. "UV12"): keep it compact, allow letters/digits and a
+// few separators, and store null when left blank so the full name is written.
+function cleanJournalName(raw: string): string | null {
+  const j = raw.trim().replace(/\s+/g, ' ').slice(0, 40);
+  return j.length ? j : null;
+}
+
 export async function createProductAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const session = await requireAdminSection('products');
   const name = toTitleCase(String(formData.get('name') || '').trim());
   if (!name || name.length > 120) return { error: 'Enter a product name (up to 120 characters).' };
+  const journalName = cleanJournalName(String(formData.get('journalName') || ''));
   const existing = await prisma.product.findFirst({ where: { name } });
   if (existing) return { error: 'That product already exists.' };
-  const p = await prisma.product.create({ data: { name } });
-  await audit({ actorId: session.userId, action: 'DEALER_CREATE', entityType: 'Product', entityId: p.id, detail: p.name });
+  // New products go to the bottom of the list.
+  const last = await prisma.product.findFirst({ orderBy: { sortOrder: 'desc' }, select: { sortOrder: true } });
+  const p = await prisma.product.create({
+    data: { name, journalName, sortOrder: (last?.sortOrder ?? 0) + 1 },
+  });
+  await audit({ actorId: session.userId, action: 'DEALER_CREATE', entityType: 'Product', entityId: p.id, detail: `${p.name}${journalName ? ` (${journalName})` : ''}` });
   revalidatePath('/admin/products');
   return { ok: true };
 }
@@ -460,12 +472,30 @@ export async function renameProductAction(_prev: ActionState, formData: FormData
   const id = String(formData.get('id') || '');
   const name = toTitleCase(String(formData.get('name') || '').trim());
   if (!name || name.length > 120) return { error: 'Enter a product name (up to 120 characters).' };
+  const journalName = cleanJournalName(String(formData.get('journalName') || ''));
   const p = await prisma.product.findUnique({ where: { id } });
   if (!p) return { error: 'Product not found.' };
-  await prisma.product.update({ where: { id }, data: { name } });
-  await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'Product', entityId: id, detail: `renamed: ${p.name} -> ${name}` });
+  await prisma.product.update({ where: { id }, data: { name, journalName } });
+  await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'Product', entityId: id, detail: `renamed: ${p.name} -> ${name}${journalName ? ` (${journalName})` : ''}` });
   revalidatePath('/admin/products');
   return { ok: true };
+}
+
+// Move a product up or down one place. Normalises every product's sortOrder to
+// its position (0..n) and swaps the two neighbours, so the order sticks even
+// when several rows were left at the default sortOrder of 0. This order drives
+// both the admin list and the dealer's "Product(s) sold" picker.
+export async function moveProductAction(id: string, dir: 'up' | 'down'): Promise<void> {
+  const session = await requireAdminSection('products');
+  const all = await prisma.product.findMany({ orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }], select: { id: true } });
+  const i = all.findIndex((p) => p.id === id);
+  const j = dir === 'up' ? i - 1 : i + 1;
+  if (i < 0 || j < 0 || j >= all.length) return;
+  const order = all.map((p) => p.id);
+  [order[i], order[j]] = [order[j], order[i]];
+  await prisma.$transaction(order.map((pid, idx) => prisma.product.update({ where: { id: pid }, data: { sortOrder: idx } })));
+  await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'Product', entityId: id, detail: `moved ${dir}` });
+  revalidatePath('/admin/products');
 }
 
 export async function toggleProductActiveAction(id: string): Promise<void> {

@@ -9,7 +9,7 @@ import { findCardData, CARD_BLOCK_MESSAGE } from '@/lib/cardscan';
 import { markReviewerAction } from '@/lib/activity';
 import { encryptOptional, decryptOptional } from '@/lib/crypto';
 import { toTitleCase, titleOrNull } from '@/lib/textcase';
-import { mergeProductsSold } from '@/lib/products';
+import { mergeProductsSold, journalProductNames } from '@/lib/products';
 import { writeDealToJournal, journalEnabled, type JournalDeal } from '@/lib/journal';
 import { storeFiles } from '@/lib/upload';
 import { deleteDocument } from '@/lib/storage';
@@ -964,6 +964,9 @@ export async function writeToJournalAction(
       : app.homeDepotStore.number
     : null;
 
+  // Journal writes the abbreviated product code (falls back to the full name).
+  const journalProducts = await journalProductNames(app.productsSold);
+
   const deal: JournalDeal = {
     lastName: app.applicantLastName,
     firstName: app.applicantFirstName,
@@ -973,7 +976,7 @@ export async function writeToJournalAction(
     dealerName: app.dealer?.name ?? null,
     salesperson: app.salespersonName,
     installer: app.installerName,
-    products: app.productsSold.length ? app.productsSold.join(', ') : null,
+    products: journalProducts.length ? journalProducts.join(', ') : null,
     soap: app.soapIncluded == null ? null : app.soapIncluded ? 'Yes' : 'No',
     financedAmount: fmtAmount(financedAmountOf(app)),
     term: null,

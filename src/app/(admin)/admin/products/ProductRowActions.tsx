@@ -6,26 +6,34 @@ import {
   renameProductAction,
   toggleProductActiveAction,
   deleteProductAction,
+  moveProductAction,
   type ActionState,
 } from '@/app/(admin)/actions';
 
 export function ProductRowActions({
   id,
   name,
+  journalName,
   active,
+  isFirst,
+  isLast,
 }: {
   id: string;
   name: string;
+  journalName: string | null;
   active: boolean;
+  isFirst: boolean;
+  isLast: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   const [state, action] = useFormState(renameProductAction, {} as ActionState);
 
   if (editing && !state.ok) {
     return (
-      <form action={action} className="flex items-center justify-end gap-2">
+      <form action={action} className="flex flex-wrap items-center justify-end gap-2">
         <input type="hidden" name="id" value={id} />
-        <input name="name" defaultValue={name} className="input h-8 w-40 text-xs" autoFocus />
+        <input name="name" defaultValue={name} placeholder="Full name" className="input h-8 w-44 text-xs" autoFocus />
+        <input name="journalName" defaultValue={journalName ?? ''} placeholder="Journal name" maxLength={40} className="input h-8 w-28 text-xs" />
         <button type="submit" className="btn-primary text-xs">Save</button>
         <button type="button" className="btn-secondary text-xs" onClick={() => setEditing(false)}>Cancel</button>
         {state.error && <span className="text-xs text-red-600">{state.error}</span>}
@@ -34,7 +42,15 @@ export function ProductRowActions({
   }
 
   return (
-    <div className="flex flex-wrap justify-end gap-2">
+    <div className="flex flex-wrap items-center justify-end gap-2">
+      <div className="flex items-center">
+        <form action={moveProductAction.bind(null, id, 'up')}>
+          <button type="submit" disabled={isFirst} className="btn-secondary h-8 w-8 px-0 text-xs disabled:opacity-30" aria-label={`Move ${name} up`} title="Move up">↑</button>
+        </form>
+        <form action={moveProductAction.bind(null, id, 'down')} className="ml-1">
+          <button type="submit" disabled={isLast} className="btn-secondary h-8 w-8 px-0 text-xs disabled:opacity-30" aria-label={`Move ${name} down`} title="Move down">↓</button>
+        </form>
+      </div>
       <button type="button" className="btn-secondary text-xs" onClick={() => setEditing(true)}>Rename</button>
       <form action={toggleProductActiveAction.bind(null, id)}>
         <button type="submit" className="btn-secondary text-xs">{active ? 'Archive' : 'Unarchive'}</button>
@@ -42,7 +58,7 @@ export function ProductRowActions({
       <form
         action={deleteProductAction.bind(null, id)}
         onSubmit={(e) => {
-          if (!window.confirm(`Delete “${name}”? It will disappear from the dropdown (existing deals keep it).`)) {
+          if (!window.confirm(`Delete “${name}”? It will disappear from the picker (existing deals keep it).`)) {
             e.preventDefault();
           }
         }}

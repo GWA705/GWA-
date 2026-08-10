@@ -231,11 +231,14 @@ model FinanceCompany {
 // selection is stored on Application.productsSold as names, so archiving or
 // renaming a product never rewrites history.
 model Product {
-  id        String   @id @default(cuid())
-  name      String
-  active    Boolean  @default(true)
-  sortOrder Int      @default(0)
-  createdAt DateTime @default(now())
+  id          String   @id @default(cuid())
+  name        String
+  // Abbreviated code written to the sales journal (e.g. "UV12"). When null the
+  // full name is written instead, so existing products keep working.
+  journalName String?
+  active      Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
 }
 
 // A dealership (external partner). Tenancy boundary: dealer users only ever
