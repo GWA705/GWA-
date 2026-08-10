@@ -6,7 +6,7 @@ import type { ProgramType } from '@prisma/client';
 import { ProgramBadge } from '@/components/ProgramBadge';
 
 // A pre-formatted deal row (all display fields computed on the server).
-export type Tone = 'new' | 'review' | 'appr' | 'fund' | 'funded' | 'paid' | 'prob' | 'decl' | 'note';
+export type Tone = 'new' | 'review' | 'appr' | 'sent' | 'fund' | 'funded' | 'paid' | 'prob' | 'decl' | 'note';
 export interface QueueRow {
   id: string;
   applicant: string;
@@ -46,16 +46,19 @@ const TONE_CLASS: Record<Tone, string> = {
   new: 'bg-blue-100 text-blue-800',
   review: 'bg-sky-100 text-sky-800',
   appr: 'bg-green-100 text-green-800',
+  sent: 'bg-cyan-100 text-cyan-800',
   fund: 'bg-indigo-100 text-indigo-800',
-  funded: 'bg-sky-100 text-sky-800',
-  paid: 'bg-emerald-100 text-emerald-800',
+  funded: 'bg-emerald-100 text-emerald-800',
+  paid: 'bg-teal-100 text-teal-800',
   prob: 'bg-red-100 text-red-800',
   decl: 'bg-gray-100 text-gray-600',
   note: 'bg-amber-100 text-amber-800',
 };
 
+// Status/action chips stay on a single line — a long label should never wrap
+// into a tall oval (the pill is rounded-full). Callers pass short labels.
 function Pill({ tone, label }: { tone: Tone; label: string }) {
-  return <span className={`badge ${TONE_CLASS[tone]}`}>{label}</span>;
+  return <span className={`badge whitespace-nowrap ${TONE_CLASS[tone]}`}>{label}</span>;
 }
 
 type Kind = 'approve' | 'updates' | 'funding' | 'all';

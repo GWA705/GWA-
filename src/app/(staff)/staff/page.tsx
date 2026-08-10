@@ -3,7 +3,7 @@ import { requireStaffSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { SearchBox } from '@/components/SearchBox';
 import { searchWhere } from '@/lib/search';
-import { STATUS_LABELS, PROGRAM_CATEGORY_LABELS, programLabel } from '@/lib/constants';
+import { STATUS_LABELS_SHORT, PROGRAM_CATEGORY_LABELS, programLabel } from '@/lib/constants';
 import { ReviewerQueue, DealTable, type QueueRow, type Tone, type Lanes, type PriorityBands } from './ReviewerQueue';
 import type { Application, ApplicationStatus, Dealer } from '@prisma/client';
 
@@ -54,8 +54,8 @@ function toneFor(status: ApplicationStatus): Tone {
     case 'SUBMITTED': return 'new';
     case 'UNDER_REVIEW': return 'review';
     case 'APPROVED':
-    case 'CONDITIONAL':
-    case 'DOCS_SENT': return 'appr';
+    case 'CONDITIONAL': return 'appr';
+    case 'DOCS_SENT': return 'sent';
     case 'FUNDING_SUBMITTED':
     case 'FUNDING_REVIEW': return 'fund';
     case 'FUNDED': return 'funded';
@@ -117,7 +117,7 @@ function toRow(a: Deal): QueueRow {
     programType: a.programType,
     programCategory: PROGRAM_CATEGORY_LABELS[a.programCategory],
     amount: fmtAmount(a),
-    statusLabel: a._count.payouts > 0 ? 'Paid' : STATUS_LABELS[a.status] ?? a.status,
+    statusLabel: a._count.payouts > 0 ? 'Paid' : STATUS_LABELS_SHORT[a.status] ?? a.status,
     tone: a._count.payouts > 0 ? 'paid' : toneFor(a.status),
     paid: a._count.payouts > 0,
     activityLabel: activity?.label ?? null,
