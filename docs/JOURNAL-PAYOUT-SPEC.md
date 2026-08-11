@@ -58,10 +58,13 @@ We still compute per-province to match the sheet to the cent.
 
 | Province | Rate | | Province | Rate |
 |---|---|---|---|---|
-| ON | 13% | | NB, NS, PE, NL | 15% |
-| BC | 12% | | MB | 12% |
+| ON | 13% | | NB, PE, NL | 15% |
+| NS | 14% | | BC, MB | 12% |
 | SK | 11% | | QC | 14.975% |
 | AB, NT, NU, YT | 5% | | | |
+
+> Nova Scotia is **14%** (HST reduced from 15% on 1 Apr 2025) — kept separate
+> from the other Atlantic provinces, which remain 15%.
 
 The rates + the three discount percentages live in **editable admin config**
 (a settings block), so a change never needs a code deploy.
