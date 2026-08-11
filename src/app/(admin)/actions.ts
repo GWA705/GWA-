@@ -20,6 +20,7 @@ import { sendEmail, emailEnabled } from '@/lib/email';
 import { renderEmail } from '@/lib/email-templates';
 import { setSetting, EMAIL_SETTING_KEYS, BANNER_SETTING_KEYS, SECURITY_SETTING_KEYS, type MfaRequirement } from '@/lib/settings';
 import { parseDealerProfileForm } from '@/lib/dealerProfile';
+import { applyDealerLogo } from '@/lib/dealerLogo';
 
 export interface ActionState {
   error?: string;
@@ -1378,6 +1379,8 @@ export async function saveDealerProfileAdminAction(
     create: { dealerId, updatedById: session.userId, ...data },
     update: { updatedById: session.userId, ...data },
   });
+  const logo = await applyDealerLogo(dealerId, formData);
+  if (logo.error) return { error: logo.error };
   await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'DealerProfile', entityId: dealerId, detail: 'Office profile updated (admin)' });
   revalidatePath('/staff/directory');
   revalidatePath(`/staff/directory/${dealerId}`);

@@ -1,5 +1,11 @@
 import { requireDealerAccess } from '@/lib/session';
 import { prisma } from '@/lib/db';
+import { formatPhoneDisplay } from '@/lib/format';
+
+const telHref = (v: string) => {
+  const d = v.replace(/\D/g, '');
+  return `tel:+${d.length === 10 ? '1' + d : d}`;
+};
 
 export const dynamic = 'force-dynamic';
 
@@ -29,7 +35,7 @@ export default async function DealerSupportPage() {
                 {c.phone && (
                   <div className="flex gap-2">
                     <dt className="w-14 flex-none text-gray-400">Phone</dt>
-                    <dd><a href={`tel:${c.phone.replace(/[^\d+]/g, '')}`} className="text-brand-700 hover:underline">{c.phone}</a>{c.altPhone && <> · <a href={`tel:${c.altPhone.replace(/[^\d+]/g, '')}`} className="text-brand-700 hover:underline">{c.altPhone}</a></>}</dd>
+                    <dd><a href={telHref(c.phone)} className="text-brand-700 hover:underline">{formatPhoneDisplay(c.phone)}</a>{c.altPhone && <> · <a href={telHref(c.altPhone)} className="text-brand-700 hover:underline">{formatPhoneDisplay(c.altPhone)}</a></>}</dd>
                   </div>
                 )}
                 {c.email && (

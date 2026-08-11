@@ -17,6 +17,7 @@ import { notifyNewDocuments, notifyNewNote, notifyNewSubmission, notifyFundingSu
 import { applicationSchema, serialNumberSchema } from '@/lib/validation';
 import { mergeProductsSold } from '@/lib/products';
 import { parseDealerProfileForm } from '@/lib/dealerProfile';
+import { applyDealerLogo } from '@/lib/dealerLogo';
 import { CONSENT_POLICY_VERSION, CONSENT_TEXT, PAYMENT_METHOD_LABELS, FUNDING_DOCUMENT_TYPES, SPLIT_PAYMENT_METHODS } from '@/lib/constants';
 import { validateSplits } from '@/lib/payments';
 import type { DocumentType, PaymentMethod } from '@prisma/client';
@@ -598,6 +599,8 @@ export async function saveDealerProfileAction(
     create: { dealerId: session.dealerId, updatedById: session.userId, ...data },
     update: { updatedById: session.userId, ...data },
   });
+  const logo = await applyDealerLogo(session.dealerId, formData);
+  if (logo.error) return { error: logo.error };
   await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'DealerProfile', entityId: session.dealerId, detail: 'Office profile updated' });
   revalidatePath('/dealer/profile');
   revalidatePath('/staff/directory');

@@ -69,10 +69,12 @@ function Field({
 export function DealerProfileForm({
   action,
   values = {},
+  logoUrl,
   saveLabel = 'Save profile',
 }: {
   action: Action;
   values?: DealerProfileValues;
+  logoUrl?: string | null;
   saveLabel?: string;
 }) {
   const [state, formAction] = useFormState(action, {} as State);
@@ -80,6 +82,29 @@ export function DealerProfileForm({
     <form action={formAction} className="space-y-6">
       <div className="space-y-4">
         <h3 className="text-sm font-semibold text-gray-700">Business</h3>
+
+        {/* Logo */}
+        <div className="flex items-center gap-4">
+          <div className="flex h-16 w-16 flex-none items-center justify-center overflow-hidden rounded-lg border border-gray-200 bg-gray-50 text-gray-300">
+            {logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={logoUrl} alt="Office logo" className="h-full w-full object-contain" />
+            ) : (
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M4 20V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v14M4 20h12M4 20H3m13 0h5V11a2 2 0 0 0-2-2h-3m-8 2h4m-4 3h4m-4 3h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            )}
+          </div>
+          <div className="min-w-0">
+            <label className="label" htmlFor="logo">Office logo</label>
+            <input id="logo" name="logo" type="file" accept="image/png,image/jpeg,image/webp" className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-md file:border-0 file:bg-brand-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-brand-700 hover:file:bg-brand-100" />
+            <p className="mt-1 text-xs text-gray-400">PNG, JPG or WEBP. Shown on your contact card.</p>
+            {logoUrl && (
+              <label className="mt-1 flex items-center gap-1.5 text-xs text-gray-500">
+                <input type="checkbox" name="removeLogo" className="h-3.5 w-3.5" /> Remove current logo
+              </label>
+            )}
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field name="businessName" label="Business name" defaultValue={values.businessName} placeholder="Georgian Water and Air" />
           <Field name="website" label="Website" defaultValue={values.website} placeholder="https://…" />

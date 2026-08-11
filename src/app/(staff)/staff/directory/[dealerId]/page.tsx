@@ -16,6 +16,7 @@ export default async function DirectoryEditPage({ params }: { params: { dealerId
   if (!dealer) notFound();
 
   const values = { ...(dealer.profile ?? {}), businessName: dealer.profile?.businessName ?? dealer.name };
+  const logoUrl = dealer.profile?.logoStorageKey ? `/api/dealer-profiles/${dealer.id}/logo` : null;
   const action = saveDealerProfileAdminAction.bind(null, dealer.id);
 
   return (
@@ -26,7 +27,7 @@ export default async function DirectoryEditPage({ params }: { params: { dealerId
         <p className="mt-1 text-sm text-gray-500">Editing on behalf of this office. Changes appear in the directory immediately.</p>
       </div>
       <section className="card p-6">
-        <DealerProfileForm action={action} values={values} saveLabel="Save profile" />
+        <DealerProfileForm action={action} values={values} logoUrl={logoUrl} saveLabel="Save profile" />
       </section>
     </div>
   );
