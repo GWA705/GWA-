@@ -1310,6 +1310,8 @@ model SupportContact {
   hours     String?
   website   String?
   notes     String?  @db.Text
+  logoStorageKey String? // uploaded logo/photo for this contact (encrypted at rest)
+  logoMime       String?
   sortOrder Int      @default(0)
   active    Boolean  @default(true)
   createdAt DateTime @default(now())

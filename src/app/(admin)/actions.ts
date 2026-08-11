@@ -20,7 +20,7 @@ import { sendEmail, emailEnabled } from '@/lib/email';
 import { renderEmail } from '@/lib/email-templates';
 import { setSetting, EMAIL_SETTING_KEYS, BANNER_SETTING_KEYS, SECURITY_SETTING_KEYS, type MfaRequirement } from '@/lib/settings';
 import { parseDealerProfileForm } from '@/lib/dealerProfile';
-import { applyDealerLogo } from '@/lib/dealerLogo';
+import { applyDealerLogo, applySupportContactLogo } from '@/lib/dealerLogo';
 
 export interface ActionState {
   error?: string;
@@ -1411,6 +1411,8 @@ export async function createSupportContactAction(_prev: ActionState, formData: F
   if (!data.name) return { error: 'Enter a name for the contact.' };
   const last = await prisma.supportContact.findFirst({ orderBy: { sortOrder: 'desc' }, select: { sortOrder: true } });
   const c = await prisma.supportContact.create({ data: { ...data, sortOrder: (last?.sortOrder ?? 0) + 1 } });
+  const logo = await applySupportContactLogo(c.id, formData);
+  if (logo.error) return { error: logo.error };
   await audit({ actorId: session.userId, action: 'CONTENT_CREATE', entityType: 'SupportContact', entityId: c.id, detail: c.name });
   revalidatePath('/admin/support-contacts');
   revalidatePath('/dealer/support');
@@ -1425,6 +1427,8 @@ export async function updateSupportContactAction(_prev: ActionState, formData: F
   const existing = await prisma.supportContact.findUnique({ where: { id } });
   if (!existing) return { error: 'Contact not found.' };
   await prisma.supportContact.update({ where: { id }, data });
+  const logo = await applySupportContactLogo(id, formData);
+  if (logo.error) return { error: logo.error };
   await audit({ actorId: session.userId, action: 'CONTENT_UPDATE', entityType: 'SupportContact', entityId: id, detail: data.name });
   revalidatePath('/admin/support-contacts');
   revalidatePath('/dealer/support');
@@ -1445,6 +1449,7 @@ export async function deleteSupportContactAction(id: string): Promise<void> {
   const session = await requireAdminSection('support-contacts');
   const c = await prisma.supportContact.findUnique({ where: { id } });
   if (!c) return;
+  if (c.logoStorageKey) await deleteDocument(c.logoStorageKey).catch(() => {});
   await prisma.supportContact.delete({ where: { id } });
   await audit({ actorId: session.userId, action: 'CONTENT_UPDATE', entityType: 'SupportContact', entityId: id, detail: `deleted: ${c.name}` });
   revalidatePath('/admin/support-contacts');

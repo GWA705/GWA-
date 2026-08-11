@@ -26,12 +26,14 @@ function Submit({ label }: { label: string }) {
 export function SupportContactForm({
   action,
   values = {},
+  logoUrl,
   submitLabel = 'Add contact',
   onDone,
   compact = false,
 }: {
   action: Action;
   values?: ContactValues;
+  logoUrl?: string | null;
   submitLabel?: string;
   onDone?: () => void;
   compact?: boolean;
@@ -84,6 +86,21 @@ export function SupportContactForm({
         <div className="sm:col-span-2">
           <label className="label">Notes (optional)</label>
           <textarea name="notes" rows={2} defaultValue={values.notes ?? ''} className="input" placeholder="Anything else dealers should know" />
+        </div>
+        <div className="sm:col-span-2">
+          <label className="label" htmlFor={`logo-${values.id ?? 'new'}`}>Logo / photo (optional)</label>
+          <div className="flex items-center gap-3">
+            {logoUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={logoUrl} alt="" className="h-12 w-12 flex-none rounded-lg border border-gray-200 object-contain" />
+            )}
+            <input id={`logo-${values.id ?? 'new'}`} name="logo" type="file" accept="image/png,image/jpeg,image/webp" className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-md file:border-0 file:bg-brand-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-brand-700 hover:file:bg-brand-100" />
+          </div>
+          {logoUrl && (
+            <label className="mt-1 flex items-center gap-1.5 text-xs text-gray-500">
+              <input type="checkbox" name="removeLogo" className="h-3.5 w-3.5" /> Remove current logo
+            </label>
+          )}
         </div>
       </div>
       <div className="flex items-center gap-3">

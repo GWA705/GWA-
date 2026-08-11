@@ -47,3 +47,40 @@ export async function applyDealerLogo(dealerId: string, form: FormData): Promise
   }
   return {};
 }
+
+/**
+ * Same logo apply/replace/remove flow for a SupportContact card. Call after the
+ * contact row exists (it's updated by id). Returns an error to surface, or {}.
+ */
+export async function applySupportContactLogo(id: string, form: FormData): Promise<{ error?: string }> {
+  const remove = form.get('removeLogo') === 'on';
+  const file = form.get('logo');
+  const hasFile = file instanceof File && file.size > 0;
+  if (!hasFile && !remove) return {};
+
+  const existing = await prisma.supportContact.findUnique({ where: { id }, select: { logoStorageKey: true } });
+
+  if (hasFile) {
+    const f = file as File;
+    if (f.size > MAX_FILE_BYTES) return { error: 'Logo is too large (max 15 MB).' };
+    if (!f.type.startsWith('image/') || !ALLOWED_MIME_TYPES.includes(f.type)) {
+      return { error: 'Logo must be an image (JPG, PNG, or WEBP).' };
+    }
+    const ext = path.extname(f.name).slice(0, 12).replace(/[^a-zA-Z0-9.]/g, '') || '.img';
+    const key = `support-contacts/${id}/${crypto.randomBytes(8).toString('hex')}${ext}`;
+    try {
+      await putDocument(key, Buffer.from(await f.arrayBuffer()));
+    } catch {
+      return { error: 'The logo could not be saved. Please try again.' };
+    }
+    await prisma.supportContact.update({ where: { id }, data: { logoStorageKey: key, logoMime: f.type } });
+    if (existing?.logoStorageKey) await deleteDocument(existing.logoStorageKey).catch(() => {});
+    return {};
+  }
+
+  if (existing?.logoStorageKey) {
+    await deleteDocument(existing.logoStorageKey).catch(() => {});
+    await prisma.supportContact.update({ where: { id }, data: { logoStorageKey: null, logoMime: null } });
+  }
+  return {};
+}
