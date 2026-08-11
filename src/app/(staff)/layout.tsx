@@ -12,9 +12,11 @@ export default async function StaffLayout({ children }: { children: React.ReactN
   // enforce the same rules.
   const canDeals = user.role === 'REVIEWER' || canAdminSection(user, 'review-queue');
   const canMail = user.role === 'REVIEWER' || canAdminSection(user, 'mail');
+  const canDirectory = user.role === 'REVIEWER' || canAdminSection(user, 'directory');
   const nav: { href: string; label: string }[] = [];
   if (canDeals) nav.push({ href: '/staff', label: 'Deals' });
   if (canMail) nav.push({ href: '/staff/mail', label: 'Mail' });
+  if (canDirectory) nav.push({ href: '/staff/directory', label: 'Directory' });
   nav.push({ href: '/account', label: 'My account' });
   // Admins with any back-end access get a jump link back to the admin area.
   if (user.role === 'ADMIN' && hasAnyAdminSection(user)) nav.push({ href: '/admin', label: 'Admin' });

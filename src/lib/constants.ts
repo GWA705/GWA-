@@ -464,6 +464,8 @@ export const ADMIN_SECTIONS: AdminSection[] = [
   { key: 'marketplace', label: 'Marketplace', href: '/admin/marketplace' },
   { key: 'mail', label: 'Mail', href: '/staff/mail', hint: 'Send + reply toggle' },
   { key: 'user-requests', label: 'User requests', href: '/admin/user-requests', hint: 'Dealer login requests' },
+  { key: 'directory', label: 'Office directory', href: '/staff/directory', hint: 'Dealer locations & contacts' },
+  { key: 'support-contacts', label: 'Support contacts', href: '/admin/support-contacts', hint: 'Dealer Contact/Support page' },
   { key: 'users', label: 'Users', href: '/admin/users' },
   { key: 'security', label: 'Security', href: '/admin/security' },
   { key: 'email', label: 'Email settings', href: '/admin/email' },

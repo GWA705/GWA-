@@ -16,6 +16,7 @@ import { markDealerAction } from '@/lib/activity';
 import { notifyNewDocuments, notifyNewNote, notifyNewSubmission, notifyFundingSubmitted } from '@/lib/notify';
 import { applicationSchema, serialNumberSchema } from '@/lib/validation';
 import { mergeProductsSold } from '@/lib/products';
+import { parseDealerProfileForm } from '@/lib/dealerProfile';
 import { CONSENT_POLICY_VERSION, CONSENT_TEXT, PAYMENT_METHOD_LABELS, FUNDING_DOCUMENT_TYPES, SPLIT_PAYMENT_METHODS } from '@/lib/constants';
 import { validateSplits } from '@/lib/payments';
 import type { DocumentType, PaymentMethod } from '@prisma/client';
@@ -581,5 +582,24 @@ export async function submitUserRequestAction(
     detail: `${rows.length} user${rows.length === 1 ? '' : 's'} requested`,
   });
   revalidatePath('/dealer/user-requests');
+  return { ok: true };
+}
+
+// --- Office profile (dealer edits their own) --------------------------------
+export async function saveDealerProfileAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await requireDealerAccess();
+  if (!session.dealerId) return { error: 'Your account is not linked to a dealership.' };
+  const data = parseDealerProfileForm(formData);
+  await prisma.dealerProfile.upsert({
+    where: { dealerId: session.dealerId },
+    create: { dealerId: session.dealerId, updatedById: session.userId, ...data },
+    update: { updatedById: session.userId, ...data },
+  });
+  await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'DealerProfile', entityId: session.dealerId, detail: 'Office profile updated' });
+  revalidatePath('/dealer/profile');
+  revalidatePath('/staff/directory');
   return { ok: true };
 }

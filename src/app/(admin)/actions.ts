@@ -19,6 +19,7 @@ import { CONTENT_SECTIONS } from '@/lib/constants';
 import { sendEmail, emailEnabled } from '@/lib/email';
 import { renderEmail } from '@/lib/email-templates';
 import { setSetting, EMAIL_SETTING_KEYS, BANNER_SETTING_KEYS, SECURITY_SETTING_KEYS, type MfaRequirement } from '@/lib/settings';
+import { parseDealerProfileForm } from '@/lib/dealerProfile';
 
 export interface ActionState {
   error?: string;
@@ -1360,4 +1361,89 @@ export async function rejectUserRequestItemAction(_prev: ActionState, formData: 
   await settleUserRequest(item.requestId, session.userId);
   revalidatePath('/admin/user-requests');
   return { ok: true };
+}
+
+// --- Office directory (admin edits any dealer's profile) --------------------
+export async function saveDealerProfileAdminAction(
+  dealerId: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await requireAdminSection('directory');
+  const dealer = await prisma.dealer.findUnique({ where: { id: dealerId }, select: { id: true } });
+  if (!dealer) return { error: 'Dealer not found.' };
+  const data = parseDealerProfileForm(formData);
+  await prisma.dealerProfile.upsert({
+    where: { dealerId },
+    create: { dealerId, updatedById: session.userId, ...data },
+    update: { updatedById: session.userId, ...data },
+  });
+  await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'DealerProfile', entityId: dealerId, detail: 'Office profile updated (admin)' });
+  revalidatePath('/staff/directory');
+  revalidatePath(`/staff/directory/${dealerId}`);
+  return { ok: true };
+}
+
+// --- Support contacts (dealer Contact/Support page) -------------------------
+function parseSupportContact(fd: FormData) {
+  const t = (k: string, max = 200) => {
+    const v = String(fd.get(k) ?? '').trim().slice(0, max);
+    return v.length ? v : null;
+  };
+  return {
+    name: toTitleCase(String(fd.get('name') || '').trim()).slice(0, 120),
+    title: t('title', 120),
+    phone: t('phone', 40),
+    altPhone: t('altPhone', 40),
+    email: t('email', 160)?.toLowerCase() ?? null,
+    hours: t('hours', 200),
+    website: t('website', 200),
+    notes: t('notes', 1000),
+  };
+}
+
+export async function createSupportContactAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const session = await requireAdminSection('support-contacts');
+  const data = parseSupportContact(formData);
+  if (!data.name) return { error: 'Enter a name for the contact.' };
+  const last = await prisma.supportContact.findFirst({ orderBy: { sortOrder: 'desc' }, select: { sortOrder: true } });
+  const c = await prisma.supportContact.create({ data: { ...data, sortOrder: (last?.sortOrder ?? 0) + 1 } });
+  await audit({ actorId: session.userId, action: 'CONTENT_CREATE', entityType: 'SupportContact', entityId: c.id, detail: c.name });
+  revalidatePath('/admin/support-contacts');
+  revalidatePath('/dealer/support');
+  return { ok: true };
+}
+
+export async function updateSupportContactAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const session = await requireAdminSection('support-contacts');
+  const id = String(formData.get('id') || '');
+  const data = parseSupportContact(formData);
+  if (!data.name) return { error: 'Enter a name for the contact.' };
+  const existing = await prisma.supportContact.findUnique({ where: { id } });
+  if (!existing) return { error: 'Contact not found.' };
+  await prisma.supportContact.update({ where: { id }, data });
+  await audit({ actorId: session.userId, action: 'CONTENT_UPDATE', entityType: 'SupportContact', entityId: id, detail: data.name });
+  revalidatePath('/admin/support-contacts');
+  revalidatePath('/dealer/support');
+  return { ok: true };
+}
+
+export async function toggleSupportContactAction(id: string): Promise<void> {
+  const session = await requireAdminSection('support-contacts');
+  const c = await prisma.supportContact.findUnique({ where: { id } });
+  if (!c) return;
+  await prisma.supportContact.update({ where: { id }, data: { active: !c.active } });
+  await audit({ actorId: session.userId, action: 'CONTENT_UPDATE', entityType: 'SupportContact', entityId: id, detail: `active=${!c.active}` });
+  revalidatePath('/admin/support-contacts');
+  revalidatePath('/dealer/support');
+}
+
+export async function deleteSupportContactAction(id: string): Promise<void> {
+  const session = await requireAdminSection('support-contacts');
+  const c = await prisma.supportContact.findUnique({ where: { id } });
+  if (!c) return;
+  await prisma.supportContact.delete({ where: { id } });
+  await audit({ actorId: session.userId, action: 'CONTENT_UPDATE', entityType: 'SupportContact', entityId: id, detail: `deleted: ${c.name}` });
+  revalidatePath('/admin/support-contacts');
+  revalidatePath('/dealer/support');
 }

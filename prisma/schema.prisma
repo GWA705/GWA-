@@ -268,6 +268,7 @@ model Dealer {
   mailReplies      MailReply[]
   orders           Order[]
   userRequests     UserRequest[]
+  profile          DealerProfile?
 }
 
 // Home Depot stores available to a given dealer. The store field on an
@@ -1267,4 +1268,48 @@ model UserRequestItem {
 
   @@index([requestId])
   @@index([status])
+}
+
+// --- Office profile / directory --------------------------------------------
+// One profile per dealer/office, filled in by the office in the dealer portal
+// and updatable anytime. Powers the staff Office Directory (reviewers view,
+// admins manage). No sensitive PII here — business contact details only.
+model DealerProfile {
+  id                 String   @id @default(cuid())
+  dealerId           String   @unique
+  dealer             Dealer   @relation(fields: [dealerId], references: [id], onDelete: Cascade)
+  businessName       String?
+  address            String?  @db.Text
+  shippingAddress    String?  @db.Text
+  phone              String?
+  altPhone           String?
+  billingContactName String?
+  billingPhone       String?
+  billingEmail       String?
+  supportContactName String?
+  supportPhone       String?
+  supportEmail       String?
+  officeHours        String?  @db.Text
+  website            String?
+  updatedById        String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+// Admin-managed contact cards shown to dealers on their Contact / Support page
+// (e.g. Georgian Water & Air office lines). Not tied to a dealer.
+model SupportContact {
+  id        String   @id @default(cuid())
+  name      String
+  title     String?
+  phone     String?
+  altPhone  String?
+  email     String?
+  hours     String?
+  website   String?
+  notes     String?  @db.Text
+  sortOrder Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
