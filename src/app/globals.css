@@ -185,6 +185,43 @@ body {
 .dark .topnav a:hover { color: #fff; background: rgba(255, 255, 255, .08); box-shadow: none; }
 .dark .topnav a[aria-current="page"] { color: #fff; background: #2f6fe0; }
 
+/* Grouped dropdown in the top nav (keeps everything on one line). */
+.topnav-group { position: relative; }
+.topnav-trigger {
+  display: inline-flex; align-items: center; gap: 5px;
+  white-space: nowrap; font-size: 13px; font-weight: 500;
+  color: #1e40af; padding: 7px 11px 7px 13px; border-radius: 8px;
+  background: transparent; border: 0; cursor: pointer;
+  transition: background .15s, color .15s, box-shadow .15s;
+}
+.topnav-trigger:hover { color: #1d4ed8; background: #fff; box-shadow: 0 1px 2px rgba(20, 32, 60, .1); }
+.topnav-group[data-active="true"] > .topnav-trigger {
+  color: #fff; background: #1d4ed8; font-weight: 600; box-shadow: 0 1px 2px rgba(29, 78, 216, .45);
+}
+.topnav-trigger .chev { transition: transform .15s; }
+.topnav-group:hover .chev, .topnav-group:focus-within .chev { transform: rotate(180deg); }
+.topnav-menu {
+  position: absolute; left: 0; top: 100%; min-width: 194px;
+  display: none; flex-direction: column; gap: 2px;
+  padding: 6px; border-radius: 10px; background: #fff;
+  border: 1px solid #dbe8ff; box-shadow: 0 10px 26px rgba(20, 32, 60, .16); z-index: 40;
+}
+.topnav-group:hover .topnav-menu, .topnav-group:focus-within .topnav-menu { display: flex; }
+.topnav-menu a {
+  display: flex; align-items: center; gap: 8px; white-space: nowrap;
+  font-size: 13px; font-weight: 500; color: #1e40af;
+  padding: 8px 12px; border-radius: 7px;
+}
+.topnav-menu a:hover { background: #eef5ff; color: #1d4ed8; box-shadow: none; }
+.topnav-menu a[aria-current="page"] { color: #fff; background: #1d4ed8; font-weight: 600; }
+.dark .topnav-trigger { color: #bcd3ff; }
+.dark .topnav-trigger:hover { color: #fff; background: rgba(255, 255, 255, .08); box-shadow: none; }
+.dark .topnav-group[data-active="true"] > .topnav-trigger { color: #fff; background: #2f6fe0; }
+.dark .topnav-menu { background: #131f38; border-color: rgba(37, 99, 235, .3); }
+.dark .topnav-menu a { color: #bcd3ff; }
+.dark .topnav-menu a:hover { background: rgba(255, 255, 255, .08); color: #fff; }
+.dark .topnav-menu a[aria-current="page"] { color: #fff; background: #2f6fe0; }
+
 /* Controls on the white bar (theme toggle, sign out, mobile hamburger): blue
    outline buttons that fill light-blue on hover. */
 .topbar-btn {

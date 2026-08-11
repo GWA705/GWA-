@@ -6,9 +6,10 @@ import { logoutAction } from '@/app/(auth)/actions';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
 interface NavItem {
-  href: string;
+  href?: string;
   label: string;
   badge?: boolean;
+  children?: NavItem[];
 }
 
 // A small line-icon chosen by matching keywords in the link label, so the same
@@ -118,18 +119,39 @@ export function MobileNav({
             </div>
 
             <div className="flex-1 overflow-y-auto p-2">
-              {nav.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setOpen(false)}
-                  className="flex items-center gap-3 rounded-md px-3 py-3 text-base font-medium text-gray-700 hover:bg-gray-50 hover:text-brand-700"
-                >
-                  <NavIcon label={item.label} />
-                  {item.label}
-                  {item.badge && <span className="nav-dot ml-auto" title="New" aria-label="New" />}
-                </Link>
-              ))}
+              {nav.map((item) =>
+                item.children?.length ? (
+                  <div key={item.label} className="mt-2">
+                    <div className="flex items-center gap-2 px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                      {item.label}
+                      {item.children.some((c) => c.badge) && <span className="nav-dot" aria-label="New" />}
+                    </div>
+                    {item.children.map((c) => (
+                      <Link
+                        key={c.href}
+                        href={c.href!}
+                        onClick={() => setOpen(false)}
+                        className="flex items-center gap-3 rounded-md px-3 py-3 text-base font-medium text-gray-700 hover:bg-gray-50 hover:text-brand-700"
+                      >
+                        <NavIcon label={c.label} />
+                        {c.label}
+                        {c.badge && <span className="nav-dot ml-auto" title="New" aria-label="New" />}
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <Link
+                    key={item.href}
+                    href={item.href!}
+                    onClick={() => setOpen(false)}
+                    className="flex items-center gap-3 rounded-md px-3 py-3 text-base font-medium text-gray-700 hover:bg-gray-50 hover:text-brand-700"
+                  >
+                    <NavIcon label={item.label} />
+                    {item.label}
+                    {item.badge && <span className="nav-dot ml-auto" title="New" aria-label="New" />}
+                  </Link>
+                ),
+              )}
             </div>
 
             <div className="flex items-center justify-between gap-3 border-t border-gray-200 p-4">

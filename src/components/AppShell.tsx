@@ -7,10 +7,12 @@ import { TopNav } from '@/components/TopNav';
 import Link from 'next/link';
 
 interface NavItem {
-  href: string;
+  href?: string;
   label: string;
   /** Show a "new / unread" attention dot on this tab. */
   badge?: boolean;
+  /** When present this item is a dropdown group (desktop) / section (mobile). */
+  children?: NavItem[];
 }
 
 // Switcher shown to users who can use both portals (an internal user linked to
