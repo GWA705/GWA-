@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { formatPhoneDisplay } from '@/lib/format';
 import { SupportContactForm, type ContactValues } from './SupportContactForm';
 import {
   updateSupportContactAction,
@@ -41,7 +42,11 @@ export function SupportContactRow({ contact }: { contact: ContactValues & { acti
           </div>
           {contact.title && <p className="text-xs uppercase tracking-wide text-gray-400">{contact.title}</p>}
           <p className="mt-2 text-sm text-gray-600">
-            {[contact.phone, contact.altPhone, contact.email].filter(Boolean).join(' · ') || '—'}
+            {[
+              contact.phone ? formatPhoneDisplay(contact.phone) : null,
+              contact.altPhone ? formatPhoneDisplay(contact.altPhone) : null,
+              contact.email,
+            ].filter(Boolean).join(' · ') || '—'}
           </p>
           {contact.hours && <p className="text-sm text-gray-500">{contact.hours}</p>}
           </div>
