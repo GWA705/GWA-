@@ -267,6 +267,7 @@ model Dealer {
   mailRecipients   MailRecipient[]
   mailReplies      MailReply[]
   orders           Order[]
+  userRequests     UserRequest[]
 }
 
 // Home Depot stores available to a given dealer. The store field on an
@@ -372,6 +373,8 @@ model User {
   mailReceipts        MailReceipt[]
   mailAttachmentViews MailAttachmentView[]
   ordersCreated       Order[]             @relation("OrderCreatedBy")
+  userRequestsSubmitted UserRequest[]     @relation("UserRequestSubmitter")
+  userRequestsReviewed  UserRequest[]     @relation("UserRequestReviewer")
 
   @@index([dealerId])
 }
@@ -1209,4 +1212,59 @@ model AuditLog {
   @@index([entityType, entityId])
   @@index([actorId])
   @@index([createdAt])
+}
+
+// --- Dealer-submitted requests to create new portal logins -----------------
+// A dealer (usually the office owner / main contact) lists the people at their
+// office who need a login. The request lands in an admin approval queue; on
+// approval each person becomes a DEALER_USER on that dealer, with a temporary
+// password to change at first sign-in. Replaces emailing a paper form around.
+enum UserRequestStatus {
+  PENDING  // has at least one item still awaiting a decision
+  APPROVED // every item was approved (users created)
+  CLOSED   // every item decided, with at least one rejection
+}
+
+enum UserRequestItemStatus {
+  PENDING
+  CREATED  // a login was created for this person
+  REJECTED
+}
+
+model UserRequest {
+  id            String            @id @default(cuid())
+  dealerId      String
+  dealer        Dealer            @relation(fields: [dealerId], references: [id], onDelete: Cascade)
+  submittedById String
+  submittedBy   User              @relation("UserRequestSubmitter", fields: [submittedById], references: [id])
+  note          String?
+  status        UserRequestStatus @default(PENDING)
+  createdAt     DateTime          @default(now())
+  reviewedById  String?
+  reviewedBy    User?             @relation("UserRequestReviewer", fields: [reviewedById], references: [id])
+  reviewedAt    DateTime?
+  items         UserRequestItem[]
+
+  @@index([dealerId])
+  @@index([status])
+}
+
+model UserRequestItem {
+  id            String                @id @default(cuid())
+  requestId     String
+  request       UserRequest           @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  name          String
+  email         String
+  phone         String?
+  jobTitle      String?
+  isMainContact Boolean               @default(false)
+  status        UserRequestItemStatus @default(PENDING)
+  createdUserId String? // the User created on approval (null until then)
+  decidedById   String?
+  decidedAt     DateTime?
+  rejectReason  String?
+  createdAt     DateTime              @default(now())
+
+  @@index([requestId])
+  @@index([status])
 }

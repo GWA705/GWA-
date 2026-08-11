@@ -1,4 +1,5 @@
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 
 const BCRYPT_ROUNDS = 12;
 
@@ -22,6 +23,28 @@ export function validatePasswordStrength(pw: string): string | null {
   if (!/[^A-Za-z0-9]/.test(pw)) return 'Password must include a symbol.';
   if (/^(password|123456|qwerty)/i.test(pw)) return 'Password is too common.';
   return null;
+}
+
+/**
+ * Generate a strong temporary password that satisfies validatePasswordStrength.
+ * Used when an admin approves a dealer's user request — the new user must change
+ * it at first sign-in (passwordChangedAt is left null). Avoids ambiguous glyphs.
+ */
+export function generateTempPassword(): string {
+  const lower = 'abcdefghijkmnpqrstuvwxyz';
+  const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const digits = '23456789';
+  const symbols = '!@#$%&*?';
+  const all = lower + upper + digits + symbols;
+  const pick = (set: string) => set[crypto.randomInt(set.length)];
+  const chars = [pick(lower), pick(upper), pick(digits), pick(symbols)];
+  while (chars.length < 14) chars.push(pick(all));
+  // Fisher–Yates shuffle so the guaranteed classes aren't always in front.
+  for (let i = chars.length - 1; i > 0; i -= 1) {
+    const j = crypto.randomInt(i + 1);
+    [chars[i], chars[j]] = [chars[j], chars[i]];
+  }
+  return chars.join('');
 }
 
 // Passwords must be rotated on this cadence (Phase 4 requirement).

@@ -514,3 +514,72 @@ export async function addDealerNoteAction(
   revalidatePath(`/dealer/applications/${applicationId}`);
   return {};
 }
+
+// --- New-user requests -----------------------------------------------------
+// A dealer lists the people at their office who need a portal login. The request
+// lands in the admin approval queue (Admin → User requests); on approval each
+// person becomes a login on this dealer with a temporary password.
+interface RequestRowInput {
+  name?: unknown;
+  email?: unknown;
+  phone?: unknown;
+  jobTitle?: unknown;
+  isMainContact?: unknown;
+}
+
+export async function submitUserRequestAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await requireDealerAccess();
+  if (!session.dealerId) return { error: 'Your account is not linked to a dealership.' };
+
+  let parsed: { note?: unknown; rows?: unknown };
+  try {
+    parsed = JSON.parse(String(formData.get('payload') || '{}'));
+  } catch {
+    return { error: 'Could not read the form. Please try again.' };
+  }
+  const rawRows = Array.isArray(parsed.rows) ? (parsed.rows as RequestRowInput[]) : [];
+  const note = String(parsed.note ?? '').trim().slice(0, 500) || null;
+
+  const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const rows: { name: string; email: string; phone: string | null; jobTitle: string | null; isMainContact: boolean }[] = [];
+  const seen = new Set<string>();
+  for (const r of rawRows) {
+    const name = toTitleCase(String(r.name ?? '').trim());
+    const email = String(r.email ?? '').trim().toLowerCase();
+    if (!name && !email) continue; // skip blank rows
+    if (!name) return { error: 'Every person needs a name.' };
+    if (!emailRe.test(email)) return { error: `Enter a valid email for ${name}.` };
+    if (seen.has(email)) return { error: `${email} is listed twice.` };
+    seen.add(email);
+    rows.push({
+      name,
+      email,
+      phone: String(r.phone ?? '').trim().slice(0, 40) || null,
+      jobTitle: titleOrNull(String(r.jobTitle ?? '').trim().slice(0, 80)),
+      isMainContact: r.isMainContact === true,
+    });
+  }
+  if (rows.length === 0) return { error: 'Add at least one person.' };
+  if (rows.length > 25) return { error: 'That’s a lot at once — please submit 25 or fewer people per request.' };
+
+  const request = await prisma.userRequest.create({
+    data: {
+      dealerId: session.dealerId,
+      submittedById: session.userId,
+      note,
+      items: { create: rows },
+    },
+  });
+  await audit({
+    actorId: session.userId,
+    action: 'USER_REQUEST',
+    entityType: 'UserRequest',
+    entityId: request.id,
+    detail: `${rows.length} user${rows.length === 1 ? '' : 's'} requested`,
+  });
+  revalidatePath('/dealer/user-requests');
+  return { ok: true };
+}

@@ -5,7 +5,7 @@ import { prisma } from '@/lib/db';
 import { requireAdminSection, requireSuperAdmin, startViewAs, stopViewAs } from '@/lib/session';
 import { ADMIN_SECTION_KEYS } from '@/lib/constants';
 import { toTitleCase, toSentenceCase, titleOrNull, sentenceOrNull } from '@/lib/textcase';
-import { hashPassword, validatePasswordStrength } from '@/lib/password';
+import { hashPassword, validatePasswordStrength, generateTempPassword } from '@/lib/password';
 import { audit } from '@/lib/audit';
 import { runAttentionAlerts } from '@/lib/sla';
 import { getReminderConfig, setReminderConfig, runDealerReminders, DEFAULT_REMINDER_CONFIG, type ReminderConfig } from '@/lib/reminders';
@@ -1257,4 +1257,107 @@ export async function saveAdminAccessAction(
   });
   revalidatePath('/admin/access');
   return { ok: true, message: `Access updated for ${target.name}.` };
+}
+
+// --- Dealer user-request approval queue ------------------------------------
+// Recompute a request's rolled-up status after one of its items is decided.
+async function settleUserRequest(requestId: string, reviewerId: string): Promise<void> {
+  const items = await prisma.userRequestItem.findMany({ where: { requestId }, select: { status: true } });
+  if (items.some((i) => i.status === 'PENDING')) return; // still open
+  const anyRejected = items.some((i) => i.status === 'REJECTED');
+  await prisma.userRequest.update({
+    where: { id: requestId },
+    data: { status: anyRejected ? 'CLOSED' : 'APPROVED', reviewedById: reviewerId, reviewedAt: new Date() },
+  });
+}
+
+/**
+ * Approve one requested person → create their DEALER_USER login on the
+ * requesting dealer, with a temporary password they must change at first
+ * sign-in. Emails the invite when email is on; otherwise returns the temp
+ * password so the admin can share it securely.
+ */
+export async function approveUserRequestItemAction(itemId: string): Promise<ActionState> {
+  const session = await requireAdminSection('user-requests');
+  const item = await prisma.userRequestItem.findUnique({ where: { id: itemId }, include: { request: true } });
+  if (!item) return { error: 'Request item not found.' };
+  if (item.status !== 'PENDING') return { error: 'This person has already been handled.' };
+
+  const email = item.email.toLowerCase().trim();
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing) {
+    // Can't create a duplicate — auto-decline with a clear reason.
+    await prisma.userRequestItem.update({
+      where: { id: itemId },
+      data: { status: 'REJECTED', rejectReason: 'A login with this email already exists.', decidedById: session.userId, decidedAt: new Date() },
+    });
+    await settleUserRequest(item.requestId, session.userId);
+    revalidatePath('/admin/user-requests');
+    return { error: `${email} already has a login — marked as declined.` };
+  }
+
+  const tempPassword = generateTempPassword();
+  const created = await prisma.user.create({
+    data: {
+      email,
+      name: toTitleCase(item.name),
+      role: 'DEALER_USER',
+      dealerId: item.request.dealerId,
+      isDistributor: item.isMainContact,
+      phone: item.phone,
+      passwordHash: await hashPassword(tempPassword),
+      passwordChangedAt: null, // force a change at first sign-in
+    },
+  });
+  await prisma.userRequestItem.update({
+    where: { id: itemId },
+    data: { status: 'CREATED', createdUserId: created.id, decidedById: session.userId, decidedAt: new Date() },
+  });
+  await audit({ actorId: session.userId, action: 'USER_CREATE', entityType: 'User', entityId: created.id, detail: `${email} (DEALER_USER, from request ${item.requestId})` });
+  await audit({ actorId: session.userId, action: 'USER_REQUEST_DECISION', entityType: 'UserRequestItem', entityId: itemId, detail: `approved: ${email}` });
+  await settleUserRequest(item.requestId, session.userId);
+  revalidatePath('/admin/user-requests');
+  revalidatePath('/admin/users');
+
+  // Email the invite when email is on; otherwise hand back the temp password.
+  if (emailEnabled()) {
+    const portalUrl = process.env.APP_URL || 'https://portal.ghsbarrie.ca';
+    const invite = await sendEmail({
+      to: email,
+      subject: 'Your GWA Dealer Portal account',
+      html: renderEmail({
+        heading: 'Your account is ready',
+        intro: `Hi ${item.name}, an account has been created for you on the GWA Dealer Portal. Use the details below to sign in — you'll be asked to set your own password the first time.`,
+        bodyHtml: `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:4px 0 8px;font-size:14px;color:#111827;">
+          <tr><td style="padding:3px 12px 3px 0;color:#6b7280;">Web address</td><td style="padding:3px 0;"><a href="${portalUrl}" style="color:#1d4ed8;">${portalUrl}</a></td></tr>
+          <tr><td style="padding:3px 12px 3px 0;color:#6b7280;">Username</td><td style="padding:3px 0;font-weight:600;">${email}</td></tr>
+          <tr><td style="padding:3px 12px 3px 0;color:#6b7280;">Temporary password</td><td style="padding:3px 0;font-family:monospace;font-weight:600;">${tempPassword}</td></tr>
+        </table>`,
+        ctaLabel: 'Sign in to the portal',
+        ctaUrl: portalUrl,
+        footerNote: 'For your security, you will be required to choose a new password when you first sign in.',
+      }),
+    });
+    if (invite.sent) return { ok: true, message: `Login created and emailed to ${email}.` };
+    return { ok: true, message: `Login created for ${email}, but the invite email failed. Temporary password: ${tempPassword}` };
+  }
+  return { ok: true, message: `Login created for ${email}. Temporary password: ${tempPassword} (share it securely — email is off).` };
+}
+
+/** Decline one requested person, with an optional reason shown back to the dealer. */
+export async function rejectUserRequestItemAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const session = await requireAdminSection('user-requests');
+  const itemId = String(formData.get('itemId') || '');
+  const reason = toSentenceCase(String(formData.get('reason') || '').trim()).slice(0, 200) || null;
+  const item = await prisma.userRequestItem.findUnique({ where: { id: itemId } });
+  if (!item) return { error: 'Request item not found.' };
+  if (item.status !== 'PENDING') return { error: 'This person has already been handled.' };
+  await prisma.userRequestItem.update({
+    where: { id: itemId },
+    data: { status: 'REJECTED', rejectReason: reason, decidedById: session.userId, decidedAt: new Date() },
+  });
+  await audit({ actorId: session.userId, action: 'USER_REQUEST_DECISION', entityType: 'UserRequestItem', entityId: itemId, detail: `declined: ${item.email}` });
+  await settleUserRequest(item.requestId, session.userId);
+  revalidatePath('/admin/user-requests');
+  return { ok: true };
 }

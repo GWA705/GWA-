@@ -29,6 +29,8 @@ export type AuditAction =
   | 'FUNDING_DECISION'
   | 'USER_CREATE'
   | 'USER_UPDATE'
+  | 'USER_REQUEST'
+  | 'USER_REQUEST_DECISION'
   | 'DEALER_CREATE'
   | 'DEALER_UPDATE'
   | 'MAIL_SEND'

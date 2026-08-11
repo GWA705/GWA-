@@ -463,6 +463,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
   { key: 'content', label: 'Content', href: '/admin/content', hint: 'Resources / promos' },
   { key: 'marketplace', label: 'Marketplace', href: '/admin/marketplace' },
   { key: 'mail', label: 'Mail', href: '/staff/mail', hint: 'Send + reply toggle' },
+  { key: 'user-requests', label: 'User requests', href: '/admin/user-requests', hint: 'Dealer login requests' },
   { key: 'users', label: 'Users', href: '/admin/users' },
   { key: 'security', label: 'Security', href: '/admin/security' },
   { key: 'email', label: 'Email settings', href: '/admin/email' },
