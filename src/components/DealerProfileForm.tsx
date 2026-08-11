@@ -1,6 +1,7 @@
 'use client';
 
 import { useFormState, useFormStatus } from 'react-dom';
+import { AddressAutocompleteInput } from '@/components/AddressAutocompleteInput';
 
 export interface DealerProfileValues {
   businessName?: string | null;
@@ -82,8 +83,15 @@ export function DealerProfileForm({
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field name="businessName" label="Business name" defaultValue={values.businessName} placeholder="Georgian Water and Air" />
           <Field name="website" label="Website" defaultValue={values.website} placeholder="https://…" />
-          <Field name="address" label="Business address" defaultValue={values.address} placeholder="Street, city, province, postal" textarea />
-          <Field name="shippingAddress" label="Shipping address" defaultValue={values.shippingAddress} placeholder="If different from above" textarea />
+          <div>
+            <label className="label" htmlFor="address">Business address</label>
+            <AddressAutocompleteInput id="address" name="address" defaultValue={values.address ?? ''} placeholder="Start typing the address…" className="input" fillFull />
+            <p className="mt-1 text-xs text-gray-400">Start typing and pick from the list to auto-fill.</p>
+          </div>
+          <div>
+            <label className="label" htmlFor="shippingAddress">Shipping address</label>
+            <AddressAutocompleteInput id="shippingAddress" name="shippingAddress" defaultValue={values.shippingAddress ?? ''} placeholder="If different from above" className="input" fillFull />
+          </div>
           <Field name="phone" label="Main phone" defaultValue={values.phone} placeholder="(705) 555-0123" />
           <Field name="altPhone" label="Alternate phone" defaultValue={values.altPhone} placeholder="Toll-free / cell / fax" />
           <Field name="officeHours" label="Office hours" defaultValue={values.officeHours} placeholder="Mon–Fri 9–5, Sat 10–2" textarea />

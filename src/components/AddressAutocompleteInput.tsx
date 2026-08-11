@@ -14,17 +14,23 @@ export function AddressAutocompleteInput({
   name,
   className,
   placeholder,
+  defaultValue,
   cityId,
   provinceId,
   postalId,
+  fillFull = false,
 }: {
   id: string;
   name: string;
   className?: string;
   placeholder?: string;
+  defaultValue?: string;
   cityId?: string;
   provinceId?: string;
   postalId?: string;
+  // When true, drop the full formatted address (street, city, province, postal)
+  // into this one field instead of only the street + sibling city/prov/postal.
+  fillFull?: boolean;
 }) {
   const ref = useRef<HTMLInputElement>(null);
 
@@ -46,13 +52,22 @@ export function AddressAutocompleteInput({
       if (cancelled || !g?.maps?.places) return;
       const ac = new g.maps.places.Autocomplete(input, {
         componentRestrictions: { country: 'ca' },
-        fields: ['address_components'],
+        fields: fillFull ? ['address_components', 'formatted_address'] : ['address_components'],
         types: ['address'],
       });
       ac.addListener('place_changed', () => {
+        const place = ac.getPlace();
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const comps: any[] = ac.getPlace()?.address_components || [];
+        const comps: any[] = place?.address_components || [];
         const get = (t: string) => comps.find((c) => c.types.includes(t));
+        if (fillFull) {
+          // One-field mode: use Google's full formatted address (minus the
+          // trailing ", Canada"), falling back to a built street line.
+          const full = (place?.formatted_address || '').replace(/,\s*Canada$/i, '').trim();
+          const street = `${get('street_number')?.long_name || ''} ${get('route')?.long_name || ''}`.trim();
+          if (full || street) input.value = full || street;
+          return;
+        }
         const street = `${get('street_number')?.long_name || ''} ${get('route')?.long_name || ''}`.trim();
         if (street) input.value = street;
         setVal(cityId, get('locality')?.long_name || get('postal_town')?.long_name || get('sublocality')?.long_name);
@@ -97,7 +112,7 @@ export function AddressAutocompleteInput({
       cancelled = true;
       script?.removeEventListener('load', onReady);
     };
-  }, [id, cityId, provinceId, postalId]);
+  }, [id, cityId, provinceId, postalId, fillFull]);
 
-  return <input ref={ref} id={id} name={name} className={className} placeholder={placeholder} autoComplete="off" />;
+  return <input ref={ref} id={id} name={name} defaultValue={defaultValue} className={className} placeholder={placeholder} autoComplete="off" />;
 }
