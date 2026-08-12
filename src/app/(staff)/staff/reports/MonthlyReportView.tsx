@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import type { OfficeMonthlyReport, StoreRow } from '@/lib/reporting/monthly';
 
 // Portal-styled per-office monthly performance report.
@@ -36,6 +37,39 @@ function Row({ r, bold }: { r: StoreRow; bold?: boolean }) {
         <Pct value={r.ytdPct} />
       </td>
     </tr>
+  );
+}
+
+// Mobile: a stacked card per store, so phones never need to scroll a wide table.
+function StoreCard({ r, bold }: { r: StoreRow; bold?: boolean }) {
+  const wrap = bold ? 'bg-slate-800 text-white' : 'bg-white border border-gray-200';
+  const label = bold ? 'text-white/60' : 'text-gray-400';
+  const val = bold ? 'text-white' : 'text-gray-900';
+  const cell = (lbl: string, node: ReactNode) => (
+    <div className="flex items-baseline justify-between gap-2">
+      <span className={`text-[10px] uppercase tracking-wide ${label}`}>{lbl}</span>
+      <span className={`tabular-nums ${val}`}>{node}</span>
+    </div>
+  );
+  return (
+    <div className={`rounded-xl p-4 ${wrap}`}>
+      <div className="flex items-baseline justify-between gap-3">
+        <div className={`font-bold ${val}`}>{r.label}</div>
+        <div className="text-right">
+          <div className={`text-lg font-bold tabular-nums ${val}`}>{money(r.curMonth)}</div>
+          <div className={`text-[10px] uppercase ${label}`}>this month</div>
+        </div>
+      </div>
+      <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
+        {cell('Prev mo.', money(r.prevMonth))}
+        {cell('M/M', <Pct value={r.momPct} />)}
+        {cell('LY mo.', money(r.lyMonth))}
+        {cell('Y/Y', <Pct value={r.yoyPct} />)}
+        {cell('YTD', money(r.ytdTy))}
+        {cell('YTD %', <Pct value={r.ytdPct} />)}
+        {cell('YTD LY', money(r.ytdLy))}
+      </div>
+    </div>
   );
 }
 
@@ -110,8 +144,16 @@ export function MonthlyReportView({ report }: { report: OfficeMonthlyReport }) {
         </div>
       )}
 
-      {/* Main table */}
-      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+      {/* Mobile: stacked cards (no horizontal scrolling on a phone). */}
+      <div className="space-y-2 sm:hidden">
+        {report.stores.map((r) => (
+          <StoreCard key={r.store} r={r} />
+        ))}
+        <StoreCard r={report.total} bold />
+      </div>
+
+      {/* Tablet/desktop: the full comparison table. */}
+      <div className="hidden overflow-hidden rounded-xl border border-gray-200 bg-white sm:block">
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
             <thead>
