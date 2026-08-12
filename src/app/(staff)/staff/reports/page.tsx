@@ -31,13 +31,13 @@ export default async function ReportsLandingPage() {
       available: canLeadership,
     },
     {
-      href: '#',
+      href: '/staff/reports/monthly',
       title: 'Monthly Performance (per office)',
       blurb:
         'Each office broken down by HD store — month-over-month, vs last year, and year-to-date, with a pending-installation block.',
       accent: '#1a5fa8',
-      badge: 'Coming soon',
-      available: false,
+      badge: 'Per office',
+      available: true,
     },
     {
       href: '#',
