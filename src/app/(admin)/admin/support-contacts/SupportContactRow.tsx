@@ -9,9 +9,16 @@ import {
   deleteSupportContactAction,
 } from '@/app/(admin)/actions';
 
-export function SupportContactRow({ contact }: { contact: ContactValues & { active: boolean; logoStorageKey?: string | null } }) {
+export function SupportContactRow({
+  contact,
+}: {
+  contact: ContactValues & { active: boolean; logoStorageKey?: string | null; updatedAt?: string | Date };
+}) {
   const [editing, setEditing] = useState(false);
-  const logoUrl = contact.logoStorageKey ? `/api/support-contacts/${contact.id}/logo` : null;
+  // Version the URL by updatedAt so a changed/removed logo isn't served stale
+  // from the browser cache (the URL is otherwise identical per contact id).
+  const v = contact.updatedAt ? new Date(contact.updatedAt).getTime() : 0;
+  const logoUrl = contact.logoStorageKey ? `/api/support-contacts/${contact.id}/logo?v=${v}` : null;
 
   if (editing) {
     return (

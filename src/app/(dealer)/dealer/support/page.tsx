@@ -59,7 +59,7 @@ export default async function DealerSupportPage() {
                 {c.logoStorageKey ? (
                   <div className="flex h-14 w-14 flex-none items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-white">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={`/api/support-contacts/${c.id}/logo`} alt="" className="h-full w-full object-contain" />
+                    <img src={`/api/support-contacts/${c.id}/logo?v=${c.updatedAt.getTime()}`} alt="" className="h-full w-full object-contain" />
                   </div>
                 ) : (
                   <div className="flex h-14 w-14 flex-none items-center justify-center rounded-xl bg-brand-100 text-lg font-bold text-brand-700">

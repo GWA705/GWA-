@@ -12,12 +12,12 @@ const telHref = (v: string) => {
 const initials = (name: string) =>
   name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase()).join('') || '?';
 
-function Logo({ dealerId, hasLogo, name }: { dealerId: string; hasLogo: boolean; name: string }) {
+function Logo({ dealerId, hasLogo, name, v }: { dealerId: string; hasLogo: boolean; name: string; v: number }) {
   if (hasLogo) {
     return (
       <div className="flex h-14 w-14 flex-none items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-white">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={`/api/dealer-profiles/${dealerId}/logo`} alt="" className="h-full w-full object-contain" />
+        <img src={`/api/dealer-profiles/${dealerId}/logo?v=${v}`} alt="" className="h-full w-full object-contain" />
       </div>
     );
   }
@@ -97,7 +97,7 @@ export default async function DirectoryPage({ searchParams }: { searchParams: { 
             return (
               <li key={d.id} className="card overflow-hidden p-0">
                 <div className="flex items-start gap-4 border-b border-gray-100 p-5">
-                  <Logo dealerId={d.id} hasLogo={!!p.logoStorageKey} name={p.businessName || d.name} />
+                  <Logo dealerId={d.id} hasLogo={!!p.logoStorageKey} name={p.businessName || d.name} v={p.updatedAt.getTime()} />
                   <div className="min-w-0 flex-1">
                     <h2 className="truncate text-base font-semibold text-gray-900">{p.businessName || d.name}</h2>
                     {p.website && (

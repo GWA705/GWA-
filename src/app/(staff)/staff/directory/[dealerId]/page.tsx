@@ -16,7 +16,7 @@ export default async function DirectoryEditPage({ params }: { params: { dealerId
   if (!dealer) notFound();
 
   const values = { ...(dealer.profile ?? {}), businessName: dealer.profile?.businessName ?? dealer.name };
-  const logoUrl = dealer.profile?.logoStorageKey ? `/api/dealer-profiles/${dealer.id}/logo` : null;
+  const logoUrl = dealer.profile?.logoStorageKey ? `/api/dealer-profiles/${dealer.id}/logo?v=${dealer.profile.updatedAt.getTime()}` : null;
   const action = saveDealerProfileAdminAction.bind(null, dealer.id);
 
   return (

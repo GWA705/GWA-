@@ -14,7 +14,7 @@ export default async function DealerProfilePage() {
 
   // Prefill the business name from the dealership name on a first-time profile.
   const values = { ...(profile ?? {}), businessName: profile?.businessName ?? dealer?.name ?? '' };
-  const logoUrl = profile?.logoStorageKey && user.dealerId ? `/api/dealer-profiles/${user.dealerId}/logo` : null;
+  const logoUrl = profile?.logoStorageKey && user.dealerId ? `/api/dealer-profiles/${user.dealerId}/logo?v=${profile.updatedAt.getTime()}` : null;
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
