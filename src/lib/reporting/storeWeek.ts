@@ -75,7 +75,8 @@ export async function buildStoreWeekReport(dealerId: string, asOf: Date = new Da
 
   const storeSet = new Set(office?.storeNumbers ?? []);
   const inWeek = (d: ReportDeal) => !!d.date && d.date >= week.start && d.date <= week.end;
-  const active = (d: ReportDeal) => d.result === 'OK' || d.result === 'PE/OK';
+  // $0 PE/OK deals are dead deals — exclude them (keep OK deals regardless).
+  const active = (d: ReportDeal) => d.result === 'OK' || (d.result === 'PE/OK' && d.gross > 0);
   const mine = (d: ReportDeal) => (d.storeNumber ? storeSet.has(d.storeNumber) : false);
 
   const deals = allDeals.filter((d) => mine(d) && inWeek(d) && active(d));

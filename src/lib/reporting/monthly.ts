@@ -237,6 +237,7 @@ export async function buildOfficeMonthlyReport(
   };
   for (const d of officeDeals) {
     if (d.result !== 'PE/OK') continue;
+    if (d.gross <= 0) continue; // $0 PE/OK = dead deal, not real pending
     if (!d.date || d.date > monthEnd) continue; // ignore pendings sold after the reported month
     const store = d.storeNumber || d.hdStore || 'Unknown';
     if (d.date >= monthStart) {

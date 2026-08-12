@@ -294,7 +294,8 @@ export async function buildWeeklySnapshot(asOf: Date = new Date()): Promise<Week
   const sameWeekLastYear = prev.deals.filter((d) => inWindow(d, lastYearWeek) && isActive(d));
   const mtdDeals = cur.deals.filter((d) => d.result === 'OK' && d.date && d.date >= monthStart && d.date <= asOf);
   const ytdDeals = cur.deals.filter((d) => d.result === 'OK' && d.date && d.date >= yearStart && d.date <= asOf);
-  const pending = cur.deals.filter((d) => d.result === 'PE/OK');
+  // $0 PE/OK deals are dead deals, not real pending — exclude them.
+  const pending = cur.deals.filter((d) => d.result === 'PE/OK' && d.gross > 0);
 
   const trailingAvg = trailingMonthlyAverage(cur.deals, asOf, TRAILING_MONTHS);
 
