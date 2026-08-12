@@ -38,7 +38,7 @@ export function StoreWeekView({ report, showLinks = true }: { report: StoreWeekR
           {report.stores.map((s) => (
             <section key={s.store} className="overflow-hidden rounded-xl border border-gray-200 bg-white">
               <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50 px-4 py-2.5">
-                <h3 className="text-sm font-bold text-gray-900">Store {s.store}</h3>
+                <h3 className="text-sm font-bold text-gray-900">Store {s.label}</h3>
                 <div className="text-sm font-bold text-gray-900 tabular-nums">
                   {money2(s.total)} <span className="text-xs font-normal text-gray-400">({s.count})</span>
                 </div>

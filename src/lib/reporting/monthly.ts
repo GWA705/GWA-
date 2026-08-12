@@ -16,10 +16,12 @@ export interface Office {
   dealerId: string;
   name: string;
   storeNumbers: string[];
+  storeNames: Record<string, string>; // store number → name (from Admin → Dealers)
 }
 
 export interface StoreRow {
-  store: string;
+  store: string; // store number (stable key)
+  label: string; // display label, e.g. "7024 — Barrie"
   prevMonth: number;
   curMonth: number;
   momPct: number | null;
@@ -37,7 +39,7 @@ export interface OfficeMonthlyReport {
   monthIndex: number;
   stores: StoreRow[];
   total: StoreRow;
-  pending: { store: string; amount: number; count: number }[];
+  pending: { store: string; label: string; amount: number; count: number }[];
   pendingTotal: number;
   ytd: { ty: number; ly: number; pct: number | null; gap: number };
   deadStores: string[];
@@ -51,30 +53,55 @@ function pct(cur: number, base: number): number | null {
 }
 
 /** Offices that can appear in a monthly report: portal dealers with HD stores. */
+function toOffice(d: { id: string; name: string; homeDepotStores: { number: string; name: string | null }[] }): Office {
+  const storeNumbers: string[] = [];
+  const storeNames: Record<string, string> = {};
+  for (const s of d.homeDepotStores) {
+    const num = s.number.trim();
+    if (!num) continue;
+    if (!storeNumbers.includes(num)) storeNumbers.push(num);
+    const nm = (s.name ?? '').trim();
+    if (nm && !storeNames[num]) storeNames[num] = nm;
+  }
+  return { dealerId: d.id, name: d.name, storeNumbers, storeNames };
+}
+
 export async function listReportOffices(): Promise<Office[]> {
   const dealers = await prisma.dealer.findMany({
     where: { homeDepotStores: { some: {} } },
     orderBy: { name: 'asc' },
-    select: { id: true, name: true, homeDepotStores: { select: { number: true } } },
+    select: { id: true, name: true, homeDepotStores: { select: { number: true, name: true } } },
   });
-  return dealers.map((d) => ({
-    dealerId: d.id,
-    name: d.name,
-    storeNumbers: Array.from(new Set(d.homeDepotStores.map((s) => s.number.trim()).filter(Boolean))),
-  }));
+  return dealers.map(toOffice);
 }
 
 export async function getOffice(dealerId: string): Promise<Office | null> {
   const d = await prisma.dealer.findUnique({
     where: { id: dealerId },
-    select: { id: true, name: true, homeDepotStores: { select: { number: true } } },
+    select: { id: true, name: true, homeDepotStores: { select: { number: true, name: true } } },
   });
-  if (!d) return null;
-  return {
-    dealerId: d.id,
-    name: d.name,
-    storeNumbers: Array.from(new Set(d.homeDepotStores.map((s) => s.number.trim()).filter(Boolean))),
-  };
+  return d ? toOffice(d) : null;
+}
+
+/**
+ * Derive a readable store name from the journal's "HD Store" label
+ * (e.g. "BARRIE - 7024" → "Barrie"), used when a store has no name set in
+ * Admin → Dealers. Returns '' when nothing usable remains.
+ */
+function deriveStoreName(hdStoreRaw: string): string {
+  const stripped = hdStoreRaw
+    .replace(/\d{3,}/g, '') // remove the store number
+    .replace(/[-–—#]/g, ' ') // separators
+    .replace(/\bstore\b/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!stripped) return '';
+  // Title-case the remainder.
+  return stripped
+    .toLowerCase()
+    .split(' ')
+    .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : w))
+    .join(' ');
 }
 
 /**
@@ -114,12 +141,28 @@ export async function buildOfficeMonthlyReport(
 
   const officeDeals = allDeals.filter(belongsToOffice);
 
+  // Store names: prefer the name set in Admin → Dealers; fall back to the name
+  // embedded in the journal's HD Store label so they show even before anyone
+  // types them in.
+  const derivedNames: Record<string, string> = {};
+  for (const d of officeDeals) {
+    if (d.storeNumber && !derivedNames[d.storeNumber] && d.hdStore) {
+      const nm = deriveStoreName(d.hdStore);
+      if (nm) derivedNames[d.storeNumber] = nm;
+    }
+  }
+  const nameFor = (num: string): string => office?.storeNames[num] || derivedNames[num] || '';
+  const labelFor = (num: string): string => {
+    const nm = nameFor(num);
+    return nm ? `${num} — ${nm}` : num;
+  };
+
   // Per-store aggregation.
   const rowByStore = new Map<string, StoreRow>();
   const ensureRow = (store: string): StoreRow => {
     let r = rowByStore.get(store);
     if (!r) {
-      r = { store, prevMonth: 0, curMonth: 0, momPct: null, lyMonth: 0, yoyPct: null, ytdTy: 0, ytdLy: 0, ytdPct: null };
+      r = { store, label: labelFor(store), prevMonth: 0, curMonth: 0, momPct: null, lyMonth: 0, yoyPct: null, ytdTy: 0, ytdLy: 0, ytdPct: null };
       rowByStore.set(store, r);
     }
     return r;
@@ -156,6 +199,7 @@ export async function buildOfficeMonthlyReport(
   const totalYtdLy = sum((r) => r.ytdLy);
   const total: StoreRow = {
     store: 'Location Total',
+    label: 'Location Total',
     prevMonth: totalPrev,
     curMonth: totalCur,
     momPct: pct(totalCur, totalPrev),
@@ -177,11 +221,11 @@ export async function buildOfficeMonthlyReport(
     pendMap.set(store, e);
   }
   const pending = Array.from(pendMap.entries())
-    .map(([store, v]) => ({ store, amount: v.amount, count: v.count }))
+    .map(([store, v]) => ({ store, label: labelFor(store), amount: v.amount, count: v.count }))
     .sort((a, b) => b.amount - a.amount);
   const pendingTotal = pending.reduce((acc, p) => acc + p.amount, 0);
 
-  const deadStores = stores.filter((r) => r.curMonth === 0).map((r) => r.store);
+  const deadStores = stores.filter((r) => r.curMonth === 0).map((r) => r.label);
 
   return {
     office,

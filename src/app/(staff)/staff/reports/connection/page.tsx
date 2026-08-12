@@ -67,6 +67,8 @@ export default async function JournalConnectionPage() {
               <p className="mt-1 text-xs text-gray-500">
                 Reports always read the <strong>live</strong> journal. This only controls where the &ldquo;Write to
                 Journal&rdquo; button saves deals — keep it on Test until you&apos;re ready to write to the real sheet.
+                In <strong>Live</strong> mode each deal writes to its own sale-year journal automatically (a 2027 deal
+                → the 2027 journal), so nothing to change each January.
               </p>
             </div>
             <WriteModeToggle mode={writeTarget.mode} />
@@ -76,7 +78,7 @@ export default async function JournalConnectionPage() {
               <span className="text-red-600">Couldn&apos;t open the write target: {writeTarget.error}</span>
             ) : (
               <>
-                Currently writing to:{' '}
+                Currently writing {writeTarget.year} deals to:{' '}
                 <strong className={writeTarget.mode === 'live' ? 'text-emerald-700' : 'text-slate-800'}>
                   {writeTarget.mode === 'live' ? 'LIVE' : 'TEST'}
                 </strong>{' '}

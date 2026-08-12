@@ -35,21 +35,42 @@ export function journalEnabled(): boolean {
 }
 
 /**
- * Resolve which journal spreadsheet the WRITE path targets, honoring the admin
- * "write mode" toggle:
- *   - 'test' (default): the safe test journal (JOURNAL_SHEET_ID).
- *   - 'live': the real 2026 journal (JOURNAL_SHEET_ID_2026, falling back to
- *     JOURNAL_SHEET_ID if that isn't separately set).
- * Reporting reads are unaffected — they always use the live journal.
+ * The LIVE journal spreadsheet id for a given calendar year, from env.
+ * Pattern: JOURNAL_SHEET_ID_<year>. 2026 falls back to the base JOURNAL_SHEET_ID
+ * so an existing single-sheet setup keeps working. Add one env var per new year
+ * (and share that sheet with the service account) — no code change needed.
  */
-async function resolveWriteSheetId(): Promise<string> {
+export function liveSheetIdForYear(year: number): string | null {
+  const explicit = process.env[`JOURNAL_SHEET_ID_${year}`];
+  if (explicit) return explicit;
+  if (year === 2026) return process.env.JOURNAL_SHEET_ID || null;
+  return null;
+}
+
+/**
+ * Resolve which journal spreadsheet the WRITE path targets for a deal's sale
+ * year, honoring the admin "write mode" toggle:
+ *   - 'test' (default): the single safe test journal (JOURNAL_SHEET_ID), for
+ *     every year — this is the shakeout sandbox.
+ *   - 'live': the real journal FOR THAT YEAR (JOURNAL_SHEET_ID_<year>). A deal
+ *     sold in 2027 writes to the 2027 journal automatically; a 2026 deal to the
+ *     2026 journal — the year is picked from the deal's sale date.
+ * Reporting reads always use the live per-year journals, independent of this.
+ */
+async function resolveWriteSheetId(year: number): Promise<string> {
   const { getJournalWriteMode } = await import('./settings');
   const mode = await getJournalWriteMode();
-  const id =
-    mode === 'live'
-      ? process.env.JOURNAL_SHEET_ID_2026 || process.env.JOURNAL_SHEET_ID
-      : process.env.JOURNAL_SHEET_ID;
-  if (!id) throw new Error('No journal spreadsheet is configured (JOURNAL_SHEET_ID).');
+  if (mode === 'test') {
+    const test = process.env.JOURNAL_SHEET_ID;
+    if (!test) throw new Error('No test journal is configured (JOURNAL_SHEET_ID).');
+    return test;
+  }
+  const id = liveSheetIdForYear(year);
+  if (!id) {
+    throw new Error(
+      `No live journal is configured for ${year}. Add JOURNAL_SHEET_ID_${year} on the server and share that sheet with the service account.`,
+    );
+  }
   return id;
 }
 
@@ -290,7 +311,9 @@ export interface JournalResult {
  */
 export async function writeDealToJournal(deal: JournalDeal): Promise<JournalResult> {
   const sheets = await sheetsClient();
-  const ssId = await resolveWriteSheetId();
+  // Pick the target journal by the deal's SALE year (in live mode); the test
+  // journal is a single sandbox for every year.
+  const ssId = await resolveWriteSheetId(deal.saleDate.getUTCFullYear());
 
   // Resolve the month tab from the sale date.
   const meta = await sheets.spreadsheets.get({
@@ -364,7 +387,7 @@ export async function writeDealToJournal(deal: JournalDeal): Promise<JournalResu
  */
 export async function journalPing(): Promise<{ title: string; tabs: string[] }> {
   const sheets = await sheetsClient();
-  const ssId = await resolveWriteSheetId();
+  const ssId = await resolveWriteSheetId(new Date().getFullYear());
   const meta = await sheets.spreadsheets.get({
     spreadsheetId: ssId,
     fields: 'properties.title,sheets.properties.title',
@@ -379,8 +402,9 @@ export async function journalPing(): Promise<{ title: string; tabs: string[] }> 
  * Describe the current WRITE target (for the admin journal-connection screen):
  * the mode, the resolved spreadsheet id, and its live title. Read-only.
  */
-export async function journalWriteTarget(): Promise<{
+export async function journalWriteTarget(year: number = new Date().getFullYear()): Promise<{
   mode: 'test' | 'live';
+  year: number;
   sheetId: string | null;
   title: string | null;
   error?: string;
@@ -389,15 +413,15 @@ export async function journalWriteTarget(): Promise<{
   const mode = await getJournalWriteMode();
   let ssId: string | null = null;
   try {
-    ssId = await resolveWriteSheetId();
+    ssId = await resolveWriteSheetId(year);
   } catch (e) {
-    return { mode, sheetId: null, title: null, error: (e as Error).message };
+    return { mode, year, sheetId: null, title: null, error: (e as Error).message };
   }
   try {
     const sheets = await sheetsClient();
     const meta = await sheets.spreadsheets.get({ spreadsheetId: ssId, fields: 'properties.title' });
-    return { mode, sheetId: ssId, title: meta.data.properties?.title || '(untitled)' };
+    return { mode, year, sheetId: ssId, title: meta.data.properties?.title || '(untitled)' };
   } catch (e) {
-    return { mode, sheetId: ssId, title: null, error: (e as Error).message };
+    return { mode, year, sheetId: ssId, title: null, error: (e as Error).message };
   }
 }

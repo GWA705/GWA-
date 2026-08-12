@@ -35,9 +35,25 @@ export interface CustomerLine {
 }
 export interface StoreBlock {
   store: string;
+  label: string;
   lines: CustomerLine[];
   total: number;
   count: number;
+}
+
+function deriveStoreName(hdStoreRaw: string): string {
+  const stripped = hdStoreRaw
+    .replace(/\d{3,}/g, '')
+    .replace(/[-–—#]/g, ' ')
+    .replace(/\bstore\b/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!stripped) return '';
+  return stripped
+    .toLowerCase()
+    .split(' ')
+    .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : w))
+    .join(' ');
 }
 export interface StoreWeekReport {
   office: Office | null;
@@ -64,13 +80,26 @@ export async function buildStoreWeekReport(dealerId: string, asOf: Date = new Da
 
   const deals = allDeals.filter((d) => mine(d) && inWeek(d) && active(d));
 
+  // Store names: Admin → Dealers name, else derived from the journal HD Store label.
+  const derivedNames: Record<string, string> = {};
+  for (const d of deals) {
+    if (d.storeNumber && !derivedNames[d.storeNumber] && d.hdStore) {
+      const nm = deriveStoreName(d.hdStore);
+      if (nm) derivedNames[d.storeNumber] = nm;
+    }
+  }
+  const labelFor = (num: string): string => {
+    const nm = office?.storeNames[num] || derivedNames[num] || '';
+    return nm ? `${num} — ${nm}` : num;
+  };
+
   const byStore = new Map<string, StoreBlock>();
-  for (const s of office?.storeNumbers ?? []) byStore.set(s, { store: s, lines: [], total: 0, count: 0 });
+  for (const s of office?.storeNumbers ?? []) byStore.set(s, { store: s, label: labelFor(s), lines: [], total: 0, count: 0 });
   for (const d of deals) {
     const store = d.storeNumber || d.hdStore || 'Unknown';
     let block = byStore.get(store);
     if (!block) {
-      block = { store, lines: [], total: 0, count: 0 };
+      block = { store, label: labelFor(store), lines: [], total: 0, count: 0 };
       byStore.set(store, block);
     }
     block.lines.push({

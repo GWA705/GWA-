@@ -20,7 +20,7 @@ function Row({ r, bold }: { r: StoreRow; bold?: boolean }) {
   const cell = 'px-2 py-2 text-right tabular-nums';
   return (
     <tr className={bold ? 'bg-slate-800' : 'border-t border-gray-100'}>
-      <td className={`px-3 py-2 text-left ${bold ? 'font-bold text-white' : 'font-semibold text-gray-900'}`}>{r.store}</td>
+      <td className={`px-3 py-2 text-left ${bold ? 'font-bold text-white' : 'font-semibold text-gray-900'}`}>{r.label}</td>
       <td className={`${cell} ${base}`}>{money(r.prevMonth)}</td>
       <td className={`${cell} ${bold ? 'text-white' : 'font-semibold text-gray-900'}`}>{money(r.curMonth)}</td>
       <td className={cell}>
@@ -100,7 +100,7 @@ export function MonthlyReportView({ report }: { report: OfficeMonthlyReport }) {
           <div className="divide-y divide-amber-100">
             {report.pending.map((p) => (
               <div key={p.store} className="flex items-center justify-between px-4 py-2 text-sm">
-                <span className="font-semibold text-amber-900">{p.store}</span>
+                <span className="font-semibold text-amber-900">{p.label}</span>
                 <span className="tabular-nums text-amber-800">
                   {money2(p.amount)} <span className="text-amber-500">({p.count})</span>
                 </span>
