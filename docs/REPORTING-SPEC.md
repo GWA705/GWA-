@@ -46,3 +46,43 @@ dealer-facing "My Reports" (an office sees only its own numbers).
 - Reviewing the office's existing Google Apps Script reports (code + screenshots)
   to match their current metric definitions and layout exactly, then folding
   those definitions into this spec before building.
+
+---
+
+## Learned from the existing Apps Script (GWA_Weekly.gs v7.10)
+
+The current reports read the **Google Sheets journals** (2026 + 2025) directly and
+email branded HTML. Key definitions to mirror so portal numbers tie out:
+
+**A "confirmed sale" (what counts):**
+- Valid HD ref: starts `800` OR matches `^7\d{2}` (7xx = "Associate / Online Lead",
+  vs 800 = regular — badged differently).
+- `RESULT` column (col Q/17) === **`OK`** (the same Pe/OK→OK status).
+- Has a **Date Paid** (col 18) within the period; per-store weekly also needs a
+  **Date Installed** (col 31).
+- Money **value = col 34** (the receivable / EFT payout), filtered `>= $100`.
+
+**So their money-of-record is the PAID/receivable value, dated by Date Paid** —
+i.e. the portal's `$ paid` metric (payouts by payout date), NOT gross sale. The
+`$ sold` (approved amount, by sale date) is a *booking/pipeline* view they don't
+currently have — the portal adds it.
+
+**The analytics pattern that drives their reports (replicate this):**
+- **This Year vs Last Year** side by side, with **% change** (green +, red −,
+  "New" when LY = 0), at **week / month / YTD** granularity.
+- Grouping: by store → **district/region** (hardcoded store→district map), and a
+  national grand total.
+- Metrics per group: count of confirmed sales (#) and $ value.
+
+**Style to match:** dark navy `#0a1628`, blue `#1a5fa8`, orange `#e07b00`
+accent, logo header, TY/LY cards, district table (LY$/LY#/TY$/TY#/VS-LY/YTD),
+grand-total row.
+
+## The big fork: data source for reports
+- Their reports read the **journals** (years of history → real TY-vs-LY, national
+  totals, receivable values).
+- The portal DB only has deals **entered through the portal** (no last-year data
+  until it accumulates; no deals that never went through the portal).
+- Options: (a) portal-native only (grows over time, no LY yet); (b) portal reads
+  the journal for the money/history (matches current reports exactly); (c) hybrid
+  — portal-native for pipeline/submissions, journal for paid/receivable history.
