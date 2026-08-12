@@ -38,6 +38,7 @@ export default async function DealersPage() {
                 id={d.id}
                 name={d.name}
                 active={d.active}
+                calculatorEnabled={d.calculatorEnabled}
                 canDelete={d._count.users === 0 && d._count.applications === 0}
                 align="start"
               />
@@ -74,6 +75,7 @@ export default async function DealersPage() {
                     id={d.id}
                     name={d.name}
                     active={d.active}
+                    calculatorEnabled={d.calculatorEnabled}
                     canDelete={d._count.users === 0 && d._count.applications === 0}
                   />
                 </td>

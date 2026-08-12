@@ -18,7 +18,7 @@ export function EditUserForm({
   user,
   dealers,
 }: {
-  user: { id: string; name: string; email: string; role: string; dealerId: string | null; isDistributor: boolean };
+  user: { id: string; name: string; email: string; role: string; dealerId: string | null; isDistributor: boolean; canUseCalculator: boolean };
   dealers: { id: string; name: string }[];
 }) {
   const [state, action] = useFormState(updateUserAction.bind(null, user.id), {} as ActionState);
@@ -68,6 +68,19 @@ export function EditUserForm({
                 This person is the <strong>distributor</strong> (owner / main contact) for this dealer
                 <span className="block text-xs text-gray-400">
                   Same access as a dealer user — flagged as the owner so you can send mail to distributors only.
+                </span>
+              </span>
+            </label>
+          </div>
+        )}
+        {role === 'DEALER_USER' && (
+          <div className="sm:col-span-2">
+            <label className="flex items-start gap-2 text-sm text-gray-700">
+              <input type="checkbox" name="canUseCalculator" defaultChecked={user.canUseCalculator} className="mt-0.5 rounded border-gray-300" />
+              <span>
+                Give this person the <strong>payout calculator</strong>
+                <span className="block text-xs text-gray-400">
+                  Or turn it on for the whole dealership from Admin → Dealers (the “Calc” button).
                 </span>
               </span>
             </label>

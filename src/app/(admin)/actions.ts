@@ -282,6 +282,7 @@ export async function updateUserAction(
     role: typeof d.role;
     dealerId: string | null;
     isDistributor: boolean;
+    canUseCalculator: boolean;
     passwordHash?: string;
     passwordChangedAt?: Date | null;
     tokenVersion?: { increment: number };
@@ -293,6 +294,8 @@ export async function updateUserAction(
     dealerId: d.dealerId || null,
     // Distributor (owner / main contact) applies only to dealer users.
     isDistributor: d.role === 'DEALER_USER' && formData.get('isDistributor') === 'on',
+    // Per-user grant for the payout calculator.
+    canUseCalculator: formData.get('canUseCalculator') === 'on',
   };
 
   if (d.newPassword && d.newPassword.trim()) {
@@ -374,6 +377,16 @@ export async function toggleDealerActiveAction(dealerId: string): Promise<void> 
   if (!dealer) return;
   await prisma.dealer.update({ where: { id: dealerId }, data: { active: !dealer.active } });
   await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'Dealer', entityId: dealerId, detail: `active=${!dealer.active} (${dealer.active ? 'archived' : 'unarchived'})` });
+  revalidatePath('/admin/dealers');
+}
+
+// Give / revoke the payout calculator for a whole dealership (all its users).
+export async function toggleDealerCalculatorAction(dealerId: string): Promise<void> {
+  const session = await requireAdminSection('dealers');
+  const dealer = await prisma.dealer.findUnique({ where: { id: dealerId }, select: { calculatorEnabled: true } });
+  if (!dealer) return;
+  await prisma.dealer.update({ where: { id: dealerId }, data: { calculatorEnabled: !dealer.calculatorEnabled } });
+  await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'Dealer', entityId: dealerId, detail: `calculator=${!dealer.calculatorEnabled}` });
   revalidatePath('/admin/dealers');
 }
 

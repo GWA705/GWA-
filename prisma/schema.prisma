@@ -257,6 +257,9 @@ model Dealer {
   name      String
   type      DealerType @default(DEALER)
   active    Boolean    @default(true)
+  // Give every user at this dealership the payout calculator (per-user grants
+  // via User.canUseCalculator still work on top of this).
+  calculatorEnabled Boolean @default(false)
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 
@@ -324,6 +327,9 @@ model User {
   // targeted separately (e.g. mail sent to owners only). Only meaningful for
   // DEALER_USER; always false for internal staff.
   isDistributor Boolean @default(false)
+  // Per-user grant for the dealer payout calculator. Access is also granted at
+  // the dealer level (Dealer.calculatorEnabled) — a user has it if either is on.
+  canUseCalculator Boolean @default(false)
 
   // Profile & notification preferences
   phone             String?
