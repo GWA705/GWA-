@@ -158,3 +158,84 @@ January), same month last year, YTD this year (Jan→month), YTD last year.
 
 **Cadence:** monthly, 15th ~8:30am, for the previous month; internal copy to
 leadership, live copy to the location's own contacts + CC/BCC.
+
+---
+
+## Exact definitions from the Weekly Snapshot v8 (leadership "JJ + Sean" report)
+
+This is the **company-wide weekly snapshot** (dashboard-card email), distinct from
+the per-office monthly report above. Leadership-only. Supersedes v7.10.
+
+**Two report worlds, split on every screen — replicate this split:**
+- **Home Depot Program** (`isHD` = the HD Ref# is all digits, ≥ 6 of them) vs
+  **GWA Outside-HD** (everything else). Every stat block, funnel, financing chart
+  and pending list is computed twice, once per world.
+
+**Money basis here = GROSS SALE (`gross`), dated by DATE OF SALE.** Note the
+deliberate contrast with the monthly location report, which uses **paid
+receivable by Date Paid**. The portal must keep BOTH and label them clearly:
+`$ sold` (gross, by sale date — this weekly snapshot) and `$ paid` (receivable,
+by paid date — the monthly report). Gross is derived as `net sale + tax` when the
+gross cell is blank; a `#N/A`/`#REF!` formula error is flagged, not derived.
+
+**Result normalization (canonical set = OK / PE/OK / RB):**
+- `PEOK`, `PE` → `PE/OK` (pending / awaiting install).
+- `RD`, `BR`, `TD`, `PE/TD` → `RB` (customer-cancelled / dead — excluded from money).
+- `OK` = confirmed. A week's "deals" = rows with result `OK` **or** `PE/OK`.
+
+**Time windows (all Mon–Sun):** the week that just ended (trigger fires Mon 7am,
+steps back 1 day first); previous week (−7d); same week last year (−364d); plus
+MTD, YTD, and all-pending. Trailing-3-month monthly average drives a **"% of
+pace"** figure (MTD gross ÷ trailing avg).
+
+**Top stat strip (5 tiles):** Sold this week · Month to date · Year to date ·
+**Barrie — pending payment** · % of 3-mo pace. Highlight line: ▲/▼ % vs last week,
+same-week-last-year $, top location, top financing company.
+
+**"Pending payment" (distinct from PE/OK pending-install!):** a Barrie-location
+deal where **Date Paid (col R) is still blank** and result ≠ `RB` — money owed but
+not yet landed, *regardless* of OK/PE status. Keep this metric separate from the
+PE/OK awaiting-install bucket; they answer different questions ("who do we still
+owe?" vs "what's booked but not installed?").
+
+**Deal-status funnel (per world):** Confirmed (OK, this month) → Pending (PE/OK not
+yet aged) → **Aging risk** (PE/OK past the warn threshold). `PENDING_WARN_WEEKS = 2`,
+`PENDING_ALERT_WEEKS = 4`. Aging deals get a solid-fill "N WKS" badge + row link.
+
+**Pending buckets by sale month:** this month / last month / older, each $ + count.
+
+**Financing normalization (buckets to mirror):** HDFINIT, GHSFINIT, HDUEI, HDCC,
+GoodHome, Enercare, Project Loan (HD-only), Cash/Cheque/Etransfer, Credit Card.
+Bare `FINIT` resolves by `isHD` (→ HDFINIT if HD, else GHSFINIT). Blank financing
+on an OK deal with a cash amount → Cash/Cheque/Etransfer; blank with no cash on an
+OK deal is flagged as a data gap.
+
+**Source categories (from HD Ref#):** HD Program (numeric), FNR (New Recruit),
+Service, Retest, Home Show, Office/Personal, Referral, Non-HD (Other), GHS Direct.
+
+**Financing totals table:** per company, This Week (count + $) / MTD $ / YTD $,
+sorted by YTD.
+
+**Data Health Check (a real feature to port, not just email chrome):** as it reads
+the journal it logs data-quality issues — unrecognized result, unreadable date,
+unrecognized HD Ref#/financing, missing/underivable gross, **broken formula in the
+journal**, OK deal missing financing, Project Loan without an HD number — and the
+values it auto-derived (gross from Net+Tax). In the portal this becomes an admin
+**"Journal data issues"** panel (count by type + drill-through), so bad journal
+rows surface instead of silently skewing the numbers.
+
+**Cadence:** weekly, Monday ~7am, for the week that just ended; leadership only.
+
+---
+
+## Three report shapes to build (consolidated)
+
+1. **Monthly per-office performance** (location report v8.0) — office managers +
+   admins; distributor sees own office. Money = paid receivable by Date Paid.
+2. **Weekly company snapshot** (snapshot v8) — leadership only (Sean + JJ). Money =
+   gross by sale date; HD vs Outside-HD split; funnel + aging + data-health.
+3. **Weekly per-store customer detail** (the AIRDRIE-style email) — that store +
+   admins; per-customer line items (name, $), store total.
+
+All three share: OK vs PE/OK classification, TY-vs-LY % comparisons, the navy/blue
+palette, and journal-as-money-source (hybrid: portal for live pipeline).
