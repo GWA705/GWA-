@@ -3,7 +3,10 @@ import { notFound } from 'next/navigation';
 import { requireRole } from '@/lib/session';
 import { canViewReportsArea } from '@/lib/reporting/access';
 import { journalDiagnostics } from '@/lib/reporting/journalRead';
+import { journalWriteTarget } from '@/lib/journal';
+import { isAdmin } from '@/lib/rbac';
 import { CopyField } from './CopyField';
+import { WriteModeToggle } from './WriteModeToggle';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,7 +16,11 @@ export default async function JournalConnectionPage() {
 
   const currentYear = new Date().getFullYear();
   const years = [currentYear - 1, currentYear, currentYear + 1];
-  const diag = await journalDiagnostics(years);
+  const admin = isAdmin(user);
+  const [diag, writeTarget] = await Promise.all([
+    journalDiagnostics(years),
+    admin ? journalWriteTarget() : Promise.resolve(null),
+  ]);
 
   return (
     <div className="max-w-2xl space-y-5">
@@ -50,6 +57,35 @@ export default async function JournalConnectionPage() {
           </p>
         )}
       </div>
+
+      {/* Write target (admins only) */}
+      {admin && writeTarget && (
+        <div className="rounded-xl border border-gray-200 bg-white p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-semibold text-gray-900">Where new deals are written</h2>
+              <p className="mt-1 text-xs text-gray-500">
+                Reports always read the <strong>live</strong> journal. This only controls where the &ldquo;Write to
+                Journal&rdquo; button saves deals — keep it on Test until you&apos;re ready to write to the real sheet.
+              </p>
+            </div>
+            <WriteModeToggle mode={writeTarget.mode} />
+          </div>
+          <div className="mt-3 rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-600">
+            {writeTarget.error ? (
+              <span className="text-red-600">Couldn&apos;t open the write target: {writeTarget.error}</span>
+            ) : (
+              <>
+                Currently writing to:{' '}
+                <strong className={writeTarget.mode === 'live' ? 'text-emerald-700' : 'text-slate-800'}>
+                  {writeTarget.mode === 'live' ? 'LIVE' : 'TEST'}
+                </strong>{' '}
+                — <span className="font-medium">{writeTarget.title}</span>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Per-year status */}
       <div className="rounded-xl border border-gray-200 bg-white">

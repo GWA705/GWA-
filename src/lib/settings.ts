@@ -34,6 +34,22 @@ export const MARKETPLACE_SETTING_KEYS = {
   orderEmail: 'marketplace.orderEmail',
 } as const;
 
+// Which 2026 journal the "Write to Journal" feature writes to: the safe TEST
+// journal (default, env JOURNAL_SHEET_ID) or the real LIVE journal
+// (env JOURNAL_SHEET_ID_2026). Reporting always reads the live journal — this
+// toggle only controls the WRITE target, so deals can keep landing in the test
+// sheet until the cutover.
+export const JOURNAL_SETTING_KEYS = {
+  writeMode: 'journal.writeMode',
+} as const;
+
+export type JournalWriteMode = 'test' | 'live';
+
+export async function getJournalWriteMode(): Promise<JournalWriteMode> {
+  const v = await getSetting(JOURNAL_SETTING_KEYS.writeMode);
+  return v === 'live' ? 'live' : 'test';
+}
+
 export async function getMfaRequirement(): Promise<MfaRequirement> {
   const v = await getSetting(SECURITY_SETTING_KEYS.mfaRequirement);
   return v === 'staff' || v === 'off' ? v : 'everyone';

@@ -34,9 +34,22 @@ export function journalEnabled(): boolean {
   );
 }
 
-function sheetId(): string {
-  const id = process.env.JOURNAL_SHEET_ID;
-  if (!id) throw new Error('JOURNAL_SHEET_ID is not set.');
+/**
+ * Resolve which journal spreadsheet the WRITE path targets, honoring the admin
+ * "write mode" toggle:
+ *   - 'test' (default): the safe test journal (JOURNAL_SHEET_ID).
+ *   - 'live': the real 2026 journal (JOURNAL_SHEET_ID_2026, falling back to
+ *     JOURNAL_SHEET_ID if that isn't separately set).
+ * Reporting reads are unaffected — they always use the live journal.
+ */
+async function resolveWriteSheetId(): Promise<string> {
+  const { getJournalWriteMode } = await import('./settings');
+  const mode = await getJournalWriteMode();
+  const id =
+    mode === 'live'
+      ? process.env.JOURNAL_SHEET_ID_2026 || process.env.JOURNAL_SHEET_ID
+      : process.env.JOURNAL_SHEET_ID;
+  if (!id) throw new Error('No journal spreadsheet is configured (JOURNAL_SHEET_ID).');
   return id;
 }
 
@@ -149,9 +162,10 @@ export interface JournalLayout {
 async function readLayout(
   sheets: sheets_v4.Sheets,
   tab: string,
+  spreadsheetId: string,
 ): Promise<JournalLayout> {
   const res = await sheets.spreadsheets.values.get({
-    spreadsheetId: sheetId(),
+    spreadsheetId,
     range: `'${tab}'!A1:BZ500`,
     valueRenderOption: 'FORMATTED_VALUE',
   });
@@ -276,10 +290,11 @@ export interface JournalResult {
  */
 export async function writeDealToJournal(deal: JournalDeal): Promise<JournalResult> {
   const sheets = await sheetsClient();
+  const ssId = await resolveWriteSheetId();
 
   // Resolve the month tab from the sale date.
   const meta = await sheets.spreadsheets.get({
-    spreadsheetId: sheetId(),
+    spreadsheetId: ssId,
     fields: 'sheets.properties.title',
   });
   const titles = (meta.data.sheets || [])
@@ -291,7 +306,7 @@ export async function writeDealToJournal(deal: JournalDeal): Promise<JournalResu
     throw new Error(`No journal tab found for ${wanted}. Tabs present: ${titles.join(', ')}.`);
   }
 
-  const layout = await readLayout(sheets, tab);
+  const layout = await readLayout(sheets, tab, ssId);
   const row = chooseRow(layout, {
     lastName: deal.lastName,
     hdRef: deal.hdReference,
@@ -335,7 +350,7 @@ export async function writeDealToJournal(deal: JournalDeal): Promise<JournalResu
 
   if (data.length > 0) {
     await sheets.spreadsheets.values.batchUpdate({
-      spreadsheetId: sheetId(),
+      spreadsheetId: ssId,
       requestBody: { valueInputOption: 'USER_ENTERED', data },
     });
   }
@@ -349,12 +364,40 @@ export async function writeDealToJournal(deal: JournalDeal): Promise<JournalResu
  */
 export async function journalPing(): Promise<{ title: string; tabs: string[] }> {
   const sheets = await sheetsClient();
+  const ssId = await resolveWriteSheetId();
   const meta = await sheets.spreadsheets.get({
-    spreadsheetId: sheetId(),
+    spreadsheetId: ssId,
     fields: 'properties.title,sheets.properties.title',
   });
   return {
     title: meta.data.properties?.title || '(untitled)',
     tabs: (meta.data.sheets || []).map((s) => s.properties?.title || '').filter(Boolean),
   };
+}
+
+/**
+ * Describe the current WRITE target (for the admin journal-connection screen):
+ * the mode, the resolved spreadsheet id, and its live title. Read-only.
+ */
+export async function journalWriteTarget(): Promise<{
+  mode: 'test' | 'live';
+  sheetId: string | null;
+  title: string | null;
+  error?: string;
+}> {
+  const { getJournalWriteMode } = await import('./settings');
+  const mode = await getJournalWriteMode();
+  let ssId: string | null = null;
+  try {
+    ssId = await resolveWriteSheetId();
+  } catch (e) {
+    return { mode, sheetId: null, title: null, error: (e as Error).message };
+  }
+  try {
+    const sheets = await sheetsClient();
+    const meta = await sheets.spreadsheets.get({ spreadsheetId: ssId, fields: 'properties.title' });
+    return { mode, sheetId: ssId, title: meta.data.properties?.title || '(untitled)' };
+  } catch (e) {
+    return { mode, sheetId: ssId, title: null, error: (e as Error).message };
+  }
 }
