@@ -39,6 +39,53 @@ function Row({ r, bold }: { r: StoreRow; bold?: boolean }) {
   );
 }
 
+function PendingBlock({
+  title,
+  subtitle,
+  rows,
+  total,
+  byMonth,
+}: {
+  title: string;
+  subtitle: string;
+  rows: { store: string; label: string; amount: number; count: number }[];
+  total: number;
+  byMonth?: { label: string; total: number; count: number }[];
+}) {
+  return (
+    <div className="overflow-hidden rounded-xl border border-amber-200 bg-amber-50">
+      <div className="border-b border-amber-200 px-4 py-2.5">
+        <h3 className="text-sm font-bold text-amber-900">{title}</h3>
+        <p className="text-xs text-amber-700">{subtitle}</p>
+      </div>
+      {byMonth && byMonth.length > 0 && (
+        <div className="flex flex-wrap gap-2 border-b border-amber-100 bg-amber-100/50 px-4 py-2">
+          {byMonth.map((m) => (
+            <span key={m.label} className="rounded-full bg-white/70 px-2.5 py-1 text-xs text-amber-900">
+              {m.label}: <span className="font-semibold tabular-nums">{money2(m.total)}</span>{' '}
+              <span className="text-amber-500">({m.count})</span>
+            </span>
+          ))}
+        </div>
+      )}
+      <div className="divide-y divide-amber-100">
+        {rows.map((p) => (
+          <div key={p.store} className="flex items-center justify-between px-4 py-2 text-sm">
+            <span className="font-semibold text-amber-900">{p.label}</span>
+            <span className="tabular-nums text-amber-800">
+              {money2(p.amount)} <span className="text-amber-500">({p.count})</span>
+            </span>
+          </div>
+        ))}
+        <div className="flex items-center justify-between bg-amber-100 px-4 py-2 text-sm font-bold text-amber-900">
+          <span>Total pending</span>
+          <span className="tabular-nums">{money2(total)}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function MonthlyReportView({ report }: { report: OfficeMonthlyReport }) {
   const t = report.ytd;
   return (
@@ -90,28 +137,25 @@ export function MonthlyReportView({ report }: { report: OfficeMonthlyReport }) {
         </div>
       </div>
 
-      {/* PE/OK pending block */}
-      {report.pending.length > 0 && (
-        <div className="overflow-hidden rounded-xl border border-amber-200 bg-amber-50">
-          <div className="border-b border-amber-200 px-4 py-2.5">
-            <h3 className="text-sm font-bold text-amber-900">PE/OK — Pending installation</h3>
-            <p className="text-xs text-amber-700">Approved &amp; awaiting install — not included in the totals above.</p>
-          </div>
-          <div className="divide-y divide-amber-100">
-            {report.pending.map((p) => (
-              <div key={p.store} className="flex items-center justify-between px-4 py-2 text-sm">
-                <span className="font-semibold text-amber-900">{p.label}</span>
-                <span className="tabular-nums text-amber-800">
-                  {money2(p.amount)} <span className="text-amber-500">({p.count})</span>
-                </span>
-              </div>
-            ))}
-            <div className="flex items-center justify-between bg-amber-100 px-4 py-2 text-sm font-bold text-amber-900">
-              <span>Total pending</span>
-              <span className="tabular-nums">{money2(report.pendingTotal)}</span>
-            </div>
-          </div>
-        </div>
+      {/* PE/OK pending — this month */}
+      {report.pendingThisMonth.length > 0 && (
+        <PendingBlock
+          title="PE/OK — Pending installation (this month)"
+          subtitle="Sold this month, awaiting install — not included in the totals above."
+          rows={report.pendingThisMonth}
+          total={report.pendingThisMonthTotal}
+        />
+      )}
+
+      {/* PE/OK pending — earlier months, still outstanding */}
+      {report.pendingEarlier.length > 0 && (
+        <PendingBlock
+          title="PE/OK — Pending from earlier months"
+          subtitle="Sold in a previous month and still awaiting install."
+          rows={report.pendingEarlier}
+          total={report.pendingEarlierTotal}
+          byMonth={report.pendingEarlierByMonth}
+        />
       )}
 
       {/* YTD summary tiles */}

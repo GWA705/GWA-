@@ -39,12 +39,25 @@ export interface OfficeMonthlyReport {
   monthIndex: number;
   stores: StoreRow[];
   total: StoreRow;
-  pending: { store: string; label: string; amount: number; count: number }[];
-  pendingTotal: number;
+  // PE/OK awaiting installation, attributed by SALE month:
+  //  - pendingThisMonth: sold in the month being reported.
+  //  - pendingEarlier: sold in an earlier month and still not installed.
+  pendingThisMonth: PendingStore[];
+  pendingThisMonthTotal: number;
+  pendingEarlier: PendingStore[];
+  pendingEarlierTotal: number;
+  pendingEarlierByMonth: { label: string; total: number; count: number }[];
   ytd: { ty: number; ly: number; pct: number | null; gap: number };
   deadStores: string[];
   configured: boolean;
   error?: string;
+}
+
+export interface PendingStore {
+  store: string;
+  label: string;
+  amount: number;
+  count: number;
 }
 
 function pct(cur: number, base: number): number | null {
@@ -210,20 +223,46 @@ export async function buildOfficeMonthlyReport(
     ytdPct: pct(totalYtdTy, totalYtdLy),
   };
 
-  // PE/OK pending — awaiting installation, current outstanding, by store.
-  const pendMap = new Map<string, { amount: number; count: number }>();
+  // PE/OK pending — awaiting installation — attributed by SALE month. Split into
+  // deals sold in the reported month vs still-outstanding deals sold earlier.
+  // Pendings sold AFTER the reported month are excluded (not yet relevant to it).
+  const pendThis = new Map<string, { amount: number; count: number }>();
+  const pendEarlier = new Map<string, { amount: number; count: number }>();
+  const pendEarlierMonth = new Map<string, { total: number; count: number; sort: number }>();
+  const bump = (m: Map<string, { amount: number; count: number }>, store: string, amt: number) => {
+    const e = m.get(store) || { amount: 0, count: 0 };
+    e.amount += amt;
+    e.count += 1;
+    m.set(store, e);
+  };
   for (const d of officeDeals) {
     if (d.result !== 'PE/OK') continue;
+    if (!d.date || d.date > monthEnd) continue; // ignore pendings sold after the reported month
     const store = d.storeNumber || d.hdStore || 'Unknown';
-    const e = pendMap.get(store) || { amount: 0, count: 0 };
-    e.amount += d.gross;
-    e.count += 1;
-    pendMap.set(store, e);
+    if (d.date >= monthStart) {
+      bump(pendThis, store, d.gross);
+    } else {
+      bump(pendEarlier, store, d.gross);
+      const label = d.date.toLocaleString('en-US', { month: 'short', year: 'numeric' });
+      const em = pendEarlierMonth.get(label) || { total: 0, count: 0, sort: d.date.getFullYear() * 12 + d.date.getMonth() };
+      em.total += d.gross;
+      em.count += 1;
+      pendEarlierMonth.set(label, em);
+    }
   }
-  const pending = Array.from(pendMap.entries())
-    .map(([store, v]) => ({ store, label: labelFor(store), amount: v.amount, count: v.count }))
-    .sort((a, b) => b.amount - a.amount);
-  const pendingTotal = pending.reduce((acc, p) => acc + p.amount, 0);
+  const toPendingArr = (m: Map<string, { amount: number; count: number }>): PendingStore[] =>
+    Array.from(m.entries())
+      .map(([store, v]) => ({ store, label: labelFor(store), amount: v.amount, count: v.count }))
+      .sort((a, b) => b.amount - a.amount);
+
+  const pendingThisMonth = toPendingArr(pendThis);
+  const pendingEarlier = toPendingArr(pendEarlier);
+  const pendingThisMonthTotal = pendingThisMonth.reduce((acc, p) => acc + p.amount, 0);
+  const pendingEarlierTotal = pendingEarlier.reduce((acc, p) => acc + p.amount, 0);
+  const pendingEarlierByMonth = Array.from(pendEarlierMonth.entries())
+    .map(([label, v]) => ({ label, total: v.total, count: v.count, sort: v.sort }))
+    .sort((a, b) => b.sort - a.sort)
+    .map(({ label, total, count }) => ({ label, total, count }));
 
   const deadStores = stores.filter((r) => r.curMonth === 0).map((r) => r.label);
 
@@ -234,8 +273,11 @@ export async function buildOfficeMonthlyReport(
     monthIndex,
     stores,
     total,
-    pending,
-    pendingTotal,
+    pendingThisMonth,
+    pendingThisMonthTotal,
+    pendingEarlier,
+    pendingEarlierTotal,
+    pendingEarlierByMonth,
     ytd: { ty: totalYtdTy, ly: totalYtdLy, pct: pct(totalYtdTy, totalYtdLy), gap: totalYtdTy - totalYtdLy },
     deadStores,
     configured,
