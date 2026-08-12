@@ -15,7 +15,7 @@
 export const PAYOUT_RATES = {
   hdDiscount: 0.13, // "HD DISCOUNT - 13%"
   ibxDiscount: 0.0125, // "HD IBX DISCOUNT - 1.25%"
-  hdProgram: 0.04, // "HD PROGRAM - 4%" (of the gross total with tax)
+  hdProgram: 0.04, // "HD PROGRAM - 4%" (of the pre-tax subtotal)
 } as const;
 
 // Province sales-tax rates used to strip/re-add tax. NS is 14% (HST reduced
@@ -69,21 +69,24 @@ export interface PayoutBreakdown {
   taxRate: number;
   taxRateAssumed: boolean; // true when the province was unknown and ON's rate was used
   totalWithTax: number;
-  subtotal: number;
+  subtotal: number; // pre-tax
   hdDiscount: number;
   afterHd: number;
   ibxDiscount: number;
   afterIbx: number;
-  hdProgram: number;
-  payout: number;
+  hdProgram: number; // 4% of the pre-tax subtotal
+  netPreTax: number; // afterIbx − hdProgram (the pre-tax payout)
+  hst: number; // tax on the net pre-tax payout
+  payout: number; // netPreTax + hst — the EFT amount, tax included
   warning?: string;
 }
 
 /**
  * Compute the dealer EFT payout from the total sale (with tax) and province.
- * Returns the full breakdown so it can be shown/verified. `ok` is false only for
- * a non-positive amount; an unknown province still computes (ON rate assumed)
- * with `taxRateAssumed` + a warning, since the tax barely affects the result.
+ * Mirrors the live HD calculator to the cent: strip tax to a pre-tax subtotal,
+ * apply the HD (13%), IBX (1.25%) and HD-program (4% of subtotal) deductions on
+ * the pre-tax figures, then add the province tax back onto the net.
+ * Returns the full breakdown so dealers can see exactly how the payout is built.
  */
 export function computeDealerPayout(totalWithTax: number, province: string | null | undefined): PayoutBreakdown {
   const code = provinceCode(province);
@@ -102,6 +105,8 @@ export function computeDealerPayout(totalWithTax: number, province: string | nul
     ibxDiscount: 0,
     afterIbx: 0,
     hdProgram: 0,
+    netPreTax: 0,
+    hst: 0,
     payout: 0,
   };
 
@@ -114,8 +119,10 @@ export function computeDealerPayout(totalWithTax: number, province: string | nul
   const afterHd = round2(subtotal - hdDiscount);
   const ibxDiscount = round2(afterHd * PAYOUT_RATES.ibxDiscount);
   const afterIbx = round2(afterHd - ibxDiscount);
-  const hdProgram = round2(totalWithTax * PAYOUT_RATES.hdProgram);
-  const payout = round2(afterIbx * (1 + taxRate) - hdProgram);
+  const hdProgram = round2(subtotal * PAYOUT_RATES.hdProgram); // 4% of the pre-tax subtotal
+  const netPreTax = round2(afterIbx - hdProgram);
+  const hst = round2(netPreTax * taxRate);
+  const payout = round2(netPreTax + hst);
 
   return {
     ...base,
@@ -126,6 +133,8 @@ export function computeDealerPayout(totalWithTax: number, province: string | nul
     ibxDiscount,
     afterIbx,
     hdProgram,
+    netPreTax,
+    hst,
     payout,
     warning: taxRateAssumed ? `Unknown province “${province}” — used Ontario's 13% rate.` : undefined,
   };

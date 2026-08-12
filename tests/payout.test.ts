@@ -10,8 +10,23 @@ describe('computeDealerPayout', () => {
     expect(r.afterHd).toBe(3545.25);
     expect(r.ibxDiscount).toBe(44.32);
     expect(r.afterIbx).toBe(3500.93);
-    expect(r.hdProgram).toBe(187.45);
+    expect(r.hdProgram).toBe(163.0); // 4% of the pre-tax subtotal (4075)
+    expect(r.netPreTax).toBe(3337.93);
+    expect(r.hst).toBe(500.69);
     expect(r.payout).toBe(3838.62);
+  });
+
+  it('matches the live Ontario calculator example to the cent', () => {
+    const r = computeDealerPayout(12033.37, 'ON');
+    expect(r.subtotal).toBe(10649.0);
+    expect(r.hdDiscount).toBe(1384.37);
+    expect(r.afterHd).toBe(9264.63);
+    expect(r.ibxDiscount).toBe(115.81);
+    expect(r.afterIbx).toBe(9148.82);
+    expect(r.hdProgram).toBe(425.96); // 4% of 10649.00 — matches the live calc
+    expect(r.netPreTax).toBe(8722.86);
+    expect(r.hst).toBe(1133.97);
+    expect(r.payout).toBe(9856.83);
   });
 
   it('uses 14% for Nova Scotia (not 15%)', () => {
