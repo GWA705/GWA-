@@ -86,3 +86,39 @@ grand-total row.
 - Options: (a) portal-native only (grows over time, no LY yet); (b) portal reads
   the journal for the money/history (matches current reports exactly); (c) hybrid
   — portal-native for pipeline/submissions, journal for paid/receivable history.
+
+---
+
+## Target layout: per-office "Monthly Performance Report" (the Barrie example)
+
+This is the format to reproduce in the portal for each office (a distributor/
+leadership view). One office (e.g. "Barrie"), broken down by its HD stores.
+
+**Header:** office name, "July 2026 · Monthly Performance Report", "GWA HD HOME
+SERVICE" badge; an "INTERNAL COPY — not sent to …" note on the leadership copy.
+
+**Main table — one row per HD store, three comparison blocks:**
+- **Month over Month:** prev month $, current month $, **M/M %**.
+- **Vs Last Year:** same month LY $, **Y/Y %** ("New" when LY = 0).
+- **Year to Date:** TY $, LY $, **YTD %**.
+- **Location Total** row across all stores (e.g. June $194,190.94 → July
+  $162,270.51, M/M −16.4%; YTD TY $1,403,731.09 vs LY $1,344,411.47, +4.4%).
+
+**PE/OK — Pending Installation block** (below the totals, amber): each store with
+$ **awaiting installation**, and a **Total Pending** — explicitly *not included in
+the OK totals above*. (This is the portal's pipeline: Pe/OK = approved/awaiting
+install, i.e. money booked but not yet paid.)
+
+**Year-to-Date summary:** Jan→period end — TY 2026, LY 2025, TY-vs-LY, dollar gap.
+
+**Styling:** navy header, light table, green +% / red −% / green "New", bold
+current-period column, shaded YTD block, dark total row.
+
+**Access:** this internal copy = leadership (Sean + JJ / super-admin). A
+distributor sees the same layout for **their own office only**.
+
+## Money & pipeline mapping (confirmed)
+- Store/office $ = **paid receivable, RESULT = OK, by Date Paid** (journal / portal
+  payouts).
+- Pending = **Pe/OK (awaiting installation)** $, shown separately, not in OK total.
+- Comparisons: **M/M, Y/Y, YTD** with % change — the core of every report.
