@@ -467,3 +467,89 @@ export async function readJournal(year: number, force = false): Promise<JournalR
 export function clearJournalCache(): void {
   _cache.clear();
 }
+
+// ---------------------------------------------------------------------------
+// Connection diagnostics (admin "Test journal connection")
+// ---------------------------------------------------------------------------
+
+export interface JournalYearStatus {
+  year: number;
+  configured: boolean; // an id is set for this year
+  ok: boolean; // we could open + read it
+  title?: string; // spreadsheet title
+  monthTabs?: number; // count of month tabs found
+  totalTabs?: number;
+  error?: string;
+}
+
+export interface JournalDiagnostics {
+  hasCredentials: boolean;
+  serviceAccountEmail: string | null;
+  years: JournalYearStatus[];
+}
+
+/**
+ * Live connection check used by the admin "Journal connection" page. Reveals the
+ * service-account email (so an admin can share the sheets with it) and, for each
+ * configured year, whether the sheet can be opened and how many month tabs it
+ * has. Bypasses the read cache — always a fresh check.
+ */
+export async function journalDiagnostics(years: number[]): Promise<JournalDiagnostics> {
+  const hasCredentials = Boolean(
+    process.env.GOOGLE_APPLICATION_CREDENTIALS || process.env.GOOGLE_SERVICE_ACCOUNT_JSON,
+  );
+  const out: JournalDiagnostics = { hasCredentials, serviceAccountEmail: null, years: [] };
+  if (!hasCredentials) {
+    out.years = years.map((year) => ({ year, configured: Boolean(sheetIdFor(year)), ok: false, error: 'No Google credentials configured on the server.' }));
+    return out;
+  }
+
+  let sheets: sheets_v4.Sheets;
+  try {
+    sheets = await sheetsClient();
+    // Surface the service-account email so admins know who to share sheets with.
+    const inline = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+    if (inline) {
+      try {
+        out.serviceAccountEmail = JSON.parse(inline).client_email ?? null;
+      } catch {
+        /* ignore */
+      }
+    }
+    if (!out.serviceAccountEmail) {
+      const auth = new google.auth.GoogleAuth({ scopes: SCOPES });
+      const creds = await auth.getCredentials();
+      out.serviceAccountEmail = creds.client_email ?? null;
+    }
+  } catch (e) {
+    out.years = years.map((year) => ({ year, configured: Boolean(sheetIdFor(year)), ok: false, error: `Credentials error: ${(e as Error).message}` }));
+    return out;
+  }
+
+  for (const year of years) {
+    const id = sheetIdFor(year);
+    if (!id) {
+      out.years.push({ year, configured: false, ok: false });
+      continue;
+    }
+    try {
+      const meta = await sheets.spreadsheets.get({
+        spreadsheetId: id,
+        fields: 'properties.title,sheets.properties.title',
+      });
+      const titles = (meta.data.sheets || []).map((s) => s.properties?.title || '').filter(Boolean);
+      const monthTabs = titles.filter((t) => MONTH_TAB_RE.test(t) || MONTH_TAB_RE2.test(t));
+      out.years.push({
+        year,
+        configured: true,
+        ok: true,
+        title: meta.data.properties?.title || '(untitled)',
+        monthTabs: monthTabs.length,
+        totalTabs: titles.length,
+      });
+    } catch (e) {
+      out.years.push({ year, configured: true, ok: false, error: (e as Error).message });
+    }
+  }
+  return out;
+}

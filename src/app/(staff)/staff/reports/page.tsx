@@ -53,9 +53,14 @@ export default async function ReportsLandingPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold text-gray-900">Reports</h1>
-        <p className="mt-1 text-sm text-gray-600">Performance reporting, drawn from the sales journals and the portal pipeline.</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold text-gray-900">Reports</h1>
+          <p className="mt-1 text-sm text-gray-600">Performance reporting, drawn from the sales journals and the portal pipeline.</p>
+        </div>
+        <Link href="/staff/reports/connection" className="btn-secondary text-sm">
+          Journal connection
+        </Link>
       </div>
 
       {!canLeadership && (
