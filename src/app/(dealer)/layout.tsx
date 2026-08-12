@@ -5,6 +5,7 @@ import { AlertModal } from '@/components/AlertModal';
 import { alertWhereForUser } from '@/lib/alerts';
 import { newContentSectionsForUser, unreadMailCountForUser } from '@/lib/inbox';
 import { hasCalculatorAccess } from '@/lib/calculatorAccess';
+import { hasDealerReportAccess } from '@/lib/reporting/access';
 import { prisma } from '@/lib/db';
 import { stopViewAsAction } from '@/app/(admin)/actions';
 
@@ -37,10 +38,11 @@ export default async function DealerLayout({ children }: { children: React.React
   }
 
   // Attention dots: content sections with something new, and unread mail.
-  const [freshSections, unreadMail, calcAccess] = await Promise.all([
+  const [freshSections, unreadMail, calcAccess, reportAccess] = await Promise.all([
     newContentSectionsForUser(user.userId),
     user.dealerId ? unreadMailCountForUser(user.userId, user.dealerId, user.isDistributor) : Promise.resolve(0),
     hasCalculatorAccess(user),
+    hasDealerReportAccess(user),
   ]);
 
   return (
@@ -69,6 +71,7 @@ export default async function DealerLayout({ children }: { children: React.React
           { href: '/dealer/mail', label: 'Mail', badge: unreadMail > 0 },
           { href: '/dealer/marketplace', label: 'Marketplace' },
           ...(calcAccess ? [{ href: '/dealer/calculator', label: 'Calculator' }] : []),
+          ...(reportAccess ? [{ href: '/dealer/reports', label: 'Reports' }] : []),
           {
             label: 'Resources',
             children: [

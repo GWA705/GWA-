@@ -40,12 +40,12 @@ export default async function ReportsLandingPage() {
       available: true,
     },
     {
-      href: '#',
+      href: '/staff/reports/store-week',
       title: 'Weekly Store Detail',
       blurb: 'Per-store customer-level detail for a single week — each deal and its amount, with a store total.',
       accent: '#1a7a4a',
-      badge: 'Coming soon',
-      available: false,
+      badge: 'Per store',
+      available: true,
     },
   ];
 
