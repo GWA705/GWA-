@@ -299,3 +299,34 @@ export async function notifyMailReply(
     console.error('[notify] mail reply failed', e);
   }
 }
+
+/**
+ * Tell admins a dealer has requested new portal logins, so requests don't sit in
+ * the queue unseen. Best-effort email to every active admin; the in-app nav also
+ * badges the "User requests" section.
+ */
+export async function notifyAdminsUserRequest(requestId: string) {
+  try {
+    const req = await prisma.userRequest.findUnique({
+      where: { id: requestId },
+      include: { dealer: { select: { name: true } }, items: { select: { id: true } } },
+    });
+    if (!req) return;
+    const admins = await prisma.user.findMany({ where: { role: 'ADMIN', active: true } });
+    const count = req.items.length;
+    for (const a of admins) {
+      await sendEmail({
+        to: recipientEmail(a),
+        subject: `New login request from ${req.dealer.name}`,
+        html: renderEmail({
+          heading: 'New user request',
+          intro: `${req.dealer.name} has requested ${count} new login${count === 1 ? '' : 's'}. Review and approve them in the portal.`,
+          ctaLabel: 'Review requests',
+          ctaUrl: `${appUrl()}/admin/user-requests`,
+        }),
+      });
+    }
+  } catch (e) {
+    console.error('[notify] user request failed', e);
+  }
+}

@@ -13,11 +13,19 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   // A scoped admin with no back-end access at all doesn't belong in this area.
   if (!hasAnyAdminSection(user)) redirect('/account');
 
+  // Badge the "User requests" tab when dealers have pending requests waiting.
+  const pendingRequests = canAdminSection(user, 'user-requests')
+    ? await prisma.userRequest.count({ where: { status: 'PENDING' } })
+    : 0;
+
   // Build the nav from the sections this admin is actually allowed to see, so a
   // scoped admin never sees a tab they can't open. Route guards enforce it too.
-  const nav = ADMIN_SECTIONS.filter((s) => canAdminSection(user, s.key)).map((s) => ({
+  const nav: { href: string; label: string; badge?: boolean }[] = ADMIN_SECTIONS.filter((s) =>
+    canAdminSection(user, s.key),
+  ).map((s) => ({
     href: s.href,
     label: s.label,
+    badge: s.key === 'user-requests' && pendingRequests > 0,
   }));
   // Only a Super Admin manages other admins' access.
   if (isSuperAdmin(user)) nav.push({ href: '/admin/access', label: 'Admin access' });

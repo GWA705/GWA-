@@ -13,7 +13,7 @@ import { findCardData, CARD_BLOCK_MESSAGE } from '@/lib/cardscan';
 import { storeFiles } from '@/lib/upload';
 import { deleteDocument } from '@/lib/storage';
 import { markDealerAction } from '@/lib/activity';
-import { notifyNewDocuments, notifyNewNote, notifyNewSubmission, notifyFundingSubmitted } from '@/lib/notify';
+import { notifyNewDocuments, notifyNewNote, notifyNewSubmission, notifyFundingSubmitted, notifyAdminsUserRequest } from '@/lib/notify';
 import { applicationSchema, serialNumberSchema } from '@/lib/validation';
 import { mergeProductsSold } from '@/lib/products';
 import { parseDealerProfileForm } from '@/lib/dealerProfile';
@@ -582,6 +582,7 @@ export async function submitUserRequestAction(
     entityId: request.id,
     detail: `${rows.length} user${rows.length === 1 ? '' : 's'} requested`,
   });
+  await notifyAdminsUserRequest(request.id);
   revalidatePath('/dealer/user-requests');
   return { ok: true };
 }
