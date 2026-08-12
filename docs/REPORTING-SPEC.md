@@ -122,3 +122,39 @@ distributor sees the same layout for **their own office only**.
   payouts).
 - Pending = **Pe/OK (awaiting installation)** $, shown separately, not in OK total.
 - Comparisons: **M/M, Y/Y, YTD** with % change — the core of every report.
+
+---
+
+## Exact definitions from GWA HD Location Reports v8.0 (authoritative)
+
+**Status classification (drives OK vs Pending):**
+- `OK` or `O` → **OK** (counts toward the money totals).
+- `PE/OK` / `PEOK` / `PE/O` → **PENDING** (awaiting installation; shown in its own
+  block, NEVER in the OK totals).
+- anything else → ignored. Amount must be `> 0` and not an error (`#`).
+
+**Journal columns (0-based row indices), skip first 5 rows:**
+- 2026 journal: store = 6, result/status = 16, amount = 36.
+- 2025 journal: store = 5, result/status = 19, amount = 20.
+  (Note: the weekly script used a different amount column — confirm which column
+  is the true receivable when we wire the hybrid money source.)
+
+**Grouping:** stores → "location/area" via an internal contact sheet
+(STORE | MANAGER | AREA). A location = a cluster of HD stores (e.g. Barrie =
+7024, 7030, 7135, 7137, 7154, 7164, 7226, 7234, 7244, 7247, 7264). In the portal
+a "location" maps to a dealer/office and its assigned HD stores.
+
+**Periods (all computed per run):** current month, previous month (Dec LY if
+January), same month last year, YTD this year (Jan→month), YTD last year.
+
+**Per-office report contents (mirror exactly):**
+1. Header: office name, "<Month> <Year> · Monthly Performance Report".
+2. Table per HD store: prev-month $, current $, M/M %, LY-month $, Y/Y %, then
+   YTD (TY $, LY $, YTD %). Green +% / red −% / green "New" when LY=0.
+3. Location Total row.
+4. PE/OK Pending Installation block (per store awaiting-install $ + total).
+5. YTD Summary: TY, LY, TY-vs-LY %, Dollar Gap (± vs last-year pace).
+6. "No sales this month" alert list for dead stores.
+
+**Cadence:** monthly, 15th ~8:30am, for the previous month; internal copy to
+leadership, live copy to the location's own contacts + CC/BCC.
