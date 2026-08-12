@@ -13,9 +13,9 @@ const pct = (r: number) => `${(r * 100).toLocaleString('en-CA', { maximumFractio
  * the HD calculator builds it, including the tax — so a dealer's accounting team
  * can enter it into their own system. Includes a copy-to-clipboard export.
  */
-export function DealerCalculator() {
+export function DealerCalculator({ defaultProvince = 'ON' }: { defaultProvince?: string }) {
   const [amount, setAmount] = useState('');
-  const [province, setProvince] = useState('ON');
+  const [province, setProvince] = useState(PROVINCES.includes(defaultProvince) ? defaultProvince : 'ON');
   const [reference, setReference] = useState('');
   const [copied, setCopied] = useState(false);
 
@@ -65,6 +65,7 @@ export function DealerCalculator() {
             </select>
           </div>
         </div>
+        <p className="mt-1 text-xs text-gray-400">Province sets the tax rate — change it for an out-of-province deal.</p>
         <div className="mt-3">
           <label className="label" htmlFor="calc-ref">Reference / deal # <span className="font-normal text-gray-400">(optional, for your records)</span></label>
           <input id="calc-ref" className="input" placeholder="e.g. customer name or deal number" value={reference} onChange={(e) => setReference(e.target.value)} autoComplete="off" />
