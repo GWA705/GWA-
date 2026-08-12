@@ -25,7 +25,7 @@ export default async function EditUserPage({ params }: { params: { id: string } 
       </div>
       <div className="card p-6">
         <EditUserForm
-          user={{ id: user.id, name: user.name, email: user.email, role: user.role, dealerId: user.dealerId, isDistributor: user.isDistributor, canUseCalculator: user.canUseCalculator }}
+          user={{ id: user.id, name: user.name, email: user.email, role: user.role, dealerId: user.dealerId, isDistributor: user.isDistributor, canUseCalculator: user.canUseCalculator, canViewReports: user.canViewReports, canViewLeadershipReport: user.canViewLeadershipReport }}
           dealers={dealers}
         />
       </div>

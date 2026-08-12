@@ -18,7 +18,17 @@ export function EditUserForm({
   user,
   dealers,
 }: {
-  user: { id: string; name: string; email: string; role: string; dealerId: string | null; isDistributor: boolean; canUseCalculator: boolean };
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+    dealerId: string | null;
+    isDistributor: boolean;
+    canUseCalculator: boolean;
+    canViewReports: boolean;
+    canViewLeadershipReport: boolean;
+  };
   dealers: { id: string; name: string }[];
 }) {
   const [state, action] = useFormState(updateUserAction.bind(null, user.id), {} as ActionState);
@@ -81,6 +91,34 @@ export function EditUserForm({
                 Give this person the <strong>payout calculator</strong>
                 <span className="block text-xs text-gray-400">
                   Or turn it on for the whole dealership from Admin → Dealers (the “Calc” button).
+                </span>
+              </span>
+            </label>
+          </div>
+        )}
+        {role === 'DEALER_USER' && (
+          <div className="sm:col-span-2">
+            <label className="flex items-start gap-2 text-sm text-gray-700">
+              <input type="checkbox" name="canViewReports" defaultChecked={user.canViewReports} className="mt-0.5 rounded border-gray-300" />
+              <span>
+                Give this person <strong>reports</strong> for their own office
+                <span className="block text-xs text-gray-400">
+                  They only ever see their own dealership&apos;s numbers. Or turn it on for the whole
+                  dealership from Admin → Dealers (the “Reports” button).
+                </span>
+              </span>
+            </label>
+          </div>
+        )}
+        {role !== 'DEALER_USER' && (
+          <div className="sm:col-span-2">
+            <label className="flex items-start gap-2 text-sm text-gray-700">
+              <input type="checkbox" name="canViewLeadershipReport" defaultChecked={user.canViewLeadershipReport} className="mt-0.5 rounded border-gray-300" />
+              <span>
+                Give this person the <strong>company-wide leadership snapshot</strong>
+                <span className="block text-xs text-gray-400">
+                  The weekly all-dealers / national report. Super Admins always have it; this grants it
+                  to a specific reviewer/admin without making them a Super Admin.
                 </span>
               </span>
             </label>

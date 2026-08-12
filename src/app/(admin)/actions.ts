@@ -283,6 +283,8 @@ export async function updateUserAction(
     dealerId: string | null;
     isDistributor: boolean;
     canUseCalculator: boolean;
+    canViewReports: boolean;
+    canViewLeadershipReport: boolean;
     passwordHash?: string;
     passwordChangedAt?: Date | null;
     tokenVersion?: { increment: number };
@@ -296,6 +298,10 @@ export async function updateUserAction(
     isDistributor: d.role === 'DEALER_USER' && formData.get('isDistributor') === 'on',
     // Per-user grant for the payout calculator.
     canUseCalculator: formData.get('canUseCalculator') === 'on',
+    // Per-user grant for dealer-facing reports (their own office). Dealer only.
+    canViewReports: d.role === 'DEALER_USER' && formData.get('canViewReports') === 'on',
+    // Per-user grant for the company-wide leadership snapshot. Internal only.
+    canViewLeadershipReport: d.role !== 'DEALER_USER' && formData.get('canViewLeadershipReport') === 'on',
   };
 
   if (d.newPassword && d.newPassword.trim()) {
@@ -387,6 +393,15 @@ export async function toggleDealerCalculatorAction(dealerId: string): Promise<vo
   if (!dealer) return;
   await prisma.dealer.update({ where: { id: dealerId }, data: { calculatorEnabled: !dealer.calculatorEnabled } });
   await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'Dealer', entityId: dealerId, detail: `calculator=${!dealer.calculatorEnabled}` });
+  revalidatePath('/admin/dealers');
+}
+
+export async function toggleDealerReportsAction(dealerId: string): Promise<void> {
+  const session = await requireAdminSection('dealers');
+  const dealer = await prisma.dealer.findUnique({ where: { id: dealerId }, select: { reportsEnabled: true } });
+  if (!dealer) return;
+  await prisma.dealer.update({ where: { id: dealerId }, data: { reportsEnabled: !dealer.reportsEnabled } });
+  await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'Dealer', entityId: dealerId, detail: `reports=${!dealer.reportsEnabled}` });
   revalidatePath('/admin/dealers');
 }
 

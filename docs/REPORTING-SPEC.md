@@ -9,10 +9,16 @@ dealer-facing "My Reports" (an office sees only its own numbers).
   the **payout date**. Activity/pipeline counts by submission where relevant.
 - **Sales figure:** **approved amount** (total sale with tax) — same input the
   payout calculator uses.
-- **Dealer access:** reports are OFF by default. **Distributors see the full
-  suite** for their office; other dealer users see reports only when an admin
+- **Dealer access:** reports are OFF by default. **Every dealer-facing report is
+  tenant-isolated to the user's own dealership — a distributor sees only their
+  own dealer's HD store numbers, NOT all dealers.** Distributors get the report
+  suite for their own office; other dealer users see reports only when an admin
   grants it (per-user and/or per-office, mirroring the calculator grant). No
   office ever sees another office's data.
+- **Company-wide view (all dealers / national):** super-admin only (Sean + JJ),
+  or an explicit leadership-report grant. The weekly leadership snapshot lives
+  here. Nobody else — not distributors, not scoped admins — sees cross-dealer
+  totals unless granted.
 
 ## Report modules
 - **KPI scorecard** — this month vs last: deals submitted, $ sold, $ paid,

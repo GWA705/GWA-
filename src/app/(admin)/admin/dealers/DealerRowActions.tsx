@@ -1,12 +1,13 @@
 'use client';
 
-import { toggleDealerActiveAction, toggleDealerCalculatorAction, deleteDealerAction, viewAsDealerAction } from '@/app/(admin)/actions';
+import { toggleDealerActiveAction, toggleDealerCalculatorAction, toggleDealerReportsAction, deleteDealerAction, viewAsDealerAction } from '@/app/(admin)/actions';
 
 export function DealerRowActions({
   id,
   name,
   active,
   calculatorEnabled,
+  reportsEnabled,
   canDelete,
   align = 'end',
 }: {
@@ -14,6 +15,7 @@ export function DealerRowActions({
   name: string;
   active: boolean;
   calculatorEnabled: boolean;
+  reportsEnabled: boolean;
   canDelete: boolean;
   align?: 'start' | 'end';
 }) {
@@ -35,6 +37,15 @@ export function DealerRowActions({
           title="Give everyone at this dealership the payout calculator."
         >
           {calculatorEnabled ? 'Calc ✓' : 'Calc'}
+        </button>
+      </form>
+      <form action={toggleDealerReportsAction.bind(null, id)}>
+        <button
+          type="submit"
+          className={`text-xs ${reportsEnabled ? 'btn-primary' : 'btn-secondary'}`}
+          title="Give everyone at this dealership reports for their own office only."
+        >
+          {reportsEnabled ? 'Reports ✓' : 'Reports'}
         </button>
       </form>
       <form action={toggleDealerActiveAction.bind(null, id)}>
