@@ -50,6 +50,17 @@ export async function getJournalWriteMode(): Promise<JournalWriteMode> {
   return v === 'live' ? 'live' : 'test';
 }
 
+// Global customer search — a privacy-sensitive feature that lets internal staff
+// search all customers, and lets dealers look up which office a customer belongs
+// to. OFF by default; an admin turns it on explicitly.
+export const SEARCH_SETTING_KEYS = {
+  globalEnabled: 'search.globalEnabled',
+} as const;
+
+export async function isGlobalSearchEnabled(): Promise<boolean> {
+  return (await getSetting(SEARCH_SETTING_KEYS.globalEnabled)) === 'true';
+}
+
 export async function getMfaRequirement(): Promise<MfaRequirement> {
   const v = await getSetting(SECURITY_SETTING_KEYS.mfaRequirement);
   return v === 'staff' || v === 'off' ? v : 'everyone';

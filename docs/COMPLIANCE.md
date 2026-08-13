@@ -77,3 +77,24 @@ These are required for real compliance and **cannot** be satisfied by software a
 - [ ] Retention schedule defined and implemented.
 - [ ] Backups + monitoring in place; incident/breach plan documented.
 - [ ] Independent security assessment completed.
+
+## Global customer search — cross-office disclosure (privacy note)
+
+The optional **global customer search** (Admin → Security → Customer search,
+**off by default**) lets a dealer look up whether a customer is registered with
+another office. On a cross-office match it discloses only the **customer's name,
+the office name, that office's contact person, phone and coarse location** — never
+the customer's address, email, SIN, DOB, or any deal details (the customer's
+address is encrypted and is never decrypted for this path). Business purpose:
+routing a customer who contacted the wrong office.
+
+Privacy considerations for sign-off before enabling in production:
+- This is a **disclosure of personal information to a third-party dealer** under
+  PIPEDA / Quebec Law 25 / provincial law. Confirm the purpose is covered by the
+  collection consent, or add appropriate consent/notice.
+- Safeguards in place: cross-office reveal requires a **full name or full phone**
+  (no partial/wildcard fishing), every search is **rate-limited** (30/min/user)
+  and **audit-logged** (actor, query, hit counts, action `CUSTOMER_SEARCH`), and
+  the whole feature is behind an **admin master toggle**.
+- Internal staff (reviewer/admin) get a full search that only surfaces data they
+  can already access.

@@ -1,17 +1,19 @@
 import { requireAdminSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
-import { getMfaRequirement } from '@/lib/settings';
+import { getMfaRequirement, isGlobalSearchEnabled } from '@/lib/settings';
 import { SecuritySettingsForm } from './SecuritySettingsForm';
+import { GlobalSearchToggle } from './GlobalSearchToggle';
 
 export const dynamic = 'force-dynamic';
 
 export default async function SecurityPage() {
   await requireAdminSection('security');
-  const [requirement, totalActive, withMfa, staffWithout] = await Promise.all([
+  const [requirement, totalActive, withMfa, staffWithout, searchEnabled] = await Promise.all([
     getMfaRequirement(),
     prisma.user.count({ where: { active: true } }),
     prisma.user.count({ where: { active: true, mfaEnabled: true } }),
     prisma.user.count({ where: { active: true, mfaEnabled: false, role: { in: ['REVIEWER', 'ADMIN'] } } }),
+    isGlobalSearchEnabled(),
   ]);
   const without = totalActive - withMfa;
 
@@ -34,6 +36,16 @@ export default async function SecurityPage() {
       <div className="card p-6">
         <h2 className="mb-4 text-base font-semibold text-gray-900">Two-factor authentication</h2>
         <SecuritySettingsForm current={requirement} />
+      </div>
+
+      <div className="card p-6">
+        <h2 className="mb-1 text-base font-semibold text-gray-900">Customer search</h2>
+        <p className="mb-4 text-sm text-gray-500">
+          Lets internal staff search all customers (for when a customer calls GWA directly), and lets a dealer look up
+          which office a customer is registered with — returning only the office name, contact and phone, never the
+          customer&apos;s address or deal details. Off by default; every search is logged.
+        </p>
+        <GlobalSearchToggle enabled={searchEnabled} />
       </div>
     </div>
   );
