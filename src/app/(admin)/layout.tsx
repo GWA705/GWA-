@@ -32,13 +32,20 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   // A scoped admin with no back-end access at all doesn't belong in this area.
   if (!hasAnyAdminSection(user)) redirect('/account');
 
-  // Badge sources — cheap counts for things needing attention.
-  const pendingRequests = canAdminSection(user, 'user-requests')
-    ? await prisma.userRequest.count({ where: { status: 'PENDING' } })
-    : 0;
+  // Badge sources — cheap counts for things needing attention now.
+  const canQueue = canAdminSection(user, 'review-queue');
+  const [pendingRequests, actionableDeals] = await Promise.all([
+    canAdminSection(user, 'user-requests')
+      ? prisma.userRequest.count({ where: { status: 'PENDING' } })
+      : Promise.resolve(0),
+    canQueue
+      ? prisma.application.count({ where: { status: { in: ['SUBMITTED', 'PROBLEM', 'FUNDING_SUBMITTED'] } } })
+      : Promise.resolve(0),
+  ]);
 
   const byKey = new Map(ADMIN_SECTIONS.map((s) => [s.key, s]));
-  const badgeFor = (key: string): boolean => (key === 'user-requests' ? pendingRequests > 0 : false);
+  const badgeFor = (key: string): boolean =>
+    (key === 'user-requests' && pendingRequests > 0) || (key === 'review-queue' && actionableDeals > 0);
   const linkFor = (key: string): NavItem | null => {
     const s = byKey.get(key);
     if (!s || !canAdminSection(user, key)) return null;

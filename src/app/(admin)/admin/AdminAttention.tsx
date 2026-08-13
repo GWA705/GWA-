@@ -10,10 +10,11 @@ export async function AdminAttention({ user }: { user: SessionUser }) {
   const canRequests = canAdminSection(user, 'user-requests');
   const canQueue = canAdminSection(user, 'review-queue') || user.role === 'REVIEWER';
 
-  const [pendingRequests, problems, awaitingReview] = await Promise.all([
+  const [pendingRequests, problems, awaitingReview, signedDocs] = await Promise.all([
     canRequests ? prisma.userRequest.count({ where: { status: 'PENDING' } }) : Promise.resolve(0),
     canQueue ? prisma.application.count({ where: { status: 'PROBLEM' } }) : Promise.resolve(0),
     canQueue ? prisma.application.count({ where: { status: 'SUBMITTED' } }) : Promise.resolve(0),
+    canQueue ? prisma.application.count({ where: { status: 'FUNDING_SUBMITTED' } }) : Promise.resolve(0),
   ]);
 
   const items: { label: string; count: number; href: string; tone: string }[] = [];
@@ -23,6 +24,8 @@ export async function AdminAttention({ user }: { user: SessionUser }) {
     items.push({ label: `${problems} deal${problems === 1 ? '' : 's'} flagged with a problem`, count: problems, href: '/staff', tone: 'text-red-800 bg-red-100' });
   if (awaitingReview > 0)
     items.push({ label: `${awaitingReview} new deal${awaitingReview === 1 ? '' : 's'} awaiting first review`, count: awaitingReview, href: '/staff', tone: 'text-blue-800 bg-blue-100' });
+  if (signedDocs > 0)
+    items.push({ label: `${signedDocs} signed package${signedDocs === 1 ? '' : 's'} to review`, count: signedDocs, href: '/staff', tone: 'text-indigo-800 bg-indigo-100' });
 
   if (items.length === 0) return null;
 
