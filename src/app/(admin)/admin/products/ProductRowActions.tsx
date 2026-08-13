@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useFormState } from 'react-dom';
 import {
   renameProductAction,
@@ -25,10 +26,20 @@ export function ProductRowActions({
   isFirst: boolean;
   isLast: boolean;
 }) {
+  const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [state, action] = useFormState(renameProductAction, {} as ActionState);
 
-  if (editing && !state.ok) {
+  // On a successful save, close the editor and pull fresh data so the row shows
+  // the new name immediately (revalidatePath alone didn't always repaint it).
+  useEffect(() => {
+    if (state.ok) {
+      setEditing(false);
+      router.refresh();
+    }
+  }, [state, router]);
+
+  if (editing) {
     return (
       <form action={action} className="flex flex-wrap items-center justify-end gap-2">
         <input type="hidden" name="id" value={id} />
