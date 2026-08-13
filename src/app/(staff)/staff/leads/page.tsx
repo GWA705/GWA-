@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic';
 export default async function StaffLeadsPage({
   searchParams,
 }: {
-  searchParams: { q?: string; status?: string; office?: string };
+  searchParams: { q?: string; status?: string; office?: string; page?: string };
 }) {
   const user = await requireRole('REVIEWER', 'ADMIN');
   // All-offices leads = leadership view: super admin or a granted 'leads' section.
@@ -21,6 +21,7 @@ export default async function StaffLeadsPage({
   const q = (searchParams.q ?? '').trim();
   const status = (searchParams.status ?? '').trim();
   const officeId = (searchParams.office ?? '').trim();
+  const page = Math.max(1, parseInt(searchParams.page ?? '1', 10) || 1);
 
   if (!leadsSheetId() || !reportingJournalEnabled()) {
     return (
@@ -81,6 +82,7 @@ export default async function StaffLeadsPage({
         status={status}
         basePath="/staff/leads"
         extraHidden={[{ name: 'office', value: officeId }]}
+        page={page}
       />
     </div>
   );

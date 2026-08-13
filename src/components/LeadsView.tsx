@@ -19,6 +19,8 @@ function Field({ label, value }: { label: string; value: string }) {
   );
 }
 
+const PAGE_SIZE = 40;
+
 export function LeadsView({
   leads,
   summary,
@@ -26,6 +28,7 @@ export function LeadsView({
   status,
   basePath,
   extraHidden,
+  page = 1,
 }: {
   leads: Lead[];
   summary: { total: number; noGood: number; forwarded: number };
@@ -33,13 +36,27 @@ export function LeadsView({
   status: string;
   basePath: string;
   extraHidden?: { name: string; value: string }[];
+  page?: number;
 }) {
+  const buildHref = (over: Record<string, string>) => {
+    const params = new URLSearchParams();
+    if (q) params.set('q', q);
+    if (status) params.set('status', status);
+    for (const h of extraHidden ?? []) if (h.value) params.set(h.name, h.value);
+    for (const [k, v] of Object.entries(over)) {
+      if (v) params.set(k, v);
+      else params.delete(k);
+    }
+    return `${basePath}${params.toString() ? `?${params}` : ''}`;
+  };
+
   const statusLink = (val: string, label: string) => {
+    const active = status === val;
+    // Changing the filter resets to page 1.
     const params = new URLSearchParams();
     if (q) params.set('q', q);
     if (val) params.set('status', val);
     for (const h of extraHidden ?? []) if (h.value) params.set(h.name, h.value);
-    const active = status === val;
     return (
       <Link
         href={`${basePath}${params.toString() ? `?${params}` : ''}`}
@@ -49,6 +66,11 @@ export function LeadsView({
       </Link>
     );
   };
+
+  const totalPages = Math.max(1, Math.ceil(leads.length / PAGE_SIZE));
+  const current = Math.min(Math.max(1, page), totalPages);
+  const startIdx = (current - 1) * PAGE_SIZE;
+  const pageLeads = leads.slice(startIdx, startIdx + PAGE_SIZE);
 
   return (
     <div className="space-y-5">
@@ -81,57 +103,83 @@ export function LeadsView({
         {statusLink('nogood', 'No-good')}
       </div>
 
-      {/* List */}
+      {/* List — compact rows that expand on click */}
       {leads.length === 0 ? (
         <div className="rounded-lg border border-gray-200 bg-gray-50 p-6 text-sm text-gray-500">
           {q || status ? 'No leads match your search.' : 'No leads yet.'}
         </div>
       ) : (
-        <div className="space-y-3">
-          {leads.map((l) => (
-            <div key={l.rowId} className={`rounded-xl border bg-white p-4 ${l.noGood ? 'border-red-200' : 'border-gray-200'}`}>
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <div>
-                  <div className="font-semibold text-gray-900">{l.customerName || '(no name)'}</div>
-                  <div className="text-xs text-gray-500">
+        <>
+          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+            {pageLeads.map((l) => (
+              <details key={l.rowId} className="group border-b border-gray-100 last:border-b-0">
+                <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-2.5 hover:bg-gray-50">
+                  <span className={`h-2 w-2 shrink-0 rounded-full ${l.noGood ? 'bg-red-500' : 'bg-emerald-500'}`} />
+                  <span className="min-w-0 flex-1">
+                    <span className="truncate font-medium text-gray-900">{l.customerName || '(no name)'}</span>
+                    <span className="ml-2 hidden text-xs text-gray-400 sm:inline">
+                      {fmtDate(l.dateReceived, l.dateText)}
+                      {l.storeNumber && ` · Store ${l.storeNumber}`}
+                      {l.service && ` · ${l.service}`}
+                    </span>
+                  </span>
+                  <span className="hidden shrink-0 text-xs text-gray-500 md:inline">{l.phone}</span>
+                  <span className={`badge shrink-0 ${l.noGood ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-800'}`}>
+                    {l.noGood ? 'No good' : 'Forwarded'}
+                  </span>
+                  <span className="shrink-0 text-gray-300 transition group-open:rotate-180">▾</span>
+                </summary>
+                <div className="border-t border-gray-100 bg-gray-50/50 px-4 py-3">
+                  <div className="mb-2 text-xs text-gray-400 sm:hidden">
                     {fmtDate(l.dateReceived, l.dateText)}
-                    {l.storeNumber && <> · Store {l.storeNumber}</>}
-                    {l.service && <> · {l.service}</>}
-                    {l.bookingId && <> · #{l.bookingId}</>}
+                    {l.storeNumber && ` · Store ${l.storeNumber}`}
+                    {l.service && ` · ${l.service}`}
+                    {l.bookingId && ` · #${l.bookingId}`}
                   </div>
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    <Field label="Phone" value={l.phone} />
+                    <Field label="Email" value={l.email} />
+                    <Field label="Contact pref" value={l.contactPreference} />
+                    <div className="col-span-2 sm:col-span-3"><Field label="Address" value={l.address} /></div>
+                    <Field label="Emergency" value={l.emergency} />
+                    <Field label="Financing" value={l.financing} />
+                    <Field label="Forwarded to" value={l.forwardedTo} />
+                    <div className="col-span-2 sm:col-span-3"><Field label="Service details" value={l.serviceDetails} /></div>
+                    <div className="col-span-2 sm:col-span-3"><Field label="Additional info" value={l.additionalInfo} /></div>
+                  </div>
+                  {l.noGood && (l.noGoodReason || l.reportedToHd) && (
+                    <div className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-800">
+                      {l.noGoodReason && <div><span className="font-semibold">No-good reason:</span> {l.noGoodReason}</div>}
+                      {l.reportedToHd && <div className="mt-0.5"><span className="font-semibold">Reported to HD:</span> {l.reportedToHd}{l.dateReported ? ` (${l.dateReported})` : ''}</div>}
+                    </div>
+                  )}
                 </div>
-                <span className={`badge ${l.noGood ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-800'}`}>
-                  {l.noGood ? 'No good' : l.status || 'Forwarded'}
-                </span>
-              </div>
+              </details>
+            ))}
+          </div>
 
-              <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                <Field label="Phone" value={l.phone} />
-                <Field label="Email" value={l.email} />
-                <Field label="Contact pref" value={l.contactPreference} />
-                <div className="col-span-2 sm:col-span-3">
-                  <Field label="Address" value={l.address} />
-                </div>
-                <Field label="Emergency" value={l.emergency} />
-                <Field label="Financing" value={l.financing} />
-                <Field label="Forwarded to" value={l.forwardedTo} />
-                <div className="col-span-2 sm:col-span-3">
-                  <Field label="Service details" value={l.serviceDetails} />
-                </div>
-                <div className="col-span-2 sm:col-span-3">
-                  <Field label="Additional info" value={l.additionalInfo} />
-                </div>
+          {/* Pagination */}
+          <div className="flex items-center justify-between text-sm text-gray-500">
+            <span>
+              Showing {startIdx + 1}–{Math.min(startIdx + PAGE_SIZE, leads.length)} of {leads.length}
+            </span>
+            {totalPages > 1 && (
+              <div className="flex items-center gap-2">
+                {current > 1 ? (
+                  <Link href={buildHref({ page: String(current - 1) })} className="btn-secondary text-xs">← Prev</Link>
+                ) : (
+                  <span className="btn-secondary pointer-events-none text-xs opacity-40">← Prev</span>
+                )}
+                <span className="text-xs">Page {current} / {totalPages}</span>
+                {current < totalPages ? (
+                  <Link href={buildHref({ page: String(current + 1) })} className="btn-secondary text-xs">Next →</Link>
+                ) : (
+                  <span className="btn-secondary pointer-events-none text-xs opacity-40">Next →</span>
+                )}
               </div>
-
-              {l.noGood && (l.noGoodReason || l.reportedToHd) && (
-                <div className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-800">
-                  {l.noGoodReason && <div><span className="font-semibold">No-good reason:</span> {l.noGoodReason}</div>}
-                  {l.reportedToHd && <div className="mt-0.5"><span className="font-semibold">Reported to HD:</span> {l.reportedToHd}{l.dateReported ? ` (${l.dateReported})` : ''}</div>}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
+            )}
+          </div>
+        </>
       )}
     </div>
   );

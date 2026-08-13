@@ -7,10 +7,11 @@ import { LeadsView, filterLeads } from '@/components/LeadsView';
 
 export const dynamic = 'force-dynamic';
 
-export default async function DealerLeadsPage({ searchParams }: { searchParams: { q?: string; status?: string } }) {
+export default async function DealerLeadsPage({ searchParams }: { searchParams: { q?: string; status?: string; page?: string } }) {
   const user = await requireDealerAccess();
   const q = (searchParams.q ?? '').trim();
   const status = (searchParams.status ?? '').trim();
+  const page = Math.max(1, parseInt(searchParams.page ?? '1', 10) || 1);
 
   if (!leadsSheetId() || !reportingJournalEnabled()) {
     return <NotReady />;
@@ -46,7 +47,7 @@ export default async function DealerLeadsPage({ searchParams }: { searchParams: 
           Couldn&apos;t read the leads log right now: {read.error}
         </div>
       )}
-      <LeadsView leads={filtered} summary={summary} q={q} status={status} basePath="/dealer/leads" />
+      <LeadsView leads={filtered} summary={summary} q={q} status={status} basePath="/dealer/leads" page={page} />
     </div>
   );
 }
