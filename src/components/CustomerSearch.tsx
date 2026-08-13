@@ -1,41 +1,68 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { customerSearchAction } from '@/app/(dealer)/dealer/find-customer/actions';
 import type { CustomerSearchResult } from '@/lib/customerSearch';
 
 export function CustomerSearch({ mode }: { mode: 'internal' | 'dealer' }) {
+  const live = mode === 'internal'; // GWA team gets live typeahead
   const [query, setQuery] = useState('');
   const [result, setResult] = useState<CustomerSearchResult | null>(null);
   const [pending, start] = useTransition();
+  const seq = useRef(0);
 
-  function run() {
-    if (query.trim().length < 3) return;
-    start(async () => setResult(await customerSearchAction(query)));
+  function run(q: string) {
+    if (q.trim().length < 3) {
+      setResult(null);
+      return;
+    }
+    const mine = ++seq.current;
+    start(async () => {
+      const r = await customerSearchAction(q);
+      // Ignore out-of-order responses from earlier keystrokes.
+      if (mine === seq.current) setResult(r);
+    });
   }
+
+  // Live typeahead (internal): debounce keystrokes; fire at 3+ chars.
+  useEffect(() => {
+    if (!live) return;
+    const q = query.trim();
+    if (q.length < 3) {
+      setResult(null);
+      return;
+    }
+    const t = setTimeout(() => run(q), 250);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query, live]);
 
   return (
     <div className="space-y-4">
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          run();
+          run(query);
         }}
         className="flex gap-2"
       >
         <input
           className="input flex-1"
-          placeholder={mode === 'dealer' ? 'Customer name or phone number' : 'Name, phone, or reference #'}
+          placeholder={mode === 'dealer' ? 'Customer name, or exact phone # for another office' : 'Start typing a name, phone, or reference #'}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           autoComplete="off"
+          autoFocus={live}
         />
-        <button type="submit" className="btn-primary" disabled={pending}>
-          {pending ? 'Searching…' : 'Search'}
-        </button>
+        {!live && (
+          <button type="submit" className="btn-primary" disabled={pending}>
+            {pending ? 'Searching…' : 'Search'}
+          </button>
+        )}
       </form>
 
+      {live && pending && <p className="text-xs text-gray-400">Searching…</p>}
       {result && <Results result={result} />}
     </div>
   );
@@ -44,6 +71,8 @@ export function CustomerSearch({ mode }: { mode: 'internal' | 'dealer' }) {
 function Results({ result }: { result: CustomerSearchResult }) {
   if (result.status === 'disabled')
     return <Note>Customer search is turned off. An administrator can enable it.</Note>;
+  if (result.status === 'not_granted')
+    return <Note>You don&apos;t have access to the full customer search. Ask a Super Admin to grant it (Admin → Users).</Note>;
   if (result.status === 'too_short') return <Note>Type at least 3 characters.</Note>;
   if (result.status === 'rate_limited')
     return <Note>Too many searches — please wait {result.retryAfterSec}s and try again.</Note>;

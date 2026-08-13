@@ -28,6 +28,7 @@ export function EditUserForm({
     canUseCalculator: boolean;
     canViewReports: boolean;
     canViewLeadershipReport: boolean;
+    canSearchCustomers: boolean;
   };
   dealers: { id: string; name: string }[];
 }) {
@@ -119,6 +120,20 @@ export function EditUserForm({
                 <span className="block text-xs text-gray-400">
                   The weekly all-dealers / national report. Super Admins always have it; this grants it
                   to a specific reviewer/admin without making them a Super Admin.
+                </span>
+              </span>
+            </label>
+          </div>
+        )}
+        {role !== 'DEALER_USER' && (
+          <div className="sm:col-span-2">
+            <label className="flex items-start gap-2 text-sm text-gray-700">
+              <input type="checkbox" name="canSearchCustomers" defaultChecked={user.canSearchCustomers} className="mt-0.5 rounded border-gray-300" />
+              <span>
+                Give this person the <strong>full customer search</strong>
+                <span className="block text-xs text-gray-400">
+                  Search every customer across all offices (for staff who field customer calls). Requires the global
+                  search feature to be on (Admin → Security). Super Admins always have it.
                 </span>
               </span>
             </label>

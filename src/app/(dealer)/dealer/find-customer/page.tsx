@@ -14,8 +14,8 @@ export default async function DealerFindCustomerPage() {
       <div>
         <h1 className="text-xl font-semibold text-gray-900">Find a customer</h1>
         <p className="mt-1 text-sm text-gray-600">
-          Search by customer name or phone number. Your own customers open their deal; a customer registered with
-          another office shows who to contact.
+          Search your own customers by name or phone. To find which office a customer belongs to when they aren&apos;t
+          yours, enter their <strong>exact phone number</strong> — it will show the office to contact.
         </p>
       </div>
       <CustomerSearch mode="dealer" />

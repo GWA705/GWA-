@@ -75,6 +75,17 @@ we'll organize and prioritize them together later.
         privacy/competitive exposure; would need explicit business + legal signoff.
   - Also decide: what entities are searchable, ranking, and how results link
     (deal → dealer → office → leads). Revisit as its own planning pass.
+- [x] **Built (Aug 2026):** admin-toggled global customer search — internal
+  granted users get full live typeahead (3+ chars) across all customers; dealers
+  get exact-phone-only cross-office lookup (name + office + phone). Audited +
+  rate-limited.
+- [ ] **⭐ Next for customer search — "customer assist" results (future).** When a
+  GWA agent finds a customer, surface everything needed to help them on one
+  screen without transferring the call: their deal(s) + status, documents, the
+  office they belong to, and **links to the relevant product manuals/brochures**
+  (from the Resource library) for the products on their deal. Goal: agent answers
+  the customer in one place. Depends on: richer result cards, deal→product→manual
+  linking.
 
 ### Statuses, colours & progress indicators
 - [ ] **Dealer "Confirmations" area** (similar to the approvals area) with statuses, each with its own colour:

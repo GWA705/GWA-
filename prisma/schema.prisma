@@ -339,6 +339,10 @@ model User {
   // Grant for the company-wide weekly leadership snapshot (all dealers). Super
   // Admins have this implicitly; this lets a specific internal user see it too.
   canViewLeadershipReport Boolean @default(false)
+  // Grant for the full detailed customer search across all offices (internal
+  // staff only; super admins have it implicitly). For team members who field
+  // customer calls to GWA. Dealers never get this — they get exact-phone lookup.
+  canSearchCustomers Boolean @default(false)
 
   // Profile & notification preferences
   phone             String?

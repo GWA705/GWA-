@@ -5,7 +5,15 @@ import { rateLimit } from './ratelimit';
 import { isGlobalSearchEnabled } from './settings';
 import { STATUS_LABELS_SHORT } from './constants';
 import type { SessionUser } from './session';
-import { isInternal } from './rbac';
+import { isInternal, isSuperAdmin } from './rbac';
+
+/** Full detailed search grant: super admins implicitly, else per-user flag. */
+export async function canSearchAllCustomers(user: SessionUser): Promise<boolean> {
+  if (!isInternal(user)) return false;
+  if (isSuperAdmin(user)) return true;
+  const me = await prisma.user.findUnique({ where: { id: user.userId }, select: { canSearchCustomers: true } });
+  return !!me?.canSearchCustomers;
+}
 
 /**
  * Global customer search.
@@ -49,6 +57,7 @@ export interface OtherOfficeMatch {
 
 export type CustomerSearchResult =
   | { status: 'disabled' }
+  | { status: 'not_granted' }
   | { status: 'too_short' }
   | { status: 'rate_limited'; retryAfterSec: number }
   | { status: 'internal'; matches: InternalMatch[] }
@@ -66,19 +75,23 @@ function nameTerms(q: string): string[] {
 
 // --- low-level matchers ----------------------------------------------------
 
-/** Application ids whose applicantPhone contains the given digit string. */
-async function phoneMatchIds(phoneDigits: string, dealerId?: string): Promise<string[]> {
-  if (phoneDigits.length < 7) return [];
+/**
+ * Application ids matching a phone. `exact` compares the full normalized number
+ * (used for the dealer cross-office reveal, which requires the exact number);
+ * otherwise it's a substring match (own-office / internal convenience).
+ */
+async function phoneMatchIds(phoneDigits: string, dealerId?: string, exact = false): Promise<string[]> {
+  if (phoneDigits.length < (exact ? 10 : 7)) return [];
+  const norm = `regexp_replace("applicantPhone", '[^0-9]', '', 'g')`;
+  // Match on the last 10 digits when exact, tolerating a leading country code.
+  const cmp = exact ? phoneDigits.slice(-10) : phoneDigits;
   const rows = dealerId
-    ? await prisma.$queryRaw<{ id: string }[]>`
-        SELECT "id" FROM "Application"
-        WHERE "dealerId" = ${dealerId}
-          AND regexp_replace("applicantPhone", '[^0-9]', '', 'g') LIKE ${'%' + phoneDigits + '%'}
-        LIMIT 25`
-    : await prisma.$queryRaw<{ id: string }[]>`
-        SELECT "id" FROM "Application"
-        WHERE regexp_replace("applicantPhone", '[^0-9]', '', 'g') LIKE ${'%' + phoneDigits + '%'}
-        LIMIT 50`;
+    ? exact
+      ? await prisma.$queryRaw<{ id: string }[]>`SELECT "id" FROM "Application" WHERE "dealerId" = ${dealerId} AND right(regexp_replace("applicantPhone", '[^0-9]', '', 'g'), 10) = ${cmp} LIMIT 25`
+      : await prisma.$queryRaw<{ id: string }[]>`SELECT "id" FROM "Application" WHERE "dealerId" = ${dealerId} AND regexp_replace("applicantPhone", '[^0-9]', '', 'g') LIKE ${'%' + cmp + '%'} LIMIT 25`
+    : exact
+      ? await prisma.$queryRaw<{ id: string }[]>`SELECT "id" FROM "Application" WHERE right(regexp_replace("applicantPhone", '[^0-9]', '', 'g'), 10) = ${cmp} LIMIT 50`
+      : await prisma.$queryRaw<{ id: string }[]>`SELECT "id" FROM "Application" WHERE regexp_replace("applicantPhone", '[^0-9]', '', 'g') LIKE ${'%' + cmp + '%'} LIMIT 50`;
   return rows.map((r) => r.id);
 }
 
@@ -115,6 +128,7 @@ export async function searchCustomers(user: SessionUser, rawQuery: string): Prom
   const terms = nameTerms(q);
 
   if (isInternal(user)) {
+    if (!(await canSearchAllCustomers(user))) return { status: 'not_granted' };
     const ids = isPhone ? await phoneMatchIds(digits(q)) : [];
     const apps = await prisma.application.findMany({
       where: isPhone ? { id: { in: ids } } : nameWhere(terms),
@@ -162,16 +176,14 @@ export async function searchCustomers(user: SessionUser, rawQuery: string): Prom
     statusLabel: STATUS_LABELS_SHORT[a.status],
   }));
 
-  // 2) Cross-office matches — only on a FULL name (both first + last) or a FULL
-  //    phone (≥10 digits), to limit fishing. Minimal routing info only.
-  const fullPhone = isPhone && digits(q).length >= 10;
-  const fullName = !isPhone && terms.length >= 2;
+  // 2) Cross-office matches — only on the EXACT full phone number (≥10 digits).
+  //    A name search never reveals another office (limits fishing to someone who
+  //    already has the customer's number). Minimal routing info only.
+  const exactPhone = isPhone && digits(q).length >= 10;
   let other: OtherOfficeMatch[] = [];
-  if (fullPhone || fullName) {
+  if (exactPhone) {
     const otherApps = await prisma.application.findMany({
-      where: fullPhone
-        ? { id: { in: await phoneMatchIds(digits(q)) }, dealerId: { not: dealerId } }
-        : { ...nameWhere(terms), dealerId: { not: dealerId } },
+      where: { id: { in: await phoneMatchIds(digits(q), undefined, true) }, dealerId: { not: dealerId } },
       orderBy: { createdAt: 'desc' },
       take: 15,
       select: {

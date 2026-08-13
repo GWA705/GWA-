@@ -6,6 +6,7 @@ import { prisma } from '@/lib/db';
 import { canAdminSection, hasAnyAdminSection, isSuperAdmin } from '@/lib/rbac';
 import { canViewReportsArea } from '@/lib/reporting/access';
 import { isGlobalSearchEnabled } from '@/lib/settings';
+import { canSearchAllCustomers } from '@/lib/customerSearch';
 
 export default async function StaffLayout({ children }: { children: React.ReactNode }) {
   const user = await requireRole('REVIEWER', 'ADMIN');
@@ -21,7 +22,8 @@ export default async function StaffLayout({ children }: { children: React.ReactN
   if (canDirectory) nav.push({ href: '/staff/directory', label: 'Directory' });
   if (await canViewReportsArea(user)) nav.push({ href: '/staff/reports', label: 'Reports' });
   if (isSuperAdmin(user) || canAdminSection(user, 'leads')) nav.push({ href: '/staff/leads', label: 'Leads' });
-  if (await isGlobalSearchEnabled()) nav.push({ href: '/staff/find-customer', label: 'Find customer' });
+  if ((await isGlobalSearchEnabled()) && (await canSearchAllCustomers(user)))
+    nav.push({ href: '/staff/find-customer', label: 'Find customer' });
   nav.push({ href: '/account', label: 'My account' });
   // Admins with any back-end access get a jump link back to the admin area.
   if (user.role === 'ADMIN' && hasAnyAdminSection(user)) nav.push({ href: '/admin', label: 'Admin' });
