@@ -1,6 +1,6 @@
 import { requireAdminSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
-import { getMfaRequirement, isGlobalSearchEnabled } from '@/lib/settings';
+import { getMfaRequirement, isGlobalSearchEnabled, getMfaTrustDays } from '@/lib/settings';
 import { SecuritySettingsForm } from './SecuritySettingsForm';
 import { GlobalSearchToggle } from './GlobalSearchToggle';
 
@@ -8,8 +8,9 @@ export const dynamic = 'force-dynamic';
 
 export default async function SecurityPage() {
   await requireAdminSection('security');
-  const [requirement, totalActive, withMfa, staffWithout, searchEnabled] = await Promise.all([
+  const [requirement, trustDays, totalActive, withMfa, staffWithout, searchEnabled] = await Promise.all([
     getMfaRequirement(),
+    getMfaTrustDays(),
     prisma.user.count({ where: { active: true } }),
     prisma.user.count({ where: { active: true, mfaEnabled: true } }),
     prisma.user.count({ where: { active: true, mfaEnabled: false, role: { in: ['REVIEWER', 'ADMIN'] } } }),
@@ -35,7 +36,7 @@ export default async function SecurityPage() {
 
       <div className="card p-6">
         <h2 className="mb-4 text-base font-semibold text-gray-900">Two-factor authentication</h2>
-        <SecuritySettingsForm current={requirement} />
+        <SecuritySettingsForm current={requirement} currentTrustDays={trustDays} />
       </div>
 
       <div className="card p-6">

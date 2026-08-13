@@ -19,7 +19,16 @@ const OPTIONS: { value: MfaRequirement; label: string; hint: string }[] = [
   { value: 'off', label: 'Optional', hint: 'No one is required to use 2FA (they can still turn it on themselves).' },
 ];
 
-export function SecuritySettingsForm({ current }: { current: MfaRequirement }) {
+const TRUST_OPTIONS: { value: number; label: string }[] = [
+  { value: 0, label: 'Every sign-in (most secure)' },
+  { value: 1, label: 'Once a day' },
+  { value: 3, label: 'Every 3 days' },
+  { value: 7, label: 'Once a week (recommended)' },
+  { value: 14, label: 'Every 2 weeks' },
+  { value: 30, label: 'Once a month' },
+];
+
+export function SecuritySettingsForm({ current, currentTrustDays }: { current: MfaRequirement; currentTrustDays: number }) {
   const [state, action] = useFormState(saveSecuritySettingsAction, {} as { error?: string; ok?: boolean; message?: string });
   return (
     <form action={action} className="space-y-4">
@@ -35,6 +44,25 @@ export function SecuritySettingsForm({ current }: { current: MfaRequirement }) {
           </label>
         ))}
       </fieldset>
+
+      <div>
+        <label htmlFor="mfaTrustDays" className="label mb-1 block">Ask for a code again</label>
+        <select
+          id="mfaTrustDays"
+          name="mfaTrustDays"
+          defaultValue={String(currentTrustDays)}
+          className="input w-full max-w-xs"
+        >
+          {TRUST_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
+        </select>
+        <p className="mt-1 text-xs text-gray-500">
+          After someone enters their 2FA code, that device is remembered for this long, so they aren&apos;t asked
+          again every time they sign in. Changing a password re-asks on all their devices.
+        </p>
+      </div>
+
       <div className="flex items-center gap-3">
         <SaveButton />
         {state.ok && state.message && <span className="text-sm text-green-700">{state.message}</span>}

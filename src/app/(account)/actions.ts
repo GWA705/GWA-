@@ -90,6 +90,7 @@ export async function changePasswordAction(
       passwordHash: await hashPassword(password),
       passwordChangedAt: new Date(),
       tokenVersion: { increment: 1 }, // revoke sessions on other devices
+      mfaTrustVersion: { increment: 1 }, // and any trusted devices
     },
   });
   // Re-issue this device's session at the new version so the user stays signed

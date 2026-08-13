@@ -14,7 +14,7 @@ import {
 } from '@/lib/mfa';
 import { issueEmailMfaCode } from '@/lib/mfa-email';
 import { emailEnabled } from '@/lib/email';
-import { getMfaRequirement, mfaRequiredForRole } from '@/lib/settings';
+import { getMfaRequirement, mfaRequiredForRole, getMfaTrustDays } from '@/lib/settings';
 import {
   createSession,
   createMfaPending,
@@ -27,6 +27,8 @@ import {
   destroySession,
   getSession,
   defaultLandingFor,
+  setMfaTrustCookie,
+  hasMfaTrust,
 } from '@/lib/session';
 import { audit } from '@/lib/audit';
 import { generateResetToken, hashResetToken, PASSWORD_RESET_TTL_MINUTES } from '@/lib/tokens';
@@ -59,6 +61,13 @@ async function finishLogin(user: User, viaMfa: boolean): Promise<never> {
     where: { id: user.id },
     data: { failedLoginCount: 0, lockedUntil: null, lastLoginAt: new Date() },
   });
+  // Remember this device so the second factor isn't required on every login
+  // (admin-configured window). Only when 2FA was actually satisfied this login
+  // (either a fresh code/app prompt, or an already-trusted device re-confirming).
+  if (viaMfa) {
+    const trustDays = await getMfaTrustDays();
+    await setMfaTrustCookie(user.id, user.mfaTrustVersion, trustDays);
+  }
   if (isPasswordExpired(user.passwordChangedAt)) {
     await createPasswordChangePending(user.id);
     redirect('/change-password');
@@ -150,6 +159,11 @@ export async function loginAction(
   });
 
   if (user.mfaEnabled) {
+    // Trusted device? Skip the second factor for the admin-configured window.
+    const trustDays = await getMfaTrustDays();
+    if (trustDays > 0 && (await hasMfaTrust(user.id, user.mfaTrustVersion))) {
+      return finishLogin(user, true);
+    }
     // Email method: send a one-time code now; app method: prompt for the app code.
     if (user.mfaMethod === 'EMAIL') {
       await issueEmailMfaCode(user);
@@ -208,11 +222,15 @@ export async function verifyMfaAction(
 
   if (user.mfaMethod === 'EMAIL') {
     if (!emailCodeMatches(parsed.data.token, user.mfaEmailCodeHash, user.mfaEmailCodeExpiresAt)) {
-      await registerMfaFailure('bad email MFA code', true);
-      return { error: 'Invalid or expired code. If your email was slow to arrive, tap Resend and enter the newest code — older codes stop working.' };
+      // Don't wipe the code on a simple typo — that used to force a resend and,
+      // combined with slow email, left people entering already-dead codes.
+      // Brute force is still bounded by the per-account lockout + per-IP throttle
+      // above; the code is single-use and expires on its own.
+      await registerMfaFailure('bad email MFA code', false);
+      return { error: 'That code didn’t match. Check the most recent email and try again (codes are good for 30 minutes).' };
     }
     // Consume the code so it can't be reused.
-    await prisma.user.update({ where: { id: user.id }, data: { mfaEmailCodeHash: null, mfaEmailCodeExpiresAt: null } });
+    await prisma.user.update({ where: { id: user.id }, data: { mfaEmailCodeHash: null, mfaEmailCodeEnc: null, mfaEmailCodeExpiresAt: null } });
     return finishLogin(user, true);
   }
 
@@ -276,7 +294,7 @@ export async function setupMfaConfirmEmailAction(_prev: FormState, formData: For
   }
   await prisma.user.update({
     where: { id: user.id },
-    data: { mfaEnabled: true, mfaMethod: 'EMAIL', mfaSecretEnc: null, mfaEmailCodeHash: null, mfaEmailCodeExpiresAt: null },
+    data: { mfaEnabled: true, mfaMethod: 'EMAIL', mfaSecretEnc: null, mfaEmailCodeHash: null, mfaEmailCodeEnc: null, mfaEmailCodeExpiresAt: null },
   });
   await audit({ actorId: user.id, action: 'MFA_ENROLLED', entityType: 'User', entityId: user.id, detail: 'email (required)' });
   await clearMfaEnrollPending();
@@ -407,6 +425,7 @@ export async function resetPasswordAction(
         failedLoginCount: 0,
         lockedUntil: null,
         tokenVersion: { increment: 1 }, // revoke any existing sessions
+        mfaTrustVersion: { increment: 1 }, // and any trusted devices
       },
     }),
     prisma.passwordResetToken.update({ where: { id: record.id }, data: { usedAt: new Date() } }),
@@ -448,6 +467,7 @@ export async function forcedChangePasswordAction(
       passwordHash: await hashPassword(password),
       passwordChangedAt: new Date(),
       tokenVersion: { increment: 1 }, // revoke any other existing sessions
+      mfaTrustVersion: { increment: 1 }, // and any trusted devices
     },
   });
   await audit({ actorId: user.id, action: 'PASSWORD_CHANGE', entityType: 'User', entityId: user.id, detail: 'expired-rotation' });

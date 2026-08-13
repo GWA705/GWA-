@@ -318,8 +318,15 @@ model User {
   mfaMethod        String? // 'APP' | 'EMAIL'
   mfaSecretEnc     String? // encrypted TOTP secret (APP method)
   // Emailed one-time code (EMAIL method) — stored hashed, short-lived.
+  // The encrypted copy lets a resend / re-login return the SAME code instead of
+  // a new one, so slow (greylisted) email delivery can't leave a user holding a
+  // code that a later issuance already invalidated.
   mfaEmailCodeHash      String?
+  mfaEmailCodeEnc       String?
   mfaEmailCodeExpiresAt DateTime?
+  // Bumped to revoke all "trusted devices" (the remember-this-device cookie that
+  // lets a user skip the 2FA code for the admin-configured window).
+  mfaTrustVersion  Int @default(0)
 
   // Dealer users belong to a dealer; internal staff have dealerId = null.
   dealerId String?

@@ -11,6 +11,7 @@ const MFA_COOKIE_NAME = 'gwa_mfa_pending';
 const MFA_ENROLL_COOKIE_NAME = 'gwa_mfa_enroll';
 const PWCHANGE_COOKIE_NAME = 'gwa_pwchange_pending';
 const VIEW_AS_COOKIE_NAME = 'gwa_view_as';
+const MFA_TRUST_COOKIE_NAME = 'gwa_mfa_trust';
 const SESSION_TTL_SECONDS = 60 * 60 * 8; // 8 hours
 
 export interface SessionUser {
@@ -127,6 +128,29 @@ export async function getMfaEnrollPendingUserId(): Promise<string | null> {
 
 export async function clearMfaEnrollPending(): Promise<void> {
   cookies().delete(MFA_ENROLL_COOKIE_NAME);
+}
+
+/**
+ * "Remember this device" for two-factor auth. After a successful 2FA we set a
+ * long-lived signed cookie so the user isn't prompted for a code again until it
+ * expires. The cookie carries the user's mfaTrustVersion — bumping that in the
+ * DB revokes every trusted device at once. `days <= 0` means never remember.
+ * NB: this cookie deliberately survives logout — the device stays trusted.
+ */
+export async function setMfaTrustCookie(userId: string, trustVersion: number, days: number): Promise<void> {
+  if (days <= 0) return;
+  const ttl = days * 24 * 60 * 60;
+  const token = await sign({ userId, mfaTrust: trustVersion }, ttl);
+  cookies().set(MFA_TRUST_COOKIE_NAME, token, { ...cookieOptions, maxAge: ttl });
+}
+
+/** Is this browser a trusted device for the given user + current trust version? */
+export async function hasMfaTrust(userId: string, trustVersion: number): Promise<boolean> {
+  const token = cookies().get(MFA_TRUST_COOKIE_NAME)?.value;
+  if (!token) return false;
+  const payload = await verify(token);
+  if (!payload) return false;
+  return payload.userId === userId && ((payload.mfaTrust as number | undefined) ?? -1) === trustVersion;
 }
 
 // Memoized per request (React cache): a page + its layout + components often all

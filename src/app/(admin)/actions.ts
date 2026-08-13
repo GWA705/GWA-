@@ -18,7 +18,7 @@ import { redirect } from 'next/navigation';
 import { CONTENT_SECTIONS } from '@/lib/constants';
 import { sendEmail, emailEnabled } from '@/lib/email';
 import { renderEmail } from '@/lib/email-templates';
-import { setSetting, EMAIL_SETTING_KEYS, BANNER_SETTING_KEYS, SECURITY_SETTING_KEYS, type MfaRequirement } from '@/lib/settings';
+import { setSetting, EMAIL_SETTING_KEYS, BANNER_SETTING_KEYS, SECURITY_SETTING_KEYS, MFA_TRUST_DAY_OPTIONS, DEFAULT_MFA_TRUST_DAYS, type MfaRequirement } from '@/lib/settings';
 import { parseDealerProfileForm } from '@/lib/dealerProfile';
 import { applyDealerLogo, applySupportContactLogo } from '@/lib/dealerLogo';
 
@@ -586,7 +586,14 @@ export async function saveSecuritySettingsAction(
   const raw = String(formData.get('mfaRequirement') || '');
   const value: MfaRequirement = raw === 'staff' || raw === 'off' ? raw : 'everyone';
   await setSetting(SECURITY_SETTING_KEYS.mfaRequirement, value);
-  await audit({ actorId: session.userId, action: 'USER_UPDATE', entityType: 'AppSetting', entityId: 'security', detail: `MFA requirement: ${value}` });
+
+  // How long a device stays trusted after a 2FA (so users aren't asked every
+  // login). Clamp to the offered set; anything else → default.
+  const trustRaw = parseInt(String(formData.get('mfaTrustDays') || ''), 10);
+  const trustDays = (MFA_TRUST_DAY_OPTIONS as readonly number[]).includes(trustRaw) ? trustRaw : DEFAULT_MFA_TRUST_DAYS;
+  await setSetting(SECURITY_SETTING_KEYS.mfaTrustDays, String(trustDays));
+
+  await audit({ actorId: session.userId, action: 'USER_UPDATE', entityType: 'AppSetting', entityId: 'security', detail: `MFA requirement: ${value}; trust days: ${trustDays}` });
   revalidatePath('/admin/security');
   return { ok: true, message: 'Security settings saved.' };
 }

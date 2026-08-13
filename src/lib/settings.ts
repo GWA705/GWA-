@@ -25,9 +25,23 @@ export const BANNER_SETTING_KEYS = {
 // all users; 'staff' only reviewers/admins; 'off' makes it optional.
 export const SECURITY_SETTING_KEYS = {
   mfaRequirement: 'security.mfaRequirement',
+  mfaTrustDays: 'security.mfaTrustDays',
 } as const;
 
 export type MfaRequirement = 'everyone' | 'staff' | 'off';
+
+// How long a device stays "trusted" after a successful 2FA before the user is
+// prompted for a code again. 0 = every login (no remembering). Default 7 days.
+export const MFA_TRUST_DAY_OPTIONS = [0, 1, 3, 7, 14, 30] as const;
+export const DEFAULT_MFA_TRUST_DAYS = 7;
+
+export async function getMfaTrustDays(): Promise<number> {
+  const v = await getSetting(SECURITY_SETTING_KEYS.mfaTrustDays);
+  if (v === null) return DEFAULT_MFA_TRUST_DAYS;
+  const n = parseInt(v, 10);
+  if (!Number.isFinite(n) || n < 0) return DEFAULT_MFA_TRUST_DAYS;
+  return Math.min(n, 90);
+}
 
 // Where marketplace order emails go. When unset, orders email all admins.
 export const MARKETPLACE_SETTING_KEYS = {
