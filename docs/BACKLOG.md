@@ -55,6 +55,26 @@ we'll organize and prioritize them together later.
 ### Search
 - [ ] **Global search** by: Loan reference #, Finance reference #, HD reference #, and customer first or last name. ❓ (Requires adding these reference-number fields to each deal.)
 - [ ] **Search scoping:** Dealers can only search deals *they* uploaded; Reviewers and Admins can search all deals.
+- [ ] **⭐ Site-wide global search with linked info (to discuss — raised Aug 2026).**
+  One search box across the whole site that returns *linked* results — deals,
+  customers, dealers, leads, users — so you can jump straight to the record and
+  its connections. Key use case Sean raised: look up a customer and see **which
+  dealer they belong to**, *even if another dealer is searching* and the customer
+  is already in the system.
+  - ❓ **Big decision — tenant isolation / privacy.** Today a dealer can only ever
+    see their own office's data. Letting one dealer discover that a customer
+    belongs to *another* dealer crosses that boundary and exposes a competitor's
+    customer relationship + PII. Options to weigh:
+    (a) **Internal-only cross-dealer search** — reviewers/admins search everyone;
+        dealers stay scoped to their own (safest, no isolation change).
+    (b) **"Already in system" flag for dealers** — a dealer typing a customer sees
+        only *"this customer already exists with another dealer — contact GWA,"*
+        with **no** name/office/PII of the other dealer revealed (dedupe without
+        disclosure).
+    (c) **Full cross-dealer visibility for dealers** — most useful, but a real
+        privacy/competitive exposure; would need explicit business + legal signoff.
+  - Also decide: what entities are searchable, ranking, and how results link
+    (deal → dealer → office → leads). Revisit as its own planning pass.
 
 ### Statuses, colours & progress indicators
 - [ ] **Dealer "Confirmations" area** (similar to the approvals area) with statuses, each with its own colour:
