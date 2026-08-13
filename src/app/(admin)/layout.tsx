@@ -5,6 +5,7 @@ import { AlertModal } from '@/components/AlertModal';
 import { alertWhereForUser } from '@/lib/alerts';
 import { prisma } from '@/lib/db';
 import { canAdminSection, isSuperAdmin, hasAnyAdminSection } from '@/lib/rbac';
+import { isGlobalSearchEnabled } from '@/lib/settings';
 import { ADMIN_SECTIONS } from '@/lib/constants';
 
 interface NavItem {
@@ -34,13 +35,14 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   // Badge sources — cheap counts for things needing attention now.
   const canQueue = canAdminSection(user, 'review-queue');
-  const [pendingRequests, actionableDeals] = await Promise.all([
+  const [pendingRequests, actionableDeals, searchEnabled] = await Promise.all([
     canAdminSection(user, 'user-requests')
       ? prisma.userRequest.count({ where: { status: 'PENDING' } })
       : Promise.resolve(0),
     canQueue
       ? prisma.application.count({ where: { status: { in: ['SUBMITTED', 'PROBLEM', 'FUNDING_SUBMITTED'] } } })
       : Promise.resolve(0),
+    isGlobalSearchEnabled(),
   ]);
 
   const byKey = new Map(ADMIN_SECTIONS.map((s) => [s.key, s]));
@@ -49,6 +51,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const linkFor = (key: string): NavItem | null => {
     const s = byKey.get(key);
     if (!s || !canAdminSection(user, key)) return null;
+    // "Find customer" only works when the master search toggle is on; hide the
+    // link otherwise so it never leads to the disabled (404) page.
+    if (key === 'customer-search' && !searchEnabled) return null;
     return { href: s.href, label: s.label, badge: badgeFor(key) };
   };
 
