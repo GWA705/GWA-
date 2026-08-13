@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { getMfaPendingUserId } from '@/lib/session';
+import { getMfaTrustDays } from '@/lib/settings';
 import { prisma } from '@/lib/db';
 import { MfaForm } from './MfaForm';
 
@@ -8,7 +9,10 @@ export const dynamic = 'force-dynamic';
 export default async function MfaPage() {
   const pending = await getMfaPendingUserId();
   if (!pending) redirect('/login');
-  const user = await prisma.user.findUnique({ where: { id: pending }, select: { mfaMethod: true } });
+  const [user, trustDays] = await Promise.all([
+    prisma.user.findUnique({ where: { id: pending }, select: { mfaMethod: true } }),
+    getMfaTrustDays(),
+  ]);
   const method = user?.mfaMethod === 'EMAIL' ? 'EMAIL' : 'APP';
 
   return (
@@ -23,7 +27,7 @@ export default async function MfaPage() {
           </p>
         </div>
         <div className="card p-6">
-          <MfaForm method={method} />
+          <MfaForm method={method} trustDays={trustDays} />
         </div>
       </div>
     </div>

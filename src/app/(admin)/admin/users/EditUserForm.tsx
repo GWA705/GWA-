@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useFormState, useFormStatus } from 'react-dom';
-import { updateUserAction, type ActionState } from '@/app/(admin)/actions';
+import { updateUserAction, signOutUserEverywhereAction, type ActionState } from '@/app/(admin)/actions';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -36,6 +36,7 @@ export function EditUserForm({
   const [role, setRole] = useState(user.role);
 
   return (
+    <>
     <form action={action} className="space-y-4">
       {state.error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{state.error}</div>}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -153,5 +154,25 @@ export function EditUserForm({
         <Link href="/admin/users" className="btn-secondary">Cancel</Link>
       </div>
     </form>
+
+    <div className="mt-6 rounded-lg border border-gray-200 p-4">
+      <h3 className="text-sm font-semibold text-gray-800">Devices &amp; sessions</h3>
+      <p className="mt-1 text-xs text-gray-500">
+        Signs this person out everywhere and forgets all their “trusted” devices, so their next
+        sign-in needs a fresh 2FA code. Use if a phone or laptop is lost.
+      </p>
+      <form
+        action={signOutUserEverywhereAction.bind(null, user.id)}
+        onSubmit={(e) => {
+          if (!confirm('Sign this user out of all devices? They will need to sign in again and enter a fresh 2FA code.')) e.preventDefault();
+        }}
+        className="mt-3"
+      >
+        <button type="submit" className="rounded-md border border-red-200 bg-red-50 px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-100">
+          Sign out of all devices
+        </button>
+      </form>
+    </div>
+    </>
   );
 }

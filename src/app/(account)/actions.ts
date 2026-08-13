@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/db';
-import { requireSession, createSession } from '@/lib/session';
+import { requireSession, createSession, destroySession } from '@/lib/session';
 import { audit } from '@/lib/audit';
 import { rateLimit } from '@/lib/ratelimit';
 import { hashPassword, verifyPassword, validatePasswordStrength } from '@/lib/password';
@@ -200,6 +200,22 @@ export async function disableMfaAction(_prev: ActionState, formData: FormData): 
 export async function completeWelcomeTourAction(): Promise<void> {
   const session = await requireSession();
   await prisma.user.update({ where: { id: session.userId }, data: { tourSeenAt: new Date() } });
+}
+
+/**
+ * Sign out of every device (self-serve). Revokes all live sessions and forgets
+ * all remembered "trusted" 2FA devices, including the current one, then drops
+ * this session and returns to login.
+ */
+export async function signOutEverywhereAction(): Promise<void> {
+  const session = await requireSession();
+  await prisma.user.update({
+    where: { id: session.userId },
+    data: { tokenVersion: { increment: 1 }, mfaTrustVersion: { increment: 1 } },
+  });
+  await audit({ actorId: session.userId, action: 'USER_UPDATE', entityType: 'User', entityId: session.userId, detail: 'self: signed out of all devices' });
+  await destroySession();
+  redirect('/login');
 }
 
 // Replay the welcome tour — clears the "seen" flag so it shows again next time

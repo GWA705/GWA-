@@ -341,6 +341,23 @@ export async function toggleUserActiveAction(userId: string): Promise<void> {
 }
 
 /**
+ * Sign a user out of every device: revoke all live sessions (tokenVersion) and
+ * all remembered "trusted" 2FA devices (mfaTrustVersion), so their next request
+ * lands on the login page and their next sign-in requires a fresh 2FA code.
+ */
+export async function signOutUserEverywhereAction(userId: string): Promise<void> {
+  const session = await requireAdminSection('users');
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { id: true, name: true } });
+  if (!user) return;
+  await prisma.user.update({
+    where: { id: userId },
+    data: { tokenVersion: { increment: 1 }, mfaTrustVersion: { increment: 1 } },
+  });
+  await audit({ actorId: session.userId, action: 'USER_UPDATE', entityType: 'User', entityId: userId, detail: 'signed out of all devices + revoked trusted 2FA devices' });
+  revalidatePath('/admin/users');
+}
+
+/**
  * Permanently delete a user. Only allowed when the account has no history at all
  * — it has never created/approved a deal, uploaded/verified a document, made a
  * decision or status change, recorded a payout, written a note, run a

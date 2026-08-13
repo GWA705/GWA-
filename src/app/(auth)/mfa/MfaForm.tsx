@@ -14,7 +14,15 @@ function SubmitButton() {
   );
 }
 
-export function MfaForm({ method }: { method: 'APP' | 'EMAIL' }) {
+function trustLabel(days: number): string {
+  if (days === 1) return 'for 1 day';
+  if (days === 7) return 'for 1 week';
+  if (days === 14) return 'for 2 weeks';
+  if (days === 30) return 'for 1 month';
+  return `for ${days} days`;
+}
+
+export function MfaForm({ method, trustDays }: { method: 'APP' | 'EMAIL'; trustDays: number }) {
   const [state, action] = useFormState(verifyMfaAction, initial);
   const [resend, resendAction] = useFormState(resendMfaEmailAction, initial);
   return (
@@ -41,6 +49,12 @@ export function MfaForm({ method }: { method: 'APP' | 'EMAIL' }) {
             placeholder="123456"
           />
         </div>
+        {trustDays > 0 && (
+          <label className="flex items-start gap-2 text-sm text-gray-600">
+            <input type="checkbox" name="trustDevice" className="mt-0.5 h-4 w-4 rounded border-gray-300" />
+            <span>Trust this device {trustLabel(trustDays)} — don&apos;t ask for a code here again on this browser.</span>
+          </label>
+        )}
         <SubmitButton />
       </form>
       {method === 'EMAIL' && (

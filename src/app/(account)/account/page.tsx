@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { requireSession, defaultLandingFor, adminLandingFor } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { decryptMfaSecret, buildMfaEnrollment } from '@/lib/mfa';
-import { beginMfaAction, replayWelcomeTourAction } from '@/app/(account)/actions';
+import { beginMfaAction, replayWelcomeTourAction, signOutEverywhereAction } from '@/app/(account)/actions';
 import { logoutAction } from '@/app/(auth)/actions';
 import { DisableMfaForm } from './DisableMfaForm';
 import { ConfirmMfaForm } from './ConfirmMfaForm';
@@ -177,6 +177,19 @@ export default async function AccountPage() {
             <StartEmailMfaButton />
           </div>
         )}
+
+        <div className="mt-5 border-t border-gray-100 pt-4">
+          <h3 className="text-sm font-semibold text-gray-800">Signed in elsewhere?</h3>
+          <p className="mt-1 text-sm text-gray-500">
+            Sign out of every device and forget all remembered devices — you&apos;ll sign in again here and
+            enter a fresh 2FA code. Use this if you lose a phone or laptop.
+          </p>
+          <form action={signOutEverywhereAction} className="mt-3">
+            <button type="submit" className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50">
+              Sign out of all devices
+            </button>
+          </form>
+        </div>
       </section>
 
       <section className="card p-6">

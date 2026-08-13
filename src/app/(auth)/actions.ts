@@ -54,17 +54,17 @@ const TOO_MANY: FormState = { error: 'Too many attempts. Please wait a few minut
  * Issue a session once identity is fully verified — unless the password has
  * expired, in which case route the user through a forced password change first.
  */
-async function finishLogin(user: User, viaMfa: boolean): Promise<never> {
+async function finishLogin(user: User, viaMfa: boolean, trustDevice = false): Promise<never> {
   // Identity fully proven — clear any failed-attempt lockout (covers the MFA
   // success path too).
   await prisma.user.update({
     where: { id: user.id },
     data: { failedLoginCount: 0, lockedUntil: null, lastLoginAt: new Date() },
   });
-  // Remember this device so the second factor isn't required on every login
-  // (admin-configured window). Only when 2FA was actually satisfied this login
-  // (either a fresh code/app prompt, or an already-trusted device re-confirming).
-  if (viaMfa) {
+  // Remember this device so the second factor isn't required on every login —
+  // but only when the user asked to (the "Trust this device" checkbox) and the
+  // admin allows a window. An already-trusted device re-confirms to slide it.
+  if (viaMfa && trustDevice) {
     const trustDays = await getMfaTrustDays();
     await setMfaTrustCookie(user.id, user.mfaTrustVersion, trustDays);
   }
@@ -162,7 +162,8 @@ export async function loginAction(
     // Trusted device? Skip the second factor for the admin-configured window.
     const trustDays = await getMfaTrustDays();
     if (trustDays > 0 && (await hasMfaTrust(user.id, user.mfaTrustVersion))) {
-      return finishLogin(user, true);
+      // Already trusted — re-confirm to slide the window forward.
+      return finishLogin(user, true, true);
     }
     // Email method: send a one-time code now; app method: prompt for the app code.
     if (user.mfaMethod === 'EMAIL') {
@@ -192,6 +193,9 @@ export async function verifyMfaAction(
 
   const parsed = mfaSchema.safeParse({ token: formData.get('token') });
   if (!parsed.success) return { error: 'Enter the 6-digit code.' };
+
+  // "Trust this device" — only honored when the admin allows a window.
+  const trustDevice = formData.get('trustDevice') === 'on' && (await getMfaTrustDays()) > 0;
 
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user || !user.mfaEnabled) redirect('/login');
@@ -231,7 +235,7 @@ export async function verifyMfaAction(
     }
     // Consume the code so it can't be reused.
     await prisma.user.update({ where: { id: user.id }, data: { mfaEmailCodeHash: null, mfaEmailCodeEnc: null, mfaEmailCodeExpiresAt: null } });
-    return finishLogin(user, true);
+    return finishLogin(user, true, trustDevice);
   }
 
   if (!user.mfaSecretEnc) redirect('/login');
@@ -241,7 +245,7 @@ export async function verifyMfaAction(
     return { error: 'Invalid code. Try again.' };
   }
 
-  return finishLogin(user, true);
+  return finishLogin(user, true, trustDevice);
 }
 
 // Resend the email 2FA code from the /mfa page (EMAIL method only).
