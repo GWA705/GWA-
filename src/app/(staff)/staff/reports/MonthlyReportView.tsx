@@ -144,6 +144,11 @@ export function MonthlyReportView({ report }: { report: OfficeMonthlyReport }) {
         </div>
       )}
 
+      {/* Hint: the full table shows in landscape. Only on small portrait screens. */}
+      <p className="flex items-center justify-center gap-1.5 rounded-lg bg-gray-100 px-3 py-2 text-center text-xs text-gray-500 sm:hidden landscape:hidden">
+        <span aria-hidden>↻</span> Rotate your phone sideways to see the full comparison table.
+      </p>
+
       {/* Mobile: stacked cards (no horizontal scrolling on a phone). */}
       <div className="space-y-2 sm:hidden">
         {report.stores.map((r) => (
