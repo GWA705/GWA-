@@ -75,7 +75,7 @@ export default async function ReportsLandingPage() {
           const clickable = c.available;
           const inner = (
             <div
-              className={`h-full overflow-hidden rounded-xl border bg-white transition ${
+              className={`h-full overflow-hidden rounded-2xl shadow-sm border bg-white transition ${
                 clickable ? 'border-gray-200 hover:border-gray-300 hover:shadow-sm' : 'border-gray-100 opacity-70'
               }`}
             >

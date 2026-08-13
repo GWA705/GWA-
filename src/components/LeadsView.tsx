@@ -83,15 +83,15 @@ export function LeadsView({
     <div className="space-y-5">
       {/* Totals */}
       <div className="grid grid-cols-3 gap-3">
-        <div className="rounded-xl border border-gray-200 bg-white p-4">
+        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
           <div className="text-xl font-bold text-gray-900 tabular-nums">{summary.total}</div>
           <div className="text-[10px] uppercase text-gray-500">Leads received</div>
         </div>
-        <div className="rounded-xl border border-gray-200 bg-white p-4">
+        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
           <div className="text-xl font-bold text-emerald-600 tabular-nums">{summary.forwarded}</div>
           <div className="text-[10px] uppercase text-gray-500">Forwarded / active</div>
         </div>
-        <div className="rounded-xl border border-gray-200 bg-white p-4">
+        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
           <div className="text-xl font-bold text-red-600 tabular-nums">{summary.noGood}</div>
           <div className="text-[10px] uppercase text-gray-500">Marked no-good</div>
         </div>
@@ -128,7 +128,7 @@ export function LeadsView({
         </div>
       ) : (
         <>
-          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+          <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
             {pageLeads.map((l) => (
               <details key={l.rowId} className="group border-b border-gray-100 last:border-b-0">
                 <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-2.5 hover:bg-gray-50">

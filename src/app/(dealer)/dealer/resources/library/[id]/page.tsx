@@ -24,7 +24,7 @@ export default async function DealerResourceProductPage({ params }: { params: { 
     <div className="max-w-3xl space-y-6">
       <Link href="/dealer/resources/library" className="text-sm text-gray-500 hover:underline">← All products</Link>
 
-      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+      <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
         <div className="grid gap-0 sm:grid-cols-[220px_1fr]">
           <div className="aspect-[4/3] w-full overflow-hidden bg-gray-100 sm:aspect-auto">
             {product.imageStorageKey ? (
@@ -51,7 +51,7 @@ export default async function DealerResourceProductPage({ params }: { params: { 
             No files have been added for this product yet.
           </div>
         ) : (
-          <div className="divide-y divide-gray-100 overflow-hidden rounded-xl border border-gray-200 bg-white">
+          <div className="divide-y divide-gray-100 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
             {product.files.map((f) => (
               <div key={f.id} className="flex flex-wrap items-center gap-3 p-4">
                 <span className="badge bg-sky-100 text-sky-800">{RESOURCE_FILE_KIND_LABELS[f.kind]}</span>

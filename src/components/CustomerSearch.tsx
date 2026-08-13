@@ -80,7 +80,7 @@ function Results({ result }: { result: CustomerSearchResult }) {
   if (result.status === 'internal') {
     if (result.matches.length === 0) return <Note>No customers found.</Note>;
     return (
-      <div className="divide-y divide-gray-100 overflow-hidden rounded-xl border border-gray-200 bg-white">
+      <div className="divide-y divide-gray-100 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
         {result.matches.map((m) => (
           <Link key={m.applicationId} href={`/staff/find-customer/${m.applicationId}`} className="flex items-center justify-between gap-3 px-4 py-2.5 hover:bg-gray-50">
             <span className="min-w-0">
@@ -104,7 +104,7 @@ function Results({ result }: { result: CustomerSearchResult }) {
       {result.own.length > 0 && (
         <div>
           <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Your customers</h3>
-          <div className="divide-y divide-gray-100 overflow-hidden rounded-xl border border-gray-200 bg-white">
+          <div className="divide-y divide-gray-100 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
             {result.own.map((m) => (
               <Link key={m.applicationId} href={`/dealer/applications/${m.applicationId}`} className="flex items-center justify-between gap-3 px-4 py-2.5 hover:bg-gray-50">
                 <span className="truncate font-medium text-gray-900">{m.name}</span>
@@ -120,7 +120,7 @@ function Results({ result }: { result: CustomerSearchResult }) {
           <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Registered with another office</h3>
           <div className="space-y-2">
             {result.other.map((m, i) => (
-              <div key={i} className="rounded-xl border border-sky-200 bg-sky-50 p-4">
+              <div key={i} className="rounded-2xl border border-sky-200 bg-sky-50 p-4 shadow-sm">
                 <div className="font-semibold text-sky-900">{m.name}</div>
                 <p className="mt-1 text-sm text-sky-800">
                   This customer is registered with <strong>{m.officeName}</strong>

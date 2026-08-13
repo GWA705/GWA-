@@ -37,7 +37,7 @@ export default async function JournalConnectionPage() {
       </div>
 
       {/* Service account */}
-      <div className="rounded-xl border border-gray-200 bg-white p-5">
+      <div className="rounded-2xl border border-gray-200 bg-white shadow-sm p-5">
         <h2 className="text-sm font-semibold text-gray-900">Service account to share sheets with</h2>
         {diag.serviceAccountEmail ? (
           <>
@@ -60,7 +60,7 @@ export default async function JournalConnectionPage() {
 
       {/* Write target (admins only) */}
       {admin && writeTarget && (
-        <div className="rounded-xl border border-gray-200 bg-white p-5">
+        <div className="rounded-2xl border border-gray-200 bg-white shadow-sm p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <h2 className="text-sm font-semibold text-gray-900">Where new deals are written</h2>
@@ -90,7 +90,7 @@ export default async function JournalConnectionPage() {
       )}
 
       {/* Per-year status */}
-      <div className="rounded-xl border border-gray-200 bg-white">
+      <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
         <div className="border-b border-gray-100 px-5 py-3">
           <h2 className="text-sm font-semibold text-gray-900">Year journals</h2>
         </div>

@@ -103,7 +103,7 @@ export default async function DealerResourceLibraryPage({
             <Link
               key={p.id}
               href={`/dealer/resources/library/${p.id}`}
-              className="group overflow-hidden rounded-xl border border-gray-200 bg-white transition hover:border-gray-300 hover:shadow-sm"
+              className="group overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition hover:border-gray-300 hover:shadow-sm"
             >
               <div className="aspect-[4/3] w-full overflow-hidden bg-gray-100">
                 {p.imageStorageKey ? (

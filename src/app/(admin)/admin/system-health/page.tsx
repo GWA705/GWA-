@@ -42,11 +42,11 @@ export default async function SystemHealthPage() {
 
       {/* Summary */}
       <div className="flex flex-wrap gap-3">
-        <div className="rounded-xl border border-gray-200 bg-white px-4 py-3">
+        <div className="rounded-2xl border border-gray-200 bg-white shadow-sm px-4 py-3">
           <div className="text-lg font-bold text-emerald-600 tabular-nums">{health.okCount}</div>
           <div className="text-[10px] uppercase text-gray-500">Connected</div>
         </div>
-        <div className="rounded-xl border border-gray-200 bg-white px-4 py-3">
+        <div className="rounded-2xl border border-gray-200 bg-white shadow-sm px-4 py-3">
           <div className={`text-lg font-bold tabular-nums ${health.problemCount ? 'text-red-600' : 'text-gray-400'}`}>
             {health.problemCount}
           </div>
@@ -56,7 +56,7 @@ export default async function SystemHealthPage() {
 
       {/* Service account share address */}
       {health.serviceAccountEmail && (
-        <div className="rounded-xl border border-gray-200 bg-white p-5">
+        <div className="rounded-2xl border border-gray-200 bg-white shadow-sm p-5">
           <h2 className="text-sm font-semibold text-gray-900">Service account to share sheets with</h2>
           <p className="mt-1 text-xs text-gray-500">
             Share every Google Sheet below with this address (Viewer) so the portal can read it.
@@ -71,7 +71,7 @@ export default async function SystemHealthPage() {
         const items = health.checks.filter((c) => c.group === group);
         if (items.length === 0) return null;
         return (
-          <div key={group} className="rounded-xl border border-gray-200 bg-white">
+          <div key={group} className="rounded-2xl border border-gray-200 bg-white shadow-sm">
             <div className="border-b border-gray-100 px-5 py-3">
               <h2 className="text-sm font-semibold text-gray-900">{group}</h2>
             </div>

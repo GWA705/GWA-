@@ -53,27 +53,28 @@ export default async function CustomerAssistPage({ params }: { params: { id: str
       <Link href="/staff/find-customer" className="text-sm text-gray-500 hover:underline">← Back to search</Link>
 
       {/* Customer header */}
-      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
-        <div className="flex flex-wrap items-start justify-between gap-3 p-5">
+      <div className="overflow-hidden rounded-2xl shadow-sm" style={{ background: 'linear-gradient(135deg,#16233a,#26436a)' }}>
+        <div className="flex flex-wrap items-start justify-between gap-3 p-6 text-white">
           <div>
-            <h1 className="text-xl font-semibold text-gray-900">{app.applicantFirstName} {app.applicantLastName}</h1>
-            <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600">
-              {app.applicantPhone && <span>📞 <a href={`tel:${app.applicantPhone.replace(/[^0-9+]/g, '')}`} className="font-medium text-gray-900 hover:underline">{formatPhoneDisplay(app.applicantPhone)}</a></span>}
+            <div className="text-[11px] font-semibold uppercase tracking-[0.15em] text-white/50">GWA · Customer</div>
+            <h1 className="mt-1 text-2xl font-bold leading-tight">{app.applicantFirstName} {app.applicantLastName}</h1>
+            <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-sm text-white/70">
+              {app.applicantPhone && <span>📞 <a href={`tel:${app.applicantPhone.replace(/[^0-9+]/g, '')}`} className="font-medium text-white hover:underline">{formatPhoneDisplay(app.applicantPhone)}</a></span>}
               {app.applicantEmail && <span>✉️ {app.applicantEmail}</span>}
               <span>{app.province}</span>
             </div>
           </div>
-          <span className="badge bg-gray-100 text-gray-700">{STATUS_LABELS[app.status]}</span>
+          <span className="rounded-full bg-white/15 px-2.5 py-1 text-xs font-semibold text-white">{STATUS_LABELS[app.status]}</span>
         </div>
-        <div className="flex flex-wrap gap-x-6 gap-y-1 border-t border-gray-100 bg-gray-50 px-5 py-2 text-xs text-gray-500">
+        <div className="flex flex-wrap gap-x-6 gap-y-1 border-t border-white/10 px-6 py-2.5 text-xs text-white/60">
           {app.hdReference && <span>HD #{app.hdReference}</span>}
           {app.financeItNumber && <span>Loan #{app.financeItNumber}</span>}
-          <Link href={`/staff/applications/${app.id}`} className="ml-auto font-medium text-sky-600 hover:underline">Open full deal →</Link>
+          <Link href={`/staff/applications/${app.id}`} className="ml-auto font-medium text-sky-300 hover:underline">Open full deal →</Link>
         </div>
       </div>
 
       {/* What they bought */}
-      <section className="rounded-xl border border-gray-200 bg-white p-5">
+      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
         <h2 className="mb-3 text-sm font-semibold text-gray-900">What they bought</h2>
         {app.productsSold.length === 0 ? (
           <p className="text-sm text-gray-500">No products recorded on this deal.</p>
@@ -87,7 +88,7 @@ export default async function CustomerAssistPage({ params }: { params: { id: str
       </section>
 
       {/* Manuals & info */}
-      <section className="rounded-xl border border-gray-200 bg-white p-5">
+      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
         <h2 className="mb-1 text-sm font-semibold text-gray-900">Manuals &amp; product info</h2>
         {manuals.length === 0 ? (
           <p className="text-sm text-gray-500">
@@ -123,7 +124,7 @@ export default async function CustomerAssistPage({ params }: { params: { id: str
       </section>
 
       {/* Local office */}
-      <section className="rounded-xl border border-gray-200 bg-white p-5">
+      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
         <h2 className="mb-3 text-sm font-semibold text-gray-900">Their local office</h2>
         <div className="text-sm text-gray-700">
           <div className="text-base font-semibold text-gray-900">{officeName}</div>
@@ -140,7 +141,7 @@ export default async function CustomerAssistPage({ params }: { params: { id: str
       </section>
 
       {/* Message the office */}
-      <section className="rounded-xl border border-sky-200 bg-sky-50 p-5">
+      <section className="rounded-2xl border border-sky-200 bg-sky-50 p-5 shadow-sm">
         <h2 className="mb-1 text-sm font-semibold text-sky-900">Message the office about this call</h2>
         <p className="mb-3 text-xs text-sky-700">
           Leave a note about the customer&apos;s call. It&apos;s saved on the deal and the office is notified.
