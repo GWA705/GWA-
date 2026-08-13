@@ -4,6 +4,7 @@ import {
   findHeaderRowIndex,
   buildColumnMap,
   officeFromMetadata,
+  parseFlexibleDate,
 } from '../src/lib/reporting/journalRead';
 
 // Build a sparse row: place values at given 0-based column indexes.
@@ -66,6 +67,25 @@ const GRID_2024: string[][] = [
     36: 'HDCC', 41: '0.00', 42: '21-Mar',
   }),
 ];
+
+describe('parseFlexibleDate — day-month cells use the journal year, not V8 2001', () => {
+  it('uses the fallback (journal) year for "5-Mar" style cells', () => {
+    const d = parseFlexibleDate('5-Mar', 2024)!;
+    expect(d.getFullYear()).toBe(2024);
+    expect(d.getMonth()).toBe(2); // March
+    expect(d.getDate()).toBe(5);
+  });
+
+  it('still respects an explicit 4-digit year in the cell', () => {
+    expect(parseFlexibleDate('March 5, 2025', 2024)!.getFullYear()).toBe(2025);
+  });
+
+  it('handles the Date-Paid "21-Mar" cells too', () => {
+    const d = parseFlexibleDate('21-Mar', 2024)!;
+    expect(d.getFullYear()).toBe(2024);
+    expect(d.getDate()).toBe(21);
+  });
+});
 
 describe('2024 journal layout (different from the rest) still parses', () => {
   it('finds the two-row header despite the metadata block above it', () => {

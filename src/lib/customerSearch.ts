@@ -3,7 +3,7 @@ import { prisma } from './db';
 import { audit } from './audit';
 import { rateLimit } from './ratelimit';
 import { isGlobalSearchEnabled } from './settings';
-import { STATUS_LABELS_SHORT } from './constants';
+import { STATUS_LABELS_SHORT, hdOriginLabel } from './constants';
 import type { SessionUser } from './session';
 import { isInternal, isSuperAdmin, canAdminSection } from './rbac';
 import { readJournal, sheetIdFor, EARLIEST_JOURNAL_YEAR } from './reporting/journalRead';
@@ -67,11 +67,17 @@ export interface OtherOfficeMatch {
 export interface JournalMatch {
   name: string;
   phone: string;
+  address: string;
   hdRef: string;
+  hdOrigin: string | null; // "Home Depot lead" / "GWA-created"
   store: string;
   product: string;
+  result: string; // OK / PE/OK / RB
+  saleDate: string;
+  datePaid: string;
   amount: string;
-  dateText: string;
+  finance: string; // how it was paid / finance company bucket
+  source: string; // HD Program / Outside-HD bucket
   year: number;
   link: string;
 }
@@ -160,14 +166,22 @@ async function searchJournalDeals(query: string): Promise<JournalMatch[]> {
     const digitHit = qDigits.length >= 4 && (phoneDigits.includes(qDigits) || hdDigits.includes(qDigits));
     const termHit = terms.length > 0 && terms.every((t) => hay.includes(t));
     if (!digitHit && !termHit) continue;
+    const fmtDate = (dt: Date | null) =>
+      dt ? dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
     matches.push({
       name: `${d.firstName} ${d.lastName}`.trim() || '(no name)',
       phone: d.phone,
+      address: d.address,
       hdRef: d.hdRef,
-      store: d.storeNumber || d.hdStore,
+      hdOrigin: hdOriginLabel(d.hdRef),
+      store: d.hdStore || d.storeNumber || '',
       product: d.product,
+      result: d.result,
+      saleDate: fmtDate(d.date),
+      datePaid: fmtDate(d.datePaid),
       amount: d.gross > 0 ? `$${Math.round(d.gross).toLocaleString('en-US')}` : '',
-      dateText: d.date ? d.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '',
+      finance: d.financeBucket && d.financeBucket !== 'Unknown' ? d.financeBucket : '',
+      source: d.sourceCategory || '',
       year: d.year,
       link: d.linkUrl,
       sort: (d.date?.getTime() ?? 0),

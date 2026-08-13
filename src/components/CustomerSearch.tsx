@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { customerSearchAction } from '@/app/(dealer)/dealer/find-customer/actions';
-import type { CustomerSearchResult } from '@/lib/customerSearch';
+import type { CustomerSearchResult, JournalMatch } from '@/lib/customerSearch';
 
 export function CustomerSearch({ mode }: { mode: 'internal' | 'dealer' }) {
   const live = mode === 'internal'; // GWA team gets live typeahead
@@ -104,24 +104,9 @@ function Results({ result }: { result: CustomerSearchResult }) {
         {result.journalMatches.length > 0 && (
           <div>
             <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">From the sales journals</h3>
-            <div className="divide-y divide-gray-100 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+            <div className="space-y-3">
               {result.journalMatches.map((m, i) => (
-                <div key={i} className="flex items-center justify-between gap-3 px-4 py-2.5">
-                  <span className="min-w-0">
-                    <span className="block truncate font-medium text-gray-900">{m.name}</span>
-                    <span className="block truncate text-xs text-gray-500">
-                      {[m.phone, m.hdRef && `#${m.hdRef}`, m.store, m.product].filter(Boolean).join(' · ')}
-                    </span>
-                    <span className="block text-xs text-gray-400">
-                      {[m.dateText || `${m.year}`, m.amount].filter(Boolean).join(' · ')}
-                    </span>
-                  </span>
-                  {m.link && (
-                    <a href={m.link} target="_blank" rel="noopener noreferrer" className="shrink-0 text-xs font-medium text-sky-700 hover:underline">
-                      Open journal ↗
-                    </a>
-                  )}
-                </div>
+                <JournalCard key={i} m={m} />
               ))}
             </div>
           </div>
@@ -173,6 +158,80 @@ function Results({ result }: { result: CustomerSearchResult }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+const RESULT_STYLE: Record<string, string> = {
+  OK: 'bg-emerald-100 text-emerald-800',
+  'PE/OK': 'bg-amber-100 text-amber-800',
+  RB: 'bg-gray-200 text-gray-700',
+};
+
+// A detailed, GWA-team-facing card for one sales-journal deal.
+function JournalCard({ m }: { m: JournalMatch }) {
+  const tel = m.phone.replace(/[^0-9+]/g, '');
+  return (
+    <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+      {/* Header: name + result on the left, amount on the right */}
+      <div className="flex items-start justify-between gap-4 border-b border-gray-100 bg-gray-50/60 px-5 py-3.5">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h4 className="truncate text-lg font-semibold text-gray-900">{m.name}</h4>
+            {m.result && (
+              <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${RESULT_STYLE[m.result] ?? 'bg-gray-100 text-gray-600'}`}>
+                {m.result}
+              </span>
+            )}
+          </div>
+          <div className="mt-0.5 text-xs text-gray-500">
+            {m.source || 'Sales journal'} · {m.year} journal
+          </div>
+        </div>
+        {m.amount && (
+          <div className="shrink-0 text-right">
+            <div className="text-lg font-semibold tabular-nums text-gray-900">{m.amount}</div>
+            <div className="text-[11px] uppercase tracking-wide text-gray-400">Sale</div>
+          </div>
+        )}
+      </div>
+
+      {/* Contact line */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-5 pt-3 text-sm">
+        {m.phone && (
+          <a href={`tel:${tel}`} className="font-medium text-sky-700 hover:underline">
+            📞 {m.phone}
+          </a>
+        )}
+        {m.address && <span className="text-gray-600">{m.address}</span>}
+      </div>
+
+      {/* Detail grid */}
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-3 px-5 py-4 sm:grid-cols-3">
+        <Field label="Product(s)" value={m.product} wide />
+        <Field label="HD Ref #" value={m.hdRef ? `${m.hdRef}${m.hdOrigin ? ` · ${m.hdOrigin}` : ''}` : ''} />
+        <Field label="HD store" value={m.store} />
+        <Field label="Date of sale" value={m.saleDate} />
+        <Field label="Date paid" value={m.datePaid} />
+        <Field label="Paid by" value={m.finance} />
+      </dl>
+
+      {m.link && (
+        <div className="border-t border-gray-100 px-5 py-2.5 text-right">
+          <a href={m.link} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold text-sky-700 hover:underline">
+            Open in journal ↗
+          </a>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Field({ label, value, wide }: { label: string; value: string; wide?: boolean }) {
+  return (
+    <div className={wide ? 'col-span-2 sm:col-span-3' : ''}>
+      <dt className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">{label}</dt>
+      <dd className="mt-0.5 text-sm text-gray-900">{value || <span className="text-gray-300">—</span>}</dd>
     </div>
   );
 }
