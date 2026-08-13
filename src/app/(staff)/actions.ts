@@ -758,9 +758,13 @@ export async function saveConfirmationAction(
   formData: FormData,
 ): Promise<ActionState> {
   const session = await requireStaffSection('review-queue');
+  // Default to a plain "save" when no button/intent came through (e.g. the form
+  // was submitted by the phone keyboard's return key with no submit button).
+  const rawIntent = String(formData.get('intent') || '');
+  const intent = rawIntent === 'complete' || rawIntent === 'issue' ? rawIntent : 'save';
   const parsed = confirmationSchema.safeParse({
     applicationId: formData.get('applicationId'),
-    intent: formData.get('intent'),
+    intent,
     productName: formData.get('productName') || undefined,
     numberOfCalls: formData.get('numberOfCalls') ?? undefined,
     city: formData.get('city') || undefined,
@@ -780,7 +784,30 @@ export async function saveConfirmationAction(
     hdNotes: formData.get('hdNotes') || undefined,
     issueNote: formData.get('issueNote') || undefined,
   });
-  if (!parsed.success) return { error: 'Could not save the confirmation.' };
+  if (!parsed.success) {
+    const labels: Record<string, string> = {
+      numberOfCalls: '# of calls',
+      productName: 'Product',
+      city: 'City',
+      district: 'District',
+      phoneNumber: 'Phone',
+      financingAmount: 'Financing $',
+      termMonths: 'Over (months)',
+      firstInstallmentAmount: '1st installment $',
+      firstInstallmentDate: '1st installment date',
+      specialArrangements: 'Special arrangements',
+      hdNotes: 'HD confirmation notes',
+      issueNote: 'Issue note',
+    };
+    const first = parsed.error.issues[0];
+    const field = first?.path?.[0] ? String(first.path[0]) : '';
+    const label = labels[field];
+    return {
+      error: label
+        ? `Couldn’t save — please check the “${label}” field and try again.`
+        : 'Could not save the confirmation. Please check the entries and try again.',
+    };
+  }
   const d = parsed.data;
 
   const app = await prisma.application.findUnique({ where: { id: d.applicationId } });

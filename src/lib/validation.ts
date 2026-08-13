@@ -37,14 +37,23 @@ const optionalDate = z
   .optional()
   .refine((v) => !v || !Number.isNaN(Date.parse(v)), 'Invalid date');
 
-// Treat empty strings as "not provided" before coercing to a number.
+// Treat empty strings as "not provided", and strip any currency/thousands
+// formatting a user (or a prefill) might include, before coercing to a number.
+const cleanNumeric = (v: unknown) => {
+  if (v === '' || v == null) return undefined;
+  if (typeof v === 'string') {
+    const s = v.replace(/[^0-9.\-]/g, '');
+    return s === '' ? undefined : s;
+  }
+  return v;
+};
 const optionalNumber = z.preprocess(
-  (v) => (v === '' || v == null ? undefined : v),
+  cleanNumeric,
   z.coerce.number().nonnegative().max(100_000_000).optional(),
 );
 const optionalInt = z.preprocess(
-  (v) => (v === '' || v == null ? undefined : v),
-  z.coerce.number().int().nonnegative().max(120).optional(),
+  cleanNumeric,
+  z.coerce.number().int().nonnegative().max(100_000).optional(),
 );
 const str = (max: number) => z.string().max(max).optional();
 // Optional dropdown: an unselected <select> posts "" — treat that as "not provided".
