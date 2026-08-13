@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import { computeDealerPayout, PROVINCE_TAX_RATE } from '@/lib/payoutCalc';
+import { searchDealerDeals, type DealMatch } from '@/app/(dealer)/dealer/calculator/actions';
 
 const PROVINCES = Object.keys(PROVINCE_TAX_RATE);
 const money = (x: number) => `$${x.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -17,7 +18,33 @@ export function DealerCalculator({ defaultProvince = 'ON' }: { defaultProvince?:
   const [amount, setAmount] = useState('');
   const [province, setProvince] = useState(PROVINCES.includes(defaultProvince) ? defaultProvince : 'ON');
   const [reference, setReference] = useState('');
+  const [customer, setCustomer] = useState('');
   const [copied, setCopied] = useState(false);
+
+  // Portal deal lookup.
+  const [lookup, setLookup] = useState('');
+  const [results, setResults] = useState<DealMatch[] | null>(null);
+  const [searching, startSearch] = useTransition();
+
+  function runSearch() {
+    const q = lookup.trim();
+    if (q.length < 2) {
+      setResults([]);
+      return;
+    }
+    startSearch(async () => {
+      setResults(await searchDealerDeals(q));
+    });
+  }
+
+  function pickDeal(d: DealMatch) {
+    if (d.amount != null) setAmount(String(d.amount));
+    if (PROVINCES.includes(d.province)) setProvince(d.province);
+    setCustomer(d.name);
+    setReference(d.reference || d.name);
+    setResults(null);
+    setLookup('');
+  }
 
   const n = Number(amount.replace(/[^0-9.]/g, ''));
   const r = n > 0 ? computeDealerPayout(n, province) : null;
@@ -26,6 +53,7 @@ export function DealerCalculator({ defaultProvince = 'ON' }: { defaultProvince?:
     if (!r?.ok) return;
     const lines = [
       'GWA — Dealer Payout Breakdown',
+      customer ? `Customer: ${customer}` : null,
       reference ? `Reference: ${reference}` : null,
       `Province: ${r.province} (tax ${pct(r.taxRate)})`,
       '',
@@ -48,8 +76,70 @@ export function DealerCalculator({ defaultProvince = 'ON' }: { defaultProvince?:
 
   return (
     <div className="mx-auto max-w-xl space-y-4">
+      {/* Portal deal lookup */}
+      <div className="card p-5">
+        <label className="label" htmlFor="calc-lookup">Find a portal deal <span className="font-normal text-gray-400">(customer name or deal #)</span></label>
+        <div className="flex gap-2">
+          <input
+            id="calc-lookup"
+            className="input flex-1"
+            placeholder="Start typing a name or reference…"
+            value={lookup}
+            onChange={(e) => setLookup(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                runSearch();
+              }
+            }}
+            autoComplete="off"
+          />
+          <button type="button" onClick={runSearch} className="btn-secondary" disabled={searching}>
+            {searching ? 'Searching…' : 'Search'}
+          </button>
+        </div>
+        <p className="mt-1 text-xs text-gray-400">Pulls the approved amount + province straight from your portal deals.</p>
+
+        {results && (
+          <div className="mt-3 overflow-hidden rounded-lg border border-gray-200">
+            {results.length === 0 ? (
+              <div className="px-3 py-3 text-sm text-gray-500">No matching deals found.</div>
+            ) : (
+              <div className="divide-y divide-gray-100">
+                {results.map((d) => (
+                  <button
+                    key={d.id}
+                    type="button"
+                    onClick={() => pickDeal(d)}
+                    disabled={d.amount == null}
+                    className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                    title={d.amount == null ? 'No approved amount recorded on this deal yet' : 'Use this deal'}
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-medium text-gray-900">{d.name || '(no name)'}</span>
+                      <span className="block text-xs text-gray-400">
+                        {[d.reference && `#${d.reference}`, d.province, d.statusLabel].filter(Boolean).join(' · ')}
+                      </span>
+                    </span>
+                    <span className="shrink-0 text-sm tabular-nums text-gray-700">
+                      {d.amount != null ? money(d.amount) : 'No amount yet'}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* Inputs */}
       <div className="card p-5">
+        {customer && (
+          <div className="mb-3 flex items-center justify-between rounded-lg bg-brand-50 px-3 py-2 text-sm">
+            <span className="text-brand-800">Customer: <strong>{customer}</strong></span>
+            <button type="button" onClick={() => setCustomer('')} className="text-xs text-gray-500 hover:underline">clear</button>
+          </div>
+        )}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_7rem]">
           <div>
             <label className="label" htmlFor="calc-amount">Approved amount (total sale with tax)</label>
@@ -77,7 +167,7 @@ export function DealerCalculator({ defaultProvince = 'ON' }: { defaultProvince?:
         <div className="card overflow-hidden p-0">
           <div className="flex items-center justify-between gap-3 border-b border-gray-100 bg-gray-50 px-5 py-3">
             <div>
-              <h2 className="text-sm font-semibold text-gray-900">Payout breakdown</h2>
+              <h2 className="text-sm font-semibold text-gray-900">Payout breakdown{customer ? ` — ${customer}` : ''}</h2>
               <p className="text-xs text-gray-500">{r.province} · tax {pct(r.taxRate)}{reference ? ` · ${reference}` : ''}</p>
             </div>
             <button type="button" onClick={copyBreakdown} className="btn-secondary text-xs">
