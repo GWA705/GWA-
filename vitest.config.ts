@@ -12,6 +12,11 @@ export default defineConfig({
     },
   },
   resolve: {
-    alias: { '@': path.resolve(__dirname, 'src') },
+    alias: {
+      '@': path.resolve(__dirname, 'src'),
+      // `import 'server-only'` is a no-op guard in Next; stub it under vitest so
+      // server modules (e.g. the journal reader) can be unit-tested directly.
+      'server-only': path.resolve(__dirname, 'tests/stubs/server-only.ts'),
+    },
   },
 });

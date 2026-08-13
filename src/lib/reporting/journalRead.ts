@@ -26,9 +26,15 @@ export function reportingJournalEnabled(): boolean {
 export function sheetIdFor(year: number): string | null {
   if (year === 2026) return process.env.JOURNAL_SHEET_ID_2026 || process.env.JOURNAL_SHEET_ID || null;
   if (year === 2025) return process.env.JOURNAL_SHEET_ID_2025 || null;
+  // 2024 (and any past/future year) is read from JOURNAL_SHEET_ID_<year>. The
+  // 2024 book has a different layout (metadata rows, two-row header, no Location
+  // column) — the reader handles that automatically; only the id is needed here.
   const generic = process.env[`JOURNAL_SHEET_ID_${year}`];
   return generic || null;
 }
+
+/** Earliest calendar year we keep a sales journal for (the old 2024 book). */
+export const EARLIEST_JOURNAL_YEAR = 2024;
 
 let _sheets: sheets_v4.Sheets | null = null;
 async function sheetsClient(): Promise<sheets_v4.Sheets> {
@@ -53,6 +59,9 @@ const FIELD_CANDIDATES: Record<string, string[]> = {
   hdRef: ['hd ref'],
   hdStore: ['hd store'],
   location: ['location'],
+  phone: ['phone'],
+  address: ['address'],
+  city: ['city'],
   units: ['units', '# of units'],
   product: ['sold and any gifts', 'product'],
   result: ['result'],
@@ -153,10 +162,29 @@ function parseMoney(value: unknown): number {
 // Header + column mapping
 // ---------------------------------------------------------------------------
 
-const MONTH_TAB_RE = /^[A-Za-z]{3,9}\.?\s?\d{4}$/;
-const MONTH_TAB_RE2 = /^[A-Za-z]+ \d{4}$/;
+const MONTHS_FULL = [
+  'january', 'february', 'march', 'april', 'may', 'june',
+  'july', 'august', 'september', 'october', 'november', 'december',
+];
+const MONTHS_ABBR = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'sept', 'oct', 'nov', 'dec'];
 
-function findHeaderRowIndex(data: string[][]): number {
+/**
+ * Is this tab name a month tab? Tolerant of the many ways the offices have named
+ * them across years: "March 2026", "Mar 2026", "Mar. 2026", but also the older
+ * 2024 journal's bare "MARCH" / "March" / "Mar-24" / "March '24" / "March 24".
+ * Anything that isn't a recognizable month word is treated as a non-data tab.
+ */
+export function isMonthTab(title: string): boolean {
+  const t = String(title || '').trim().toLowerCase().replace(/\./g, '');
+  if (!t) return false;
+  // month word, optionally followed by a 2- or 4-digit year (any/no separator:
+  // "march 2026", "mar-24", "march'24", or the dot-stripped "mar2026")
+  const m = t.match(/^([a-z]+)(?:[\s\-']*(?:\d{2}|\d{4}))?$/);
+  if (!m) return false;
+  return MONTHS_FULL.includes(m[1]) || MONTHS_ABBR.includes(m[1]);
+}
+
+export function findHeaderRowIndex(data: string[][]): number {
   for (let i = 0; i < Math.min(data.length, 8); i += 1) {
     const rowText = (data[i] || []).join('|').toLowerCase();
     if (rowText.indexOf('result') !== -1 && rowText.indexOf('last name') !== -1) return i;
@@ -164,7 +192,7 @@ function findHeaderRowIndex(data: string[][]): number {
   return -1;
 }
 
-function buildColumnMap(headerRow: string[], rowAbove: string[]): Record<string, number> {
+export function buildColumnMap(headerRow: string[], rowAbove: string[]): Record<string, number> {
   const combined = headerRow.map((cell, i) => {
     const above = String((rowAbove && rowAbove[i]) || '').trim();
     const here = String(cell || '').trim();
@@ -213,6 +241,21 @@ function rowLink(fileId: string, sheetGid: number, rowNum: number): string {
   return `https://docs.google.com/spreadsheets/d/${fileId}/edit#gid=${sheetGid}&range=A${rowNum}`;
 }
 
+/**
+ * Some journals (notably the 2024 book) have no "Location" column — instead the
+ * office is named in a metadata line above the header, e.g. "Office: GEORGIAN
+ * WATER & AIR". Pull that out so office/dealer attribution still works.
+ */
+export function officeFromMetadata(data: string[][], headerRowIdx: number): string {
+  for (let i = 0; i < headerRowIdx; i += 1) {
+    for (const cell of data[i] || []) {
+      const m = String(cell || '').match(/office\s*:\s*(.+)/i);
+      if (m && m[1].trim()) return m[1].trim();
+    }
+  }
+  return '';
+}
+
 // ---------------------------------------------------------------------------
 // Public types
 // ---------------------------------------------------------------------------
@@ -224,6 +267,10 @@ export interface ReportDeal {
   datePaid: Date | null;
   result: 'OK' | 'PE/OK' | 'RB';
   lastName: string;
+  firstName: string;
+  hdRef: string; // raw HD reference (800…/701… etc.)
+  phone: string;
+  address: string;
   hdStore: string; // raw HD store label (e.g. "BARRIE - 7024")
   storeNumber: string | null; // parsed 4-digit HD store number, if present
   location: string; // raw location / dealer label
@@ -310,7 +357,12 @@ async function readJournalUncached(year: number): Promise<JournalReadResult> {
     return empty({ error: `Could not open the ${year} journal: ${(e as Error).message}` });
   }
 
-  const monthTabs = titles.filter((t) => MONTH_TAB_RE.test(t.title) || MONTH_TAB_RE2.test(t.title));
+  // Primary: tabs whose name reads as a month. If a journal names its tabs some
+  // other way (older books did), fall back to scanning EVERY tab — the header
+  // detection below quietly skips any tab that isn't a data sheet, so this is
+  // safe and just makes the reader tolerant of unusual layouts (e.g. 2024).
+  let monthTabs = titles.filter((t) => isMonthTab(t.title));
+  if (monthTabs.length === 0) monthTabs = titles;
   if (monthTabs.length === 0) return empty();
 
   // One batched read for all month tabs.
@@ -356,6 +408,9 @@ async function readJournalUncached(year: number): Promise<JournalReadResult> {
       continue;
     }
     out.tabsProcessed += 1;
+    // Office/dealer name from the metadata block, used when there's no Location
+    // column (the 2024 book). Computed once per tab.
+    const officeMeta = officeFromMetadata(data, headerRowIdx);
 
     for (let r = headerRowIdx + 1; r < data.length; r += 1) {
       const row = data[r] || [];
@@ -432,9 +487,15 @@ async function readJournalUncached(year: number): Promise<JournalReadResult> {
         datePaid,
         result: result as ReportDeal['result'],
         lastName,
+        firstName: colMap.firstName !== -1 ? String(row[colMap.firstName] || '') : '',
+        hdRef: String(hdRefRaw || ''),
+        phone: colMap.phone !== -1 ? String(row[colMap.phone] || '') : '',
+        address: [colMap.address !== -1 ? row[colMap.address] : '', colMap.city !== -1 ? row[colMap.city] : '']
+          .filter(Boolean)
+          .join(', '),
         hdStore,
         storeNumber: extractStoreNumber(hdStore),
-        location: colMap.location !== -1 ? String(row[colMap.location] || '') : '',
+        location: colMap.location !== -1 ? String(row[colMap.location] || '') : officeMeta,
         product: colMap.product !== -1 ? String(row[colMap.product] || '') : '',
         isHD: classification.isHD,
         sourceCategory: classification.bucket,
@@ -576,7 +637,7 @@ export async function journalDiagnostics(years: number[]): Promise<JournalDiagno
         fields: 'properties.title,sheets.properties.title',
       });
       const titles = (meta.data.sheets || []).map((s) => s.properties?.title || '').filter(Boolean);
-      const monthTabs = titles.filter((t) => MONTH_TAB_RE.test(t) || MONTH_TAB_RE2.test(t));
+      const monthTabs = titles.filter((t) => isMonthTab(t));
       out.years.push({
         year,
         configured: true,

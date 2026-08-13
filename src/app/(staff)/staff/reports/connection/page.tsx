@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireRole } from '@/lib/session';
 import { canViewReportsArea } from '@/lib/reporting/access';
-import { journalDiagnostics } from '@/lib/reporting/journalRead';
+import { journalDiagnostics, sheetIdFor, EARLIEST_JOURNAL_YEAR } from '@/lib/reporting/journalRead';
 import { journalWriteTarget } from '@/lib/journal';
 import { isAdmin } from '@/lib/rbac';
 import { CopyField } from './CopyField';
@@ -15,7 +15,11 @@ export default async function JournalConnectionPage() {
   if (!(await canViewReportsArea(user))) notFound();
 
   const currentYear = new Date().getFullYear();
-  const years = [currentYear - 1, currentYear, currentYear + 1];
+  const yearSet = new Set<number>([currentYear - 1, currentYear, currentYear + 1]);
+  for (let y = EARLIEST_JOURNAL_YEAR; y < currentYear - 1; y += 1) {
+    if (sheetIdFor(y)) yearSet.add(y);
+  }
+  const years = [...yearSet].sort((a, b) => a - b);
   const admin = isAdmin(user);
   const [diag, writeTarget] = await Promise.all([
     journalDiagnostics(years),

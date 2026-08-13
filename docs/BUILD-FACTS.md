@@ -31,11 +31,16 @@ N/A).
 - **Service account:** `gwa-journal-writer@gwa-portal-504012.iam.gserviceaccount.com`.
   Every sheet must be shared with it (Viewer to read, Editor to write).
 - **Sales journals — one spreadsheet per year**, env `JOURNAL_SHEET_ID_<year>`:
+  - 2024 = "GHS-AIR&WATER SALES JOURNALS 2024" (`1jAnCn2VbfO-2CYfbncYbJJXLFUi2LxS99b1qX_qYTd4`)
+    — **older, different layout** (metadata block, two-row header, no Location
+    column); the reader detects & handles this automatically (`isMonthTab`,
+    `officeFromMetadata`, header-name column mapping). READ-only history.
   - 2025 = "GHS -WATER & AIR - SALES JOURNAL 2025" (`1WYqNipTSPfW8upqTokMfnVG2RyVqNtHF2HbiVE5qJ4s`)
   - 2026 real/live = "GHS SALES JOURNAL 2026" (`1MTTv5Jjq7z9e_T5-fu1r_jcmT93rc_wcCUJAhFC1xdg`)
   - 2027 = "GHS SALES JOURNAL 2027" (`1r2v0r0Ufi1c6pxcTQvguvFC0bNVfS_5AlG1biIMwXYg`)
   - `JOURNAL_SHEET_ID` (no year) = the **test** journal ("GHS SALES JOURNAL Test SEAN"),
     the default write sandbox; 2026 reads fall back to it if `JOURNAL_SHEET_ID_2026` unset.
+  - `EARLIEST_JOURNAL_YEAR = 2024` bounds the customer/journal search + health checks.
 - **HD leads log:** `HD_LEADS_SHEET_ID` = `1dM9bsv0YOME-xLW-SvugAX8taWMM1dkAvsUAYGCb6lk`.
 - **Reporting always READS the live per-year journals.** Deal WRITES have a
   Test/Live toggle (admin, on the Journal-connection / System-health area): Test
@@ -56,6 +61,13 @@ N/A).
   leadership snapshot (`canViewLeadershipReport`), full customer search
   (`canSearchCustomers`). Global search also has a master admin toggle
   (`search.globalEnabled`, off by default).
+- **Full customer search** (all portal deals + all sales-journal history: name,
+  phone, HD 800/701 Ref #, address) is granted by ANY of: super admin, the
+  `customer-search` admin section (Admin → Admin access — the way to give someone
+  a **restricted admin login** that can only search customers), or the
+  `canSearchCustomers` per-user flag (reviewers). Appears in both the Admin and
+  Staff nav as "Find customer"; requires the `search.globalEnabled` master toggle
+  ON. Every search is rate-limited + audited.
 
 ## Core domain
 - **Application = the deal** (the central entity). Statuses: DRAFT, SUBMITTED,

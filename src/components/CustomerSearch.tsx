@@ -78,20 +78,54 @@ function Results({ result }: { result: CustomerSearchResult }) {
     return <Note>Too many searches — please wait {result.retryAfterSec}s and try again.</Note>;
 
   if (result.status === 'internal') {
-    if (result.matches.length === 0) return <Note>No customers found.</Note>;
+    const nothing = result.matches.length === 0 && result.journalMatches.length === 0;
+    if (nothing) return <Note>No customers found.</Note>;
     return (
-      <div className="divide-y divide-gray-100 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-        {result.matches.map((m) => (
-          <Link key={m.applicationId} href={`/staff/find-customer/${m.applicationId}`} className="flex items-center justify-between gap-3 px-4 py-2.5 hover:bg-gray-50">
-            <span className="min-w-0">
-              <span className="block truncate font-medium text-gray-900">{m.name}</span>
-              <span className="block text-xs text-gray-500">
-                {m.dealerName} · {m.province}{m.reference ? ` · #${m.reference}` : ''}
-              </span>
-            </span>
-            <span className="badge shrink-0 bg-gray-100 text-gray-600">{m.statusLabel}</span>
-          </Link>
-        ))}
+      <div className="space-y-4">
+        {result.matches.length > 0 && (
+          <div>
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Portal deals</h3>
+            <div className="divide-y divide-gray-100 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+              {result.matches.map((m) => (
+                <Link key={m.applicationId} href={`/staff/find-customer/${m.applicationId}`} className="flex items-center justify-between gap-3 px-4 py-2.5 hover:bg-gray-50">
+                  <span className="min-w-0">
+                    <span className="block truncate font-medium text-gray-900">{m.name}</span>
+                    <span className="block text-xs text-gray-500">
+                      {m.dealerName} · {m.province}{m.reference ? ` · #${m.reference}` : ''}
+                    </span>
+                  </span>
+                  <span className="badge shrink-0 bg-gray-100 text-gray-600">{m.statusLabel}</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {result.journalMatches.length > 0 && (
+          <div>
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">From the sales journals</h3>
+            <div className="divide-y divide-gray-100 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+              {result.journalMatches.map((m, i) => (
+                <div key={i} className="flex items-center justify-between gap-3 px-4 py-2.5">
+                  <span className="min-w-0">
+                    <span className="block truncate font-medium text-gray-900">{m.name}</span>
+                    <span className="block truncate text-xs text-gray-500">
+                      {[m.phone, m.hdRef && `#${m.hdRef}`, m.store, m.product].filter(Boolean).join(' · ')}
+                    </span>
+                    <span className="block text-xs text-gray-400">
+                      {[m.dateText || `${m.year}`, m.amount].filter(Boolean).join(' · ')}
+                    </span>
+                  </span>
+                  {m.link && (
+                    <a href={m.link} target="_blank" rel="noopener noreferrer" className="shrink-0 text-xs font-medium text-sky-700 hover:underline">
+                      Open journal ↗
+                    </a>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     );
   }

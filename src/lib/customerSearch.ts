@@ -5,12 +5,21 @@ import { rateLimit } from './ratelimit';
 import { isGlobalSearchEnabled } from './settings';
 import { STATUS_LABELS_SHORT } from './constants';
 import type { SessionUser } from './session';
-import { isInternal, isSuperAdmin } from './rbac';
+import { isInternal, isSuperAdmin, canAdminSection } from './rbac';
+import { readJournal, sheetIdFor, EARLIEST_JOURNAL_YEAR } from './reporting/journalRead';
 
-/** Full detailed search grant: super admins implicitly, else per-user flag. */
+/**
+ * Full detailed search grant. Granted to:
+ *  - super admins (implicitly);
+ *  - any admin holding the 'customer-search' back-end section (the switch a
+ *    Super Admin flips on the Admin → Admin access screen — this is how you give
+ *    someone a restricted login that can search customers and nothing else);
+ *  - any internal user with the per-user canSearchCustomers flag (reviewers).
+ */
 export async function canSearchAllCustomers(user: SessionUser): Promise<boolean> {
   if (!isInternal(user)) return false;
   if (isSuperAdmin(user)) return true;
+  if (canAdminSection(user, 'customer-search')) return true;
   const me = await prisma.user.findUnique({ where: { id: user.userId }, select: { canSearchCustomers: true } });
   return !!me?.canSearchCustomers;
 }
@@ -55,12 +64,24 @@ export interface OtherOfficeMatch {
   officeLocation: string | null;
 }
 
+export interface JournalMatch {
+  name: string;
+  phone: string;
+  hdRef: string;
+  store: string;
+  product: string;
+  amount: string;
+  dateText: string;
+  year: number;
+  link: string;
+}
+
 export type CustomerSearchResult =
   | { status: 'disabled' }
   | { status: 'not_granted' }
   | { status: 'too_short' }
   | { status: 'rate_limited'; retryAfterSec: number }
-  | { status: 'internal'; matches: InternalMatch[] }
+  | { status: 'internal'; matches: InternalMatch[]; journalMatches: JournalMatch[] }
   | { status: 'dealer'; own: OwnMatch[]; other: OtherOfficeMatch[] };
 
 function digits(s: string): string {
@@ -107,6 +128,58 @@ function nameWhere(terms: string[]) {
   };
 }
 
+/**
+ * Search the Google Sheets sales journals (all configured years) by name, phone,
+ * HD reference (800…/701…), or address. Reads are cached; for granted staff only.
+ */
+async function searchJournalDeals(query: string): Promise<JournalMatch[]> {
+  const q = query.trim();
+  if (q.length < 3) return [];
+  const qNorm = q.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  const qDigits = digits(q);
+  const terms = qNorm.split(' ').filter((t) => t.length >= 2);
+
+  // Which years to search: every configured journal from next year back to the
+  // oldest book we keep (2024). Only years with an id set are read, so this is
+  // naturally bounded; reads are cached, so repeat keystrokes are cheap.
+  const now = new Date().getFullYear();
+  const years: number[] = [];
+  for (let y = now + 1; y >= EARLIEST_JOURNAL_YEAR; y -= 1) {
+    if (sheetIdFor(y)) years.push(y);
+  }
+  const reads = await Promise.all(years.map((y) => readJournal(y)));
+  const deals = reads.flatMap((r) => r.deals);
+
+  const matches: (JournalMatch & { sort: number })[] = [];
+  for (const d of deals) {
+    const hay = `${d.firstName} ${d.lastName} ${d.address} ${d.hdRef} ${d.hdStore} ${d.location}`
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, ' ');
+    const phoneDigits = d.phone.replace(/\D/g, '');
+    const hdDigits = d.hdRef.replace(/\D/g, '');
+    const digitHit = qDigits.length >= 4 && (phoneDigits.includes(qDigits) || hdDigits.includes(qDigits));
+    const termHit = terms.length > 0 && terms.every((t) => hay.includes(t));
+    if (!digitHit && !termHit) continue;
+    matches.push({
+      name: `${d.firstName} ${d.lastName}`.trim() || '(no name)',
+      phone: d.phone,
+      hdRef: d.hdRef,
+      store: d.storeNumber || d.hdStore,
+      product: d.product,
+      amount: d.gross > 0 ? `$${Math.round(d.gross).toLocaleString('en-US')}` : '',
+      dateText: d.date ? d.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '',
+      year: d.year,
+      link: d.linkUrl,
+      sort: (d.date?.getTime() ?? 0),
+    });
+    if (matches.length >= 60) break;
+  }
+  return matches
+    .sort((a, b) => b.sort - a.sort)
+    .slice(0, 30)
+    .map(({ sort, ...m }) => m);
+}
+
 function officeLocation(profile: { address: string | null } | null): string | null {
   if (!profile?.address) return null;
   // Show a coarse location (city/prov line) — the last non-empty comma-part or line.
@@ -145,7 +218,10 @@ export async function searchCustomers(user: SessionUser, rawQuery: string): Prom
         dealer: { select: { name: true } },
       },
     });
-    await audit({ actorId: user.userId, action: 'CUSTOMER_SEARCH', entityType: 'Application', detail: `internal q="${q}" hits=${apps.length}` });
+    // Also sweep the Google Sheets sales journals (portal deals only go back so
+    // far; the journals hold the full history including HD 800/701 references).
+    const journalMatches = await searchJournalDeals(q);
+    await audit({ actorId: user.userId, action: 'CUSTOMER_SEARCH', entityType: 'Application', detail: `internal q="${q}" hits=${apps.length} journal=${journalMatches.length}` });
     return {
       status: 'internal',
       matches: apps.map((a) => ({
@@ -156,6 +232,7 @@ export async function searchCustomers(user: SessionUser, rawQuery: string): Prom
         statusLabel: STATUS_LABELS_SHORT[a.status],
         reference: a.hdReference || a.financeItNumber || '',
       })),
+      journalMatches,
     };
   }
 

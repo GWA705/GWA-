@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import { prisma } from './db';
 import { putDocument, getDocument, deleteDocument } from './storage';
 import { emailEnabled, getEmailIdentityInfo } from './email';
-import { journalDiagnostics, pingSheet, leadsSheetId } from './reporting/journalRead';
+import { journalDiagnostics, pingSheet, leadsSheetId, sheetIdFor, EARLIEST_JOURNAL_YEAR } from './reporting/journalRead';
 
 /**
  * System health — a live status check of every external connection feeding the
@@ -89,13 +89,19 @@ async function checkEmail(): Promise<HealthCheck> {
 
 export async function getSystemHealth(): Promise<SystemHealth> {
   const currentYear = new Date().getFullYear();
-  const years = [currentYear - 1, currentYear, currentYear + 1];
+  // The active window (last / this / next year) plus any older journal that is
+  // actually configured (e.g. the 2024 book), so its connection shows up too.
+  const years = new Set<number>([currentYear - 1, currentYear, currentYear + 1]);
+  for (let y = EARLIEST_JOURNAL_YEAR; y < currentYear - 1; y += 1) {
+    if (sheetIdFor(y)) years.add(y);
+  }
+  const yearList = [...years].sort((a, b) => a - b);
 
   const [db, storage, email, diag] = await Promise.all([
     checkDatabase(),
     checkStorage(),
     checkEmail(),
-    journalDiagnostics(years),
+    journalDiagnostics(yearList),
   ]);
 
   const checks: HealthCheck[] = [db, storage, email];

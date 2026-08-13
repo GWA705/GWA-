@@ -9,12 +9,32 @@ Each calendar year has its own journal spreadsheet. The portal finds it from an
 environment variable named by year:
 
 ```
+JOURNAL_SHEET_ID_2024 = <2024 journal spreadsheet id>   # older, different layout — see below
 JOURNAL_SHEET_ID_2025 = <2025 journal spreadsheet id>
 JOURNAL_SHEET_ID_2026 = <2026 journal spreadsheet id>   # falls back to JOURNAL_SHEET_ID
 JOURNAL_SHEET_ID_2027 = <2027 journal spreadsheet id>
 ```
 
 The spreadsheet id is the part of the sheet URL between `/d/` and `/edit`.
+
+### The 2024 book has a different layout — and that's handled
+
+The old 2024 journal isn't laid out like the newer ones: it has a metadata block
+at the top of each tab (`Distributor:` / `Office:` / `Month:`), a **two-row**
+column header, and **no "Location" column**. The reader detects all of this
+automatically:
+
+- Tabs are recognized even when named just `MARCH` / `Mar-24` / `March '24`
+  (not only `March 2024`).
+- Columns are matched by their header text, so the different column order still
+  maps correctly (name, phone, HD Ref #, HD Store, address, product, amounts,
+  Date Paid).
+- With no Location column, the office is read from the `Office:` metadata line so
+  attribution still works.
+
+So the only thing to do for 2024 is set `JOURNAL_SHEET_ID_2024` and share the
+sheet with the service account — no code change. It then shows up on the Journal
+connection + System health checks and is included in the customer/journal search.
 
 `JOURNAL_SHEET_ID` (no year) is the legacy/base id and is also used as the
 **test** journal (see write modes below). For 2026 it's the automatic fallback
