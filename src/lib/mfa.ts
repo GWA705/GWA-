@@ -4,7 +4,11 @@ import QRCode from 'qrcode';
 import { encryptString, decryptString, sha256 } from './crypto';
 
 // --- Email one-time codes (EMAIL method) ----------------------------------
-export const EMAIL_CODE_TTL_MINUTES = 10;
+// 30 min: forgiving of slow email delivery (a newly-configured SMTP sender can
+// be greylisted / deferred for several minutes). The code is single-use,
+// rate-limited, and the account locks after repeated failures, so a longer
+// window doesn't meaningfully weaken it.
+export const EMAIL_CODE_TTL_MINUTES = 30;
 
 /** A 6-digit numeric login code. */
 export function generateEmailCode(): string {

@@ -74,7 +74,7 @@ export default async function DealerLayout({ children }: { children: React.React
           { href: '/dealer/marketplace', label: 'Marketplace' },
           { href: '/dealer/leads', label: 'Leads' },
           ...(searchEnabled ? [{ href: '/dealer/find-customer', label: 'Find customer' }] : []),
-          ...(calcAccess ? [{ href: '/dealer/calculator', label: 'Calculator' }] : []),
+          ...(calcAccess ? [{ href: '/dealer/calculator', label: 'HD Payout' }] : []),
           ...(reportAccess ? [{ href: '/dealer/reports', label: 'Reports' }] : []),
           {
             label: 'Resources',

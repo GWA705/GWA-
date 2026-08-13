@@ -209,7 +209,7 @@ export async function verifyMfaAction(
   if (user.mfaMethod === 'EMAIL') {
     if (!emailCodeMatches(parsed.data.token, user.mfaEmailCodeHash, user.mfaEmailCodeExpiresAt)) {
       await registerMfaFailure('bad email MFA code', true);
-      return { error: 'Invalid or expired code. Resend a new code and try again.' };
+      return { error: 'Invalid or expired code. If your email was slow to arrive, tap Resend and enter the newest code — older codes stop working.' };
     }
     // Consume the code so it can't be reused.
     await prisma.user.update({ where: { id: user.id }, data: { mfaEmailCodeHash: null, mfaEmailCodeExpiresAt: null } });
