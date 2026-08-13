@@ -200,6 +200,19 @@ the mechanism now and drop your content/keys in when ready.
 > **Resources / HD Promotions** items are added by an admin under Admin → Content when ready.
 > **SMS** notifications still need a paid text provider (email works today).
 
+### ⭐ Operational to-dos (config, not code)
+- [ ] **Turn on real email — configure SMTP.** All notification emails are built
+  and working but run in **log-only** mode until SMTP is set on the server, so
+  nothing actually lands in an inbox yet. Affects: office notifications when a
+  GWA agent messages an office about a customer call, admin alerts when a dealer
+  submits a user/login request, payout receipts to distributors, status-change
+  and new-note emails. The **in-portal** side (notes on the deal, nav badges,
+  the admin "Needs attention" panel) works regardless. To enable: set
+  `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS` (and optionally `SMTP_PORT`,
+  `EMAIL_FROM`, `EMAIL_REPLY_TO`) on Render — e.g. a Google Workspace SMTP relay
+  or any provider. Confirm it on **Admin → System health** (Email row flips to
+  "Sending live") and **Admin → Email settings**.
+
 ### ⛔ Blocked on info from you (send when ready — won't hold up the phases)
 - Home Depot store list per dealer · Finance-company list · Confirmation-call script questions
 - HD Credit Card guide content · Final FinanceIt number rule · Legal-reviewed consent wording
