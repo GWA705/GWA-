@@ -16,6 +16,29 @@ function Pct({ value }: { value: number | null }) {
   return <span className={`font-semibold ${up ? 'text-emerald-600' : 'text-red-600'}`}>{up ? '+' : ''}{value}%</span>;
 }
 
+// Header summary tile (navy background).
+function HStat({ label, value, node, emphasize }: { label: string; value?: string; node?: ReactNode; emphasize?: boolean }) {
+  return (
+    <div className="px-5 py-4">
+      <div className={`font-bold tabular-nums text-white ${emphasize ? 'text-xl' : 'text-lg'}`}>{node ?? value}</div>
+      <div className="mt-0.5 text-[10px] font-medium uppercase tracking-wide text-white/50">{label}</div>
+    </div>
+  );
+}
+// Percent styled for the navy header (lighter greens/reds for contrast).
+function HPct({ value }: { value: number | null }) {
+  if (value === null) return <span className="text-emerald-300">New</span>;
+  const up = value >= 0;
+  return <span className={up ? 'text-emerald-300' : 'text-red-300'}>{up ? '+' : ''}{value}%</span>;
+}
+
+// Split "7024 — Barrie" into a number chip + name.
+function splitStore(store: string, label: string): { num: string; name: string | null } {
+  const m = label.match(/^(\S+)\s*[—-]\s*(.+)$/);
+  if (m) return { num: m[1], name: m[2] };
+  return { num: store, name: label !== store ? label : null };
+}
+
 function Row({ r, bold }: { r: StoreRow; bold?: boolean }) {
   const base = bold ? 'font-bold text-white' : 'text-gray-800';
   const cell = 'px-2 py-2 text-right tabular-nums';
@@ -42,9 +65,10 @@ function Row({ r, bold }: { r: StoreRow; bold?: boolean }) {
 
 // Mobile: a stacked card per store, so phones never need to scroll a wide table.
 function StoreCard({ r, bold }: { r: StoreRow; bold?: boolean }) {
-  const wrap = bold ? 'bg-slate-800 text-white' : 'bg-white border border-gray-200';
+  const wrap = bold ? 'bg-slate-800 text-white' : 'bg-white border border-gray-200 shadow-sm';
   const label = bold ? 'text-white/60' : 'text-gray-400';
   const val = bold ? 'text-white' : 'text-gray-900';
+  const { num, name } = splitStore(r.store, r.label);
   const cell = (lbl: string, node: ReactNode) => (
     <div className="flex items-baseline justify-between gap-2">
       <span className={`text-[10px] uppercase tracking-wide ${label}`}>{lbl}</span>
@@ -52,9 +76,18 @@ function StoreCard({ r, bold }: { r: StoreRow; bold?: boolean }) {
     </div>
   );
   return (
-    <div className={`rounded-xl p-4 ${wrap}`}>
+    <div className={`rounded-2xl p-4 ${wrap}`}>
       <div className="flex items-baseline justify-between gap-3">
-        <div className={`font-bold ${val}`}>{r.label}</div>
+        <div className="flex items-center gap-2">
+          {bold ? (
+            <div className="font-bold text-white">{r.label}</div>
+          ) : (
+            <>
+              <span className="rounded-md bg-slate-800 px-2 py-0.5 font-mono text-xs font-bold text-white">{num}</span>
+              {name && <span className="font-semibold text-gray-900">{name}</span>}
+            </>
+          )}
+        </div>
         <div className="text-right">
           <div className={`text-lg font-bold tabular-nums ${val}`}>{money(r.curMonth)}</div>
           <div className={`text-[10px] uppercase ${label}`}>this month</div>
@@ -87,7 +120,7 @@ function PendingBlock({
   byMonth?: { label: string; total: number; count: number }[];
 }) {
   return (
-    <div className="overflow-hidden rounded-xl border border-amber-200 bg-amber-50">
+    <div className="overflow-hidden rounded-2xl border border-amber-200 bg-amber-50 shadow-sm">
       <div className="border-b border-amber-200 px-4 py-2.5">
         <h3 className="text-sm font-bold text-amber-900">{title}</h3>
         <p className="text-xs text-amber-700">{subtitle}</p>
@@ -124,11 +157,16 @@ export function MonthlyReportView({ report }: { report: OfficeMonthlyReport }) {
   const t = report.ytd;
   return (
     <div className="space-y-5">
-      <div className="overflow-hidden rounded-xl" style={{ background: 'linear-gradient(135deg,#1a2e44,#243d5c)' }}>
-        <div className="p-5 text-white">
-          <div className="text-[11px] font-semibold uppercase tracking-widest text-white/60">GWA HD · Monthly Performance</div>
-          <h1 className="text-xl font-bold">{report.office?.name ?? 'Office'}</h1>
-          <div className="mt-0.5 text-sm text-white/70">{report.monthLabel}</div>
+      <div className="overflow-hidden rounded-2xl shadow-sm" style={{ background: 'linear-gradient(135deg,#16233a,#26436a)' }}>
+        <div className="p-6 text-white">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.15em] text-white/50">GWA HD · Monthly performance</div>
+          <h1 className="mt-1 text-2xl font-bold leading-tight">{report.office?.name ?? 'Office'}</h1>
+          <div className="mt-0.5 text-sm text-white/60">{report.monthLabel}</div>
+        </div>
+        <div className="grid grid-cols-3 divide-x divide-white/10 border-t border-white/10">
+          <HStat label="This month" value={money(report.total.curMonth)} emphasize />
+          <HStat label="vs last month" node={<HPct value={report.total.momPct} />} />
+          <HStat label="Year to date" value={money(report.total.ytdTy)} />
         </div>
       </div>
 
@@ -158,7 +196,7 @@ export function MonthlyReportView({ report }: { report: OfficeMonthlyReport }) {
       </div>
 
       {/* Tablet/desktop: the full comparison table. */}
-      <div className="hidden overflow-hidden rounded-xl border border-gray-200 bg-white sm:block">
+      <div className="hidden overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm sm:block">
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
             <thead>
@@ -207,21 +245,21 @@ export function MonthlyReportView({ report }: { report: OfficeMonthlyReport }) {
 
       {/* YTD summary tiles */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <div className="rounded-xl border border-gray-200 bg-white p-4">
+        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
           <div className="text-lg font-bold text-gray-900 tabular-nums">{money(t.ty)}</div>
           <div className="text-[10px] uppercase text-gray-500">YTD this year</div>
         </div>
-        <div className="rounded-xl border border-gray-200 bg-white p-4">
+        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
           <div className="text-lg font-bold text-gray-900 tabular-nums">{money(t.ly)}</div>
           <div className="text-[10px] uppercase text-gray-500">YTD last year</div>
         </div>
-        <div className="rounded-xl border border-gray-200 bg-white p-4">
+        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
           <div className="text-lg font-bold tabular-nums">
             <Pct value={t.pct} />
           </div>
           <div className="text-[10px] uppercase text-gray-500">YTD vs last year</div>
         </div>
-        <div className="rounded-xl border border-gray-200 bg-white p-4">
+        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
           <div className={`text-lg font-bold tabular-nums ${t.gap >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
             {t.gap >= 0 ? '+' : '−'}
             {money(Math.abs(t.gap))}

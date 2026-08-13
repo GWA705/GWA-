@@ -21,7 +21,7 @@ function Delta({ pct, className = '' }: { pct: number | null; className?: string
 
 function StatTile({ value, label, accent }: { value: string; label: string; accent: string }) {
   return (
-    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+    <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
       <div className="h-1" style={{ background: accent }} />
       <div className="p-3">
         <div className="text-lg font-bold leading-tight text-gray-900 tabular-nums">{value}</div>
@@ -114,7 +114,7 @@ function MiniBars({ items }: { items: { name: string; value: number }[] }) {
 
 function WorldSection({ w, accent }: { w: WorldStats; accent: string }) {
   return (
-    <section className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+    <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
       <div className="h-1.5" style={{ background: accent }} />
       <div className="space-y-5 p-5">
         <h3 className="text-sm font-bold uppercase tracking-wide text-gray-900">{w.title}</h3>
@@ -202,19 +202,19 @@ export function WeeklySnapshotView({ snap, weeksOffset }: { snap: WeeklySnapshot
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="overflow-hidden rounded-xl" style={{ background: 'linear-gradient(135deg,#1a2e44,#243d5c)' }}>
-        <div className="flex flex-wrap items-center justify-between gap-3 p-5 text-white">
+      <div className="overflow-hidden rounded-2xl shadow-sm" style={{ background: 'linear-gradient(135deg,#16233a,#26436a)' }}>
+        <div className="flex flex-wrap items-center justify-between gap-3 p-6 text-white">
           <div>
-            <div className="text-[11px] font-semibold uppercase tracking-widest text-white/60">GWA · Leadership</div>
-            <h1 className="text-xl font-bold">Weekly Snapshot</h1>
-            <div className="mt-0.5 text-sm text-white/70">{snap.weekLabel}</div>
+            <div className="text-[11px] font-semibold uppercase tracking-[0.15em] text-white/50">GWA · Leadership</div>
+            <h1 className="mt-1 text-2xl font-bold leading-tight">Weekly Snapshot</h1>
+            <div className="mt-0.5 text-sm text-white/60">{snap.weekLabel}</div>
           </div>
           <div className="flex items-center gap-2 text-xs">
-            <Link href={prevHref} className="rounded-md bg-white/10 px-3 py-1.5 font-medium hover:bg-white/20">
+            <Link href={prevHref} className="rounded-lg bg-white/10 px-3 py-1.5 font-medium hover:bg-white/20">
               ← Prev
             </Link>
             {weeksOffset < 0 && (
-              <Link href={nextHref} className="rounded-md bg-white/10 px-3 py-1.5 font-medium hover:bg-white/20">
+              <Link href={nextHref} className="rounded-lg bg-white/10 px-3 py-1.5 font-medium hover:bg-white/20">
                 Next →
               </Link>
             )}
@@ -290,7 +290,7 @@ export function WeeklySnapshotView({ snap, weeksOffset }: { snap: WeeklySnapshot
 function DataHealthPanel({ snap }: { snap: WeeklySnapshot }) {
   const d = snap.dataHealth;
   return (
-    <section className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+    <section className="rounded-2xl border border-gray-200 bg-gray-50 p-4 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-sm font-bold text-gray-900">Journal data health</h3>
         <span className="text-xs text-gray-500">
