@@ -488,6 +488,33 @@ export interface JournalDiagnostics {
   years: JournalYearStatus[];
 }
 
+/** The HD leads log spreadsheet id (env), or null when unset. */
+export function leadsSheetId(): string | null {
+  return process.env.HD_LEADS_SHEET_ID || null;
+}
+
+/**
+ * Read-only connectivity probe for any Google Sheet: returns its title and tab
+ * titles, or an error string. Used by the system-health dashboard.
+ */
+export async function pingSheet(
+  spreadsheetId: string,
+): Promise<{ title?: string; tabs?: string[]; error?: string }> {
+  try {
+    const sheets = await sheetsClient();
+    const meta = await sheets.spreadsheets.get({
+      spreadsheetId,
+      fields: 'properties.title,sheets.properties.title',
+    });
+    return {
+      title: meta.data.properties?.title || '(untitled)',
+      tabs: (meta.data.sheets || []).map((s) => s.properties?.title || '').filter(Boolean),
+    };
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
+}
+
 /**
  * Live connection check used by the admin "Journal connection" page. Reveals the
  * service-account email (so an admin can share the sheets with it) and, for each
