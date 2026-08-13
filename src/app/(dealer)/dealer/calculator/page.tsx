@@ -22,11 +22,13 @@ export default async function DealerCalculatorPage() {
   const defaultProvince = latest?.province ?? 'ON';
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold text-gray-900">Payout calculator</h1>
-        <p className="mt-1 text-sm text-gray-600">
-          Enter the approved amount (total sale with tax) and the province to estimate the dealer payout.
+    <div className="mx-auto max-w-2xl space-y-6">
+      <div className="text-center">
+        <div className="mx-auto mb-2 flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-100 text-2xl">💵</div>
+        <h1 className="text-2xl font-bold text-gray-900">Payout calculator</h1>
+        <p className="mx-auto mt-1 max-w-md text-sm text-gray-600">
+          Enter the approved amount (total sale with tax) and province — or pull a deal from the portal — to see the
+          exact EFT payout and full breakdown.
         </p>
       </div>
       <DealerCalculator defaultProvince={defaultProvince} />
