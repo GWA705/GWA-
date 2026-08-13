@@ -3,7 +3,7 @@ import { AppShell } from '@/components/AppShell';
 import { AlertModal } from '@/components/AlertModal';
 import { alertWhereForUser } from '@/lib/alerts';
 import { prisma } from '@/lib/db';
-import { canAdminSection, hasAnyAdminSection } from '@/lib/rbac';
+import { canAdminSection, hasAnyAdminSection, isSuperAdmin } from '@/lib/rbac';
 import { canViewReportsArea } from '@/lib/reporting/access';
 
 export default async function StaffLayout({ children }: { children: React.ReactNode }) {
@@ -19,6 +19,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
   if (canMail) nav.push({ href: '/staff/mail', label: 'Mail' });
   if (canDirectory) nav.push({ href: '/staff/directory', label: 'Directory' });
   if (await canViewReportsArea(user)) nav.push({ href: '/staff/reports', label: 'Reports' });
+  if (isSuperAdmin(user) || canAdminSection(user, 'leads')) nav.push({ href: '/staff/leads', label: 'Leads' });
   nav.push({ href: '/account', label: 'My account' });
   // Admins with any back-end access get a jump link back to the admin area.
   if (user.role === 'ADMIN' && hasAnyAdminSection(user)) nav.push({ href: '/admin', label: 'Admin' });

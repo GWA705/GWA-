@@ -493,6 +493,17 @@ export function leadsSheetId(): string | null {
   return process.env.HD_LEADS_SHEET_ID || null;
 }
 
+/** Read a single tab's grid (formatted values). Throws on failure. */
+export async function readSheetTab(spreadsheetId: string, tab: string, range = 'A1:Z5000'): Promise<string[][]> {
+  const sheets = await sheetsClient();
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: `'${tab}'!${range}`,
+    valueRenderOption: 'FORMATTED_VALUE',
+  });
+  return (res.data.values as string[][]) || [];
+}
+
 /**
  * Read-only connectivity probe for any Google Sheet: returns its title and tab
  * titles, or an error string. Used by the system-health dashboard.

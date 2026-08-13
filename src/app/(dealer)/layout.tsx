@@ -70,6 +70,7 @@ export default async function DealerLayout({ children }: { children: React.React
           { href: '/dealer/applications/new', label: 'New customer' },
           { href: '/dealer/mail', label: 'Mail', badge: unreadMail > 0 },
           { href: '/dealer/marketplace', label: 'Marketplace' },
+          { href: '/dealer/leads', label: 'Leads' },
           ...(calcAccess ? [{ href: '/dealer/calculator', label: 'Calculator' }] : []),
           ...(reportAccess ? [{ href: '/dealer/reports', label: 'Reports' }] : []),
           {

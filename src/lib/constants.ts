@@ -481,6 +481,7 @@ export interface AdminSection {
 export const ADMIN_SECTIONS: AdminSection[] = [
   { key: 'overview', label: 'Overview', href: '/admin', hint: 'Dashboard KPIs' },
   { key: 'reports', label: 'Reports', href: '/staff/reports', hint: 'Performance reporting' },
+  { key: 'leads', label: 'Leads', href: '/staff/leads', hint: 'HD leads (all offices)' },
   { key: 'resource-library', label: 'Resource library', href: '/admin/resource-library', hint: 'Product manuals & brochures' },
   { key: 'dealers', label: 'Dealers', href: '/admin/dealers' },
   { key: 'finance', label: 'Finance companies', href: '/admin/finance-companies' },
