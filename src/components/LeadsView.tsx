@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { Lead } from '@/lib/leads';
+import { LeadsMonthDropdown } from './LeadsMonthDropdown';
 
 // Read-only, searchable list of HD leads with running totals. Shared by the
 // dealer (own office) and internal (all offices) pages. No download — view only.
@@ -29,6 +30,8 @@ export function LeadsView({
   basePath,
   extraHidden,
   page = 1,
+  month = '',
+  monthOptions = [],
 }: {
   leads: Lead[];
   summary: { total: number; noGood: number; forwarded: number };
@@ -37,11 +40,14 @@ export function LeadsView({
   basePath: string;
   extraHidden?: { name: string; value: string }[];
   page?: number;
+  month?: string;
+  monthOptions?: { value: string; label: string }[];
 }) {
   const buildHref = (over: Record<string, string>) => {
     const params = new URLSearchParams();
     if (q) params.set('q', q);
     if (status) params.set('status', status);
+    if (month) params.set('month', month);
     for (const h of extraHidden ?? []) if (h.value) params.set(h.name, h.value);
     for (const [k, v] of Object.entries(over)) {
       if (v) params.set(k, v);
@@ -56,6 +62,7 @@ export function LeadsView({
     const params = new URLSearchParams();
     if (q) params.set('q', q);
     if (val) params.set('status', val);
+    if (month) params.set('month', month);
     for (const h of extraHidden ?? []) if (h.value) params.set(h.name, h.value);
     return (
       <Link
@@ -95,12 +102,23 @@ export function LeadsView({
         <input name="q" defaultValue={q} placeholder="Search name, phone, email, address, booking, store…" className="input min-w-[220px] flex-1" />
         {extraHidden?.map((h) => (h.value ? <input key={h.name} type="hidden" name={h.name} value={h.value} /> : null))}
         {status && <input type="hidden" name="status" value={status} />}
+        {month && <input type="hidden" name="month" value={month} />}
         <button type="submit" className="btn-primary">Search</button>
       </form>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {statusLink('', 'All')}
         {statusLink('forwarded', 'Forwarded')}
         {statusLink('nogood', 'No-good')}
+        {monthOptions.length > 0 && (
+          <div className="ml-auto">
+            <LeadsMonthDropdown
+              value={month}
+              options={monthOptions}
+              basePath={basePath}
+              params={[{ name: 'q', value: q }, { name: 'status', value: status }, ...(extraHidden ?? [])]}
+            />
+          </div>
+        )}
       </div>
 
       {/* List — compact rows that expand on click */}
@@ -185,11 +203,16 @@ export function LeadsView({
   );
 }
 
-/** Apply the q + status filters to a lead list (server-side). */
-export function filterLeads(leads: Lead[], q: string, status: string): Lead[] {
+function monthKey(d: Date | null): string {
+  return d ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` : '';
+}
+
+/** Apply the q + status + month filters to a lead list (server-side). */
+export function filterLeads(leads: Lead[], q: string, status: string, month = ''): Lead[] {
   let out = leads;
   if (status === 'nogood') out = out.filter((l) => l.noGood);
   else if (status === 'forwarded') out = out.filter((l) => !l.noGood);
+  if (month) out = out.filter((l) => monthKey(l.dateReceived) === month);
   const needle = q.trim().toLowerCase();
   if (needle) {
     out = out.filter((l) =>
@@ -200,4 +223,17 @@ export function filterLeads(leads: Lead[], q: string, status: string): Lead[] {
     );
   }
   return out;
+}
+
+/** Distinct month options (newest first) present in a lead list. */
+export function leadMonthOptions(leads: Lead[]): { value: string; label: string }[] {
+  const seen = new Map<string, string>();
+  for (const l of leads) {
+    if (!l.dateReceived) continue;
+    const key = monthKey(l.dateReceived);
+    if (!seen.has(key)) seen.set(key, l.dateReceived.toLocaleString('en-US', { month: 'long', year: 'numeric' }));
+  }
+  return Array.from(seen.entries())
+    .sort((a, b) => (a[0] < b[0] ? 1 : -1))
+    .map(([value, label]) => ({ value, label }));
 }

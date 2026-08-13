@@ -5,14 +5,14 @@ import { isSuperAdmin, canAdminSection } from '@/lib/rbac';
 import { readLeads, summarize } from '@/lib/leads';
 import { leadsSheetId, reportingJournalEnabled } from '@/lib/reporting/journalRead';
 import { listReportOffices } from '@/lib/reporting/monthly';
-import { LeadsView, filterLeads } from '@/components/LeadsView';
+import { LeadsView, filterLeads, leadMonthOptions } from '@/components/LeadsView';
 
 export const dynamic = 'force-dynamic';
 
 export default async function StaffLeadsPage({
   searchParams,
 }: {
-  searchParams: { q?: string; status?: string; office?: string; page?: string };
+  searchParams: { q?: string; status?: string; office?: string; page?: string; month?: string };
 }) {
   const user = await requireRole('REVIEWER', 'ADMIN');
   // All-offices leads = leadership view: super admin or a granted 'leads' section.
@@ -21,6 +21,7 @@ export default async function StaffLeadsPage({
   const q = (searchParams.q ?? '').trim();
   const status = (searchParams.status ?? '').trim();
   const officeId = (searchParams.office ?? '').trim();
+  const month = (searchParams.month ?? '').trim();
   const page = Math.max(1, parseInt(searchParams.page ?? '1', 10) || 1);
 
   if (!leadsSheetId() || !reportingJournalEnabled()) {
@@ -45,7 +46,8 @@ export default async function StaffLeadsPage({
     scoped = scoped.filter((l) => set.has(l.storeNumber));
   }
   const summary = summarize(scoped);
-  const filtered = filterLeads(scoped, q, status);
+  const monthOptions = leadMonthOptions(scoped);
+  const filtered = filterLeads(scoped, q, status, month);
 
   return (
     <div className="space-y-5">
@@ -83,6 +85,8 @@ export default async function StaffLeadsPage({
         basePath="/staff/leads"
         extraHidden={[{ name: 'office', value: officeId }]}
         page={page}
+        month={month}
+        monthOptions={monthOptions}
       />
     </div>
   );

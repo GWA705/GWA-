@@ -3,14 +3,15 @@ import { requireDealerAccess } from '@/lib/session';
 import { readLeads, dealerStoreNumbers, summarize } from '@/lib/leads';
 import { reportingJournalEnabled } from '@/lib/reporting/journalRead';
 import { leadsSheetId } from '@/lib/reporting/journalRead';
-import { LeadsView, filterLeads } from '@/components/LeadsView';
+import { LeadsView, filterLeads, leadMonthOptions } from '@/components/LeadsView';
 
 export const dynamic = 'force-dynamic';
 
-export default async function DealerLeadsPage({ searchParams }: { searchParams: { q?: string; status?: string; page?: string } }) {
+export default async function DealerLeadsPage({ searchParams }: { searchParams: { q?: string; status?: string; page?: string; month?: string } }) {
   const user = await requireDealerAccess();
   const q = (searchParams.q ?? '').trim();
   const status = (searchParams.status ?? '').trim();
+  const month = (searchParams.month ?? '').trim();
   const page = Math.max(1, parseInt(searchParams.page ?? '1', 10) || 1);
 
   if (!leadsSheetId() || !reportingJournalEnabled()) {
@@ -37,7 +38,8 @@ export default async function DealerLeadsPage({ searchParams }: { searchParams: 
   const storeSet = new Set(myStores);
   const mine = read.leads.filter((l) => storeSet.has(l.storeNumber));
   const summary = summarize(mine);
-  const filtered = filterLeads(mine, q, status);
+  const monthOptions = leadMonthOptions(mine);
+  const filtered = filterLeads(mine, q, status, month);
 
   return (
     <div className="space-y-5">
@@ -47,7 +49,7 @@ export default async function DealerLeadsPage({ searchParams }: { searchParams: 
           Couldn&apos;t read the leads log right now: {read.error}
         </div>
       )}
-      <LeadsView leads={filtered} summary={summary} q={q} status={status} basePath="/dealer/leads" page={page} />
+      <LeadsView leads={filtered} summary={summary} q={q} status={status} basePath="/dealer/leads" page={page} month={month} monthOptions={monthOptions} />
     </div>
   );
 }
