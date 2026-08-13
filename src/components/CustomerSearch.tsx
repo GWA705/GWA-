@@ -82,7 +82,7 @@ function Results({ result }: { result: CustomerSearchResult }) {
     return (
       <div className="divide-y divide-gray-100 overflow-hidden rounded-xl border border-gray-200 bg-white">
         {result.matches.map((m) => (
-          <Link key={m.applicationId} href={`/staff/applications/${m.applicationId}`} className="flex items-center justify-between gap-3 px-4 py-2.5 hover:bg-gray-50">
+          <Link key={m.applicationId} href={`/staff/find-customer/${m.applicationId}`} className="flex items-center justify-between gap-3 px-4 py-2.5 hover:bg-gray-50">
             <span className="min-w-0">
               <span className="block truncate font-medium text-gray-900">{m.name}</span>
               <span className="block text-xs text-gray-500">
