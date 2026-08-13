@@ -7,6 +7,7 @@ import { StorageCheck } from './StorageCheck';
 import { StoreImport } from './StoreImport';
 import { StorageMeter } from './StorageMeter';
 import { getStorageUsage } from '@/lib/storage-usage';
+import { AdminAttention } from './AdminAttention';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,7 +20,7 @@ function money(n: number): string {
 }
 
 export default async function AdminOverview() {
-  await requireAdminSection('overview');
+  const user = await requireAdminSection('overview');
 
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -117,6 +118,9 @@ export default async function AdminOverview() {
   return (
     <div className="space-y-8">
       <h1 className="text-xl font-semibold text-gray-900">Overview</h1>
+
+      {/* Immediate action items */}
+      <AdminAttention user={user} />
 
       {/* KPI tiles */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">

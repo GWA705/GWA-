@@ -7,28 +7,66 @@ import { prisma } from '@/lib/db';
 import { canAdminSection, isSuperAdmin, hasAnyAdminSection } from '@/lib/rbac';
 import { ADMIN_SECTIONS } from '@/lib/constants';
 
+interface NavItem {
+  href?: string;
+  label: string;
+  badge?: boolean;
+  children?: NavItem[];
+}
+
+// Logical grouping of the admin sections into a small set of top-level menus, so
+// the nav stays on one line and things are easy to find. Each entry is a section
+// key from ADMIN_SECTIONS; unauthorized keys are filtered out and empty groups
+// are dropped.
+const NAV_GROUPS: { label: string; keys: string[] }[] = [
+  { label: 'Deals', keys: ['review-queue', 'reports', 'leads'] },
+  { label: 'Dealers', keys: ['dealers', 'directory', 'user-requests', 'support-contacts'] },
+  { label: 'Content', keys: ['resource-library', 'content', 'marketplace', 'announcements', 'alerts', 'reminders', 'note-templates'] },
+  { label: 'People', keys: ['users'] },
+  { label: 'Settings', keys: ['finance', 'products', 'email', 'security', 'system-health', 'audit'] },
+];
+
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const user = await requireRole('ADMIN');
 
   // A scoped admin with no back-end access at all doesn't belong in this area.
   if (!hasAnyAdminSection(user)) redirect('/account');
 
-  // Badge the "User requests" tab when dealers have pending requests waiting.
+  // Badge sources — cheap counts for things needing attention.
   const pendingRequests = canAdminSection(user, 'user-requests')
     ? await prisma.userRequest.count({ where: { status: 'PENDING' } })
     : 0;
 
-  // Build the nav from the sections this admin is actually allowed to see, so a
-  // scoped admin never sees a tab they can't open. Route guards enforce it too.
-  const nav: { href: string; label: string; badge?: boolean }[] = ADMIN_SECTIONS.filter((s) =>
-    canAdminSection(user, s.key),
-  ).map((s) => ({
-    href: s.href,
-    label: s.label,
-    badge: s.key === 'user-requests' && pendingRequests > 0,
-  }));
-  // Only a Super Admin manages other admins' access.
-  if (isSuperAdmin(user)) nav.push({ href: '/admin/access', label: 'Admin access' });
+  const byKey = new Map(ADMIN_SECTIONS.map((s) => [s.key, s]));
+  const badgeFor = (key: string): boolean => (key === 'user-requests' ? pendingRequests > 0 : false);
+  const linkFor = (key: string): NavItem | null => {
+    const s = byKey.get(key);
+    if (!s || !canAdminSection(user, key)) return null;
+    return { href: s.href, label: s.label, badge: badgeFor(key) };
+  };
+
+  const nav: NavItem[] = [];
+
+  // Overview is a standalone link (the dashboard).
+  const overview = linkFor('overview');
+  if (overview) nav.push({ ...overview, label: 'Overview' });
+
+  // Grouped sections.
+  for (const group of NAV_GROUPS) {
+    const items = group.keys.map(linkFor).filter((x): x is NavItem => x !== null);
+    if (items.length === 0) continue;
+    // People group also carries the super-admin "Admin access" screen.
+    if (group.label === 'People' && isSuperAdmin(user)) {
+      items.push({ href: '/admin/access', label: 'Admin access' });
+    }
+    // A single-item group is nicer as a plain link.
+    nav.push(items.length === 1 ? items[0] : { label: group.label, children: items });
+  }
+
+  // Mail is a standalone link (frequent).
+  const mail = linkFor('mail');
+  if (mail) nav.push(mail);
+
   nav.push({ href: '/account', label: 'My account' });
 
   const alerts = await prisma.dealerAlert.findMany({
