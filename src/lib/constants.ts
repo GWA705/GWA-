@@ -7,6 +7,7 @@ import type {
   ProgramType,
   ProgramCategory,
   PaymentMethod,
+  ResourceFileKind,
 } from '@prisma/client';
 
 export const CONFIRMATION_STATUS_LABELS: Record<ConfirmationStatus, string> = {
@@ -425,6 +426,32 @@ export const PHOTO_ID_TYPES = [
   'LCBO BYID Card',
 ];
 
+// Resource library — the kinds of file that can be attached to a product.
+// Each is optional per product; add a new entry here to introduce a new kind.
+export const RESOURCE_FILE_KINDS: { value: ResourceFileKind; label: string }[] = [
+  { value: 'MANUAL', label: 'Manual' },
+  { value: 'BROCHURE', label: 'Brochure' },
+  { value: 'SPEC_SHEET', label: 'Spec sheet' },
+  { value: 'WARRANTY', label: 'Warranty' },
+  { value: 'OTHER', label: 'Other' },
+];
+
+export const RESOURCE_FILE_KIND_LABELS: Record<ResourceFileKind, string> = {
+  MANUAL: 'Manual',
+  BROCHURE: 'Brochure',
+  SPEC_SHEET: 'Spec sheet',
+  WARRANTY: 'Warranty',
+  OTHER: 'Other',
+};
+
+// Files a resource product can hold: documents (PDF) and images.
+export const RESOURCE_FILE_MIME_TYPES = [
+  'application/pdf',
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+];
+
 export const CONSENT_POLICY_VERSION = '2026-01-mvp';
 
 // PLACEHOLDER — must be replaced with wording reviewed by a Canadian privacy
@@ -454,6 +481,7 @@ export interface AdminSection {
 export const ADMIN_SECTIONS: AdminSection[] = [
   { key: 'overview', label: 'Overview', href: '/admin', hint: 'Dashboard KPIs' },
   { key: 'reports', label: 'Reports', href: '/staff/reports', hint: 'Performance reporting' },
+  { key: 'resource-library', label: 'Resource library', href: '/admin/resource-library', hint: 'Product manuals & brochures' },
   { key: 'dealers', label: 'Dealers', href: '/admin/dealers' },
   { key: 'finance', label: 'Finance companies', href: '/admin/finance-companies' },
   { key: 'products', label: 'Products', href: '/admin/products' },

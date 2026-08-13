@@ -1332,3 +1332,52 @@ model SupportContact {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+// ---------------------------------------------------------------------------
+// Product resource library — manuals, brochures, spec sheets, etc. Shown to all
+// dealers under the Resources tab. A standalone catalog (not tied to the sales
+// Product list). Each product carries a photo plus any number of typed files.
+// ---------------------------------------------------------------------------
+enum ResourceFileKind {
+  MANUAL
+  BROCHURE
+  SPEC_SHEET
+  WARRANTY
+  OTHER
+}
+
+model ResourceProduct {
+  id              String   @id @default(cuid())
+  title           String
+  category        String? // free-text grouping (e.g. Water / Air / HVAC)
+  brand           String?
+  modelNumber     String?
+  description     String?  @db.Text
+  imageStorageKey String? // product photo (encrypted at rest)
+  imageMime       String?
+  active          Boolean  @default(true)
+  sortOrder       Int      @default(0)
+  createdById     String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  files ResourceProductFile[]
+
+  @@index([active, sortOrder])
+}
+
+model ResourceProductFile {
+  id           String           @id @default(cuid())
+  productId    String
+  product      ResourceProduct  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  kind         ResourceFileKind @default(OTHER)
+  label        String?
+  storageKey   String
+  mime         String
+  sizeBytes    Int
+  originalName String?
+  sortOrder    Int              @default(0)
+  createdAt    DateTime         @default(now())
+
+  @@index([productId])
+}
