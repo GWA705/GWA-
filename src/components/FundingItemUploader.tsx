@@ -2,6 +2,7 @@
 
 import { useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { compressFiles } from '@/lib/clientImageCompress';
 
 interface UploadState {
   error?: string;
@@ -39,14 +40,17 @@ export function FundingItemUploader({
       setError('Name this document first.');
       return;
     }
-    const fd = new FormData();
-    Array.from(list).forEach((file) => {
-      fd.append('file', file);
-      fd.append('category', category);
-      fd.append('customLabel', isOther ? customLabel.trim() : '');
-    });
     setError(null);
     start(async () => {
+      // Shrink big photos in the browser first so they upload fast (documents
+      // stay readable). PDFs and small files pass through untouched.
+      const files = await compressFiles(Array.from(list));
+      const fd = new FormData();
+      files.forEach((file) => {
+        fd.append('file', file);
+        fd.append('category', category);
+        fd.append('customLabel', isOther ? customLabel.trim() : '');
+      });
       const res = await action({}, fd);
       if (res?.error) {
         setError(res.error);
