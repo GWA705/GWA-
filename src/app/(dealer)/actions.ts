@@ -618,11 +618,15 @@ export async function togglePinAction(applicationId: string): Promise<{ error?: 
   const app = await prisma.application.findUnique({ where: { id: applicationId }, select: { dealerId: true } });
   if (!app || !canAccessAsDealer(session, app.dealerId)) return { error: 'Not found.' };
   const key = { userId_applicationId: { userId: session.userId, applicationId } };
-  const existing = await prisma.applicationPin.findUnique({ where: key });
-  if (existing) {
-    await prisma.applicationPin.delete({ where: key });
-  } else {
-    await prisma.applicationPin.create({ data: { userId: session.userId, applicationId } });
+  try {
+    const existing = await prisma.applicationPin.findUnique({ where: key });
+    if (existing) {
+      await prisma.applicationPin.delete({ where: key });
+    } else {
+      await prisma.applicationPin.create({ data: { userId: session.userId, applicationId } });
+    }
+  } catch {
+    return { error: 'Pinning isn’t available yet — please try again in a minute.' };
   }
   revalidatePath('/dealer');
   return {};

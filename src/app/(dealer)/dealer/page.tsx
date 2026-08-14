@@ -53,12 +53,19 @@ export default async function DealerHome({
   const baseWhere: Prisma.ApplicationWhereInput = { AND: filters };
 
   // This user's pinned deals — they float to the top of page 1 and are kept out
-  // of the normal paginated list so they never appear twice.
-  const pinRows = await prisma.applicationPin.findMany({
-    where: { userId: user.userId },
-    select: { applicationId: true },
-  });
-  const pinnedIds = pinRows.map((r) => r.applicationId);
+  // of the normal paginated list so they never appear twice. Fail-safe: if the
+  // pins table isn't there yet (migration still rolling out), just show no pins
+  // rather than crashing the whole Applications page.
+  let pinnedIds: string[] = [];
+  try {
+    const pinRows = await prisma.applicationPin.findMany({
+      where: { userId: user.userId },
+      select: { applicationId: true },
+    });
+    pinnedIds = pinRows.map((r) => r.applicationId);
+  } catch {
+    pinnedIds = [];
+  }
   const listWhere: Prisma.ApplicationWhereInput = pinnedIds.length
     ? { AND: [baseWhere, { id: { notIn: pinnedIds } }] }
     : baseWhere;
