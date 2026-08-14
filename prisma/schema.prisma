@@ -1321,6 +1321,9 @@ model DealerProfile {
   supportContactName String?
   supportPhone       String?
   supportEmail       String?
+  // Additional office people beyond billing/support — an array of
+  // { name, role, phone, email }. Shown on the office contact cards.
+  extraContacts      Json?
   officeHours        String?  @db.Text
   website            String?
   logoStorageKey     String? // uploaded office logo (encrypted at rest)

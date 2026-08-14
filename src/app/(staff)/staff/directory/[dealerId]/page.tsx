@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { requireAdminSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { DealerProfileForm } from '@/components/DealerProfileForm';
+import { readExtraContacts } from '@/lib/dealerProfile';
 import { saveDealerProfileAdminAction } from '@/app/(admin)/actions';
 
 export const dynamic = 'force-dynamic';
@@ -15,7 +16,7 @@ export default async function DirectoryEditPage({ params }: { params: { dealerId
   });
   if (!dealer) notFound();
 
-  const values = { ...(dealer.profile ?? {}), businessName: dealer.profile?.businessName ?? dealer.name };
+  const values = { ...(dealer.profile ?? {}), businessName: dealer.profile?.businessName ?? dealer.name, extraContacts: readExtraContacts(dealer.profile?.extraContacts) };
   const logoUrl = dealer.profile?.logoStorageKey ? `/api/dealer-profiles/${dealer.id}/logo?v=${dealer.profile.updatedAt.getTime()}` : null;
   const action = saveDealerProfileAdminAction.bind(null, dealer.id);
 

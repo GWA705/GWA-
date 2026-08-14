@@ -1,7 +1,9 @@
 'use client';
 
+import { useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { AddressAutocompleteInput } from '@/components/AddressAutocompleteInput';
+import type { OfficeContact } from '@/lib/dealerProfile';
 
 export interface DealerProfileValues {
   businessName?: string | null;
@@ -15,8 +17,49 @@ export interface DealerProfileValues {
   supportContactName?: string | null;
   supportPhone?: string | null;
   supportEmail?: string | null;
+  extraContacts?: OfficeContact[] | null;
   officeHours?: string | null;
   website?: string | null;
+}
+
+/** Add/remove additional office people, each with a role + phone + email. */
+function ExtraContactsEditor({ initial }: { initial: OfficeContact[] }) {
+  const [rows, setRows] = useState<OfficeContact[]>(initial);
+  const set = (i: number, patch: Partial<OfficeContact>) =>
+    setRows((r) => r.map((row, idx) => (idx === i ? { ...row, ...patch } : row)));
+  const add = () => setRows((r) => [...r, { name: '', role: '', phone: '', email: '' }]);
+  const remove = (i: number) => setRows((r) => r.filter((_, idx) => idx !== i));
+
+  return (
+    <div className="space-y-3">
+      <input type="hidden" name="extraContacts" value={JSON.stringify(rows)} />
+      {rows.length === 0 && <p className="text-sm text-gray-400">No extra contacts yet.</p>}
+      {rows.map((row, i) => (
+        <div key={i} className="rounded-lg border border-gray-200 p-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <label className="label">Name</label>
+              <input className="input" value={row.name} placeholder="e.g. Jordan Lee" onChange={(e) => set(i, { name: e.target.value })} />
+            </div>
+            <div>
+              <label className="label">Role / title</label>
+              <input className="input" value={row.role} placeholder="e.g. Install manager" onChange={(e) => set(i, { role: e.target.value })} />
+            </div>
+            <div>
+              <label className="label">Phone</label>
+              <input className="input" value={row.phone} placeholder="(705) 555-0123" onChange={(e) => set(i, { phone: e.target.value })} />
+            </div>
+            <div>
+              <label className="label">Email</label>
+              <input className="input" type="email" value={row.email} placeholder="name@office.ca" onChange={(e) => set(i, { email: e.target.value })} />
+            </div>
+          </div>
+          <button type="button" onClick={() => remove(i)} className="mt-2 text-xs font-medium text-red-600 hover:underline">Remove</button>
+        </div>
+      ))}
+      <button type="button" onClick={add} className="btn-secondary text-sm">+ Add a contact</button>
+    </div>
+  );
 }
 
 interface State {
@@ -139,6 +182,14 @@ export function DealerProfileForm({
           <Field name="supportPhone" label="Phone" defaultValue={values.supportPhone} />
           <Field name="supportEmail" label="Email" type="email" defaultValue={values.supportEmail} />
         </div>
+      </div>
+
+      <div className="space-y-4 border-t border-gray-100 pt-5">
+        <div>
+          <h3 className="text-sm font-semibold text-gray-700">Other contacts</h3>
+          <p className="mt-0.5 text-xs text-gray-400">Add anyone else at the office — each with their own role, phone, and email.</p>
+        </div>
+        <ExtraContactsEditor initial={values.extraContacts ?? []} />
       </div>
 
       <div className="flex items-center gap-3">

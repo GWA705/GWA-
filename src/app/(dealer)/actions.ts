@@ -20,7 +20,7 @@ import { parseDealerProfileForm } from '@/lib/dealerProfile';
 import { applyDealerLogo } from '@/lib/dealerLogo';
 import { CONSENT_POLICY_VERSION, CONSENT_TEXT, PAYMENT_METHOD_LABELS, FUNDING_DOCUMENT_TYPES, SPLIT_PAYMENT_METHODS } from '@/lib/constants';
 import { validateSplits } from '@/lib/payments';
-import type { DocumentType, PaymentMethod } from '@prisma/client';
+import type { DocumentType, PaymentMethod, Prisma } from '@prisma/client';
 
 export interface ActionState {
   error?: string;
@@ -595,10 +595,11 @@ export async function saveDealerProfileAction(
   const session = await requireDealerAccess();
   if (!session.dealerId) return { error: 'Your account is not linked to a dealership.' };
   const data = parseDealerProfileForm(formData);
+  const extraContacts = data.extraContacts as unknown as Prisma.InputJsonValue;
   await prisma.dealerProfile.upsert({
     where: { dealerId: session.dealerId },
-    create: { dealerId: session.dealerId, updatedById: session.userId, ...data },
-    update: { updatedById: session.userId, ...data },
+    create: { dealerId: session.dealerId, updatedById: session.userId, ...data, extraContacts },
+    update: { updatedById: session.userId, ...data, extraContacts },
   });
   const logo = await applyDealerLogo(session.dealerId, formData);
   if (logo.error) return { error: logo.error };

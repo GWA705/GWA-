@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db';
 import { isGlobalSearchEnabled } from '@/lib/settings';
 import { canSearchAllCustomers } from '@/lib/customerSearch';
 import { matchManualsForProducts } from '@/lib/resourceMatch';
+import { readExtraContacts } from '@/lib/dealerProfile';
 import { formatPhoneDisplay } from '@/lib/format';
 import { STATUS_LABELS } from '@/lib/constants';
 import { MessageOffice } from '../MessageOffice';
@@ -28,13 +29,16 @@ export default async function CustomerAssistPage({ params }: { params: { id: str
       productsSold: true,
       hdReference: true,
       financeItNumber: true,
+      dateOfSale: true,
+      datePaid: true,
       dealer: {
         select: {
           name: true,
           profile: {
             select: {
               businessName: true, phone: true, altPhone: true, supportContactName: true, supportPhone: true,
-              supportEmail: true, billingContactName: true, address: true, officeHours: true, website: true,
+              supportEmail: true, billingContactName: true, billingPhone: true, billingEmail: true,
+              extraContacts: true, address: true, officeHours: true, website: true,
             },
           },
         },
@@ -47,6 +51,7 @@ export default async function CustomerAssistPage({ params }: { params: { id: str
   const p = app.dealer?.profile ?? null;
   const officeName = p?.businessName || app.dealer?.name || 'their office';
   const officePhone = p?.phone || p?.supportPhone || null;
+  const officeContacts = readExtraContacts(p?.extraContacts);
 
   return (
     <div className="max-w-3xl space-y-5">
@@ -67,6 +72,7 @@ export default async function CustomerAssistPage({ params }: { params: { id: str
           <span className="rounded-full bg-white/15 px-2.5 py-1 text-xs font-semibold text-white">{STATUS_LABELS[app.status]}</span>
         </div>
         <div className="flex flex-wrap gap-x-6 gap-y-1 border-t border-white/10 px-6 py-2.5 text-xs text-white/60">
+          {app.dateOfSale && <span>🗓 Sold {app.dateOfSale.toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' })}</span>}
           {app.hdReference && <span>HD #{app.hdReference}</span>}
           {app.financeItNumber && <span>Loan #{app.financeItNumber}</span>}
           <Link href={`/staff/applications/${app.id}`} className="ml-auto font-medium text-sky-300 hover:underline">Open full deal →</Link>
@@ -130,12 +136,27 @@ export default async function CustomerAssistPage({ params }: { params: { id: str
           <div className="text-base font-semibold text-gray-900">{officeName}</div>
           <div className="mt-2 grid grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-2">
             {officePhone && <div>Phone: <span className="font-medium text-gray-900">{formatPhoneDisplay(officePhone)}</span></div>}
-            {p?.supportContactName && <div>Support contact: {p.supportContactName}{p.supportPhone ? ` · ${formatPhoneDisplay(p.supportPhone)}` : ''}</div>}
-            {p?.billingContactName && <div>Billing contact: {p.billingContactName}</div>}
+            {p?.supportContactName && <div>Support: {p.supportContactName}{p.supportPhone ? ` · ${formatPhoneDisplay(p.supportPhone)}` : ''}{p.supportEmail ? ` · ${p.supportEmail}` : ''}</div>}
+            {p?.billingContactName && <div>Billing: {p.billingContactName}{p.billingPhone ? ` · ${formatPhoneDisplay(p.billingPhone)}` : ''}{p.billingEmail ? ` · ${p.billingEmail}` : ''}</div>}
             {p?.officeHours && <div>Hours: {p.officeHours}</div>}
             {p?.address && <div className="sm:col-span-2">Address: {p.address}</div>}
             {p?.website && <div className="sm:col-span-2">Web: {p.website}</div>}
           </div>
+          {officeContacts.length > 0 && (
+            <div className="mt-3 border-t border-gray-100 pt-3">
+              <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-gray-400">Other contacts</div>
+              <div className="grid grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-2">
+                {officeContacts.map((c, i) => (
+                  <div key={i}>
+                    <span className="font-medium text-gray-900">{c.name || '—'}</span>
+                    {c.role && <span className="text-gray-500"> · {c.role}</span>}
+                    {c.phone && <span> · <a href={`tel:${c.phone.replace(/[^0-9+]/g, '')}`} className="text-brand-700 hover:underline">{formatPhoneDisplay(c.phone)}</a></span>}
+                    {c.email && <span> · <a href={`mailto:${c.email}`} className="text-brand-700 hover:underline">{c.email}</a></span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           {!p && <p className="mt-1 text-xs text-gray-400">This office hasn&apos;t filled in its profile yet.</p>}
         </div>
       </section>

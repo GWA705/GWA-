@@ -1,6 +1,7 @@
 import { requireDealerAccess } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { DealerProfileForm } from '@/components/DealerProfileForm';
+import { readExtraContacts } from '@/lib/dealerProfile';
 import { saveDealerProfileAction } from '@/app/(dealer)/actions';
 
 export const dynamic = 'force-dynamic';
@@ -13,7 +14,7 @@ export default async function DealerProfilePage() {
   ]);
 
   // Prefill the business name from the dealership name on a first-time profile.
-  const values = { ...(profile ?? {}), businessName: profile?.businessName ?? dealer?.name ?? '' };
+  const values = { ...(profile ?? {}), businessName: profile?.businessName ?? dealer?.name ?? '', extraContacts: readExtraContacts(profile?.extraContacts) };
   const logoUrl = profile?.logoStorageKey && user.dealerId ? `/api/dealer-profiles/${user.dealerId}/logo?v=${profile.updatedAt.getTime()}` : null;
 
   return (

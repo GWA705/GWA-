@@ -20,6 +20,7 @@ import { sendEmail, emailEnabled } from '@/lib/email';
 import { renderEmail } from '@/lib/email-templates';
 import { setSetting, EMAIL_SETTING_KEYS, BANNER_SETTING_KEYS, SECURITY_SETTING_KEYS, MFA_TRUST_DAY_OPTIONS, DEFAULT_MFA_TRUST_DAYS, type MfaRequirement } from '@/lib/settings';
 import { parseDealerProfileForm } from '@/lib/dealerProfile';
+import type { Prisma } from '@prisma/client';
 import { applyDealerLogo, applySupportContactLogo } from '@/lib/dealerLogo';
 
 export interface ActionState {
@@ -1429,10 +1430,11 @@ export async function saveDealerProfileAdminAction(
   const dealer = await prisma.dealer.findUnique({ where: { id: dealerId }, select: { id: true } });
   if (!dealer) return { error: 'Dealer not found.' };
   const data = parseDealerProfileForm(formData);
+  const extraContacts = data.extraContacts as unknown as Prisma.InputJsonValue;
   await prisma.dealerProfile.upsert({
     where: { dealerId },
-    create: { dealerId, updatedById: session.userId, ...data },
-    update: { updatedById: session.userId, ...data },
+    create: { dealerId, updatedById: session.userId, ...data, extraContacts },
+    update: { updatedById: session.userId, ...data, extraContacts },
   });
   const logo = await applyDealerLogo(dealerId, formData);
   if (logo.error) return { error: logo.error };
