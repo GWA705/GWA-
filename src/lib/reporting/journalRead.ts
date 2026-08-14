@@ -550,6 +550,7 @@ export interface JournalYearStatus {
   title?: string; // spreadsheet title
   monthTabs?: number; // count of month tabs found
   totalTabs?: number;
+  deals?: number; // deals the reader actually parsed out of this book
   error?: string;
 }
 
@@ -648,6 +649,15 @@ export async function journalDiagnostics(years: number[]): Promise<JournalDiagno
       });
       const titles = (meta.data.sheets || []).map((s) => s.properties?.title || '').filter(Boolean);
       const monthTabs = titles.filter((t) => isMonthTab(t));
+      // Actually parse the book so we can show how many deals the reader gets
+      // out of it — the definitive check that a different layout is understood.
+      let deals: number | undefined;
+      try {
+        const read = await readJournal(year);
+        deals = read.deals.length;
+      } catch {
+        deals = undefined;
+      }
       out.years.push({
         year,
         configured: true,
@@ -655,6 +665,7 @@ export async function journalDiagnostics(years: number[]): Promise<JournalDiagno
         title: meta.data.properties?.title || '(untitled)',
         monthTabs: monthTabs.length,
         totalTabs: titles.length,
+        deals,
       });
     } catch (e) {
       out.years.push({ year, configured: true, ok: false, error: (e as Error).message });

@@ -109,6 +109,12 @@ export default async function JournalConnectionPage() {
                 {y.ok ? (
                   <div className="mt-0.5 text-xs text-gray-500">
                     {y.title} · {y.monthTabs} month tab{y.monthTabs === 1 ? '' : 's'} ({y.totalTabs} total)
+                    {typeof y.deals === 'number' && (
+                      <span className={y.deals > 0 ? ' font-semibold text-emerald-700' : ' font-semibold text-amber-700'}>
+                        {' '}· {y.deals.toLocaleString('en-CA')} deal{y.deals === 1 ? '' : 's'} read
+                        {y.deals === 0 ? ' (connected but nothing parsed — layout may differ)' : ''}
+                      </span>
+                    )}
                   </div>
                 ) : y.configured ? (
                   <div className="mt-0.5 break-words text-xs text-red-600">
