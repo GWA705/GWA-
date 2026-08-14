@@ -860,6 +860,12 @@ model Application {
   productsSold    String[]
   datePaid        DateTime?
 
+  // "My paperwork is done" marker for the reviewer on the awaiting-install step.
+  // Purely a team signal — it does NOT change the deal status (which still waits
+  // on the dealer returning the signed package). Name is snapshotted for display.
+  reviewerDoneAt     DateTime?
+  reviewerDoneByName String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

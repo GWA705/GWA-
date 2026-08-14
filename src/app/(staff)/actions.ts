@@ -387,6 +387,38 @@ export async function uploadReviewerPaperworkAction(
   return {};
 }
 
+/**
+ * Toggle the reviewer's "my paperwork is done" marker on the awaiting-install
+ * step. This is a team signal only — it never changes the deal status (which
+ * still advances on its own when the dealer returns the signed package). Any
+ * reviewer/admin can set or clear it; the name + time are snapshotted.
+ */
+export async function toggleReviewerDoneAction(applicationId: string): Promise<{ error?: string }> {
+  const session = await requireStaffSection('review-queue');
+  const app = await prisma.application.findUnique({
+    where: { id: applicationId },
+    select: { id: true, reviewerDoneAt: true },
+  });
+  if (!app) return { error: 'Not found.' };
+  const nowDone = !app.reviewerDoneAt;
+  await prisma.application.update({
+    where: { id: applicationId },
+    data: {
+      reviewerDoneAt: nowDone ? new Date() : null,
+      reviewerDoneByName: nowDone ? session.name : null,
+    },
+  });
+  await audit({
+    actorId: session.userId,
+    action: 'STATUS_CHANGE',
+    entityType: 'Application',
+    entityId: applicationId,
+    detail: nowDone ? 'reviewer marked paperwork complete' : 'reviewer un-marked paperwork complete',
+  });
+  revalidatePath(`/staff/applications/${applicationId}`);
+  return {};
+}
+
 // Reviewer/admin edits an existing deal — full applicant + deal details. Older
 // deals created before certain fields existed (e.g. ID province/type) can be
 // filled in here. Sensitive fields are re-encrypted; the change is audited.

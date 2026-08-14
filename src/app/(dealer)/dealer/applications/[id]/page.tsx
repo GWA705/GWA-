@@ -26,7 +26,7 @@ import {
   addDealerNoteAction,
   deleteOwnDocumentAction,
 } from '@/app/(dealer)/actions';
-import { FundingUploader } from '@/components/FundingUploader';
+import { FundingItemUploader } from '@/components/FundingItemUploader';
 import { DeleteDocumentButton } from '@/components/DeleteDocumentButton';
 import { DocViewer } from '@/components/DocViewer';
 
@@ -321,14 +321,11 @@ export default async function DealerApplicationDetail({
           {/* Funding document checklist */}
           <div className="space-y-3">
             <h3 className="text-sm font-medium text-gray-700">Funding documents</h3>
-            <p className="text-xs text-gray-500">Upload these as you get them — you don&apos;t have to add them all at once.</p>
-
+            <p className="text-xs text-gray-500">Add each one as you get it — snap a photo or choose files right on its line. You don&apos;t have to do them all at once.</p>
             {canUploadFunding && (
-              <FundingUploader
-                action={uploadFundingBatchAction.bind(null, app.id)}
-                categories={FUNDING_DOCUMENT_TYPES.map((t) => ({ type: t.type, label: t.label }))}
-              />
+              <p className="text-xs text-amber-700">⚠ Do not upload payment cards — Credit Cards, HD Consumer Cards, and FinanceIT one-time-use cards are automatically rejected.</p>
             )}
+
             {requiredFunding.map((t) => {
               const uploaded = fundingDocs.filter((d) => d.type === t.type);
               const confirmed = uploaded.some((d) => d.verifiedAt);
@@ -376,6 +373,15 @@ export default async function DealerApplicationDetail({
                         </li>
                       ))}
                     </ul>
+                  )}
+                  {canUploadFunding && (
+                    <div className="pl-7">
+                      <FundingItemUploader
+                        action={uploadFundingBatchAction.bind(null, app.id)}
+                        category={t.type}
+                        isOther={t.type === 'OTHER'}
+                      />
+                    </div>
                   )}
                 </div>
               );

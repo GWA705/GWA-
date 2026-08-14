@@ -12,7 +12,8 @@ import { VerificationChecklist, type VerificationState } from '@/components/Veri
 import { ReviewerEntryView } from '@/components/ReviewerEntryView';
 import { CollapsibleEntry } from '@/components/CollapsibleEntry';
 import { PayoutReceipt } from '@/components/PayoutReceipt';
-import { ReviewerPaperworkForm } from './ReviewerPaperworkForm';
+import { ReviewerPaperworkBoxes } from './ReviewerPaperworkBoxes';
+import { ReviewerDoneButton } from './ReviewerDoneButton';
 import { NoteThread } from '@/components/NoteThread';
 import { NoteForm } from '@/components/NoteForm';
 import { ConfirmationBadge } from '@/components/ConfirmationBadge';
@@ -297,7 +298,7 @@ export default async function StaffApplicationDetail({
           <DocumentList documents={reviewerDocs} deleteAction={deleteDocumentAction} />
         </div>
         <div className="border-t border-gray-100 pt-4">
-          <ReviewerPaperworkForm
+          <ReviewerPaperworkBoxes
             action={uploadReviewerPaperworkAction.bind(null, app.id)}
             categories={REVIEWER_PAPERWORK_TYPES}
           />
@@ -309,6 +310,11 @@ export default async function StaffApplicationDetail({
     // here too. Sending the first doc no longer closes off adding the rest.
     await: (
       <div>
+        <ReviewerDoneButton
+          applicationId={app.id}
+          doneAt={app.reviewerDoneAt ? app.reviewerDoneAt.toISOString() : null}
+          doneByName={app.reviewerDoneByName}
+        />
         <p className="mb-4 text-xs text-gray-500">
           Waiting on the dealer&apos;s signed package. You can still send more paperwork below — the deal moves to review on its own the moment the dealer sends anything back.
         </p>
@@ -317,7 +323,7 @@ export default async function StaffApplicationDetail({
           <DocumentList documents={reviewerDocs} deleteAction={deleteDocumentAction} />
         </div>
         <div className="border-t border-gray-100 pt-4">
-          <ReviewerPaperworkForm
+          <ReviewerPaperworkBoxes
             action={uploadReviewerPaperworkAction.bind(null, app.id)}
             categories={REVIEWER_PAPERWORK_TYPES}
           />

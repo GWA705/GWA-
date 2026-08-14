@@ -1,0 +1,115 @@
+'use client';
+
+import { useRef, useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
+
+interface UploadState {
+  error?: string;
+}
+type BatchAction = (prev: UploadState, formData: FormData) => Promise<UploadState>;
+
+const ACCEPT = '.pdf,.jpg,.jpeg,.png,.heic,.webp';
+
+/**
+ * Guided-checklist upload: one prominent "Add" control per required funding
+ * item. The category is fixed (this row), so the dealer just snaps a photo or
+ * picks files and they upload straight away — no tagging, no dropdown.
+ */
+export function FundingItemUploader({
+  action,
+  category,
+  isOther = false,
+}: {
+  action: BatchAction;
+  category: string;
+  isOther?: boolean;
+}) {
+  const [pending, start] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const [customLabel, setCustomLabel] = useState('');
+  const camRef = useRef<HTMLInputElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
+
+  const nameNeeded = isOther && customLabel.trim().length === 0;
+
+  function upload(list: FileList | null) {
+    if (!list || list.length === 0) return;
+    if (nameNeeded) {
+      setError('Name this document first.');
+      return;
+    }
+    const fd = new FormData();
+    Array.from(list).forEach((file) => {
+      fd.append('file', file);
+      fd.append('category', category);
+      fd.append('customLabel', isOther ? customLabel.trim() : '');
+    });
+    setError(null);
+    start(async () => {
+      const res = await action({}, fd);
+      if (res?.error) {
+        setError(res.error);
+        return;
+      }
+      router.refresh();
+    });
+  }
+
+  return (
+    <div className="mt-2">
+      {isOther && (
+        <input
+          className="input mb-2 py-1.5 text-sm"
+          placeholder="Name this document (e.g. Warranty)"
+          value={customLabel}
+          maxLength={40}
+          onChange={(e) => setCustomLabel(e.target.value)}
+        />
+      )}
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <button
+          type="button"
+          className="flex-1 rounded-lg bg-brand-600 px-4 py-3 text-base font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
+          onClick={() => camRef.current?.click()}
+          disabled={pending || nameNeeded}
+        >
+          📷 Take photo
+        </button>
+        <button
+          type="button"
+          className="flex-1 rounded-lg border-2 border-brand-500 bg-white px-4 py-3 text-base font-semibold text-brand-700 hover:bg-brand-50 disabled:opacity-50"
+          onClick={() => fileRef.current?.click()}
+          disabled={pending || nameNeeded}
+        >
+          📎 Choose files
+        </button>
+      </div>
+      {pending && <p className="mt-1.5 text-xs text-brand-700">Uploading…</p>}
+      {error && <p className="mt-1.5 text-xs text-red-600">{error}</p>}
+
+      <input
+        ref={camRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={(e) => {
+          upload(e.target.files);
+          e.target.value = '';
+        }}
+      />
+      <input
+        ref={fileRef}
+        type="file"
+        multiple
+        accept={ACCEPT}
+        className="hidden"
+        onChange={(e) => {
+          upload(e.target.files);
+          e.target.value = '';
+        }}
+      />
+    </div>
+  );
+}
