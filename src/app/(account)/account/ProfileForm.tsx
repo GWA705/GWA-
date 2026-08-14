@@ -14,6 +14,7 @@ interface Profile {
   notifyNewDocuments: boolean;
   notifyAttentionAlerts: boolean;
   notifyIdleReminders: boolean;
+  notifyNewLeads: boolean;
   isStaff: boolean;
 }
 
@@ -76,7 +77,7 @@ export function ProfileForm({ profile }: { profile: Profile }) {
       </div>
 
       <div>
-        <h3 className="mb-2 text-sm font-medium text-gray-700">Email me when…</h3>
+        <h3 className="mb-2 text-sm font-medium text-gray-700">Notify me when…</h3>
         <div className="space-y-2">
           {profile.isStaff ? (
             <>
@@ -85,13 +86,17 @@ export function ProfileForm({ profile }: { profile: Profile }) {
             </>
           ) : (
             <>
+              <Toggle name="notifyNewLeads" label="A new lead arrives from Home Depot for my office" defaultChecked={profile.notifyNewLeads} />
               <Toggle name="notifyStatusUpdates" label="A deal's status changes" defaultChecked={profile.notifyStatusUpdates} />
               <Toggle name="notifyIdleReminders" label="A deal is waiting on me (reminders until it's actioned)" defaultChecked={profile.notifyIdleReminders} />
             </>
           )}
           <Toggle name="notifyNewNotes" label="A new note is added on a deal" defaultChecked={profile.notifyNewNotes} />
         </div>
-        <p className="mt-2 text-xs text-gray-400">Reminders and alerts are sent by email, and by push if you&apos;ve turned on notifications on this device.</p>
+        <p className="mt-2 text-xs text-gray-400">
+          New-lead alerts are sent as a push notification to your phone and desktop — turn on notifications on
+          each device below. Status changes, reminders and notes are sent by email, and by push where available.
+        </p>
       </div>
 
       <SubmitButton />

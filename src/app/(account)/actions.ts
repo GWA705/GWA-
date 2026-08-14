@@ -38,6 +38,7 @@ export async function updateProfileAction(
     notifyNewDocuments: formData.get('notifyNewDocuments') === 'on',
     notifyAttentionAlerts: formData.get('notifyAttentionAlerts') === 'on',
     notifyIdleReminders: formData.get('notifyIdleReminders') === 'on',
+    notifyNewLeads: formData.get('notifyNewLeads') === 'on',
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Please check the form.' };
   const d = parsed.data;
@@ -53,6 +54,7 @@ export async function updateProfileAction(
       notifyNewDocuments: d.notifyNewDocuments,
       notifyAttentionAlerts: d.notifyAttentionAlerts,
       notifyIdleReminders: d.notifyIdleReminders,
+      notifyNewLeads: d.notifyNewLeads,
     },
   });
   await audit({ actorId: session.userId, action: 'USER_UPDATE', entityType: 'User', entityId: session.userId, detail: 'Profile updated' });

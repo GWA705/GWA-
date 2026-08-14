@@ -11,14 +11,20 @@ outside business hours, so running every ~15 min all day is fine.
 
 1. **Set `CRON_SECRET`** (Render → your service → Environment): a long random
    string. Save (Render redeploys).
-2. **Create two Render Cron Jobs** (New → Cron Job, same repo/region), each every
-   `*/15 * * * *`, with the header `Authorization: Bearer <the CRON_SECRET>`:
-   - Reviewer 2-hour alert:
+2. **Create Render Cron Jobs** (New → Cron Job, same repo/region), each with the
+   header `Authorization: Bearer <the CRON_SECRET>`:
+   - Reviewer 2-hour alert (`*/15 * * * *`):
      `curl -fsS -X POST https://portal.ghsbarrie.ca/api/cron/attention-alerts -H "Authorization: Bearer $CRON_SECRET"`
-   - Dealer idle reminders:
+   - Dealer idle reminders (`*/15 * * * *`):
      `curl -fsS -X POST https://portal.ghsbarrie.ca/api/cron/dealer-reminders -H "Authorization: Bearer $CRON_SECRET"`
+   - New-lead push (`*/10 * * * *` — sooner = faster lead alerts):
+     `curl -fsS -X POST https://portal.ghsbarrie.ca/api/cron/new-leads -H "Authorization: Bearer $CRON_SECRET"`
+   - Journal → paid sync (`0 */2 * * *`):
+     `curl -fsS -X POST https://portal.ghsbarrie.ca/api/cron/journal-paid-sync -H "Authorization: Bearer $CRON_SECRET"`
 
-   (Set `CRON_SECRET` on each cron job's env too, or inline the value.)
+   (Set `CRON_SECRET` on each cron job's env too, or inline the value.) The
+   **first** new-leads run silently baselines existing leads and pushes nothing,
+   so only leads that arrive after go-live trigger a notification.
    Verify: Admin → Email → "Run the 2-hour check now", and Admin → Dealer
    reminders → "Run the reminder check now".
 

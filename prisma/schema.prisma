@@ -363,6 +363,7 @@ model User {
   notifyNewDocuments  Boolean @default(true) // for reviewers/admins
   notifyAttentionAlerts Boolean @default(true) // 2-hour "new deal not looked at" alert (reviewers/admins)
   notifyIdleReminders   Boolean @default(true) // escalating "your deal is waiting on you" reminders (dealers)
+  notifyNewLeads        Boolean @default(true) // push when a new HD lead lands for the dealer's office (dealers)
   tourSeenAt          DateTime? // when the dealer completed/dismissed the welcome tour (null = not seen)
 
   failedLoginCount Int       @default(0)
@@ -1443,4 +1444,13 @@ model LeadCall {
   createdAt DateTime @default(now())
 
   @@index([leadKey])
+}
+
+/// Dedupe ledger for new-lead push notifications. One row per HD lead we've
+/// already handled (keyed by leadKeyOf). The new-leads sweep pushes each lead to
+/// its dealer's users exactly once; on the very first run it silently records
+/// every existing lead as a baseline so old leads don't blast everyone.
+model LeadNotified {
+  leadKey   String   @id
+  createdAt DateTime @default(now())
 }

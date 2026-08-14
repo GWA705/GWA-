@@ -473,6 +473,7 @@ export const profileSchema = z.object({
   notifyNewDocuments: z.coerce.boolean().optional().default(false),
   notifyAttentionAlerts: z.coerce.boolean().optional().default(false),
   notifyIdleReminders: z.coerce.boolean().optional().default(false),
+  notifyNewLeads: z.coerce.boolean().optional().default(false),
 });
 
 export const statusChangeSchema = z.object({
