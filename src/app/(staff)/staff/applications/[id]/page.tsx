@@ -245,10 +245,43 @@ export default async function StaffApplicationDetail({
   const dealFinanced = dealHasFinancing(app);
   const financedAmt = financedAmountOf(app);
 
+  // Deal numbers + journal sync. Captured at decision time (recorded on the deal
+  // and used for funding), so it lives at the top of Review & decide.
+  const dealNumbersSection = (
+    <div className="rounded-lg border border-gray-200 bg-gray-50/60 p-4">
+      <h3 className="mb-3 text-sm font-semibold text-gray-700">Deal numbers</h3>
+      <DealReferencesForm
+        applicationId={app.id}
+        financeItNumber={app.financeItNumber}
+        hdReference={app.hdReference}
+        financed={dealFinanced}
+        hdRequired={hdReferenceRequired(app.programType)}
+      />
+      {missingRequiredReferences({ ...app, financed: dealFinanced }).length === 0 && (
+        <WriteToJournalButton
+          applicationId={app.id}
+          syncedAt={app.journalSyncedAt ? app.journalSyncedAt.toISOString() : null}
+          tab={app.journalTab}
+          row={app.journalRow}
+        />
+      )}
+      {dealFinanced && (
+        <VerifyFinanceNumberButton
+          applicationId={app.id}
+          verified={!!app.financeNumberVerifiedAt}
+          canVerify={!!app.financeItNumber}
+          verifiedByName={app.financeNumberVerifiedBy?.name ?? null}
+          verifiedAt={app.financeNumberVerifiedAt ? app.financeNumberVerifiedAt.toLocaleString('en-CA') : null}
+        />
+      )}
+    </div>
+  );
+
   const phaseBody: Record<string, ReactNode> = {
     // 1 · Review & decide
     decide: (
       <div className="space-y-6">
+        {dealNumbersSection}
         <CollapsibleEntry
           storageKey={`entryview:${app.id}`}
           snapshot={
@@ -391,32 +424,10 @@ export default async function StaffApplicationDetail({
     ),
     // 6 · Submit to finance company
     submit: (
-      <div>
-        <DealReferencesForm
-          applicationId={app.id}
-          financeItNumber={app.financeItNumber}
-          hdReference={app.hdReference}
-          financed={dealFinanced}
-          hdRequired={hdReferenceRequired(app.programType)}
-        />
-        {missingRequiredReferences({ ...app, financed: dealFinanced }).length === 0 && (
-          <WriteToJournalButton
-            applicationId={app.id}
-            syncedAt={app.journalSyncedAt ? app.journalSyncedAt.toISOString() : null}
-            tab={app.journalTab}
-            row={app.journalRow}
-          />
-        )}
-        {dealFinanced && (
-          <VerifyFinanceNumberButton
-            applicationId={app.id}
-            verified={!!app.financeNumberVerifiedAt}
-            canVerify={!!app.financeItNumber}
-            verifiedByName={app.financeNumberVerifiedBy?.name ?? null}
-            verifiedAt={app.financeNumberVerifiedAt ? app.financeNumberVerifiedAt.toLocaleString('en-CA') : null}
-          />
-        )}
-      </div>
+      <p className="rounded-md bg-gray-50 p-3 text-sm text-gray-600">
+        Deal numbers and the journal are recorded up at <strong>Review &amp; decide</strong>. Send the deal to the
+        finance company, then mark it in for funding.
+      </p>
     ),
     // 7 · Awaiting funding — the Mark Funded button, but only once the deal has
     // actually reached "in for funding" (not on an earlier phase).
