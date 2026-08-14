@@ -93,6 +93,12 @@ body {
 .dark .bg-white { background-color: var(--d-surface); }
 .dark .bg-gray-50 { background-color: var(--d-surface-2); }
 .dark .bg-gray-100 { background-color: var(--d-fill); }
+/* Opacity variants of the light greys aren't caught by the rules above; without
+   these they render as pale washes over the dark surface (e.g. the leads
+   expanded panel). Map them to the same dark surfaces. */
+.dark .bg-gray-50\/50, .dark .bg-gray-50\/60, .dark .bg-gray-50\/70 { background-color: var(--d-surface-2); }
+.dark .bg-gray-100\/60, .dark .bg-gray-100\/70 { background-color: var(--d-fill); }
+.dark .bg-brand-50\/40, .dark .bg-brand-50\/50 { background-color: var(--d-fill); }
 .dark .text-gray-900, .dark .text-gray-800 { color: var(--d-text-strong); }
 .dark .text-gray-700 { color: var(--d-text); }
 .dark .text-gray-600, .dark .text-gray-500 { color: var(--d-muted); }
@@ -131,6 +137,8 @@ body {
 
 .dark .bg-emerald-100 { background-color: rgba(16,185,129,.20); }
 .dark .text-emerald-800 { color: #6ee0c2; }
+.dark .bg-teal-100 { background-color: rgba(20,184,166,.20); }
+.dark .text-teal-800 { color: #63dbcb; }
 
 .dark .bg-blue-50 { background-color: rgba(59,130,246,.13); }
 .dark .bg-blue-100 { background-color: rgba(59,130,246,.22); }
