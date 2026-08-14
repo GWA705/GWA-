@@ -45,11 +45,11 @@ function Stat({ label, split, tone }: { label: string; split: HGSplit; tone: 'so
   );
 }
 
-function DealList({ title, deals, empty }: { title: string; deals: SnapDeal[]; empty: string }) {
+function DealList({ title, deals, empty, showPaid }: { title: string; deals: SnapDeal[]; empty: string; showPaid?: boolean }) {
   return (
     <div>
-      <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
-        {title} ({deals.length})
+      <div className="mb-2 text-sm font-bold uppercase tracking-wide text-gray-800">
+        {title} <span className="text-gray-400">({deals.length})</span>
       </div>
       {deals.length === 0 ? (
         <p className="text-xs text-gray-400">{empty}</p>
@@ -66,6 +66,11 @@ function DealList({ title, deals, empty }: { title: string; deals: SnapDeal[]; e
                     {d.dateLabel ? ` · ${d.dateLabel}` : ''}
                   </span>
                 </span>
+                {showPaid && (
+                  <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-700">
+                    Paid
+                  </span>
+                )}
                 <span className="shrink-0 text-sm font-semibold tabular-nums text-gray-900">{money(d.amount)}</span>
               </div>
             );
@@ -122,9 +127,9 @@ export function DealerSnapshotView({ snap }: { snap: DealerSnapshot }) {
           {snap.rows.map((r) => (
             <details key={r.dealerId} className="group overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
               <summary className="flex cursor-pointer list-none flex-col gap-3 px-5 py-4 hover:bg-gray-50 sm:flex-row sm:items-center">
-                <div className="flex items-center gap-2 sm:w-52 sm:shrink-0">
-                  <span className="text-gray-300 transition group-open:rotate-90">▸</span>
-                  <span className="truncate text-base font-semibold text-gray-900">{r.name}</span>
+                <div className="flex items-center gap-2 sm:w-56 sm:shrink-0">
+                  <span className="text-gray-400 transition group-open:rotate-90">▸</span>
+                  <span className="truncate text-lg font-bold text-gray-900">{r.name}</span>
                 </div>
                 <div className="grid flex-1 grid-cols-2 gap-4 sm:grid-cols-4">
                   <Stat label="Sold" split={r.sold} tone="sold" />
@@ -144,7 +149,7 @@ export function DealerSnapshotView({ snap }: { snap: DealerSnapshot }) {
                     <DealList title="Pending — older than 30 days" deals={r.pendingDeals.filter((d) => d.aged)} empty="" />
                   )}
                 </div>
-                <DealList title={`Paid in ${snap.monthLabel}`} deals={r.paidDeals} empty="Nothing paid this month." />
+                <DealList title={`Paid in ${snap.monthLabel}`} deals={r.paidDeals} empty="Nothing paid this month." showPaid />
               </div>
             </details>
           ))}
