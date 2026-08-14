@@ -3,6 +3,7 @@ import type { Lead } from '@/lib/leads';
 import { leadKeyOf } from '@/lib/leads';
 import { leadCallStatus, type LeadCallRow } from '@/lib/leadCalls';
 import { LeadCallTracker } from './LeadCallTracker';
+import { LeadNoGoodControl } from './LeadNoGoodControl';
 import { LeadsMonthDropdown } from './LeadsMonthDropdown';
 
 const CALL_CHIP: Record<string, string> = {
@@ -45,6 +46,7 @@ export function LeadsView({
   monthOptions = [],
   storeNames = {},
   callsByKey = {},
+  isStaff = false,
 }: {
   leads: Lead[];
   summary: { total: number; noGood: number; forwarded: number };
@@ -59,6 +61,8 @@ export function LeadsView({
   storeNames?: Record<string, string>;
   // Lead key → logged calls, for the call-tracker on each lead.
   callsByKey?: Record<string, LeadCallRow[]>;
+  // Staff may reverse a No-Good flag; dealers can only set it.
+  isStaff?: boolean;
 }) {
   const storeLabel = (num: string) => {
     if (!num) return '';
@@ -213,6 +217,12 @@ export function LeadsView({
                       {l.reportedToHd && <div className="mt-0.5"><span className="font-semibold">Reported to HD:</span> {l.reportedToHd}{l.dateReported ? ` (${l.dateReported})` : ''}</div>}
                     </div>
                   )}
+                  <LeadNoGoodControl
+                    rowId={l.rowId}
+                    bookingId={l.bookingId}
+                    noGood={l.noGood}
+                    canUnmark={isStaff}
+                  />
                   <LeadCallTracker leadKey={leadKey} initial={calls} />
                 </div>
               </details>

@@ -176,6 +176,21 @@ export async function readLeads(force = false): Promise<LeadsRead> {
   return value;
 }
 
+/** Drop the cached leads so the next read reflects a just-written change. */
+export function clearLeadsCache(): void {
+  _cache = null;
+}
+
+/** Split a lead rowId ("<tab>-<rowNumber>") back into its tab + 1-based row. */
+export function parseLeadRowId(rowId: string): { tab: string; row: number } | null {
+  const cut = rowId.lastIndexOf('-');
+  if (cut <= 0) return null;
+  const tab = rowId.slice(0, cut);
+  const row = parseInt(rowId.slice(cut + 1), 10);
+  if (!tab || !Number.isFinite(row) || row < 1) return null;
+  return { tab, row };
+}
+
 /** Store numbers assigned to a dealer (for office-scoped lead filtering). */
 export async function dealerStoreNumbers(dealerId: string): Promise<string[]> {
   const stores = await prisma.homeDepotStore.findMany({ where: { dealerId }, select: { number: true } });

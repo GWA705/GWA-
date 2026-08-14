@@ -91,6 +91,7 @@ export default async function StaffLeadsPage({
         monthOptions={monthOptions}
         storeNames={storeNames}
         callsByKey={callsByKey}
+        isStaff
       />
     </div>
   );
