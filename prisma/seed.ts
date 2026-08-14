@@ -69,52 +69,29 @@ async function main() {
     console.log(`Reviewer: ${reviewer.email}`);
   }
 
-  // Dealer + dealer users
-  const dealer = await prisma.dealer.upsert({
-    where: { id: 'seed-dealer-1' },
-    update: {},
-    create: { id: 'seed-dealer-1', name: 'Barrie Home Comfort' },
-  });
-  const dealer2 = await prisma.dealer.upsert({
-    where: { id: 'seed-dealer-2' },
-    update: {},
-    create: { id: 'seed-dealer-2', name: 'North Bay Mechanical' },
-  });
-
-  // Demo dealer users (fake emails) — demo only.
-  let dealerUser: { id: string } | null = null;
+  // Demo dealers, their users, HD stores, finance placeholders, and a sample
+  // application — LOCAL/DEMO ONLY. Gated behind SEED_DEMO so they are NEVER
+  // created in production. (These two — "Barrie Home Comfort" / "North Bay
+  // Mechanical" — were previously created ungated, which leaked fake dealers +
+  // store numbers into production and stole real deal attribution.) Real
+  // dealers and stores are added through Admin → Dealers.
   if (seedDemo) {
-    dealerUser = await prisma.user.upsert({
-      where: { email: 'dealer@barrie.example' },
-      update: {},
-      create: {
-        email: 'dealer@barrie.example',
-        name: 'Sam Dealer',
-        role: 'DEALER_USER',
-        dealerId: dealer.id,
-        passwordHash: await hash('ChangeMe!Dealer123'),
-        passwordChangedAt: new Date(),
-      },
+    const dealer = await prisma.dealer.upsert({
+      where: { id: 'seed-dealer-1' }, update: {},
+      create: { id: 'seed-dealer-1', name: 'Barrie Home Comfort' },
+    });
+    const dealer2 = await prisma.dealer.upsert({
+      where: { id: 'seed-dealer-2' }, update: {},
+      create: { id: 'seed-dealer-2', name: 'North Bay Mechanical' },
+    });
+    const dealerUser = await prisma.user.upsert({
+      where: { email: 'dealer@barrie.example' }, update: {},
+      create: { email: 'dealer@barrie.example', name: 'Sam Dealer', role: 'DEALER_USER', dealerId: dealer.id, passwordHash: await hash('ChangeMe!Dealer123'), passwordChangedAt: new Date() },
     });
     await prisma.user.upsert({
-      where: { email: 'dealer@northbay.example' },
-      update: {},
-      create: {
-        email: 'dealer@northbay.example',
-        name: 'Alex Dealer',
-        role: 'DEALER_USER',
-        dealerId: dealer2.id,
-        passwordHash: await hash('ChangeMe!Dealer123'),
-        passwordChangedAt: new Date(),
-      },
+      where: { email: 'dealer@northbay.example' }, update: {},
+      create: { email: 'dealer@northbay.example', name: 'Alex Dealer', role: 'DEALER_USER', dealerId: dealer2.id, passwordHash: await hash('ChangeMe!Dealer123'), passwordChangedAt: new Date() },
     });
-  }
-  console.log(`Dealers: ${dealer.name}, ${dealer2.name}`);
-
-  // Finance companies — demo placeholders only. In production the real list is
-  // managed in Admin → Finance cos, so we must NOT re-create these on every
-  // deploy (that would resurrect ones an admin deleted). Gated behind SEED_DEMO.
-  if (seedDemo) {
     for (const [id, name] of [
       ['seed-fc-1', 'FinanceIT'],
       ['seed-fc-2', 'FinanceIT Home'],
@@ -122,16 +99,48 @@ async function main() {
     ] as const) {
       await prisma.financeCompany.upsert({ where: { id }, update: {}, create: { id, name } });
     }
-  }
-
-  // Home Depot stores assigned to each dealer
-  const storeSeed = [
-    { id: 'seed-store-1', dealerId: dealer.id, number: '7112', name: 'Barrie' },
-    { id: 'seed-store-2', dealerId: dealer.id, number: '7124', name: 'Barrie South' },
-    { id: 'seed-store-3', dealerId: dealer2.id, number: '7091', name: 'North Bay' },
-  ];
-  for (const s of storeSeed) {
-    await prisma.homeDepotStore.upsert({ where: { id: s.id }, update: {}, create: s });
+    for (const s of [
+      { id: 'seed-store-1', dealerId: dealer.id, number: '7112', name: 'Barrie' },
+      { id: 'seed-store-2', dealerId: dealer.id, number: '7124', name: 'Barrie South' },
+      { id: 'seed-store-3', dealerId: dealer2.id, number: '7091', name: 'North Bay' },
+    ]) {
+      await prisma.homeDepotStore.upsert({ where: { id: s.id }, update: {}, create: s });
+    }
+    // Sample application (only if none exist for the demo dealer)
+    if ((await prisma.application.count({ where: { dealerId: dealer.id } })) === 0) {
+      await prisma.application.create({
+        data: {
+          dealerId: dealer.id,
+          createdById: dealerUser.id,
+          status: 'SUBMITTED',
+          province: 'ON',
+          programType: 'HD',
+          programCategory: 'HVAC',
+          requestedAmount: 8500,
+          dateOfSale: new Date('2026-07-20'),
+          installationDate: new Date('2026-07-27'),
+          homeDepotStoreId: 'seed-store-1',
+          financingNote: 'Customer requested the 12-month no-interest HD promo.',
+          financeItNumber: '7123456',
+          applicantFirstName: 'Pat',
+          applicantLastName: 'Sample',
+          applicantEmail: 'pat.sample@example.com',
+          applicantPhone: '705-555-0142',
+          applicantSinEnc: encryptOptional('123 456 789'),
+          applicantDobEnc: encryptOptional('1985-04-12'),
+          applicantAddressEnc: encryptOptional('12 Dunlop St, Barrie ON'),
+          bankAccountEnc: encryptOptional('001-12345-6789012'),
+          govIdNumberEnc: encryptOptional('D1234-56789-01234'),
+          incomeAnnualEnc: encryptOptional('72000'),
+          employer: 'Simcoe Logistics',
+          homeownershipRequired: true,
+          consents: { create: { policyVersion: CONSENT_POLICY_VERSION, consentText: CONSENT_TEXT } },
+          statusEvents: { create: { to: 'SUBMITTED', actorId: dealerUser.id, note: 'Seed application' } },
+        },
+      });
+      console.log('Created sample application.');
+    }
+    console.log(`Demo dealers: ${dealer.name}, ${dealer2.name}`);
   }
 
   // Product catalog for the sales-journal dropdown. Seed the journal's default
@@ -161,44 +170,6 @@ async function main() {
       data: defaultTemplates.map((t, i) => ({ ...t, sortOrder: i })),
     });
     console.log(`Seeded ${defaultTemplates.length} note templates.`);
-  }
-
-  // Sample application (demo only, and only if none exist for this dealer)
-  const existing = await prisma.application.count({ where: { dealerId: dealer.id } });
-  if (seedDemo && dealerUser && existing === 0) {
-    await prisma.application.create({
-      data: {
-        dealerId: dealer.id,
-        createdById: dealerUser.id,
-        status: 'SUBMITTED',
-        province: 'ON',
-        programType: 'HD',
-        programCategory: 'HVAC',
-        requestedAmount: 8500,
-        dateOfSale: new Date('2026-07-20'),
-        installationDate: new Date('2026-07-27'),
-        homeDepotStoreId: 'seed-store-1',
-        financingNote: 'Customer requested the 12-month no-interest HD promo.',
-        financeItNumber: '7123456',
-        applicantFirstName: 'Pat',
-        applicantLastName: 'Sample',
-        applicantEmail: 'pat.sample@example.com',
-        applicantPhone: '705-555-0142',
-        applicantSinEnc: encryptOptional('123 456 789'),
-        applicantDobEnc: encryptOptional('1985-04-12'),
-        applicantAddressEnc: encryptOptional('12 Dunlop St, Barrie ON'),
-        bankAccountEnc: encryptOptional('001-12345-6789012'),
-        govIdNumberEnc: encryptOptional('D1234-56789-01234'),
-        incomeAnnualEnc: encryptOptional('72000'),
-        employer: 'Simcoe Logistics',
-        homeownershipRequired: true,
-        consents: {
-          create: { policyVersion: CONSENT_POLICY_VERSION, consentText: CONSENT_TEXT },
-        },
-        statusEvents: { create: { to: 'SUBMITTED', actorId: dealerUser.id, note: 'Seed application' } },
-      },
-    });
-    console.log('Created sample application.');
   }
 
   await backfillEncryption();
