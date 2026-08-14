@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { requireStaffSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { SearchBox } from '@/components/SearchBox';
+import { QueueSortControl, QUEUE_SORTS } from '@/components/QueueSortControl';
 import { searchWhere } from '@/lib/search';
 import { STATUS_LABELS_SHORT, PROGRAM_CATEGORY_LABELS, programLabel } from '@/lib/constants';
 import { ReviewerQueue, DealTable, type QueueRow, type Tone, type Lanes, type PriorityBands } from './ReviewerQueue';
@@ -18,6 +19,20 @@ const FUNDING_STATUSES: ApplicationStatus[] = ['APPROVED', 'CONDITIONAL', 'DOCS_
 const TERMINAL: ApplicationStatus[] = ['FUNDED', 'DECLINED', 'WITHDRAWN', 'DRAFT'];
 
 type Deal = Application & { dealer: Dealer; _count: { payouts: number } };
+
+// Sort for the flat "All deals" list + search results (the urgency lanes keep
+// their own longest-waiting order).
+function sortDeals(list: Deal[], sort: string): Deal[] {
+  const s = [...list];
+  switch (sort) {
+    case 'oldest': return s.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+    case 'amount_high': return s.sort((a, b) => Number(b.requestedAmount) - Number(a.requestedAmount));
+    case 'amount_low': return s.sort((a, b) => Number(a.requestedAmount) - Number(b.requestedAmount));
+    case 'name': return s.sort((a, b) => `${a.applicantLastName} ${a.applicantFirstName}`.localeCompare(`${b.applicantLastName} ${b.applicantFirstName}`));
+    case 'status': return s.sort((a, b) => a.status.localeCompare(b.status));
+    default: return s.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+}
 
 // A deal "needs the reviewer" when the dealer did the last thing on it and no
 // reviewer has responded since — plus anything flagged Problem.
@@ -132,10 +147,11 @@ function toRow(a: Deal): QueueRow {
 
 const byWaiting = (a: Deal, b: Deal) => waitingSince(a).getTime() - waitingSince(b).getTime();
 
-export default async function StaffQueue({ searchParams }: { searchParams: { q?: string } }) {
+export default async function StaffQueue({ searchParams }: { searchParams: { q?: string; sort?: string } }) {
   await requireStaffSection('review-queue');
   const q = (searchParams.q ?? '').trim();
   const search = searchWhere(q);
+  const sort = QUEUE_SORTS.some((s) => s.value === searchParams.sort) ? searchParams.sort! : 'newest';
 
   // --- Search mode: one flat list across every deal. ---
   if (search) {
@@ -145,12 +161,15 @@ export default async function StaffQueue({ searchParams }: { searchParams: { q?:
       orderBy: { createdAt: 'desc' },
       take: 300,
     })) as Deal[];
-    const rows = matches.map(toRow);
+    const rows = sortDeals(matches, sort).map(toRow);
     return (
       <div>
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-xl font-semibold text-gray-900">Deals</h1>
-          <SearchBox action="/staff" q={q} />
+          <div className="flex flex-wrap items-center gap-2">
+            <SearchBox action="/staff" q={q} />
+            <QueueSortControl sort={sort} />
+          </div>
         </div>
         <p className="mb-4 text-sm text-gray-500">
           {rows.length} match{rows.length === 1 ? '' : 'es'} for “{q}”.{' '}
@@ -176,7 +195,7 @@ export default async function StaffQueue({ searchParams }: { searchParams: { q?:
     needsApproval: apps.filter((a) => NEW_STATUSES.includes(a.status)).sort(byWaiting).map(toRow),
     updates: apps.filter((a) => needsAttention(a) && !NEW_STATUSES.includes(a.status)).sort(byWaiting).map(toRow),
     inFunding: apps.filter((a) => FUNDING_STATUSES.includes(a.status) && a._count.payouts === 0).sort(byWaiting).map(toRow),
-    all: apps.map(toRow),
+    all: sortDeals(apps, sort).map(toRow),
   };
 
   // Priority view: the active pipeline grouped by urgency instead of status.
@@ -193,7 +212,10 @@ export default async function StaffQueue({ searchParams }: { searchParams: { q?:
     <div>
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-semibold text-gray-900">Deals</h1>
-        <SearchBox action="/staff" q={q} />
+        <div className="flex flex-wrap items-center gap-2">
+          <SearchBox action="/staff" q={q} />
+          <QueueSortControl sort={sort} />
+        </div>
       </div>
       <ReviewerQueue lanes={lanes} priority={priority} />
     </div>

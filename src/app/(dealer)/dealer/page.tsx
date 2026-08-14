@@ -5,53 +5,108 @@ import { dealerPortalScopeWhere } from '@/lib/rbac';
 import { StatusBadge } from '@/components/StatusBadge';
 import { SearchBox } from '@/components/SearchBox';
 import { AnnouncementBanner } from '@/components/AnnouncementBanner';
+import { PinButton } from '@/components/PinButton';
+import { DealerListControls, DEALER_SORTS } from '@/components/DealerListControls';
 import { searchWhere } from '@/lib/search';
-import { programLabel } from '@/lib/constants';
+import { programLabel, STATUS_LABELS } from '@/lib/constants';
 import { dealerOutstanding } from '@/lib/outstanding';
 import { getBannerRotation } from '@/lib/settings';
+import type { ApplicationStatus, Prisma } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
 
 const PAGE_SIZES = [10, 25, 50, 100];
 
+// Statuses a dealer can filter by (all the ones their own deals move through).
+const FILTER_STATUSES: ApplicationStatus[] = [
+  'DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'CONDITIONAL', 'APPROVED', 'DOCS_SENT',
+  'FUNDING_SUBMITTED', 'FUNDING_REVIEW', 'FUNDED', 'PROBLEM', 'DECLINED', 'WITHDRAWN',
+];
+
+function sortOrderBy(sort: string): Prisma.ApplicationOrderByWithRelationInput | Prisma.ApplicationOrderByWithRelationInput[] {
+  switch (sort) {
+    case 'oldest': return { createdAt: 'asc' };
+    case 'amount_high': return { requestedAmount: 'desc' };
+    case 'amount_low': return { requestedAmount: 'asc' };
+    case 'name': return [{ applicantLastName: 'asc' }, { applicantFirstName: 'asc' }];
+    case 'status': return { status: 'asc' };
+    default: return { createdAt: 'desc' };
+  }
+}
+
 export default async function DealerHome({
   searchParams,
 }: {
-  searchParams: { q?: string; page?: string; perPage?: string };
+  searchParams: { q?: string; page?: string; perPage?: string; status?: string; sort?: string };
 }) {
   const user = await requireDealerAccess();
   const search = searchWhere(searchParams.q);
-  const where = search ? { AND: [dealerPortalScopeWhere(user), search] } : dealerPortalScopeWhere(user);
+  const statusFilter = FILTER_STATUSES.includes(searchParams.status as ApplicationStatus)
+    ? (searchParams.status as ApplicationStatus)
+    : '';
+  const sort = DEALER_SORTS.some((s) => s.value === searchParams.sort) ? searchParams.sort! : 'newest';
+  const orderBy = sortOrderBy(sort);
+
+  const filters: Prisma.ApplicationWhereInput[] = [dealerPortalScopeWhere(user)];
+  if (search) filters.push(search);
+  if (statusFilter) filters.push({ status: statusFilter });
+  const baseWhere: Prisma.ApplicationWhereInput = { AND: filters };
+
+  // This user's pinned deals — they float to the top of page 1 and are kept out
+  // of the normal paginated list so they never appear twice.
+  const pinRows = await prisma.applicationPin.findMany({
+    where: { userId: user.userId },
+    select: { applicationId: true },
+  });
+  const pinnedIds = pinRows.map((r) => r.applicationId);
+  const listWhere: Prisma.ApplicationWhereInput = pinnedIds.length
+    ? { AND: [baseWhere, { id: { notIn: pinnedIds } }] }
+    : baseWhere;
 
   const perPage = PAGE_SIZES.includes(Number(searchParams.perPage)) ? Number(searchParams.perPage) : 10;
-  const total = await prisma.application.count({ where });
+  const total = await prisma.application.count({ where: listWhere });
   const pageCount = Math.max(1, Math.ceil(total / perPage));
   const page = Math.min(Math.max(1, Number(searchParams.page) || 1), pageCount);
 
-  const [apps, announcements] = await Promise.all([
+  const listInclude = {
+    documents: { where: { stage: 'FUNDING' as const }, select: { type: true, verifiedAt: true } },
+    serialNumbers: { select: { productLabel: true, value: true } },
+    financeCompany: { select: { requiresSerialPerProduct: true } },
+  };
+
+  const [listApps, pinnedApps, announcements] = await Promise.all([
     prisma.application.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
+      where: listWhere,
+      orderBy,
       skip: (page - 1) * perPage,
       take: perPage,
-      include: {
-        documents: { where: { stage: 'FUNDING' }, select: { type: true, verifiedAt: true } },
-        serialNumbers: { select: { productLabel: true, value: true } },
-        financeCompany: { select: { requiresSerialPerProduct: true } },
-      },
+      include: listInclude,
     }),
+    // Pinned deals only on page 1, still respecting search + status filter.
+    page === 1 && pinnedIds.length
+      ? prisma.application.findMany({
+          where: { AND: [baseWhere, { id: { in: pinnedIds } }] },
+          orderBy: { createdAt: 'desc' },
+          include: listInclude,
+        })
+      : Promise.resolve([]),
     prisma.announcement.findMany({ where: { active: true }, orderBy: { createdAt: 'desc' } }),
   ]);
+
+  const pinnedSet = new Set(pinnedIds);
+  const apps = [...pinnedApps, ...listApps];
 
   const topBanners = announcements.filter((a) => a.position !== 'BOTTOM');
   const bottomBanners = announcements.filter((a) => a.position === 'BOTTOM');
   const rotation = await getBannerRotation();
 
-  // Build a dashboard URL preserving the search query.
+  // Build a dashboard URL preserving the search query, status filter and sort.
   const q = searchParams.q;
   const url = (params: { page?: number; perPage?: number }) => {
     const sp = new URLSearchParams();
     if (q) sp.set('q', q);
+    if (statusFilter) sp.set('status', statusFilter);
+    if (sort !== 'newest') sp.set('sort', sort);
     sp.set('perPage', String(params.perPage ?? perPage));
     sp.set('page', String(params.page ?? page));
     return `/dealer?${sp.toString()}`;
@@ -72,11 +127,16 @@ export default async function DealerHome({
           </Link>
         </div>
         <SearchBox action="/dealer" q={searchParams.q} />
+        <DealerListControls
+          status={statusFilter}
+          sort={sort}
+          statuses={FILTER_STATUSES.map((s) => ({ value: s, label: STATUS_LABELS[s] }))}
+        />
       </div>
 
       {apps.length === 0 ? (
         <div className="card p-8 text-center text-sm text-gray-500">
-          {searchParams.q ? `No applications match “${searchParams.q}”.` : 'No customers yet — start by clicking “New customer processing”.'}
+          {searchParams.q || statusFilter ? 'No applications match your search or filter.' : 'No customers yet — start by clicking “New customer processing”.'}
         </div>
       ) : (
         <>
@@ -91,19 +151,18 @@ export default async function DealerHome({
                 serialNumbers: a.serialNumbers,
                 fundingDocs: a.documents,
               });
+              const pinned = pinnedSet.has(a.id);
               return (
-                <li key={a.id}>
-                  <Link href={`/dealer/applications/${a.id}`} className="card block p-4 hover:bg-gray-50">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="font-medium text-brand-700">
-                          {a.applicantFirstName} {a.applicantLastName}
-                        </div>
-                        <div className="mt-0.5 text-xs text-gray-500">
-                          {programLabel(a.programType, a.programCategory)} · ${a.requestedAmount.toString()}
-                        </div>
+                <li key={a.id} className="relative">
+                  <Link href={`/dealer/applications/${a.id}`} className={`card block p-4 pr-12 hover:bg-gray-50 ${pinned ? 'ring-1 ring-brand-200' : ''}`}>
+                    <div className="min-w-0">
+                      <div className="font-medium text-brand-700">
+                        {a.applicantFirstName} {a.applicantLastName}
                       </div>
-                      <StatusBadge status={a.status} short />
+                      <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                        <StatusBadge status={a.status} short />
+                        <span>{programLabel(a.programType, a.programCategory)} · ${a.requestedAmount.toString()}</span>
+                      </div>
                     </div>
                     {outstanding.hasAction && (
                       <span
@@ -115,6 +174,9 @@ export default async function DealerHome({
                       </span>
                     )}
                   </Link>
+                  <div className="absolute right-2 top-2">
+                    <PinButton applicationId={a.id} pinned={pinned} />
+                  </div>
                 </li>
               );
             })}
@@ -141,9 +203,13 @@ export default async function DealerHome({
                     serialNumbers: a.serialNumbers,
                     fundingDocs: a.documents,
                   });
+                  const pinned = pinnedSet.has(a.id);
                   return (
-                  <tr key={a.id} className="hover:bg-gray-50">
+                  <tr key={a.id} className={`hover:bg-gray-50 ${pinned ? 'bg-brand-50/40' : ''}`}>
                     <td className="px-3 py-3 sm:px-4">
+                      <div className="flex items-start gap-1.5">
+                        <PinButton applicationId={a.id} pinned={pinned} />
+                        <div className="min-w-0">
                       <Link
                         href={`/dealer/applications/${a.id}`}
                         className="block font-medium text-brand-700 hover:underline"
@@ -159,6 +225,8 @@ export default async function DealerHome({
                           {outstanding.readyToSubmit ? '✓ Ready to submit' : '⚠ Action needed'}
                         </span>
                       )}
+                        </div>
+                      </div>
                     </td>
                     <td className="hidden px-3 py-3 sm:table-cell sm:px-4">{a.province}</td>
                     <td className="px-3 py-3 sm:px-4">{programLabel(a.programType, a.programCategory)}</td>

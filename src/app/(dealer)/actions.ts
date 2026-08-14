@@ -607,3 +607,23 @@ export async function saveDealerProfileAction(
   revalidatePath('/staff/directory');
   return { ok: true };
 }
+
+/**
+ * Toggle a dealer user's "pin to top" on one of their deals. Per-user — pinned
+ * deals float to the top of that person's Applications list (page 1) so a deal
+ * being worked doesn't slip onto a later page. Tenant-scoped and idempotent.
+ */
+export async function togglePinAction(applicationId: string): Promise<{ error?: string }> {
+  const session = await requireDealerAccess();
+  const app = await prisma.application.findUnique({ where: { id: applicationId }, select: { dealerId: true } });
+  if (!app || !canAccessAsDealer(session, app.dealerId)) return { error: 'Not found.' };
+  const key = { userId_applicationId: { userId: session.userId, applicationId } };
+  const existing = await prisma.applicationPin.findUnique({ where: key });
+  if (existing) {
+    await prisma.applicationPin.delete({ where: key });
+  } else {
+    await prisma.applicationPin.create({ data: { userId: session.userId, applicationId } });
+  }
+  revalidatePath('/dealer');
+  return {};
+}

@@ -1398,3 +1398,15 @@ model ResourceProductFile {
 
   @@index([productId])
 }
+
+/// A dealer user's "pinned to top" deals on their Applications list. Per-user
+/// (each person pins their own working deals). Relation-free to keep it simple;
+/// the list query only ever joins against live applications anyway.
+model ApplicationPin {
+  userId        String
+  applicationId String
+  createdAt     DateTime @default(now())
+
+  @@id([userId, applicationId])
+  @@index([userId])
+}

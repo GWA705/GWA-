@@ -157,7 +157,7 @@ export default async function DealerApplicationDetail({
           glance. The detailed application (employment, ID, income, housing) is
           not shown back to the dealer after intake. */}
       <section className="card p-6">
-        <h2 className="mb-4 text-base font-semibold text-gray-900">Customer snapshot</h2>
+        <h2 className="mb-4 border-l-4 border-brand-500 pl-2.5 text-lg font-bold text-gray-900">Customer snapshot</h2>
         <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3 [&>div]:min-w-0 [&_dd]:break-words">
           <div className="col-span-2 sm:col-span-3">
             <dt className="text-gray-500">Product(s) sold</dt>
@@ -189,7 +189,7 @@ export default async function DealerApplicationDetail({
       {/* Decisions / reviewer notes */}
       {app.decisions.length > 0 && (
         <section className="card p-6">
-          <h2 className="mb-3 text-base font-semibold text-gray-900">Review decisions</h2>
+          <h2 className="mb-3 border-l-4 border-brand-500 pl-2.5 text-lg font-bold text-gray-900">Review decisions</h2>
           <ul className="space-y-2 text-sm">
             {app.decisions.map((d) => (
               <li key={d.id} className="rounded border border-gray-100 bg-gray-50 p-3">
@@ -211,7 +211,7 @@ export default async function DealerApplicationDetail({
       {/* Confirmation */}
       <section className="card p-6">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-gray-900">Confirmation</h2>
+          <h2 className="border-l-4 border-brand-500 pl-2.5 text-lg font-bold text-gray-900">Confirmation</h2>
           <ConfirmationBadge status={app.confirmationStatus} />
         </div>
         {app.confirmation && app.confirmationStatus !== 'PENDING' ? (
@@ -223,7 +223,7 @@ export default async function DealerApplicationDetail({
 
       {/* Chat with the Reviewer */}
       <section className="card p-6">
-        <h2 className="mb-3 text-base font-semibold text-gray-900">Chat with the Reviewer</h2>
+        <h2 className="mb-3 border-l-4 border-brand-500 pl-2.5 text-lg font-bold text-gray-900">Chat with the Reviewer</h2>
         <div className="mb-4">
           <NoteThread notes={app.dealNotes} emptyText="No messages yet. Use this to chat with the reviewer about this deal." />
         </div>
@@ -236,7 +236,7 @@ export default async function DealerApplicationDetail({
 
       {/* Documents for approval */}
       <section className="card p-6">
-        <h2 className="mb-3 text-base font-semibold text-gray-900">Documents for approval</h2>
+        <h2 className="mb-3 border-l-4 border-brand-500 pl-2.5 text-lg font-bold text-gray-900">Documents for approval</h2>
         <DocumentList documents={applicationDocs} deleteAction={deleteOwnDocumentAction} />
         <div className="mt-4 border-t border-gray-100 pt-4">
           <UploadForm
@@ -254,7 +254,7 @@ export default async function DealerApplicationDetail({
       {/* Paperwork for your Customer */}
       {gwaDocs.length > 0 && (
         <section className="card p-6">
-          <h2 className="mb-1 text-base font-semibold text-gray-900">Paperwork for Customer</h2>
+          <h2 className="mb-1 border-l-4 border-brand-500 pl-2.5 text-lg font-bold text-gray-900">Paperwork for Customer</h2>
           <p className="mb-4 text-xs text-gray-500">Documents from the GWA team — view in your browser or download to share with your customer.</p>
           <PaperworkCards documents={gwaDocs} />
         </section>
@@ -264,7 +264,7 @@ export default async function DealerApplicationDetail({
           (owner / main contact) sees it, not every dealer user. */}
       {user.isDistributor && app.payouts.length > 0 && (
         <section className="card p-6">
-          <h2 className="mb-3 text-base font-semibold text-gray-900">Payout receipt</h2>
+          <h2 className="mb-3 border-l-4 border-brand-500 pl-2.5 text-lg font-bold text-gray-900">Payout receipt</h2>
           <PayoutReceipt payouts={app.payouts} />
         </section>
       )}
@@ -273,7 +273,7 @@ export default async function DealerApplicationDetail({
       {fundingVisible && (
         <section id="funding-package" className="card scroll-mt-4 p-6">
           <div className="mb-1 flex items-center justify-between">
-            <h2 className="text-base font-semibold text-gray-900">Funding package</h2>
+            <h2 className="border-l-4 border-brand-500 pl-2.5 text-lg font-bold text-gray-900">Funding package</h2>
             <span className="text-xs text-gray-500">Status: {STATUS_LABELS[app.status]}</span>
           </div>
           <p className="mb-4 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
@@ -350,7 +350,7 @@ export default async function DealerApplicationDetail({
               return (
                 <div key={t.type} className={`rounded border p-3 ${cardCls}`}>
                   <div className="flex items-center justify-between">
-                    <span className="flex items-center gap-2 text-base font-semibold text-gray-900">
+                    <span className="flex items-center gap-2 border-l-4 border-brand-500 pl-2.5 text-lg font-bold text-gray-900">
                       <span className={`flex h-6 w-6 flex-none items-center justify-center rounded-full text-xs font-bold ${dotCls}`} aria-hidden>
                         {dotIcon}
                       </span>
@@ -414,7 +414,7 @@ export default async function DealerApplicationDetail({
 
       {/* Status history */}
       <section className="card p-6">
-        <h2 className="mb-3 text-base font-semibold text-gray-900">History</h2>
+        <h2 className="mb-3 border-l-4 border-brand-500 pl-2.5 text-lg font-bold text-gray-900">History</h2>
         <ul className="space-y-2 text-sm">
           {app.statusEvents.map((e) => (
             <li key={e.id} className="flex items-center justify-between">
