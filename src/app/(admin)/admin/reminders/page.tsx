@@ -4,6 +4,7 @@ import { pushEnabled } from '@/lib/push';
 import { emailEnabled } from '@/lib/email';
 import { ReminderConfigForm } from './ReminderConfigForm';
 import { ReminderRunner } from './ReminderRunner';
+import { NewLeadRunner } from './NewLeadRunner';
 
 export const dynamic = 'force-dynamic';
 
@@ -50,6 +51,24 @@ export default async function RemindersPage() {
           Sends any reminders that are due right now (the same work the schedule does automatically).
         </p>
         <ReminderRunner />
+      </div>
+
+      <div className="card p-6">
+        <h2 className="mb-1 text-base font-semibold text-gray-900">New-lead push notifications</h2>
+        <p className="mb-4 text-sm text-gray-500">
+          When a new Home Depot lead lands in the HD Leads Log, the dealer whose office owns that
+          store gets a push notification to call the customer. Each lead pushes once. Dealers who
+          don&apos;t want them can turn &ldquo;A new lead arrives&rdquo; off in their own account.
+          Use the button to check right now (the first run just records existing leads as a baseline
+          and sends nothing).
+        </p>
+        <NewLeadRunner />
+        <p className="mt-4 rounded bg-brand-50 p-3 text-xs text-brand-800">
+          The automatic check runs from a Render Cron Job that calls
+          <code className="mx-1 rounded bg-brand-100 px-1">/api/cron/new-leads</code>
+          every ~10 minutes with the <code className="rounded bg-brand-100 px-1">CRON_SECRET</code>.
+          See docs/GO-LIVE-CHECKLIST.md for setup.
+        </p>
       </div>
 
       <div className="card p-6">

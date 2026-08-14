@@ -9,6 +9,7 @@ import { hashPassword, validatePasswordStrength, generateTempPassword } from '@/
 import { audit } from '@/lib/audit';
 import { runAttentionAlerts } from '@/lib/sla';
 import { getReminderConfig, setReminderConfig, runDealerReminders, DEFAULT_REMINDER_CONFIG, type ReminderConfig } from '@/lib/reminders';
+import { sweepNewLeads } from '@/lib/leadNotify';
 import crypto from 'crypto';
 import path from 'path';
 import { putDocument, getDocument, deleteDocument } from '@/lib/storage';
@@ -1025,6 +1026,35 @@ export async function runAttentionAlertsNowAction(
   } catch (e) {
     console.error('[admin] runAttentionAlertsNow failed', e);
     return { ok: false, message: 'Could not run the alert check.' };
+  }
+}
+
+// Admin: run the new-lead push sweep on demand (same work the cron does) — read
+// the HD Leads Log, attribute each lead to its dealer, and push new ones once.
+export async function runNewLeadsNowAction(
+  _prev: { ok?: boolean; message?: string },
+  _formData: FormData,
+): Promise<{ ok?: boolean; message?: string }> {
+  const session = await requireAdminSection('reminders');
+  try {
+    const r = await sweepNewLeads();
+    await audit({
+      actorId: session.userId,
+      action: 'STATUS_CHANGE',
+      entityType: 'System',
+      entityId: null,
+      detail: `New-lead sweep: ${JSON.stringify(r)}`,
+    });
+    if (!r.configured) return { ok: false, message: 'The HD Leads Log sheet isn’t connected yet, so there are no leads to check.' };
+    if (r.error) return { ok: false, message: `Couldn’t read the leads sheet: ${r.error}` };
+    if (r.baselined != null) {
+      return { ok: true, message: `First run — recorded ${r.baselined} existing lead(s) as a baseline. No notifications were sent; new leads from now on will push.` };
+    }
+    if (!r.pushed) return { ok: true, message: 'Checked — no new leads to notify right now.' };
+    return { ok: true, message: `Pushed ${r.pushed} new lead(s) to their dealers.` };
+  } catch (e) {
+    console.error('[admin] runNewLeadsNow failed', e);
+    return { ok: false, message: 'Could not run the new-lead check.' };
   }
 }
 
