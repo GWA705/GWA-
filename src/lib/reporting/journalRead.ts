@@ -138,14 +138,17 @@ export function parseFlexibleDate(value: unknown, fallbackYear: number): Date | 
   }
   const str = String(value).trim();
   if (str === '') return null;
-  // Only trust the native parser when the string carries a full 4-digit year.
-  // Otherwise V8's legacy parser fills a missing year with 2001 (e.g. the 2024
-  // book's "5-Mar" cells would parse as Mar 5 2001) — instead fall through to
-  // the day-month regex below, which uses the journal's own year as the default.
+  // Trust the native parser (handles "5/15/26", "May 15, 2026", ISO, etc.), with
+  // one correction: when the string carries NO explicit 4-digit year, V8's legacy
+  // parser fills a missing year with 2001 (e.g. the 2024 book's "5-Mar" cells).
+  // In that one case, use the journal's own year instead of 2001.
   const hasFullYear = /\d{4}/.test(str);
-  if (hasFullYear) {
-    const native = new Date(str);
-    if (!isNaN(native.getTime()) && native.getFullYear() > 2000) return native;
+  const native = new Date(str);
+  if (!isNaN(native.getTime()) && native.getFullYear() > 2000) {
+    if (!hasFullYear && native.getFullYear() === 2001) {
+      return new Date(fallbackYear, native.getMonth(), native.getDate());
+    }
+    return native;
   }
   const m = str.match(/^(\d{1,2})[-\s]([A-Za-z]{3,9})\.?\s?(\d{2,4})?$/);
   if (m) {
