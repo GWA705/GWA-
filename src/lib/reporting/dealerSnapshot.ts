@@ -85,8 +85,10 @@ export interface DealerSnapshot {
  * word with.
  */
 const DEALER_ALIASES: { dealer: string; aliases: string[] }[] = [
+  { dealer: 'Georgian', aliases: ['Barrie'] },
   { dealer: 'Lakehead', aliases: ['Thunder Bay'] },
   { dealer: 'True North', aliases: ['Sudbury'] },
+  { dealer: 'Home Service Providers', aliases: ['London'] },
 ];
 
 const FILLER = new Set([
@@ -172,22 +174,32 @@ export async function buildDealerSnapshot(year: number, monthIndex: number): Pro
     }
     for (const tok of nameTokens(d.name)) registerToken(tok, d.id);
   }
-  // Register alias location labels (e.g. Lakehead ↔ Thunder Bay) so GWA deals
-  // labelled by city attribute to the right dealer.
+
+  // Explicit alias rules (e.g. Barrie → Georgian, Thunder Bay → Lakehead). These
+  // are AUTHORITATIVE — they win over name-token matching — and match on the
+  // whole phrase (every alias token must be present) so "Thunder Bay" can't leak
+  // into "North Bay". More-specific (multi-word) aliases are checked first.
+  const aliasMatchers: { dealerId: string; tokens: string[] }[] = [];
   for (const entry of DEALER_ALIASES) {
     const needle = entry.dealer.toLowerCase();
     const dealer = dealers.find((d) => d.name.toLowerCase().includes(needle));
     if (!dealer) continue;
     for (const alias of entry.aliases) {
-      for (const tok of nameTokens(alias)) registerToken(tok, dealer.id);
+      const toks = nameTokens(alias);
+      if (toks.length) aliasMatchers.push({ dealerId: dealer.id, tokens: toks });
     }
   }
+  aliasMatchers.sort((a, b) => b.tokens.length - a.tokens.length);
 
-  // Match an outside-HD deal's location label to a dealer by its distinctive
-  // tokens. Requires an unambiguous single-dealer match.
+  // Match an outside-HD deal's location label to a dealer: explicit aliases
+  // first, then an unambiguous distinctive-name-token match.
   const matchByLocation = (location: string): string | null => {
     const toks = nameTokens(location);
     if (toks.length === 0) return null;
+    const tokSet = new Set(toks);
+    for (const m of aliasMatchers) {
+      if (m.tokens.every((t) => tokSet.has(t))) return m.dealerId;
+    }
     let hit: string | null = null;
     for (const tok of toks) {
       if (ambiguousTokens.has(tok)) continue;
