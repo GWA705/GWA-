@@ -60,14 +60,7 @@ function DealList({ title, deals, empty }: { title: string; deals: SnapDeal[]; e
               <div className="flex items-center gap-2 px-3 py-2">
                 <HGTag isHD={d.isHD} />
                 <span className="min-w-0 flex-1">
-                  <span className="flex items-center gap-1.5">
-                    <span className="truncate text-sm font-medium text-gray-900">{d.name}</span>
-                    {d.aged && (
-                      <span className="shrink-0 rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-bold uppercase text-red-700">
-                        30+ days
-                      </span>
-                    )}
-                  </span>
+                  <span className="block truncate text-sm font-medium text-gray-900">{d.name}</span>
                   <span className="block truncate text-[11px] text-gray-500">
                     {d.product || '—'}
                     {d.dateLabel ? ` · ${d.dateLabel}` : ''}
@@ -141,7 +134,16 @@ export function DealerSnapshotView({ snap }: { snap: DealerSnapshot }) {
                 </div>
               </summary>
               <div className="grid gap-4 border-t border-gray-100 bg-gray-50/60 px-5 py-4 lg:grid-cols-2">
-                <DealList title="Pending — awaiting install (aged first)" deals={r.pendingDeals} empty="Nothing pending." />
+                <div className="space-y-4">
+                  <DealList
+                    title="Pending — last 30 days"
+                    deals={r.pendingDeals.filter((d) => !d.aged)}
+                    empty="Nothing pending in the last 30 days."
+                  />
+                  {r.pendingDeals.some((d) => d.aged) && (
+                    <DealList title="Pending — older than 30 days" deals={r.pendingDeals.filter((d) => d.aged)} empty="" />
+                  )}
+                </div>
                 <DealList title={`Paid in ${snap.monthLabel}`} deals={r.paidDeals} empty="Nothing paid this month." />
               </div>
             </details>

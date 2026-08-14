@@ -31,6 +31,7 @@ export interface SnapDeal {
   product: string;
   amount: number;
   dateLabel: string; // sale date (pending) or date paid (paid)
+  ts: number; // that date as ms, for sorting (0 if none)
   isHD: boolean;
   aged?: boolean; // pending only: sold more than 30 days ago
   link: string;
@@ -294,6 +295,7 @@ export async function buildDealerSnapshot(year: number, monthIndex: number): Pro
         product: deal.product,
         amount: deal.gross,
         dateLabel: fmtDate(deal.datePaid),
+        ts: deal.datePaid ? deal.datePaid.getTime() : 0,
         isHD: deal.isHD,
         link: deal.linkUrl,
       });
@@ -311,6 +313,7 @@ export async function buildDealerSnapshot(year: number, monthIndex: number): Pro
         product: deal.product,
         amount: deal.gross,
         dateLabel: fmtDate(deal.date),
+        ts: deal.date ? deal.date.getTime() : 0,
         isHD: deal.isHD,
         aged,
         link: deal.linkUrl,
@@ -326,9 +329,10 @@ export async function buildDealerSnapshot(year: number, monthIndex: number): Pro
     pendingRecent: a.pendingRecent,
     pendingAged: a.pendingAged,
     soldCount: a.soldCount,
-    paidDeals: a.paidDeals.sort((x, y) => y.amount - x.amount),
-    // Aged pendings first (they need attention), then biggest dollars.
-    pendingDeals: a.pendingDeals.sort((x, y) => Number(!!y.aged) - Number(!!x.aged) || y.amount - x.amount),
+    // Most recent date first (paid date / sale date). The view splits pending
+    // into ≤30d and 30+d sections; each stays newest-first.
+    paidDeals: a.paidDeals.sort((x, y) => y.ts - x.ts),
+    pendingDeals: a.pendingDeals.sort((x, y) => y.ts - x.ts),
   });
 
   const pendingTotal = (r: DealerSnapRow) => r.pendingRecent.total + r.pendingAged.total;

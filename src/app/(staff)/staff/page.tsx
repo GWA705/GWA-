@@ -153,6 +153,17 @@ function toRow(a: Deal): QueueRow {
 
 const byWaiting = (a: Deal, b: Deal) => waitingSince(a).getTime() - waitingSince(b).getTime();
 
+// The most recent moment anything happened on a deal.
+function lastActivityAt(a: Deal): number {
+  return Math.max(
+    a.lastDealerActionAt?.getTime() ?? 0,
+    a.lastReviewerActionAt?.getTime() ?? 0,
+    a.updatedAt?.getTime() ?? 0,
+    a.createdAt.getTime(),
+  );
+}
+const byRecentActivity = (a: Deal, b: Deal) => lastActivityAt(b) - lastActivityAt(a);
+
 export default async function StaffQueue({ searchParams }: { searchParams: { q?: string; sort?: string } }) {
   await requireStaffSection('review-queue');
   const q = (searchParams.q ?? '').trim();
@@ -211,7 +222,8 @@ export default async function StaffQueue({ searchParams }: { searchParams: { q?:
   const priority: PriorityBands = {
     now: active.filter((a) => a.status === 'PROBLEM' || overdue(a)).sort(byWaiting).map(toRow),
     you: active.filter((a) => a.status !== 'PROBLEM' && !overdue(a) && needsAttention(a)).sort(byWaiting).map(toRow),
-    prog: active.filter((a) => a.status !== 'PROBLEM' && !needsAttention(a)).sort(byWaiting).map(toRow),
+    // "In progress" (moving along / waiting on the dealer): newest activity first.
+    prog: active.filter((a) => a.status !== 'PROBLEM' && !needsAttention(a)).sort(byRecentActivity).map(toRow),
   };
 
   return (
