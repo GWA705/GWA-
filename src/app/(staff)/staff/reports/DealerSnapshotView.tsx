@@ -237,18 +237,45 @@ function MatchingPlan({ matches, gaps, unboundAliases }: { matches: LocationMatc
             <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
               HD store numbers not assigned to any dealer
             </div>
-            <ul className="divide-y divide-gray-100 overflow-hidden rounded-lg border border-gray-200">
+            <p className="mb-1.5 text-[11px] text-gray-500">
+              Each store&apos;s deals are listed with the sale date and a journal link — handy for checking a store number
+              that may have been mistyped.
+            </p>
+            <ul className="space-y-2">
               {gaps.map((g) => (
-                <li key={g.store} className="flex items-center gap-3 px-3 py-2">
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-medium text-gray-900">Store {g.store}</span>
-                    <span className="block text-[11px] text-gray-500">
-                      {g.count} deal{g.count === 1 ? '' : 's'} · {money(g.gross)}
+                <li key={g.store} className="overflow-hidden rounded-lg border border-gray-200">
+                  <div className="flex items-center gap-3 bg-gray-50 px-3 py-2">
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-semibold text-gray-900">Store {g.store}</span>
+                      <span className="block text-[11px] text-gray-500">
+                        {g.count} deal{g.count === 1 ? '' : 's'} · {money(g.gross)}
+                      </span>
                     </span>
-                  </span>
-                  <span className="shrink-0 rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-semibold text-red-700">
-                    Add under Admin → Dealers
-                  </span>
+                    <span className="shrink-0 rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-semibold text-red-700">
+                      Not assigned
+                    </span>
+                  </div>
+                  <ul className="divide-y divide-gray-100">
+                    {g.deals.map((d, i) => (
+                      <li key={i} className="flex items-center gap-2 px-3 py-1.5">
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm text-gray-900">{d.name}</span>
+                          <span className="block text-[11px] text-gray-500">{d.dateLabel || 'no date'}</span>
+                        </span>
+                        <span className="shrink-0 text-sm font-semibold tabular-nums text-gray-900">{money(d.amount)}</span>
+                        {d.link && (
+                          <a
+                            href={d.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="shrink-0 text-xs font-semibold text-sky-600 hover:underline"
+                          >
+                            Journal ↗
+                          </a>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
                 </li>
               ))}
             </ul>
@@ -256,9 +283,10 @@ function MatchingPlan({ matches, gaps, unboundAliases }: { matches: LocationMatc
         )}
 
         <p className="text-xs text-gray-500">
-          To fix a mismatch: for an HD store, add its number to the right dealer under <strong>Admin → Dealers</strong>.
-          For an outside-HD location label that isn&apos;t matching (or is matching the wrong dealer), tell us the label
-          and the dealer it belongs to and we&apos;ll wire an explicit mapping.
+          To fix a mismatch: if a store number is <strong>correct</strong>, add it to the right dealer under{' '}
+          <strong>Admin → Dealers</strong>. If it looks <strong>wrong/mistyped</strong>, open the journal link and correct
+          it in the sheet. For an outside-HD location label that isn&apos;t matching (or is matching the wrong dealer),
+          tell us the label and the dealer it belongs to and we&apos;ll wire an explicit mapping.
         </p>
       </div>
     </details>

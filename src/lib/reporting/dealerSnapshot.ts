@@ -61,6 +61,7 @@ export interface StoreGap {
   store: string;
   count: number;
   gross: number;
+  deals: { name: string; dateLabel: string; amount: number; link: string }[];
 }
 
 export interface DealerSnapshot {
@@ -245,7 +246,7 @@ export async function buildDealerSnapshot(year: number, monthIndex: number): Pro
 
   // Matching-plan aggregation (across the whole read window, not just the month).
   const locAgg = new Map<string, { count: number; gross: number; dealerId: string | null }>();
-  const storeAgg = new Map<string, { count: number; gross: number }>();
+  const storeAgg = new Map<string, { count: number; gross: number; deals: StoreGap['deals'] }>();
 
   const attribute = (deal: ReportDeal): Accum => {
     let dealerId: string | null = deal.storeNumber ? storeToDealer.get(deal.storeNumber) ?? null : null;
@@ -260,9 +261,15 @@ export async function buildDealerSnapshot(year: number, monthIndex: number): Pro
     // Feed the matching plan from active deals with real dollars.
     if (deal.gross > 0) {
       if (deal.isHD && deal.storeNumber && !storeToDealer.has(deal.storeNumber)) {
-        const e = storeAgg.get(deal.storeNumber) || { count: 0, gross: 0 };
+        const e = storeAgg.get(deal.storeNumber) || { count: 0, gross: 0, deals: [] as StoreGap['deals'] };
         e.count += 1;
         e.gross += deal.gross;
+        e.deals.push({
+          name: `${deal.firstName} ${deal.lastName}`.trim() || '(no name)',
+          dateLabel: fmtDate(deal.date),
+          amount: deal.gross,
+          link: deal.linkUrl,
+        });
         storeAgg.set(deal.storeNumber, e);
       } else if (!deal.isHD) {
         const label = (deal.location || '(blank)').trim() || '(blank)';
@@ -350,7 +357,7 @@ export async function buildDealerSnapshot(year: number, monthIndex: number): Pro
     .sort((a, b) => Number(!!a.dealerName) - Number(!!b.dealerName) || b.gross - a.gross);
 
   const storeGaps: StoreGap[] = Array.from(storeAgg.entries())
-    .map(([store, v]) => ({ store, count: v.count, gross: v.gross }))
+    .map(([store, v]) => ({ store, count: v.count, gross: v.gross, deals: v.deals.sort((a, b) => b.amount - a.amount) }))
     .sort((a, b) => b.gross - a.gross);
 
   return {
