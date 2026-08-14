@@ -182,6 +182,24 @@ export async function dealerStoreNumbers(dealerId: string): Promise<string[]> {
   return Array.from(new Set(stores.map((s) => s.number.trim()).filter(Boolean)));
 }
 
+/**
+ * HD store number → store name/location, so leads can show "Store 7234 —
+ * Barrie". Scoped to one dealer when `dealerId` is given, else all offices.
+ */
+export async function storeNameMap(dealerId?: string): Promise<Record<string, string>> {
+  const stores = await prisma.homeDepotStore.findMany({
+    where: dealerId ? { dealerId } : {},
+    select: { number: true, name: true },
+  });
+  const map: Record<string, string> = {};
+  for (const s of stores) {
+    const num = s.number.trim();
+    const name = (s.name ?? '').trim();
+    if (num && name) map[num] = name;
+  }
+  return map;
+}
+
 export function summarize(leads: Lead[]): { total: number; noGood: number; forwarded: number } {
   const noGood = leads.filter((l) => l.noGood).length;
   return { total: leads.length, noGood, forwarded: leads.length - noGood };

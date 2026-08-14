@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireRole } from '@/lib/session';
 import { isSuperAdmin, canAdminSection } from '@/lib/rbac';
-import { readLeads, summarize } from '@/lib/leads';
+import { readLeads, summarize, storeNameMap } from '@/lib/leads';
 import { leadsSheetId, reportingJournalEnabled } from '@/lib/reporting/journalRead';
 import { listReportOffices } from '@/lib/reporting/monthly';
 import { LeadsView, filterLeads, leadMonthOptions } from '@/components/LeadsView';
@@ -36,7 +36,7 @@ export default async function StaffLeadsPage({
     );
   }
 
-  const [read, offices] = await Promise.all([readLeads(), listReportOffices()]);
+  const [read, offices, storeNames] = await Promise.all([readLeads(), listReportOffices(), storeNameMap()]);
   const office = offices.find((o) => o.dealerId === officeId) || null;
 
   // Scope by the selected office's store numbers (or all offices when none picked).
@@ -87,6 +87,7 @@ export default async function StaffLeadsPage({
         page={page}
         month={month}
         monthOptions={monthOptions}
+        storeNames={storeNames}
       />
     </div>
   );

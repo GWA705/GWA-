@@ -32,6 +32,7 @@ export function LeadsView({
   page = 1,
   month = '',
   monthOptions = [],
+  storeNames = {},
 }: {
   leads: Lead[];
   summary: { total: number; noGood: number; forwarded: number };
@@ -42,7 +43,14 @@ export function LeadsView({
   page?: number;
   month?: string;
   monthOptions?: { value: string; label: string }[];
+  // HD store number → store name/location, so leads show "Store 7234 — Barrie".
+  storeNames?: Record<string, string>;
 }) {
+  const storeLabel = (num: string) => {
+    if (!num) return '';
+    const name = storeNames[num];
+    return name ? `Store ${num} — ${name}` : `Store ${num}`;
+  };
   const buildHref = (over: Record<string, string>) => {
     const params = new URLSearchParams();
     if (q) params.set('q', q);
@@ -135,9 +143,9 @@ export function LeadsView({
                   <span className={`h-2 w-2 shrink-0 rounded-full ${l.noGood ? 'bg-red-500' : 'bg-emerald-500'}`} />
                   <span className="min-w-0 flex-1">
                     <span className="truncate font-medium text-gray-900">{l.customerName || '(no name)'}</span>
-                    <span className="ml-2 hidden text-xs text-gray-400 sm:inline">
+                    <span className="ml-2 hidden text-xs text-gray-500 sm:inline">
                       {fmtDate(l.dateReceived, l.dateText)}
-                      {l.storeNumber && ` · Store ${l.storeNumber}`}
+                      {l.storeNumber && <span className="font-semibold text-gray-700"> · {storeLabel(l.storeNumber)}</span>}
                       {l.service && ` · ${l.service}`}
                     </span>
                   </span>
@@ -148,9 +156,9 @@ export function LeadsView({
                   <span className="shrink-0 text-gray-300 transition group-open:rotate-180">▾</span>
                 </summary>
                 <div className="border-t border-gray-100 bg-gray-50/50 px-4 py-3">
-                  <div className="mb-2 text-xs text-gray-400 sm:hidden">
+                  <div className="mb-3 text-sm font-medium text-gray-600">
                     {fmtDate(l.dateReceived, l.dateText)}
-                    {l.storeNumber && ` · Store ${l.storeNumber}`}
+                    {l.storeNumber && <span className="font-bold text-gray-800"> · {storeLabel(l.storeNumber)}</span>}
                     {l.service && ` · ${l.service}`}
                     {l.bookingId && ` · #${l.bookingId}`}
                   </div>
