@@ -349,8 +349,8 @@ export default async function DealerApplicationDetail({
               return (
                 <div key={t.type} className={`rounded border p-3 ${cardCls}`}>
                   <div className="flex items-center justify-between">
-                    <span className="flex items-center gap-2 text-sm font-medium text-gray-800">
-                      <span className={`flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold ${dotCls}`} aria-hidden>
+                    <span className="flex items-center gap-2 text-base font-semibold text-gray-900">
+                      <span className={`flex h-6 w-6 flex-none items-center justify-center rounded-full text-xs font-bold ${dotCls}`} aria-hidden>
                         {dotIcon}
                       </span>
                       {t.label}

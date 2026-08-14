@@ -28,6 +28,7 @@ export function FundingItemUploader({
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [customLabel, setCustomLabel] = useState('');
+  const [dragging, setDragging] = useState(false);
   const camRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
@@ -71,10 +72,32 @@ export function FundingItemUploader({
           onChange={(e) => setCustomLabel(e.target.value)}
         />
       )}
-      <div className="flex flex-col gap-2 sm:flex-row">
+      {/* Desktop: a compact drag-and-drop zone (click to choose too). */}
+      <div
+        className={`hidden cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed px-4 py-3 text-sm transition sm:flex ${
+          dragging ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-gray-300 bg-gray-50 text-gray-500 hover:border-brand-400 hover:bg-brand-50/40'
+        } ${pending || nameNeeded ? 'pointer-events-none opacity-50' : ''}`}
+        onClick={() => fileRef.current?.click()}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragging(true);
+        }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragging(false);
+          upload(e.dataTransfer.files);
+        }}
+      >
+        <span aria-hidden>⬆︎</span>
+        <span>Drag &amp; drop, or <span className="font-medium text-brand-700">choose a file</span></span>
+      </div>
+
+      {/* Mobile: slim capture buttons. */}
+      <div className="flex gap-2 sm:hidden">
         <button
           type="button"
-          className="flex-1 rounded-lg bg-brand-600 px-4 py-3 text-base font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
+          className="flex-1 rounded-md bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
           onClick={() => camRef.current?.click()}
           disabled={pending || nameNeeded}
         >
@@ -82,7 +105,7 @@ export function FundingItemUploader({
         </button>
         <button
           type="button"
-          className="flex-1 rounded-lg border-2 border-brand-500 bg-white px-4 py-3 text-base font-semibold text-brand-700 hover:bg-brand-50 disabled:opacity-50"
+          className="flex-1 rounded-md border border-brand-500 bg-white px-3 py-2 text-sm font-medium text-brand-700 hover:bg-brand-50 disabled:opacity-50"
           onClick={() => fileRef.current?.click()}
           disabled={pending || nameNeeded}
         >
