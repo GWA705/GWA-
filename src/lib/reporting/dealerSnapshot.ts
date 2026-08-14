@@ -76,6 +76,19 @@ export interface DealerSnapshot {
   error?: string;
 }
 
+/**
+ * Extra location labels a dealer is known by in the sales journals — city names
+ * or trading names that don't contain the dealer's portal name, so the
+ * automatic name match can't find them. `dealer` is matched case-insensitively
+ * against a dealer's portal name (substring). Add a line here whenever a GWA
+ * (outside-HD) location label needs to attribute to a dealer it doesn't share a
+ * word with.
+ */
+const DEALER_ALIASES: { dealer: string; aliases: string[] }[] = [
+  { dealer: 'Lakehead', aliases: ['Thunder Bay'] },
+  { dealer: 'True North', aliases: ['Sudbury'] },
+];
+
 const FILLER = new Set([
   'inc', 'ltd', 'llc', 'corp', 'co', 'the', 'and', 'water', 'air', 'services',
   'service', 'home', 'comfort', 'heating', 'cooling', 'hvac', 'mechanical', 'gwa',
@@ -147,15 +160,26 @@ export async function buildDealerSnapshot(year: number, monthIndex: number): Pro
   const storeToDealer = new Map<string, string>(); // store number → dealerId
   const tokenToDealer = new Map<string, string>(); // distinctive token → dealerId
   const ambiguousTokens = new Set<string>(); // tokens claimed by 2+ dealers → unusable
+  const registerToken = (tok: string, dealerId: string) => {
+    const existing = tokenToDealer.get(tok);
+    if (existing && existing !== dealerId) ambiguousTokens.add(tok);
+    else tokenToDealer.set(tok, dealerId);
+  };
   for (const d of dealers) {
     for (const s of d.homeDepotStores) {
       const num = s.number.trim();
       if (num) storeToDealer.set(num, d.id);
     }
-    for (const tok of nameTokens(d.name)) {
-      const existing = tokenToDealer.get(tok);
-      if (existing && existing !== d.id) ambiguousTokens.add(tok);
-      else tokenToDealer.set(tok, d.id);
+    for (const tok of nameTokens(d.name)) registerToken(tok, d.id);
+  }
+  // Register alias location labels (e.g. Lakehead ↔ Thunder Bay) so GWA deals
+  // labelled by city attribute to the right dealer.
+  for (const entry of DEALER_ALIASES) {
+    const needle = entry.dealer.toLowerCase();
+    const dealer = dealers.find((d) => d.name.toLowerCase().includes(needle));
+    if (!dealer) continue;
+    for (const alias of entry.aliases) {
+      for (const tok of nameTokens(alias)) registerToken(tok, dealer.id);
     }
   }
 
@@ -242,9 +266,11 @@ export async function buildDealerSnapshot(year: number, monthIndex: number): Pro
     }
 
     // Pending now (PE/OK awaiting install), split by age: sold in the last 30
-    // days vs older than 30 days (the aged ones need chasing).
-    if (deal.result === 'PE/OK' && deal.gross > 0) {
-      const aged = !deal.date || deal.date < ageCut;
+    // days vs older than 30 days (the aged ones need chasing). Pending only
+    // counts deals sold in the report's own calendar year — older pendings from
+    // a prior year are stale/dead and shouldn't inflate the number.
+    if (deal.result === 'PE/OK' && deal.gross > 0 && deal.date && deal.date.getFullYear() === year) {
+      const aged = deal.date < ageCut;
       addToSplit(aged ? a.pendingAged : a.pendingRecent, deal.gross, deal.isHD);
       a.pendingDeals.push({
         name: `${deal.firstName} ${deal.lastName}`.trim() || '(no name)',

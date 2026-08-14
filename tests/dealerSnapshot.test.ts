@@ -25,4 +25,13 @@ describe('dealer snapshot — location→dealer tokens', () => {
     expect(nameTokens('Water and Air')).toEqual([]);
     expect(nameTokens('   ')).toEqual([]);
   });
+
+  it('tokenizes city alias labels used for attribution', () => {
+    // Lakehead ↔ Thunder Bay, True North ↔ Sudbury.
+    expect(nameTokens('Thunder Bay')).toEqual(['thunder', 'bay']);
+    expect(nameTokens('Sudbury')).toEqual(['sudbury']);
+    // "thunder" is distinctive (North Bay collides only on "bay"), so it still
+    // routes Thunder Bay to the aliased dealer.
+    expect(nameTokens('Thunder Bay')).toContain('thunder');
+  });
 });
