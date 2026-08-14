@@ -19,7 +19,10 @@ export async function GET(_req: NextRequest, { params }: { params: { dealerId: s
       headers: {
         'Content-Type': p.logoMime || 'image/png',
         'X-Content-Type-Options': 'nosniff',
-        'Cache-Control': 'private, max-age=300',
+        // The URL is version-stamped (?v=updatedAt), so a given URL never changes
+        // its bytes — cache it hard so the logo loads instantly after the first
+        // hit instead of re-fetching from S3 every few minutes.
+        'Cache-Control': 'private, max-age=31536000, immutable',
       },
     });
   } catch {

@@ -19,7 +19,9 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
       headers: {
         'Content-Type': c.logoMime || 'image/png',
         'X-Content-Type-Options': 'nosniff',
-        'Cache-Control': 'private, max-age=300',
+        // Version-stamped URL (?v=updatedAt) → safe to cache hard. Loads instantly
+        // after the first hit instead of re-fetching from S3 every few minutes.
+        'Cache-Control': 'private, max-age=31536000, immutable',
       },
     });
   } catch {
