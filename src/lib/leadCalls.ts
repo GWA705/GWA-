@@ -53,19 +53,19 @@ export function leadCallStatus(calls: { outcome: string }[]): {
   label: string;
   next: string | null;
 } {
-  if (calls.length === 0) return { tone: 'grey', label: 'Not called', next: 'Call now' };
+  if (calls.length === 0) return { tone: 'grey', label: 'New', next: 'Call now' };
   const noAns = calls.filter((c) => c.outcome === 'NO_ANSWER').length;
   const last = calls[calls.length - 1].outcome;
   switch (last) {
     case 'BOOKED': return { tone: 'green', label: 'Booked', next: null };
-    case 'NOT_INTERESTED': return { tone: 'grey', label: 'Not interested', next: null };
+    case 'NOT_INTERESTED': return { tone: 'grey', label: 'No interest', next: null };
     case 'SPOKE': return { tone: 'teal', label: 'Spoke', next: 'Follow up / book' };
-    case 'LEFT_MESSAGE': return { tone: 'amber', label: 'Left message', next: 'Follow up' };
+    case 'LEFT_MESSAGE': return { tone: 'amber', label: 'Msg left', next: 'Follow up' };
     case 'NO_ANSWER':
       return noAns >= 2
-        ? { tone: 'red', label: `${noAns} attempts · no answer`, next: 'Call another time' }
-        : { tone: 'amber', label: '1 attempt · no answer', next: 'Try again' };
+        ? { tone: 'red', label: `No answer ×${noAns}`, next: 'Call another time' }
+        : { tone: 'amber', label: 'No answer', next: 'Try again' };
     default:
-      return { tone: 'grey', label: 'Note logged', next: 'Follow up' };
+      return { tone: 'grey', label: 'Note', next: 'Follow up' };
   }
 }
