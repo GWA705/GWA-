@@ -20,9 +20,15 @@ function HGTag({ isHD }: { isHD: boolean }) {
 }
 
 // A big number with its HD / GWA breakdown underneath.
-function Stat({ label, split, tone }: { label: string; split: HGSplit; tone: 'sold' | 'paid' | 'pending' }) {
+function Stat({ label, split, tone }: { label: string; split: HGSplit; tone: 'sold' | 'paid' | 'pending' | 'aged' }) {
   const color =
-    tone === 'paid' ? 'text-emerald-600' : tone === 'pending' ? 'text-amber-600' : 'text-gray-900';
+    tone === 'paid'
+      ? 'text-emerald-600'
+      : tone === 'pending'
+        ? 'text-amber-600'
+        : tone === 'aged'
+          ? 'text-red-600'
+          : 'text-gray-900';
   return (
     <div className="min-w-0">
       <div className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">{label}</div>
@@ -54,7 +60,14 @@ function DealList({ title, deals, empty }: { title: string; deals: SnapDeal[]; e
               <div className="flex items-center gap-2 px-3 py-2">
                 <HGTag isHD={d.isHD} />
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-medium text-gray-900">{d.name}</span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="truncate text-sm font-medium text-gray-900">{d.name}</span>
+                    {d.aged && (
+                      <span className="shrink-0 rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-bold uppercase text-red-700">
+                        30+ days
+                      </span>
+                    )}
+                  </span>
                   <span className="block truncate text-[11px] text-gray-500">
                     {d.product || '—'}
                     {d.dateLabel ? ` · ${d.dateLabel}` : ''}
@@ -89,7 +102,8 @@ export function DealerSnapshotView({ snap }: { snap: DealerSnapshot }) {
   }
 
   const u = snap.unmatched;
-  const hasUnmatched = u.sold.total > 0 || u.paid.total > 0 || u.pending.total > 0;
+  const uPending = u.pendingRecent.total + u.pendingAged.total;
+  const hasUnmatched = u.sold.total > 0 || u.paid.total > 0 || uPending > 0;
 
   return (
     <div className="space-y-5">
@@ -98,10 +112,11 @@ export function DealerSnapshotView({ snap }: { snap: DealerSnapshot }) {
         <div className="border-b border-white/10 px-5 py-3 text-sm font-semibold">
           All dealers · {snap.monthLabel}
         </div>
-        <div className="grid grid-cols-3 gap-4 px-5 py-4">
+        <div className="grid grid-cols-2 gap-4 px-5 py-4 sm:grid-cols-4">
           <TotalStat label="Sold this month" split={snap.totals.sold} />
           <TotalStat label="Paid this month" split={snap.totals.paid} />
-          <TotalStat label="Pending now" split={snap.totals.pending} />
+          <TotalStat label="Pending · last 30d" split={snap.totals.pendingRecent} />
+          <TotalStat label="Pending · 30+ days" split={snap.totals.pendingAged} />
         </div>
       </div>
 
@@ -118,14 +133,15 @@ export function DealerSnapshotView({ snap }: { snap: DealerSnapshot }) {
                   <span className="text-gray-300 transition group-open:rotate-90">▸</span>
                   <span className="truncate text-base font-semibold text-gray-900">{r.name}</span>
                 </div>
-                <div className="grid flex-1 grid-cols-3 gap-4">
+                <div className="grid flex-1 grid-cols-2 gap-4 sm:grid-cols-4">
                   <Stat label="Sold" split={r.sold} tone="sold" />
                   <Stat label="Paid" split={r.paid} tone="paid" />
-                  <Stat label="Pending" split={r.pending} tone="pending" />
+                  <Stat label="Pending ≤30d" split={r.pendingRecent} tone="pending" />
+                  <Stat label="Pending 30+d" split={r.pendingAged} tone="aged" />
                 </div>
               </summary>
               <div className="grid gap-4 border-t border-gray-100 bg-gray-50/60 px-5 py-4 lg:grid-cols-2">
-                <DealList title="Pending — awaiting install" deals={r.pendingDeals} empty="Nothing pending." />
+                <DealList title="Pending — awaiting install (aged first)" deals={r.pendingDeals} empty="Nothing pending." />
                 <DealList title={`Paid in ${snap.monthLabel}`} deals={r.paidDeals} empty="Nothing paid this month." />
               </div>
             </details>
@@ -135,9 +151,9 @@ export function DealerSnapshotView({ snap }: { snap: DealerSnapshot }) {
 
       {hasUnmatched && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-xs text-amber-800">
-          <span className="font-semibold">Heads up —</span> some journal deals couldn&apos;t be tied to a dealer this
-          month: Sold {money(u.sold.total)}, Paid {money(u.paid.total)}, Pending {money(u.pending.total)}. Open the
-          matching plan below to see which locations need mapping.
+          <span className="font-semibold">Heads up —</span> some journal deals couldn&apos;t be tied to a dealer: Sold{' '}
+          {money(u.sold.total)}, Paid {money(u.paid.total)}, Pending {money(uPending)}. Open the matching plan below to
+          see which locations need mapping.
         </div>
       )}
 

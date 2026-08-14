@@ -32,6 +32,7 @@ export interface SnapDeal {
   amount: number;
   dateLabel: string; // sale date (pending) or date paid (paid)
   isHD: boolean;
+  aged?: boolean; // pending only: sold more than 30 days ago
   link: string;
 }
 
@@ -40,7 +41,8 @@ export interface DealerSnapRow {
   name: string;
   sold: HGSplit;
   paid: HGSplit;
-  pending: HGSplit;
+  pendingRecent: HGSplit; // sold within the last 30 days
+  pendingAged: HGSplit; // sold more than 30 days ago (needs chasing)
   soldCount: number;
   paidDeals: SnapDeal[];
   pendingDeals: SnapDeal[];
@@ -65,8 +67,8 @@ export interface DealerSnapshot {
   monthLabel: string;
   ym: string;
   rows: DealerSnapRow[];
-  totals: { sold: HGSplit; paid: HGSplit; pending: HGSplit };
-  unmatched: { soldCount: number; sold: HGSplit; paid: HGSplit; pending: HGSplit };
+  totals: { sold: HGSplit; paid: HGSplit; pendingRecent: HGSplit; pendingAged: HGSplit };
+  unmatched: { soldCount: number; sold: HGSplit; paid: HGSplit; pendingRecent: HGSplit; pendingAged: HGSplit };
   // Matching plan: how outside-HD location labels + unmapped HD stores resolve.
   locationMatches: LocationMatch[];
   storeGaps: StoreGap[];
@@ -109,7 +111,8 @@ interface Accum {
   name: string;
   sold: HGSplit;
   paid: HGSplit;
-  pending: HGSplit;
+  pendingRecent: HGSplit;
+  pendingAged: HGSplit;
   soldCount: number;
   paidDeals: SnapDeal[];
   pendingDeals: SnapDeal[];
@@ -121,7 +124,8 @@ function newAccum(dealerId: string, name: string): Accum {
     name,
     sold: emptySplit(),
     paid: emptySplit(),
-    pending: emptySplit(),
+    pendingRecent: emptySplit(),
+    pendingAged: emptySplit(),
     soldCount: 0,
     paidDeals: [],
     pendingDeals: [],
@@ -179,6 +183,9 @@ export async function buildDealerSnapshot(year: number, monthIndex: number): Pro
   const monthStart = new Date(year, monthIndex, 1);
   const monthEnd = new Date(year, monthIndex + 1, 0, 23, 59, 59, 999);
   const inMonth = (d: Date | null) => !!d && d >= monthStart && d <= monthEnd;
+  // Pending is a live "as of now" snapshot; aging is measured from today.
+  const ageCut = new Date();
+  ageCut.setDate(ageCut.getDate() - 30);
 
   const accums = new Map<string, Accum>();
   for (const d of dealers) accums.set(d.id, newAccum(d.id, d.name));
@@ -234,15 +241,18 @@ export async function buildDealerSnapshot(year: number, monthIndex: number): Pro
       });
     }
 
-    // Pending now (PE/OK awaiting install, sold up to month end).
-    if (deal.result === 'PE/OK' && deal.gross > 0 && (!deal.date || deal.date <= monthEnd)) {
-      addToSplit(a.pending, deal.gross, deal.isHD);
+    // Pending now (PE/OK awaiting install), split by age: sold in the last 30
+    // days vs older than 30 days (the aged ones need chasing).
+    if (deal.result === 'PE/OK' && deal.gross > 0) {
+      const aged = !deal.date || deal.date < ageCut;
+      addToSplit(aged ? a.pendingAged : a.pendingRecent, deal.gross, deal.isHD);
       a.pendingDeals.push({
         name: `${deal.firstName} ${deal.lastName}`.trim() || '(no name)',
         product: deal.product,
         amount: deal.gross,
         dateLabel: fmtDate(deal.date),
         isHD: deal.isHD,
+        aged,
         link: deal.linkUrl,
       });
     }
@@ -253,21 +263,25 @@ export async function buildDealerSnapshot(year: number, monthIndex: number): Pro
     name: a.name,
     sold: a.sold,
     paid: a.paid,
-    pending: a.pending,
+    pendingRecent: a.pendingRecent,
+    pendingAged: a.pendingAged,
     soldCount: a.soldCount,
     paidDeals: a.paidDeals.sort((x, y) => y.amount - x.amount),
-    pendingDeals: a.pendingDeals.sort((x, y) => y.amount - x.amount),
+    // Aged pendings first (they need attention), then biggest dollars.
+    pendingDeals: a.pendingDeals.sort((x, y) => Number(!!y.aged) - Number(!!x.aged) || y.amount - x.amount),
   });
 
-  // Only show dealers with any activity this month, busiest first.
+  const pendingTotal = (r: DealerSnapRow) => r.pendingRecent.total + r.pendingAged.total;
+
+  // Only show dealers with any activity, busiest first.
   const rows = Array.from(accums.values())
     .map(finalize)
-    .filter((r) => r.sold.total > 0 || r.paid.total > 0 || r.pending.total > 0)
-    .sort((x, y) => y.sold.total - x.sold.total || y.pending.total - x.pending.total);
+    .filter((r) => r.sold.total > 0 || r.paid.total > 0 || pendingTotal(r) > 0)
+    .sort((x, y) => y.sold.total - x.sold.total || pendingTotal(y) - pendingTotal(x));
 
-  const totals = { sold: emptySplit(), paid: emptySplit(), pending: emptySplit() };
+  const totals = { sold: emptySplit(), paid: emptySplit(), pendingRecent: emptySplit(), pendingAged: emptySplit() };
   for (const r of rows) {
-    for (const k of ['sold', 'paid', 'pending'] as const) {
+    for (const k of ['sold', 'paid', 'pendingRecent', 'pendingAged'] as const) {
       totals[k].hd += r[k].hd;
       totals[k].gwa += r[k].gwa;
       totals[k].total += r[k].total;
@@ -295,7 +309,8 @@ export async function buildDealerSnapshot(year: number, monthIndex: number): Pro
       soldCount: unmatched.soldCount,
       sold: unmatched.sold,
       paid: unmatched.paid,
-      pending: unmatched.pending,
+      pendingRecent: unmatched.pendingRecent,
+      pendingAged: unmatched.pendingAged,
     },
     locationMatches,
     storeGaps,
