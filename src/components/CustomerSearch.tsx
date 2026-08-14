@@ -49,7 +49,7 @@ export function CustomerSearch({ mode }: { mode: 'internal' | 'dealer' }) {
       >
         <input
           className="input flex-1"
-          placeholder={mode === 'dealer' ? 'Customer name, or exact phone # for another office' : 'Start typing a name, phone, or reference #'}
+          placeholder={mode === 'dealer' ? 'Customer name or phone number' : 'Start typing a name, phone, or reference #'}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           autoComplete="off"
