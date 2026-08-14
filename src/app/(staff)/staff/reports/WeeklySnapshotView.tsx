@@ -278,11 +278,6 @@ export function WeeklySnapshotView({ snap, weeksOffset }: { snap: WeeklySnapshot
 
       {/* Data health */}
       <DataHealthPanel snap={snap} />
-
-      <p className="text-[11px] text-gray-400">
-        Money basis: gross sale, dated by date of sale. OK = confirmed, PE/OK = pending install. Company-wide
-        (all dealers) — leadership access only.
-      </p>
     </div>
   );
 }

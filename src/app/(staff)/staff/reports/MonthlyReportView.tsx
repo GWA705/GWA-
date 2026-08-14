@@ -273,11 +273,6 @@ export function MonthlyReportView({ report }: { report: OfficeMonthlyReport }) {
           No sales this month: {report.deadStores.join(', ')}
         </p>
       )}
-
-      <p className="text-[11px] text-gray-400">
-        Money basis: OK (paid) receivable, dated by Date Paid. PE/OK shown separately (awaiting install). Sourced from the
-        sales journals.
-      </p>
     </div>
   );
 }

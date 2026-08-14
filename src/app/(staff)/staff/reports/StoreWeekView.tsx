@@ -54,11 +54,6 @@ export function StoreWeekView({ report, showLinks = true }: { report: StoreWeekR
           ))}
         </div>
       )}
-
-      <p className="text-[11px] leading-relaxed text-gray-400">
-        Money basis: gross sale, dated by date of sale. Includes OK (confirmed) and PE/OK (pending install) deals.
-        Sourced from the sales journals.
-      </p>
     </div>
   );
 }
