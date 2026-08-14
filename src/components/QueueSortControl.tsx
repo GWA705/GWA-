@@ -1,15 +1,7 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-
-export const QUEUE_SORTS = [
-  { value: 'newest', label: 'Newest first' },
-  { value: 'oldest', label: 'Oldest first' },
-  { value: 'amount_high', label: 'Amount: high → low' },
-  { value: 'amount_low', label: 'Amount: low → high' },
-  { value: 'name', label: 'Name: A → Z' },
-  { value: 'status', label: 'Status' },
-] as const;
+import { QUEUE_SORTS } from '@/lib/sortOptions';
 
 /** Sort control for the reviewer Deals queue (applies to the All tab + search). */
 export function QueueSortControl({ sort, basePath = '/staff' }: { sort: string; basePath?: string }) {

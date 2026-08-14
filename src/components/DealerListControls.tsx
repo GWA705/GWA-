@@ -1,15 +1,7 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-
-export const DEALER_SORTS = [
-  { value: 'newest', label: 'Newest first' },
-  { value: 'oldest', label: 'Oldest first' },
-  { value: 'amount_high', label: 'Amount: high → low' },
-  { value: 'amount_low', label: 'Amount: low → high' },
-  { value: 'name', label: 'Name: A → Z' },
-  { value: 'status', label: 'Status' },
-] as const;
+import { DEALER_SORTS } from '@/lib/sortOptions';
 
 /** Filter (by status) + sort controls for the dealer Applications list. */
 export function DealerListControls({
