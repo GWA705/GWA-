@@ -894,6 +894,7 @@ model Application {
   confirmation    Confirmation?
   verificationChecks VerificationCheck[]
   dealerReminders DealerReminder[]
+  callRecordings  CallRecording[]
 
   @@index([dealerId])
   @@index([status])
@@ -1211,6 +1212,33 @@ model Decision {
   createdAt     DateTime     @default(now())
 
   @@index([applicationId])
+}
+
+// A customer call recording pulled from Bell Total Connect (Dubber) or uploaded
+// by hand, stored (encrypted) and attached to the matching deal by phone number.
+model CallRecording {
+  id            String       @id @default(cuid())
+  source        String       @default("dubber") // "dubber" | "manual"
+  externalId    String?      @unique // Dubber recording id — dedupes re-pulls
+  direction     String? // "inbound" | "outbound"
+  fromNumber    String?
+  toNumber      String?
+  matchedPhone  String? // normalized phone we attributed on
+  startedAt     DateTime?
+  durationSec   Int?
+  storageKey    String // S3 key of the encrypted audio
+  mime          String       @default("audio/mpeg")
+  sizeBytes     Int?
+  transcript    String?
+  applicationId String?
+  application   Application? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  dealerId      String? // denormalized for tenant scoping
+  uploadedById  String? // set for manual uploads
+  createdAt     DateTime     @default(now())
+
+  @@index([applicationId])
+  @@index([matchedPhone])
+  @@index([startedAt])
 }
 
 model StatusEvent {

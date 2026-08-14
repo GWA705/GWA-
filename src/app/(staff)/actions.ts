@@ -628,6 +628,35 @@ export async function markFundedAction(applicationId: string): Promise<{ error?:
   return {};
 }
 
+/** Manually attach an uploaded call recording to a deal. */
+export async function uploadCallRecordingAction(formData: FormData): Promise<{ error?: string }> {
+  const session = await requireStaffSection('review-queue');
+  const applicationId = String(formData.get('applicationId') || '');
+  const file = formData.get('file');
+  if (!applicationId || !(file instanceof File) || file.size === 0) return { error: 'Choose an audio file.' };
+  if (file.size > 60 * 1024 * 1024) return { error: 'That file is too large (max 60 MB).' };
+  const app = await prisma.application.findUnique({ where: { id: applicationId }, select: { dealerId: true } });
+  if (!app) return { error: 'Deal not found.' };
+
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const { attachManualRecording } = await import('@/lib/callRecordings');
+  await attachManualRecording({ applicationId, dealerId: app.dealerId, buffer, mime: file.type || 'audio/mpeg', uploadedById: session.userId });
+  await audit({ actorId: session.userId, action: 'DOC_UPLOAD', entityType: 'CallRecording', entityId: applicationId, detail: 'manual call recording' });
+  revalidatePath(`/staff/applications/${applicationId}`);
+  return {};
+}
+
+/** Remove a call recording (staff only). */
+export async function deleteCallRecordingAction(id: string): Promise<{ error?: string }> {
+  const session = await requireStaffSection('review-queue');
+  const rec = await prisma.callRecording.findUnique({ where: { id }, select: { applicationId: true } });
+  const { deleteRecording } = await import('@/lib/callRecordings');
+  await deleteRecording(id);
+  await audit({ actorId: session.userId, action: 'DOCUMENT_DELETE', entityType: 'CallRecording', entityId: id });
+  if (rec?.applicationId) revalidatePath(`/staff/applications/${rec.applicationId}`);
+  return {};
+}
+
 /**
  * Reviewer on-demand: read this deal's journal row and reflect its settlement —
  * if the journal shows OK + a Date Paid, mark it paid and auto-advance to Funded.

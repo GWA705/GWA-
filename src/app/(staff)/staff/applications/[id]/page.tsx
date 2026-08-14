@@ -15,6 +15,8 @@ import { PayoutReceipt } from '@/components/PayoutReceipt';
 import { ReviewerPaperworkBoxes } from './ReviewerPaperworkBoxes';
 import { ReviewerDoneButton } from './ReviewerDoneButton';
 import { FundingStepActions } from './FundingStepActions';
+import { CallRecordings } from './CallRecordings';
+import { listRecordingsForApplication } from '@/lib/callRecordings';
 import { NoteThread } from '@/components/NoteThread';
 import { NoteForm } from '@/components/NoteForm';
 import { ConfirmationBadge } from '@/components/ConfirmationBadge';
@@ -510,6 +512,9 @@ export default async function StaffApplicationDetail({
           label="Add internal note"
           templates={noteTemplates}
         />
+      </div>
+      <div className="border-t border-gray-100 pt-4">
+        <CallRecordings applicationId={app.id} recordings={await listRecordingsForApplication(app.id)} />
       </div>
       <div className="border-t border-gray-100 pt-4">
         <h3 className="mb-3 text-sm font-semibold text-gray-900">History</h3>
