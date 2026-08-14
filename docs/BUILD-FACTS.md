@@ -3,7 +3,7 @@
 The durable reference for how this app is built and configured. Update it when a
 core fact changes. (Roadmap/ideas live in `BACKLOG.md`; privacy posture in
 `COMPLIANCE.md`; the yearly journal ritual in `JOURNALS.md`; reporting defs in
-`REPORTING-SPEC.md`.)
+`REPORTING-SPEC.md`; the **planned move to AWS Canada** in `AWS-MIGRATION.md`.)
 
 ## What it is
 A secure credit-application + funding portal for **GWA / Georgian Water & Air
