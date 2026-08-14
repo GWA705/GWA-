@@ -88,7 +88,7 @@ export interface DealerSnapshot {
  * (outside-HD) location label needs to attribute to a dealer it doesn't share a
  * word with.
  */
-const DEALER_ALIASES: { dealer: string; aliases: string[] }[] = [
+export const DEALER_ALIASES: { dealer: string; aliases: string[] }[] = [
   // `dealer` is a case-insensitive substring of the dealer's portal name; the
   // shortest reliable fragment is used so small spelling differences still bind.
   { dealer: 'Georgian', aliases: ['Barrie'] },

@@ -185,6 +185,7 @@ function JournalCard({ m }: { m: JournalMatch }) {
             )}
           </div>
           <div className="mt-0.5 text-xs text-gray-500">
+            {m.dealerName && <span className="font-semibold text-gray-700">{m.dealerName} · </span>}
             {m.source || 'Sales journal'} · {m.year} journal
           </div>
         </div>
@@ -196,7 +197,7 @@ function JournalCard({ m }: { m: JournalMatch }) {
         )}
       </div>
 
-      {/* Contact line */}
+      {/* Customer contact line */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-5 pt-3 text-sm">
         {m.phone && (
           <a href={`tel:${tel}`} className="font-medium text-sky-700 hover:underline">
@@ -205,6 +206,23 @@ function JournalCard({ m }: { m: JournalMatch }) {
         )}
         {m.address && <span className="text-gray-600">{m.address}</span>}
       </div>
+
+      {/* Dealer / office to contact */}
+      {m.dealerName && (
+        <div className="mx-5 mt-3 rounded-lg bg-brand-50/60 px-3 py-2 text-sm">
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Dealer</span>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5">
+            <span className="font-semibold text-gray-800">{m.dealerName}</span>
+            {m.dealerPhone ? (
+              <a href={`tel:${m.dealerPhone.replace(/[^0-9+]/g, '')}`} className="font-medium text-sky-700 hover:underline">
+                📞 {m.dealerPhone}
+              </a>
+            ) : (
+              <span className="text-xs text-gray-400">No contact number yet — the office adds it in their dealer profile.</span>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Detail grid */}
       <dl className="grid grid-cols-2 gap-x-4 gap-y-3 px-5 py-4 sm:grid-cols-3">

@@ -7,6 +7,71 @@ import { STATUS_LABELS_SHORT, hdOriginLabel } from './constants';
 import type { SessionUser } from './session';
 import { isInternal, isSuperAdmin, canAdminSection } from './rbac';
 import { readJournal, sheetIdFor, EARLIEST_JOURNAL_YEAR } from './reporting/journalRead';
+import { nameTokens, DEALER_ALIASES } from './reporting/dealerSnapshot';
+
+interface DealerContact { name: string; phone: string }
+
+/**
+ * Map a journal deal to its dealer (name + contact phone from the dealer
+ * profile). HD deals attach by store number; outside-HD by the same location
+ * aliases the Dealer Snapshot uses. Phone is blank until the office fills in
+ * their profile.
+ */
+async function buildDealerContactLookup(): Promise<(storeNumber: string | null, location: string) => DealerContact | null> {
+  const dealers = await prisma.dealer.findMany({
+    where: { active: true },
+    select: { id: true, name: true, homeDepotStores: { select: { number: true } }, profile: { select: { phone: true, supportPhone: true } } },
+  });
+  const info = new Map<string, DealerContact>();
+  const byStore = new Map<string, string>(); // store number → dealerId
+  const byToken = new Map<string, string>(); // name token → dealerId
+  const ambiguous = new Set<string>();
+  const register = (tok: string, id: string) => {
+    const ex = byToken.get(tok);
+    if (ex && ex !== id) ambiguous.add(tok);
+    else byToken.set(tok, id);
+  };
+  for (const d of dealers) {
+    info.set(d.id, { name: d.name, phone: (d.profile?.phone || d.profile?.supportPhone || '').trim() });
+    for (const s of d.homeDepotStores) { const n = s.number.trim(); if (n) byStore.set(n, d.id); }
+    for (const tok of nameTokens(d.name)) register(tok, d.id);
+  }
+  // Authoritative city/name aliases (Barrie → Georgian, etc.), whole-phrase.
+  const aliasMatchers: { dealerId: string; tokens: string[] }[] = [];
+  for (const entry of DEALER_ALIASES) {
+    const dealer = dealers.find((d) => d.name.toLowerCase().includes(entry.dealer.toLowerCase()));
+    if (!dealer) continue;
+    for (const alias of entry.aliases) {
+      const toks = nameTokens(alias);
+      if (toks.length) aliasMatchers.push({ dealerId: dealer.id, tokens: toks });
+    }
+  }
+  aliasMatchers.sort((a, b) => b.tokens.length - a.tokens.length);
+
+  const store4 = (raw: string | null): string => (raw ? (raw.match(/\d{3,}/)?.[0] ?? '') : '');
+  return (storeNumber, location) => {
+    let id: string | null = null;
+    const sn = store4(storeNumber);
+    if (sn && byStore.has(sn)) id = byStore.get(sn)!;
+    if (!id) {
+      const toks = nameTokens(location);
+      const set = new Set(toks);
+      for (const m of aliasMatchers) if (m.tokens.every((t) => set.has(t))) { id = m.dealerId; break; }
+      if (!id) {
+        let hit: string | null = null;
+        for (const tok of toks) {
+          if (ambiguous.has(tok)) continue;
+          const d = byToken.get(tok);
+          if (!d) continue;
+          if (hit && hit !== d) { hit = null; break; }
+          hit = d;
+        }
+        id = hit;
+      }
+    }
+    return id ? info.get(id) ?? null : null;
+  };
+}
 
 /**
  * Full detailed search grant. Granted to:
@@ -80,6 +145,8 @@ export interface JournalMatch {
   source: string; // HD Program / Outside-HD bucket
   year: number;
   link: string;
+  dealerName: string; // the office this deal belongs to (by store / location)
+  dealerPhone: string; // their contact number — blank until they fill their profile
 }
 
 export type CustomerSearchResult =
@@ -153,7 +220,10 @@ async function searchJournalDeals(query: string): Promise<JournalMatch[]> {
   for (let y = now + 1; y >= EARLIEST_JOURNAL_YEAR; y -= 1) {
     if (sheetIdFor(y)) years.push(y);
   }
-  const reads = await Promise.all(years.map((y) => readJournal(y)));
+  const [reads, dealerFor] = await Promise.all([
+    Promise.all(years.map((y) => readJournal(y))),
+    buildDealerContactLookup(),
+  ]);
   const deals = reads.flatMap((r) => r.deals);
 
   const matches: (JournalMatch & { sort: number })[] = [];
@@ -168,6 +238,7 @@ async function searchJournalDeals(query: string): Promise<JournalMatch[]> {
     if (!digitHit && !termHit) continue;
     const fmtDate = (dt: Date | null) =>
       dt ? dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+    const dealer = dealerFor(d.storeNumber, d.location);
     matches.push({
       name: `${d.firstName} ${d.lastName}`.trim() || '(no name)',
       phone: d.phone,
@@ -184,13 +255,16 @@ async function searchJournalDeals(query: string): Promise<JournalMatch[]> {
       source: d.sourceCategory || '',
       year: d.year,
       link: d.linkUrl,
+      dealerName: dealer?.name ?? '',
+      dealerPhone: dealer?.phone ?? '',
       sort: (d.date?.getTime() ?? 0),
     });
-    if (matches.length >= 60) break;
+    // No early break — we collect matches across EVERY year first, then rank by
+    // date, so older-year deals aren't cut off by a cap hit in a recent year.
   }
   return matches
     .sort((a, b) => b.sort - a.sort)
-    .slice(0, 30)
+    .slice(0, 50)
     .map(({ sort, ...m }) => m);
 }
 
