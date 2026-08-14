@@ -21,15 +21,18 @@ export function FundingStepActions({
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [marked, setMarked] = useState(false); // optimistic: flip instantly on tap
   const [pending, start] = useTransition();
   const [checking, startCheck] = useTransition();
 
   function mark() {
     setError(null);
     setMessage(null);
+    setMarked(true); // instant feedback — don't wait for the round-trip
     start(async () => {
       const res = await markFundedAction(applicationId);
       if (res?.error) {
+        setMarked(false); // roll back on failure
         setError(res.error);
         return;
       }
@@ -57,10 +60,10 @@ export function FundingStepActions({
         <button
           type="button"
           onClick={mark}
-          disabled={pending || checking}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 active:scale-95 disabled:opacity-50"
+          disabled={pending || checking || marked}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 active:scale-95 disabled:opacity-70"
         >
-          {pending ? 'Marking…' : '✓ Mark Funded'}
+          {marked ? '✓ Funded' : '✓ Mark Funded'}
         </button>
         <button
           type="button"
