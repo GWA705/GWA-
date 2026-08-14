@@ -852,6 +852,16 @@ model Application {
   journalRow      Int?
   journalSyncedAt DateTime?
 
+  // Read-BACK from the journal (the reverse of the write above). A scheduled/
+  // on-demand sync reads the deal's journal row and reflects its settlement:
+  // when Result becomes "OK" and a Date Paid is present, the deal is paid — we
+  // record that here and auto-advance it to Funded. journalCheckedAt is when we
+  // last looked; journalResult is the raw Result cell; journalPaidOn is the
+  // journal's Date Paid (the "paid" signal that fills the Paid state).
+  journalResult    String?
+  journalPaidOn    DateTime?
+  journalCheckedAt DateTime?
+
   // Sales-journal detail fields. Captured by the dealer at intake (and editable
   // by reviewers) so they auto-fill the journal. Free text because installer /
   // salesperson names are office-specific, not a shared list. productsSold is a

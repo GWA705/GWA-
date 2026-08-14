@@ -238,7 +238,8 @@ export default async function StaffApplicationDetail({
     status: app.status,
     reviewerDocsSent: reviewerDocs.length > 0,
     fundingDocsReceived: dealerReturnedDocs,
-    hasPayouts: app.payouts.length > 0,
+    // Paid = a recorded payout OR the journal showing the deal settled (paid).
+    hasPayouts: app.payouts.length > 0 || !!app.journalPaidOn,
   };
   const dealerStatus = dealerFacingStatus(flowSignals);
   const dealFinanced = dealHasFinancing(app);
@@ -419,10 +420,18 @@ export default async function StaffApplicationDetail({
     ),
     // 7 · Awaiting funding — the Mark Funded button, but only once the deal has
     // actually reached "in for funding" (not on an earlier phase).
-    funding: app.status === 'FUNDING_REVIEW' ? <FundingStepActions applicationId={app.id} /> : null,
-    // 7 · Pay dealer
+    funding: app.status === 'FUNDING_REVIEW'
+      ? <FundingStepActions applicationId={app.id} journalCheckedAt={app.journalCheckedAt ? app.journalCheckedAt.toISOString() : null} />
+      : null,
+    // 8 · Pay dealer
     pay: (
       <div>
+        {app.journalPaidOn && (
+          <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+            <span className="font-semibold">Sales journal:</span> this deal is marked <strong>OK &amp; paid</strong> on{' '}
+            {app.journalPaidOn.toLocaleDateString('en-CA')}. Record the dealer payout below to complete the disbursement.
+          </div>
+        )}
         <div className="mb-5">
           <PayoutReceipt payouts={app.payouts} />
         </div>

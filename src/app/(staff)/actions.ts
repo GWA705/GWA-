@@ -628,6 +628,23 @@ export async function markFundedAction(applicationId: string): Promise<{ error?:
   return {};
 }
 
+/**
+ * Reviewer on-demand: read this deal's journal row and reflect its settlement —
+ * if the journal shows OK + a Date Paid, mark it paid and auto-advance to Funded.
+ */
+export async function syncDealFromJournalAction(applicationId: string): Promise<{ error?: string; message?: string }> {
+  const session = await requireStaffSection('review-queue');
+  const { syncApplicationFromJournal } = await import('@/lib/journalPaidSync');
+  const out = await syncApplicationFromJournal(applicationId, session.userId);
+  revalidatePath(`/staff/applications/${applicationId}`);
+  revalidatePath('/staff');
+  if (out.error) return { error: `Couldn’t read the journal: ${out.error}` };
+  if (out.skipped) return { error: out.skipped };
+  if (out.funded) return { message: 'Journal shows this deal paid — marked Funded & Paid.' };
+  if (out.paid) return { message: 'Journal shows this deal paid.' };
+  return { message: 'Checked — the journal doesn’t show this deal paid yet.' };
+}
+
 // Reviewer toggles a funding document's "completed/verified" state.
 export async function toggleDocumentVerifiedAction(documentId: string): Promise<void> {
   const session = await requireStaffSection('review-queue');

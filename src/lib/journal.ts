@@ -1,4 +1,5 @@
 import { google, type sheets_v4 } from 'googleapis';
+import { parseFlexibleDate } from './reporting/journalRead';
 
 /**
  * Google Sheets "sales journal" writer.
@@ -379,6 +380,87 @@ export async function writeDealToJournal(deal: JournalDeal): Promise<JournalResu
   }
 
   return { tab, row, wrote };
+}
+
+// --- Read-back (journal → portal) ------------------------------------------
+
+export interface JournalStatusRead {
+  found: boolean; // we located the header + row
+  lastNameMatches: boolean; // the row's Last Name still matches this deal
+  result: string | null; // raw Result cell (e.g. "OK", "PE/OK", "RB")
+  isOk: boolean; // Result reads as confirmed/paid-eligible "OK"
+  datePaid: Date | null; // the journal's Date Paid, if present
+  error?: string;
+}
+
+/**
+ * Read a deal's CURRENT settlement status back from its journal row — the
+ * reverse of writeDealToJournal. Reads the same sheet the write targets (test or
+ * live, by sale year) at the remembered tab + row, and returns the Result and
+ * Date Paid. Validates the row's Last Name so a shifted/re-used row is caught
+ * (lastNameMatches=false) rather than trusted. Best-effort: any failure returns
+ * found=false with an error, never throws.
+ */
+export async function readDealJournalStatus(deal: {
+  knownTab: string | null;
+  knownRow: number | null;
+  lastName: string;
+  saleYear: number;
+}): Promise<JournalStatusRead> {
+  const miss = (error?: string): JournalStatusRead => ({ found: false, lastNameMatches: false, result: null, isOk: false, datePaid: null, error });
+  if (!deal.knownTab || !deal.knownRow) return miss('not written to the journal');
+  try {
+    const sheets = await sheetsClient();
+    const ssId = await resolveWriteSheetId(deal.saleYear);
+    const res = await sheets.spreadsheets.values.get({
+      spreadsheetId: ssId,
+      range: `'${deal.knownTab}'!A1:BZ${Math.max(deal.knownRow, 60)}`,
+      valueRenderOption: 'FORMATTED_VALUE',
+    });
+    const rows: string[][] = (res.data.values as string[][]) || [];
+
+    // Anchor on the two-row header ("No." + "Last Name"), same as the writer.
+    let headerBottom = -1;
+    for (let r = 0; r < rows.length; r += 1) {
+      const row = rows[r] || [];
+      if (norm(row[0]) === 'no' && row.some((c) => norm(c) === 'last name')) {
+        headerBottom = r;
+        break;
+      }
+    }
+    if (headerBottom < 0) return miss('header row not found');
+    const top = rows[headerBottom - 1] || [];
+    const bottom = rows[headerBottom] || [];
+    const width = Math.max(top.length, bottom.length);
+    const findCol = (pred: (combined: string, b: string) => boolean): number => {
+      for (let c = 0; c < width; c += 1) {
+        const combined = norm(`${top[c] ?? ''} ${bottom[c] ?? ''}`);
+        if (pred(combined, norm(bottom[c]))) return c;
+      }
+      return -1;
+    };
+    const lastNameCol = findCol((_c, b) => b === 'last name');
+    const resultCol = findCol((c, b) => b === 'result' || c.includes('result'));
+    const paidCol = findCol((c, b) => b.includes('paid') || c.includes('date paid'));
+
+    const target = rows[deal.knownRow - 1] || [];
+    const cell = (col: number) => (col >= 0 ? String(target[col] ?? '').trim() : '');
+
+    const rowLastName = norm(cell(lastNameCol));
+    const lastNameMatches = rowLastName !== '' && rowLastName === norm(deal.lastName);
+
+    const resultRaw = cell(resultCol);
+    const rn = norm(resultRaw);
+    const isOk = /\bok\b/.test(rn) && !rn.includes('pe'); // "OK" but not "PE/OK"
+
+    const paidRaw = cell(paidCol);
+    const parsed = paidRaw ? parseFlexibleDate(paidRaw, deal.saleYear) : null;
+    const datePaid = parsed && !isNaN(parsed.getTime()) ? parsed : null;
+
+    return { found: true, lastNameMatches, result: resultRaw || null, isOk, datePaid };
+  } catch (e) {
+    return miss((e as Error).message);
+  }
 }
 
 /**

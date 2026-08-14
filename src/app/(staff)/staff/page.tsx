@@ -21,6 +21,11 @@ const TERMINAL: ApplicationStatus[] = ['FUNDED', 'DECLINED', 'WITHDRAWN', 'DRAFT
 
 type Deal = Application & { dealer: Dealer; _count: { payouts: number } };
 
+// Paid = a recorded payout OR the sales journal showing the deal settled.
+function isPaid(a: Deal): boolean {
+  return a._count.payouts > 0 || a.journalPaidOn != null;
+}
+
 // Sort for the flat "All deals" list + search results (the urgency lanes keep
 // their own longest-waiting order).
 function sortDeals(list: Deal[], sort: string): Deal[] {
@@ -101,7 +106,7 @@ function fmtAmount(a: Deal): string {
 
 // The one plain-language action a deal needs (Priority view chip).
 function actionFor(a: Deal): { label: string; tone: Tone } {
-  if (a._count.payouts > 0) return { label: 'Paid — done', tone: 'paid' };
+  if (isPaid(a)) return { label: 'Paid — done', tone: 'paid' };
   if (a.status === 'PROBLEM') return { label: 'Fix problem', tone: 'prob' };
   if (NEW_STATUSES.includes(a.status)) return { label: 'Approve', tone: 'new' };
   if (needsAttention(a)) {
@@ -133,9 +138,9 @@ function toRow(a: Deal): QueueRow {
     programType: a.programType,
     programCategory: PROGRAM_CATEGORY_LABELS[a.programCategory],
     amount: fmtAmount(a),
-    statusLabel: a._count.payouts > 0 ? 'Paid' : STATUS_LABELS_SHORT[a.status] ?? a.status,
-    tone: a._count.payouts > 0 ? 'paid' : toneFor(a.status),
-    paid: a._count.payouts > 0,
+    statusLabel: isPaid(a) ? 'Paid' : STATUS_LABELS_SHORT[a.status] ?? a.status,
+    tone: isPaid(a) ? 'paid' : toneFor(a.status),
+    paid: isPaid(a),
     activityLabel: activity?.label ?? null,
     activityTone: activity?.tone ?? null,
     waitLabel: waitLabel(since),
@@ -195,13 +200,13 @@ export default async function StaffQueue({ searchParams }: { searchParams: { q?:
   const lanes: Lanes = {
     needsApproval: apps.filter((a) => NEW_STATUSES.includes(a.status)).sort(byWaiting).map(toRow),
     updates: apps.filter((a) => needsAttention(a) && !NEW_STATUSES.includes(a.status)).sort(byWaiting).map(toRow),
-    inFunding: apps.filter((a) => FUNDING_STATUSES.includes(a.status) && a._count.payouts === 0).sort(byWaiting).map(toRow),
+    inFunding: apps.filter((a) => FUNDING_STATUSES.includes(a.status) && !isPaid(a)).sort(byWaiting).map(toRow),
     all: sortDeals(apps, sort).map(toRow),
   };
 
   // Priority view: the active pipeline grouped by urgency instead of status.
   const INACTIVE: ApplicationStatus[] = ['DECLINED', 'WITHDRAWN', 'DRAFT'];
-  const active = apps.filter((a) => !INACTIVE.includes(a.status) && a._count.payouts === 0);
+  const active = apps.filter((a) => !INACTIVE.includes(a.status) && !isPaid(a));
   const overdue = (a: Deal) => needsAttention(a) && minutesSince(waitingSince(a)) >= SLA_MINUTES;
   const priority: PriorityBands = {
     now: active.filter((a) => a.status === 'PROBLEM' || overdue(a)).sort(byWaiting).map(toRow),
