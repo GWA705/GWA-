@@ -120,9 +120,22 @@ function actionFor(a: Deal): { label: string; tone: Tone } {
           : { label: 'Review', tone: 'review' };
     }
   }
-  if (a.status === 'FUNDING_REVIEW') return { label: 'Verify & fund', tone: 'fund' };
-  if (FUNDING_STATUSES.includes(a.status)) return { label: 'Awaiting dealer', tone: 'decl' };
-  return { label: 'In progress', tone: 'decl' };
+  // Not on the reviewer's desk right now — name the actual stage instead of a
+  // generic "Awaiting dealer" on every row.
+  switch (a.status) {
+    case 'APPROVED':
+    case 'CONDITIONAL':
+    case 'DOCS_SENT':
+      return { label: 'Awaiting install', tone: 'decl' }; // ball is with the dealer
+    case 'FUNDING_SUBMITTED':
+      return { label: 'Verify & fund', tone: 'fund' };
+    case 'FUNDING_REVIEW':
+      return { label: 'In for funding', tone: 'fund' }; // submitted to the funder
+    case 'FUNDED':
+      return { label: 'Pay dealer', tone: 'fund' };
+    default:
+      return { label: 'In progress', tone: 'decl' };
+  }
 }
 
 function toRow(a: Deal): QueueRow {
