@@ -157,7 +157,7 @@ export function DealerSnapshotView({ snap }: { snap: DealerSnapshot }) {
         </div>
       )}
 
-      <MatchingPlan matches={snap.locationMatches} gaps={snap.storeGaps} />
+      <MatchingPlan matches={snap.locationMatches} gaps={snap.storeGaps} unboundAliases={snap.unboundAliases} />
     </div>
   );
 }
@@ -165,10 +165,10 @@ export function DealerSnapshotView({ snap }: { snap: DealerSnapshot }) {
 // A verify-the-matching panel: shows how every outside-HD location label and
 // every unmapped HD store resolves, so an admin can confirm the right locations
 // are matched to the right dealers (or spot what needs fixing).
-function MatchingPlan({ matches, gaps }: { matches: LocationMatch[]; gaps: StoreGap[] }) {
-  if (matches.length === 0 && gaps.length === 0) return null;
+function MatchingPlan({ matches, gaps, unboundAliases }: { matches: LocationMatch[]; gaps: StoreGap[]; unboundAliases: string[] }) {
+  if (matches.length === 0 && gaps.length === 0 && unboundAliases.length === 0) return null;
   const unmatchedCount = matches.filter((m) => !m.dealerName).length;
-  const openByDefault = unmatchedCount > 0 || gaps.length > 0;
+  const openByDefault = unmatchedCount > 0 || gaps.length > 0 || unboundAliases.length > 0;
 
   return (
     <details open={openByDefault} className="group overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
@@ -176,9 +176,10 @@ function MatchingPlan({ matches, gaps }: { matches: LocationMatch[]; gaps: Store
         <span className="text-gray-300 transition group-open:rotate-90">▸</span>
         <span className="text-sm font-semibold text-gray-900">Matching plan</span>
         <span className="text-xs text-gray-500">— how journal locations map to dealers</span>
-        {(unmatchedCount > 0 || gaps.length > 0) && (
+        {(unmatchedCount > 0 || gaps.length > 0 || unboundAliases.length > 0) && (
           <span className="ml-auto rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
-            {unmatchedCount + gaps.length} need{unmatchedCount + gaps.length === 1 ? 's' : ''} attention
+            {unmatchedCount + gaps.length + unboundAliases.length} need
+            {unmatchedCount + gaps.length + unboundAliases.length === 1 ? 's' : ''} attention
           </span>
         )}
       </summary>
@@ -188,6 +189,21 @@ function MatchingPlan({ matches, gaps }: { matches: LocationMatch[]; gaps: Store
           location label to a dealer name. Check the rows below — anything marked{' '}
           <span className="font-semibold text-red-600">Not matched</span> isn&apos;t counted under a dealer yet.
         </p>
+
+        {unboundAliases.length > 0 && (
+          <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-800">
+            <div className="font-semibold">Alias rules that couldn&apos;t find a dealer</div>
+            <p className="mt-0.5 text-red-700">
+              These mapping rules point at a dealer name that isn&apos;t in the system (likely a spelling difference or a
+              missing dealer). They aren&apos;t applying until the name matches:
+            </p>
+            <ul className="mt-1.5 list-disc space-y-0.5 pl-4">
+              {unboundAliases.map((a) => (
+                <li key={a}>{a}</li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {matches.length > 0 && (
           <div>

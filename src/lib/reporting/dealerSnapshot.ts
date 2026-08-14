@@ -72,6 +72,8 @@ export interface DealerSnapshot {
   // Matching plan: how outside-HD location labels + unmapped HD stores resolve.
   locationMatches: LocationMatch[];
   storeGaps: StoreGap[];
+  // Alias rules whose dealer name wasn't found (likely a spelling mismatch).
+  unboundAliases: string[];
   configured: boolean;
   error?: string;
 }
@@ -85,10 +87,19 @@ export interface DealerSnapshot {
  * word with.
  */
 const DEALER_ALIASES: { dealer: string; aliases: string[] }[] = [
+  // `dealer` is a case-insensitive substring of the dealer's portal name; the
+  // shortest reliable fragment is used so small spelling differences still bind.
   { dealer: 'Georgian', aliases: ['Barrie'] },
   { dealer: 'Lakehead', aliases: ['Thunder Bay'] },
   { dealer: 'True North', aliases: ['Sudbury'] },
   { dealer: 'Home Service Providers', aliases: ['London'] },
+  { dealer: 'Platinum', aliases: ['Platinum'] },
+  { dealer: 'Clean Air and Water', aliases: ['CAWS', 'CAW'] },
+  { dealer: 'Oasis', aliases: ['Edmonton', 'Brantford'] },
+  { dealer: 'SIC', aliases: ['Calgary'] },
+  { dealer: 'Hydra', aliases: ['Hamilton'] },
+  { dealer: 'Essential', aliases: ['Kingston', 'Ottawa'] },
+  { dealer: 'Indig', aliases: ['Winnipeg'] },
 ];
 
 const FILLER = new Set([
@@ -180,10 +191,14 @@ export async function buildDealerSnapshot(year: number, monthIndex: number): Pro
   // whole phrase (every alias token must be present) so "Thunder Bay" can't leak
   // into "North Bay". More-specific (multi-word) aliases are checked first.
   const aliasMatchers: { dealerId: string; tokens: string[] }[] = [];
+  const unboundAliases: string[] = [];
   for (const entry of DEALER_ALIASES) {
     const needle = entry.dealer.toLowerCase();
     const dealer = dealers.find((d) => d.name.toLowerCase().includes(needle));
-    if (!dealer) continue;
+    if (!dealer) {
+      unboundAliases.push(`${entry.dealer} → ${entry.aliases.join(', ')}`);
+      continue;
+    }
     for (const alias of entry.aliases) {
       const toks = nameTokens(alias);
       if (toks.length) aliasMatchers.push({ dealerId: dealer.id, tokens: toks });
@@ -352,6 +367,7 @@ export async function buildDealerSnapshot(year: number, monthIndex: number): Pro
     },
     locationMatches,
     storeGaps,
+    unboundAliases,
     configured,
     error,
   };
