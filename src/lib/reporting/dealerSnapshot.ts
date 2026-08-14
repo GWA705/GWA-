@@ -95,9 +95,9 @@ const DEALER_ALIASES: { dealer: string; aliases: string[] }[] = [
   { dealer: 'Home Service Providers', aliases: ['London'] },
   { dealer: 'Platinum', aliases: ['Platinum'] },
   { dealer: 'Clean Air and Water', aliases: ['CAWS', 'CAW'] },
-  { dealer: 'Oasis', aliases: ['Edmonton', 'Brantford'] },
+  { dealer: 'Oasis', aliases: ['Edmonton', 'Kelowna'] },
   { dealer: 'SIC', aliases: ['Calgary'] },
-  { dealer: 'Hydra', aliases: ['Hamilton'] },
+  { dealer: 'Hydra', aliases: ['Hamilton', 'Brantford'] },
   { dealer: 'Essential', aliases: ['Kingston', 'Ottawa'] },
   { dealer: 'Indig', aliases: ['Winnipeg'] },
 ];
