@@ -4,12 +4,12 @@ import { useState, useTransition } from 'react';
 import { logLeadCallAction, deleteLeadCallAction } from '@/lib/leadCallActions';
 import type { LeadCallRow } from '@/lib/leadCalls';
 
-const OUTCOMES: { key: string; label: string; emoji: string; tone?: 'warn' | 'good' }[] = [
-  { key: 'NO_ANSWER', label: 'No answer', emoji: '📵', tone: 'warn' },
-  { key: 'LEFT_MESSAGE', label: 'Left message', emoji: '💬' },
-  { key: 'SPOKE', label: 'Spoke', emoji: '🗣️' },
-  { key: 'BOOKED', label: 'Booked', emoji: '✅', tone: 'good' },
-  { key: 'NOT_INTERESTED', label: 'Not interested', emoji: '🚫' },
+const OUTCOMES: { key: string; label: string; emoji: string; color: string }[] = [
+  { key: 'NO_ANSWER', label: 'No answer', emoji: '📵', color: 'bg-amber-500 hover:bg-amber-600' },
+  { key: 'LEFT_MESSAGE', label: 'Left message', emoji: '💬', color: 'bg-sky-500 hover:bg-sky-600' },
+  { key: 'SPOKE', label: 'Spoke', emoji: '🗣️', color: 'bg-indigo-500 hover:bg-indigo-600' },
+  { key: 'BOOKED', label: 'Booked', emoji: '✅', color: 'bg-emerald-600 hover:bg-emerald-700' },
+  { key: 'NOT_INTERESTED', label: 'Not interested', emoji: '🚫', color: 'bg-rose-500 hover:bg-rose-600' },
 ];
 const LABELS: Record<string, string> = Object.fromEntries(OUTCOMES.map((o) => [o.key, o.label]));
 LABELS.NOTE = 'Note';
@@ -101,15 +101,9 @@ export function LeadCallTracker({ leadKey, initial }: { leadKey: string; initial
             key={o.key}
             type="button"
             onClick={() => log(o.key)}
-            className={`rounded-md border px-2.5 py-1.5 text-xs font-medium transition ${
-              o.tone === 'good'
-                ? 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'
-                : o.tone === 'warn'
-                  ? 'border-amber-200 text-amber-700 hover:bg-amber-50'
-                  : 'border-gray-200 text-gray-700 hover:border-brand-400 hover:bg-brand-50 hover:text-brand-700'
-            }`}
+            className={`inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition active:scale-95 ${o.color}`}
           >
-            {o.emoji} {o.label}
+            <span aria-hidden>{o.emoji}</span> {o.label}
           </button>
         ))}
       </div>
@@ -121,7 +115,7 @@ export function LeadCallTracker({ leadKey, initial }: { leadKey: string; initial
           placeholder="Optional note (e.g. call back after 5pm)"
           className="input flex-1 py-1.5 text-sm"
         />
-        <button type="button" onClick={() => log('NOTE')} className="btn-secondary text-xs">Add note</button>
+        <button type="button" onClick={() => log('NOTE')} className="rounded-lg bg-slate-700 px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 active:scale-95">Add note</button>
       </div>
       {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
 
