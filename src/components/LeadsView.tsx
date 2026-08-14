@@ -161,10 +161,15 @@ export function LeadsView({
                   <span className={`h-2 w-2 shrink-0 rounded-full ${l.noGood ? 'bg-red-500' : 'bg-emerald-500'}`} />
                   <span className="min-w-0 flex-1">
                     <span className="truncate font-medium text-gray-900">{l.customerName || '(no name)'}</span>
+                    {/* Desktop meta */}
                     <span className="ml-2 hidden text-xs text-gray-500 sm:inline">
                       {fmtDate(l.dateReceived, l.dateText)}
                       {l.storeNumber && <span className="font-semibold text-gray-700"> · {storeLabel(l.storeNumber)}</span>}
                       {l.service && ` · ${l.service}`}
+                    </span>
+                    {/* Mobile short meta — store number fits now that "Forwarded" is a symbol */}
+                    <span className="mt-0.5 block truncate text-xs text-gray-500 sm:hidden">
+                      {l.storeNumber ? storeLabel(l.storeNumber) : l.service}
                     </span>
                   </span>
                   {calls.length > 0 && (
@@ -173,8 +178,14 @@ export function LeadsView({
                     </span>
                   )}
                   <span className="hidden shrink-0 text-xs text-gray-500 md:inline">{l.phone}</span>
-                  <span className={`badge shrink-0 ${l.noGood ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-800'}`}>
-                    {l.noGood ? 'No good' : 'Forwarded'}
+                  {/* Status: full word on desktop; a compact symbol on mobile to save room */}
+                  <span
+                    className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${l.noGood ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-800'}`}
+                    title={l.noGood ? 'No good' : 'Forwarded'}
+                    aria-label={l.noGood ? 'No good' : 'Forwarded'}
+                  >
+                    <span className="sm:hidden">{l.noGood ? '✕' : '✓'}</span>
+                    <span className="hidden sm:inline">{l.noGood ? 'No good' : 'Forwarded'}</span>
                   </span>
                   <span className="shrink-0 text-gray-300 transition group-open:rotate-180">▾</span>
                 </summary>
