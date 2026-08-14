@@ -72,10 +72,10 @@ export function FundingItemUploader({
           onChange={(e) => setCustomLabel(e.target.value)}
         />
       )}
-      {/* Desktop: a compact drag-and-drop zone (click to choose too). */}
+      {/* Desktop: a roomy drag-and-drop zone (click to choose too). */}
       <div
-        className={`hidden cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed px-4 py-3 text-sm transition sm:flex ${
-          dragging ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-gray-300 bg-gray-50 text-gray-500 hover:border-brand-400 hover:bg-brand-50/40'
+        className={`hidden cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-4 py-8 text-center text-sm transition sm:flex ${
+          dragging ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-gray-300 bg-gray-50 text-gray-500 hover:border-brand-400 hover:bg-brand-50/50'
         } ${pending || nameNeeded ? 'pointer-events-none opacity-50' : ''}`}
         onClick={() => fileRef.current?.click()}
         onDragOver={(e) => {
@@ -89,8 +89,12 @@ export function FundingItemUploader({
           upload(e.dataTransfer.files);
         }}
       >
-        <span aria-hidden>⬆︎</span>
-        <span>Drag &amp; drop, or <span className="font-medium text-brand-700">choose a file</span></span>
+        <svg className={`h-9 w-9 ${dragging ? 'text-brand-500' : 'text-gray-400'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M12 13v8" />
+          <path d="m8 17 4-4 4 4" />
+          <path d="M20 16.6A5 5 0 0 0 18 7h-1.3A8 8 0 1 0 4 15.2" />
+        </svg>
+        <span><span className="font-medium text-gray-700">Drag &amp; drop</span> a file here, or <span className="font-medium text-brand-700">choose a file</span></span>
       </div>
 
       {/* Mobile: slim capture buttons. */}

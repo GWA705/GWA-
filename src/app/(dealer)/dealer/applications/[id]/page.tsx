@@ -326,6 +326,7 @@ export default async function DealerApplicationDetail({
               <p className="text-xs text-amber-700">⚠ Do not upload payment cards — Credit Cards, HD Consumer Cards, and FinanceIT one-time-use cards are automatically rejected.</p>
             )}
 
+            <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
             {requiredFunding.map((t) => {
               const uploaded = fundingDocs.filter((d) => d.type === t.type);
               const confirmed = uploaded.some((d) => d.verifiedAt);
@@ -359,23 +360,27 @@ export default async function DealerApplicationDetail({
                     <span className={`badge ${badgeCls}`}>{badgeLabel}</span>
                   </div>
                   {uploaded.length > 0 && (
-                    <ul className="mt-2 space-y-1 pl-7 text-xs text-gray-500">
-                      {uploaded.map((u) => (
-                        <li key={u.id} className="flex flex-wrap items-center gap-2">
-                          <DocViewer id={u.id} fileName={u.fileName} mimeType={u.mimeType} className="break-all text-left text-brand-700 hover:underline">
-                            {u.fileName}
-                          </DocViewer>
-                          {u.verifiedAt ? (
-                            <span className="text-green-600">✓ confirmed by GWA</span>
-                          ) : (
-                            canUploadFunding && <DeleteDocumentButton documentId={u.id} fileName={u.fileName} action={deleteOwnDocumentAction} />
-                          )}
-                        </li>
-                      ))}
-                    </ul>
+                    <div className="mt-1.5 pl-8 text-xs">
+                      <span className="font-medium text-green-700">
+                        ✓ {confirmed ? 'Upload complete — confirmed by GWA' : 'Uploaded — pending GWA review'}
+                        {uploaded.length > 1 ? ` · ${uploaded.length} files` : ''}
+                      </span>
+                      <span className="ml-3 inline-flex flex-wrap gap-3 text-gray-500">
+                        {uploaded.map((u, i) => (
+                          <span key={u.id} className="inline-flex items-center gap-2">
+                            <DocViewer id={u.id} fileName={u.fileName} mimeType={u.mimeType} className="text-brand-700 hover:underline">
+                              View{uploaded.length > 1 ? ` ${i + 1}` : ''}
+                            </DocViewer>
+                            {!u.verifiedAt && canUploadFunding && (
+                              <DeleteDocumentButton documentId={u.id} fileName={u.fileName} action={deleteOwnDocumentAction} />
+                            )}
+                          </span>
+                        ))}
+                      </span>
+                    </div>
                   )}
-                  {canUploadFunding && (
-                    <div className="pl-7">
+                  {canUploadFunding && !confirmed && (
+                    <div className="pl-8">
                       <FundingItemUploader
                         action={uploadFundingBatchAction.bind(null, app.id)}
                         category={t.type}
@@ -386,6 +391,7 @@ export default async function DealerApplicationDetail({
                 </div>
               );
             })}
+            </div>
           </div>
 
           {canSubmitFunding && (
