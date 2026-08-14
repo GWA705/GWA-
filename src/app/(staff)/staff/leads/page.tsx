@@ -2,7 +2,8 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireRole } from '@/lib/session';
 import { isSuperAdmin, canAdminSection } from '@/lib/rbac';
-import { readLeads, summarize, storeNameMap } from '@/lib/leads';
+import { readLeads, summarize, storeNameMap, leadKeyOf } from '@/lib/leads';
+import { readLeadCalls } from '@/lib/leadCalls';
 import { leadsSheetId, reportingJournalEnabled } from '@/lib/reporting/journalRead';
 import { listReportOffices } from '@/lib/reporting/monthly';
 import { LeadsView, filterLeads, leadMonthOptions } from '@/components/LeadsView';
@@ -48,6 +49,7 @@ export default async function StaffLeadsPage({
   const summary = summarize(scoped);
   const monthOptions = leadMonthOptions(scoped);
   const filtered = filterLeads(scoped, q, status, month);
+  const callsByKey = await readLeadCalls(filtered.map(leadKeyOf));
 
   return (
     <div className="space-y-5">
@@ -88,6 +90,7 @@ export default async function StaffLeadsPage({
         month={month}
         monthOptions={monthOptions}
         storeNames={storeNames}
+        callsByKey={callsByKey}
       />
     </div>
   );

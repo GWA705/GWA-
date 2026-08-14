@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { requireDealerAccess } from '@/lib/session';
-import { readLeads, dealerStoreNumbers, summarize, storeNameMap } from '@/lib/leads';
+import { readLeads, dealerStoreNumbers, summarize, storeNameMap, leadKeyOf } from '@/lib/leads';
+import { readLeadCalls } from '@/lib/leadCalls';
 import { reportingJournalEnabled } from '@/lib/reporting/journalRead';
 import { leadsSheetId } from '@/lib/reporting/journalRead';
 import { LeadsView, filterLeads, leadMonthOptions } from '@/components/LeadsView';
@@ -41,6 +42,7 @@ export default async function DealerLeadsPage({ searchParams }: { searchParams: 
   const summary = summarize(mine);
   const monthOptions = leadMonthOptions(mine);
   const filtered = filterLeads(mine, q, status, month);
+  const callsByKey = await readLeadCalls(filtered.map(leadKeyOf));
 
   return (
     <div className="space-y-5">
@@ -50,7 +52,7 @@ export default async function DealerLeadsPage({ searchParams }: { searchParams: 
           Couldn&apos;t read the leads log right now: {read.error}
         </div>
       )}
-      <LeadsView leads={filtered} summary={summary} q={q} status={status} basePath="/dealer/leads" page={page} month={month} monthOptions={monthOptions} storeNames={storeNames} />
+      <LeadsView leads={filtered} summary={summary} q={q} status={status} basePath="/dealer/leads" page={page} month={month} monthOptions={monthOptions} storeNames={storeNames} callsByKey={callsByKey} />
     </div>
   );
 }

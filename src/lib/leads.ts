@@ -204,3 +204,16 @@ export function summarize(leads: Lead[]): { total: number; noGood: number; forwa
   const noGood = leads.filter((l) => l.noGood).length;
   return { total: leads.length, noGood, forwarded: leads.length - noGood };
 }
+
+/**
+ * A stable key for a lead, used to attach call-tracking records. Prefers the HD
+ * Booking ID (never changes); falls back to a name+phone+store hash so leads
+ * without a booking id still track. Must match between logging and reading.
+ */
+export function leadKeyOf(l: Lead): string {
+  const booking = (l.bookingId ?? '').trim();
+  if (booking) return `b:${booking}`;
+  const name = (l.customerName ?? '').toLowerCase().replace(/\s+/g, '');
+  const phone = (l.phone ?? '').replace(/\D/g, '');
+  return `h:${name}|${phone}|${(l.storeNumber ?? '').trim()}`;
+}

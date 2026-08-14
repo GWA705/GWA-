@@ -1,6 +1,17 @@
 import Link from 'next/link';
 import type { Lead } from '@/lib/leads';
+import { leadKeyOf } from '@/lib/leads';
+import { leadCallStatus, type LeadCallRow } from '@/lib/leadCalls';
+import { LeadCallTracker } from './LeadCallTracker';
 import { LeadsMonthDropdown } from './LeadsMonthDropdown';
+
+const CALL_CHIP: Record<string, string> = {
+  grey: 'bg-gray-100 text-gray-600',
+  amber: 'bg-amber-100 text-amber-800',
+  red: 'bg-red-100 text-red-700',
+  teal: 'bg-teal-100 text-teal-800',
+  green: 'bg-emerald-100 text-emerald-800',
+};
 
 // Read-only, searchable list of HD leads with running totals. Shared by the
 // dealer (own office) and internal (all offices) pages. No download — view only.
@@ -33,6 +44,7 @@ export function LeadsView({
   month = '',
   monthOptions = [],
   storeNames = {},
+  callsByKey = {},
 }: {
   leads: Lead[];
   summary: { total: number; noGood: number; forwarded: number };
@@ -45,6 +57,8 @@ export function LeadsView({
   monthOptions?: { value: string; label: string }[];
   // HD store number → store name/location, so leads show "Store 7234 — Barrie".
   storeNames?: Record<string, string>;
+  // Lead key → logged calls, for the call-tracker on each lead.
+  callsByKey?: Record<string, LeadCallRow[]>;
 }) {
   const storeLabel = (num: string) => {
     if (!num) return '';
@@ -137,7 +151,11 @@ export function LeadsView({
       ) : (
         <>
           <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-            {pageLeads.map((l) => (
+            {pageLeads.map((l) => {
+              const leadKey = leadKeyOf(l);
+              const calls = callsByKey[leadKey] ?? [];
+              const cs = leadCallStatus(calls);
+              return (
               <details key={l.rowId} className="group border-b border-gray-100 last:border-b-0">
                 <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-2.5 hover:bg-gray-50">
                   <span className={`h-2 w-2 shrink-0 rounded-full ${l.noGood ? 'bg-red-500' : 'bg-emerald-500'}`} />
@@ -149,6 +167,11 @@ export function LeadsView({
                       {l.service && ` · ${l.service}`}
                     </span>
                   </span>
+                  {calls.length > 0 && (
+                    <span className={`badge shrink-0 ${CALL_CHIP[cs.tone]}`} title={cs.next ? `Next: ${cs.next}` : undefined}>
+                      {cs.label}
+                    </span>
+                  )}
                   <span className="hidden shrink-0 text-xs text-gray-500 md:inline">{l.phone}</span>
                   <span className={`badge shrink-0 ${l.noGood ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-800'}`}>
                     {l.noGood ? 'No good' : 'Forwarded'}
@@ -179,9 +202,11 @@ export function LeadsView({
                       {l.reportedToHd && <div className="mt-0.5"><span className="font-semibold">Reported to HD:</span> {l.reportedToHd}{l.dateReported ? ` (${l.dateReported})` : ''}</div>}
                     </div>
                   )}
+                  <LeadCallTracker leadKey={leadKey} initial={calls} />
                 </div>
               </details>
-            ))}
+              );
+            })}
           </div>
 
           {/* Pagination */}

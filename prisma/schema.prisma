@@ -1413,3 +1413,20 @@ model ApplicationPin {
   @@id([userId, applicationId])
   @@index([userId])
 }
+
+/// A logged follow-up call on a Home Depot lead (leads themselves live in the
+/// Google Sheet; this is the portal's own call activity, keyed to the lead's
+/// stable Booking ID or a name+phone+store hash). Shared per lead within an
+/// office. outcome ∈ NO_ANSWER | LEFT_MESSAGE | SPOKE | BOOKED | NOT_INTERESTED | NOTE.
+model LeadCall {
+  id        String   @id @default(cuid())
+  leadKey   String
+  dealerId  String?
+  outcome   String
+  note      String?
+  actorId   String?
+  actorName String?
+  createdAt DateTime @default(now())
+
+  @@index([leadKey])
+}
