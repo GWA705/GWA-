@@ -87,15 +87,18 @@ export function LeadNoGoodControl({
   return (
     <div className="mt-3 border-t border-dashed border-gray-200 pt-3">
       {!open ? (
-        <button
-          type="button"
-          onClick={() => { setOpen(true); setError(null); }}
-          disabled={!hasBooking}
-          title={hasBooking ? undefined : 'This lead has no booking ID, so it can’t be written back to the log.'}
-          className="rounded-md border border-red-200 px-2.5 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          ✕ Mark No good
-        </button>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <button
+            type="button"
+            onClick={() => { setOpen(true); setError(null); }}
+            disabled={!hasBooking}
+            title={hasBooking ? undefined : 'This lead has no booking ID, so it can’t be written back to the log.'}
+            className="rounded-md border border-red-200 px-2.5 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            ✕ Mark No good
+          </button>
+          <span className="text-xs text-gray-500">Flags the lead as unusable and notifies Home Depot.</span>
+        </div>
       ) : (
         <div className="rounded-lg border border-red-200 bg-red-50 p-3">
           <div className="text-sm font-semibold text-red-800">Mark this lead No good?</div>
