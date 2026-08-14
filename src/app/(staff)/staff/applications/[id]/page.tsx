@@ -14,6 +14,7 @@ import { CollapsibleEntry } from '@/components/CollapsibleEntry';
 import { PayoutReceipt } from '@/components/PayoutReceipt';
 import { ReviewerPaperworkBoxes } from './ReviewerPaperworkBoxes';
 import { ReviewerDoneButton } from './ReviewerDoneButton';
+import { FundingStepActions } from './FundingStepActions';
 import { NoteThread } from '@/components/NoteThread';
 import { NoteForm } from '@/components/NoteForm';
 import { ConfirmationBadge } from '@/components/ConfirmationBadge';
@@ -416,8 +417,9 @@ export default async function StaffApplicationDetail({
         )}
       </div>
     ),
-    // 6 · Awaiting funding
-    funding: null,
+    // 7 · Awaiting funding — the Mark Funded button, but only once the deal has
+    // actually reached "in for funding" (not on an earlier phase).
+    funding: app.status === 'FUNDING_REVIEW' ? <FundingStepActions applicationId={app.id} /> : null,
     // 7 · Pay dealer
     pay: (
       <div>

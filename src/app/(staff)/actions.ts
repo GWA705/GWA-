@@ -576,10 +576,56 @@ export async function recordPayoutAction(
     entityId: d.applicationId,
     detail: `Payout recorded: $${d.amount} (${payout.id})`,
   });
+
+  // Paid ⟹ funded. If the deal was paid before anyone clicked "Funded", fill in
+  // the funded step automatically so both advance at once.
+  if (app.status !== 'FUNDED') {
+    await prisma.$transaction([
+      prisma.application.update({ where: { id: d.applicationId }, data: { status: 'FUNDED' } }),
+      prisma.statusEvent.create({
+        data: { applicationId: d.applicationId, from: app.status, to: 'FUNDED', actorId: session.userId, note: 'Funded automatically on payout' },
+      }),
+    ]);
+    await notifyStatusChange(d.applicationId, 'FUNDED');
+  }
   await markReviewerAction(d.applicationId);
 
   revalidatePath(`/staff/applications/${d.applicationId}`);
+  revalidatePath('/staff');
   return { ok: true };
+}
+
+/**
+ * Reviewer marks a deal Funded straight from the "Awaiting funding" step, so
+ * they don't have to go up to the status menu. Logs the funded date + who via
+ * the status history.
+ */
+export async function markFundedAction(applicationId: string): Promise<{ error?: string }> {
+  const session = await requireStaffSection('review-queue');
+  const app = await prisma.application.findUnique({ where: { id: applicationId } });
+  if (!app) return { error: 'Application not found.' };
+  if (app.status === 'FUNDED') return {};
+  const refError = referenceGateError({ ...app, financed: dealHasFinancing(app) }, 'marking this deal funded');
+  if (refError) return { error: refError };
+
+  await prisma.$transaction([
+    prisma.application.update({ where: { id: applicationId }, data: { status: 'FUNDED' } }),
+    prisma.statusEvent.create({
+      data: { applicationId, from: app.status, to: 'FUNDED', actorId: session.userId, note: 'Marked funded' },
+    }),
+  ]);
+  await audit({
+    actorId: session.userId,
+    action: 'STATUS_CHANGE',
+    entityType: 'Application',
+    entityId: applicationId,
+    detail: `Marked funded (${app.status} -> FUNDED)`,
+  });
+  await markReviewerAction(applicationId);
+  await notifyStatusChange(applicationId, 'FUNDED');
+  revalidatePath(`/staff/applications/${applicationId}`);
+  revalidatePath('/staff');
+  return {};
 }
 
 // Reviewer toggles a funding document's "completed/verified" state.
