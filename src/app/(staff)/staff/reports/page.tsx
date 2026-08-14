@@ -1,8 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireRole } from '@/lib/session';
-import { isSuperAdmin } from '@/lib/rbac';
-import { canViewReportsArea, canViewLeadershipSnapshot } from '@/lib/reporting/access';
+import { canViewReportsArea, canViewLeadershipSnapshot, canViewDealerSnapshot } from '@/lib/reporting/access';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,7 +19,7 @@ export default async function ReportsLandingPage() {
   if (!(await canViewReportsArea(user))) notFound();
 
   const canLeadership = await canViewLeadershipSnapshot(user);
-  const canDealerSnapshot = isSuperAdmin(user);
+  const canDealerSnapshot = await canViewDealerSnapshot(user);
 
   const cards: ReportCard[] = [
     {

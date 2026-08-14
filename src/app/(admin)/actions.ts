@@ -287,6 +287,7 @@ export async function updateUserAction(
     canViewReports: boolean;
     canViewLeadershipReport: boolean;
     canSearchCustomers: boolean;
+    canViewDealerSnapshot: boolean;
     passwordHash?: string;
     passwordChangedAt?: Date | null;
     tokenVersion?: { increment: number };
@@ -306,6 +307,8 @@ export async function updateUserAction(
     canViewLeadershipReport: d.role !== 'DEALER_USER' && formData.get('canViewLeadershipReport') === 'on',
     // Per-user grant for the full detailed customer search. Internal only.
     canSearchCustomers: d.role !== 'DEALER_USER' && formData.get('canSearchCustomers') === 'on',
+    // Per-user grant for the admin Dealer Snapshot report. Internal only.
+    canViewDealerSnapshot: d.role !== 'DEALER_USER' && formData.get('canViewDealerSnapshot') === 'on',
   };
 
   if (d.newPassword && d.newPassword.trim()) {

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireRole } from '@/lib/session';
-import { isSuperAdmin } from '@/lib/rbac';
+import { canViewDealerSnapshot } from '@/lib/reporting/access';
 import { reportingJournalEnabled } from '@/lib/reporting/journalRead';
 import { buildDealerSnapshot } from '@/lib/reporting/dealerSnapshot';
 import { DealerSnapshotView } from '../DealerSnapshotView';
@@ -23,8 +23,8 @@ function monthOptions(count: number): { value: string; label: string }[] {
 
 export default async function DealerSnapshotPage({ searchParams }: { searchParams: { ym?: string } }) {
   const user = await requireRole('REVIEWER', 'ADMIN');
-  // Sensitive cross-dealer financials — locked to Super Admin only.
-  if (!isSuperAdmin(user)) notFound();
+  // Sensitive cross-dealer financials — Super Admin, or a specific granted user.
+  if (!(await canViewDealerSnapshot(user))) notFound();
 
   const months = monthOptions(18);
 

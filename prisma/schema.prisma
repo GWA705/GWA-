@@ -350,6 +350,10 @@ model User {
   // staff only; super admins have it implicitly). For team members who field
   // customer calls to GWA. Dealers never get this — they get exact-phone lookup.
   canSearchCustomers Boolean @default(false)
+  // Grant for the admin Dealer Snapshot report (sold/paid/pending per dealer,
+  // cross-dealer). Super Admins have it implicitly; this lets a specific
+  // internal user see it without full Super Admin. Internal staff only.
+  canViewDealerSnapshot Boolean @default(false)
 
   // Profile & notification preferences
   phone             String?

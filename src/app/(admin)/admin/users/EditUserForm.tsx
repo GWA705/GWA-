@@ -29,6 +29,7 @@ export function EditUserForm({
     canViewReports: boolean;
     canViewLeadershipReport: boolean;
     canSearchCustomers: boolean;
+    canViewDealerSnapshot: boolean;
   };
   dealers: { id: string; name: string }[];
 }) {
@@ -121,6 +122,20 @@ export function EditUserForm({
                 <span className="block text-xs text-gray-400">
                   The weekly all-dealers / national report. Super Admins always have it; this grants it
                   to a specific reviewer/admin without making them a Super Admin.
+                </span>
+              </span>
+            </label>
+          </div>
+        )}
+        {role !== 'DEALER_USER' && (
+          <div className="sm:col-span-2">
+            <label className="flex items-start gap-2 text-sm text-gray-700">
+              <input type="checkbox" name="canViewDealerSnapshot" defaultChecked={user.canViewDealerSnapshot} className="mt-0.5 rounded border-gray-300" />
+              <span>
+                Give this person the <strong>Dealer Snapshot report</strong>
+                <span className="block text-xs text-gray-400">
+                  The admin sold / paid / pending-per-dealer report (all dealers). Super Admins always have it; this
+                  grants it to a specific reviewer/admin without making them a Super Admin.
                 </span>
               </span>
             </label>

@@ -29,13 +29,25 @@ export async function canViewLeadershipSnapshot(user: SessionUser): Promise<bool
   return !!me?.canViewLeadershipReport;
 }
 
+/** The admin Dealer Snapshot report (cross-dealer sold/paid/pending). */
+export async function canViewDealerSnapshot(user: SessionUser): Promise<boolean> {
+  if (isSuperAdmin(user)) return true;
+  if (!isInternal(user)) return false; // dealers never see cross-dealer totals
+  const me = await prisma.user.findUnique({
+    where: { id: user.userId },
+    select: { canViewDealerSnapshot: true },
+  });
+  return !!me?.canViewDealerSnapshot;
+}
+
 /** Can the user open the internal Reports area at all? */
 export async function canViewReportsArea(user: SessionUser): Promise<boolean> {
   if (isSuperAdmin(user)) return true;
   if (!isInternal(user)) return false;
   if (canAdminSection(user, 'reports')) return true;
   // Otherwise only if they hold a specific report grant.
-  return canViewLeadershipSnapshot(user);
+  if (await canViewLeadershipSnapshot(user)) return true;
+  return canViewDealerSnapshot(user);
 }
 
 /** Dealer-facing reports (own office only). Internal staff always qualify. */
