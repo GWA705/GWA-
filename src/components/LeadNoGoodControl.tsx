@@ -100,7 +100,7 @@ export function LeadNoGoodControl({
         <div className="rounded-lg border border-red-200 bg-red-50 p-3">
           <div className="text-sm font-semibold text-red-800">Mark this lead No good?</div>
           <p className="mt-0.5 text-xs text-red-700">
-            This writes “No Good” back to the HD Leads Log and flags it to report to Home Depot. Your name is recorded. A reason is required.
+            This writes “No Good” back to the HD Leads Log and flags it to report to Home Depot. This will be logged and recorded. A reason is required.
           </p>
           <textarea
             value={reason}
