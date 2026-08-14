@@ -47,6 +47,15 @@ export default async function ReportsLandingPage() {
       badge: 'Per store',
       available: true,
     },
+    {
+      href: '/staff/reports/dealer-snapshot',
+      title: 'Dealer Snapshot',
+      blurb:
+        'One row per dealer — sold and paid this month, and what’s pending now, split HD vs GWA. Open a dealer for every paid and pending deal. Quick glance before a dealer call.',
+      accent: '#7a3fa8',
+      badge: 'Admin',
+      available: canLeadership,
+    },
   ];
 
   const visible = cards.filter((c) => c.available || c.badge === 'Coming soon');
