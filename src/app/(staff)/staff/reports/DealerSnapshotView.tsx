@@ -1,4 +1,4 @@
-import type { DealerSnapshot, HGSplit, SnapDeal } from '@/lib/reporting/dealerSnapshot';
+import type { DealerSnapshot, HGSplit, SnapDeal, LocationMatch, StoreGap } from '@/lib/reporting/dealerSnapshot';
 
 // Admin quick-glance: one row per dealer with Sold / Paid / Pending (HD vs GWA),
 // each expandable to the full paid + pending deal lists.
@@ -134,14 +134,102 @@ export function DealerSnapshotView({ snap }: { snap: DealerSnapshot }) {
       )}
 
       {hasUnmatched && (
-        <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-xs text-gray-600">
-          <span className="font-semibold text-gray-700">Unmatched:</span> some journal deals couldn&apos;t be tied to a
-          dealer (no HD store number and no matching location name) — Sold {money(u.sold.total)}, Paid{' '}
-          {money(u.paid.total)}, Pending {money(u.pending.total)}. Add the missing HD store numbers under Admin → Dealers,
-          or tell us the location labels to map so these attribute correctly.
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-xs text-amber-800">
+          <span className="font-semibold">Heads up —</span> some journal deals couldn&apos;t be tied to a dealer this
+          month: Sold {money(u.sold.total)}, Paid {money(u.paid.total)}, Pending {money(u.pending.total)}. Open the
+          matching plan below to see which locations need mapping.
         </div>
       )}
+
+      <MatchingPlan matches={snap.locationMatches} gaps={snap.storeGaps} />
     </div>
+  );
+}
+
+// A verify-the-matching panel: shows how every outside-HD location label and
+// every unmapped HD store resolves, so an admin can confirm the right locations
+// are matched to the right dealers (or spot what needs fixing).
+function MatchingPlan({ matches, gaps }: { matches: LocationMatch[]; gaps: StoreGap[] }) {
+  if (matches.length === 0 && gaps.length === 0) return null;
+  const unmatchedCount = matches.filter((m) => !m.dealerName).length;
+  const openByDefault = unmatchedCount > 0 || gaps.length > 0;
+
+  return (
+    <details open={openByDefault} className="group overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+      <summary className="flex cursor-pointer list-none items-center gap-2 px-5 py-3.5 hover:bg-gray-50">
+        <span className="text-gray-300 transition group-open:rotate-90">▸</span>
+        <span className="text-sm font-semibold text-gray-900">Matching plan</span>
+        <span className="text-xs text-gray-500">— how journal locations map to dealers</span>
+        {(unmatchedCount > 0 || gaps.length > 0) && (
+          <span className="ml-auto rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
+            {unmatchedCount + gaps.length} need{unmatchedCount + gaps.length === 1 ? 's' : ''} attention
+          </span>
+        )}
+      </summary>
+      <div className="space-y-5 border-t border-gray-100 px-5 py-4">
+        <p className="text-xs text-gray-500">
+          HD deals attach by store number automatically. Outside-HD (GWA) deals attach by matching the journal&apos;s
+          location label to a dealer name. Check the rows below — anything marked{' '}
+          <span className="font-semibold text-red-600">Not matched</span> isn&apos;t counted under a dealer yet.
+        </p>
+
+        {matches.length > 0 && (
+          <div>
+            <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+              Outside-HD location labels
+            </div>
+            <ul className="divide-y divide-gray-100 overflow-hidden rounded-lg border border-gray-200">
+              {matches.map((m) => (
+                <li key={m.label} className="flex items-center gap-3 px-3 py-2">
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-medium text-gray-900">{m.label}</span>
+                    <span className="block text-[11px] text-gray-500">
+                      {m.count} deal{m.count === 1 ? '' : 's'} · {money(m.gross)}
+                    </span>
+                  </span>
+                  {m.dealerName ? (
+                    <span className="shrink-0 text-xs font-medium text-emerald-700">→ {m.dealerName}</span>
+                  ) : (
+                    <span className="shrink-0 rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-semibold text-red-700">
+                      Not matched
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {gaps.length > 0 && (
+          <div>
+            <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+              HD store numbers not assigned to any dealer
+            </div>
+            <ul className="divide-y divide-gray-100 overflow-hidden rounded-lg border border-gray-200">
+              {gaps.map((g) => (
+                <li key={g.store} className="flex items-center gap-3 px-3 py-2">
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-medium text-gray-900">Store {g.store}</span>
+                    <span className="block text-[11px] text-gray-500">
+                      {g.count} deal{g.count === 1 ? '' : 's'} · {money(g.gross)}
+                    </span>
+                  </span>
+                  <span className="shrink-0 rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-semibold text-red-700">
+                    Add under Admin → Dealers
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <p className="text-xs text-gray-500">
+          To fix a mismatch: for an HD store, add its number to the right dealer under <strong>Admin → Dealers</strong>.
+          For an outside-HD location label that isn&apos;t matching (or is matching the wrong dealer), tell us the label
+          and the dealer it belongs to and we&apos;ll wire an explicit mapping.
+        </p>
+      </div>
+    </details>
   );
 }
 

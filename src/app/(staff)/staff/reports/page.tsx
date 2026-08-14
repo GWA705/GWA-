@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireRole } from '@/lib/session';
+import { isSuperAdmin } from '@/lib/rbac';
 import { canViewReportsArea, canViewLeadershipSnapshot } from '@/lib/reporting/access';
 
 export const dynamic = 'force-dynamic';
@@ -19,6 +20,7 @@ export default async function ReportsLandingPage() {
   if (!(await canViewReportsArea(user))) notFound();
 
   const canLeadership = await canViewLeadershipSnapshot(user);
+  const canDealerSnapshot = isSuperAdmin(user);
 
   const cards: ReportCard[] = [
     {
@@ -53,8 +55,8 @@ export default async function ReportsLandingPage() {
       blurb:
         'One row per dealer — sold and paid this month, and what’s pending now, split HD vs GWA. Open a dealer for every paid and pending deal. Quick glance before a dealer call.',
       accent: '#7a3fa8',
-      badge: 'Admin',
-      available: canLeadership,
+      badge: 'Super Admin',
+      available: canDealerSnapshot,
     },
   ];
 

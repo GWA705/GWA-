@@ -46,12 +46,30 @@ export interface DealerSnapRow {
   pendingDeals: SnapDeal[];
 }
 
+/** One journal "location" label (outside-HD deals) and the dealer it maps to. */
+export interface LocationMatch {
+  label: string;
+  count: number;
+  gross: number;
+  dealerName: string | null; // null = not matched to any dealer
+}
+
+/** An HD store number seen in the journals that isn't assigned to any dealer. */
+export interface StoreGap {
+  store: string;
+  count: number;
+  gross: number;
+}
+
 export interface DealerSnapshot {
   monthLabel: string;
   ym: string;
   rows: DealerSnapRow[];
   totals: { sold: HGSplit; paid: HGSplit; pending: HGSplit };
   unmatched: { soldCount: number; sold: HGSplit; paid: HGSplit; pending: HGSplit };
+  // Matching plan: how outside-HD location labels + unmapped HD stores resolve.
+  locationMatches: LocationMatch[];
+  storeGaps: StoreGap[];
   configured: boolean;
   error?: string;
 }
@@ -165,6 +183,11 @@ export async function buildDealerSnapshot(year: number, monthIndex: number): Pro
   const accums = new Map<string, Accum>();
   for (const d of dealers) accums.set(d.id, newAccum(d.id, d.name));
   const unmatched = newAccum('__unmatched__', 'Unmatched');
+  const nameById = new Map(dealers.map((d) => [d.id, d.name] as const));
+
+  // Matching-plan aggregation (across the whole read window, not just the month).
+  const locAgg = new Map<string, { count: number; gross: number; dealerId: string | null }>();
+  const storeAgg = new Map<string, { count: number; gross: number }>();
 
   const attribute = (deal: ReportDeal): Accum => {
     let dealerId: string | null = deal.storeNumber ? storeToDealer.get(deal.storeNumber) ?? null : null;
@@ -175,6 +198,22 @@ export async function buildDealerSnapshot(year: number, monthIndex: number): Pro
   for (const deal of allDeals) {
     if (deal.result === 'RB') continue; // cancelled
     const a = attribute(deal);
+
+    // Feed the matching plan from active deals with real dollars.
+    if (deal.gross > 0) {
+      if (deal.isHD && deal.storeNumber && !storeToDealer.has(deal.storeNumber)) {
+        const e = storeAgg.get(deal.storeNumber) || { count: 0, gross: 0 };
+        e.count += 1;
+        e.gross += deal.gross;
+        storeAgg.set(deal.storeNumber, e);
+      } else if (!deal.isHD) {
+        const label = (deal.location || '(blank)').trim() || '(blank)';
+        const e = locAgg.get(label) || { count: 0, gross: 0, dealerId: matchByLocation(label) };
+        e.count += 1;
+        e.gross += deal.gross;
+        locAgg.set(label, e);
+      }
+    }
 
     // Sold this month (OK + PE/OK, by sale date).
     if (deal.gross > 0 && inMonth(deal.date)) {
@@ -238,6 +277,15 @@ export async function buildDealerSnapshot(year: number, monthIndex: number): Pro
   const monthLabel = monthStart.toLocaleString('en-US', { month: 'long', year: 'numeric' });
   const ym = `${year}-${String(monthIndex + 1).padStart(2, '0')}`;
 
+  const locationMatches: LocationMatch[] = Array.from(locAgg.entries())
+    .map(([label, v]) => ({ label, count: v.count, gross: v.gross, dealerName: v.dealerId ? nameById.get(v.dealerId) ?? null : null }))
+    // Unmatched first, then biggest dollars.
+    .sort((a, b) => Number(!!a.dealerName) - Number(!!b.dealerName) || b.gross - a.gross);
+
+  const storeGaps: StoreGap[] = Array.from(storeAgg.entries())
+    .map(([store, v]) => ({ store, count: v.count, gross: v.gross }))
+    .sort((a, b) => b.gross - a.gross);
+
   return {
     monthLabel,
     ym,
@@ -249,6 +297,8 @@ export async function buildDealerSnapshot(year: number, monthIndex: number): Pro
       paid: unmatched.paid,
       pending: unmatched.pending,
     },
+    locationMatches,
+    storeGaps,
     configured,
     error,
   };
