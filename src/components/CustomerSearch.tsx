@@ -226,7 +226,30 @@ function JournalCard({ m }: { m: JournalMatch }) {
 
       {/* Detail grid */}
       <dl className="grid grid-cols-2 gap-x-4 gap-y-3 px-5 py-4 sm:grid-cols-3">
-        <Field label="Product(s)" value={m.product} wide />
+        <div className="col-span-2 sm:col-span-3">
+          <dt className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">Product(s)</dt>
+          <dd className="mt-0.5 text-sm text-gray-900">
+            {m.productItems.length === 0 ? (
+              <span className="text-gray-300">—</span>
+            ) : (
+              <span className="flex flex-wrap items-center gap-1.5">
+                {m.productItems.map((p, idx) =>
+                  p.resourceId ? (
+                    <Link
+                      key={idx}
+                      href={`/staff/resources/library/${p.resourceId}`}
+                      className="rounded bg-sky-50 px-1.5 py-0.5 font-medium text-sky-700 underline decoration-sky-300 underline-offset-2 hover:bg-sky-100"
+                    >
+                      {p.code}
+                    </Link>
+                  ) : (
+                    <span key={idx} className="rounded bg-gray-100 px-1.5 py-0.5 text-gray-700">{p.code}</span>
+                  ),
+                )}
+              </span>
+            )}
+          </dd>
+        </div>
         <Field label="HD Ref #" value={m.hdRef ? `${m.hdRef}${m.hdOrigin ? ` · ${m.hdOrigin}` : ''}` : ''} />
         <Field label="HD store" value={m.store} />
         <Field label="Date of sale" value={m.saleDate} />

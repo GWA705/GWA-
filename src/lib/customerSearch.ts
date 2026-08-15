@@ -12,6 +12,27 @@ import { nameTokens, DEALER_ALIASES } from './reporting/dealerSnapshot';
 interface DealerContact { name: string; phone: string }
 
 /**
+ * Map a sales-journal product short form (e.g. "CITY") to the resource-library
+ * product that carries it, so a customer snapshot can link each product code to
+ * its manuals/brochures. A resource product can list several comma-separated
+ * codes; the first product to claim a code wins.
+ */
+async function buildResourceLinkLookup(): Promise<Record<string, string>> {
+  const products = await prisma.resourceProduct.findMany({
+    where: { active: true, journalName: { not: null } },
+    select: { id: true, journalName: true },
+  });
+  const map: Record<string, string> = {};
+  for (const p of products) {
+    for (const code of (p.journalName ?? '').split(',')) {
+      const key = code.trim().toUpperCase();
+      if (key && !(key in map)) map[key] = p.id;
+    }
+  }
+  return map;
+}
+
+/**
  * Map a journal deal to its dealer (name + contact phone from the dealer
  * profile). HD deals attach by store number; outside-HD by the same location
  * aliases the Dealer Snapshot uses. Phone is blank until the office fills in
@@ -137,6 +158,9 @@ export interface JournalMatch {
   hdOrigin: string | null; // "Home Depot lead" / "GWA-created"
   store: string;
   product: string;
+  // Each product short form split out, with a link to its resource-library
+  // product when the code matches one (else resourceId is null).
+  productItems: { code: string; resourceId: string | null }[];
   result: string; // OK / PE/OK / RB
   saleDate: string;
   datePaid: string;
@@ -220,9 +244,10 @@ async function searchJournalDeals(query: string): Promise<JournalMatch[]> {
   for (let y = now + 1; y >= EARLIEST_JOURNAL_YEAR; y -= 1) {
     if (sheetIdFor(y)) years.push(y);
   }
-  const [reads, dealerFor] = await Promise.all([
+  const [reads, dealerFor, resourceLinks] = await Promise.all([
     Promise.all(years.map((y) => readJournal(y))),
     buildDealerContactLookup(),
+    buildResourceLinkLookup(),
   ]);
   const deals = reads.flatMap((r) => r.deals);
 
@@ -247,6 +272,11 @@ async function searchJournalDeals(query: string): Promise<JournalMatch[]> {
       hdOrigin: hdOriginLabel(d.hdRef),
       store: d.hdStore || d.storeNumber || '',
       product: d.product,
+      productItems: (d.product ?? '')
+        .split(',')
+        .map((t) => t.trim())
+        .filter(Boolean)
+        .map((code) => ({ code, resourceId: resourceLinks[code.toUpperCase()] ?? null })),
       result: d.result,
       saleDate: fmtDate(d.date),
       datePaid: fmtDate(d.datePaid),
