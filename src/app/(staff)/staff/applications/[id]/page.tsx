@@ -247,6 +247,17 @@ export default async function StaffApplicationDetail({
 
   // Deal numbers + journal sync. Captured at decision time (recorded on the deal
   // and used for funding), so it lives at the top of Review & decide.
+  // How the deal was paid + what the finance company funds. A reviewer needs the
+  // financed amount before anything else, so it leads the Review & decide flow.
+  const paymentBreakdownSection =
+    app.isSplitPayment && app.paymentSplits.length > 0 ? (
+      <PaymentBreakdown
+        splits={app.paymentSplits}
+        total={Number(app.approvedAmount ?? app.requestedAmount)}
+        financed={financedAmt}
+      />
+    ) : null;
+
   const dealNumbersSection = (
     <div className="rounded-lg border border-gray-200 bg-gray-50/60 p-4">
       <h3 className="mb-3 text-sm font-semibold text-gray-700">Deal numbers</h3>
@@ -281,6 +292,7 @@ export default async function StaffApplicationDetail({
     // 1 · Review & decide
     decide: (
       <div className="space-y-6">
+        {paymentBreakdownSection}
         {dealNumbersSection}
         <CollapsibleEntry
           storageKey={`entryview:${app.id}`}
@@ -310,15 +322,6 @@ export default async function StaffApplicationDetail({
             printHref={`/staff/applications/${app.id}/print`}
           />
         </CollapsibleEntry>
-        {app.isSplitPayment && app.paymentSplits.length > 0 && (
-          <div className="border-t border-gray-100 pt-4">
-            <PaymentBreakdown
-              splits={app.paymentSplits}
-              total={Number(app.approvedAmount ?? app.requestedAmount)}
-              financed={financedAmt}
-            />
-          </div>
-        )}
         <div className="border-t border-gray-100 pt-4">
           <h3 className="mb-3 text-sm font-medium text-gray-700">Application documents</h3>
           <DocumentList documents={applicationDocs} deleteAction={deleteDocumentAction} />
