@@ -1423,6 +1423,10 @@ model ResourceProductFile {
   mime         String
   sizeBytes    Int
   originalName String?
+  // First-page preview (webp) generated for PDFs so a thumbnail shows on every
+  // device, including mobile where inline PDF rendering isn't available.
+  thumbStorageKey String?
+  thumbMime       String?
   sortOrder    Int              @default(0)
   createdAt    DateTime         @default(now())
 

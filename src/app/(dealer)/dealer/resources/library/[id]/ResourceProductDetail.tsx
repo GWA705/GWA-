@@ -10,6 +10,7 @@ export interface ResourceFileView {
   label: string | null;
   mime: string;
   sizeBytes: number;
+  hasThumb: boolean;
 }
 
 export interface ResourceProductView {
@@ -69,30 +70,23 @@ function Lightbox({ src, alt, onClose }: { src: string; alt: string; onClose: ()
   );
 }
 
-// Small preview tile for a document. Images show directly; PDFs render their
-// first page inline where the browser supports it, otherwise a clean PDF tile.
-function DocThumb({ id, mime, label }: { id: string; mime: string; label: string }) {
-  const src = `/api/resource-files/${id}`;
+// Small preview tile for a document. Images show directly; PDFs use their
+// server-generated first-page thumbnail (works on every device). Falls back to a
+// clean PDF tile when no thumbnail exists (e.g. files added before previews).
+function DocThumb({ id, mime, label, hasThumb }: { id: string; mime: string; label: string; hasThumb: boolean }) {
   const isImage = mime.startsWith('image/');
-  const isPdf = mime === 'application/pdf';
+  const thumbSrc = isImage ? `/api/resource-files/${id}` : `/api/resource-files/${id}/thumb`;
+  const showImage = isImage || hasThumb;
   return (
-    <div className="relative h-20 w-16 flex-none overflow-hidden rounded-md border border-gray-200 bg-gray-50">
-      {isImage ? (
+    <div className="relative h-20 w-16 flex-none overflow-hidden rounded-md border border-gray-200 bg-white">
+      {showImage ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={src} alt={label} className="h-full w-full object-cover" />
-      ) : isPdf ? (
-        <>
-          <object data={`${src}#toolbar=0&navpanes=0&view=FitH`} type="application/pdf" className="pointer-events-none h-full w-full" aria-label={label}>
-            <div className="flex h-full w-full flex-col items-center justify-center gap-1 text-gray-400">
-              <span className="text-xl">📄</span>
-              <span className="text-[10px] font-semibold">PDF</span>
-            </div>
-          </object>
-          {/* Cover the object so clicks fall through to the row's link, not the PDF UI. */}
-          <span className="absolute inset-0" aria-hidden />
-        </>
+        <img src={thumbSrc} alt={label} className="h-full w-full object-contain" />
       ) : (
-        <div className="flex h-full w-full items-center justify-center text-2xl text-gray-300">📄</div>
+        <div className="flex h-full w-full flex-col items-center justify-center gap-1 text-gray-400">
+          <span className="text-xl">📄</span>
+          <span className="text-[10px] font-semibold">PDF</span>
+        </div>
       )}
     </div>
   );
@@ -160,7 +154,7 @@ export function ResourceProductDetail({
               return (
                 <div key={f.id} className="flex flex-wrap items-center gap-3 p-4">
                   <a href={`/api/resource-files/${f.id}`} target="_blank" rel="noopener noreferrer" aria-label={`Open ${title}`}>
-                    <DocThumb id={f.id} mime={f.mime} label={title} />
+                    <DocThumb id={f.id} mime={f.mime} label={title} hasThumb={f.hasThumb} />
                   </a>
                   <div className="min-w-0 flex-1">
                     <span className="badge bg-sky-100 text-sky-800">{RESOURCE_FILE_KIND_LABELS[f.kind]}</span>

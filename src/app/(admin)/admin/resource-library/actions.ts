@@ -72,6 +72,8 @@ export async function createResourceProductAction(_prev: ActionState, formData: 
         mime: stored.mime,
         sizeBytes: stored.size,
         originalName: stored.name,
+        thumbStorageKey: stored.thumbKey ?? null,
+        thumbMime: stored.thumbMime ?? null,
         sortOrder: order,
       },
     });
@@ -133,12 +135,15 @@ export async function deleteResourceProductAction(id: string): Promise<void> {
   const session = await requireAdminSection('resource-library');
   const p = await prisma.resourceProduct.findUnique({
     where: { id },
-    select: { imageStorageKey: true, files: { select: { storageKey: true } } },
+    select: { imageStorageKey: true, files: { select: { storageKey: true, thumbStorageKey: true } } },
   });
   if (!p) return;
   await prisma.resourceProduct.delete({ where: { id } }); // cascades files
   if (p.imageStorageKey) await deleteDocument(p.imageStorageKey).catch(() => {});
-  for (const f of p.files) await deleteDocument(f.storageKey).catch(() => {});
+  for (const f of p.files) {
+    await deleteDocument(f.storageKey).catch(() => {});
+    if (f.thumbStorageKey) await deleteDocument(f.thumbStorageKey).catch(() => {});
+  }
   await audit({ actorId: session.userId, action: 'CONTENT_UPDATE', entityType: 'ResourceProduct', entityId: id, detail: 'deleted' });
   redirect('/admin/resource-library');
 }
@@ -164,6 +169,8 @@ export async function addResourceFileAction(productId: string, _prev: ActionStat
       mime: stored.mime,
       sizeBytes: stored.size,
       originalName: stored.name,
+      thumbStorageKey: stored.thumbKey ?? null,
+      thumbMime: stored.thumbMime ?? null,
       sortOrder: (max._max.sortOrder ?? 0) + 1,
     },
   });
@@ -174,10 +181,11 @@ export async function addResourceFileAction(productId: string, _prev: ActionStat
 
 export async function deleteResourceFileAction(fileId: string): Promise<void> {
   const session = await requireAdminSection('resource-library');
-  const f = await prisma.resourceProductFile.findUnique({ where: { id: fileId }, select: { productId: true, storageKey: true } });
+  const f = await prisma.resourceProductFile.findUnique({ where: { id: fileId }, select: { productId: true, storageKey: true, thumbStorageKey: true } });
   if (!f) return;
   await prisma.resourceProductFile.delete({ where: { id: fileId } });
   await deleteDocument(f.storageKey).catch(() => {});
+  if (f.thumbStorageKey) await deleteDocument(f.thumbStorageKey).catch(() => {});
   await audit({ actorId: session.userId, action: 'DOCUMENT_DELETE', entityType: 'ResourceProductFile', entityId: fileId, detail: 'resource file deleted' });
   revalidatePath(`/admin/resource-library/${f.productId}`);
 }

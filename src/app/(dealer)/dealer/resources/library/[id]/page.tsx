@@ -36,6 +36,7 @@ export default async function DealerResourceProductPage({ params }: { params: { 
           label: f.label,
           mime: f.mime,
           sizeBytes: f.sizeBytes,
+          hasThumb: !!f.thumbStorageKey,
         }))}
       />
     </div>
