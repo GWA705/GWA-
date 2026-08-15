@@ -134,6 +134,7 @@ const METHODS: {
   icon: string; // emoji shown in the badge
   title: string;
   blurb: string;
+  action: string; // call-to-action shown on the button when not selected
   badge: string; // badge colour
   selected: string; // selected card border + fill
   dot: string; // selected radio indicator fill
@@ -143,8 +144,9 @@ const METHODS: {
     value: 'FINANCEIT',
     rank: 'Express',
     icon: '🚀',
-    title: 'Payment arranged',
-    blurb: 'Customer is approved or has already paid. Pick how they paid — GWA produces the HD paperwork. FinanceIT needs its approval number.',
+    title: 'Deal already approved',
+    blurb: 'Paying by cash, cheque, credit card — or already financed.',
+    action: 'Use express option',
     badge: 'bg-green-100 text-green-800',
     selected: 'border-green-600 bg-green-50 ring-2 ring-green-600/40',
     dot: 'bg-green-600',
@@ -155,7 +157,8 @@ const METHODS: {
     rank: 'Priority',
     icon: '⚡',
     title: 'Type in the details',
-    blurb: 'Need a different financing option? Type in the customer details below (helps with spelling and ensures accuracy of the application).',
+    blurb: 'New application — type the customer’s details for GWA to submit.',
+    action: 'Use priority option',
     badge: 'bg-blue-100 text-blue-800',
     selected: 'border-blue-600 bg-blue-50 ring-2 ring-blue-600/40',
     dot: 'bg-blue-600',
@@ -166,7 +169,8 @@ const METHODS: {
     rank: 'Standard',
     icon: '📄',
     title: 'Upload documents',
-    blurb: 'Upload application and bill of sale for processing.',
+    blurb: 'Send the application and bill of sale — GWA takes it from there.',
+    action: 'Use standard option',
     badge: 'bg-amber-100 text-amber-800',
     selected: 'border-amber-500 bg-amber-50 ring-2 ring-amber-500/40',
     dot: 'bg-amber-500',
@@ -324,10 +328,10 @@ export function NewApplicationForm({
                 <span className={`mb-2 inline-flex w-fit items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${m.badge}`}>
                   {i + 1} · <span aria-hidden>{m.icon}</span> {m.rank}
                 </span>
-                <div className="text-sm font-semibold text-gray-900">{m.title}</div>
+                <div className="text-base font-bold leading-tight text-gray-900">{m.title}</div>
                 <div className="mt-1 text-xs text-gray-500">{m.blurb}</div>
                 <span className={`mt-auto pt-3 text-xs font-semibold ${active ? 'text-gray-700' : 'text-brand-600 group-hover:text-brand-700'}`}>
-                  {active ? '✓ Selected' : 'Tap to choose →'}
+                  {active ? '✓ Selected' : `${m.action} →`}
                 </span>
               </button>
             );
@@ -499,7 +503,8 @@ export function NewApplicationForm({
           <div><label className="label" htmlFor="applicantFirstName">First name</label><input id="applicantFirstName" name="applicantFirstName" className={fieldCls('applicantFirstName')} /><Err state={state} name="applicantFirstName" /></div>
           <div><label className="label" htmlFor="applicantLastName">Last name</label><input id="applicantLastName" name="applicantLastName" className={fieldCls('applicantLastName')} /><Err state={state} name="applicantLastName" /></div>
           {typed && <div><label className="label" htmlFor="middleName">Middle name <span className="font-normal text-gray-400">(optional)</span></label><input id="middleName" name="middleName" className={fieldCls('')} /></div>}
-          <div><label className="label" htmlFor="applicantDob">Date of birth</label><DateOfBirthInput name="applicantDob" id="applicantDob" invalid={errorNames.has('applicantDob')} /><Err state={state} name="applicantDob" /></div>
+          {/* Express deals are already approved, so no date of birth is needed. */}
+          {!express && <div><label className="label" htmlFor="applicantDob">Date of birth</label><DateOfBirthInput name="applicantDob" id="applicantDob" invalid={errorNames.has('applicantDob')} /><Err state={state} name="applicantDob" /></div>}
           <div><label className="label" htmlFor="applicantEmail">Email</label><input id="applicantEmail" name="applicantEmail" type="email" className={fieldCls('applicantEmail')} /><Err state={state} name="applicantEmail" /></div>
           <div><label className="label" htmlFor="applicantPhone">Mobile phone</label><input id="applicantPhone" name="applicantPhone" className={fieldCls('applicantPhone')} inputMode="numeric" maxLength={12} placeholder="705-812-0320" onInput={phoneFmt} /><Err state={state} name="applicantPhone" /></div>
           {typed && <div><label className="label" htmlFor="homePhone">Home phone <span className="font-normal text-gray-400">(optional)</span></label><input id="homePhone" name="homePhone" className={fieldCls('')} inputMode="numeric" maxLength={12} placeholder="705-812-0320" onInput={phoneFmt} /></div>}
