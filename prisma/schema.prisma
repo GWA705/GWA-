@@ -1334,9 +1334,13 @@ model DealerProfile {
   shippingAddress    String?  @db.Text
   phone              String?
   altPhone           String?
+  // Editable section titles for the two fixed contacts. Null → the office
+  // hasn't renamed them; the UI falls back to "Billing" / "Customer support".
+  billingLabel       String?
   billingContactName String?
   billingPhone       String?
   billingEmail       String?
+  supportLabel       String?
   supportContactName String?
   supportPhone       String?
   supportEmail       String?

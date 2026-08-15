@@ -5,7 +5,7 @@ import { prisma } from '@/lib/db';
 import { isGlobalSearchEnabled } from '@/lib/settings';
 import { canSearchAllCustomers } from '@/lib/customerSearch';
 import { matchManualsForProducts } from '@/lib/resourceMatch';
-import { readExtraContacts } from '@/lib/dealerProfile';
+import { readExtraContacts, DEFAULT_BILLING_LABEL, DEFAULT_SUPPORT_LABEL } from '@/lib/dealerProfile';
 import { formatPhoneDisplay } from '@/lib/format';
 import { STATUS_LABELS } from '@/lib/constants';
 import { MessageOffice } from '../MessageOffice';
@@ -36,8 +36,8 @@ export default async function CustomerAssistPage({ params }: { params: { id: str
           name: true,
           profile: {
             select: {
-              businessName: true, phone: true, altPhone: true, supportContactName: true, supportPhone: true,
-              supportEmail: true, billingContactName: true, billingPhone: true, billingEmail: true,
+              businessName: true, phone: true, altPhone: true, supportLabel: true, supportContactName: true, supportPhone: true,
+              supportEmail: true, billingLabel: true, billingContactName: true, billingPhone: true, billingEmail: true,
               extraContacts: true, address: true, officeHours: true, website: true,
             },
           },
@@ -136,8 +136,8 @@ export default async function CustomerAssistPage({ params }: { params: { id: str
           <div className="text-base font-semibold text-gray-900">{officeName}</div>
           <div className="mt-2 grid grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-2">
             {officePhone && <div>Phone: <span className="font-medium text-gray-900">{formatPhoneDisplay(officePhone)}</span></div>}
-            {p?.supportContactName && <div>Support: {p.supportContactName}{p.supportPhone ? ` · ${formatPhoneDisplay(p.supportPhone)}` : ''}{p.supportEmail ? ` · ${p.supportEmail}` : ''}</div>}
-            {p?.billingContactName && <div>Billing: {p.billingContactName}{p.billingPhone ? ` · ${formatPhoneDisplay(p.billingPhone)}` : ''}{p.billingEmail ? ` · ${p.billingEmail}` : ''}</div>}
+            {p?.supportContactName && <div>{p.supportLabel || DEFAULT_SUPPORT_LABEL}: {p.supportContactName}{p.supportPhone ? ` · ${formatPhoneDisplay(p.supportPhone)}` : ''}{p.supportEmail ? ` · ${p.supportEmail}` : ''}</div>}
+            {p?.billingContactName && <div>{p.billingLabel || DEFAULT_BILLING_LABEL}: {p.billingContactName}{p.billingPhone ? ` · ${formatPhoneDisplay(p.billingPhone)}` : ''}{p.billingEmail ? ` · ${p.billingEmail}` : ''}</div>}
             {p?.officeHours && <div>Hours: {p.officeHours}</div>}
             {p?.address && <div className="sm:col-span-2">Address: {p.address}</div>}
             {p?.website && <div className="sm:col-span-2">Web: {p.website}</div>}

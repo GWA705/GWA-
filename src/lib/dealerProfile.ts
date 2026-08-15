@@ -15,9 +15,11 @@ export interface DealerProfileData {
   shippingAddress: string | null;
   phone: string | null;
   altPhone: string | null;
+  billingLabel: string | null;
   billingContactName: string | null;
   billingPhone: string | null;
   billingEmail: string | null;
+  supportLabel: string | null;
   supportContactName: string | null;
   supportPhone: string | null;
   supportEmail: string | null;
@@ -27,6 +29,10 @@ export interface DealerProfileData {
 }
 
 const MAX_EXTRA_CONTACTS = 12;
+
+/** Default display titles for the two fixed office contacts (when not renamed). */
+export const DEFAULT_BILLING_LABEL = 'Billing';
+export const DEFAULT_SUPPORT_LABEL = 'Customer support';
 
 /** Parse + sanitize the "additional contacts" JSON blob from the form. */
 export function parseExtraContacts(raw: FormDataEntryValue | null): OfficeContact[] {
@@ -88,9 +94,11 @@ export function parseDealerProfileForm(fd: FormData): DealerProfileData {
     shippingAddress: s(fd.get('shippingAddress'), 400),
     phone: s(fd.get('phone'), 40),
     altPhone: s(fd.get('altPhone'), 40),
+    billingLabel: s(fd.get('billingLabel'), 40),
     billingContactName: name(fd.get('billingContactName')),
     billingPhone: s(fd.get('billingPhone'), 40),
     billingEmail: email(fd.get('billingEmail')),
+    supportLabel: s(fd.get('supportLabel'), 40),
     supportContactName: name(fd.get('supportContactName')),
     supportPhone: s(fd.get('supportPhone'), 40),
     supportEmail: email(fd.get('supportEmail')),

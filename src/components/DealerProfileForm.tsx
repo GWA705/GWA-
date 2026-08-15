@@ -11,9 +11,11 @@ export interface DealerProfileValues {
   shippingAddress?: string | null;
   phone?: string | null;
   altPhone?: string | null;
+  billingLabel?: string | null;
   billingContactName?: string | null;
   billingPhone?: string | null;
   billingEmail?: string | null;
+  supportLabel?: string | null;
   supportContactName?: string | null;
   supportPhone?: string | null;
   supportEmail?: string | null;
@@ -167,8 +169,10 @@ export function DealerProfileForm({
       </div>
 
       <div className="space-y-4 border-t border-gray-100 pt-5">
-        <h3 className="text-sm font-semibold text-gray-700">Best contact for billing</h3>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <h3 className="text-sm font-semibold text-gray-700">First contact</h3>
+        <p className="-mt-2 text-xs text-gray-400">Rename the title to whatever fits this office (e.g. Billing, Accounts, Owner).</p>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
+          <Field name="billingLabel" label="Section title" defaultValue={values.billingLabel} placeholder="Billing" />
           <Field name="billingContactName" label="Name" defaultValue={values.billingContactName} />
           <Field name="billingPhone" label="Phone" defaultValue={values.billingPhone} />
           <Field name="billingEmail" label="Email" type="email" defaultValue={values.billingEmail} />
@@ -176,8 +180,10 @@ export function DealerProfileForm({
       </div>
 
       <div className="space-y-4 border-t border-gray-100 pt-5">
-        <h3 className="text-sm font-semibold text-gray-700">Contact for customer support</h3>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <h3 className="text-sm font-semibold text-gray-700">Second contact</h3>
+        <p className="-mt-2 text-xs text-gray-400">Rename the title to whatever fits this office (e.g. Customer support, Service, Install).</p>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
+          <Field name="supportLabel" label="Section title" defaultValue={values.supportLabel} placeholder="Customer support" />
           <Field name="supportContactName" label="Name" defaultValue={values.supportContactName} />
           <Field name="supportPhone" label="Phone" defaultValue={values.supportPhone} />
           <Field name="supportEmail" label="Email" type="email" defaultValue={values.supportEmail} />

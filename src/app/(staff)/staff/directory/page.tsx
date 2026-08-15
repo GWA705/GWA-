@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { requireStaffSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { formatPhoneDisplay } from '@/lib/format';
+import { readExtraContacts, DEFAULT_BILLING_LABEL, DEFAULT_SUPPORT_LABEL } from '@/lib/dealerProfile';
 
 export const dynamic = 'force-dynamic';
 
@@ -122,12 +123,21 @@ export default async function DirectoryPage({ searchParams }: { searchParams: { 
                   {p.officeHours && <InfoRow icon={I.clock}>{p.officeHours}</InfoRow>}
                 </div>
 
-                {(p.billingContactName || p.billingPhone || p.billingEmail || p.supportContactName || p.supportPhone || p.supportEmail) && (
-                  <div className="grid grid-cols-1 gap-3 px-5 pb-5 sm:grid-cols-2">
-                    <ContactBlock label="Billing" name={p.billingContactName} phone={p.billingPhone} email={p.billingEmail} />
-                    <ContactBlock label="Customer support" name={p.supportContactName} phone={p.supportPhone} email={p.supportEmail} />
-                  </div>
-                )}
+                {(() => {
+                  const extras = readExtraContacts(p.extraContacts);
+                  const hasBilling = !!(p.billingContactName || p.billingPhone || p.billingEmail);
+                  const hasSupport = !!(p.supportContactName || p.supportPhone || p.supportEmail);
+                  if (!hasBilling && !hasSupport && extras.length === 0) return null;
+                  return (
+                    <div className="grid grid-cols-1 gap-3 px-5 pb-5 sm:grid-cols-2">
+                      <ContactBlock label={p.billingLabel || DEFAULT_BILLING_LABEL} name={p.billingContactName} phone={p.billingPhone} email={p.billingEmail} />
+                      <ContactBlock label={p.supportLabel || DEFAULT_SUPPORT_LABEL} name={p.supportContactName} phone={p.supportPhone} email={p.supportEmail} />
+                      {extras.map((c, i) => (
+                        <ContactBlock key={i} label={c.role || 'Contact'} name={c.name} phone={c.phone} email={c.email} />
+                      ))}
+                    </div>
+                  );
+                })()}
               </li>
             );
           })}
