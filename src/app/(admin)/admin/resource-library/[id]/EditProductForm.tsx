@@ -31,7 +31,7 @@ export function EditProductForm({
         <div>
           <label className="label" htmlFor="journalName">Journal short form</label>
           <input id="journalName" name="journalName" defaultValue={product.journalName ?? ''} className="input" placeholder="e.g. City, Country" />
-          <p className="mt-1 text-xs text-gray-400">Matches the short form a dealer picks when entering a deal.</p>
+          <p className="mt-1 text-xs text-gray-400">Matches the short form a dealer picks when entering a deal. Separate multiple codes with commas (e.g. City, Country).</p>
         </div>
         <div>
           <label className="label" htmlFor="category">Category</label>

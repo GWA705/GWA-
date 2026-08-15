@@ -25,7 +25,7 @@ export function CreateProductForm() {
         <div>
           <label className="label" htmlFor="journalName">Journal short form <span className="font-normal text-gray-400">(optional)</span></label>
           <input id="journalName" name="journalName" className="input" placeholder="e.g. City, Country" />
-          <p className="mt-1 text-xs text-gray-400">The exact short form used in the sales journal — the same code a dealer picks when entering a deal.</p>
+          <p className="mt-1 text-xs text-gray-400">The exact short form(s) used in the sales journal — the same code a dealer picks when entering a deal. If a product has more than one model/code, separate them with commas (e.g. City, Country).</p>
         </div>
         <div>
           <label className="label" htmlFor="category">Category <span className="font-normal text-gray-400">(optional)</span></label>

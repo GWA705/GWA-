@@ -105,13 +105,13 @@ export default async function DealerResourceLibraryPage({
               href={`/dealer/resources/library/${p.id}`}
               className="group overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition hover:border-gray-300 hover:shadow-sm"
             >
-              <div className="aspect-[4/3] w-full overflow-hidden bg-gray-100">
+              <div className="aspect-[4/3] w-full overflow-hidden bg-white">
                 {p.imageStorageKey ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={`/api/resource-products/${p.id}/image?v=${p.updatedAt.getTime()}`}
                     alt=""
-                    className="h-full w-full object-cover transition group-hover:scale-[1.02]"
+                    className="h-full w-full object-contain p-2 transition group-hover:scale-[1.02]"
                   />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center text-3xl text-gray-300">📄</div>
