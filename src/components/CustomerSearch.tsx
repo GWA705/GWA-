@@ -387,7 +387,7 @@ function CustomerEditForm({
         >
           {pending ? 'Saving…' : 'Save changes'}
         </button>
-        <span className="text-[11px] text-gray-400">Phone &amp; address update the journal{hasPortalRecord ? ' and the portal deal' : ''}. Changes are logged.</span>
+        <span className="text-[11px] text-gray-400">Saves the corrected info{hasPortalRecord ? ' and updates the portal deal' : ''}. The sales journal is left unchanged. Changes are logged.</span>
       </div>
     </div>
   );

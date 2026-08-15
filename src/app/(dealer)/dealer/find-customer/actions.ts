@@ -4,6 +4,7 @@ import { getSession } from '@/lib/session';
 import { searchCustomers, canSearchAllCustomers, type CustomerSearchResult } from '@/lib/customerSearch';
 import { appOverrideKey, rowOverrideKey } from '@/lib/customerOverride';
 import { prisma } from '@/lib/db';
+import { encryptOptional } from '@/lib/crypto';
 import { audit } from '@/lib/audit';
 import { rateLimit } from '@/lib/ratelimit';
 
@@ -100,12 +101,28 @@ export async function updateCustomerInfoAction(input: UpdateCustomerInput): Prom
     },
   });
 
+  // Portal deals: also update the live application so the correction shows across
+  // the whole portal (deal page, dealer view, reviewer entry). Only non-empty
+  // values are written — we never blank an existing field. The sales journal is
+  // NEVER modified; its search view shows the correction via the override above.
+  if (input.applicationId) {
+    const data: Record<string, unknown> = {};
+    if (phone) data.applicantPhone = phone;
+    if (email) data.applicantEmail = email;
+    if (address) data.applicantAddressEnc = encryptOptional(address);
+    if (Object.keys(data).length > 0) {
+      await prisma.application.update({ where: { id: input.applicationId }, data }).catch((e) => {
+        console.error('[customer-edit] portal update failed', e);
+      });
+    }
+  }
+
   await audit({
     actorId: user.userId,
     action: 'USER_UPDATE',
     entityType: 'CustomerContactOverride',
     entityId: key,
-    detail: `Corrected customer contact (${[phone && 'phone', address && 'address', email && 'email'].filter(Boolean).join(', ') || 'cleared'})`,
+    detail: `Corrected customer contact (${[phone && 'phone', address && 'address', email && 'email'].filter(Boolean).join(', ') || 'cleared'})${input.applicationId ? ' · portal record updated' : ''}`,
   });
 
   return { ok: true, message: 'Saved.', updatedByName: saved.updatedByName ?? undefined, updatedAt: saved.updatedAt.toISOString() };

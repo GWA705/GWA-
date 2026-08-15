@@ -86,13 +86,13 @@ export function EditCustomerContact({
             <button type="button" onClick={save} disabled={pending} className="btn-primary text-sm">
               {pending ? 'Saving…' : 'Save changes'}
             </button>
-            <span className="text-[11px] text-gray-400">Saved as a correction — the original deal record is kept unchanged.</span>
+            <span className="text-[11px] text-gray-400">Updates this customer across the portal. The sales journal is left unchanged.</span>
           </div>
         </div>
       )}
 
       {msg && <div className={`mt-2 rounded-md px-3 py-2 text-xs ${msg.ok ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>{msg.text}</div>}
-      {when && !editing && <p className="mt-2 text-[11px] text-gray-400">✎ Updated {when}{stampBy ? ` by ${stampBy}` : ''} · original record unchanged</p>}
+      {when && !editing && <p className="mt-2 text-[11px] text-gray-400">✎ Updated {when}{stampBy ? ` by ${stampBy}` : ''} · sales journal unchanged</p>}
     </section>
   );
 }
