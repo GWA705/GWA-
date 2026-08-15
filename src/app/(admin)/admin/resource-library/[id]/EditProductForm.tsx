@@ -16,7 +16,7 @@ export function EditProductForm({
   product,
   hasImage,
 }: {
-  product: { id: string; title: string; category: string | null; brand: string | null; modelNumber: string | null; description: string | null };
+  product: { id: string; title: string; journalName: string | null; category: string | null; brand: string | null; modelNumber: string | null; description: string | null };
   hasImage: boolean;
 }) {
   const [state, action] = useFormState(updateResourceProductAction.bind(null, product.id), {} as ActionState);
@@ -27,6 +27,11 @@ export function EditProductForm({
         <div>
           <label className="label" htmlFor="title">Product name</label>
           <input id="title" name="title" required defaultValue={product.title} className="input" />
+        </div>
+        <div>
+          <label className="label" htmlFor="journalName">Journal short form</label>
+          <input id="journalName" name="journalName" defaultValue={product.journalName ?? ''} className="input" placeholder="e.g. City, Country" />
+          <p className="mt-1 text-xs text-gray-400">Matches the short form a dealer picks when entering a deal.</p>
         </div>
         <div>
           <label className="label" htmlFor="category">Category</label>

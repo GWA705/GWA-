@@ -40,7 +40,7 @@ export default async function EditResourceProductPage({ params }: { params: { id
           )}
           <div className="flex-1">
             <EditProductForm
-              product={{ id: product.id, title: product.title, category: product.category, brand: product.brand, modelNumber: product.modelNumber, description: product.description }}
+              product={{ id: product.id, title: product.title, journalName: product.journalName, category: product.category, brand: product.brand, modelNumber: product.modelNumber, description: product.description }}
               hasImage={!!product.imageStorageKey}
             />
           </div>

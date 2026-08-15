@@ -23,6 +23,11 @@ export function CreateProductForm() {
           <input id="title" name="title" required className="input" placeholder="e.g. GWA Reverse Osmosis System" />
         </div>
         <div>
+          <label className="label" htmlFor="journalName">Journal short form <span className="font-normal text-gray-400">(optional)</span></label>
+          <input id="journalName" name="journalName" className="input" placeholder="e.g. City, Country" />
+          <p className="mt-1 text-xs text-gray-400">The exact short form used in the sales journal — the same code a dealer picks when entering a deal.</p>
+        </div>
+        <div>
           <label className="label" htmlFor="category">Category <span className="font-normal text-gray-400">(optional)</span></label>
           <input id="category" name="category" className="input" placeholder="Water / Air / HVAC …" />
         </div>
@@ -42,8 +47,16 @@ export function CreateProductForm() {
           <label className="label" htmlFor="image">Product photo <span className="font-normal text-gray-400">(optional — JPG/PNG/WEBP)</span></label>
           <input id="image" name="image" type="file" accept="image/*" className="input" />
         </div>
+        <div>
+          <label className="label" htmlFor="manual">Manual <span className="font-normal text-gray-400">(optional — PDF/image)</span></label>
+          <input id="manual" name="manual" type="file" accept="application/pdf,image/*" className="input" />
+        </div>
+        <div>
+          <label className="label" htmlFor="brochure">Brochure <span className="font-normal text-gray-400">(optional — PDF/image)</span></label>
+          <input id="brochure" name="brochure" type="file" accept="application/pdf,image/*" className="input" />
+        </div>
       </div>
-      <p className="text-xs text-gray-500">You&apos;ll add manuals, brochures and other files on the next screen.</p>
+      <p className="text-xs text-gray-500">You can add more files (spec sheets, warranties) on the next screen.</p>
       <SubmitButton />
     </form>
   );

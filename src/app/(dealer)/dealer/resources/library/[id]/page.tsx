@@ -39,6 +39,11 @@ export default async function DealerResourceProductPage({ params }: { params: { 
             <div className="text-sm text-gray-500">
               {[product.brand, product.modelNumber && `Model ${product.modelNumber}`, product.category].filter(Boolean).join(' · ')}
             </div>
+            {product.journalName && (
+              <div className="text-sm text-gray-600">
+                Enter on a deal as: <span className="rounded bg-brand-50 px-1.5 py-0.5 font-semibold text-brand-700">{product.journalName}</span>
+              </div>
+            )}
             {product.description && <p className="whitespace-pre-wrap text-sm text-gray-700">{product.description}</p>}
           </div>
         </div>

@@ -31,6 +31,7 @@ export async function createResourceProductAction(_prev: ActionState, formData: 
   const created = await prisma.resourceProduct.create({
     data: {
       title: toTitleCase(title),
+      journalName: str(formData.get('journalName')),
       category: str(formData.get('category')),
       brand: str(formData.get('brand')),
       modelNumber: str(formData.get('modelNumber')),
@@ -50,6 +51,32 @@ export async function createResourceProductAction(_prev: ActionState, formData: 
     }
   }
 
+  // Optional manual + brochure uploaded right on the add form — each becomes a
+  // resource file of the matching kind.
+  const initialFiles: { field: string; kind: ResourceFileKind }[] = [
+    { field: 'manual', kind: 'MANUAL' },
+    { field: 'brochure', kind: 'BROCHURE' },
+  ];
+  let order = 0;
+  for (const { field, kind } of initialFiles) {
+    const f = formData.get(field);
+    if (!(f instanceof File) || f.size === 0) continue;
+    const stored = await storeResourceBlob(`resource-products/${created.id}/files`, f);
+    if ('error' in stored) continue;
+    order += 1;
+    await prisma.resourceProductFile.create({
+      data: {
+        productId: created.id,
+        kind,
+        storageKey: stored.key,
+        mime: stored.mime,
+        sizeBytes: stored.size,
+        originalName: stored.name,
+        sortOrder: order,
+      },
+    });
+  }
+
   await audit({ actorId: session.userId, action: 'CONTENT_CREATE', entityType: 'ResourceProduct', entityId: created.id, detail: `resource product: ${title}` });
   redirect(`/admin/resource-library/${created.id}`);
 }
@@ -66,6 +93,7 @@ export async function updateResourceProductAction(id: string, _prev: ActionState
     where: { id },
     data: {
       title: toTitleCase(title),
+      journalName: str(formData.get('journalName')),
       category: str(formData.get('category')),
       brand: str(formData.get('brand')),
       modelNumber: str(formData.get('modelNumber')),

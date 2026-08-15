@@ -1392,6 +1392,10 @@ enum ResourceFileKind {
 model ResourceProduct {
   id              String   @id @default(cuid())
   title           String
+  // Short form(s) used in the sales journal — the same code(s) a dealer picks
+  // when entering a deal (e.g. "City", "Country"). Kept so the resource library
+  // lines up with the journal product names.
+  journalName     String?
   category        String? // free-text grouping (e.g. Water / Air / HVAC)
   brand           String?
   modelNumber     String?

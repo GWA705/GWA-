@@ -13,6 +13,7 @@ export default async function ResourceLibraryAdminPage() {
     select: {
       id: true,
       title: true,
+      journalName: true,
       category: true,
       brand: true,
       active: true,
@@ -55,6 +56,7 @@ export default async function ResourceLibraryAdminPage() {
                 <div className="text-xs text-gray-500">
                   {[p.brand, p.category].filter(Boolean).join(' · ') || '—'} · {p._count.files} file{p._count.files === 1 ? '' : 's'}
                 </div>
+                {p.journalName && <div className="text-xs text-gray-400">Journal: <span className="font-medium text-gray-600">{p.journalName}</span></div>}
               </div>
               {!p.active && <span className="badge bg-gray-100 text-gray-600">Hidden</span>}
               <ProductRowActions id={p.id} title={p.title} active={p.active} />
