@@ -872,6 +872,10 @@ model Application {
   salespersonName String?
   installerName   String?
   soapIncluded    Boolean?
+  // Which SOAP variant was included: 'NV' | 'PS' | 'OTHER' (shown as
+  // "Yes - NV/PS/Other"). Null on legacy records, which fall back to the plain
+  // soapIncluded Yes/No.
+  soapType        String?
   productsSold    String[]
   datePaid        DateTime?
 

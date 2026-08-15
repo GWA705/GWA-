@@ -15,7 +15,7 @@ import { DealProgress } from '@/components/DealProgress';
 import { UploadForm } from '@/components/UploadForm';
 import { SerialNumberForm } from '@/components/SerialNumberForm';
 import { ProductSerialForm } from '@/components/ProductSerialForm';
-import { FUNDING_DOCUMENT_TYPES, STATUS_LABELS, programLabel } from '@/lib/constants';
+import { FUNDING_DOCUMENT_TYPES, STATUS_LABELS, programLabel, soapLabel } from '@/lib/constants';
 import { dealerFacingStatus, hasDealerReturned } from '@/lib/reviewerFlow';
 import { dealerOutstanding } from '@/lib/outstanding';
 import {
@@ -166,7 +166,7 @@ export default async function DealerApplicationDetail({
           <div><dt className="text-gray-500">Program</dt><dd className="font-medium">{programLabel(app.programType, app.programCategory)}</dd></div>
           <div><dt className="text-gray-500">Salesperson</dt><dd className="font-medium">{app.salespersonName ?? '—'}</dd></div>
           <div><dt className="text-gray-500">Installer</dt><dd className="font-medium">{app.installerName ?? '—'}</dd></div>
-          <div><dt className="text-gray-500">SOAP included</dt><dd className="font-medium">{app.soapIncluded == null ? '—' : app.soapIncluded ? 'Yes' : 'No'}</dd></div>
+          <div><dt className="text-gray-500">SOAP included</dt><dd className="font-medium">{soapLabel(app.soapType, app.soapIncluded) ?? '—'}</dd></div>
           <div><dt className="text-gray-500">Requested</dt><dd className="font-medium">${app.requestedAmount.toString()}</dd></div>
           <div><dt className="text-gray-500">Approved amount</dt><dd className="font-medium">{app.approvedAmount ? `$${app.approvedAmount.toString()}` : '—'}</dd></div>
           <div><dt className="text-gray-500">Finance company</dt><dd className="font-medium">{app.financeCompany?.name ?? '—'}</dd></div>

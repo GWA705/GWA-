@@ -141,7 +141,7 @@ export const applicationSchema = z.object({
   // and read via formData.getAll(), so it is not part of this object schema.
   salespersonName: optName(120),
   installerName: optName(120),
-  soapIncluded: z.preprocess(blankToUndef, z.enum(['YES', 'NO']).optional()),
+  soapIncluded: z.preprocess(blankToUndef, z.enum(['NV', 'PS', 'OTHER']).optional()),
 
   // Reference numbers
   loanReference: z.string().max(60).optional(),
@@ -281,7 +281,7 @@ export const editDealSchema = z.object({
   // multi-value and read via formData.getAll(), not through this object schema.
   salespersonName: optName(120),
   installerName: optName(120),
-  soapIncluded: z.preprocess(blankToUndef, z.enum(['YES', 'NO']).optional()),
+  soapIncluded: z.preprocess(blankToUndef, z.enum(['NV', 'PS', 'OTHER']).optional()),
 
   // LoanApplication (extended) fields.
   middleName: optName(80),

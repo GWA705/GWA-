@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import type { Application, LoanApplication, HomeDepotStore, FinanceCompany, User } from '@prisma/client';
-import { programLabel } from '@/lib/constants';
+import { programLabel, soapLabel } from '@/lib/constants';
 import { readEnc } from '@/lib/crypto';
 
 /**
@@ -223,7 +223,7 @@ export function ReviewerEntryView({
         <Field label="Date of sale" value={fmtDate(app.dateOfSale)} />
         <Field label="Installation date" value={fmtDate(app.installationDate)} />
         <Field label="Product(s) sold" value={app.productsSold.length ? app.productsSold.join(', ') : null} />
-        <Field label="SOAP included" value={app.soapIncluded == null ? null : app.soapIncluded ? 'Yes' : 'No'} />
+        <Field label="SOAP included" value={soapLabel(app.soapType, app.soapIncluded)} />
         <Field label="Salesperson" value={nonEmpty(app.salespersonName)} />
         <Field label="Installer" value={nonEmpty(app.installerName)} />
         <Field label="Financing deal number" value={nonEmpty(app.financeItNumber)} mono />

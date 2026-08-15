@@ -70,7 +70,7 @@ export default async function EditDealPage({ params }: { params: { id: string } 
     notes: app.notes ?? '',
     salespersonName: app.salespersonName ?? '',
     installerName: app.installerName ?? '',
-    soapIncluded: app.soapIncluded === true ? 'YES' : app.soapIncluded === false ? 'NO' : '',
+    soapIncluded: app.soapType ?? '',
     productsSold: app.productsSold,
     middleName: l?.middleName ?? '',
     homePhone: l?.homePhone ?? '',

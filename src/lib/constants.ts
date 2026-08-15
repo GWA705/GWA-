@@ -174,6 +174,28 @@ export function programLabel(type: ProgramType, category: ProgramCategory): stri
   return `${PROGRAM_TYPE_LABELS[type]} · ${PROGRAM_CATEGORY_LABELS[category]}`;
 }
 
+// SOAP is always "Yes" now — the dealer picks which variant. The value stored on
+// the deal (soapType) is the code; the label is what shows and what's written to
+// the sales journal's "SOAP Included" column.
+export const SOAP_OPTIONS: { value: string; label: string }[] = [
+  { value: 'NV', label: 'Yes - NV' },
+  { value: 'PS', label: 'Yes - PS' },
+  { value: 'OTHER', label: 'Yes - Other' },
+];
+
+// Display/journal label for the SOAP field. Prefers the specific variant; falls
+// back to the legacy Yes/No boolean for records saved before variants existed.
+export function soapLabel(
+  soapType?: string | null,
+  soapIncluded?: boolean | null,
+): string | null {
+  if (soapType) {
+    return SOAP_OPTIONS.find((o) => o.value === soapType)?.label ?? 'Yes';
+  }
+  if (soapIncluded == null) return null;
+  return soapIncluded ? 'Yes' : 'No';
+}
+
 export const PROVINCES: { value: Province; label: string }[] = [
   { value: 'AB', label: 'Alberta' },
   { value: 'BC', label: 'British Columbia' },

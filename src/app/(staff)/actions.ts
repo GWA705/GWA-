@@ -31,6 +31,7 @@ import {
   applicableVerificationChecks,
   referenceGateError,
   approvalGateError,
+  soapLabel,
 } from '@/lib/constants';
 import { dealHasFinancing, financedAmountOf } from '@/lib/payments';
 import type { ApplicationStatus, DecisionType, DocumentType, VerificationStatus } from '@prisma/client';
@@ -501,7 +502,8 @@ export async function updateDealAction(
       // Sales-journal detail fields (reviewer backfill).
       salespersonName: titleOrNull(d.salespersonName),
       installerName: titleOrNull(d.installerName),
-      soapIncluded: d.soapIncluded === 'YES' ? true : d.soapIncluded === 'NO' ? false : null,
+      soapIncluded: d.soapIncluded ? true : null,
+      soapType: d.soapIncluded ?? null,
       productsSold: mergeProductsSold(
         formData.getAll('productsSold').map(String),
         formData.get('productsSoldOther') as string | null,
@@ -1099,7 +1101,7 @@ export async function writeToJournalAction(
     salesperson: app.salespersonName,
     installer: app.installerName,
     products: journalProducts.length ? journalProducts.join(', ') : null,
-    soap: app.soapIncluded == null ? null : app.soapIncluded ? 'Yes' : 'No',
+    soap: soapLabel(app.soapType, app.soapIncluded),
     financedAmount: fmtAmount(financedAmountOf(app)),
     term: null,
     address: decryptOptional(app.applicantAddressEnc),

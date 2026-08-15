@@ -10,6 +10,7 @@ import {
   PROGRAM_CATEGORIES,
   PHOTO_ID_TYPES,
   PAYMENT_METHODS,
+  SOAP_OPTIONS,
 } from '@/lib/constants';
 import type { PaymentMethod } from '@prisma/client';
 import { formatPhone, formatPostal } from '@/lib/format';
@@ -481,8 +482,9 @@ export function NewApplicationForm({
             <label className="label" htmlFor="soapIncluded">SOAP included</label>
             <select id="soapIncluded" name="soapIncluded" className={fieldCls('')}>
               <option value="">—</option>
-              <option value="YES">Yes</option>
-              <option value="NO">No</option>
+              {SOAP_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
             </select>
           </div>
         </div>

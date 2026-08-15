@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { updateDealAction } from '@/app/(staff)/actions';
-import { PROVINCES, PROGRAM_TYPES, PROGRAM_CATEGORIES, PHOTO_ID_TYPES } from '@/lib/constants';
+import { PROVINCES, PROGRAM_TYPES, PROGRAM_CATEGORIES, PHOTO_ID_TYPES, SOAP_OPTIONS } from '@/lib/constants';
 import { DateOfBirthInput } from '@/components/DateOfBirthInput';
 import { ProductPicker } from '@/components/ProductPicker';
 
@@ -154,8 +154,9 @@ export function EditDealForm({
             <label className="label" htmlFor="soapIncluded">SOAP included</label>
             <select id="soapIncluded" name="soapIncluded" defaultValue={v.soapIncluded} className="input">
               <option value="">—</option>
-              <option value="YES">Yes</option>
-              <option value="NO">No</option>
+              {SOAP_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
             </select>
           </div>
         </div>
