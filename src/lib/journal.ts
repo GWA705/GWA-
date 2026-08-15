@@ -463,6 +463,75 @@ export async function readDealJournalStatus(deal: {
   }
 }
 
+// --- Targeted customer-detail edit (phone / address) -----------------------
+
+export interface JournalCellEdit {
+  phone?: string | null;
+  address?: string | null;
+}
+
+export interface JournalCellEditResult {
+  wrote: string[]; // which fields were written
+  error?: string;
+}
+
+/**
+ * Update just a customer's contact cells (phone / address) on an existing
+ * journal row, without touching anything else. Used by the customer-search
+ * "edit info" flow to keep a customer's details current. Safety: we re-read the
+ * row's Last Name and refuse to write if it no longer matches the customer we
+ * looked up (the row may have shifted), so we never overwrite the wrong person.
+ * Only writes columns the tab actually has, and never blanks a value.
+ */
+export async function updateJournalRowCells(
+  year: number,
+  tab: string,
+  row: number,
+  edit: JournalCellEdit,
+  expectLastName: string,
+): Promise<JournalCellEditResult> {
+  const sheets = await sheetsClient();
+  const ssId = await resolveWriteSheetId(year);
+  const layout = await readLayout(sheets, tab, ssId);
+
+  // Guard: the target row's Last Name must still match who we think it is.
+  const target = layout.rows[row - 1] || [];
+  const lastNameCol = layout.columns['lastName'];
+  const rowLastName = lastNameCol != null ? norm(target[lastNameCol]) : '';
+  if (!rowLastName || rowLastName !== norm(expectLastName)) {
+    return { wrote: [], error: 'This journal row no longer matches this customer (it may have moved). Reload the search and try again.' };
+  }
+
+  const updates: { key: string; value: string }[] = [];
+  if (edit.phone != null && edit.phone.trim()) updates.push({ key: 'phone', value: edit.phone.trim() });
+  if (edit.address != null && edit.address.trim()) updates.push({ key: 'address', value: edit.address.trim() });
+
+  const data: sheets_v4.Schema$ValueRange[] = [];
+  const wrote: string[] = [];
+  const missing: string[] = [];
+  for (const u of updates) {
+    const col = layout.columns[u.key];
+    if (col == null) {
+      missing.push(u.key);
+      continue;
+    }
+    data.push({ range: `'${tab}'!${colLetter(col)}${row}`, values: [[u.value]] });
+    wrote.push(u.key);
+  }
+
+  if (data.length > 0) {
+    await sheets.spreadsheets.values.batchUpdate({
+      spreadsheetId: ssId,
+      requestBody: { valueInputOption: 'USER_ENTERED', data },
+    });
+  }
+
+  return {
+    wrote,
+    error: missing.length ? `This journal has no ${missing.join(' / ')} column, so that field wasn’t saved to the sheet.` : undefined,
+  };
+}
+
 /**
  * Cheap connectivity check for an admin "Test journal" button: confirm we can
  * authenticate and read the spreadsheet's tab list. Returns the tab titles.

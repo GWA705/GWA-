@@ -171,6 +171,12 @@ export interface JournalMatch {
   link: string;
   dealerName: string; // the office this deal belongs to (by store / location)
   dealerPhone: string; // their contact number — blank until they fill their profile
+  // Row reference + linked portal record, for editing a customer's contact info.
+  tab: string; // month tab title
+  row: number; // 1-based sheet row
+  lastName: string; // exact last name in the journal (row-safety check on write)
+  applicationId: string | null; // linked portal deal, if this row came from one
+  email: string; // current email from the linked portal deal (journal has none)
 }
 
 export type CustomerSearchResult =
@@ -287,15 +293,40 @@ async function searchJournalDeals(query: string): Promise<JournalMatch[]> {
       link: d.linkUrl,
       dealerName: dealer?.name ?? '',
       dealerPhone: dealer?.phone ?? '',
+      tab: d.tab,
+      row: d.rowNum,
+      lastName: d.lastName,
+      applicationId: null, // filled in below from the portal DB
+      email: '',
       sort: (d.date?.getTime() ?? 0),
     });
     // No early break — we collect matches across EVERY year first, then rank by
     // date, so older-year deals aren't cut off by a cap hit in a recent year.
   }
-  return matches
+  const top = matches
     .sort((a, b) => b.sort - a.sort)
     .slice(0, 50)
     .map(({ sort, ...m }) => m);
+
+  // Link each row to its portal deal (if any) by the tab+row the portal recorded
+  // when it wrote the deal — so edits can also update the portal DB, and email
+  // (which the journal has no column for) can be shown/edited.
+  const tabs = Array.from(new Set(top.map((m) => m.tab).filter(Boolean)));
+  if (tabs.length > 0) {
+    const apps = await prisma.application.findMany({
+      where: { journalTab: { in: tabs }, journalRow: { not: null } },
+      select: { id: true, journalTab: true, journalRow: true, applicantEmail: true },
+    });
+    const byRowKey = new Map(apps.map((a) => [`${a.journalTab}|${a.journalRow}`, a]));
+    for (const m of top) {
+      const a = byRowKey.get(`${m.tab}|${m.row}`);
+      if (a) {
+        m.applicationId = a.id;
+        m.email = a.applicantEmail ?? '';
+      }
+    }
+  }
+  return top;
 }
 
 function officeLocation(profile: { address: string | null } | null): string | null {

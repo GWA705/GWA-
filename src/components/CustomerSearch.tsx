@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from 'react';
 import Link from 'next/link';
-import { customerSearchAction } from '@/app/(dealer)/dealer/find-customer/actions';
+import { customerSearchAction, updateCustomerInfoAction } from '@/app/(dealer)/dealer/find-customer/actions';
 import type { CustomerSearchResult, JournalMatch } from '@/lib/customerSearch';
 
 export function CustomerSearch({ mode }: { mode: 'internal' | 'dealer' }) {
@@ -170,7 +170,39 @@ const RESULT_STYLE: Record<string, string> = {
 
 // A detailed, GWA-team-facing card for one sales-journal deal.
 function JournalCard({ m }: { m: JournalMatch }) {
-  const tel = m.phone.replace(/[^0-9+]/g, '');
+  // Contact fields are editable in place; keep a live copy so the card reflects
+  // a save without re-running the search.
+  const [phone, setPhone] = useState(m.phone);
+  const [address, setAddress] = useState(m.address);
+  const [email, setEmail] = useState(m.email);
+  const [editing, setEditing] = useState(false);
+  const [pending, start] = useTransition();
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const tel = phone.replace(/[^0-9+]/g, '');
+
+  function save(next: { phone: string; address: string; email: string }) {
+    setMsg(null);
+    start(async () => {
+      const r = await updateCustomerInfoAction({
+        year: m.year,
+        tab: m.tab,
+        row: m.row,
+        lastName: m.lastName,
+        applicationId: m.applicationId,
+        phone: next.phone,
+        address: next.address,
+        email: next.email,
+      });
+      setMsg({ ok: r.ok, text: r.message });
+      if (r.ok) {
+        setPhone(next.phone);
+        setAddress(next.address);
+        setEmail(next.email);
+        setEditing(false);
+      }
+    });
+  }
+
   return (
     <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
       {/* Header: name + result on the left, amount on the right */}
@@ -197,15 +229,37 @@ function JournalCard({ m }: { m: JournalMatch }) {
         )}
       </div>
 
-      {/* Customer contact line */}
+      {/* Customer contact line + edit toggle */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-5 pt-3 text-sm">
-        {m.phone && (
+        {phone && (
           <a href={`tel:${tel}`} className="font-medium text-sky-700 hover:underline">
-            📞 {m.phone}
+            📞 {phone}
           </a>
         )}
-        {m.address && <span className="text-gray-600">{m.address}</span>}
+        {address && <span className="text-gray-600">{address}</span>}
+        {email && <span className="text-gray-500">{email}</span>}
+        <button
+          type="button"
+          onClick={() => { setEditing((v) => !v); setMsg(null); }}
+          className="ml-auto text-xs font-semibold text-gray-500 hover:text-gray-700 hover:underline"
+        >
+          {editing ? 'Cancel' : '✎ Edit info'}
+        </button>
       </div>
+
+      {editing && (
+        <CustomerEditForm
+          initial={{ phone, address, email }}
+          hasPortalRecord={!!m.applicationId}
+          pending={pending}
+          onSave={save}
+        />
+      )}
+      {msg && (
+        <div className={`mx-5 mt-2 rounded-md px-3 py-2 text-xs ${msg.ok ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+          {msg.text}
+        </div>
+      )}
 
       {/* Dealer / office to contact */}
       {m.dealerName && (
@@ -264,6 +318,61 @@ function JournalCard({ m }: { m: JournalMatch }) {
           </a>
         </div>
       )}
+    </div>
+  );
+}
+
+// Inline editor for a customer's contact details (phone / address / email).
+function CustomerEditForm({
+  initial,
+  hasPortalRecord,
+  pending,
+  onSave,
+}: {
+  initial: { phone: string; address: string; email: string };
+  hasPortalRecord: boolean;
+  pending: boolean;
+  onSave: (v: { phone: string; address: string; email: string }) => void;
+}) {
+  const [phone, setPhone] = useState(initial.phone);
+  const [address, setAddress] = useState(initial.address);
+  const [email, setEmail] = useState(initial.email);
+  return (
+    <div className="mx-5 mt-3 space-y-2 rounded-lg border border-gray-200 bg-gray-50 p-3">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <label className="block">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Phone</span>
+          <input className="input mt-0.5" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(416) 555-0123" />
+        </label>
+        <label className="block">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+            Email {!hasPortalRecord && <span className="font-normal normal-case text-gray-400">(portal deals only)</span>}
+          </span>
+          <input
+            className="input mt-0.5"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={!hasPortalRecord}
+            placeholder={hasPortalRecord ? 'name@email.com' : 'No portal record for this deal'}
+          />
+        </label>
+        <label className="block sm:col-span-2">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Address</span>
+          <input className="input mt-0.5" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="12 Main St, Barrie ON" />
+        </label>
+      </div>
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => onSave({ phone, address, email })}
+          disabled={pending}
+          className="btn-primary text-sm"
+        >
+          {pending ? 'Saving…' : 'Save changes'}
+        </button>
+        <span className="text-[11px] text-gray-400">Phone &amp; address update the journal{hasPortalRecord ? ' and the portal deal' : ''}. Changes are logged.</span>
+      </div>
     </div>
   );
 }

@@ -273,6 +273,8 @@ export function officeFromMetadata(data: string[][], headerRowIdx: number): stri
 export interface ReportDeal {
   id: string;
   year: number;
+  tab: string; // month tab title (e.g. "August 2025") — for targeted cell writes
+  rowNum: number; // 1-based sheet row of this deal
   date: Date | null; // sale date
   datePaid: Date | null;
   result: 'OK' | 'PE/OK' | 'RB';
@@ -493,6 +495,8 @@ async function readJournalUncached(year: number): Promise<JournalReadResult> {
       out.deals.push({
         id: `${fileId}-${gid}-${r}`,
         year,
+        tab: name,
+        rowNum,
         date: saleDate,
         datePaid,
         result: result as ReportDeal['result'],
