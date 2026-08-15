@@ -178,17 +178,19 @@ function JournalCard({ m }: { m: JournalMatch }) {
   const [editing, setEditing] = useState(false);
   const [pending, start] = useTransition();
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [updatedAt, setUpdatedAt] = useState(m.updatedInfoAt);
+  const [updatedBy, setUpdatedBy] = useState(m.updatedInfoBy);
   const tel = phone.replace(/[^0-9+]/g, '');
 
   function save(next: { phone: string; address: string; email: string }) {
     setMsg(null);
     start(async () => {
       const r = await updateCustomerInfoAction({
+        applicationId: m.applicationId,
         year: m.year,
         tab: m.tab,
         row: m.row,
-        lastName: m.lastName,
-        applicationId: m.applicationId,
+        customerName: m.name,
         phone: next.phone,
         address: next.address,
         email: next.email,
@@ -198,6 +200,8 @@ function JournalCard({ m }: { m: JournalMatch }) {
         setPhone(next.phone);
         setAddress(next.address);
         setEmail(next.email);
+        if (r.updatedAt) setUpdatedAt(r.updatedAt);
+        if (r.updatedByName) setUpdatedBy(r.updatedByName);
         setEditing(false);
       }
     });
@@ -246,6 +250,11 @@ function JournalCard({ m }: { m: JournalMatch }) {
           {editing ? 'Cancel' : '✎ Edit info'}
         </button>
       </div>
+      {updatedAt && (
+        <div className="px-5 pt-1 text-[11px] text-gray-400">
+          ✎ Contact info updated {fmtWhen(updatedAt)}{updatedBy ? ` by ${updatedBy}` : ''} · original journal unchanged
+        </div>
+      )}
 
       {editing && (
         <CustomerEditForm
@@ -320,6 +329,13 @@ function JournalCard({ m }: { m: JournalMatch }) {
       )}
     </div>
   );
+}
+
+// A short, friendly "when" for the last-updated stamp.
+function fmtWhen(iso: string): string {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 // Inline editor for a customer's contact details (phone / address / email).

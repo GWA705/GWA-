@@ -8,6 +8,7 @@ import type { SessionUser } from './session';
 import { isInternal, isSuperAdmin, canAdminSection } from './rbac';
 import { readJournal, sheetIdFor, EARLIEST_JOURNAL_YEAR } from './reporting/journalRead';
 import { nameTokens, DEALER_ALIASES } from './reporting/dealerSnapshot';
+import { appOverrideKey, rowOverrideKey, getOverrides, overlay } from './customerOverride';
 
 interface DealerContact { name: string; phone: string }
 
@@ -177,6 +178,9 @@ export interface JournalMatch {
   lastName: string; // exact last name in the journal (row-safety check on write)
   applicationId: string | null; // linked portal deal, if this row came from one
   email: string; // current email from the linked portal deal (journal has none)
+  // When contact info has been corrected via an override (originals untouched).
+  updatedInfoAt: string | null; // ISO of the last correction
+  updatedInfoBy: string | null; // who made it
 }
 
 export type CustomerSearchResult =
@@ -298,6 +302,8 @@ async function searchJournalDeals(query: string): Promise<JournalMatch[]> {
       lastName: d.lastName,
       applicationId: null, // filled in below from the portal DB
       email: '',
+      updatedInfoAt: null,
+      updatedInfoBy: null,
       sort: (d.date?.getTime() ?? 0),
     });
     // No early break — we collect matches across EVERY year first, then rank by
@@ -325,6 +331,21 @@ async function searchJournalDeals(query: string): Promise<JournalMatch[]> {
         m.email = a.applicantEmail ?? '';
       }
     }
+  }
+
+  // Overlay any saved contact corrections (originals untouched). Prefer the
+  // portal-deal key when there is one, else the journal-row key.
+  const keyFor = (m: JournalMatch) =>
+    m.applicationId ? appOverrideKey(m.applicationId) : rowOverrideKey(m.year, m.tab, m.row);
+  const overrides = await getOverrides(top.map(keyFor));
+  for (const m of top) {
+    const ov = overrides.get(keyFor(m));
+    if (!ov) continue;
+    m.phone = overlay(m.phone, ov.phone);
+    m.address = overlay(m.address, ov.address);
+    m.email = overlay(m.email, ov.email);
+    m.updatedInfoAt = ov.updatedAt.toISOString();
+    m.updatedInfoBy = ov.updatedByName;
   }
   return top;
 }

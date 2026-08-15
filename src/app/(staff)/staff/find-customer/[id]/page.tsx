@@ -8,7 +8,10 @@ import { matchManualsForProducts } from '@/lib/resourceMatch';
 import { readExtraContacts, DEFAULT_BILLING_LABEL, DEFAULT_SUPPORT_LABEL } from '@/lib/dealerProfile';
 import { formatPhoneDisplay } from '@/lib/format';
 import { STATUS_LABELS } from '@/lib/constants';
+import { getOverride, appOverrideKey, overlay } from '@/lib/customerOverride';
+import { decryptOptional } from '@/lib/crypto';
 import { MessageOffice } from '../MessageOffice';
+import { EditCustomerContact } from '../EditCustomerContact';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,6 +27,7 @@ export default async function CustomerAssistPage({ params }: { params: { id: str
       applicantLastName: true,
       applicantPhone: true,
       applicantEmail: true,
+      applicantAddressEnc: true,
       province: true,
       status: true,
       productsSold: true,
@@ -47,6 +51,13 @@ export default async function CustomerAssistPage({ params }: { params: { id: str
   });
   if (!app) notFound();
 
+  // Overlay any saved contact correction (the original application is untouched).
+  const ov = await getOverride(appOverrideKey(app.id));
+  const origAddress = decryptOptional(app.applicantAddressEnc) ?? '';
+  const effPhone = overlay(app.applicantPhone ?? '', ov?.phone);
+  const effEmail = overlay(app.applicantEmail ?? '', ov?.email);
+  const effAddress = overlay(origAddress, ov?.address);
+
   const manuals = await matchManualsForProducts(app.productsSold);
   const p = app.dealer?.profile ?? null;
   const officeName = p?.businessName || app.dealer?.name || 'their office';
@@ -64,8 +75,8 @@ export default async function CustomerAssistPage({ params }: { params: { id: str
             <div className="text-[11px] font-semibold uppercase tracking-[0.15em] text-white/50">GWA · Customer</div>
             <h1 className="mt-1 text-2xl font-bold leading-tight">{app.applicantFirstName} {app.applicantLastName}</h1>
             <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-sm text-white/70">
-              {app.applicantPhone && <span>📞 <a href={`tel:${app.applicantPhone.replace(/[^0-9+]/g, '')}`} className="font-medium text-white hover:underline">{formatPhoneDisplay(app.applicantPhone)}</a></span>}
-              {app.applicantEmail && <span>✉️ {app.applicantEmail}</span>}
+              {effPhone && <span>📞 <a href={`tel:${effPhone.replace(/[^0-9+]/g, '')}`} className="font-medium text-white hover:underline">{formatPhoneDisplay(effPhone)}</a></span>}
+              {effEmail && <span>✉️ {effEmail}</span>}
               <span>{app.province}</span>
             </div>
           </div>
@@ -78,6 +89,15 @@ export default async function CustomerAssistPage({ params }: { params: { id: str
           <Link href={`/staff/applications/${app.id}`} className="ml-auto font-medium text-sky-300 hover:underline">Open full deal →</Link>
         </div>
       </div>
+
+      {/* Editable customer contact (stored as a correction; original untouched) */}
+      <EditCustomerContact
+        applicationId={app.id}
+        customerName={`${app.applicantFirstName} ${app.applicantLastName}`.trim()}
+        initial={{ phone: effPhone, address: effAddress, email: effEmail }}
+        updatedAt={ov?.updatedAt ? ov.updatedAt.toISOString() : null}
+        updatedByName={ov?.updatedByName ?? null}
+      />
 
       {/* What they bought */}
       <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">

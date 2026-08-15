@@ -1445,6 +1445,30 @@ model ApplicationPin {
   @@index([userId])
 }
 
+/// A correction to a customer's contact details (phone / address / email),
+/// stored SEPARATELY so the original sales-journal row and portal application are
+/// never modified. When a customer is shown (search snapshot, staff assist page)
+/// the override is overlaid on top of the original, and the "last updated" is
+/// shown. Keyed by "app:<applicationId>" for portal deals, else
+/// "row:<year>|<tab>|<row>" for journal-only rows.
+model CustomerContactOverride {
+  key           String   @id // "app:<id>" | "row:<year>|<tab>|<row>"
+  applicationId String?
+  year          Int?
+  tab           String?
+  row           Int?
+  customerName  String? // for reference in the audit/admin view
+  phone         String?
+  address       String?  @db.Text
+  email         String?
+  updatedById   String?
+  updatedByName String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([applicationId])
+}
+
 /// A logged follow-up call on a Home Depot lead (leads themselves live in the
 /// Google Sheet; this is the portal's own call activity, keyed to the lead's
 /// stable Booking ID or a name+phone+store hash). Shared per lead within an
