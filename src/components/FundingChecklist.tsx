@@ -7,6 +7,7 @@ import {
 } from '@/app/(staff)/actions';
 import { DeleteDocumentButton } from '@/components/DeleteDocumentButton';
 import { DocViewer } from '@/components/DocViewer';
+import { DocThumbnail } from '@/components/DocThumbnail';
 import { VerifyDocButton } from '@/components/VerifyDocButton';
 import { summarizeAnalysis, ocrEligible, type ChipTone } from '@/lib/docanalysis-format';
 import { OcrButton } from '@/components/OcrButton';
@@ -17,15 +18,15 @@ const CHIP_CLASS: Record<ChipTone, string> = {
   neutral: 'bg-gray-50 text-gray-600 ring-gray-200',
 };
 
-function AutoCheckChips({ documentId, analysis }: { documentId: string; analysis: unknown }) {
+// The automated pre-check summary, laid out compactly under the file name.
+function AutoCheckLine({ documentId, analysis }: { documentId: string; analysis: unknown }) {
   const chips = summarizeAnalysis(analysis);
   const canOcr = ocrEligible(analysis);
   if (chips.length === 0 && !canOcr) return null;
   return (
-    <div className="mt-1 flex flex-wrap items-center gap-1.5 pl-7">
-      <span className="text-[11px] font-medium uppercase tracking-wide text-gray-400">Auto-check</span>
+    <div className="mt-1 flex flex-wrap items-center gap-1">
       {chips.map((c, i) => (
-        <span key={i} className={`rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset ${CHIP_CLASS[c.tone]}`}>
+        <span key={i} className={`inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-medium ring-1 ring-inset ${CHIP_CLASS[c.tone]}`}>
           {c.label}
         </span>
       ))}
@@ -101,17 +102,26 @@ export function FundingChecklist({
               </div>
 
               {files.length > 0 && (
-                <ul className="mt-2 space-y-1.5 pl-7">
+                <ul className="mt-2 space-y-2">
                   {files.map((f) => (
-                    <li key={f.id}>
-                      <div className="flex items-center justify-between gap-3 text-xs">
-                        <DocViewer id={f.id} fileName={f.fileName} mimeType={f.mimeType} className="min-w-0 flex-1 truncate text-left text-brand-700 hover:underline">
-                          {f.fileName}
-                        </DocViewer>
-                        <DeleteDocumentButton documentId={f.id} fileName={f.fileName} action={deleteDocumentAction} />
-                        <VerifyDocButton documentId={f.id} done={!!f.verifiedAt} />
+                    <li key={f.id} className="flex gap-3 rounded-lg border border-gray-100 bg-gray-50/60 p-2">
+                      {/* Thumbnail — click to open the file */}
+                      <DocViewer id={f.id} fileName={f.fileName} mimeType={f.mimeType} className="flex-none" title={`Open ${f.fileName}`}>
+                        <DocThumbnail id={f.id} mimeType={f.mimeType} />
+                      </DocViewer>
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <DocViewer id={f.id} fileName={f.fileName} mimeType={f.mimeType} className="min-w-0 flex-1 break-all text-left text-sm font-medium text-brand-700 hover:underline">
+                            {f.fileName}
+                          </DocViewer>
+                          <VerifyDocButton documentId={f.id} done={!!f.verifiedAt} />
+                        </div>
+                        <AutoCheckLine documentId={f.id} analysis={f.analysis} />
+                        <div className="mt-1.5 text-xs">
+                          <DeleteDocumentButton documentId={f.id} fileName={f.fileName} action={deleteDocumentAction} />
+                        </div>
                       </div>
-                      <AutoCheckChips documentId={f.id} analysis={f.analysis} />
                     </li>
                   ))}
                 </ul>
