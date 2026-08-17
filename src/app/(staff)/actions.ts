@@ -24,7 +24,7 @@ import {
   editDealSchema,
 } from '@/lib/validation';
 import {
-  FUNDING_DOCUMENT_TYPES,
+  fundingDocumentTypesFor,
   REVIEWER_PAPERWORK_PREFIX,
   REVIEWER_PAPERWORK_TYPES,
   VERIFICATION_CHECKS,
@@ -719,9 +719,9 @@ export async function moveToInForFundingAction(applicationId: string): Promise<v
   const verifiedTypes = new Set(
     app.documents.filter((d) => d.verifiedAt !== null).map((d) => d.type),
   );
-  const allRequiredVerified = FUNDING_DOCUMENT_TYPES.filter((t) => t.required).every((t) =>
-    verifiedTypes.has(t.type),
-  );
+  const allRequiredVerified = fundingDocumentTypesFor(app.programType)
+    .filter((t) => t.required)
+    .every((t) => verifiedTypes.has(t.type));
   if (!allRequiredVerified) {
     // Guard: not all required documents confirmed yet.
     revalidatePath(`/staff/applications/${applicationId}`);

@@ -392,7 +392,7 @@ export default async function StaffApplicationDetail({
             </ul>
           </div>
         )}
-        <FundingChecklist fundingDocs={fundingDocs} applicationId={app.id} status={app.status} />
+        <FundingChecklist fundingDocs={fundingDocs} applicationId={app.id} status={app.status} programType={app.programType} />
         <div className="border-t border-gray-100 pt-4">
           <h3 className="mb-1 text-sm font-medium text-gray-700">Funding verification</h3>
           <p className="mb-3 text-xs text-gray-500">

@@ -1,5 +1,5 @@
-import type { Document, ApplicationStatus } from '@prisma/client';
-import { FUNDING_DOCUMENT_TYPES } from '@/lib/constants';
+import type { Document, ApplicationStatus, ProgramType } from '@prisma/client';
+import { fundingDocumentTypesFor } from '@/lib/constants';
 import {
   verifyAllFundingDocsAction,
   moveToInForFundingAction,
@@ -46,13 +46,16 @@ export function FundingChecklist({
   fundingDocs,
   applicationId,
   status,
+  programType,
 }: {
   fundingDocs: Document[];
   applicationId: string;
   status: ApplicationStatus;
+  programType: ProgramType;
 }) {
+  const docTypes = fundingDocumentTypesFor(programType);
   const verifiedTypes = new Set(fundingDocs.filter((d) => d.verifiedAt).map((d) => d.type));
-  const allRequiredVerified = FUNDING_DOCUMENT_TYPES.filter((t) => t.required).every((t) =>
+  const allRequiredVerified = docTypes.filter((t) => t.required).every((t) =>
     verifiedTypes.has(t.type),
   );
   const hasDocs = fundingDocs.length > 0;
@@ -65,7 +68,7 @@ export function FundingChecklist({
   return (
     <div>
       <ul className="space-y-2">
-        {FUNDING_DOCUMENT_TYPES.map((t) => {
+        {docTypes.map((t) => {
           const files = fundingDocs.filter((d) => d.type === t.type);
           const verified = files.some((d) => d.verifiedAt);
           const state = verified ? 'verified' : files.length > 0 ? 'uploaded' : 'missing';

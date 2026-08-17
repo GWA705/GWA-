@@ -1,5 +1,5 @@
-import type { ApplicationStatus, DocumentType } from '@prisma/client';
-import { FUNDING_DOCUMENT_TYPES } from './constants';
+import type { ApplicationStatus, DocumentType, ProgramType } from '@prisma/client';
+import { fundingDocumentTypesFor } from './constants';
 
 /**
  * Works out, in plain language, what a dealer still has to do on a deal — the
@@ -25,6 +25,7 @@ export interface DealerOutstanding {
 
 export function dealerOutstanding(app: {
   status: ApplicationStatus;
+  programType: ProgramType;
   productsSold: string[];
   requiresSerials: boolean;
   serialNumbers: SerialLite[];
@@ -50,7 +51,9 @@ export function dealerOutstanding(app: {
 
   // Required funding documents not yet uploaded.
   const uploaded = new Set(app.fundingDocs.map((d) => d.type));
-  const missingDocs = FUNDING_DOCUMENT_TYPES.filter((t) => t.required && !uploaded.has(t.type));
+  const missingDocs = fundingDocumentTypesFor(app.programType).filter(
+    (t) => t.required && !uploaded.has(t.type),
+  );
   for (const t of missingDocs) items.push(`Upload: ${t.label}.`);
 
   // When approved/conditional and everything is in, the last step is to submit.

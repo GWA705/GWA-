@@ -15,7 +15,7 @@ import { DealProgress } from '@/components/DealProgress';
 import { UploadForm } from '@/components/UploadForm';
 import { SerialNumberForm } from '@/components/SerialNumberForm';
 import { ProductSerialForm } from '@/components/ProductSerialForm';
-import { FUNDING_DOCUMENT_TYPES, STATUS_LABELS, programLabel, soapLabel } from '@/lib/constants';
+import { fundingDocumentTypesFor, STATUS_LABELS, programLabel, soapLabel } from '@/lib/constants';
 import { dealerFacingStatus, hasDealerReturned } from '@/lib/reviewerFlow';
 import { dealerOutstanding } from '@/lib/outstanding';
 import {
@@ -76,7 +76,9 @@ export default async function DealerApplicationDetail({
   const serialsComplete =
     !requiresSerials || app.productsSold.every((p) => (serialByProduct.get(p) ?? '').trim().length > 0);
 
-  const requiredFunding = FUNDING_DOCUMENT_TYPES;
+  // GWA program deals don't involve Home Depot, so the HD documents/waiver drop
+  // off the funding checklist entirely.
+  const requiredFunding = fundingDocumentTypesFor(app.programType);
   const missingCount = requiredFunding.filter(
     (t) => t.required && !uploadedFundingTypes.has(t.type),
   ).length;
@@ -84,6 +86,7 @@ export default async function DealerApplicationDetail({
   // What the dealer still has to do (drives the "What's needed" card up top).
   const outstanding = dealerOutstanding({
     status: app.status,
+    programType: app.programType,
     productsSold: app.productsSold,
     requiresSerials,
     serialNumbers: app.serialNumbers,

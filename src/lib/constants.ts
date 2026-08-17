@@ -291,6 +291,21 @@ export const FUNDING_DOCUMENT_TYPES: {
   { type: 'OTHER', label: 'Other supporting documents', required: false },
 ];
 
+// The two funding items that only apply to Home Depot program deals. On a GWA
+// program deal there is no HD paperwork or HD waiver, so these drop off the
+// checklist entirely.
+const HD_ONLY_FUNDING_TYPES: DocumentType[] = ['SIGNED_HD_DOCUMENT', 'HD_WAIVER'];
+
+// The funding checklist for a given program. GWA deals don't involve Home Depot,
+// so the HD documents/waiver are removed — dealers never see them and reviewers
+// never count them as missing. HD deals keep the full list.
+export function fundingDocumentTypesFor(programType: ProgramType) {
+  if (programType === 'GWA') {
+    return FUNDING_DOCUMENT_TYPES.filter((t) => !HD_ONLY_FUNDING_TYPES.includes(t.type));
+  }
+  return FUNDING_DOCUMENT_TYPES;
+}
+
 // Rule 2 — the reviewer's funding verification checklist. A fixed list of checks
 // a reviewer works through before a deal can be funded. Every applicable item
 // must be CONFIRMED; flagging one as a PROBLEM requires a note that is shown to
