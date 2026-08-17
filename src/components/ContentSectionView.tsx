@@ -1,4 +1,5 @@
 import type { ContentItem } from '@prisma/client';
+import { DocViewer } from '@/components/DocViewer';
 
 // Known acronyms that should stay uppercase when we standardize a title's case.
 const ACRONYMS = new Set(['HD', 'HDCC', 'GHS', 'GWA', 'FAQ', 'UV', 'PH', 'SIN', 'PDF', 'ON', 'US', 'CA', 'HDFINIT']);
@@ -102,14 +103,18 @@ export function ContentSectionView({
                     )}
                     {c.fileStorageKey && (
                       <>
-                        <a
-                          href={fileUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                        {/* Open in the in-app viewer (has a Back button) — never
+                            a raw file navigation that strands you in the app. */}
+                        <DocViewer
+                          id={c.id}
+                          fileName={c.fileName || c.title}
+                          mimeType={c.fileMime}
+                          src={fileUrl}
+                          title={standardizeTitle(c.title)}
                           className="rounded-md border border-brand-500 px-3 py-1.5 text-xs font-semibold text-brand-700 transition hover:bg-brand-50"
                         >
                           View
-                        </a>
+                        </DocViewer>
                         <a
                           href={`${fileUrl}?download=1`}
                           className="rounded-md bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-brand-700"
