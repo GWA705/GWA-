@@ -128,8 +128,12 @@ body {
 
 .dark .bg-amber-50 { background-color: rgba(245,158,11,.13); }
 .dark .bg-amber-100 { background-color: rgba(245,158,11,.22); }
+.dark .bg-amber-100\/50 { background-color: rgba(245,158,11,.16); }
 .dark .text-amber-900, .dark .text-amber-800, .dark .text-amber-700 { color: #f2c078; }
+.dark .text-amber-600, .dark .text-amber-500 { color: #eaa64d; }
 .dark .border-amber-200 { border-color: rgba(245,158,11,.4); }
+.dark .border-amber-100 { border-color: rgba(245,158,11,.3); }
+.dark .divide-amber-100 > :not([hidden]) ~ :not([hidden]) { border-color: rgba(245,158,11,.28); }
 
 .dark .bg-green-50 { background-color: rgba(34,197,94,.13); }
 .dark .bg-green-100 { background-color: rgba(34,197,94,.20); }

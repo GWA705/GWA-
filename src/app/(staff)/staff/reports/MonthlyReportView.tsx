@@ -128,7 +128,7 @@ function PendingBlock({
       {byMonth && byMonth.length > 0 && (
         <div className="flex flex-wrap gap-2 border-b border-amber-100 bg-amber-100/50 px-4 py-2">
           {byMonth.map((m) => (
-            <span key={m.label} className="rounded-full bg-white/70 px-2.5 py-1 text-xs text-amber-900">
+            <span key={m.label} className="rounded-full bg-white/70 px-2.5 py-1 text-xs text-amber-900 dark:bg-white/10">
               {m.label}: <span className="font-semibold tabular-nums">{money2(m.total)}</span>{' '}
               <span className="text-amber-500">({m.count})</span>
             </span>
