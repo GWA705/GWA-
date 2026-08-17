@@ -79,7 +79,7 @@ function DocThumb({ id, mime, label, hasThumb }: { id: string; mime: string; lab
   const thumbSrc = isImage ? `/api/resource-files/${id}` : `/api/resource-files/${id}/thumb`;
   const showImage = isImage || hasThumb;
   return (
-    <div className="relative h-20 w-16 flex-none overflow-hidden rounded-md border border-gray-200" style={{ backgroundColor: '#ffffff' }}>
+    <div className="photo-mat relative h-20 w-16 flex-none overflow-hidden rounded-md border border-gray-200">
       {showImage ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={thumbSrc} alt={label} className="h-full w-full object-contain" />
@@ -123,10 +123,7 @@ export function ResourceProductDetail({
                   on an explicit white tile (forced white in both themes) — in dark
                   mode it reads as a clean product card rather than a stray white
                   block. */}
-              <span
-                className="flex h-full w-full items-center justify-center rounded-xl p-3 ring-1 ring-black/5"
-                style={{ backgroundColor: '#ffffff' }}
-              >
+              <span className="photo-mat flex h-full w-full items-center justify-center rounded-xl p-3 ring-1 ring-black/5">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={imgSrc} alt={product.title} loading="eager" className="max-h-64 w-full object-contain" />
               </span>

@@ -96,16 +96,16 @@ function ItemImage({ item, onImageClick, className }: { item: Item; onImageClick
   return item.hasImage ? (
     <button
       type="button"
-      onClick={() => onImageClick(imgSrc, item.name)}
-      className={`relative block aspect-square w-full cursor-zoom-in border-b border-gray-200 bg-[#ffffff] ${className ?? ''}`}
+      onClick={() => onImageClick(`${imgSrc}?size=full`, item.name)}
+      className={`photo-mat relative block aspect-square w-full cursor-zoom-in border-b border-gray-200 ${className ?? ''}`}
       aria-label={`View ${item.name} larger`}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={imgSrc} alt={item.name} className="h-full w-full object-contain p-3" />
+      <img src={imgSrc} alt={item.name} loading="lazy" className="h-full w-full object-contain p-3" />
       <TagBadges tags={item.tags} />
     </button>
   ) : (
-    <div className={`relative flex aspect-square w-full items-center justify-center border-b border-gray-200 bg-[#ffffff] text-4xl text-gray-300 ${className ?? ''}`} aria-hidden>
+    <div className={`photo-mat relative flex aspect-square w-full items-center justify-center border-b border-gray-200 text-4xl text-gray-300 ${className ?? ''}`} aria-hidden>
       👕
       <TagBadges tags={item.tags} />
     </div>

@@ -45,6 +45,13 @@ body {
 .badge {
   @apply inline-flex items-center justify-center rounded-full px-2.5 py-0.5 text-center text-xs font-medium;
 }
+/* A white "mat" for photos that ship on a white studio background (product and
+   marketplace/gear photos). Kept white in BOTH themes — deliberately not
+   remapped by `.dark` — so in dark mode the photo reads as a clean product tile
+   instead of a stray white block. Use on the image's container, not the page. */
+.photo-mat {
+  background-color: #ffffff;
+}
 
 /* ==========================================================================
    Light-theme contrast bump. Users found the light theme too washed out, so

@@ -105,7 +105,7 @@ export default async function DealerResourceLibraryPage({
               href={`/dealer/resources/library/${p.id}`}
               className="group overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition hover:border-gray-300 hover:shadow-sm"
             >
-              <div className="aspect-[4/3] w-full overflow-hidden" style={{ backgroundColor: '#ffffff' }}>
+              <div className="photo-mat aspect-[4/3] w-full overflow-hidden">
                 {p.imageStorageKey ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
