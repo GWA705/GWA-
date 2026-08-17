@@ -26,8 +26,7 @@ export default async function DealerCalculatorPage() {
       <div className="text-center">
         <h1 className="text-2xl font-bold text-gray-900">HD Payout Calculator</h1>
         <p className="mx-auto mt-1 max-w-md text-sm text-gray-600">
-          Enter the approved amount (total sale with tax) and province — or pull a deal from the portal — to see the
-          exact EFT payout and full breakdown.
+          Enter the approved amount (total sale with tax) and province — or pull a deal from the portal.
         </p>
       </div>
       <DealerCalculator defaultProvince={defaultProvince} />
