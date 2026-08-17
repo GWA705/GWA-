@@ -12,6 +12,7 @@ import { getOverride, appOverrideKey, overlay } from '@/lib/customerOverride';
 import { decryptOptional } from '@/lib/crypto';
 import { MessageOffice } from '../MessageOffice';
 import { EditCustomerContact } from '../EditCustomerContact';
+import { DocViewer } from '@/components/DocViewer';
 
 export const dynamic = 'force-dynamic';
 
@@ -136,9 +137,17 @@ export default async function CustomerAssistPage({ params }: { params: { id: str
                   ) : (
                     <div className="mt-1 flex flex-wrap gap-2">
                       {m.files.map((f) => (
-                        <a key={f.id} href={`/api/resource-files/${f.id}`} target="_blank" rel="noopener noreferrer" className="rounded-md bg-sky-50 px-2.5 py-1 text-xs font-medium text-sky-700 hover:bg-sky-100">
+                        <DocViewer
+                          key={f.id}
+                          id={f.id}
+                          fileName={f.label}
+                          mimeType={f.mime}
+                          src={`/api/resource-files/${f.id}`}
+                          title={`${f.kindLabel}: ${f.label}`}
+                          className="rounded-md bg-sky-50 px-2.5 py-1 text-xs font-medium text-sky-700 hover:bg-sky-100"
+                        >
                           {f.kindLabel}: {f.label} ↗
-                        </a>
+                        </DocViewer>
                       ))}
                     </div>
                   )}

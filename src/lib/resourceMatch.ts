@@ -14,7 +14,7 @@ export interface MatchedManual {
   title: string;
   brand: string | null;
   hasImage: boolean;
-  files: { id: string; kindLabel: string; label: string; isPdf: boolean }[];
+  files: { id: string; kindLabel: string; label: string; isPdf: boolean; mime: string }[];
 }
 
 function norm(s: string): string {
@@ -48,7 +48,7 @@ export async function matchManualsForProducts(productNames: string[]): Promise<M
       title: p.title,
       brand: p.brand,
       hasImage: !!p.imageStorageKey,
-      files: p.files.map((f) => ({ id: f.id, kindLabel: RESOURCE_FILE_KIND_LABELS[f.kind], label: f.label || RESOURCE_FILE_KIND_LABELS[f.kind], isPdf: f.mime === 'application/pdf' })),
+      files: p.files.map((f) => ({ id: f.id, kindLabel: RESOURCE_FILE_KIND_LABELS[f.kind], label: f.label || RESOURCE_FILE_KIND_LABELS[f.kind], isPdf: f.mime === 'application/pdf', mime: f.mime })),
     });
   }
   return matched;
