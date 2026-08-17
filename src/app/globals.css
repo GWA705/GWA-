@@ -91,6 +91,12 @@ body {
 
 /* Neutrals */
 .dark .bg-white { background-color: var(--d-surface); }
+/* State variants of bg-white aren't caught by the rule above. Without these an
+   input that turns white on focus (e.g. the payout calculator's amount field)
+   keeps its light-remapped text — white text on a white box, invisibly. Map the
+   focus/hover white to a dark surface so the text stays legible. */
+.dark .focus\:bg-white:focus { background-color: var(--d-surface); }
+.dark .hover\:bg-white:hover { background-color: var(--d-hover); }
 .dark .bg-gray-50 { background-color: var(--d-surface-2); }
 .dark .bg-gray-100 { background-color: var(--d-fill); }
 /* Opacity variants of the light greys aren't caught by the rules above; without
