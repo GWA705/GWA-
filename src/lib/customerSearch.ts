@@ -104,6 +104,9 @@ async function buildDealerContactLookup(): Promise<(storeNumber: string | null, 
  *  - any internal user with the per-user canSearchCustomers flag (reviewers).
  */
 export async function canSearchAllCustomers(user: SessionUser): Promise<boolean> {
+  // While "viewing as dealer", show exactly what that dealer sees — the
+  // office-scoped search, not the internal all-customers search.
+  if (user.impersonating) return false;
   if (!isInternal(user)) return false;
   if (isSuperAdmin(user)) return true;
   if (canAdminSection(user, 'customer-search')) return true;
@@ -370,7 +373,9 @@ export async function searchCustomers(user: SessionUser, rawQuery: string): Prom
   const isPhone = looksLikePhone(q);
   const terms = nameTerms(q);
 
-  if (isInternal(user)) {
+  // When impersonating a dealer ("view as dealer"), run the dealer-scoped search
+  // so the admin sees precisely what that office sees.
+  if (isInternal(user) && !user.impersonating) {
     if (!(await canSearchAllCustomers(user))) return { status: 'not_granted' };
     const ids = isPhone ? await phoneMatchIds(digits(q)) : [];
     const apps = await prisma.application.findMany({
