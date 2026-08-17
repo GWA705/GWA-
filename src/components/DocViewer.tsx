@@ -34,6 +34,7 @@ export function DocViewer({
   const [open, setOpen] = useState(false);
   const src = srcProp ?? `/api/documents/${id}`;
   const isImage = (mimeType ?? '').startsWith('image/');
+  const isPdf = (mimeType ?? '') === 'application/pdf';
 
   useEffect(() => {
     if (!open) return;
@@ -88,6 +89,8 @@ export function DocViewer({
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={src} alt={fileName} className="max-h-full max-w-full object-contain" />
               </div>
+            ) : isPdf ? (
+              <PdfPages pagesUrl={`${src}/pages`} fileUrl={src} fileName={fileName} />
             ) : (
               <iframe src={src} title={fileName} className="h-full w-full border-0 bg-white" />
             )}
@@ -95,5 +98,37 @@ export function DocViewer({
         </div>
       )}
     </>
+  );
+}
+
+/**
+ * Multi-page PDF as one tall, scrollable image (all pages rendered server-side).
+ * This is the reliable way to read a PDF inside the app — an <iframe> only shows
+ * page 1 on iOS and won't scroll. Falls back to a download prompt if the render
+ * isn't available.
+ */
+function PdfPages({ pagesUrl, fileUrl, fileName }: { pagesUrl: string; fileUrl: string; fileName: string }) {
+  const [state, setState] = useState<'loading' | 'ok' | 'error'>('loading');
+  return (
+    <div className="mx-auto min-h-full w-full max-w-3xl p-2 sm:p-4">
+      {state === 'loading' && (
+        <div className="py-12 text-center text-sm text-white/70">Loading pages…</div>
+      )}
+      {state === 'error' ? (
+        <div className="py-12 text-center text-sm text-white/80">
+          Couldn’t render a preview.{' '}
+          <a href={`${fileUrl}?download=1`} className="font-semibold text-white underline">Download the PDF</a> instead.
+        </div>
+      ) : (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={pagesUrl}
+          alt={fileName}
+          className={`w-full rounded bg-white shadow-lg ${state === 'loading' ? 'hidden' : ''}`}
+          onLoad={() => setState('ok')}
+          onError={() => setState('error')}
+        />
+      )}
+    </div>
   );
 }
