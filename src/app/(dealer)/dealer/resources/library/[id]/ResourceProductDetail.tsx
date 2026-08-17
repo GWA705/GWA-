@@ -79,7 +79,7 @@ function DocThumb({ id, mime, label, hasThumb }: { id: string; mime: string; lab
   const thumbSrc = isImage ? `/api/resource-files/${id}` : `/api/resource-files/${id}/thumb`;
   const showImage = isImage || hasThumb;
   return (
-    <div className="relative h-20 w-16 flex-none overflow-hidden rounded-md border border-gray-200 bg-white">
+    <div className="relative h-20 w-16 flex-none overflow-hidden rounded-md border border-gray-200" style={{ backgroundColor: '#ffffff' }}>
       {showImage ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={thumbSrc} alt={label} className="h-full w-full object-contain" />
@@ -102,6 +102,7 @@ export function ResourceProductDetail({
 }) {
   const [lightbox, setLightbox] = useState(false);
   const imgSrc = `/api/resource-products/${product.id}/image?v=${product.imageVersion}`;
+  const fullSrc = `${imgSrc}&size=full`;
   const journalCodes = (product.journalName ?? '')
     .split(',')
     .map((c) => c.trim())
@@ -115,11 +116,20 @@ export function ResourceProductDetail({
             <button
               type="button"
               onClick={() => setLightbox(true)}
-              className="flex aspect-[4/3] w-full cursor-zoom-in items-center justify-center bg-white p-3 sm:aspect-auto sm:border-r sm:border-gray-100"
+              className="flex aspect-[4/3] w-full cursor-zoom-in items-center justify-center p-4 sm:aspect-auto sm:border-r sm:border-gray-100"
               aria-label={`View ${product.title} larger`}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={imgSrc} alt={product.title} className="max-h-64 w-full object-contain" />
+              {/* Product photos ship on a white studio background, so we sit them
+                  on an explicit white tile (forced white in both themes) — in dark
+                  mode it reads as a clean product card rather than a stray white
+                  block. */}
+              <span
+                className="flex h-full w-full items-center justify-center rounded-xl p-3 ring-1 ring-black/5"
+                style={{ backgroundColor: '#ffffff' }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={imgSrc} alt={product.title} loading="eager" className="max-h-64 w-full object-contain" />
+              </span>
             </button>
           ) : (
             <div className="flex aspect-[4/3] w-full items-center justify-center bg-gray-100 text-4xl text-gray-300 sm:aspect-auto">📄</div>
@@ -175,7 +185,7 @@ export function ResourceProductDetail({
         )}
       </div>
 
-      {lightbox && product.hasImage && <Lightbox src={imgSrc} alt={product.title} onClose={() => setLightbox(false)} />}
+      {lightbox && product.hasImage && <Lightbox src={fullSrc} alt={product.title} onClose={() => setLightbox(false)} />}
     </>
   );
 }
