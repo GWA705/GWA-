@@ -29,7 +29,7 @@ export default async function DealerFindCustomerPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-5">
       {/* Welcoming focal-point search area */}
-      <section className="rounded-2xl border border-brand-100 bg-gradient-to-br from-brand-50 via-white to-white p-6 shadow-sm sm:p-7">
+      <section className="rounded-2xl border border-brand-100 bg-gradient-to-br from-brand-50 via-white to-white p-6 shadow-sm dark:bg-none dark:bg-[var(--d-surface)] sm:p-7">
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 flex-none items-center justify-center rounded-xl bg-brand-600 text-2xl text-white shadow-sm">
             🔎

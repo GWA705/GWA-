@@ -144,8 +144,12 @@ body {
 .dark .bg-blue-100 { background-color: rgba(59,130,246,.22); }
 .dark .text-blue-800 { color: #9cc2ff; }
 
+.dark .bg-sky-50 { background-color: rgba(14,165,233,.12); }
 .dark .bg-sky-100 { background-color: rgba(14,165,233,.22); }
-.dark .text-sky-800 { color: #86cbef; }
+.dark .border-sky-200 { border-color: rgba(14,165,233,.38); }
+.dark .text-sky-900 { color: #cbe6f7; }
+.dark .text-sky-800, .dark .text-sky-700 { color: #86cbef; }
+.dark .hover\:bg-sky-100:hover { background-color: rgba(14,165,233,.28); }
 
 .dark .bg-indigo-100 { background-color: rgba(99,102,241,.24); }
 .dark .text-indigo-800 { color: #b6b3fb; }

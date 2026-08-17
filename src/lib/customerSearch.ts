@@ -461,7 +461,9 @@ export async function searchCustomers(user: SessionUser, rawQuery: string): Prom
       other.push({
         name,
         officeName,
-        officeContact: p?.supportContactName || p?.billingContactName || null,
+        // Deliberately not exposing an individual staff member's name to another
+        // office — the card shows a generic "GWA office" contact instead.
+        officeContact: null,
         officePhone: p?.phone || p?.supportPhone || null,
         officeLocation: officeLocation(p),
       });

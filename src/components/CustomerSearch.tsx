@@ -154,7 +154,7 @@ function Results({ result }: { result: CustomerSearchResult }) {
                   {m.officeLocation ? ` (${m.officeLocation})` : ''}. Please contact that office for more information.
                 </p>
                 <div className="mt-2 text-sm text-sky-900">
-                  {m.officeContact && <span className="mr-3">Contact: <strong>{m.officeContact}</strong></span>}
+                  <span className="mr-3">Contact: <strong>GWA office</strong></span>
                   {m.officePhone ? (
                     <span>📞 <a href={`tel:${m.officePhone.replace(/[^0-9+]/g, '')}`} className="font-semibold underline">{m.officePhone}</a></span>
                   ) : (
