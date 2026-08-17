@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db';
 import { RESOURCE_FILE_KIND_LABELS } from '@/lib/constants';
 import { EditProductForm } from './EditProductForm';
 import { AddFileForm } from './AddFileForm';
+import { DocViewer } from '@/components/DocViewer';
 import { deleteResourceFileAction } from '../actions';
 
 export const dynamic = 'force-dynamic';
@@ -60,7 +61,7 @@ export default async function EditResourceProductPage({ params }: { params: { id
                   <div className="truncate text-sm font-medium text-gray-900">{f.label || f.originalName || 'File'}</div>
                   <div className="text-xs text-gray-400">{f.originalName} · {fmtSize(f.sizeBytes)}</div>
                 </div>
-                <a href={`/api/resource-files/${f.id}`} target="_blank" rel="noopener noreferrer" className="btn-secondary text-xs">View</a>
+                <DocViewer id={f.id} fileName={f.label || f.originalName || 'File'} mimeType={f.mime} src={`/api/resource-files/${f.id}`} className="btn-secondary text-xs">View</DocViewer>
                 <form action={deleteResourceFileAction.bind(null, f.id)}>
                   <button type="submit" className="btn-danger text-xs">Remove</button>
                 </form>
