@@ -155,7 +155,7 @@ async function readLeadsUncached(): Promise<LeadsRead> {
         forwardedTo: get(row, 'forwardedTo'),
         status,
         noGood: /no\s*good|^ng$/i.test(status),
-        noGoodReason: get(row, 'noGoodReason'),
+        noGoodReason: cleanNoGoodReason(get(row, 'noGoodReason')),
         reportedToHd: get(row, 'reportedToHd'),
         dateReported: get(row, 'dateReported'),
       });
@@ -213,6 +213,31 @@ export async function storeNameMap(dealerId?: string): Promise<Record<string, st
     if (num && name) map[num] = name;
   }
   return map;
+}
+
+// Markers that begin the raw Home Depot lead-notification boilerplate — when a
+// no-good reason has the whole lead email pasted after it, we cut at the first
+// of these so only the human-written reason remains.
+const NOGOOD_BOILERPLATE = [
+  /new home depot lead/i,
+  /\*\s*important\b/i,
+  /important:\s*customers? must be contacted/i,
+  /\bbooking id\b\s*:?\s*\d/i,
+  /\bdate received\b/i,
+];
+
+/** Keep only the human reason: trim off any pasted HD lead boilerplate. */
+export function cleanNoGoodReason(raw: string): string {
+  const s = (raw || '').replace(/\s+/g, ' ').trim();
+  let cut = -1;
+  for (const re of NOGOOD_BOILERPLATE) {
+    const m = s.match(re);
+    if (m && m.index != null && (cut === -1 || m.index < cut)) cut = m.index;
+  }
+  // Only trim when there's real reason text before the boilerplate; otherwise
+  // leave it as-is (don't blank content we might have misdetected).
+  const out = cut > 0 ? s.slice(0, cut) : s;
+  return out.replace(/[\s·,\-–—;:]+$/, '').trim();
 }
 
 export function summarize(leads: Lead[]): { total: number; noGood: number; forwarded: number } {

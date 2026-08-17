@@ -5,7 +5,7 @@ import { getSession } from './session';
 import { isInternal } from './rbac';
 import { audit } from './audit';
 import { rateLimit } from './ratelimit';
-import { readLeads, clearLeadsCache, parseLeadRowId, dealerStoreNumbers } from './leads';
+import { readLeads, clearLeadsCache, parseLeadRowId, dealerStoreNumbers, cleanNoGoodReason } from './leads';
 import { markLeadNoGood, unmarkLeadNoGood } from './leadsWrite';
 
 /**
@@ -27,7 +27,8 @@ export async function markLeadNoGoodAction(input: {
   const user = await getSession();
   if (!user) return { error: 'Please sign in again.' };
 
-  const reason = String(input.reason || '').trim();
+  // Keep only the human reason — strip any HD lead email that got pasted in.
+  const reason = cleanNoGoodReason(String(input.reason || ''));
   if (!reason) return { error: 'A reason is required to mark a lead No Good.' };
 
   const parsed = parseLeadRowId(String(input.rowId || ''));
