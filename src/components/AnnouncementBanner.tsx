@@ -16,6 +16,7 @@ export function AnnouncementBanner({
     body: a.body,
     linkUrl: a.linkUrl,
     hasImage: !!a.imageStorageKey,
+    imageVersion: a.updatedAt.getTime(),
   }));
 
   // Rotate as a slideshow when enabled for this slot and there's more than one;

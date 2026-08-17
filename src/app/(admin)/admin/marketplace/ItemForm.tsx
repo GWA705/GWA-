@@ -16,6 +16,7 @@ interface Item {
   featured?: boolean;
   tags?: string[];
   hasImage?: boolean;
+  imageVersion?: number;
   categoryId?: string | null;
   kind?: string;
   hasFile?: boolean;
@@ -115,7 +116,7 @@ export function ItemForm({ item, categories }: { item?: Item; categories: Catego
         <div className="flex items-center gap-3">
           {item?.hasImage && (
             /* eslint-disable-next-line @next/next/no-img-element */
-            <img src={`/api/marketplace/items/${item.id}/image`} alt="" className="h-14 w-14 rounded object-cover ring-1 ring-gray-200" />
+            <img src={`/api/marketplace/items/${item.id}/image?v=${item.imageVersion ?? 0}`} alt="" className="h-14 w-14 rounded object-cover ring-1 ring-gray-200" />
           )}
           <input name="image" type="file" accept="image/*" className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-md file:border-0 file:bg-brand-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-brand-700 hover:file:bg-brand-100" />
         </div>

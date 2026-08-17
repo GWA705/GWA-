@@ -49,7 +49,7 @@ export default async function AnnouncementsPage() {
                 {a.body && <p className="mt-1 whitespace-pre-wrap text-sm text-gray-600">{a.body}</p>}
                 {a.imageStorageKey && (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={`/api/announcements/${a.id}/image`} alt="" className="mt-2 max-h-24 rounded border border-gray-200" />
+                  <img src={`/api/announcements/${a.id}/image?v=${a.updatedAt.getTime()}`} alt="" className="mt-2 max-h-24 rounded border border-gray-200" />
                 )}
                 {a.linkUrl && <p className="mt-1 truncate text-xs text-brand-700">{a.linkUrl}</p>}
               </div>

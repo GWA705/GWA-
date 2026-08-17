@@ -97,7 +97,7 @@ export default async function AdminMarketplace() {
                           <div className="flex min-w-0 items-start gap-3">
                             {item.imageStorageKey && (
                               /* eslint-disable-next-line @next/next/no-img-element */
-                              <img src={`/api/marketplace/items/${item.id}/image`} alt="" className="h-14 w-14 shrink-0 rounded object-cover ring-1 ring-gray-200" />
+                              <img src={`/api/marketplace/items/${item.id}/image?v=${item.updatedAt.getTime()}`} alt="" className="h-14 w-14 shrink-0 rounded object-cover ring-1 ring-gray-200" />
                             )}
                             <div className="min-w-0">
                               <div className="flex flex-wrap items-center gap-2">
@@ -138,6 +138,7 @@ export default async function AdminMarketplace() {
                                 sortOrder: item.sortOrder,
                                 active: item.active,
                                 hasImage: !!item.imageStorageKey,
+                                imageVersion: item.updatedAt.getTime(),
                                 categoryId: item.categoryId,
                                 kind: item.kind,
                                 hasFile: !!item.fileStorageKey,

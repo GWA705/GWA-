@@ -9,6 +9,7 @@ export interface BannerItem {
   body: string | null;
   linkUrl: string | null;
   hasImage: boolean;
+  imageVersion?: number;
 }
 
 function Wrap({ href, children }: { href: string | null; children: React.ReactNode }) {
@@ -27,7 +28,7 @@ export function BannerCard({ item }: { item: BannerItem }) {
     <div className="overflow-hidden rounded-lg border border-brand-100 bg-brand-50">
       <Wrap href={item.linkUrl}>
         {item.hasImage && (
-          <BannerImage src={`/api/announcements/${item.id}/image`} alt={item.title ?? 'Announcement'} className="block h-auto w-full" />
+          <BannerImage src={`/api/announcements/${item.id}/image?v=${item.imageVersion ?? 0}`} alt={item.title ?? 'Announcement'} className="block h-auto w-full" />
         )}
         {(item.title || item.body) && (
           <div className="p-4">

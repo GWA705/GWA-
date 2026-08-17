@@ -11,6 +11,7 @@ interface Item {
   description: string | null;
   options: string[];
   hasImage: boolean;
+  imageVersion?: number;
   categoryId: string | null;
   kind: string;
   hasFile: boolean;
@@ -92,11 +93,11 @@ function Lightbox({ src, alt, onClose }: { src: string; alt: string; onClose: ()
 }
 
 function ItemImage({ item, onImageClick, className }: { item: Item; onImageClick: (src: string, alt: string) => void; className?: string }) {
-  const imgSrc = `/api/marketplace/items/${item.id}/image`;
+  const imgSrc = `/api/marketplace/items/${item.id}/image?v=${item.imageVersion ?? 0}`;
   return item.hasImage ? (
     <button
       type="button"
-      onClick={() => onImageClick(`${imgSrc}?size=full`, item.name)}
+      onClick={() => onImageClick(`${imgSrc}&size=full`, item.name)}
       className={`photo-mat relative block aspect-square w-full cursor-zoom-in border-b border-gray-200 ${className ?? ''}`}
       aria-label={`View ${item.name} larger`}
     >
