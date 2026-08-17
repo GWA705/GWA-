@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { requireStaffSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { friendlyFileName } from '@/lib/filenames';
+import { PdfPagesImage } from '@/components/PdfPagesImage';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,13 +44,7 @@ export default async function StaffAttachmentViewer({
           /* eslint-disable-next-line @next/next/no-img-element */
           <img src={src} alt={name} className="mx-auto max-h-[80vh] w-full object-contain bg-gray-50" />
         ) : isPdf ? (
-          <object data={src} type="application/pdf" className="h-[80vh] w-full">
-            <div className="p-6 text-center text-sm text-gray-600">
-              Your browser can&apos;t preview this PDF here.{' '}
-              <a href={src} target="_blank" rel="noopener noreferrer" className="text-brand-700 hover:underline">Open it</a>{' '}
-              or <a href={`${src}?download=1`} className="text-brand-700 hover:underline">download it</a>.
-            </div>
-          </object>
+          <PdfPagesImage pagesUrl={`${src}/pages`} downloadUrl={`${src}?download=1`} alt={name} />
         ) : (
           <div className="p-6 text-center text-sm text-gray-600">
             This file type can&apos;t be previewed.{' '}
