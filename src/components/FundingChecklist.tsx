@@ -103,27 +103,34 @@ export function FundingChecklist({
 
               {files.length > 0 && (
                 <ul className="mt-2 space-y-2">
-                  {files.map((f) => (
-                    <li key={f.id} className="flex gap-3 rounded-lg border border-gray-100 bg-gray-50/60 p-2">
-                      {/* Thumbnail — click to open the file */}
-                      <DocViewer id={f.id} fileName={f.fileName} mimeType={f.mimeType} className="flex-none" title={`Open ${f.fileName}`}>
-                        <DocThumbnail id={f.id} mimeType={f.mimeType} />
-                      </DocViewer>
+                  {files.map((f, i) => {
+                    // Reviewers don't need the raw upload filename — show a clean,
+                    // consistent label (the file's own label if it has one, else
+                    // "<type> — File N"). The real name is still used for the
+                    // viewer header + download.
+                    const displayName = f.label?.trim() || `${t.label} — File ${i + 1}`;
+                    return (
+                      <li key={f.id} className="flex gap-3 rounded-lg border border-gray-100 bg-gray-50/60 p-2">
+                        {/* Thumbnail — click to open the file */}
+                        <DocViewer id={f.id} fileName={f.fileName} mimeType={f.mimeType} className="flex-none" title={`Open ${displayName}`}>
+                          <DocThumbnail id={f.id} mimeType={f.mimeType} />
+                        </DocViewer>
 
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-start justify-between gap-2">
-                          <DocViewer id={f.id} fileName={f.fileName} mimeType={f.mimeType} className="min-w-0 flex-1 break-all text-left text-sm font-medium text-brand-700 hover:underline">
-                            {f.fileName}
-                          </DocViewer>
-                          <VerifyDocButton documentId={f.id} done={!!f.verifiedAt} />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-start justify-between gap-2">
+                            <DocViewer id={f.id} fileName={f.fileName} mimeType={f.mimeType} className="min-w-0 flex-1 break-words text-left text-sm font-medium text-brand-700 hover:underline">
+                              {displayName}
+                            </DocViewer>
+                            <VerifyDocButton documentId={f.id} done={!!f.verifiedAt} />
+                          </div>
+                          <AutoCheckLine documentId={f.id} analysis={f.analysis} />
+                          <div className="mt-1.5 text-xs">
+                            <DeleteDocumentButton documentId={f.id} fileName={displayName} action={deleteDocumentAction} />
+                          </div>
                         </div>
-                        <AutoCheckLine documentId={f.id} analysis={f.analysis} />
-                        <div className="mt-1.5 text-xs">
-                          <DeleteDocumentButton documentId={f.id} fileName={f.fileName} action={deleteDocumentAction} />
-                        </div>
-                      </div>
-                    </li>
-                  ))}
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
             </li>
