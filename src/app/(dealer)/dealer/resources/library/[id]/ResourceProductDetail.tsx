@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { RESOURCE_FILE_KIND_LABELS } from '@/lib/constants';
+import { DocViewer } from '@/components/DocViewer';
 import type { ResourceFileKind } from '@prisma/client';
 
 export interface ResourceFileView {
@@ -153,15 +154,19 @@ export function ResourceProductDetail({
               const title = f.label || RESOURCE_FILE_KIND_LABELS[f.kind];
               return (
                 <div key={f.id} className="flex flex-wrap items-center gap-3 p-4">
-                  <a href={`/api/resource-files/${f.id}`} target="_blank" rel="noopener noreferrer" aria-label={`Open ${title}`}>
+                  {/* Open in the in-app viewer (has a Back button) — never a raw
+                      file navigation, which strands you in the PDF in the app. */}
+                  <DocViewer id={f.id} fileName={title} mimeType={f.mime} src={`/api/resource-files/${f.id}`} className="flex-none" title={`Open ${title}`}>
                     <DocThumb id={f.id} mime={f.mime} label={title} hasThumb={f.hasThumb} />
-                  </a>
+                  </DocViewer>
                   <div className="min-w-0 flex-1">
                     <span className="badge bg-sky-100 text-sky-800">{RESOURCE_FILE_KIND_LABELS[f.kind]}</span>
                     <div className="mt-1 truncate text-sm font-medium text-gray-900">{title}</div>
                     <div className="text-xs text-gray-400">{f.mime === 'application/pdf' ? 'PDF' : 'Image'} · {fmtSize(f.sizeBytes)}</div>
                   </div>
-                  <a href={`/api/resource-files/${f.id}`} target="_blank" rel="noopener noreferrer" className="btn-secondary text-sm">View</a>
+                  <DocViewer id={f.id} fileName={title} mimeType={f.mime} src={`/api/resource-files/${f.id}`} className="btn-secondary text-sm">
+                    View
+                  </DocViewer>
                   <a href={`/api/resource-files/${f.id}?download=1`} className="btn-primary text-sm">Download</a>
                 </div>
               );

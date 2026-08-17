@@ -18,6 +18,7 @@ export function DocViewer({
   mimeType,
   className,
   title,
+  src: srcProp,
   children,
 }: {
   id: string;
@@ -25,10 +26,13 @@ export function DocViewer({
   mimeType?: string | null;
   className?: string;
   title?: string;
+  // Where the file is served from. Defaults to the deal-document endpoint; pass
+  // a different base (e.g. /api/resource-files/<id>) for other document types.
+  src?: string;
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
-  const src = `/api/documents/${id}`;
+  const src = srcProp ?? `/api/documents/${id}`;
   const isImage = (mimeType ?? '').startsWith('image/');
 
   useEffect(() => {
