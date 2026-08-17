@@ -72,8 +72,9 @@ export function SupportContactForm({
           <input name="altPhone" defaultValue={values.altPhone ?? ''} className="input" placeholder="1-866-840-2789" />
         </div>
         <div>
-          <label className="label">Email</label>
-          <input name="email" type="email" defaultValue={values.email ?? ''} className="input" placeholder="office@ghsbarrie.ca" />
+          <label className="label">Email(s)</label>
+          <input name="email" type="email" multiple defaultValue={values.email ?? ''} className="input" placeholder="office@ghsbarrie.ca, other@ghsbarrie.ca" />
+          <p className="mt-1 text-xs text-gray-400">Add more than one by separating with a comma.</p>
         </div>
         <div>
           <label className="label">Website</label>

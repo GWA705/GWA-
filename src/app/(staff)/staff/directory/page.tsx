@@ -38,7 +38,9 @@ function ContactBlock({ label, name, phone, email }: { label: string; name?: str
       {name && <div className="text-sm font-medium text-gray-800">{name}</div>}
       <div className="mt-0.5 space-y-0.5 text-sm">
         {phone && <div><a href={telHref(phone)} className="text-brand-700 hover:underline">{formatPhoneDisplay(phone)}</a></div>}
-        {email && <div><a href={`mailto:${email}`} className="break-all text-brand-700 hover:underline">{email}</a></div>}
+        {email && email.split(',').map((e) => e.trim()).filter(Boolean).map((e) => (
+          <div key={e}><a href={`mailto:${e}`} className="break-all text-brand-700 hover:underline">{e}</a></div>
+        ))}
       </div>
     </div>
   );

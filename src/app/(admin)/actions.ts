@@ -1483,12 +1483,19 @@ function parseSupportContact(fd: FormData) {
     const v = String(fd.get(k) ?? '').trim().slice(0, max);
     return v.length ? v : null;
   };
+  // One or more emails, comma-separated. Normalise to a clean, lowercased,
+  // comma-joined list so both the form and the directory render consistently.
+  const emailRaw = String(fd.get('email') ?? '').slice(0, 320);
+  const emails = emailRaw
+    .split(',')
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
   return {
     name: toTitleCase(String(fd.get('name') || '').trim()).slice(0, 120),
     title: t('title', 120),
     phone: t('phone', 40),
     altPhone: t('altPhone', 40),
-    email: t('email', 160)?.toLowerCase() ?? null,
+    email: emails.length ? emails.join(', ') : null,
     hours: t('hours', 200),
     website: t('website', 200),
     notes: t('notes', 1000),

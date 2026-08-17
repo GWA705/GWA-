@@ -79,7 +79,16 @@ export default async function DealerSupportPage() {
                     {c.altPhone && <> · <a href={telHref(c.altPhone)} className="text-brand-700 hover:underline">{formatPhoneDisplay(c.altPhone)}</a></>}
                   </Row>
                 )}
-                {c.email && <Row icon={I.mail}><a href={`mailto:${c.email}`} className="break-all text-brand-700 hover:underline">{c.email}</a></Row>}
+                {c.email && (
+                  <Row icon={I.mail}>
+                    {c.email.split(',').map((e) => e.trim()).filter(Boolean).map((e, i) => (
+                      <span key={e}>
+                        {i > 0 && <span className="text-gray-400"> · </span>}
+                        <a href={`mailto:${e}`} className="break-all text-brand-700 hover:underline">{e}</a>
+                      </span>
+                    ))}
+                  </Row>
+                )}
                 {c.hours && <Row icon={I.clock}>{c.hours}</Row>}
                 {c.website && (
                   <Row icon={I.web}>
