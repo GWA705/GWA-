@@ -5,6 +5,32 @@ import { leadCallStatus, type LeadCallRow } from '@/lib/leadCalls';
 import { LeadCallTracker } from './LeadCallTracker';
 import { LeadNoGoodControl } from './LeadNoGoodControl';
 import { LeadsMonthDropdown } from './LeadsMonthDropdown';
+import { ProjectPhotosButton } from './ProjectPhotosButton';
+
+// Turn any URLs inside a text field into clickable links (shortened for display).
+function linkify(text: string): React.ReactNode {
+  const parts = text.split(/(https?:\/\/[^\s<>"]+)/g);
+  return parts.map((p, i) => {
+    if (/^https?:\/\//.test(p)) {
+      const label = p.replace(/^https?:\/\//, '');
+      return (
+        <a key={i} href={p} target="_blank" rel="noopener noreferrer" className="break-all text-brand-700 underline">
+          {label.length > 48 ? `${label.slice(0, 48)}…` : label}
+        </a>
+      );
+    }
+    return <span key={i}>{p}</span>;
+  });
+}
+
+// Pull the Home Depot "project photos" URL out of a lead's text, if present.
+function projectPhotosUrl(...texts: string[]): string | null {
+  for (const t of texts) {
+    const m = (t || '').match(/https?:\/\/[^\s<>"]*home-services-installer-lead[^\s<>"]*/i);
+    if (m) return m[0];
+  }
+  return null;
+}
 
 const CALL_CHIP: Record<string, string> = {
   grey: 'bg-gray-100 text-gray-600',
@@ -27,7 +53,7 @@ function Field({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <span className="text-[10px] uppercase tracking-wide text-gray-400">{label}</span>
-      <div className="text-sm text-gray-700">{value}</div>
+      <div className="whitespace-pre-wrap break-words text-sm text-gray-700">{linkify(value)}</div>
     </div>
   );
 }
@@ -211,6 +237,10 @@ export function LeadsView({
                     <div className="col-span-2 sm:col-span-3"><Field label="Service details" value={l.serviceDetails} /></div>
                     <div className="col-span-2 sm:col-span-3"><Field label="Additional info" value={l.additionalInfo} /></div>
                   </div>
+                  {(() => {
+                    const photos = projectPhotosUrl(l.serviceDetails, l.additionalInfo);
+                    return photos ? <ProjectPhotosButton url={photos} bookingId={l.bookingId} /> : null;
+                  })()}
                   {l.noGood && (l.noGoodReason || l.reportedToHd) && (
                     <div className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-800">
                       {l.noGoodReason && <div><span className="font-semibold">No-good reason:</span> {l.noGoodReason}</div>}
