@@ -156,6 +156,18 @@ function PriorityRow({ r }: { r: QueueRow }) {
         <div className="truncate text-xs text-gray-500">
           {r.dealer} · {r.program} · <span className="tabular-nums">{r.amount}</span>
         </div>
+        {/* "What's new" indicator — shows when the dealer just sent something
+            (a new document, note, funding package, or a brand-new deal), so the
+            reviewer sees at a glance what changed. A leading dot marks it new.
+            Shown on all sizes; wraps under the meta line. */}
+        {r.activityLabel && r.activityTone && (
+          <div className="mt-1.5">
+            <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ${TONE_CLASS[r.activityTone]}`}>
+              <span className="h-1.5 w-1.5 flex-none rounded-full bg-current opacity-70" aria-hidden />
+              {r.activityLabel}
+            </span>
+          </div>
+        )}
         {/* On mobile the action chip sits under the meta line so it can never
             collide with the wait/status column on the right (narrow screens
             don't have room for both side by side). */}
