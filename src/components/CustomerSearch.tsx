@@ -5,7 +5,15 @@ import Link from 'next/link';
 import { customerSearchAction, updateCustomerInfoAction } from '@/app/(dealer)/dealer/find-customer/actions';
 import type { CustomerSearchResult, JournalMatch } from '@/lib/customerSearch';
 
-export function CustomerSearch({ mode }: { mode: 'internal' | 'dealer' }) {
+export function CustomerSearch({
+  mode,
+  placeholder,
+  large,
+}: {
+  mode: 'internal' | 'dealer';
+  placeholder?: string;
+  large?: boolean;
+}) {
   const live = mode === 'internal'; // GWA team gets live typeahead
   const [query, setQuery] = useState('');
   const [result, setResult] = useState<CustomerSearchResult | null>(null);
@@ -48,15 +56,15 @@ export function CustomerSearch({ mode }: { mode: 'internal' | 'dealer' }) {
         className="flex gap-2"
       >
         <input
-          className="input flex-1"
-          placeholder={mode === 'dealer' ? 'Customer name or phone number' : 'Start typing a name, phone, or reference #'}
+          className={`input flex-1 ${large ? 'h-12 text-base' : ''}`}
+          placeholder={placeholder ?? (mode === 'dealer' ? 'Customer name or phone number' : 'Start typing a name, phone, or reference #')}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           autoComplete="off"
           autoFocus={live}
         />
         {!live && (
-          <button type="submit" className="btn-primary" disabled={pending}>
+          <button type="submit" className={`btn-primary ${large ? 'h-12 px-6' : ''}`} disabled={pending}>
             {pending ? 'Searching…' : 'Search'}
           </button>
         )}
