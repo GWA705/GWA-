@@ -3,6 +3,7 @@ import { requireStaffSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { formatPhoneDisplay } from '@/lib/format';
 import { readExtraContacts, DEFAULT_BILLING_LABEL, DEFAULT_SUPPORT_LABEL } from '@/lib/dealerProfile';
+import { toTitleCase } from '@/lib/textcase';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,7 +36,7 @@ function ContactBlock({ label, name, phone, email }: { label: string; name?: str
   return (
     <div className="rounded-lg bg-gray-50 p-3">
       <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">{label}</div>
-      {name && <div className="text-sm font-medium text-gray-800">{name}</div>}
+      {name && <div className="text-sm font-medium text-gray-800">{toTitleCase(name)}</div>}
       <div className="mt-0.5 space-y-0.5 text-sm">
         {phone && <div><a href={telHref(phone)} className="text-brand-700 hover:underline">{formatPhoneDisplay(phone)}</a></div>}
         {email && email.split(',').map((e) => e.trim()).filter(Boolean).map((e) => (

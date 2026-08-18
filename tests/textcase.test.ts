@@ -26,6 +26,12 @@ describe('toTitleCase', () => {
     expect(toTitleCase('  in-store   test  ')).toBe('In-Store Test');
   });
 
+  it('preserves all-caps personal initials like JJ', () => {
+    expect(toTitleCase('jj francoeur')).toBe('JJ Francoeur');
+    expect(toTitleCase('Jj Francoeur')).toBe('JJ Francoeur');
+    expect(toTitleCase('JJ FRANCOEUR')).toBe('JJ Francoeur');
+  });
+
   it('title-cases ordinary names', () => {
     expect(toTitleCase('john smith')).toBe('John Smith');
   });

@@ -10,6 +10,10 @@ const DOMAIN_ACRONYMS = new Set([
   'HD', 'GWA', 'PAP', 'UEI', 'HVAC', 'SOAP', 'ID', 'PEI', 'FAQ', 'PDF',
 ]);
 
+// Personal names that read as all-caps initials (e.g. "JJ Francoeur"). Preserved
+// in Title Case so "JJ" never becomes "Jj". Only applies to names/labels.
+const NAME_INITIALS = new Set(['JJ']);
+
 // Canadian province/territory codes. In a NAME we keep them uppercase when the
 // person typed them uppercase (e.g. "Aerus NB"). We deliberately do NOT force
 // these in free prose, so the ordinary word "on" is never turned into "ON".
@@ -46,6 +50,7 @@ export function toTitleCase(input: string): string {
           if (!seg) return seg;
           const up = bareUpper(seg);
           if (DOMAIN_ACRONYMS.has(up)) return seg.toUpperCase();
+          if (NAME_INITIALS.has(up)) return seg.toUpperCase();
           // Keep a province code the user intentionally typed in caps.
           if (PROVINCE_CODES.has(up) && seg === seg.toUpperCase()) return seg.toUpperCase();
           const lower = seg.toLowerCase();

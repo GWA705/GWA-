@@ -67,7 +67,9 @@ export function readExtraContacts(value: unknown): OfficeContact[] {
     .map((c) => {
       const o = (c ?? {}) as Record<string, unknown>;
       return {
-        name: String(o.name ?? ''),
+        // Re-normalise the name on read so casing rules (e.g. keeping "JJ"
+        // uppercase) apply to already-stored contacts, not just new saves.
+        name: toTitleCase(String(o.name ?? '')),
         role: String(o.role ?? ''),
         phone: String(o.phone ?? ''),
         email: String(o.email ?? ''),
