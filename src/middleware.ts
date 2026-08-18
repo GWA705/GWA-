@@ -126,6 +126,8 @@ export async function middleware(req: NextRequest) {
   const requestHeaders = new Headers(req.headers);
   requestHeaders.set('x-nonce', nonce);
   requestHeaders.set('Content-Security-Policy', csp);
+  // Expose the path so getSession can scope "view as dealer" to the dealer portal.
+  requestHeaders.set('x-pathname', pathname);
 
   const res = NextResponse.next({ request: { headers: requestHeaders } });
   res.headers.set('Content-Security-Policy', csp);

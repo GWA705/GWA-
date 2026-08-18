@@ -1,6 +1,6 @@
 import { cache } from 'react';
 import { SignJWT, jwtVerify, type JWTPayload } from 'jose';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import type { Role } from '@prisma/client';
 import { prisma } from './db';
@@ -190,7 +190,12 @@ export const getSession = cache(async function getSession(): Promise<SessionUser
   // "View as dealer": only an admin can impersonate, and only their own cookie
   // counts (by === their userId). When active, the effective dealerId becomes
   // the impersonated dealer so the dealer portal scopes to it automatically.
-  if (user.role === 'ADMIN') {
+  //
+  // View-as is a DEALER-PORTAL concept only: it applies on /dealer routes. On the
+  // staff ("Reviewer view") and admin portals the admin acts as themselves — so a
+  // leftover view-as cookie doesn't silently impersonate them there (which had
+  // hidden the staff "Find customer" search and 404'd the page).
+  if (user.role === 'ADMIN' && requestIsDealerPortal()) {
     const viewAs = await getViewAs();
     if (viewAs && viewAs.by === user.userId) {
       user.dealerId = viewAs.dealerId;
@@ -209,6 +214,18 @@ export async function startViewAs(dealerId: string, adminUserId: string): Promis
 /** Stop impersonating. */
 export function stopViewAs(): void {
   cookies().delete(VIEW_AS_COOKIE_NAME);
+}
+
+// Is the current request within the dealer portal? Read from the x-pathname
+// header the middleware sets. Server actions POST to their page's URL, so this
+// also reflects the page an action was invoked from.
+function requestIsDealerPortal(): boolean {
+  try {
+    const p = headers().get('x-pathname') || '';
+    return p === '/dealer' || p.startsWith('/dealer/');
+  } catch {
+    return false;
+  }
 }
 
 async function getViewAs(): Promise<{ dealerId: string; by: string } | null> {
