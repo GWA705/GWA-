@@ -388,7 +388,11 @@ export const REVIEWER_PAPERWORK_PREFIX: Partial<Record<DocumentType, string>> = 
 };
 
 // Upload constraints.
-export const MAX_FILE_BYTES = 15 * 1024 * 1024; // 15 MB
+export const MAX_FILE_BYTES = 15 * 1024 * 1024; // 15 MB (per-deal docs, logos, photos)
+// Reference material (product manuals, brochures, spec sheets) is legitimately
+// larger and uploaded rarely by staff, so it gets a higher ceiling. Keep in step
+// with next.config's serverActions.bodySizeLimit.
+export const MAX_RESOURCE_FILE_BYTES = 40 * 1024 * 1024; // 40 MB
 export const ALLOWED_MIME_TYPES = [
   'application/pdf',
   'image/jpeg',

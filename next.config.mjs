@@ -6,9 +6,11 @@ const nextConfig = {
   // unpdf/tesseract.js/@napi-rs/canvas carry WASM/prebuilt binaries for OCR).
   experimental: {
     serverComponentsExternalPackages: ['sharp', 'unpdf', 'tesseract.js', '@napi-rs/canvas', 'pdf-to-img', 'pdfjs-dist'],
-    // Match the ~15 MB document-upload intent (server actions default to 1 MB).
+    // Server actions default to 1 MB. Allow up to 40 MB so large reference
+    // material (product manuals/brochures) can be uploaded; per-context checks
+    // (MAX_FILE_BYTES / MAX_RESOURCE_FILE_BYTES) still apply per upload type.
     serverActions: {
-      bodySizeLimit: '15mb',
+      bodySizeLimit: '40mb',
     },
   },
   // Security headers are also enforced in middleware.ts; these are a static baseline.

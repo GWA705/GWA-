@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { logLeadCallAction, deleteLeadCallAction } from '@/lib/leadCallActions';
 import type { LeadCallRow } from '@/lib/leadCalls';
 
@@ -53,6 +54,7 @@ export function LeadCallTracker({ leadKey, initial }: { leadKey: string; initial
   const [note, setNote] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [, start] = useTransition();
+  const router = useRouter();
 
   const s = derive(calls);
 
@@ -74,6 +76,10 @@ export function LeadCallTracker({ leadKey, initial }: { leadKey: string; initial
       if (res?.error) {
         setCalls((c) => c.filter((x) => x.id !== optimistic.id));
         setError(res.error);
+      } else {
+        // Keep the collapsed-card status pill (rendered on the server) in step
+        // with what was just logged.
+        router.refresh();
       }
     });
   }
@@ -84,6 +90,7 @@ export function LeadCallTracker({ leadKey, initial }: { leadKey: string; initial
     start(async () => {
       const res = await deleteLeadCallAction(id);
       if (res?.error) setError(res.error);
+      else router.refresh(); // refresh the server-rendered status pill after removal
     });
   }
 

@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import path from 'path';
 import { putDocument } from './storage';
 import { MAX_FILE_BYTES, RESOURCE_FILE_MIME_TYPES } from './constants';
+// (MAX_RESOURCE_FILE_BYTES passed in via opts.maxBytes where a larger ceiling applies)
 import { pdfFirstPageThumb } from './pdfThumb';
 
 /**
@@ -14,11 +15,12 @@ import { pdfFirstPageThumb } from './pdfThumb';
 export async function storeResourceBlob(
   prefix: string,
   file: File,
-  opts: { imageOnly?: boolean } = {},
+  opts: { imageOnly?: boolean; maxBytes?: number } = {},
 ): Promise<{ key: string; mime: string; size: number; name: string; thumbKey?: string; thumbMime?: string } | { error: string }> {
   if (!(file instanceof File) || file.size === 0) return { error: 'No file provided.' };
-  if (file.size > MAX_FILE_BYTES) {
-    return { error: `File exceeds the ${Math.floor(MAX_FILE_BYTES / 1024 / 1024)} MB limit.` };
+  const maxBytes = opts.maxBytes ?? MAX_FILE_BYTES;
+  if (file.size > maxBytes) {
+    return { error: `File exceeds the ${Math.floor(maxBytes / 1024 / 1024)} MB limit.` };
   }
   const allowed = opts.imageOnly ? RESOURCE_FILE_MIME_TYPES.filter((m) => m.startsWith('image/')) : RESOURCE_FILE_MIME_TYPES;
   if (!allowed.includes(file.type)) {

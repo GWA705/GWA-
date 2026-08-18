@@ -7,6 +7,7 @@ import { requireAdminSection } from '@/lib/session';
 import { audit } from '@/lib/audit';
 import { deleteDocument } from '@/lib/storage';
 import { storeResourceBlob } from '@/lib/resourceLibrary';
+import { MAX_RESOURCE_FILE_BYTES } from '@/lib/constants';
 import { toTitleCase } from '@/lib/textcase';
 import type { ResourceFileKind } from '@prisma/client';
 
@@ -61,7 +62,7 @@ export async function createResourceProductAction(_prev: ActionState, formData: 
   for (const { field, kind } of initialFiles) {
     const f = formData.get(field);
     if (!(f instanceof File) || f.size === 0) continue;
-    const stored = await storeResourceBlob(`resource-products/${created.id}/files`, f);
+    const stored = await storeResourceBlob(`resource-products/${created.id}/files`, f, { maxBytes: MAX_RESOURCE_FILE_BYTES });
     if ('error' in stored) continue;
     order += 1;
     await prisma.resourceProductFile.create({
@@ -155,7 +156,7 @@ export async function addResourceFileAction(productId: string, _prev: ActionStat
 
   const file = formData.get('file');
   if (!(file instanceof File) || file.size === 0) return { error: 'Choose a file to upload.' };
-  const stored = await storeResourceBlob(`resource-products/${productId}/files`, file);
+  const stored = await storeResourceBlob(`resource-products/${productId}/files`, file, { maxBytes: MAX_RESOURCE_FILE_BYTES });
   if ('error' in stored) return { error: stored.error };
 
   const kind = parseKind(formData.get('kind'));

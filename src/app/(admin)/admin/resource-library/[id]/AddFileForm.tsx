@@ -4,6 +4,7 @@ import { useRef } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { addResourceFileAction, type ActionState } from '../actions';
 import { RESOURCE_FILE_KINDS } from '@/lib/constants';
+import { compressImageFile } from '@/lib/clientImageCompress';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -21,6 +22,13 @@ export function AddFileForm({ productId }: { productId: string }) {
     <form
       ref={formRef}
       action={async (fd) => {
+        // Auto-shrink image uploads in the browser before they're sent (photos
+        // and scans). PDFs pass through untouched.
+        const f = fd.get('file');
+        if (f instanceof File && f.type.startsWith('image/')) {
+          const smaller = await compressImageFile(f);
+          if (smaller !== f) fd.set('file', smaller);
+        }
         await action(fd);
         formRef.current?.reset();
       }}
@@ -41,7 +49,7 @@ export function AddFileForm({ productId }: { productId: string }) {
           <input id="label" name="label" className="input" placeholder="e.g. Installation manual (EN)" />
         </div>
         <div className="sm:col-span-3">
-          <label className="label" htmlFor="file">File <span className="font-normal text-gray-400">(PDF or image, max 15 MB)</span></label>
+          <label className="label" htmlFor="file">File <span className="font-normal text-gray-400">(PDF or image, max 40 MB — images are auto-compressed)</span></label>
           <input id="file" name="file" type="file" accept="application/pdf,image/*" required className="input" />
         </div>
       </div>
