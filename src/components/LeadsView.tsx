@@ -38,6 +38,7 @@ const CALL_CHIP: Record<string, string> = {
   red: 'bg-red-100 text-red-700',
   teal: 'bg-teal-100 text-teal-800',
   green: 'bg-emerald-100 text-emerald-800',
+  violet: 'bg-violet-100 text-violet-800',
 };
 
 // Read-only, searchable list of HD leads with running totals. Shared by the

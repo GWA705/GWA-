@@ -4,12 +4,15 @@ import { useState, useTransition } from 'react';
 import { logLeadCallAction, deleteLeadCallAction } from '@/lib/leadCallActions';
 import type { LeadCallRow } from '@/lib/leadCalls';
 
-const OUTCOMES: { key: string; label: string; emoji: string; color: string }[] = [
-  { key: 'NO_ANSWER', label: 'No answer', emoji: '📵', color: 'bg-amber-500 hover:bg-amber-600' },
-  { key: 'LEFT_MESSAGE', label: 'Left message', emoji: '💬', color: 'bg-sky-500 hover:bg-sky-600' },
-  { key: 'SPOKE', label: 'Spoke', emoji: '🗣️', color: 'bg-indigo-500 hover:bg-indigo-600' },
-  { key: 'BOOKED', label: 'Booked', emoji: '✅', color: 'bg-emerald-600 hover:bg-emerald-700' },
-  { key: 'NOT_INTERESTED', label: 'Not interested', emoji: '🚫', color: 'bg-rose-500 hover:bg-rose-600' },
+// `short` is the compact button face; `label` is the full wording used in the
+// status pill and the logged-call history.
+const OUTCOMES: { key: string; short: string; label: string; emoji: string; color: string }[] = [
+  { key: 'NO_ANSWER', short: 'NA', label: 'No answer', emoji: '📵', color: 'bg-amber-500 hover:bg-amber-600' },
+  { key: 'LEFT_MESSAGE', short: 'LM', label: 'Left message', emoji: '💬', color: 'bg-sky-500 hover:bg-sky-600' },
+  { key: 'SPOKE', short: 'Spoke', label: 'Spoke', emoji: '🗣️', color: 'bg-indigo-500 hover:bg-indigo-600' },
+  { key: 'BOOKED', short: 'Booked', label: 'Booked', emoji: '✅', color: 'bg-emerald-600 hover:bg-emerald-700' },
+  { key: 'SOLD', short: 'SOLD', label: 'Sold', emoji: '💰', color: 'bg-violet-600 hover:bg-violet-700' },
+  { key: 'NOT_INTERESTED', short: 'NI', label: 'Not interested', emoji: '🚫', color: 'bg-rose-500 hover:bg-rose-600' },
 ];
 const LABELS: Record<string, string> = Object.fromEntries(OUTCOMES.map((o) => [o.key, o.label]));
 LABELS.NOTE = 'Note';
@@ -20,6 +23,7 @@ const TONE: Record<string, { pill: string; dot: string; chip: string }> = {
   red: { pill: 'bg-red-100 text-red-700', dot: 'bg-red-500', chip: 'bg-red-100 text-red-700' },
   teal: { pill: 'bg-teal-100 text-teal-800', dot: 'bg-teal-500', chip: 'bg-teal-100 text-teal-800' },
   green: { pill: 'bg-emerald-100 text-emerald-800', dot: 'bg-emerald-500', chip: 'bg-emerald-100 text-emerald-800' },
+  violet: { pill: 'bg-violet-100 text-violet-800', dot: 'bg-violet-500', chip: 'bg-violet-100 text-violet-800' },
 };
 
 function derive(calls: { outcome: string }[]): { tone: keyof typeof TONE; label: string; next: string | null } {
@@ -27,6 +31,7 @@ function derive(calls: { outcome: string }[]): { tone: keyof typeof TONE; label:
   const noAns = calls.filter((c) => c.outcome === 'NO_ANSWER').length;
   const last = calls[calls.length - 1].outcome;
   switch (last) {
+    case 'SOLD': return { tone: 'violet', label: 'Sold ✓', next: null };
     case 'BOOKED': return { tone: 'green', label: 'Booked ✓', next: null };
     case 'NOT_INTERESTED': return { tone: 'grey', label: 'Not interested', next: null };
     case 'SPOKE': return { tone: 'teal', label: 'Spoke', next: 'Follow up / book' };
@@ -101,9 +106,11 @@ export function LeadCallTracker({ leadKey, initial }: { leadKey: string; initial
             key={o.key}
             type="button"
             onClick={() => log(o.key)}
+            title={o.label}
+            aria-label={`Log: ${o.label}`}
             className={`inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition active:scale-95 ${o.color}`}
           >
-            <span aria-hidden>{o.emoji}</span> {o.label}
+            <span aria-hidden>{o.emoji}</span> {o.short}
           </button>
         ))}
       </div>

@@ -7,6 +7,7 @@ export const LEAD_CALL_OUTCOMES = [
   'LEFT_MESSAGE',
   'SPOKE',
   'BOOKED',
+  'SOLD',
   'NOT_INTERESTED',
   'NOTE',
 ] as const;
@@ -49,7 +50,7 @@ export async function readLeadCalls(keys: string[]): Promise<Record<string, Lead
 
 /** Derive the at-a-glance status from a lead's call history. */
 export function leadCallStatus(calls: { outcome: string }[]): {
-  tone: 'grey' | 'amber' | 'red' | 'teal' | 'green';
+  tone: 'grey' | 'amber' | 'red' | 'teal' | 'green' | 'violet';
   label: string;
   next: string | null;
 } {
@@ -57,6 +58,7 @@ export function leadCallStatus(calls: { outcome: string }[]): {
   const noAns = calls.filter((c) => c.outcome === 'NO_ANSWER').length;
   const last = calls[calls.length - 1].outcome;
   switch (last) {
+    case 'SOLD': return { tone: 'violet', label: 'Sold', next: null };
     case 'BOOKED': return { tone: 'green', label: 'Booked', next: null };
     case 'NOT_INTERESTED': return { tone: 'grey', label: 'No interest', next: null };
     case 'SPOKE': return { tone: 'teal', label: 'Spoke', next: 'Follow up / book' };
