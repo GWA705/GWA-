@@ -51,21 +51,17 @@ function landingFor(role: string | null): string {
  */
 function buildCsp(nonce: string): string {
   const isProd = process.env.NODE_ENV === 'production';
-  // Only widen the policy for Google Maps when the Places key is configured.
-  const gmaps = !!process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-  const gScript = gmaps ? ' https://maps.googleapis.com' : '';
-  const gConnect = gmaps ? ' https://maps.googleapis.com' : '';
-  const gImg = gmaps ? ' https://maps.gstatic.com https://maps.googleapis.com https://*.googleusercontent.com' : '';
-
+  // Address autocomplete now runs through our own /api/places routes (same
+  // origin), so no external Google script/connect/image origins are needed.
   const scriptSrc = isProd
-    ? `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${gScript}`
-    : `script-src 'self' 'unsafe-eval' 'unsafe-inline'${gScript}`;
+    ? `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`
+    : `script-src 'self' 'unsafe-eval' 'unsafe-inline'`;
   return [
     "default-src 'self'",
-    `img-src 'self' data:${gImg}`,
+    "img-src 'self' data:",
     "style-src 'self' 'unsafe-inline'",
     scriptSrc,
-    `connect-src 'self'${gConnect}`,
+    "connect-src 'self'",
     "frame-ancestors 'self'",
     "form-action 'self'",
     "base-uri 'self'",

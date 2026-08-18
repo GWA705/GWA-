@@ -4,12 +4,24 @@ import { getSession } from '@/lib/session';
 import { canAccessApplication } from '@/lib/rbac';
 import { getDocument } from '@/lib/storage';
 import { audit } from '@/lib/audit';
+import { rateLimit } from '@/lib/ratelimit';
 
 // Authenticated, access-controlled document download. There are no public URLs
 // to document contents; every retrieval is authorized and audited.
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getSession();
   if (!session) return new NextResponse('Unauthorized', { status: 401 });
+
+  // Anti-exfiltration (assessment item R5): cap how many documents one account
+  // can pull in a short window, so a compromised login can't bulk-download the
+  // funding-document store. Generous enough that normal review never trips it.
+  const rl = await rateLimit(`doc-fetch:${session.userId}`, 150, 60);
+  if (!rl.ok) {
+    return new NextResponse('Too many document requests — please wait a moment and try again.', {
+      status: 429,
+      headers: { 'Retry-After': String(rl.retryAfterSec) },
+    });
+  }
 
   // ?download=1 forces a "Save as" download; otherwise the file opens inline.
   const asDownload = req.nextUrl.searchParams.get('download') === '1';

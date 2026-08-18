@@ -23,6 +23,16 @@ export function isSuperAdmin(user: SessionUser): boolean {
 }
 
 /**
+ * Who may bulk-download / export documents (assessment item R5). A ZIP of many
+ * customers' funding documents is a concentrated exfiltration risk, so it is
+ * restricted to Super Admins. Individual, access-controlled, audited downloads
+ * are unchanged. Use this to gate any future "download all" / export feature.
+ */
+export function canBulkExport(user: SessionUser): boolean {
+  return isSuperAdmin(user);
+}
+
+/**
  * Can this user reach a given back-end section (a key from ADMIN_SECTIONS)?
  * Only admins have back-end access; a Super Admin has every section, a scoped
  * admin only the keys in their adminSections list. Enforced server-side on
