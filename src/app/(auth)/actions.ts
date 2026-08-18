@@ -14,6 +14,7 @@ import {
 } from '@/lib/mfa';
 import { issueEmailMfaCode } from '@/lib/mfa-email';
 import { emailEnabled } from '@/lib/email';
+import { alertOnNewSignIn } from '@/lib/signinAlert';
 import { getMfaRequirement, mfaRequiredForRole, getMfaTrustDays } from '@/lib/settings';
 import {
   createSession,
@@ -83,6 +84,10 @@ async function finishLogin(user: User, viaMfa: boolean, trustDevice = false): Pr
     adminSections: user.adminSections,
     tokenVersion: user.tokenVersion,
   });
+  // Security: warn the user if this login is from a place they haven't used
+  // before (assessment item R6). Runs before the LOGIN_SUCCESS entry below so it
+  // compares against prior logins only. Best-effort — never blocks login.
+  await alertOnNewSignIn({ id: user.id, email: user.email, name: user.name });
   await audit({
     actorId: user.id,
     action: 'LOGIN_SUCCESS',
