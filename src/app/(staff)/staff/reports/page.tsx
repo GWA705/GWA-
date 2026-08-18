@@ -49,6 +49,15 @@ export default async function ReportsLandingPage() {
       available: true,
     },
     {
+      href: '/staff/reports/leads',
+      title: 'Leads report',
+      blurb:
+        'Every HD lead by dealer — how many, what type, No-Good, and where each call landed (NA, LM, Spoke, Booked, Sold, NI). Search a dealer or read the group totals.',
+      accent: '#b8860b',
+      badge: 'Leadership',
+      available: canLeadership,
+    },
+    {
       href: '/staff/reports/dealer-snapshot',
       title: 'Dealer Snapshot',
       blurb:
