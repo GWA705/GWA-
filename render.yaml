@@ -34,8 +34,26 @@ services:
       # Auto-generated strong secrets — you never have to create these by hand.
       - key: SESSION_SECRET
         generateValue: true
+      # DELIBERATELY NOT generateValue.
+      #
+      # Every application-encrypted field in this portal — SIN, banking, DOB,
+      # addresses, government ID, MFA secrets — is encrypted under this key.
+      # `generateValue` mints a new one whenever the variable is absent, which
+      # happens if the service is recreated, if a second environment is created
+      # from this Blueprint, or if the variable is cleared in the dashboard.
+      # A new key does not error: it silently makes every one of those fields
+      # permanently unreadable. A database backup does not help — it restores
+      # the ciphertext, not the key.
+      #
+      # Set by hand in the Render dashboard, once, and keep a copy OUTSIDE
+      # Render (password manager + one offline copy). Generate a new one only
+      # for a new, empty database:
+      #     openssl rand -base64 32
+      #
+      # scripts/preflight.ts refuses to start the app if this key stops
+      # matching the data already in the database.
       - key: MASTER_ENCRYPTION_KEY
-        generateValue: true
+        sync: false
       # File storage driver. Managed in the DASHBOARD (sync: false) so it can be
       # set to 's3' for production without a Blueprint sync reverting it to local.
       # If left unset the app defaults to local disk (/tmp) — TEST DATA ONLY,
