@@ -178,6 +178,7 @@ export function programLabel(type: ProgramType, category: ProgramCategory): stri
 // the deal (soapType) is the code; the label is what shows and what's written to
 // the sales journal's "SOAP Included" column.
 export const SOAP_OPTIONS: { value: string; label: string }[] = [
+  { value: 'NO', label: 'No' },
   { value: 'NV', label: 'Yes - NV' },
   { value: 'PS', label: 'Yes - PS' },
   { value: 'OTHER', label: 'Yes - Other' },

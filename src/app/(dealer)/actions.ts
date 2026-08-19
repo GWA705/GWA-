@@ -60,7 +60,7 @@ export async function createApplicationAction(
   const salesErrors: Record<string, string> = {};
   if (!d.salespersonName) salesErrors.salespersonName = 'required';
   if (!d.installerName) salesErrors.installerName = 'required';
-  if (!d.soapIncluded) salesErrors.soapIncluded = 'required';
+  // SOAP is optional — blank or "No" both mean no SOAP on the deal.
   if (productsSold.length === 0 && (await prisma.product.count({ where: { active: true } })) > 0) {
     salesErrors.productsSold = 'required';
   }
@@ -194,8 +194,9 @@ export async function createApplicationAction(
       financingNote: d.financingNote || null,
       salespersonName: titleOrNull(d.salespersonName),
       installerName: titleOrNull(d.installerName),
-      soapIncluded: d.soapIncluded ? true : null,
-      soapType: d.soapIncluded ?? null,
+      // '' = unspecified (null), 'NO' = no SOAP (false), any Yes-variant = true.
+      soapIncluded: d.soapIncluded ? d.soapIncluded !== 'NO' : null,
+      soapType: d.soapIncluded || null,
       productsSold,
       loanReference: d.loanReference || null,
       financeReference: d.financeReference || null,

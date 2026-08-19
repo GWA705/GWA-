@@ -502,8 +502,9 @@ export async function updateDealAction(
       // Sales-journal detail fields (reviewer backfill).
       salespersonName: titleOrNull(d.salespersonName),
       installerName: titleOrNull(d.installerName),
-      soapIncluded: d.soapIncluded ? true : null,
-      soapType: d.soapIncluded ?? null,
+      // '' = unspecified (null), 'NO' = no SOAP (false), any Yes-variant = true.
+      soapIncluded: d.soapIncluded ? d.soapIncluded !== 'NO' : null,
+      soapType: d.soapIncluded || null,
       productsSold: mergeProductsSold(
         formData.getAll('productsSold').map(String),
         formData.get('productsSoldOther') as string | null,
