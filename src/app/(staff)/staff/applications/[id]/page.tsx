@@ -485,6 +485,24 @@ export default async function StaffApplicationDetail({
   const confirmState: PhaseState =
     app.confirmationStatus === 'COMPLETED' ? 'done' : reviewReached ? 'now' : 'todo';
 
+  // A deal can be auto-approved (e.g. dealer/FinanceIT), which jumps the flow past
+  // "Review & decide" — so the reviewer can miss recording the HD / loan number.
+  // Flag it: force that phase open and show a top-of-page prompt until the
+  // required number(s) are in.
+  const missingRefs = missingRequiredReferences({
+    hdReference: app.hdReference,
+    financeItNumber: app.financeItNumber,
+    financed: dealFinanced,
+    programType: app.programType,
+  });
+  const deadEnd = app.status === 'DECLINED' || app.status === 'WITHDRAWN';
+  const decideNeedsRefs =
+    missingRefs.length > 0 && currentPhaseIndex(flowSignals) > 1 && !deadEnd;
+  const refsList = missingRefs.length === 2 ? `${missingRefs[0]} and ${missingRefs[1]}` : missingRefs[0];
+  const reviewAlert = decideNeedsRefs
+    ? { message: `This deal is already approved but still needs ${refsList}. Open “Review & decide” below and record it before producing the install documents.` }
+    : null;
+
   const phases = reviewerPhaseStates(flowSignals).map((p) => {
     const state = p.id === 'confirm' ? confirmState : p.state;
     return {
@@ -493,6 +511,7 @@ export default async function StaffApplicationDetail({
       body: phaseBody[p.id],
       summary: phaseSummary[p.id],
       autoNote: state === 'done' ? undefined : phaseAuto[p.id],
+      attention: p.id === 'decide' ? decideNeedsRefs : undefined,
     };
   });
 
@@ -683,6 +702,7 @@ export default async function StaffApplicationDetail({
         comms={comms}
         rail={rail}
         dealerStatus={dealerStatus}
+        alert={reviewAlert}
       />
     </div>
   );

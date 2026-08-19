@@ -13,6 +13,9 @@ export interface PhaseView {
   summary?: string; // one-line recap shown when the phase is Done
   autoNote?: string; // "when you finish this, the status becomes…"
   body: ReactNode; // the section content; null for a pure waiting phase
+  // Force this phase open + flag it even when it's already "done" — used when a
+  // required field (a deal number) is still missing on an auto-approved deal.
+  attention?: boolean;
 }
 
 const LAYOUT_KEY = 'gwa:reviewer-layout';
@@ -29,15 +32,21 @@ export function ReviewerWorkspace({
   comms,
   rail,
   dealerStatus,
+  alert,
 }: {
   phases: PhaseView[];
   comms: ReactNode; // notes + history, always available (not a phase)
   rail: ReactNode; // decision + snapshot, persistent on the right
   dealerStatus: string;
+  // A prominent banner shown above everything (e.g. an approved deal still
+  // missing its HD / loan number).
+  alert?: { message: string; targetPhaseId?: string } | null;
 }) {
   const [layout, setLayout] = useState<'flow' | 'tabs'>('flow');
+  const attentionPhase = phases.find((p) => p.attention);
   const nowPhase = phases.find((p) => p.state === 'now') ?? phases[0];
-  const [activeTab, setActiveTab] = useState<string>(nowPhase?.id ?? 'comms');
+  // Open the flagged phase first when something needs attention.
+  const [activeTab, setActiveTab] = useState<string>(attentionPhase?.id ?? nowPhase?.id ?? 'comms');
 
   // Restore the reviewer's preferred layout on mount (client-only).
   useEffect(() => {
@@ -56,6 +65,15 @@ export function ReviewerWorkspace({
 
   return (
     <div>
+      {alert && (
+        <div className="mb-4 flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4">
+          <span className="mt-0.5 flex h-6 w-6 flex-none items-center justify-center rounded-full bg-amber-500 text-sm font-bold text-white" aria-hidden>!</span>
+          <div className="text-sm text-amber-900">
+            <p className="font-semibold">Needs your attention before this deal moves on</p>
+            <p className="mt-0.5">{alert.message}</p>
+          </div>
+        </div>
+      )}
       {/* Layout toggle */}
       <div className="mb-4 flex items-center justify-between gap-3">
         <p className="text-xs text-gray-500">
@@ -127,18 +145,18 @@ function FlowLayout({ phases, comms }: { phases: PhaseView[]; comms: ReactNode }
       {phases.map((p) => (
         <details
           key={p.id}
-          open={p.state === 'now'}
-          className={`card overflow-hidden ${p.state === 'now' ? 'ring-brand-300' : ''}`}
+          open={p.state === 'now' || p.attention}
+          className={`card overflow-hidden ${p.attention ? 'ring-2 ring-amber-400' : p.state === 'now' ? 'ring-brand-300' : ''}`}
         >
           <summary className="flex cursor-pointer list-none items-center gap-3 p-4 [&::-webkit-details-marker]:hidden">
             <PhasePip index={p.index} state={p.state} />
             <div className="min-w-0 flex-1">
               <div className="text-sm font-semibold text-gray-900">{p.title}</div>
-              <div className={`text-xs ${p.state === 'now' ? 'text-brand-700' : 'text-gray-400'}`}>
-                {p.state === 'done' && p.summary ? p.summary : p.sub}
+              <div className={`text-xs ${p.attention ? 'text-amber-700' : p.state === 'now' ? 'text-brand-700' : 'text-gray-400'}`}>
+                {p.attention ? 'Missing a required deal number — add it here' : p.state === 'done' && p.summary ? p.summary : p.sub}
               </div>
             </div>
-            <PhaseTag state={p.state} />
+            {p.attention ? <span className="badge bg-amber-100 text-amber-800">Action needed</span> : <PhaseTag state={p.state} />}
             <svg className="chev flex-none text-gray-400" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
               <path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
@@ -181,8 +199,8 @@ function TabsLayout({
   setActiveTab: (id: string) => void;
 }) {
   const tabs = [
-    ...phases.map((p) => ({ id: p.id, index: p.index, title: p.title, state: p.state })),
-    { id: 'comms', index: 0, title: 'Notes & history', state: 'todo' as PhaseState },
+    ...phases.map((p) => ({ id: p.id, index: p.index, title: p.title, state: p.state, attention: p.attention })),
+    { id: 'comms', index: 0, title: 'Notes & history', state: 'todo' as PhaseState, attention: false },
   ];
   const active = phases.find((p) => p.id === activeTab);
 
@@ -206,14 +224,16 @@ function TabsLayout({
             >
               <span
                 className={`mr-1.5 inline-flex h-4 w-4 items-center justify-center rounded-full align-middle text-[10px] font-bold ${
-                  t.state === 'done'
-                    ? 'bg-green-100 text-green-700'
-                    : t.state === 'now'
-                      ? 'bg-brand-600 text-white'
-                      : 'bg-gray-200 text-gray-500'
+                  t.attention
+                    ? 'bg-amber-500 text-white'
+                    : t.state === 'done'
+                      ? 'bg-green-100 text-green-700'
+                      : t.state === 'now'
+                        ? 'bg-brand-600 text-white'
+                        : 'bg-gray-200 text-gray-500'
                 }`}
               >
-                {t.id === 'comms' ? '✎' : t.state === 'done' ? '✓' : t.index}
+                {t.attention ? '!' : t.id === 'comms' ? '✎' : t.state === 'done' ? '✓' : t.index}
               </span>
               {t.title}
             </button>
