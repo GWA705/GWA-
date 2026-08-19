@@ -33,6 +33,12 @@ Legend: ✅ done in code · 🔧 partially addressed · ⛔ needs an action outs
 | R11 | Fix PDF flicker / re-fetch | Dev | ✅ **Addressed.** PDFs render as one server-rendered stacked-page image via `DocViewer` / `PdfPagesImage`; the source isn't re-fetched on redraw. |
 | R12 | Confirm only required ports are open | Ops (hosting) | ⛔ **Hosting task.** Ports observed match Render's managed edge; confirm the origin behind the edge isn't independently reachable. |
 
+## Operational must-do (not from the assessment, but critical)
+The master encryption key must never be regenerated on the live service.
+`render.yaml` now sets `MASTER_ENCRYPTION_KEY` to `sync: false` so Render can't
+auto-generate it. **Ops action:** confirm the value is set in the Render dashboard
+and back it up outside Render — see `docs/ENCRYPTION-KEY.md`.
+
 ## Out of scope in the assessment (for awareness)
 Android app, related sites (mywatertest.ca, airrevitalizer.ca), internal network,
 hosting infrastructure, source-code review, and phishing simulation.
