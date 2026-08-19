@@ -59,6 +59,17 @@ describe('findCardData (hard block)', () => {
     // No major-brand prefix, no surrounding card words → not treated as a card.
     expect(findCardData('Batch id 8888 8888 8888 8887').blocked).toBe(false);
   });
+  it('does NOT block two phone numbers written back-to-back (647 area code)', () => {
+    // The real false positive: two 647-area-code numbers merged by OCR into a
+    // 19-digit run that looks like a Discover card (644–649 prefix range).
+    expect(findCardData('647 568 6547, 647 677 9338').blocked).toBe(false);
+    expect(findCardData('Phone: 647 568 6547 647 677 9338').blocked).toBe(false);
+    expect(findCardData('(647) 568-6547 / (647) 677-9338').blocked).toBe(false);
+  });
+  it('still blocks a real card even when phone numbers share the document', () => {
+    const doc = 'Phone 647 568 6547 647 677 9338  Card 4111 1111 1111 1111';
+    expect(findCardData(doc).blocked).toBe(true);
+  });
   it('records corroborating signals without leaking digits', () => {
     const r = findCardData('VISA 4111 1111 1111 1111 exp 08/27 CVV 123');
     expect(r.blocked).toBe(true);

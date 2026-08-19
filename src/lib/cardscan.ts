@@ -58,6 +58,15 @@ const KNOWN_CARD_PREFIXES: { prefix: string; label: string }[] = [
 
 // Candidate: 13–19 digits with optional single spaces or dashes between them.
 const CANDIDATE_RE = /\d(?:[ -]?\d){12,18}/g;
+
+// A standalone North-American phone number (10 digits, optional leading 1, in
+// 3-3-4 shape with the usual separators). The digit boundaries (?<!\d)/(?!\d)
+// mean it only matches a self-contained 10-digit number — never a 10-digit slice
+// inside a longer run — so a real 13–19 digit card number is left untouched.
+// We blank these out before scanning so two phones written back-to-back (e.g.
+// two 647-area-code numbers) can't merge into a 19-digit run that looks like a
+// Discover card (its 644–649 prefix range overlaps the 647 area code).
+const PHONE_RE = /(?<!\d)(?:\+?1[ .\-]?)?\(?\d{3}\)?[ .\-]?\d{3}[ .\-]?\d{4}(?!\d)/g;
 const BRAND_WORD_RE = /\b(visa|mastercard|master\s?card|amex|american\s?express|discover)\b/i;
 const EXPIRY_RE = /\b(0[1-9]|1[0-2])\s?[/\-]\s?(\d{2}|\d{4})\b/;
 const CVV_CONTEXT_RE = /\b(cvv|cvc|cvv2|cvc2|security\s?code|card\s?verification)\b/i;
@@ -94,9 +103,14 @@ export function findCardData(text: string): CardScanResult {
   const strongCount =
     STRONG_CONTEXT.filter((re) => re.test(text)).length + (BRAND_WORD_RE.test(text) ? 1 : 0);
 
+  // Blank out phone numbers first (same-length spaces keep every index aligned
+  // with `text`, so the context slices below still read the real surrounding
+  // words). Card candidates are then found in the phone-free text.
+  const scanText = text.replace(PHONE_RE, (m) => ' '.repeat(m.length));
+
   let pan = false;
   const brandsFound = new Set<string>();
-  for (const m of text.matchAll(CANDIDATE_RE)) {
+  for (const m of scanText.matchAll(CANDIDATE_RE)) {
     const digits = m[0].replace(/[^\d]/g, '');
     if (digits.length < 13 || digits.length > 19) continue;
 
