@@ -27,6 +27,17 @@ if [ "$n" -ge "$max" ]; then
   exit 1
 fi
 
+# Runs after migrations (it needs the AppSetting table) and before the server
+# accepts a request. Its job is to stop a misconfigured deploy — above all, a
+# changed encryption key — from ever reaching a user. A non-zero exit here
+# aborts the deploy and Render keeps serving the previous version.
+echo "[start] Running preflight checks..."
+if ! npx tsx scripts/preflight.ts; then
+  echo "[start] ERROR: Preflight failed. Not starting the web server."
+  echo "[start] The previous deploy stays live. See the preflight output above."
+  exit 1
+fi
+
 echo "[start] Seeding sample data (safe to re-run)..."
 npx prisma db seed || echo "[start] Seed skipped (already present or unavailable)."
 
