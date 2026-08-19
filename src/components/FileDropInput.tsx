@@ -3,6 +3,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { compressFiles, toFileList } from '@/lib/clientImageCompress';
 
+// Staged files kept OUTSIDE the React tree, keyed by `persistKey`. When several
+// drop boxes sit on one page and submitting one causes the page to re-render or
+// the box to remount (e.g. a status change swaps the surrounding step), each box
+// re-hydrates its own staged files from here instead of losing them. Cleared
+// when that box's form resets after a successful submit.
+const STAGED_FILES = new Map<string, File[]>();
+
 function CloudIcon({ className }: { className: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -28,6 +35,7 @@ export function FileDropInput({
   hint = 'PDF, JPG, PNG, HEIC, or WEBP',
   buttonLabel = 'Choose file',
   compressImages = true,
+  persistKey,
   onFilesChange,
 }: {
   name: string;
@@ -39,6 +47,9 @@ export function FileDropInput({
   // Shrink large photos in the browser before upload (keeps documents readable).
   // Turn off for artwork/graphics where full resolution matters.
   compressImages?: boolean;
+  // When set, staged files survive a remount (see STAGED_FILES). Use a key that
+  // is unique per box AND per record, e.g. `${applicationId}:${category}`.
+  persistKey?: string;
   onFilesChange?: (names: string[]) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -50,9 +61,14 @@ export function FileDropInput({
 
   function sync() {
     const f = inputRef.current?.files;
-    const arr = f ? Array.from(f).map((x) => x.name) : [];
-    setNames(arr);
-    cbRef.current?.(arr);
+    const arr = f ? Array.from(f) : [];
+    if (persistKey) {
+      if (arr.length) STAGED_FILES.set(persistKey, arr);
+      else STAGED_FILES.delete(persistKey);
+    }
+    const nameArr = arr.map((x) => x.name);
+    setNames(nameArr);
+    cbRef.current?.(nameArr);
   }
 
   // Downscale big photos before they're attached to the input, so the form
@@ -101,17 +117,35 @@ export function FileDropInput({
     };
   }, []);
 
-  // Clear the display when the surrounding form is reset (e.g. after submit).
+  // Re-hydrate staged files after a remount, so a sibling box's submit (which can
+  // re-render this whole area) doesn't wipe what's waiting here.
+  useEffect(() => {
+    if (!persistKey || !inputRef.current) return;
+    const saved = STAGED_FILES.get(persistKey);
+    if (saved?.length && inputRef.current.files?.length === 0) {
+      const list = toFileList(saved);
+      if (list) {
+        inputRef.current.files = list;
+        sync();
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [persistKey]);
+
+  // Clear the display (and the persisted copy) when the surrounding form is reset
+  // (e.g. after a successful submit).
   useEffect(() => {
     const form = inputRef.current?.form;
     if (!form) return;
     const onReset = () => {
+      if (persistKey) STAGED_FILES.delete(persistKey);
       setNames([]);
       cbRef.current?.([]);
     };
     form.addEventListener('reset', onReset);
     return () => form.removeEventListener('reset', onReset);
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [persistKey]);
 
   const big = variant === 'large';
 

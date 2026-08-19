@@ -23,7 +23,7 @@ function UploadButton({ disabled, label }: { disabled: boolean; label: string })
  * so there's no dropdown to pick and nothing to mis-tag. Each box submits the
  * same reviewer-paperwork action with its own fixed category.
  */
-function PaperworkBox({ action, type, label }: { action: BoundAction; type: string; label: string }) {
+function PaperworkBox({ action, type, label, scope }: { action: BoundAction; type: string; label: string; scope: string }) {
   const [state, formAction] = useFormState(action, {} as UploadState);
   const formRef = useRef<HTMLFormElement>(null);
   const [names, setNames] = useState<string[]>([]);
@@ -70,6 +70,7 @@ function PaperworkBox({ action, type, label }: { action: BoundAction; type: stri
         variant="compact"
         buttonLabel="Add files"
         hint="Drop here or tap"
+        persistKey={`${scope}:${type}`}
         onFilesChange={setNames}
       />
 
@@ -82,9 +83,12 @@ function PaperworkBox({ action, type, label }: { action: BoundAction; type: stri
 export function ReviewerPaperworkBoxes({
   action,
   categories,
+  scope,
 }: {
   action: BoundAction;
   categories: { type: string; label: string }[];
+  // A per-deal key so staged files survive a remount without leaking between deals.
+  scope: string;
 }) {
   return (
     <div>
@@ -93,7 +97,7 @@ export function ReviewerPaperworkBoxes({
       </p>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {categories.map((c) => (
-          <PaperworkBox key={c.type} action={action} type={c.type} label={c.label} />
+          <PaperworkBox key={c.type} action={action} type={c.type} label={c.label} scope={scope} />
         ))}
       </div>
     </div>

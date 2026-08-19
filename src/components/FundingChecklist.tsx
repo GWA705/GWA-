@@ -1,4 +1,4 @@
-import type { Document, ApplicationStatus, ProgramType } from '@prisma/client';
+import type { Document, ApplicationStatus, ProgramType, PaymentMethod } from '@prisma/client';
 import { fundingDocumentTypesFor } from '@/lib/constants';
 import {
   verifyAllFundingDocsAction,
@@ -47,13 +47,17 @@ export function FundingChecklist({
   applicationId,
   status,
   programType,
+  paymentMethod,
+  isSplitPayment,
 }: {
   fundingDocs: Document[];
   applicationId: string;
   status: ApplicationStatus;
   programType: ProgramType;
+  paymentMethod?: PaymentMethod | null;
+  isSplitPayment?: boolean;
 }) {
-  const docTypes = fundingDocumentTypesFor(programType);
+  const docTypes = fundingDocumentTypesFor(programType, { paymentMethod, isSplitPayment });
   const verifiedTypes = new Set(fundingDocs.filter((d) => d.verifiedAt).map((d) => d.type));
   const allRequiredVerified = docTypes.filter((t) => t.required).every((t) =>
     verifiedTypes.has(t.type),

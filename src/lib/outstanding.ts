@@ -1,4 +1,4 @@
-import type { ApplicationStatus, DocumentType, ProgramType } from '@prisma/client';
+import type { ApplicationStatus, DocumentType, ProgramType, PaymentMethod } from '@prisma/client';
 import { fundingDocumentTypesFor } from './constants';
 
 /**
@@ -26,6 +26,8 @@ export interface DealerOutstanding {
 export function dealerOutstanding(app: {
   status: ApplicationStatus;
   programType: ProgramType;
+  paymentMethod?: PaymentMethod | null;
+  isSplitPayment?: boolean;
   productsSold: string[];
   requiresSerials: boolean;
   serialNumbers: SerialLite[];
@@ -51,9 +53,10 @@ export function dealerOutstanding(app: {
 
   // Required funding documents not yet uploaded.
   const uploaded = new Set(app.fundingDocs.map((d) => d.type));
-  const missingDocs = fundingDocumentTypesFor(app.programType).filter(
-    (t) => t.required && !uploaded.has(t.type),
-  );
+  const missingDocs = fundingDocumentTypesFor(app.programType, {
+    paymentMethod: app.paymentMethod,
+    isSplitPayment: app.isSplitPayment,
+  }).filter((t) => t.required && !uploaded.has(t.type));
   for (const t of missingDocs) items.push(`Upload: ${t.label}.`);
 
   // When approved/conditional and everything is in, the last step is to submit.

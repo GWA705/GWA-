@@ -720,7 +720,10 @@ export async function moveToInForFundingAction(applicationId: string): Promise<v
   const verifiedTypes = new Set(
     app.documents.filter((d) => d.verifiedAt !== null).map((d) => d.type),
   );
-  const allRequiredVerified = fundingDocumentTypesFor(app.programType)
+  const allRequiredVerified = fundingDocumentTypesFor(app.programType, {
+    paymentMethod: app.paymentMethod,
+    isSplitPayment: app.isSplitPayment,
+  })
     .filter((t) => t.required)
     .every((t) => verifiedTypes.has(t.type));
   if (!allRequiredVerified) {

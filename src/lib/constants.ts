@@ -297,14 +297,32 @@ export const FUNDING_DOCUMENT_TYPES: {
 // checklist entirely.
 const HD_ONLY_FUNDING_TYPES: DocumentType[] = ['SIGNED_HD_DOCUMENT', 'HD_WAIVER'];
 
-// The funding checklist for a given program. GWA deals don't involve Home Depot,
-// so the HD documents/waiver are removed — dealers never see them and reviewers
-// never count them as missing. HD deals keep the full list.
-export function fundingDocumentTypesFor(programType: ProgramType) {
+// Items that only apply when there is a financed portion. An already-paid Express
+// deal (cash / cheque / credit card, no financing) has no loan agreement and no
+// pre-authorized debit, so the signed finance package and the void cheque / PAP
+// drop off.
+const FINANCED_ONLY_FUNDING_TYPES: DocumentType[] = ['SIGNED_CONTRACT', 'VOID_CHEQUE_OR_PAP'];
+
+// The funding checklist for a given deal.
+//  - GWA program deals don't involve Home Depot → drop the HD documents/waiver.
+//  - Already-paid Express deals (a non-finance payment method, no split-financed
+//    portion) → drop the signed finance package and void cheque / PAP.
+// Dealers never see the dropped items and reviewers never count them as missing.
+export function fundingDocumentTypesFor(
+  programType: ProgramType,
+  opts: { paymentMethod?: PaymentMethod | null; isSplitPayment?: boolean } = {},
+) {
+  let types = FUNDING_DOCUMENT_TYPES;
   if (programType === 'GWA') {
-    return FUNDING_DOCUMENT_TYPES.filter((t) => !HD_ONLY_FUNDING_TYPES.includes(t.type));
+    types = types.filter((t) => !HD_ONLY_FUNDING_TYPES.includes(t.type));
   }
-  return FUNDING_DOCUMENT_TYPES;
+  const pm = opts.paymentMethod;
+  const alreadyPaidExpress =
+    pm != null && NON_FINANCE_PAYMENT_METHODS.includes(pm) && !opts.isSplitPayment;
+  if (alreadyPaidExpress) {
+    types = types.filter((t) => !FINANCED_ONLY_FUNDING_TYPES.includes(t.type));
+  }
+  return types;
 }
 
 // Rule 2 — the reviewer's funding verification checklist. A fixed list of checks

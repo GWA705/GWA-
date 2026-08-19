@@ -78,7 +78,10 @@ export default async function DealerApplicationDetail({
 
   // GWA program deals don't involve Home Depot, so the HD documents/waiver drop
   // off the funding checklist entirely.
-  const requiredFunding = fundingDocumentTypesFor(app.programType);
+  const requiredFunding = fundingDocumentTypesFor(app.programType, {
+    paymentMethod: app.paymentMethod,
+    isSplitPayment: app.isSplitPayment,
+  });
   const missingCount = requiredFunding.filter(
     (t) => t.required && !uploadedFundingTypes.has(t.type),
   ).length;
@@ -87,6 +90,8 @@ export default async function DealerApplicationDetail({
   const outstanding = dealerOutstanding({
     status: app.status,
     programType: app.programType,
+    paymentMethod: app.paymentMethod,
+    isSplitPayment: app.isSplitPayment,
     productsSold: app.productsSold,
     requiresSerials,
     serialNumbers: app.serialNumbers,

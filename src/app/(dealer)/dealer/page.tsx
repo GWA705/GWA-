@@ -155,6 +155,8 @@ export default async function DealerHome({
               const outstanding = dealerOutstanding({
                 status: a.status,
                 programType: a.programType,
+                paymentMethod: a.paymentMethod,
+                isSplitPayment: a.isSplitPayment,
                 productsSold: a.productsSold,
                 requiresSerials: !!a.financeCompany?.requiresSerialPerProduct && a.productsSold.length > 0,
                 serialNumbers: a.serialNumbers,
@@ -208,6 +210,8 @@ export default async function DealerHome({
                   const outstanding = dealerOutstanding({
                     status: a.status,
                     programType: a.programType,
+                paymentMethod: a.paymentMethod,
+                isSplitPayment: a.isSplitPayment,
                     productsSold: a.productsSold,
                     requiresSerials: !!a.financeCompany?.requiresSerialPerProduct && a.productsSold.length > 0,
                     serialNumbers: a.serialNumbers,

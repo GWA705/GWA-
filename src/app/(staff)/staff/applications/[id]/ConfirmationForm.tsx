@@ -100,7 +100,6 @@ export function ConfirmationForm({
         <div><label className="label"># of calls</label><input name="numberOfCalls" type="number" min="0" defaultValue={val(data?.numberOfCalls)} className="input" /></div>
         <div><label className="label">Product</label><input name="productName" defaultValue={data?.productName ?? defaultProduct} className="input" /></div>
         <div><label className="label">City</label><input name="city" defaultValue={data?.city ?? defaultCity} className="input" /></div>
-        <div><label className="label">District</label><input name="district" defaultValue={val(data?.district)} className="input" /></div>
         <div><label className="label">Phone</label><input name="phoneNumber" defaultValue={data?.phoneNumber ?? defaultPhone} className="input" /></div>
       </div>
 
