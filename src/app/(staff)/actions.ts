@@ -33,7 +33,7 @@ import {
   approvalGateError,
   soapLabel,
 } from '@/lib/constants';
-import { dealHasFinancing, financedAmountOf } from '@/lib/payments';
+import { dealHasFinancing, financedAmountOf, nonFinancedAmountOf, journalPayCode } from '@/lib/payments';
 import type { ApplicationStatus, DecisionType, DocumentType, VerificationStatus } from '@prisma/client';
 
 export interface ActionState {
@@ -1081,7 +1081,7 @@ export async function writeToJournalAction(
 
   const app = await prisma.application.findUnique({
     where: { id: applicationId },
-    include: { homeDepotStore: true, dealer: true, loanApplication: true },
+    include: { homeDepotStore: true, dealer: true, loanApplication: true, financeCompany: true, paymentSplits: true },
   });
   if (!app) return { error: 'Deal not found.' };
   const refError = referenceGateError({ ...app, financed: dealHasFinancing(app) }, 'writing to the journal');
@@ -1098,6 +1098,16 @@ export async function writeToJournalAction(
   // Journal writes the abbreviated product code (falls back to the full name).
   const journalProducts = await journalProductNames(app.productsSold);
 
+  // "How They Payed" code (col F) + the non-financed portion (col J, Cash/Chq/CC).
+  const payCode = journalPayCode({
+    programType: app.programType,
+    paymentMethod: app.paymentMethod,
+    financeCompanyName: app.financeCompany?.name ?? null,
+    splitMethods: app.paymentSplits?.map((s) => s.method),
+    hasFinancedPortion: dealHasFinancing(app),
+  });
+  const cashAmount = nonFinancedAmountOf(app);
+
   const deal: JournalDeal = {
     lastName: app.applicantLastName,
     firstName: app.applicantFirstName,
@@ -1109,7 +1119,9 @@ export async function writeToJournalAction(
     installer: app.installerName,
     products: journalProducts.length ? journalProducts.join(', ') : null,
     soap: soapLabel(app.soapType, app.soapIncluded),
+    payCode,
     financedAmount: fmtAmount(financedAmountOf(app)),
+    cashAmount: cashAmount > 0 ? cashAmount.toFixed(2) : null,
     term: null,
     address: decryptOptional(app.applicantAddressEnc),
     city: app.loanApplication?.city ?? null,

@@ -1,4 +1,4 @@
-import type { PaymentMethod } from '@prisma/client';
+import type { PaymentMethod, ProgramType } from '@prisma/client';
 import { isFinancedMethod, dealIsFinanced } from '@/lib/constants';
 
 /**
@@ -101,6 +101,72 @@ export function financedAmountOf(app: {
     approvedAmount: numOf(app.approvedAmount),
     paymentMethod: app.paymentMethod,
   });
+}
+
+/**
+ * The NON-financed portion of a deal — what was paid by cash / cheque / credit
+ * card rather than financed. This is the "Cash/Chq /CC Amount" the journal wants
+ * in column J: for a split deal it's total − financed (e.g. a $10,000 deal with
+ * $500 on a card and $9,500 financed → $500); for a fully-paid (non-financed)
+ * deal it's the whole amount; for a fully-financed deal it's 0.
+ *
+ * The deal total for a split is its requestedAmount (the splits validate to that
+ * at intake); for a non-split deal it's the approved amount, or requested when
+ * not yet approved.
+ */
+export function nonFinancedAmountOf(app: {
+  isSplitPayment: boolean;
+  financedAmount: Decimalish;
+  requestedAmount: Decimalish;
+  approvedAmount: Decimalish;
+  paymentMethod: PaymentMethod | null;
+}): number {
+  const total = app.isSplitPayment
+    ? numOf(app.requestedAmount) ?? 0
+    : numOf(app.approvedAmount) ?? numOf(app.requestedAmount) ?? 0;
+  const nonFinanced = toCents(total - financedAmountOf(app));
+  return nonFinanced > 0 ? nonFinanced : 0;
+}
+
+/**
+ * The journal's "How They Payed" code (column F) for a deal: the program prefix
+ * (HD, or GHS for a GWA deal) joined to the funding source —
+ *   FinanceIt → …FINIT, Enercare → …Ener, UEI → …UEI
+ * so an HD FinanceIt deal is "HDFINIT" and the GWA one "GHSFINIT". Non-financed
+ * card deals are fixed codes: a plain credit card is "CCHD" and a Home-Depot
+ * credit card "HDCC". Cash / cheque / e-transfer have no code (returns null, so
+ * the writer leaves the cell for the office to fill). For a split finance+card
+ * deal the financed side wins the code (the card amount lands in column J).
+ */
+export function journalPayCode(deal: {
+  programType: ProgramType;
+  paymentMethod: PaymentMethod | null;
+  financeCompanyName: string | null;
+  splitMethods?: PaymentMethod[];
+  hasFinancedPortion: boolean;
+}): string | null {
+  const prefix = deal.programType === 'GWA' ? 'GHS' : 'HD';
+
+  if (deal.hasFinancedPortion) {
+    const isFinanceIt =
+      deal.paymentMethod === 'FINANCEIT' || (deal.splitMethods ?? []).includes('FINANCEIT');
+    const suffix = isFinanceIt ? 'FINIT' : financeCodeSuffix(deal.financeCompanyName);
+    return suffix ? `${prefix}${suffix}` : null;
+  }
+
+  if (deal.paymentMethod === 'HD_CREDIT_CARD') return 'HDCC';
+  if (deal.paymentMethod === 'CREDIT_CARD') return 'CCHD';
+  return null;
+}
+
+/** Map a finance company's free-text name to its journal code suffix. */
+function financeCodeSuffix(name: string | null | undefined): string | null {
+  const u = String(name ?? '').toUpperCase();
+  if (!u) return null;
+  if (u.includes('ENERCARE') || u.includes('ENER')) return 'Ener';
+  if (u.includes('UEI')) return 'UEI';
+  if (u.includes('FINANCEIT') || u.includes('FINANCE IT') || u.includes('FINIT')) return 'FINIT';
+  return null;
 }
 
 /** Does this deal have a financed portion (so a financing number is required)? */

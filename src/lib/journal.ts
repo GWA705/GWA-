@@ -151,9 +151,19 @@ const FIELD_SPECS: FieldSpec[] = [
   { key: 'firstName', test: (_c, b) => b === 'first name' },
   { key: 'hdRef', test: (_c, b) => b.startsWith('hd ref') },
   { key: 'hdStore', test: (_c, b) => b.startsWith('hd store') },
-  { key: 'loanNo', test: (_c, b) => b === 'loan' || b.startsWith('loan ') },
+  // The finance/loan number. Some tabs have a dedicated "Loan #" column; this
+  // journal instead carries it under "Finance Co. #" (top "Finance Co.", bottom
+  // "#", which normalizes the combined header to exactly "finance co"). The
+  // money column "Amt. Paid By / Finance Co." is NOT matched (its combined
+  // header is "amt paid by finance co", not the exact "finance co").
+  { key: 'loanNo', test: (c, b) => b === 'loan' || b.startsWith('loan ') || c === 'finance co' },
   { key: 'term', test: (_c, b) => b.startsWith('term') },
+  // The non-financed "Cash/Chq /CC Amount" (column J) — distinct from the
+  // "Financed Amount" column below (matched exactly to avoid grabbing this one).
+  { key: 'cashAmount', test: (c) => c.includes('cash') },
   { key: 'financedAmount', test: (c) => c === 'financed amount' },
+  // "How They Payed" code column (top "How They", bottom "Payed").
+  { key: 'payCode', test: (_c, b) => b === 'payed' },
   // Column O is headed "Location" (top) with a blank bottom row → dealer name.
   // NB: do NOT map the finance company here — the only "Finance Co." header is
   // the bottom half of "Amt. Paid By / Finance Co.", which is a dollar/formula
@@ -285,7 +295,9 @@ export interface JournalDeal {
   installer: string | null;
   products: string | null; // comma-joined product names → "Product Sold"
   soap: string | null; // "Yes" / "No" → "SOAP Included"
+  payCode: string | null; // "How They Payed" code (HDFINIT / CCHD / …) → column F
   financedAmount: string | null;
+  cashAmount: string | null; // non-financed portion → "Cash/Chq /CC Amount" (col J)
   term: string | null;
   address: string | null;
   city: string | null;
@@ -351,7 +363,9 @@ export async function writeDealToJournal(deal: JournalDeal): Promise<JournalResu
     installer: deal.installer,
     products: deal.products,
     soap: deal.soap,
+    payCode: deal.payCode,
     financedAmount: deal.financedAmount,
+    cashAmount: deal.cashAmount,
     term: deal.term,
     address: deal.address,
     city: deal.city,
