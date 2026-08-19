@@ -6,6 +6,21 @@ developer (code), **Ops** = office / finance / IT (process or console).
 
 Legend: ✅ done in code · 🔧 partially addressed · ⛔ needs an action outside code
 
+## ▶ Still to tackle (quick checklist)
+
+**Owner actions (no code — do in a console/dashboard):**
+- [ ] **R2** — Banking-change call-back habit: confirm any changed void cheque / banking form by phoning a number already on file; second person approves; log who checked. *(finance — biggest risk, free)*
+- [ ] **R3** — DMARC: change `_dmarc.ghsbarrie.ca` from `p=none` → `quarantine` (then later `reject`); confirm SPF ends with `-all`. *(DNS, ~5 min)*
+- [ ] **R12** — Confirm with Render that only required ports are exposed and the origin is only reachable through their edge. *(hosting)*
+- [ ] **R1 follow-up** — In Render, move the value to a server-only `GOOGLE_MAPS_API_KEY` and delete `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`; API-restrict the key to the Places API.
+
+**Code work we can pick up when ready (deferred by choice):**
+- [ ] **R5 retention** — document retention period + auto-purge job (e.g. delete interior install photos N days after funding).
+
+**Settled:** R1 (code), R4, R5 (download limits + bulk gate), R6, R8, R9, R10, R11, and the master-encryption-key protection (key set, backed up, no Blueprint to regenerate it).
+
+---
+
 ## Priority 1 — Act now
 
 | ID | Item | Owner | Status |
