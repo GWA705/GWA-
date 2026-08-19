@@ -384,6 +384,44 @@ export async function writeDealToJournal(deal: JournalDeal): Promise<JournalResu
 
 // --- Read-back (journal → portal) ------------------------------------------
 
+/**
+ * Locate the read-back columns (Last Name / Result / Date Paid) from a tab's
+ * two-row header. Pure + exported so the tricky "two Date Paid columns" case is
+ * unit-testable.
+ *
+ * The journal carries TWO columns headed "Date Paid": one in the AMEX group
+ * (usually blank) and the deal-settlement one that sits right after "Result"
+ * (the green column the office fills). We must read the settlement one — so we
+ * prefer the first "Date Paid" at or after the Result column, and only fall back
+ * to the earliest match when there's no Result column to anchor on.
+ */
+export function locateStatusColumns(top: string[], bottom: string[]): {
+  lastNameCol: number;
+  resultCol: number;
+  paidCol: number;
+} {
+  const width = Math.max(top.length, bottom.length);
+  const combinedAt = (c: number) => norm(`${top[c] ?? ''} ${bottom[c] ?? ''}`);
+  const bottomAt = (c: number) => norm(bottom[c]);
+
+  let lastNameCol = -1;
+  let resultCol = -1;
+  const paidCols: number[] = [];
+  for (let c = 0; c < width; c += 1) {
+    const b = bottomAt(c);
+    const combined = combinedAt(c);
+    if (lastNameCol < 0 && b === 'last name') lastNameCol = c;
+    if (resultCol < 0 && (b === 'result' || combined.includes('result'))) resultCol = c;
+    if (b.includes('paid') || combined.includes('date paid')) paidCols.push(c);
+  }
+
+  let paidCol = -1;
+  if (resultCol >= 0) paidCol = paidCols.find((c) => c >= resultCol) ?? -1;
+  if (paidCol < 0) paidCol = paidCols.length ? paidCols[paidCols.length - 1] : -1;
+
+  return { lastNameCol, resultCol, paidCol };
+}
+
 export interface JournalStatusRead {
   found: boolean; // we located the header + row
   lastNameMatches: boolean; // the row's Last Name still matches this deal
@@ -431,17 +469,7 @@ export async function readDealJournalStatus(deal: {
     if (headerBottom < 0) return miss('header row not found');
     const top = rows[headerBottom - 1] || [];
     const bottom = rows[headerBottom] || [];
-    const width = Math.max(top.length, bottom.length);
-    const findCol = (pred: (combined: string, b: string) => boolean): number => {
-      for (let c = 0; c < width; c += 1) {
-        const combined = norm(`${top[c] ?? ''} ${bottom[c] ?? ''}`);
-        if (pred(combined, norm(bottom[c]))) return c;
-      }
-      return -1;
-    };
-    const lastNameCol = findCol((_c, b) => b === 'last name');
-    const resultCol = findCol((c, b) => b === 'result' || c.includes('result'));
-    const paidCol = findCol((c, b) => b.includes('paid') || c.includes('date paid'));
+    const { lastNameCol, resultCol, paidCol } = locateStatusColumns(top, bottom);
 
     const target = rows[deal.knownRow - 1] || [];
     const cell = (col: number) => (col >= 0 ? String(target[col] ?? '').trim() : '');
