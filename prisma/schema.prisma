@@ -811,6 +811,12 @@ model Application {
   applicantLastName  String
   applicantEmail     String
   applicantPhone     String
+  // City / postal captured on every deal (lower sensitivity, kept plaintext for
+  // the journal + search). The street address stays encrypted (applicantAddressEnc).
+  // Typed deals also mirror these on loanApplication; Express/Photo deals only
+  // have them here.
+  applicantCity      String?
+  applicantPostal    String?
 
   // ---- Sensitive PII (application-encrypted ciphertext) ----
   applicantSinEnc         String? // Social Insurance Number

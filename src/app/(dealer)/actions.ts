@@ -185,6 +185,8 @@ export async function createApplicationAction(
         ? { create: splitLines.map((l, i) => ({ method: l.method, amount: l.amount, sortOrder: i })) }
         : undefined,
       province: d.province,
+      applicantCity: d.city || null,
+      applicantPostal: d.postalCode || null,
       programType: d.programType,
       programCategory: d.programCategory,
       requestedAmount: d.requestedAmount,
