@@ -26,6 +26,10 @@ export interface JournalSyncOutcome {
   funded: boolean; // we advanced it to FUNDED this run
   skipped?: string;
   error?: string;
+  // When we read the row but it isn't "paid", this says exactly what was
+  // missing (Result not "OK", no Date Paid, …) so the reviewer knows what to
+  // fix in the journal instead of guessing.
+  reason?: string;
 }
 
 const TERMINAL: ApplicationStatus[] = ['DECLINED', 'WITHDRAWN', 'DRAFT'];
@@ -62,6 +66,21 @@ export async function syncApplicationFromJournal(applicationId: string, actorId:
 
   const paid = read.isOk && !!read.datePaid;
 
+  // Spell out what's missing when the row isn't "paid", so the reviewer knows
+  // exactly which journal cell to fix (a Date Paid alone isn't enough — the
+  // Result column also has to read "OK").
+  let reason: string | undefined;
+  if (!paid) {
+    const resultShown = read.result ? `“${read.result}”` : 'blank';
+    if (!read.isOk && !read.datePaid) {
+      reason = `Found the row, but the Result column reads ${resultShown} (it needs “OK”) and there’s no Date Paid yet.`;
+    } else if (!read.isOk) {
+      reason = `Found the row with a Date Paid, but the Result column reads ${resultShown} — it needs to read “OK” (not blank or “PE/OK”) before this counts as paid.`;
+    } else {
+      reason = 'Found the row and the Result is “OK”, but the Date Paid column is empty — add the paid date.';
+    }
+  }
+
   await prisma.application.update({
     where: { id: app.id },
     data: {
@@ -88,7 +107,7 @@ export async function syncApplicationFromJournal(applicationId: string, actorId:
     funded = true;
   }
 
-  return { applicationId, ok: true, paid, funded };
+  return { applicationId, ok: true, paid, funded, reason };
 }
 
 /**

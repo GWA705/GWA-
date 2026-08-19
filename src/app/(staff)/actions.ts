@@ -642,10 +642,13 @@ export async function syncDealFromJournalAction(applicationId: string): Promise<
   revalidatePath(`/staff/applications/${applicationId}`);
   revalidatePath('/staff');
   if (out.error) return { error: `Couldn’t read the journal: ${out.error}` };
+  if (out.skipped === 'not written to journal') {
+    return { error: 'This deal hasn’t been written to the journal yet — use “Write to Journal” first, then check again.' };
+  }
   if (out.skipped) return { error: out.skipped };
   if (out.funded) return { message: 'Journal shows this deal paid — marked Funded & Paid.' };
   if (out.paid) return { message: 'Journal shows this deal paid.' };
-  return { message: 'Checked — the journal doesn’t show this deal paid yet.' };
+  return { message: `Checked — not paid yet. ${out.reason ?? 'The journal doesn’t show this deal paid.'}` };
 }
 
 // Reviewer toggles a funding document's "completed/verified" state.
