@@ -200,6 +200,19 @@ model AppSetting {
   updatedAt DateTime @updatedAt
 }
 
+// Per-day tally of billable outside-service calls the portal makes (currently
+// the Google address-lookup API). One row per (service, UTC day); incremented
+// on each real call. The admin Costs page sums these by month and prices them.
+model ApiUsage {
+  id      String @id @default(cuid())
+  service String // e.g. 'google_places_autocomplete', 'google_places_details'
+  day     String // 'YYYY-MM-DD' (UTC)
+  count   Int    @default(0)
+
+  @@unique([service, day])
+  @@index([service])
+}
+
 // Admin-managed quick-note templates a reviewer can insert into a note with one
 // click (e.g. "Missing void cheque", "Photo doesn't show the serial number").
 // Keeps dealer-facing messages consistent and fast to send.

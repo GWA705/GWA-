@@ -23,6 +23,7 @@ import { setSetting, EMAIL_SETTING_KEYS, BANNER_SETTING_KEYS, SECURITY_SETTING_K
 import { parseDealerProfileForm } from '@/lib/dealerProfile';
 import type { Prisma } from '@prisma/client';
 import { applyDealerLogo, applySupportContactLogo } from '@/lib/dealerLogo';
+import { saveCostConfig, type CostConfig } from '@/lib/costs';
 
 export interface ActionState {
   error?: string;
@@ -33,6 +34,35 @@ export interface ActionState {
 // Save the email identity — the From display name, the group address emails
 // come FROM, and the Reply-To group address. Stored in the DB so they can be
 // changed without a redeploy. Blank fields fall back to the env defaults.
+// Save the outside-cost settings — the editable Google per-1,000 rates and the
+// fixed monthly bill amounts. Stored in the DB (no redeploy).
+export async function saveCostsAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const session = await requireAdminSection('costs');
+
+  const fields: (keyof CostConfig)[] = [
+    'googleAutocompletePer1000',
+    'googleDetailsPer1000',
+    'googleFreeCredit',
+    'render',
+    'awsS3',
+    'awsRds',
+    'email',
+    'domain',
+  ];
+  const patch: Partial<CostConfig> = {};
+  for (const f of fields) {
+    const raw = formData.get(f);
+    if (raw == null || String(raw).trim() === '') continue;
+    const n = Number(String(raw).replace(/[$,\s]/g, ''));
+    if (!Number.isFinite(n) || n < 0) return { error: `“${f}” must be a number of 0 or more.` };
+    patch[f] = Math.round(n * 100) / 100;
+  }
+  await saveCostConfig(patch);
+  await audit({ actorId: session.userId, action: 'USER_UPDATE', entityType: 'AppSetting', entityId: 'costs', detail: 'Outside-cost settings updated' });
+  revalidatePath('/admin/costs');
+  return { ok: true, message: 'Cost settings saved.' };
+}
+
 export async function saveEmailIdentityAction(
   _prev: ActionState,
   formData: FormData,

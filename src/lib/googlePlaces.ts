@@ -1,4 +1,5 @@
 import 'server-only';
+import { recordApiUsage, API_SERVICES } from './apiUsage';
 
 /**
  * Server-side Google Places lookups (assessment item R1). The API key stays on
@@ -47,6 +48,8 @@ export async function autocompleteAddress(input: string, sessionToken?: string):
 
   try {
     const res = await fetch(url, { cache: 'no-store' });
+    // A request reached Google — meter it (Google bills per request sent).
+    void recordApiUsage(API_SERVICES.googleAutocomplete);
     if (!res.ok) return [];
     const data = (await res.json()) as { status?: string; predictions?: { description: string; place_id: string }[] };
     if (data.status && data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
@@ -75,6 +78,7 @@ export async function placeDetails(placeId: string, sessionToken?: string): Prom
 
   try {
     const res = await fetch(url, { cache: 'no-store' });
+    void recordApiUsage(API_SERVICES.googleDetails);
     if (!res.ok) return null;
     const data = (await res.json()) as { status?: string; result?: { address_components?: Comp[]; formatted_address?: string } };
     if (data.status !== 'OK' || !data.result) return null;
