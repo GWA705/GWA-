@@ -13,6 +13,14 @@ const WARN_WEEKS = 2;
 const ALERT_WEEKS = 4;
 const TRAILING_MONTHS = 3;
 
+// GWA's flat admin fee per financed outside-HD deal (its only take on these).
+const ADMIN_FEE_PER_DEAL = 200;
+// Finance buckets that are NOT a financing loan — these don't earn the admin fee.
+const NON_LOAN_BUCKETS = new Set(['Cash/Cheque/Etransfer', 'Credit Card', 'HDCC', 'Unknown', 'Other']);
+function isLoanBucket(bucket: string): boolean {
+  return !NON_LOAN_BUCKETS.has(bucket);
+}
+
 // --- date helpers ----------------------------------------------------------
 
 function addDays(date: Date, n: number): Date {
@@ -105,6 +113,24 @@ export interface PendingBucket {
   total: number;
   count: number;
 }
+// GWA's admin-fee income from financing deals done outside the HD program (the
+// journal's MISC. DEALS/INSTALLS tab). The financed money isn't GWA revenue —
+// GWA earns a flat admin fee per financed deal — so this is tracked separately
+// from sales volume. Deal counts (not dollars) drive the finance-company stats.
+export interface AdminFeeCompany {
+  company: string;
+  weekCount: number;
+  mtdCount: number;
+  ytdCount: number;
+}
+export interface AdminFinancing {
+  hasData: boolean; // a MISC tab with financed deals was found
+  feePerDeal: number;
+  week: { deals: number; profit: number };
+  mtd: { deals: number; profit: number };
+  ytd: { deals: number; profit: number };
+  byCompany: AdminFeeCompany[]; // financed deals per finance company (counts)
+}
 export interface WorldStats {
   key: 'HD' | 'OUTSIDE';
   title: string;
@@ -139,6 +165,7 @@ export interface WeeklySnapshot {
   };
   hd: WorldStats;
   outside: WorldStats;
+  adminFinancing: AdminFinancing;
   dataHealth: {
     configured: boolean;
     error?: string;
@@ -336,6 +363,31 @@ export async function buildWeeklySnapshot(asOf: Date = new Date()): Promise<Week
     asOf,
   );
 
+  // GWA admin-fee income from the MISC. DEALS/INSTALLS tab. Only real financing
+  // deals earn the fee (not cash / credit-card rows), and cancelled (RB) rows
+  // don't count. The financed dollars stay in the finance-company totals above;
+  // here we report GWA's actual take — a flat fee per financed deal.
+  const miscFinanced = cur.deals.filter((d) => d.isMisc && d.result !== 'RB' && isLoanBucket(d.financeBucket));
+  const miscWeek = miscFinanced.filter((d) => inWindow(d, week) && isActive(d));
+  const miscMtd = miscFinanced.filter((d) => d.result === 'OK' && d.date && d.date >= monthStart && d.date <= asOf);
+  const miscYtd = miscFinanced.filter((d) => d.result === 'OK' && d.date && d.date >= yearStart && d.date <= asOf);
+  const miscCompanies = Array.from(new Set(miscFinanced.map((d) => d.financeBucket)))
+    .map((company) => ({
+      company,
+      weekCount: miscWeek.filter((d) => d.financeBucket === company).length,
+      mtdCount: miscMtd.filter((d) => d.financeBucket === company).length,
+      ytdCount: miscYtd.filter((d) => d.financeBucket === company).length,
+    }))
+    .sort((a, b) => b.ytdCount - a.ytdCount);
+  const adminFinancing: AdminFinancing = {
+    hasData: cur.deals.some((d) => d.isMisc),
+    feePerDeal: ADMIN_FEE_PER_DEAL,
+    week: { deals: miscWeek.length, profit: miscWeek.length * ADMIN_FEE_PER_DEAL },
+    mtd: { deals: miscMtd.length, profit: miscMtd.length * ADMIN_FEE_PER_DEAL },
+    ytd: { deals: miscYtd.length, profit: miscYtd.length * ADMIN_FEE_PER_DEAL },
+    byCompany: miscCompanies,
+  };
+
   // Data health, merged across both years' reads.
   const allIssues = [...cur.issues, ...prev.issues];
   const byType = new Map<JournalIssueType, JournalIssue[]>();
@@ -369,6 +421,7 @@ export async function buildWeeklySnapshot(asOf: Date = new Date()): Promise<Week
     },
     hd,
     outside,
+    adminFinancing,
     dataHealth: {
       configured: cur.configured,
       error: cur.error || prev.error,

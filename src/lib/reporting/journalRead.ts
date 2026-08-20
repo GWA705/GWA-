@@ -194,6 +194,18 @@ export function isMonthTab(title: string): boolean {
   return MONTHS_FULL.includes(m[1]) || MONTHS_ABBR.includes(m[1]);
 }
 
+/**
+ * Is this the "MISC. DEALS/INSTALLS" tab? These are GWA financing deals done
+ * OUTSIDE the Home Depot program — the money isn't GWA revenue (GWA earns a flat
+ * admin fee per financed deal), so they're read but kept out of the sales-volume
+ * totals and reported separately. Tolerant of naming ("MISC DEALS", "Misc.
+ * Deals / Installs", a leading count badge, …).
+ */
+export function isMiscTab(title: string): boolean {
+  const t = String(title || '').toLowerCase();
+  return t.includes('misc') && (t.includes('deal') || t.includes('install'));
+}
+
 export function findHeaderRowIndex(data: string[][]): number {
   for (let i = 0; i < Math.min(data.length, 8); i += 1) {
     const rowText = (data[i] || []).join('|').toLowerCase();
@@ -288,6 +300,7 @@ export interface ReportDeal {
   location: string; // raw location / dealer label
   product: string;
   isHD: boolean;
+  isMisc: boolean; // from the MISC. DEALS/INSTALLS tab (GWA financing outside HD)
   sourceCategory: string;
   financeBucket: string;
   gross: number;
@@ -375,10 +388,14 @@ async function readJournalUncached(year: number): Promise<JournalReadResult> {
   // safe and just makes the reader tolerant of unusual layouts (e.g. 2024).
   let monthTabs = titles.filter((t) => isMonthTab(t.title));
   if (monthTabs.length === 0) monthTabs = titles;
-  if (monthTabs.length === 0) return empty();
+  // Also read the MISC. DEALS/INSTALLS tab (GWA financing outside HD), deduped
+  // against the month tabs. Its rows are tagged isMisc in the loop below.
+  const miscTabs = titles.filter((t) => isMiscTab(t.title) && !monthTabs.some((m) => m.title === t.title));
+  const dataTabs = [...monthTabs, ...miscTabs];
+  if (dataTabs.length === 0) return empty();
 
-  // One batched read for all month tabs.
-  const ranges = monthTabs.map((t) => `'${t.title}'!A1:BZ500`);
+  // One batched read for all data tabs.
+  const ranges = dataTabs.map((t) => `'${t.title}'!A1:BZ500`);
   let valueRanges: sheets_v4.Schema$ValueRange[] = [];
   try {
     const res = await sheets.spreadsheets.values.batchGet({
@@ -405,8 +422,9 @@ async function readJournalUncached(year: number): Promise<JournalReadResult> {
     issues.push({ type, tab, row, customer, field, rawValue: String(rawValue ?? ''), link });
   };
 
-  for (let ti = 0; ti < monthTabs.length; ti += 1) {
-    const { title: name, gid } = monthTabs[ti];
+  for (let ti = 0; ti < dataTabs.length; ti += 1) {
+    const { title: name, gid } = dataTabs[ti];
+    const isMisc = isMiscTab(name);
     const data = (valueRanges[ti]?.values as string[][]) || [];
     const headerRowIdx = findHeaderRowIndex(data);
     if (headerRowIdx === -1) {
@@ -512,6 +530,7 @@ async function readJournalUncached(year: number): Promise<JournalReadResult> {
         location: colMap.location !== -1 ? String(row[colMap.location] || '') : officeMeta,
         product: colMap.product !== -1 ? String(row[colMap.product] || '') : '',
         isHD: classification.isHD,
+        isMisc,
         sourceCategory: classification.bucket,
         financeBucket: finance.bucket,
         gross,

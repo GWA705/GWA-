@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import type { WeeklySnapshot, WorldStats, FinancingRow } from '@/lib/reporting/aggregate';
+import type { WeeklySnapshot, WorldStats, FinancingRow, AdminFinancing } from '@/lib/reporting/aggregate';
 
 // Portal-styled rendering of the weekly leadership snapshot. Server component —
 // no interactivity, just a well-composed dashboard.
@@ -276,9 +276,81 @@ export function WeeklySnapshotView({ snap, weeksOffset }: { snap: WeeklySnapshot
         <WorldSection w={snap.outside} accent="#1a5fa8" />
       </div>
 
+      {/* GWA admin fees (outside-HD financing) */}
+      {snap.adminFinancing.hasData && <AdminFinancingPanel a={snap.adminFinancing} />}
+
       {/* Data health */}
       <DataHealthPanel snap={snap} />
     </div>
+  );
+}
+
+function AdminFinancingPanel({ a }: { a: AdminFinancing }) {
+  return (
+    <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+      <div className="h-1" style={{ background: '#059669' }} />
+      <div className="p-5">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h3 className="text-sm font-bold text-gray-900">GWA financing — admin fees (outside HD)</h3>
+          <span className="text-xs text-gray-500">
+            From <span className="font-medium text-gray-700">MISC. DEALS/INSTALLS</span> · {money(a.feePerDeal)}/financed deal
+          </span>
+        </div>
+        <p className="mt-1 text-xs text-gray-500">
+          Dealers using GWA financing to fund deals outside the Home Depot program. The financed dollars count toward the
+          finance companies&apos; totals above — GWA&apos;s own take is the admin fee shown here.
+        </p>
+
+        <div className="mt-4 grid grid-cols-3 gap-3">
+          <div className="rounded-xl bg-emerald-50 p-3">
+            <div className="text-lg font-bold tabular-nums text-emerald-800">{money(a.week.profit)}</div>
+            <div className="text-[10px] font-medium uppercase tracking-wide text-emerald-700">
+              This week · {a.week.deals} deal{a.week.deals === 1 ? '' : 's'}
+            </div>
+          </div>
+          <div className="rounded-xl bg-emerald-50 p-3">
+            <div className="text-lg font-bold tabular-nums text-emerald-800">{money(a.mtd.profit)}</div>
+            <div className="text-[10px] font-medium uppercase tracking-wide text-emerald-700">
+              Month to date · {a.mtd.deals} deal{a.mtd.deals === 1 ? '' : 's'}
+            </div>
+          </div>
+          <div className="rounded-xl bg-emerald-50 p-3">
+            <div className="text-lg font-bold tabular-nums text-emerald-800">{money(a.ytd.profit)}</div>
+            <div className="text-[10px] font-medium uppercase tracking-wide text-emerald-700">
+              Year to date · {a.ytd.deals} deal{a.ytd.deals === 1 ? '' : 's'}
+            </div>
+          </div>
+        </div>
+
+        {a.byCompany.length > 0 && (
+          <div className="mt-4">
+            <div className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-gray-500">
+              Financed deals by company
+            </div>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-[10px] uppercase tracking-wide text-gray-400">
+                  <th className="pb-1 text-left font-medium">Company</th>
+                  <th className="pb-1 text-right font-medium">This week</th>
+                  <th className="pb-1 text-right font-medium">MTD</th>
+                  <th className="pb-1 text-right font-medium">YTD</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {a.byCompany.map((c) => (
+                  <tr key={c.company}>
+                    <td className="py-1.5 font-medium text-gray-900">{c.company}</td>
+                    <td className="py-1.5 text-right tabular-nums text-gray-700">{c.weekCount}</td>
+                    <td className="py-1.5 text-right tabular-nums text-gray-700">{c.mtdCount}</td>
+                    <td className="py-1.5 text-right tabular-nums text-gray-700">{c.ytdCount}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </section>
   );
 }
 
