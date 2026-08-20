@@ -27,8 +27,12 @@ export function LeadNoGoodControl({
   const [reason, setReason] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  // Optimistic override: flip the UI instantly on click, then write to the
+  // Google Sheet in the background. null = show the real (server) state.
+  const [optimistic, setOptimistic] = useState<boolean | null>(null);
 
   const hasBooking = Boolean(bookingId);
+  const showNoGood = optimistic ?? noGood;
 
   function submitMark() {
     const r = reason.trim();
@@ -37,23 +41,28 @@ export function LeadNoGoodControl({
       return;
     }
     setError(null);
+    setOptimistic(true); // instant — show "Marked No good" right away
+    setOpen(false);
     start(async () => {
       const res = await markLeadNoGoodAction({ rowId, bookingId, reason: r });
       if (res?.error) {
+        setOptimistic(null); // roll back to the real state
+        setOpen(true); // reopen with the reason still typed
         setError(res.error);
         return;
       }
-      setOpen(false);
       setReason('');
-      router.refresh();
+      router.refresh(); // reconcile with the server
     });
   }
 
   function submitUnmark() {
     setError(null);
+    setOptimistic(false); // instant — restore to Forwarded right away
     start(async () => {
       const res = await unmarkLeadNoGoodAction({ rowId, bookingId });
       if (res?.error) {
+        setOptimistic(null); // roll back
         setError(res.error);
         return;
       }
@@ -61,13 +70,14 @@ export function LeadNoGoodControl({
     });
   }
 
-  if (noGood) {
+  if (showNoGood) {
     return (
       <div className="mt-3 border-t border-dashed border-gray-200 pt-3">
         <div className="flex flex-wrap items-center gap-2">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-red-100 px-2.5 py-1 text-xs font-semibold text-red-700">
             <span className="h-1.5 w-1.5 rounded-full bg-red-500" /> Marked No good in the log
           </span>
+          {pending && <span className="text-xs text-gray-400">saving…</span>}
           {canUnmark && (
             <button
               type="button"
@@ -75,7 +85,7 @@ export function LeadNoGoodControl({
               disabled={pending || !hasBooking}
               className="text-xs font-medium text-gray-500 underline hover:text-gray-700 disabled:opacity-40"
             >
-              {pending ? 'Working…' : 'Undo — restore to Forwarded'}
+              Undo — restore to Forwarded
             </button>
           )}
         </div>
@@ -98,6 +108,7 @@ export function LeadNoGoodControl({
             ✕ Mark No good
           </button>
           <span className="text-xs text-gray-500">Flags the lead as unusable and notifies Home Depot.</span>
+          {error && <p className="w-full text-xs text-red-600">{error}</p>}
         </div>
       ) : (
         <div className="rounded-lg border border-red-200 bg-red-50 p-3">
