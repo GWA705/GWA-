@@ -32,6 +32,7 @@ describe('findCardData (hard block)', () => {
   it('blocks Amex/MC/Discover test numbers', () => {
     expect(findCardData('3782 822463 10005').blocked).toBe(true);
     expect(findCardData('5555 5555 5555 4444').blocked).toBe(true);
+    expect(findCardData('6011 1111 1111 1117').blocked).toBe(true); // Discover — not eaten by the phone scrub
   });
   it('does NOT block a SIN, phone, HD #, or loan number', () => {
     expect(findCardData('SIN 123 456 782').blocked).toBe(false);
@@ -65,6 +66,14 @@ describe('findCardData (hard block)', () => {
     expect(findCardData('647 568 6547, 647 677 9338').blocked).toBe(false);
     expect(findCardData('Phone: 647 568 6547 647 677 9338').blocked).toBe(false);
     expect(findCardData('(647) 568-6547 / (647) 677-9338').blocked).toBe(false);
+    // OCR strips every space → one 20-digit run with no separators at all.
+    expect(findCardData('Phone 64756865476476779338').blocked).toBe(false);
+    expect(findCardData('647568654764 76779338').blocked).toBe(false);
+  });
+  it('does NOT block merged phones for other Ontario area codes overlapping BINs', () => {
+    expect(findCardData('4165551234 4165559876').blocked).toBe(false); // 416 ↔ Visa
+    expect(findCardData('5195551234 5195559876').blocked).toBe(false); // 519 ↔ Mastercard
+    expect(findCardData('3435551234 3435559876').blocked).toBe(false); // 343 ↔ Amex
   });
   it('still blocks a real card even when phone numbers share the document', () => {
     const doc = 'Phone 647 568 6547 647 677 9338  Card 4111 1111 1111 1111';

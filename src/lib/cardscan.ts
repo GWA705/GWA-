@@ -59,14 +59,22 @@ const KNOWN_CARD_PREFIXES: { prefix: string; label: string }[] = [
 // Candidate: 13–19 digits with optional single spaces or dashes between them.
 const CANDIDATE_RE = /\d(?:[ -]?\d){12,18}/g;
 
-// A standalone North-American phone number (10 digits, optional leading 1, in
-// 3-3-4 shape with the usual separators). The digit boundaries (?<!\d)/(?!\d)
-// mean it only matches a self-contained 10-digit number — never a 10-digit slice
-// inside a longer run — so a real 13–19 digit card number is left untouched.
-// We blank these out before scanning so two phones written back-to-back (e.g.
-// two 647-area-code numbers) can't merge into a 19-digit run that looks like a
-// Discover card (its 644–649 prefix range overlaps the 647 area code).
-const PHONE_RE = /(?<!\d)(?:\+?1[ .\-]?)?\(?\d{3}\)?[ .\-]?\d{3}[ .\-]?\d{4}(?!\d)/g;
+// One North-American phone number: an optional leading 1, then a NANP-valid
+// area code and exchange (both start 2–9) and a 4-digit line, in 3-3-4 shape
+// with the usual separators (or none). The 2–9 constraints stop real card
+// digits from being mistaken for a phone (a Visa "411…" fails: exchange "1.." is
+// not 2–9), so a real card is never scrubbed.
+const PHONE_CHUNK = String.raw`(?:\+?1[ .\-]?)?\(?[2-9]\d{2}\)?[ .\-]?[2-9]\d{2}[ .\-]?\d{4}`;
+// A run of one or more phone numbers written back-to-back — with separators,
+// commas, or NONE at all (OCR often drops the spaces). Blanking these before the
+// card scan stops two phones from merging into a 13–19 digit run that looks like
+// a card: Ontario area codes overlap real BINs (647 ↔ Discover 644–649, 416 ↔
+// Visa 4, 519 ↔ Mastercard 51–55, 343 ↔ Amex 34). Only a whole run that is
+// cleanly phone-shaped end to end matches, so a lone card can't be caught here.
+const PHONE_RUN_RE = new RegExp(
+  String.raw`(?<!\d)(?:${PHONE_CHUNK})(?:[ .,\-/]*(?:${PHONE_CHUNK}))*(?!\d)`,
+  'g',
+);
 const BRAND_WORD_RE = /\b(visa|mastercard|master\s?card|amex|american\s?express|discover)\b/i;
 const EXPIRY_RE = /\b(0[1-9]|1[0-2])\s?[/\-]\s?(\d{2}|\d{4})\b/;
 const CVV_CONTEXT_RE = /\b(cvv|cvc|cvv2|cvc2|security\s?code|card\s?verification)\b/i;
@@ -106,7 +114,7 @@ export function findCardData(text: string): CardScanResult {
   // Blank out phone numbers first (same-length spaces keep every index aligned
   // with `text`, so the context slices below still read the real surrounding
   // words). Card candidates are then found in the phone-free text.
-  const scanText = text.replace(PHONE_RE, (m) => ' '.repeat(m.length));
+  const scanText = text.replace(PHONE_RUN_RE, (m) => ' '.repeat(m.length));
 
   let pan = false;
   const brandsFound = new Set<string>();
