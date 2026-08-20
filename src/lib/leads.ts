@@ -41,6 +41,75 @@ export interface LeadsRead {
   error?: string;
 }
 
+const PROVINCE_CODES = ['AB', 'BC', 'MB', 'NB', 'NL', 'NS', 'NT', 'NU', 'ON', 'PE', 'QC', 'SK', 'YT'];
+
+/** Split an HD lead's "CUSTOMER NAME" into first + last (best effort). */
+export function parseLeadName(raw: string): { first: string; last: string } {
+  const t = String(raw ?? '').replace(/\s+/g, ' ').trim();
+  if (!t) return { first: '', last: '' };
+  // "Last, First" form.
+  if (t.includes(',')) {
+    const [last, first] = t.split(',').map((s) => s.trim());
+    return { first: first || '', last: last || '' };
+  }
+  const parts = t.split(' ');
+  if (parts.length === 1) return { first: parts[0], last: '' };
+  return { first: parts[0], last: parts.slice(1).join(' ') };
+}
+
+export interface ParsedLeadAddress {
+  street: string;
+  city: string;
+  province: string; // 2-letter code, e.g. ON
+  postal: string;
+}
+
+/**
+ * Pull street / city / province / postal out of an HD lead's single address
+ * string (e.g. "1306 SPYGLASS POINT RD, RAMARA ON, L0K 1B0"). Best effort — the
+ * dealer confirms; we fill what we can read.
+ */
+export function parseLeadAddress(raw: string): ParsedLeadAddress {
+  const out: ParsedLeadAddress = { street: '', city: '', province: '', postal: '' };
+  let s = String(raw ?? '').replace(/\s+/g, ' ').trim();
+  if (!s) return out;
+
+  // Postal code (Canadian). Normalize to "A1A 1A1".
+  const pm = s.match(/[A-Za-z]\d[A-Za-z]\s?\d[A-Za-z]\d/);
+  if (pm) {
+    const p = pm[0].toUpperCase().replace(/\s/g, '');
+    out.postal = `${p.slice(0, 3)} ${p.slice(3)}`;
+    s = (s.slice(0, pm.index) + s.slice((pm.index ?? 0) + pm[0].length)).trim();
+  }
+  // Province (word-boundary 2-letter code).
+  const provRe = new RegExp(`\\b(${PROVINCE_CODES.join('|')})\\b`, 'i');
+  const provM = s.match(provRe);
+  if (provM) {
+    out.province = provM[1].toUpperCase();
+    s = s.replace(provRe, ' ').replace(/\s+/g, ' ').trim();
+  }
+  // Tidy stray commas, then split street from city on the comma.
+  s = s
+    .replace(/\s*,\s*/g, ',')
+    .replace(/^,+|,+$/g, '')
+    .trim();
+  const parts = s.split(',').map((t) => t.trim()).filter(Boolean);
+  if (parts.length >= 2) {
+    out.street = parts[0];
+    out.city = parts.slice(1).join(' ').trim();
+  } else if (parts.length === 1) {
+    out.street = parts[0];
+  }
+  return out;
+}
+
+/** Find a lead by its HD booking number (701…), comparing on digits only. */
+export function findLeadByBooking(leads: Lead[], booking: string): Lead | null {
+  const target = String(booking ?? '').replace(/\D/g, '');
+  if (target.length < 4) return null;
+  return leads.find((l) => String(l.bookingId ?? '').replace(/\D/g, '') === target) ?? null;
+}
+
 function norm(s: unknown): string {
   return String(s ?? '').trim().toLowerCase();
 }

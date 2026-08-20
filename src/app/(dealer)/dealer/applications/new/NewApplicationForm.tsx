@@ -202,6 +202,56 @@ export function NewApplicationForm({
   const [coFirstName, setCoFirstName] = useState('');
   const hasCoApplicant = coFirstName.trim().length > 0;
 
+  // HD lead pre-fill: enter the lead's 701 number, pull the customer's details
+  // from the HD Leads Log and drop them into the matching fields.
+  const [leadLookup, setLeadLookup] = useState<{ state: 'idle' | 'loading' | 'found' | 'notfound' | 'error'; msg?: string }>({ state: 'idle' });
+
+  async function fillFromLead() {
+    const box = document.getElementById('hdReference') as HTMLInputElement | null;
+    const booking = box?.value.trim() ?? '';
+    if (booking.replace(/\D/g, '').length < 4) {
+      setLeadLookup({ state: 'idle' });
+      return;
+    }
+    setLeadLookup({ state: 'loading' });
+    try {
+      const res = await fetch(`/api/leads/lookup?booking=${encodeURIComponent(booking)}`, { headers: { accept: 'application/json' } });
+      const data = await res.json();
+      if (!res.ok || !data.found) {
+        setLeadLookup({
+          state: 'notfound',
+          msg: data?.reason === 'not-your-store'
+            ? 'That lead belongs to another store, so it can’t be loaded here.'
+            : 'No matching HD lead found for that number. Check the digits, or fill the form in manually.',
+        });
+        return;
+      }
+      const L = data.lead;
+      const set = (id: string, v?: string) => {
+        const el = document.getElementById(id) as HTMLInputElement | HTMLSelectElement | null;
+        if (el && v) el.value = v;
+      };
+      set('applicantFirstName', L.firstName);
+      set('applicantLastName', L.lastName);
+      set('applicantEmail', L.email);
+      if (L.phone) set('applicantPhone', formatPhone(String(L.phone).replace(/\D/g, '').slice(-10)));
+      set('applicantAddress', L.street);
+      set('city', L.city);
+      set('province', L.province);
+      if (L.postal) set('postalCode', L.postal);
+      if (L.storeNumber) {
+        const store = stores.find((s) => s.number === L.storeNumber);
+        if (store) set('homeDepotStoreId', store.id);
+      }
+      setLeadLookup({
+        state: 'found',
+        msg: `Filled from HD lead — ${L.customerName || booking}${L.noGood ? ' · ⚠ this lead is marked “No good” in the log' : ''}`,
+      });
+    } catch {
+      setLeadLookup({ state: 'error', msg: 'Couldn’t reach the lead lookup — try again in a moment.' });
+    }
+  }
+
   // Merge instant client-side checks with any server-returned errors.
   const errorEntries = Object.entries({ ...(state.fieldErrors ?? {}), ...clientErrors });
   // Set of field names currently in error, used to outline the inputs in red.
@@ -496,6 +546,48 @@ export function NewApplicationForm({
             <ProductPicker products={products} />
           </div>
         </div>
+      </section>
+
+      {/* HD lead pre-fill (always available) */}
+      <section className="card border border-sky-200 bg-sky-50/40 p-6">
+        <h2 className="mb-1 text-base font-semibold text-gray-900">
+          HD lead number <span className="font-normal text-gray-400">(optional)</span>
+        </h2>
+        <p className="mb-3 text-xs text-gray-500">
+          Sold a Home Depot lead? Enter its <span className="font-semibold">701…</span> number and we&apos;ll fill in
+          the customer&apos;s name, phone, email and address from the lead. Check everything before you submit.
+        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            id="hdReference"
+            name="hdReference"
+            placeholder="701XXXXXXX"
+            inputMode="numeric"
+            autoComplete="off"
+            className="input max-w-xs"
+            onBlur={fillFromLead}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                fillFromLead();
+              }
+            }}
+          />
+          <button
+            type="button"
+            onClick={fillFromLead}
+            disabled={leadLookup.state === 'loading'}
+            className="btn-secondary text-sm disabled:opacity-60"
+          >
+            {leadLookup.state === 'loading' ? 'Looking…' : 'Find & fill'}
+          </button>
+        </div>
+        {leadLookup.state === 'found' && (
+          <p className="mt-2 text-xs font-medium text-green-700">✓ {leadLookup.msg}</p>
+        )}
+        {(leadLookup.state === 'notfound' || leadLookup.state === 'error') && (
+          <p className="mt-2 text-xs text-amber-700">{leadLookup.msg}</p>
+        )}
       </section>
 
       {/* Applicant (always) */}
