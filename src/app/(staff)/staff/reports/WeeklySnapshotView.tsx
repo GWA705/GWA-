@@ -235,12 +235,23 @@ export function WeeklySnapshotView({ snap, weeksOffset }: { snap: WeeklySnapshot
       )}
 
       {/* Stat strip */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+      <div
+        className={`grid grid-cols-2 gap-3 sm:grid-cols-3 ${
+          snap.adminFinancing.hasData ? 'lg:grid-cols-6' : 'lg:grid-cols-5'
+        }`}
+      >
         <StatTile value={money(h.weekTotal)} label="Sold this week" accent="#F96302" />
         <StatTile value={money(h.mtdTotal)} label="Month to date" accent="#1a5fa8" />
         <StatTile value={money(h.ytdTotal)} label="Year to date" accent="#1a2e44" />
         <StatTile value={money(h.pendingPaymentTotal)} label="Pending payment (unpaid)" accent="#F59E0B" />
         <StatTile value={`${h.pacePct}%`} label="Of 3-mo pace" accent="#7c3aed" />
+        {snap.adminFinancing.hasData && (
+          <StatTile
+            value={money(snap.adminFinancing.ytd.profit)}
+            label="Admin fees YTD"
+            accent="#059669"
+          />
+        )}
       </div>
 
       {/* Highlights */}
