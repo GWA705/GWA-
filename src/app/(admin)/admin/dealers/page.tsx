@@ -14,7 +14,18 @@ export default async function DealersPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-semibold text-gray-900">Dealers</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-xl font-semibold text-gray-900">Dealers</h1>
+        <div className="flex items-center gap-3 text-sm">
+          <span className="text-xs text-gray-400">HD store → dealer list:</span>
+          <a href="/api/admin/store-dealers" className="font-medium text-brand-700 hover:underline">
+            Download CSV
+          </a>
+          <a href="/api/admin/store-dealers?format=json" className="font-medium text-brand-700 hover:underline" target="_blank" rel="noreferrer">
+            JSON
+          </a>
+        </div>
+      </div>
       <div className="card p-6">
         <DealerForm />
       </div>

@@ -41,7 +41,8 @@ export type AuditAction =
   | 'MARKETPLACE_FILE_DOWNLOAD'
   | 'CARD_DATA_BLOCKED'
   | 'SETTING_UPDATE'
-  | 'CUSTOMER_SEARCH';
+  | 'CUSTOMER_SEARCH'
+  | 'DATA_EXPORT';
 
 interface AuditInput {
   actorId?: string | null;
