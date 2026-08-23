@@ -10,8 +10,8 @@ Legend: ✅ done in code · 🔧 partially addressed · ⛔ needs an action outs
 
 **Owner actions (no code — do in a console/dashboard):**
 - [ ] **R2** — Banking-change call-back habit: confirm any changed void cheque / banking form by phoning a number already on file; second person approves; log who checked. *(finance — biggest risk, free)*
-- [ ] **R3** — DMARC: change `_dmarc.ghsbarrie.ca` from `p=none` → `quarantine` (then later `reject`); confirm SPF ends with `-all`. *(DNS, ~5 min)*
-- [ ] **R12** — Confirm with Render that only required ports are exposed and the origin is only reachable through their edge. *(hosting)*
+- [x] **R3** — DMARC: Done (2026-08-23). `_dmarc.ghsbarrie.ca` set to `p=quarantine` (verified live in DNS); domain is SPF + DKIM authenticated through Google Workspace, so legit mail is unaffected. *(Consider `p=reject` later. `georgianwaterandair.ca` is still `p=none` and has a second sender — GoDaddy email marketing — so verify its auth before tightening.)*
+- [x] **R12** — Done (2026-08-23). Production web service `gwa-portal` serves only its app port (10000) behind Render's HTTPS edge — no stray ports. Found and fixed the real gap: the Render **staging** Postgres `gwa-staging-db` had its inbound IP allow-list open to `0.0.0.0/0`; removed it so all internet traffic to the DB is blocked (verified allow-list now empty). Staging connects over the internal hostname, unaffected. **Still to verify (AWS, outside Render):** production RDS in ca-central-1 has *Publicly accessible = No* and its security group for port 5432 is not `0.0.0.0/0`.
 - [x] **R1 follow-up** — Done (2026-08-22). New server-only `GOOGLE_MAPS_API_KEY` created in the `gwa-portal-504012` project, restricted to **Places API** with Application restrictions **None**; set in Render and `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` deleted; the code fallback to the public var was removed; and the OLD leaked public key (HTTP-referrer key in the "My First Project" / `disco-name-504012-r1` project) was deleted. Fully closed.
 
 **Code work we can pick up when ready (deferred by choice):**
