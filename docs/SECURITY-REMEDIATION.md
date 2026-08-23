@@ -12,7 +12,7 @@ Legend: ✅ done in code · 🔧 partially addressed · ⛔ needs an action outs
 - [ ] **R2** — Banking-change call-back habit: confirm any changed void cheque / banking form by phoning a number already on file; second person approves; log who checked. *(finance — biggest risk, free)*
 - [ ] **R3** — DMARC: change `_dmarc.ghsbarrie.ca` from `p=none` → `quarantine` (then later `reject`); confirm SPF ends with `-all`. *(DNS, ~5 min)*
 - [ ] **R12** — Confirm with Render that only required ports are exposed and the origin is only reachable through their edge. *(hosting)*
-- [ ] **R1 follow-up** — In Render, move the value to a server-only `GOOGLE_MAPS_API_KEY` and delete `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`; API-restrict the key to the Places API.
+- [x] **R1 follow-up** — Done (2026-08-22). New server-only `GOOGLE_MAPS_API_KEY` created in the `gwa-portal-504012` project, restricted to **Places API** with Application restrictions **None**; set in Render and `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` deleted; the code fallback to the public var was removed. Remaining: delete/disable the OLD public key in whatever project it lived in (it was baked into old browser bundles and is effectively leaked).
 
 **Code work we can pick up when ready (deferred by choice):**
 - [ ] **R5 retention** — document retention period + auto-purge job (e.g. delete interior install photos N days after funding).

@@ -7,13 +7,13 @@ import { recordApiUsage, API_SERVICES } from './apiUsage';
  * server's egress rather than exposed in client code. The browser only talks to
  * our own /api/places routes.
  *
- * Prefers a server-only GOOGLE_MAPS_API_KEY; falls back to the legacy
- * NEXT_PUBLIC_GOOGLE_MAPS_API_KEY during the transition (rename it to drop the
- * NEXT_PUBLIC_ prefix so it isn't shipped to the browser at all).
+ * Uses a server-only GOOGLE_MAPS_API_KEY — never a NEXT_PUBLIC_ variable, so the
+ * key is never shipped to the browser. (The legacy NEXT_PUBLIC_ fallback was
+ * removed once the server-only key was live in production.)
  */
 
 function apiKey(): string | null {
-  return process.env.GOOGLE_MAPS_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || null;
+  return process.env.GOOGLE_MAPS_API_KEY || null;
 }
 
 export function placesConfigured(): boolean {
