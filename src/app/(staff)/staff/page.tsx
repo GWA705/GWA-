@@ -166,11 +166,6 @@ function toRow(a: Deal): QueueRow {
 
 const byWaiting = (a: Deal, b: Deal) => waitingSince(a).getTime() - waitingSince(b).getTime();
 
-// A "new deal / needs approval" — a deal awaiting an approval decision, or one
-// the reviewer hasn't touched yet (covers Express deals auto-approved on submit).
-// These are the top priority to get moving, so they sort above everything else
-// in a band.
-const isNewDeal = (a: Deal) => NEW_STATUSES.includes(a.status) || !a.lastReviewerActionAt;
 
 // The most recent moment anything happened on a deal.
 function lastActivityAt(a: Deal): number {
@@ -237,15 +232,15 @@ export default async function StaffQueue({ searchParams }: { searchParams: { q?:
   // Priority view: the active pipeline grouped by urgency instead of status.
   const INACTIVE: ApplicationStatus[] = ['DECLINED', 'WITHDRAWN', 'DRAFT'];
   const active = apps.filter((a) => !INACTIVE.includes(a.status) && !isPaid(a));
-  const overdue = (a: Deal) => needsAttention(a) && minutesSince(waitingSince(a)) >= SLA_MINUTES;
   const priority: PriorityBands = {
-    // New deals / pending approvals lead the whole queue — the top priority to
-    // get a customer moving. Everything else excludes these so they show once.
-    newDeals: active.filter((a) => isNewDeal(a)).sort(byWaiting).map(toRow),
-    now: active.filter((a) => !isNewDeal(a) && (a.status === 'PROBLEM' || overdue(a))).sort(byWaiting).map(toRow),
-    you: active.filter((a) => !isNewDeal(a) && a.status !== 'PROBLEM' && !overdue(a) && needsAttention(a)).sort(byWaiting).map(toRow),
-    // "In progress" (moving along / waiting on the dealer): newest activity first.
-    prog: active.filter((a) => !isNewDeal(a) && a.status !== 'PROBLEM' && !needsAttention(a)).sort(byRecentActivity).map(toRow),
+    // Band 1 — waiting for an approve / decline decision (Submitted / Under review).
+    approval: active.filter((a) => NEW_STATUSES.includes(a.status)).sort(byWaiting).map(toRow),
+    // Band 2 — already approved but the reviewer must act: a new document was
+    // uploaded, the dealer changed something, a reply is owed, or it's flagged a
+    // Problem. Longest-waiting (incl. overdue) first.
+    attention: active.filter((a) => !NEW_STATUSES.includes(a.status) && needsAttention(a)).sort(byWaiting).map(toRow),
+    // Band 3 — moving along / waiting on the dealer: newest activity first.
+    prog: active.filter((a) => !NEW_STATUSES.includes(a.status) && !needsAttention(a)).sort(byRecentActivity).map(toRow),
   };
 
   return (

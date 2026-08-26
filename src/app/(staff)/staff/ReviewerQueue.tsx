@@ -37,9 +37,8 @@ export interface Lanes {
 
 // Priority view: deals grouped by urgency rather than by status.
 export interface PriorityBands {
-  newDeals: QueueRow[]; // brand-new / pending approval — the top priority
-  now: QueueRow[]; // past the 2-hour target, or a Problem — clear first
-  you: QueueRow[]; // needs a decision/reply, still on time
+  approval: QueueRow[]; // waiting for an approve / decline decision — top priority
+  attention: QueueRow[]; // approved, but a new document / change needs the reviewer
   prog: QueueRow[]; // in progress or waiting on the dealer
 }
 
@@ -192,9 +191,8 @@ function PriorityRow({ r }: { r: QueueRow }) {
 }
 
 const PRIORITY_BANDS: { key: keyof PriorityBands; title: string; desc: string; accent: string; count: string }[] = [
-  { key: 'newDeals', title: 'New deals', desc: 'Brand-new — approve or process these first', accent: 'text-emerald-700', count: 'bg-emerald-600 text-white' },
-  { key: 'now', title: 'Act now', desc: 'Past the 2-hour target or flagged — clear these first', accent: 'text-red-700', count: 'bg-red-600 text-white' },
-  { key: 'you', title: 'Waiting for you', desc: 'Needs a decision or a reply, still on time', accent: 'text-brand-800', count: 'bg-brand-600 text-white' },
+  { key: 'approval', title: 'Needs approval', desc: 'Waiting on an approve / decline decision — do these first', accent: 'text-emerald-700', count: 'bg-emerald-600 text-white' },
+  { key: 'attention', title: 'Needs attention', desc: 'Approved — a new document arrived or something changed', accent: 'text-red-700', count: 'bg-red-600 text-white' },
   { key: 'prog', title: 'In progress', desc: 'Moving along or waiting on the dealer', accent: 'text-gray-600', count: 'bg-gray-200 text-gray-600' },
 ];
 
@@ -217,30 +215,27 @@ function Band({ b, rows }: { b: (typeof PRIORITY_BANDS)[number]; rows: QueueRow[
 }
 
 function PriorityView({ priority }: { priority: PriorityBands }) {
-  const attention = priority.now.length;
-  const oldest = priority.now[0]?.waitLabel;
-  const newBand = PRIORITY_BANDS[0];
-  const restBands = PRIORITY_BANDS.slice(1); // now, you, prog
+  const overdue = priority.attention.filter((r) => r.waitHot).length;
+  const oldest = priority.attention.find((r) => r.waitHot)?.waitLabel;
+  const allEmpty = priority.approval.length === 0 && priority.attention.length === 0 && priority.prog.length === 0;
   return (
     <div className="space-y-7">
-      {/* New deals lead the queue — the top priority. */}
-      <Band b={newBand} rows={priority.newDeals} />
-      {/* Then the "act now" summary + its band. */}
-      {attention > 0 && (
+      {/* 1 · Needs approval — the top priority. */}
+      <Band b={PRIORITY_BANDS[0]} rows={priority.approval} />
+      {/* Overdue callout for the attention band. */}
+      {overdue > 0 && (
         <div className="flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 p-4">
-          <span className="text-3xl font-extrabold leading-none text-red-600 tabular-nums">{attention}</span>
+          <span className="text-3xl font-extrabold leading-none text-red-600 tabular-nums">{overdue}</span>
           <div>
-            <div className="text-sm font-semibold text-red-700">need attention now</div>
-            <div className="text-xs text-gray-500">
-              Past the 2-hour target{oldest ? <> · oldest waiting <span className="tabular-nums">{oldest}</span></> : null}
-            </div>
+            <div className="text-sm font-semibold text-red-700">overdue — past the 2-hour target</div>
+            {oldest && <div className="text-xs text-gray-500">Oldest waiting <span className="tabular-nums">{oldest}</span></div>}
           </div>
         </div>
       )}
-      {restBands.map((b) => (
-        <Band key={b.key} b={b} rows={priority[b.key]} />
-      ))}
-      {priority.newDeals.length === 0 && attention === 0 && priority.you.length === 0 && priority.prog.length === 0 && (
+      {/* 2 · Needs attention, then 3 · In progress. */}
+      <Band b={PRIORITY_BANDS[1]} rows={priority.attention} />
+      <Band b={PRIORITY_BANDS[2]} rows={priority.prog} />
+      {allEmpty && (
         <div className="card p-8 text-center text-sm text-gray-500">You&apos;re all caught up. 🎉</div>
       )}
     </div>
