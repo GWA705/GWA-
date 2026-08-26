@@ -201,6 +201,10 @@ export function NewApplicationForm({
   // Entering a co-applicant first name opens the full co-applicant questionnaire.
   const [coFirstName, setCoFirstName] = useState('');
   const hasCoApplicant = coFirstName.trim().length > 0;
+  // Retired applicants have no employer — we only collect their income, so the
+  // employer fields are hidden and not required when "Retired" is selected.
+  const [employmentStatus, setEmploymentStatus] = useState('');
+  const retired = employmentStatus === 'RETIRED';
 
   // HD lead pre-fill: enter the lead's 701 number, pull the customer's details
   // from the HD Leads Log and drop them into the matching fields.
@@ -275,7 +279,9 @@ export function NewApplicationForm({
     ...BASE_REQUIRED,
     ...(express ? FINANCEIT_EXTRA.filter((f) => f.name !== 'homeDepotStoreId' || stores.length > 0) : []),
     ...(needsFinanceNumber ? [{ name: 'financeItNumber', label: 'Financing deal number' }] : []),
-    ...(method === 'TYPED' ? TYPED_EXTRA : []),
+    ...(method === 'TYPED'
+      ? TYPED_EXTRA.filter((f) => !(retired && (f.name === 'employerAddress' || f.name === 'employerPhone')))
+      : []),
   ];
 
   // Check required fields ourselves so we can list ALL missing ones at once,
@@ -707,20 +713,43 @@ export function NewApplicationForm({
           <section className="card p-6">
             <h2 className="mb-4 text-base font-semibold text-gray-900">Employment &amp; income</h2>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div><label className="label" htmlFor="businessName">Employer / business name</label><input id="businessName" name="businessName" className={fieldCls('')} /></div>
-              <div><label className="label" htmlFor="positionTitle">Position title</label><input id="positionTitle" name="positionTitle" className={fieldCls('')} /></div>
-              <div><label className="label" htmlFor="employerAddress">Employer address</label><AddressAutocompleteInput id="employerAddress" name="employerAddress" className={fieldCls('employerAddress')} placeholder="Start typing the address…" /><Err state={state} name="employerAddress" /></div>
-              <div><label className="label" htmlFor="employerPhone">Employer phone</label><input id="employerPhone" name="employerPhone" className={fieldCls('employerPhone')} inputMode="numeric" maxLength={12} placeholder="705-812-0320" onInput={phoneFmt} /><Err state={state} name="employerPhone" /></div>
-              <div><label className="label" htmlFor="grossMonthlyIncome">Gross monthly income</label><input id="grossMonthlyIncome" name="grossMonthlyIncome" type="number" step="0.01" min="0" className={fieldCls('')} /></div>
-              <div><label className="label" htmlFor="timeAtJobYears">Time at job (years)</label><input id="timeAtJobYears" name="timeAtJobYears" type="number" min="0" className={fieldCls('')} /></div>
+              {/* Status first — a "Retired" choice hides the employer fields below. */}
               <div>
                 <label className="label" htmlFor="employmentStatus">Employment status</label>
-                <select id="employmentStatus" name="employmentStatus" className={fieldCls('')}>
+                <select
+                  id="employmentStatus"
+                  name="employmentStatus"
+                  className={fieldCls('')}
+                  value={employmentStatus}
+                  onChange={(e) => setEmploymentStatus(e.target.value)}
+                >
                   <option value="">Select…</option>
                   <option value="EMPLOYED">Employed</option><option value="SELF_EMPLOYED">Self-employed</option><option value="RETIRED">Retired</option><option value="OTHER">Other</option>
                 </select>
               </div>
+              {retired ? (
+                <div>
+                  <label className="label" htmlFor="grossMonthlyIncome">
+                    Gross monthly income <span className="font-normal text-gray-400">(pension, CPP/OAS, etc.)</span>
+                  </label>
+                  <input id="grossMonthlyIncome" name="grossMonthlyIncome" type="number" step="0.01" min="0" className={fieldCls('')} />
+                </div>
+              ) : (
+                <>
+                  <div><label className="label" htmlFor="businessName">Employer / business name</label><input id="businessName" name="businessName" className={fieldCls('')} /></div>
+                  <div><label className="label" htmlFor="positionTitle">Position title</label><input id="positionTitle" name="positionTitle" className={fieldCls('')} /></div>
+                  <div><label className="label" htmlFor="employerAddress">Employer address</label><AddressAutocompleteInput id="employerAddress" name="employerAddress" className={fieldCls('employerAddress')} placeholder="Start typing the address…" /><Err state={state} name="employerAddress" /></div>
+                  <div><label className="label" htmlFor="employerPhone">Employer phone</label><input id="employerPhone" name="employerPhone" className={fieldCls('employerPhone')} inputMode="numeric" maxLength={12} placeholder="705-812-0320" onInput={phoneFmt} /><Err state={state} name="employerPhone" /></div>
+                  <div><label className="label" htmlFor="grossMonthlyIncome">Gross monthly income</label><input id="grossMonthlyIncome" name="grossMonthlyIncome" type="number" step="0.01" min="0" className={fieldCls('')} /></div>
+                  <div><label className="label" htmlFor="timeAtJobYears">Time at job (years)</label><input id="timeAtJobYears" name="timeAtJobYears" type="number" min="0" className={fieldCls('')} /></div>
+                </>
+              )}
             </div>
+            {retired && (
+              <p className="mt-3 text-xs text-gray-500">
+                Retired — employer details aren&apos;t collected. Just add gross monthly income (pension, CPP/OAS, etc.).
+              </p>
+            )}
           </section>
 
           {/* Co-applicant */}
