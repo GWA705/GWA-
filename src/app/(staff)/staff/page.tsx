@@ -166,6 +166,18 @@ function toRow(a: Deal): QueueRow {
 
 const byWaiting = (a: Deal, b: Deal) => waitingSince(a).getTime() - waitingSince(b).getTime();
 
+// A "new deal / needs approval" — a deal awaiting an approval decision, or one
+// the reviewer hasn't touched yet (covers Express deals auto-approved on submit).
+// These are the top priority to get moving, so they sort above everything else
+// in a band.
+const isNewDeal = (a: Deal) => NEW_STATUSES.includes(a.status) || !a.lastReviewerActionAt;
+// New deals first, then longest-waiting within each group.
+const byNewThenWaiting = (a: Deal, b: Deal) => {
+  const na = isNewDeal(a) ? 0 : 1;
+  const nb = isNewDeal(b) ? 0 : 1;
+  return na !== nb ? na - nb : byWaiting(a, b);
+};
+
 // The most recent moment anything happened on a deal.
 function lastActivityAt(a: Deal): number {
   return Math.max(
@@ -234,7 +246,7 @@ export default async function StaffQueue({ searchParams }: { searchParams: { q?:
   const overdue = (a: Deal) => needsAttention(a) && minutesSince(waitingSince(a)) >= SLA_MINUTES;
   const priority: PriorityBands = {
     now: active.filter((a) => a.status === 'PROBLEM' || overdue(a)).sort(byWaiting).map(toRow),
-    you: active.filter((a) => a.status !== 'PROBLEM' && !overdue(a) && needsAttention(a)).sort(byWaiting).map(toRow),
+    you: active.filter((a) => a.status !== 'PROBLEM' && !overdue(a) && needsAttention(a)).sort(byNewThenWaiting).map(toRow),
     // "In progress" (moving along / waiting on the dealer): newest activity first.
     prog: active.filter((a) => a.status !== 'PROBLEM' && !needsAttention(a)).sort(byRecentActivity).map(toRow),
   };
