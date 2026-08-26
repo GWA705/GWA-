@@ -144,9 +144,9 @@ export function ReviewerEntryView({
 
       <Group title="Housing">
         <Field label="Address" value={pv.address} />
-        <Field label="City" value={nonEmpty(loan?.city)} />
+        <Field label="City" value={nonEmpty(loan?.city) ?? nonEmpty(app.applicantCity)} />
         <Field label="Province" value={nonEmpty(loan?.addressProvince) ?? app.province} />
-        <Field label="Postal code" value={nonEmpty(loan?.postalCode)} />
+        <Field label="Postal code" value={nonEmpty(loan?.postalCode) ?? nonEmpty(app.applicantPostal)} />
         <Field label="Years at this address" value={loan?.yearsAtAddress ?? null} />
         <Field label="Monthly housing costs" value={money(readEnc(loan?.monthlyHousingCostEnc, loan?.monthlyHousingCost))} />
         <Field label="Housing status (Own / Rent / Other)" value={loan?.housingStatus ? HOUSING[loan.housingStatus] : null} />

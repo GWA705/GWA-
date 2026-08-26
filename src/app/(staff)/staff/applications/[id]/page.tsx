@@ -184,6 +184,18 @@ export default async function StaffApplicationDetail({
         coGovId: masked(loan?.coGovIdNumberEnc),
       };
 
+  // Full mailing address for paperwork. City / province / postal are plaintext
+  // and always shown — sourced from the loan application, falling back to the
+  // Application-level fields so Express / Photo deals (no loan record) show them
+  // too. The street stays behind the audited reveal, then joins in.
+  const nz = (v?: string | null) => (v && v.trim() ? v.trim() : null);
+  const addrCity = nz(loan?.city) ?? nz(app.applicantCity);
+  const addrProv = nz(loan?.addressProvince) ?? nz(app.province);
+  const addrPostal = nz(loan?.postalCode) ?? nz(app.applicantPostal);
+  const cityProvPostal = [[addrCity, addrProv].filter(Boolean).join(', '), addrPostal].filter(Boolean).join(' ');
+  const streetShown = reveal && pv.address !== '—' ? pv.address : null;
+  const fullAddress = [streetShown, cityProvPostal].filter(Boolean).join(', ');
+
   if (reveal) {
     await audit({
       actorId: user.userId,
@@ -301,7 +313,7 @@ export default async function StaffApplicationDetail({
               <div><dt className="text-gray-500">Program</dt><dd><ProgramBadge type={app.programType} category={PROGRAM_CATEGORY_LABELS[app.programCategory]} /></dd></div>
               <div><dt className="text-gray-500">Customer</dt><dd className="font-medium">{app.applicantFirstName} {app.applicantLastName}</dd></div>
               <div><dt className="text-gray-500">Phone</dt><dd className="font-medium">{app.applicantPhone}</dd></div>
-              <div><dt className="text-gray-500">City</dt><dd className="font-medium">{app.loanApplication?.city ?? '—'}{app.loanApplication?.addressProvince ? `, ${app.loanApplication.addressProvince}` : ''}</dd></div>
+              <div className="sm:col-span-2"><dt className="text-gray-500">Address</dt><dd className="font-medium">{fullAddress || '—'}{!reveal && app.applicantAddressEnc && <a href={`/staff/applications/${app.id}?reveal=1`} className="ml-2 text-xs font-normal text-brand-600 hover:underline">reveal street</a>}</dd></div>
               <div><dt className="text-gray-500">Product(s)</dt><dd className="font-medium">{app.productsSold.length ? app.productsSold.join(', ') : '—'}</dd></div>
               <div><dt className="text-gray-500">Amount</dt><dd className="font-medium">{app.approvedAmount ? `$${app.approvedAmount.toString()}` : `$${app.requestedAmount.toString()}`}</dd></div>
               {app.isSplitPayment && <div><dt className="text-gray-500">Financed</dt><dd className="font-medium text-brand-700">${financedAmt.toLocaleString('en-CA', { minimumFractionDigits: 2 })} <span className="text-xs font-normal text-gray-400">(split)</span></dd></div>}
