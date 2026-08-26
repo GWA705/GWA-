@@ -37,6 +37,7 @@ export interface Lanes {
 
 // Priority view: deals grouped by urgency rather than by status.
 export interface PriorityBands {
+  newDeals: QueueRow[]; // brand-new / pending approval — the top priority
   now: QueueRow[]; // past the 2-hour target, or a Problem — clear first
   you: QueueRow[]; // needs a decision/reply, still on time
   prog: QueueRow[]; // in progress or waiting on the dealer
@@ -191,16 +192,40 @@ function PriorityRow({ r }: { r: QueueRow }) {
 }
 
 const PRIORITY_BANDS: { key: keyof PriorityBands; title: string; desc: string; accent: string; count: string }[] = [
+  { key: 'newDeals', title: 'New deals', desc: 'Brand-new — approve or process these first', accent: 'text-emerald-700', count: 'bg-emerald-600 text-white' },
   { key: 'now', title: 'Act now', desc: 'Past the 2-hour target or flagged — clear these first', accent: 'text-red-700', count: 'bg-red-600 text-white' },
   { key: 'you', title: 'Waiting for you', desc: 'Needs a decision or a reply, still on time', accent: 'text-brand-800', count: 'bg-brand-600 text-white' },
   { key: 'prog', title: 'In progress', desc: 'Moving along or waiting on the dealer', accent: 'text-gray-600', count: 'bg-gray-200 text-gray-600' },
 ];
 
+function Band({ b, rows }: { b: (typeof PRIORITY_BANDS)[number]; rows: QueueRow[] }) {
+  if (rows.length === 0) return null;
+  return (
+    <section>
+      <div className="mb-2 flex items-baseline gap-2.5">
+        <h2 className={`text-xs font-semibold uppercase tracking-wide ${b.accent}`}>{b.title}</h2>
+        <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${b.count}`}>{rows.length}</span>
+        <span className="ml-auto hidden text-xs text-gray-400 sm:block">{b.desc}</span>
+      </div>
+      <div className="flex flex-col gap-2">
+        {rows.map((r) => (
+          <PriorityRow key={r.id} r={r} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function PriorityView({ priority }: { priority: PriorityBands }) {
   const attention = priority.now.length;
   const oldest = priority.now[0]?.waitLabel;
+  const newBand = PRIORITY_BANDS[0];
+  const restBands = PRIORITY_BANDS.slice(1); // now, you, prog
   return (
     <div className="space-y-7">
+      {/* New deals lead the queue — the top priority. */}
+      <Band b={newBand} rows={priority.newDeals} />
+      {/* Then the "act now" summary + its band. */}
       {attention > 0 && (
         <div className="flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 p-4">
           <span className="text-3xl font-extrabold leading-none text-red-600 tabular-nums">{attention}</span>
@@ -212,25 +237,10 @@ function PriorityView({ priority }: { priority: PriorityBands }) {
           </div>
         </div>
       )}
-      {PRIORITY_BANDS.map((b) => {
-        const rows = priority[b.key];
-        if (rows.length === 0) return null;
-        return (
-          <section key={b.key}>
-            <div className="mb-2 flex items-baseline gap-2.5">
-              <h2 className={`text-xs font-semibold uppercase tracking-wide ${b.accent}`}>{b.title}</h2>
-              <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${b.count}`}>{rows.length}</span>
-              <span className="ml-auto hidden text-xs text-gray-400 sm:block">{b.desc}</span>
-            </div>
-            <div className="flex flex-col gap-2">
-              {rows.map((r) => (
-                <PriorityRow key={r.id} r={r} />
-              ))}
-            </div>
-          </section>
-        );
-      })}
-      {attention === 0 && priority.you.length === 0 && priority.prog.length === 0 && (
+      {restBands.map((b) => (
+        <Band key={b.key} b={b} rows={priority[b.key]} />
+      ))}
+      {priority.newDeals.length === 0 && attention === 0 && priority.you.length === 0 && priority.prog.length === 0 && (
         <div className="card p-8 text-center text-sm text-gray-500">You&apos;re all caught up. 🎉</div>
       )}
     </div>

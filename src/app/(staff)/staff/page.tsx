@@ -171,12 +171,6 @@ const byWaiting = (a: Deal, b: Deal) => waitingSince(a).getTime() - waitingSince
 // These are the top priority to get moving, so they sort above everything else
 // in a band.
 const isNewDeal = (a: Deal) => NEW_STATUSES.includes(a.status) || !a.lastReviewerActionAt;
-// New deals first, then longest-waiting within each group.
-const byNewThenWaiting = (a: Deal, b: Deal) => {
-  const na = isNewDeal(a) ? 0 : 1;
-  const nb = isNewDeal(b) ? 0 : 1;
-  return na !== nb ? na - nb : byWaiting(a, b);
-};
 
 // The most recent moment anything happened on a deal.
 function lastActivityAt(a: Deal): number {
@@ -245,10 +239,13 @@ export default async function StaffQueue({ searchParams }: { searchParams: { q?:
   const active = apps.filter((a) => !INACTIVE.includes(a.status) && !isPaid(a));
   const overdue = (a: Deal) => needsAttention(a) && minutesSince(waitingSince(a)) >= SLA_MINUTES;
   const priority: PriorityBands = {
-    now: active.filter((a) => a.status === 'PROBLEM' || overdue(a)).sort(byWaiting).map(toRow),
-    you: active.filter((a) => a.status !== 'PROBLEM' && !overdue(a) && needsAttention(a)).sort(byNewThenWaiting).map(toRow),
+    // New deals / pending approvals lead the whole queue — the top priority to
+    // get a customer moving. Everything else excludes these so they show once.
+    newDeals: active.filter((a) => isNewDeal(a)).sort(byWaiting).map(toRow),
+    now: active.filter((a) => !isNewDeal(a) && (a.status === 'PROBLEM' || overdue(a))).sort(byWaiting).map(toRow),
+    you: active.filter((a) => !isNewDeal(a) && a.status !== 'PROBLEM' && !overdue(a) && needsAttention(a)).sort(byWaiting).map(toRow),
     // "In progress" (moving along / waiting on the dealer): newest activity first.
-    prog: active.filter((a) => a.status !== 'PROBLEM' && !needsAttention(a)).sort(byRecentActivity).map(toRow),
+    prog: active.filter((a) => !isNewDeal(a) && a.status !== 'PROBLEM' && !needsAttention(a)).sort(byRecentActivity).map(toRow),
   };
 
   return (
