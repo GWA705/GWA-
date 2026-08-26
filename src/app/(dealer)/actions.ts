@@ -15,7 +15,7 @@ import { deleteDocument } from '@/lib/storage';
 import { markDealerAction } from '@/lib/activity';
 import { notifyNewDocuments, notifyNewNote, notifyNewSubmission, notifyFundingSubmitted, notifyAdminsUserRequest } from '@/lib/notify';
 import { applicationSchema, serialNumberSchema } from '@/lib/validation';
-import { mergeProductsSold } from '@/lib/products';
+import { mergeProductsSold, addDealerCustomProducts } from '@/lib/products';
 import { parseDealerProfileForm } from '@/lib/dealerProfile';
 import { applyDealerLogo } from '@/lib/dealerLogo';
 import { CONSENT_POLICY_VERSION, CONSENT_TEXT, PAYMENT_METHOD_LABELS, FUNDING_DOCUMENT_TYPES, SPLIT_PAYMENT_METHODS } from '@/lib/constants';
@@ -51,10 +51,10 @@ export async function createApplicationAction(
   }
   const d = parsed.data;
   // Products are a multi-select (repeated fields) plus a free-text "Other" entry.
-  const productsSold = mergeProductsSold(
-    formData.getAll('productsSold').map(String),
-    formData.get('productsSoldOther') as string | null,
-  );
+  const otherText = formData.get('productsSoldOther') as string | null;
+  const productsSold = mergeProductsSold(formData.getAll('productsSold').map(String), otherText);
+  // The dealer opted to save their typed "Other" products to their own list.
+  const addOtherToList = String(formData.get('addOtherToList') || '') === 'on';
 
   // Sales details are required at intake so the journal is complete.
   const salesErrors: Record<string, string> = {};
@@ -251,6 +251,11 @@ export async function createApplicationAction(
   await audit({ actorId: session.userId, action: 'APPLICATION_CREATE', entityType: 'Application', entityId: app.id });
   await audit({ actorId: session.userId, action: 'APPLICATION_SUBMIT', entityType: 'Application', entityId: app.id });
   await notifyNewSubmission(app.id);
+
+  // Save the dealer's typed "Other" products to their own list if they opted in.
+  if (addOtherToList && session.dealerId && otherText) {
+    await addDealerCustomProducts(session.dealerId, otherText.split(','));
+  }
 
   redirect(`/dealer/applications/${app.id}`);
 }

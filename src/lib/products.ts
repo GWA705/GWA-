@@ -11,14 +11,14 @@ export interface ProductOption {
 
 /**
  * The "Product(s) sold" checklist options for a given dealer: the admin's active
- * products (shared by everyone), plus any product name that THIS dealer has typed
- * into "Other" on more than two of their own deals.
+ * products (shared by everyone), plus any product THIS dealer explicitly added to
+ * their own list (the "add to my list" opt-in on the new-deal form).
  *
- * Promotion is scoped per dealer, so a product one dealer keeps selling shows up
- * only on that dealer's list — not for every dealer. Names that already exist as
- * a Product — active OR archived — are never promoted, so an archived/removed
- * product (e.g. SOAP) can't reappear. Pass no dealerId (e.g. an admin preview)
- * to get just the shared active products with no promotions.
+ * Custom products are scoped per dealer, so one dealer's additions show up only
+ * on that dealer's list — not for every dealer. Names that already exist as a
+ * Product — active OR archived — are never surfaced, so an archived/removed
+ * product (e.g. SOAP) can't reappear. Pass no dealerId (e.g. an admin preview) to
+ * get just the shared active products with no additions.
  */
 export async function productChecklistOptions(dealerId?: string | null): Promise<ProductOption[]> {
   const [active, all] = await Promise.all([
@@ -33,27 +33,44 @@ export async function productChecklistOptions(dealerId?: string | null): Promise
   const base = active.map((p) => ({ id: p.id, name: p.name, journalName: p.journalName }));
   if (!dealerId) return base;
 
-  // This dealer's own repeat "Other" entries.
-  const usage = await prisma.$queryRaw<{ name: string | null }[]>`
-    SELECT name
-    FROM (SELECT unnest("productsSold") AS name FROM "Application" WHERE "dealerId" = ${dealerId}) s
-    GROUP BY name
-    HAVING count(*) > 2
-  `;
+  // This dealer's explicitly-added custom products.
+  const custom = await prisma.dealerCustomProduct.findMany({
+    where: { dealerId },
+    select: { id: true, name: true },
+  });
 
   const known = new Set(all.map((p) => p.name.trim().toLowerCase()));
   const seen = new Set<string>();
   const promoted: ProductOption[] = [];
-  for (const row of usage) {
-    const name = (row.name ?? '').trim();
+  for (const row of custom) {
+    const name = row.name.trim();
     const key = name.toLowerCase();
     if (!name || known.has(key) || seen.has(key)) continue;
     seen.add(key);
-    promoted.push({ id: `promo:${name}`, name, promoted: true });
+    promoted.push({ id: row.id, name, promoted: true });
   }
   promoted.sort((a, b) => a.name.localeCompare(b.name));
 
   return [...base, ...promoted];
+}
+
+/**
+ * Add product names to a dealer's custom list (the "add to my list" opt-in).
+ * Skips names that are blank or already an admin Product; idempotent per dealer.
+ */
+export async function addDealerCustomProducts(dealerId: string, names: string[]): Promise<void> {
+  const clean = Array.from(
+    new Set(names.map((n) => n.replace(/\s+/g, ' ').trim()).filter(Boolean).map((n) => n)),
+  );
+  if (clean.length === 0) return;
+  const existing = await prisma.product.findMany({ select: { name: true } });
+  const known = new Set(existing.map((p) => p.name.trim().toLowerCase()));
+  const toAdd = clean.filter((n) => !known.has(n.toLowerCase()));
+  if (toAdd.length === 0) return;
+  await prisma.dealerCustomProduct.createMany({
+    data: toAdd.map((name) => ({ dealerId, name })),
+    skipDuplicates: true,
+  });
 }
 
 /**

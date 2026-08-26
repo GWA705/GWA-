@@ -288,6 +288,21 @@ model Dealer {
   orders           Order[]
   userRequests     UserRequest[]
   profile          DealerProfile?
+  customProducts   DealerCustomProduct[]
+}
+
+// A product name a dealer explicitly added to their own "Product(s) sold" list
+// (via the "add to my list" opt-in on the new-deal form). Scoped per dealer, so
+// one dealer's custom products never appear on another's picker.
+model DealerCustomProduct {
+  id        String   @id @default(cuid())
+  dealerId  String
+  dealer    Dealer   @relation(fields: [dealerId], references: [id], onDelete: Cascade)
+  name      String
+  createdAt DateTime @default(now())
+
+  @@unique([dealerId, name])
+  @@index([dealerId])
 }
 
 // Home Depot stores available to a given dealer. The store field on an

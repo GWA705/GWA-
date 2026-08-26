@@ -24,13 +24,19 @@ export function ProductPicker({
   products,
   selected = [],
   otherDefault = '',
+  allowAddToList = false,
 }: {
   products: ProductPickerOption[];
   selected?: string[];
   otherDefault?: string;
+  // Show the "add these to my list for next time" opt-in under the Other box
+  // (dealer new-deal form only).
+  allowAddToList?: boolean;
 }) {
   const [chosen, setChosen] = useState<Set<string>>(() => new Set(selected));
   const [q, setQ] = useState('');
+  const [other, setOther] = useState(otherDefault);
+  const otherNames = other.split(',').map((s) => s.trim()).filter(Boolean);
 
   const norm = q.trim().toLowerCase();
   const filtered = useMemo(() => {
@@ -106,12 +112,22 @@ export function ProductPicker({
           <span className="font-medium text-gray-700">Other</span>
           <input
             name="productsSoldOther"
-            defaultValue={otherDefault}
+            value={other}
+            onChange={(e) => setOther(e.target.value)}
             className="input"
             placeholder="Type a product not listed (separate several with commas)"
             autoComplete="off"
           />
         </label>
+        {allowAddToList && otherNames.length > 0 && (
+          <label className="mt-2 flex items-start gap-2 rounded-lg bg-sky-50 px-3 py-2 text-sm text-sky-900">
+            <input type="checkbox" name="addOtherToList" value="on" className="mt-0.5 h-4 w-4 flex-none" />
+            <span>
+              Add {otherNames.length === 1 ? <span className="font-semibold">“{otherNames[0]}”</span> : <span className="font-semibold">these {otherNames.length} products</span>} to my
+              product list for next time
+            </span>
+          </label>
+        )}
       </div>
     </div>
   );

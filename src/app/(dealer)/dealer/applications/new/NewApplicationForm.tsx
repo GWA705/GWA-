@@ -591,7 +591,7 @@ export function NewApplicationForm({
           <div className="mt-1">
             {/* Searchable chip picker. Anything typed under "Other" on more than
                 two deals is promoted onto this dealer's list automatically. */}
-            <ProductPicker products={products} />
+            <ProductPicker products={products} allowAddToList />
           </div>
         </div>
       </section>
