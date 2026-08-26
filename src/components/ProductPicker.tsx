@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { journalCodeFromName } from '@/lib/journalCode';
 
 export interface ProductPickerOption {
   id: string;
@@ -123,8 +124,18 @@ export function ProductPicker({
           <label className="mt-2 flex items-start gap-2 rounded-lg bg-sky-50 px-3 py-2 text-sm text-sky-900">
             <input type="checkbox" name="addOtherToList" value="on" className="mt-0.5 h-4 w-4 flex-none" />
             <span>
-              Add {otherNames.length === 1 ? <span className="font-semibold">“{otherNames[0]}”</span> : <span className="font-semibold">these {otherNames.length} products</span>} to my
-              product list for next time
+              Add{' '}
+              {otherNames.length === 1 ? (
+                <>
+                  <span className="font-semibold">“{otherNames[0]}”</span>{' '}
+                  <span className="rounded bg-white px-1 font-mono text-xs text-sky-700 ring-1 ring-inset ring-sky-200">
+                    journal code {journalCodeFromName(otherNames[0])}
+                  </span>
+                </>
+              ) : (
+                <span className="font-semibold">these {otherNames.length} products</span>
+              )}{' '}
+              to my product list for next time
             </span>
           </label>
         )}

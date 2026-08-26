@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/db';
+import { journalCodeFromName } from '@/lib/journalCode';
 
 export interface ProductOption {
   id: string;
@@ -36,7 +37,7 @@ export async function productChecklistOptions(dealerId?: string | null): Promise
   // This dealer's explicitly-added custom products.
   const custom = await prisma.dealerCustomProduct.findMany({
     where: { dealerId },
-    select: { id: true, name: true },
+    select: { id: true, name: true, journalName: true },
   });
 
   const known = new Set(all.map((p) => p.name.trim().toLowerCase()));
@@ -47,7 +48,7 @@ export async function productChecklistOptions(dealerId?: string | null): Promise
     const key = name.toLowerCase();
     if (!name || known.has(key) || seen.has(key)) continue;
     seen.add(key);
-    promoted.push({ id: row.id, name, promoted: true });
+    promoted.push({ id: row.id, name, journalName: row.journalName ?? journalCodeFromName(name), promoted: true });
   }
   promoted.sort((a, b) => a.name.localeCompare(b.name));
 
@@ -68,7 +69,7 @@ export async function addDealerCustomProducts(dealerId: string, names: string[])
   const toAdd = clean.filter((n) => !known.has(n.toLowerCase()));
   if (toAdd.length === 0) return;
   await prisma.dealerCustomProduct.createMany({
-    data: toAdd.map((name) => ({ dealerId, name })),
+    data: toAdd.map((name) => ({ dealerId, name, journalName: journalCodeFromName(name) || null })),
     skipDuplicates: true,
   });
 }
@@ -79,13 +80,24 @@ export async function addDealerCustomProducts(dealerId: string, names: string[])
  * name (so free-text "Other" entries and abbreviation-less products still write
  * something sensible). Matching is case-insensitive and preserves order.
  */
-export async function journalProductNames(names: string[]): Promise<string[]> {
+export async function journalProductNames(names: string[], dealerId?: string | null): Promise<string[]> {
   if (names.length === 0) return [];
-  const products = await prisma.product.findMany({ select: { name: true, journalName: true } });
+  const [products, custom] = await Promise.all([
+    prisma.product.findMany({ select: { name: true, journalName: true } }),
+    dealerId
+      ? prisma.dealerCustomProduct.findMany({ where: { dealerId }, select: { name: true, journalName: true } })
+      : Promise.resolve([]),
+  ]);
   const abbrev = new Map<string, string>();
+  // Admin products first, then the dealer's custom codes (which win for their
+  // own product names). A custom product with no stored code derives one.
   for (const p of products) {
     const j = (p.journalName ?? '').trim();
     if (j) abbrev.set(p.name.trim().toLowerCase(), j);
+  }
+  for (const c of custom) {
+    const j = (c.journalName ?? '').trim() || journalCodeFromName(c.name);
+    if (j) abbrev.set(c.name.trim().toLowerCase(), j);
   }
   return names.map((n) => abbrev.get(n.trim().toLowerCase()) ?? n);
 }

@@ -1098,7 +1098,7 @@ export async function writeToJournalAction(
     : null;
 
   // Journal writes the abbreviated product code (falls back to the full name).
-  const journalProducts = await journalProductNames(app.productsSold);
+  const journalProducts = await journalProductNames(app.productsSold, app.dealerId);
 
   // "How They Payed" code (col F) + the non-financed portion (col J, Cash/Chq/CC).
   const payCode = journalPayCode({

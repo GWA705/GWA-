@@ -295,11 +295,14 @@ model Dealer {
 // (via the "add to my list" opt-in on the new-deal form). Scoped per dealer, so
 // one dealer's custom products never appear on another's picker.
 model DealerCustomProduct {
-  id        String   @id @default(cuid())
-  dealerId  String
-  dealer    Dealer   @relation(fields: [dealerId], references: [id], onDelete: Cascade)
-  name      String
-  createdAt DateTime @default(now())
+  id          String   @id @default(cuid())
+  dealerId    String
+  dealer      Dealer   @relation(fields: [dealerId], references: [id], onDelete: Cascade)
+  name        String
+  // 3-ish char journal code, auto-built from the first letter of each word
+  // ("Pure and Clean" → "PAC"). Written to the journal for this product.
+  journalName String?
+  createdAt   DateTime @default(now())
 
   @@unique([dealerId, name])
   @@index([dealerId])
