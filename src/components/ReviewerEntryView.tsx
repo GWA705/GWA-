@@ -2,6 +2,7 @@ import Link from 'next/link';
 import type { Application, LoanApplication, HomeDepotStore, FinanceCompany, User } from '@prisma/client';
 import { programLabel, soapLabel } from '@/lib/constants';
 import { readEnc } from '@/lib/crypto';
+import { netBeforeTax } from '@/lib/tax';
 
 /**
  * Reviewer entry view — the whole application laid out top-to-bottom in the
@@ -217,6 +218,13 @@ export function ReviewerEntryView({
       <Group title="Financing / deal">
         <Field label="Program" value={programLabel(app.programType, app.programCategory)} />
         <Field label="Requested amount" value={money(app.requestedAmount)} />
+        {(() => {
+          const total = Number(app.approvedAmount ?? app.requestedAmount) || 0;
+          const n = netBeforeTax(total, app.province);
+          const net = `$${n.net.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+          const label = n.rate > 0 ? `Net — pre-tax (${app.province} ${n.ratePct}% removed)` : 'Net — pre-tax';
+          return <Field label={label} value={net} />;
+        })()}
         <Field label="Approved amount" value={money(app.approvedAmount)} />
         <Field label="Finance company" value={app.financeCompany?.name ?? null} />
         <Field label="Home Depot store" value={storeLabel} />
