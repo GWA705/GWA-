@@ -78,9 +78,11 @@ export default async function EditDealPage({ params }: { params: { id: string } 
     housingStatus: l?.housingStatus ?? '',
     monthlyHousingCost: readEnc(l?.monthlyHousingCostEnc, l?.monthlyHousingCost) ?? '',
     yearsAtAddress: num(l?.yearsAtAddress),
-    city: l?.city ?? '',
-    addressProvince: l?.addressProvince ?? '',
-    postalCode: l?.postalCode ?? '',
+    // Fall back to the Application-level city/postal so Express/Photo deals (no
+    // loan record) show their values here — and a save doesn't blank them.
+    city: app.applicantCity ?? l?.city ?? '',
+    addressProvince: l?.addressProvince ?? app.province ?? '',
+    postalCode: app.applicantPostal ?? l?.postalCode ?? '',
     idType: l?.idType ?? '',
     idProvince: l?.idProvince ?? '',
     idExpiry: ymd(l?.idExpiry),
