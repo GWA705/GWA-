@@ -510,6 +510,48 @@ export function NewApplicationForm({
 
       </section>
 
+      {/* HD lead pre-fill (always available) */}
+      <section className="card border border-sky-200 bg-sky-50/40 p-6">
+        <h2 className="mb-1 text-base font-semibold text-gray-900">
+          HD lead number <span className="font-normal text-gray-400">(optional)</span>
+        </h2>
+        <p className="mb-3 text-xs text-gray-500">
+          Sold a Home Depot lead? Enter its <span className="font-semibold">701…</span> number and we&apos;ll fill in
+          the customer&apos;s name, phone, email and address from the lead. Check everything before you submit.
+        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            id="hdReference"
+            name="hdReference"
+            placeholder="701XXXXXXX"
+            inputMode="numeric"
+            autoComplete="off"
+            className="input max-w-xs"
+            onBlur={fillFromLead}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                fillFromLead();
+              }
+            }}
+          />
+          <button
+            type="button"
+            onClick={fillFromLead}
+            disabled={leadLookup.state === 'loading'}
+            className="btn-secondary text-sm disabled:opacity-60"
+          >
+            {leadLookup.state === 'loading' ? 'Looking…' : 'Find & fill'}
+          </button>
+        </div>
+        {leadLookup.state === 'found' && (
+          <p className="mt-2 text-xs font-medium text-green-700">✓ {leadLookup.msg}</p>
+        )}
+        {(leadLookup.state === 'notfound' || leadLookup.state === 'error') && (
+          <p className="mt-2 text-xs text-amber-700">{leadLookup.msg}</p>
+        )}
+      </section>
+
       {/* Deal details */}
       <section className="card p-6">
         <h2 className="mb-4 text-base font-semibold text-gray-900">Deal details</h2>
@@ -552,48 +594,6 @@ export function NewApplicationForm({
             <ProductPicker products={products} />
           </div>
         </div>
-      </section>
-
-      {/* HD lead pre-fill (always available) */}
-      <section className="card border border-sky-200 bg-sky-50/40 p-6">
-        <h2 className="mb-1 text-base font-semibold text-gray-900">
-          HD lead number <span className="font-normal text-gray-400">(optional)</span>
-        </h2>
-        <p className="mb-3 text-xs text-gray-500">
-          Sold a Home Depot lead? Enter its <span className="font-semibold">701…</span> number and we&apos;ll fill in
-          the customer&apos;s name, phone, email and address from the lead. Check everything before you submit.
-        </p>
-        <div className="flex flex-wrap items-center gap-2">
-          <input
-            id="hdReference"
-            name="hdReference"
-            placeholder="701XXXXXXX"
-            inputMode="numeric"
-            autoComplete="off"
-            className="input max-w-xs"
-            onBlur={fillFromLead}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                fillFromLead();
-              }
-            }}
-          />
-          <button
-            type="button"
-            onClick={fillFromLead}
-            disabled={leadLookup.state === 'loading'}
-            className="btn-secondary text-sm disabled:opacity-60"
-          >
-            {leadLookup.state === 'loading' ? 'Looking…' : 'Find & fill'}
-          </button>
-        </div>
-        {leadLookup.state === 'found' && (
-          <p className="mt-2 text-xs font-medium text-green-700">✓ {leadLookup.msg}</p>
-        )}
-        {(leadLookup.state === 'notfound' || leadLookup.state === 'error') && (
-          <p className="mt-2 text-xs text-amber-700">{leadLookup.msg}</p>
-        )}
       </section>
 
       {/* Applicant (always) */}
