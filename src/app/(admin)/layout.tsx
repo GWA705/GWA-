@@ -75,6 +75,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     nav.push(items.length === 1 ? items[0] : { label: group.label, children: items });
   }
 
+  // Gift cards is a standalone link (a frequently-actioned fulfillment queue).
+  const giftCards = linkFor('gift-cards');
+  if (giftCards) nav.push(giftCards);
+
   // Mail is a standalone link (frequent).
   const mail = linkFor('mail');
   if (mail) nav.push(mail);
