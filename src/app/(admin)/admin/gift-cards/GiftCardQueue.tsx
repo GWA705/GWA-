@@ -56,6 +56,21 @@ export function GiftCardQueue({ pending }: { pending: PendingCard[] }) {
     }
   }
 
+  function downloadCsv() {
+    // Prepend a UTF-8 BOM so Excel opens accented names correctly.
+    const blob = new Blob(['﻿' + csvText], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const stamp = new Date().toISOString().slice(0, 10);
+    const slug = (office || 'all-offices').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `guusto-gift-cards-${slug}-${stamp}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
   function toggle(id: string) {
     setSelected((prev) => {
       const next = new Set(prev);
@@ -113,6 +128,9 @@ export function GiftCardQueue({ pending }: { pending: PendingCard[] }) {
           </button>
           <button type="button" onClick={() => copy(csvText, 'csv')} className="btn-secondary text-xs">
             Copy CSV (name, email, amount)
+          </button>
+          <button type="button" onClick={downloadCsv} disabled={chosen.length === 0} className="btn-secondary text-xs">
+            Download CSV
           </button>
           {copied === 'emails' && <span className="text-xs text-green-700">✓ Emails copied</span>}
           {copied === 'csv' && <span className="text-xs text-green-700">✓ CSV copied</span>}
