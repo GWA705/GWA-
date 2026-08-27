@@ -1,13 +1,37 @@
 import { requireGiftCardAccess } from '@/lib/giftCardAccess';
 import { loadGiftCardQueue } from '@/lib/giftCardQueueData';
+import { queryGiftCards, monthLabel } from '@/lib/giftCardHistory';
 import { GiftCardQueue } from '@/app/(admin)/admin/gift-cards/GiftCardQueue';
 import { StaffFlaggedGiftCards } from '@/app/(admin)/admin/gift-cards/StaffFlaggedGiftCards';
+import { GiftCardHistory, type HistoryRow } from '@/app/(admin)/admin/gift-cards/GiftCardHistory';
 
 export const dynamic = 'force-dynamic';
 
-export default async function StaffGiftCardsPage() {
+const stamp = (d: Date) =>
+  d.toLocaleString('en-CA', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+
+export default async function StaffGiftCardsPage({
+  searchParams,
+}: {
+  searchParams: { q?: string; status?: string; month?: string; sort?: string; perPage?: string; page?: string };
+}) {
   await requireGiftCardAccess();
-  const { pending, flagged, sent } = await loadGiftCardQueue();
+  const [{ pending, flagged }, history] = await Promise.all([
+    loadGiftCardQueue(),
+    queryGiftCards({ ...searchParams }),
+  ]);
+
+  const rows: HistoryRow[] = history.rows.map((r) => ({
+    id: r.id,
+    customerName: r.customerName,
+    customerEmail: r.customerEmail,
+    customerPhone: r.customerPhone,
+    dealerName: (r as { dealer?: { name: string | null } | null }).dealer?.name ?? '—',
+    amount: Number(r.amount),
+    status: r.status,
+    at: stamp(r.createdAt),
+  }));
+  const months = history.months.map((m) => ({ value: m, label: monthLabel(m) }));
 
   return (
     <div className="space-y-6">
@@ -23,39 +47,21 @@ export default async function StaffGiftCardsPage() {
 
       <GiftCardQueue pending={pending} />
 
-      <div className="card overflow-hidden">
-        <div className="border-b border-gray-100 px-5 py-3">
-          <h2 className="text-base font-semibold text-gray-900">Recently sent</h2>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 text-sm">
-            <thead className="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500">
-              <tr>
-                <th className="px-4 py-3">Customer</th>
-                <th className="px-4 py-3">Email</th>
-                <th className="px-4 py-3">Dealer</th>
-                <th className="px-4 py-3 text-right">Amount</th>
-                <th className="px-4 py-3">Sent</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {sent.length === 0 ? (
-                <tr><td colSpan={5} className="px-4 py-6 text-center text-gray-500">Nothing sent yet.</td></tr>
-              ) : (
-                sent.map((r) => (
-                  <tr key={r.id}>
-                    <td className="px-4 py-3 font-medium text-gray-900">{r.customerName}</td>
-                    <td className="px-4 py-3 text-gray-600">{r.customerEmail}</td>
-                    <td className="px-4 py-3 text-gray-600">{r.dealerName}</td>
-                    <td className="px-4 py-3 text-right tabular-nums">${r.amount}</td>
-                    <td className="px-4 py-3 text-gray-500">{r.sentAt}{r.sentBy ? ` · ${r.sentBy}` : ''}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <GiftCardHistory
+        basePath="/staff/gift-cards"
+        rows={rows}
+        months={months}
+        q={history.q}
+        status={history.status}
+        month={history.month}
+        sort={history.sort}
+        perPage={history.perPage}
+        page={history.page}
+        pageCount={history.pageCount}
+        firstShown={history.firstShown}
+        lastShown={history.lastShown}
+        total={history.total}
+      />
     </div>
   );
 }

@@ -1,7 +1,10 @@
 import { requireDealerAccess } from '@/lib/session';
 import { prisma } from '@/lib/db';
+import { queryGiftCards, monthLabel } from '@/lib/giftCardHistory';
 import { GiftCardForm } from './GiftCardForm';
 import { DealerGiftCards, type DealerRequestVM } from './DealerGiftCards';
+import { GiftCardBrowseControls } from '@/components/GiftCardBrowseControls';
+import { GiftCardPager } from '@/components/GiftCardPager';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,21 +13,21 @@ function stamp(d: Date): string {
 }
 const noteAt = (d: Date) => d.toLocaleString('en-CA', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 
-export default async function DealerGiftCardsPage() {
+type RowNote = { id: string; body: string; fromDealer: boolean; createdAt: Date; author: { name: string | null } | null };
+
+export default async function DealerGiftCardsPage({
+  searchParams,
+}: {
+  searchParams: { q?: string; status?: string; month?: string; sort?: string; perPage?: string; page?: string };
+}) {
   const session = await requireDealerAccess();
-  const dealerId = session.dealerId;
-  const rows = dealerId
-    ? await prisma.giftCardRequest.findMany({
-        where: { dealerId },
-        orderBy: { createdAt: 'desc' },
-        take: 200,
-        include: { notes: { orderBy: { createdAt: 'asc' }, include: { author: { select: { name: true } } } } },
-      })
-    : [];
+  const dealerId = session.dealerId ?? null;
 
-  const pending = rows.filter((r) => r.status === 'PENDING').length;
+  const result = dealerId
+    ? await queryGiftCards({ dealerId, includeNotes: true, ...searchParams })
+    : { rows: [], total: 0, page: 1, pageCount: 1, perPage: 25 as number | 'all', isAll: false, months: [] as string[], q: '', status: '', sort: 'newest', month: '', firstShown: 0, lastShown: 0 };
 
-  const requests: DealerRequestVM[] = rows.map((r) => ({
+  const requests: DealerRequestVM[] = result.rows.map((r) => ({
     id: r.id,
     customerName: r.customerName,
     customerEmail: r.customerEmail,
@@ -33,7 +36,8 @@ export default async function DealerGiftCardsPage() {
     status: r.status as DealerRequestVM['status'],
     sentAt: r.sentAt ? stamp(r.sentAt) : null,
     dealerUnread: r.dealerUnread,
-    notes: r.notes.map((n) => ({
+    // notes are included for the dealer view (includeNotes: true)
+    notes: ((r as unknown as { notes?: RowNote[] }).notes ?? []).map((n) => ({
       id: n.id,
       body: n.body,
       fromDealer: n.fromDealer,
@@ -42,10 +46,17 @@ export default async function DealerGiftCardsPage() {
     })),
   }));
 
-  // Mark this dealer's updates as read now that they're viewing the area.
-  if (dealerId && rows.some((r) => r.dealerUnread)) {
+  const [pendingCount] = dealerId
+    ? await Promise.all([prisma.giftCardRequest.count({ where: { dealerId, status: 'PENDING' } })])
+    : [0];
+
+  // Now that they're viewing the area, clear their unread flags.
+  if (dealerId) {
     await prisma.giftCardRequest.updateMany({ where: { dealerId, dealerUnread: true }, data: { dealerUnread: false } });
   }
+
+  const monthOpts = result.months.map((m) => ({ value: m, label: monthLabel(m) }));
+  const filtered = !!(result.q || result.status || result.month);
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -66,9 +77,39 @@ export default async function DealerGiftCardsPage() {
       <div className="card overflow-hidden">
         <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3">
           <h2 className="text-base font-semibold text-gray-900">Your requests</h2>
-          {pending > 0 && <span className="badge bg-amber-100 text-amber-800">{pending} awaiting send</span>}
+          {pendingCount > 0 && <span className="badge bg-amber-100 text-amber-800">{pendingCount} awaiting send</span>}
         </div>
-        <DealerGiftCards requests={requests} />
+        <div className="border-b border-gray-100 px-4 py-3">
+          <GiftCardBrowseControls
+            basePath="/dealer/gift-cards"
+            q={result.q}
+            status={result.status}
+            month={result.month}
+            sort={result.sort}
+            perPage={String(result.perPage)}
+            months={monthOpts}
+          />
+        </div>
+        {result.total === 0 ? (
+          <div className="px-5 py-8 text-center text-sm text-gray-500">
+            {filtered ? 'No requests match your search or filters.' : 'No gift-card requests yet.'}
+          </div>
+        ) : (
+          <>
+            <DealerGiftCards requests={requests} />
+            <div className="px-4 pb-3">
+              <GiftCardPager
+                basePath="/dealer/gift-cards"
+                perPage={result.perPage}
+                page={result.page}
+                pageCount={result.pageCount}
+                firstShown={result.firstShown}
+                lastShown={result.lastShown}
+                total={result.total}
+              />
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
