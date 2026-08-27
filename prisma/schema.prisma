@@ -417,6 +417,11 @@ model User {
   // internal user see it without full Super Admin. Internal staff only.
   canViewDealerSnapshot Boolean @default(false)
 
+  // Per-user grant to fulfill water-test gift cards (the staff Gift cards
+  // queue). Super Admins and admins with the 'gift-cards' section have it
+  // implicitly; this lets a reviewer/admin work the queue without those.
+  canManageGiftCards Boolean @default(false)
+
   // Profile & notification preferences
   phone             String?
   notificationEmail String? // where notifications go; falls back to `email`

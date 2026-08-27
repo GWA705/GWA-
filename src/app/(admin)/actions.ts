@@ -319,6 +319,7 @@ export async function updateUserAction(
     canViewLeadershipReport: boolean;
     canSearchCustomers: boolean;
     canViewDealerSnapshot: boolean;
+    canManageGiftCards: boolean;
     passwordHash?: string;
     passwordChangedAt?: Date | null;
     tokenVersion?: { increment: number };
@@ -340,6 +341,8 @@ export async function updateUserAction(
     canSearchCustomers: d.role !== 'DEALER_USER' && formData.get('canSearchCustomers') === 'on',
     // Per-user grant for the admin Dealer Snapshot report. Internal only.
     canViewDealerSnapshot: d.role !== 'DEALER_USER' && formData.get('canViewDealerSnapshot') === 'on',
+    // Per-user grant to work the water-test gift-card queue. Internal only.
+    canManageGiftCards: d.role !== 'DEALER_USER' && formData.get('canManageGiftCards') === 'on',
   };
 
   if (d.newPassword && d.newPassword.trim()) {

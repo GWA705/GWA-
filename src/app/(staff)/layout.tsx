@@ -7,6 +7,7 @@ import { canAdminSection, hasAnyAdminSection, isSuperAdmin } from '@/lib/rbac';
 import { canViewReportsArea } from '@/lib/reporting/access';
 import { isGlobalSearchEnabled } from '@/lib/settings';
 import { canSearchAllCustomers } from '@/lib/customerSearch';
+import { canManageGiftCards } from '@/lib/giftCardAccess';
 
 export default async function StaffLayout({ children }: { children: React.ReactNode }) {
   const user = await requireRole('REVIEWER', 'ADMIN');
@@ -27,6 +28,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
   // Everyday queues stay as top-level tabs.
   if (canDeals) nav.push({ href: '/staff', label: 'Deals' });
   if (canMail) nav.push({ href: '/staff/mail', label: 'Mail' });
+  if (await canManageGiftCards(user)) nav.push({ href: '/staff/gift-cards', label: 'Gift cards' });
 
   // Directory, customer search, leads and reports collapse into one "Tools"
   // menu so the bar stays short; only the permitted items are included, and the
