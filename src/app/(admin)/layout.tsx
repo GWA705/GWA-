@@ -7,6 +7,7 @@ import { prisma } from '@/lib/db';
 import { canAdminSection, isSuperAdmin, hasAnyAdminSection } from '@/lib/rbac';
 import { isGlobalSearchEnabled } from '@/lib/settings';
 import { ADMIN_SECTIONS } from '@/lib/constants';
+import { staffHasGiftCardUnread } from '@/lib/giftCardAccess';
 
 interface NavItem {
   href?: string;
@@ -77,7 +78,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   // Gift cards is a standalone link (a frequently-actioned fulfillment queue).
   const giftCards = linkFor('gift-cards');
-  if (giftCards) nav.push(giftCards);
+  if (giftCards) nav.push({ ...giftCards, badge: await staffHasGiftCardUnread() });
 
   // Mail is a standalone link (frequent).
   const mail = linkFor('mail');

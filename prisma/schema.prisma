@@ -310,16 +310,39 @@ model GiftCardRequest {
   requestedBy   User           @relation("GiftCardRequestedBy", fields: [requestedById], references: [id])
   customerName  String
   customerEmail String
+  customerPhone String? // optional cell — some customers get the card by SMS
   amount        Decimal        @default(25) @db.Decimal(10, 2)
   status        GiftCardStatus @default(PENDING)
   sentAt        DateTime?
   sentById      String?
   sentBy        User?          @relation("GiftCardSentBy", fields: [sentById], references: [id])
   note          String? // optional internal note (e.g. a Guusto reference)
+  // Unread flags for the two-way note thread: dealerUnread = the dealer has a
+  // new message/update from staff to read; staffUnread = staff have a new
+  // message/edit from the dealer to look at. Drive the "check gift cards" dots.
+  dealerUnread  Boolean        @default(false)
+  staffUnread   Boolean        @default(false)
+  notes         GiftCardNote[]
   createdAt     DateTime       @default(now())
 
   @@index([dealerId])
   @@index([status])
+}
+
+// One message in a gift-card request's back-and-forth thread between the dealer
+// and the staff member who sends the cards (e.g. "customer never got it, wrong
+// email — please resend to …"). fromDealer distinguishes the two sides.
+model GiftCardNote {
+  id         String          @id @default(cuid())
+  requestId  String
+  request    GiftCardRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  authorId   String
+  author     User            @relation("GiftCardNoteAuthor", fields: [authorId], references: [id])
+  fromDealer Boolean // true = written by the dealer side; false = staff side
+  body       String          @db.Text
+  createdAt  DateTime        @default(now())
+
+  @@index([requestId])
 }
 
 // A product name a dealer explicitly added to their own "Product(s) sold" list
@@ -476,6 +499,7 @@ model User {
   userRequestsReviewed  UserRequest[]     @relation("UserRequestReviewer")
   giftCardsRequested    GiftCardRequest[] @relation("GiftCardRequestedBy")
   giftCardsSent         GiftCardRequest[] @relation("GiftCardSentBy")
+  giftCardNotes         GiftCardNote[]    @relation("GiftCardNoteAuthor")
 
   @@index([dealerId])
 }

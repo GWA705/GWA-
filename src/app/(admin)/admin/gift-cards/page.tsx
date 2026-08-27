@@ -1,36 +1,13 @@
 import { requireAdminSection } from '@/lib/session';
-import { prisma } from '@/lib/db';
-import { GiftCardQueue, type PendingCard } from './GiftCardQueue';
+import { loadGiftCardQueue } from '@/lib/giftCardQueueData';
+import { GiftCardQueue } from './GiftCardQueue';
+import { StaffFlaggedGiftCards } from './StaffFlaggedGiftCards';
 
 export const dynamic = 'force-dynamic';
 
-const dt = (d: Date) =>
-  d.toLocaleString('en-CA', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
-
 export default async function AdminGiftCardsPage() {
   await requireAdminSection('gift-cards');
-  const [pendingRows, sentRows] = await Promise.all([
-    prisma.giftCardRequest.findMany({
-      where: { status: 'PENDING' },
-      orderBy: { createdAt: 'asc' },
-      include: { dealer: { select: { name: true } } },
-    }),
-    prisma.giftCardRequest.findMany({
-      where: { status: 'SENT' },
-      orderBy: { sentAt: 'desc' },
-      take: 50,
-      include: { dealer: { select: { name: true } }, sentBy: { select: { name: true } } },
-    }),
-  ]);
-
-  const pending: PendingCard[] = pendingRows.map((r) => ({
-    id: r.id,
-    dealerName: r.dealer?.name ?? '—',
-    customerName: r.customerName,
-    customerEmail: r.customerEmail,
-    amount: Number(r.amount),
-    requestedAt: dt(r.createdAt),
-  }));
+  const { pending, flagged, sent } = await loadGiftCardQueue();
 
   return (
     <div className="space-y-6">
@@ -41,6 +18,8 @@ export default async function AdminGiftCardsPage() {
           Guusto, send, then <strong>mark them sent</strong> — that stamps a dated receipt back to the dealer.
         </p>
       </div>
+
+      <StaffFlaggedGiftCards flagged={flagged} />
 
       <GiftCardQueue pending={pending} />
 
@@ -60,18 +39,16 @@ export default async function AdminGiftCardsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {sentRows.length === 0 ? (
+              {sent.length === 0 ? (
                 <tr><td colSpan={5} className="px-4 py-6 text-center text-gray-500">Nothing sent yet.</td></tr>
               ) : (
-                sentRows.map((r) => (
+                sent.map((r) => (
                   <tr key={r.id}>
                     <td className="px-4 py-3 font-medium text-gray-900">{r.customerName}</td>
                     <td className="px-4 py-3 text-gray-600">{r.customerEmail}</td>
-                    <td className="px-4 py-3 text-gray-600">{r.dealer?.name ?? '—'}</td>
-                    <td className="px-4 py-3 text-right tabular-nums">${Number(r.amount)}</td>
-                    <td className="px-4 py-3 text-gray-500">
-                      {r.sentAt ? dt(r.sentAt) : '—'}{r.sentBy?.name ? ` · ${r.sentBy.name}` : ''}
-                    </td>
+                    <td className="px-4 py-3 text-gray-600">{r.dealerName}</td>
+                    <td className="px-4 py-3 text-right tabular-nums">${r.amount}</td>
+                    <td className="px-4 py-3 text-gray-500">{r.sentAt}{r.sentBy ? ` · ${r.sentBy}` : ''}</td>
                   </tr>
                 ))
               )}

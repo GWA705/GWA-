@@ -26,16 +26,20 @@ export function GiftCardForm({ defaultAmount = 25 }: { defaultAmount?: number })
     <form ref={formRef} action={action} className="space-y-4">
       {state.error && <div className="rounded-md bg-red-50 p-2 text-sm text-red-700">{state.error}</div>}
       {state.ok && <div className="rounded-md bg-green-50 p-2 text-sm text-green-700">{state.message}</div>}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="sm:col-span-1">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
           <label className="label" htmlFor="customerName">Customer name</label>
           <input id="customerName" name="customerName" className="input" autoComplete="off" />
         </div>
-        <div className="sm:col-span-1">
+        <div>
           <label className="label" htmlFor="customerEmail">Customer email</label>
           <input id="customerEmail" name="customerEmail" type="email" className="input" autoComplete="off" placeholder="customer@example.com" />
         </div>
-        <div className="sm:col-span-1">
+        <div>
+          <label className="label" htmlFor="customerPhone">Customer cell <span className="font-normal text-gray-400">(optional)</span></label>
+          <input id="customerPhone" name="customerPhone" type="tel" className="input" autoComplete="off" placeholder="705-555-0123" />
+        </div>
+        <div>
           <label className="label" htmlFor="amount">Card amount</label>
           <div className="relative">
             <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">$</span>

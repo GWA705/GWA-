@@ -2,15 +2,19 @@
 
 import { useMemo, useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
-import { markGiftCardsSentAction, type GiftCardAdminState } from './actions';
+import { GiftCardThread, type GiftCardNoteVM } from '@/components/GiftCardThread';
+import { markGiftCardsSentAction, addStaffGiftCardNoteAction, type GiftCardAdminState } from './actions';
 
 export interface PendingCard {
   id: string;
   dealerName: string;
   customerName: string;
   customerEmail: string;
+  customerPhone: string | null;
   amount: number;
   requestedAt: string; // preformatted
+  staffUnread: boolean;
+  notes: GiftCardNoteVM[];
 }
 
 function MarkSentBtn({ count }: { count: number }) {
@@ -27,8 +31,8 @@ export function GiftCardQueue({ pending }: { pending: PendingCard[] }) {
   const [selected, setSelected] = useState<Set<string>>(() => new Set(pending.map((p) => p.id)));
   const [copied, setCopied] = useState<string | null>(null);
   const [office, setOffice] = useState('');
+  const [openId, setOpenId] = useState<string | null>(null);
 
-  // Offices with a pending count, for the filter (mirrors the per-office groups).
   const offices = useMemo(() => {
     const counts = new Map<string, number>();
     for (const p of pending) counts.set(p.dealerName, (counts.get(p.dealerName) ?? 0) + 1);
@@ -38,10 +42,12 @@ export function GiftCardQueue({ pending }: { pending: PendingCard[] }) {
   const visible = useMemo(() => (office ? pending.filter((p) => p.dealerName === office) : pending), [pending, office]);
   const chosen = visible.filter((p) => selected.has(p.id));
   const allOn = chosen.length === visible.length && visible.length > 0;
+  const openCard = pending.find((p) => p.id === openId) ?? null;
 
   const emailsText = useMemo(() => chosen.map((c) => c.customerEmail).join('\n'), [chosen]);
   const csvText = useMemo(
-    () => ['Name,Email,Amount', ...chosen.map((c) => `${c.customerName.replace(/,/g, ' ')},${c.customerEmail},${c.amount}`)].join('\n'),
+    () =>
+      ['Name,Email,Phone,Amount', ...chosen.map((c) => `${c.customerName.replace(/,/g, ' ')},${c.customerEmail},${c.customerPhone ?? ''},${c.amount}`)].join('\n'),
     [chosen],
   );
 
@@ -57,7 +63,6 @@ export function GiftCardQueue({ pending }: { pending: PendingCard[] }) {
   }
 
   function downloadCsv() {
-    // Prepend a UTF-8 BOM so Excel opens accented names correctly.
     const blob = new Blob(['﻿' + csvText], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const stamp = new Date().toISOString().slice(0, 10);
@@ -94,27 +99,17 @@ export function GiftCardQueue({ pending }: { pending: PendingCard[] }) {
 
   return (
     <div className="space-y-4">
-      {/* Office filter — work one office at a time, like the per-office groups */}
       {offices.length > 1 && (
         <div className="flex flex-wrap items-center gap-2">
           <label htmlFor="office" className="text-sm font-medium text-gray-700">Office:</label>
-          <select
-            id="office"
-            value={office}
-            onChange={(e) => setOffice(e.target.value)}
-            className="input w-auto text-sm"
-          >
+          <select id="office" value={office} onChange={(e) => setOffice(e.target.value)} className="input w-auto text-sm">
             <option value="">All offices ({pending.length})</option>
             {offices.map(([name, count]) => (
-              <option key={name} value={name}>
-                {name} ({count})
-              </option>
+              <option key={name} value={name}>{name} ({count})</option>
             ))}
           </select>
           {office && (
-            <button type="button" onClick={() => setOffice('')} className="text-xs text-gray-500 underline">
-              clear
-            </button>
+            <button type="button" onClick={() => setOffice('')} className="text-xs text-gray-500 underline">clear</button>
           )}
         </div>
       )}
@@ -123,15 +118,9 @@ export function GiftCardQueue({ pending }: { pending: PendingCard[] }) {
       <div className="card border-sky-200 bg-sky-50/40 p-4">
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm font-medium text-gray-700">Copy the {chosen.length} selected for Guusto:</span>
-          <button type="button" onClick={() => copy(emailsText, 'emails')} className="btn-secondary text-xs">
-            Copy emails
-          </button>
-          <button type="button" onClick={() => copy(csvText, 'csv')} className="btn-secondary text-xs">
-            Copy CSV (name, email, amount)
-          </button>
-          <button type="button" onClick={downloadCsv} disabled={chosen.length === 0} className="btn-secondary text-xs">
-            Download CSV
-          </button>
+          <button type="button" onClick={() => copy(emailsText, 'emails')} className="btn-secondary text-xs">Copy emails</button>
+          <button type="button" onClick={() => copy(csvText, 'csv')} className="btn-secondary text-xs">Copy CSV (name, email, phone, amount)</button>
+          <button type="button" onClick={downloadCsv} disabled={chosen.length === 0} className="btn-secondary text-xs">Download CSV</button>
           {copied === 'emails' && <span className="text-xs text-green-700">✓ Emails copied</span>}
           {copied === 'csv' && <span className="text-xs text-green-700">✓ CSV copied</span>}
           {copied === 'failed' && <span className="text-xs text-red-600">Copy failed — select the box below</span>}
@@ -155,10 +144,11 @@ export function GiftCardQueue({ pending }: { pending: PendingCard[] }) {
               <tr>
                 <th className="px-3 py-3"><input type="checkbox" checked={allOn} onChange={toggleAll} aria-label="Select all" /></th>
                 <th className="px-4 py-3">Customer</th>
-                <th className="px-4 py-3">Email</th>
+                <th className="px-4 py-3">Email / cell</th>
                 <th className="px-4 py-3">Dealer</th>
                 <th className="px-4 py-3 text-right">Amount</th>
                 <th className="px-4 py-3">Requested</th>
+                <th className="px-4 py-3"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -168,11 +158,28 @@ export function GiftCardQueue({ pending }: { pending: PendingCard[] }) {
                     <input type="checkbox" checked={selected.has(c.id)} onChange={() => toggle(c.id)} />
                     {selected.has(c.id) && <input type="hidden" name="ids" value={c.id} />}
                   </td>
-                  <td className="px-4 py-3 font-medium text-gray-900">{c.customerName}</td>
-                  <td className="px-4 py-3 text-gray-600">{c.customerEmail}</td>
+                  <td className="px-4 py-3 font-medium text-gray-900">
+                    <span className="flex items-center gap-1.5">
+                      {c.staffUnread && <span className="h-2 w-2 rounded-full bg-red-500" aria-label="New message" />}
+                      {c.customerName}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-gray-600">
+                    <div>{c.customerEmail}</div>
+                    {c.customerPhone && <div className="text-xs text-gray-500">📱 {c.customerPhone}</div>}
+                  </td>
                   <td className="px-4 py-3 text-gray-600">{c.dealerName}</td>
                   <td className="px-4 py-3 text-right tabular-nums">${c.amount}</td>
                   <td className="px-4 py-3 text-gray-500">{c.requestedAt}</td>
+                  <td className="px-4 py-3 text-right">
+                    <button
+                      type="button"
+                      onClick={() => setOpenId(openId === c.id ? null : c.id)}
+                      className={`text-xs font-medium hover:underline ${c.staffUnread ? 'text-red-600' : 'text-brand-600'}`}
+                    >
+                      💬 {c.notes.length > 0 ? c.notes.length : ''} Notes
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -183,6 +190,19 @@ export function GiftCardQueue({ pending }: { pending: PendingCard[] }) {
           <span className="text-xs text-gray-500">Marks them sent and shows each dealer a dated receipt.</span>
         </div>
       </form>
+
+      {/* Note thread lives OUTSIDE the mark-sent form (no nested forms). */}
+      {openCard && (
+        <div className="card p-4">
+          <div className="mb-2 flex items-center justify-between">
+            <div className="text-sm font-medium text-gray-900">
+              {openCard.customerName} · <span className="text-gray-500">{openCard.dealerName}</span>
+            </div>
+            <button type="button" onClick={() => setOpenId(null)} className="text-xs text-gray-500 underline">close</button>
+          </div>
+          <GiftCardThread requestId={openCard.id} notes={openCard.notes} side="staff" addAction={addStaffGiftCardNoteAction} />
+        </div>
+      )}
     </div>
   );
 }

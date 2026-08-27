@@ -7,6 +7,7 @@ import { newContentSectionsForUser, unreadMailCountForUser } from '@/lib/inbox';
 import { hasCalculatorAccess } from '@/lib/calculatorAccess';
 import { hasDealerReportAccess } from '@/lib/reporting/access';
 import { isGlobalSearchEnabled } from '@/lib/settings';
+import { dealerHasGiftCardUnread } from '@/lib/giftCardAccess';
 import { prisma } from '@/lib/db';
 import { stopViewAsAction } from '@/app/(admin)/actions';
 
@@ -39,12 +40,13 @@ export default async function DealerLayout({ children }: { children: React.React
   }
 
   // Attention dots: content sections with something new, and unread mail.
-  const [freshSections, unreadMail, calcAccess, reportAccess, searchEnabled] = await Promise.all([
+  const [freshSections, unreadMail, calcAccess, reportAccess, searchEnabled, giftCardUnread] = await Promise.all([
     newContentSectionsForUser(user.userId),
     user.dealerId ? unreadMailCountForUser(user.userId, user.dealerId, user.isDistributor) : Promise.resolve(0),
     hasCalculatorAccess(user),
     hasDealerReportAccess(user),
     isGlobalSearchEnabled(),
+    user.dealerId ? dealerHasGiftCardUnread(user.dealerId) : Promise.resolve(false),
   ]);
 
   return (
@@ -88,7 +90,7 @@ export default async function DealerLayout({ children }: { children: React.React
             children: [
               { href: '/dealer/marketplace', label: 'Marketplace' },
               { href: '/dealer/leads', label: 'Leads' },
-              { href: '/dealer/gift-cards', label: 'Gift cards' },
+              { href: '/dealer/gift-cards', label: 'Gift cards', badge: giftCardUnread },
             ],
           },
           {

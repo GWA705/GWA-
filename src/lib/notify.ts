@@ -330,3 +330,33 @@ export async function notifyAdminsUserRequest(requestId: string) {
     console.error('[notify] user request failed', e);
   }
 }
+
+/**
+ * A gift-card request got a new note or a contact edit. When the dealer writes,
+ * push the staff who work the queue; when staff write, push the dealer who
+ * requested it. Best-effort — never breaks the note itself.
+ */
+export async function notifyGiftCardNote(requestId: string, fromDealer: boolean) {
+  try {
+    const gc = await prisma.giftCardRequest.findUnique({ where: { id: requestId } });
+    if (!gc) return;
+    const who = gc.customerName;
+    if (fromDealer) {
+      await sendPushToRoles(STAFF_ROLES, {
+        title: 'Gift card — new message',
+        body: `A dealer updated the gift card for ${who}. Check the Gift cards area.`,
+        url: '/staff/gift-cards',
+        tag: `giftcard-${requestId}`,
+      });
+    } else {
+      await sendPushToUser(gc.requestedById, {
+        title: 'Gift card — new message',
+        body: `An update on the gift card for ${who}. Check your Gift cards area.`,
+        url: '/dealer/gift-cards',
+        tag: `giftcard-${requestId}`,
+      });
+    }
+  } catch (e) {
+    console.error('[notify] gift-card note failed', e);
+  }
+}

@@ -32,3 +32,15 @@ export async function requireGiftCardAccess(): Promise<SessionUser> {
   if (!(await canManageGiftCards(session))) redirect('/');
   return session;
 }
+
+/** Does this dealer have a gift-card update waiting (staff message/edit)? */
+export async function dealerHasGiftCardUnread(dealerId: string): Promise<boolean> {
+  const n = await prisma.giftCardRequest.count({ where: { dealerId, dealerUnread: true } });
+  return n > 0;
+}
+
+/** Is there any gift-card request flagged for staff to look at? */
+export async function staffHasGiftCardUnread(): Promise<boolean> {
+  const n = await prisma.giftCardRequest.count({ where: { staffUnread: true } });
+  return n > 0;
+}
