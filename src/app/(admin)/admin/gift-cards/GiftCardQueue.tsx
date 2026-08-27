@@ -26,9 +26,18 @@ export function GiftCardQueue({ pending }: { pending: PendingCard[] }) {
   const [state, action] = useFormState(markGiftCardsSentAction, {} as GiftCardAdminState);
   const [selected, setSelected] = useState<Set<string>>(() => new Set(pending.map((p) => p.id)));
   const [copied, setCopied] = useState<string | null>(null);
+  const [office, setOffice] = useState('');
 
-  const chosen = pending.filter((p) => selected.has(p.id));
-  const allOn = chosen.length === pending.length && pending.length > 0;
+  // Offices with a pending count, for the filter (mirrors the per-office groups).
+  const offices = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const p of pending) counts.set(p.dealerName, (counts.get(p.dealerName) ?? 0) + 1);
+    return Array.from(counts.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+  }, [pending]);
+
+  const visible = useMemo(() => (office ? pending.filter((p) => p.dealerName === office) : pending), [pending, office]);
+  const chosen = visible.filter((p) => selected.has(p.id));
+  const allOn = chosen.length === visible.length && visible.length > 0;
 
   const emailsText = useMemo(() => chosen.map((c) => c.customerEmail).join('\n'), [chosen]);
   const csvText = useMemo(
@@ -56,7 +65,12 @@ export function GiftCardQueue({ pending }: { pending: PendingCard[] }) {
     });
   }
   function toggleAll() {
-    setSelected(allOn ? new Set() : new Set(pending.map((p) => p.id)));
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (allOn) for (const p of visible) next.delete(p.id);
+      else for (const p of visible) next.add(p.id);
+      return next;
+    });
   }
 
   if (pending.length === 0) {
@@ -65,6 +79,31 @@ export function GiftCardQueue({ pending }: { pending: PendingCard[] }) {
 
   return (
     <div className="space-y-4">
+      {/* Office filter — work one office at a time, like the per-office groups */}
+      {offices.length > 1 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <label htmlFor="office" className="text-sm font-medium text-gray-700">Office:</label>
+          <select
+            id="office"
+            value={office}
+            onChange={(e) => setOffice(e.target.value)}
+            className="input w-auto text-sm"
+          >
+            <option value="">All offices ({pending.length})</option>
+            {offices.map(([name, count]) => (
+              <option key={name} value={name}>
+                {name} ({count})
+              </option>
+            ))}
+          </select>
+          {office && (
+            <button type="button" onClick={() => setOffice('')} className="text-xs text-gray-500 underline">
+              clear
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Copy area */}
       <div className="card border-sky-200 bg-sky-50/40 p-4">
         <div className="flex flex-wrap items-center gap-2">
@@ -105,7 +144,7 @@ export function GiftCardQueue({ pending }: { pending: PendingCard[] }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {pending.map((c) => (
+              {visible.map((c) => (
                 <tr key={c.id} className={selected.has(c.id) ? 'bg-brand-50/40' : ''}>
                   <td className="px-3 py-3">
                     <input type="checkbox" checked={selected.has(c.id)} onChange={() => toggle(c.id)} />
