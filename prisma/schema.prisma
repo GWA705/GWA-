@@ -289,6 +289,37 @@ model Dealer {
   userRequests     UserRequest[]
   profile          DealerProfile?
   customProducts   DealerCustomProduct[]
+  giftCardRequests GiftCardRequest[]
+}
+
+// Water-test reward: a dealer requests a Home Depot gift card for a customer who
+// completed a water test. GWA sends it via Guusto and marks it sent, which
+// stamps a receipt (date/time) the dealer can see. Status: PENDING → SENT (or
+// CANCELLED).
+enum GiftCardStatus {
+  PENDING
+  SENT
+  CANCELLED
+}
+
+model GiftCardRequest {
+  id            String         @id @default(cuid())
+  dealerId      String
+  dealer        Dealer         @relation(fields: [dealerId], references: [id], onDelete: Cascade)
+  requestedById String
+  requestedBy   User           @relation("GiftCardRequestedBy", fields: [requestedById], references: [id])
+  customerName  String
+  customerEmail String
+  amount        Decimal        @default(25) @db.Decimal(10, 2)
+  status        GiftCardStatus @default(PENDING)
+  sentAt        DateTime?
+  sentById      String?
+  sentBy        User?          @relation("GiftCardSentBy", fields: [sentById], references: [id])
+  note          String? // optional internal note (e.g. a Guusto reference)
+  createdAt     DateTime       @default(now())
+
+  @@index([dealerId])
+  @@index([status])
 }
 
 // A product name a dealer explicitly added to their own "Product(s) sold" list
@@ -438,6 +469,8 @@ model User {
   ordersCreated       Order[]             @relation("OrderCreatedBy")
   userRequestsSubmitted UserRequest[]     @relation("UserRequestSubmitter")
   userRequestsReviewed  UserRequest[]     @relation("UserRequestReviewer")
+  giftCardsRequested    GiftCardRequest[] @relation("GiftCardRequestedBy")
+  giftCardsSent         GiftCardRequest[] @relation("GiftCardSentBy")
 
   @@index([dealerId])
 }

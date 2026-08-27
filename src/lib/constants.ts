@@ -553,6 +553,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
   { key: 'note-templates', label: 'Quick notes', href: '/admin/note-templates' },
   { key: 'content', label: 'Content', href: '/admin/content', hint: 'Resources / promos' },
   { key: 'marketplace', label: 'Marketplace', href: '/admin/marketplace' },
+  { key: 'gift-cards', label: 'Gift cards', href: '/admin/gift-cards', hint: 'Water-test rewards → Guusto' },
   { key: 'mail', label: 'Mail', href: '/staff/mail', hint: 'Send + reply toggle' },
   { key: 'user-requests', label: 'User requests', href: '/admin/user-requests', hint: 'Dealer login requests' },
   { key: 'directory', label: 'Office directory', href: '/staff/directory', hint: 'Dealer locations & contacts' },
