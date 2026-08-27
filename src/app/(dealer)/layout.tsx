@@ -68,15 +68,29 @@ export default async function DealerLayout({ children }: { children: React.React
         user={user}
         portal="dealer"
         nav={[
+          // Everyday actions stay as top-level tabs.
           { href: '/dealer', label: 'Applications' },
           { href: '/dealer/applications/new', label: 'New customer' },
           { href: '/dealer/mail', label: 'Mail', badge: unreadMail > 0 },
-          { href: '/dealer/marketplace', label: 'Marketplace' },
-          { href: '/dealer/leads', label: 'Leads' },
-          { href: '/dealer/gift-cards', label: 'Gift cards' },
-          ...(searchEnabled ? [{ href: '/dealer/find-customer', label: 'Find customer' }] : []),
-          ...(calcAccess ? [{ href: '/dealer/calculator', label: 'HD Payout' }] : []),
-          ...(reportAccess ? [{ href: '/dealer/reports', label: 'Reports' }] : []),
+          // Lookups & calculators — only the ones this office has access to. The
+          // group is hidden entirely when the dealer has none of them.
+          ...(() => {
+            const tools = [
+              ...(searchEnabled ? [{ href: '/dealer/find-customer', label: 'Find customer' }] : []),
+              ...(calcAccess ? [{ href: '/dealer/calculator', label: 'HD Payout' }] : []),
+              ...(reportAccess ? [{ href: '/dealer/reports', label: 'Reports' }] : []),
+            ];
+            return tools.length > 0 ? [{ label: 'Tools', children: tools }] : [];
+          })(),
+          // Ordering gear, HD leads, and water-test gift cards.
+          {
+            label: 'Sales & rewards',
+            children: [
+              { href: '/dealer/marketplace', label: 'Marketplace' },
+              { href: '/dealer/leads', label: 'Leads' },
+              { href: '/dealer/gift-cards', label: 'Gift cards' },
+            ],
+          },
           {
             label: 'Resources',
             children: [

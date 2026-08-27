@@ -16,14 +16,29 @@ export default async function StaffLayout({ children }: { children: React.ReactN
   const canDeals = user.role === 'REVIEWER' || canAdminSection(user, 'review-queue');
   const canMail = user.role === 'REVIEWER' || canAdminSection(user, 'mail');
   const canDirectory = user.role === 'REVIEWER' || canAdminSection(user, 'directory');
-  const nav: { href: string; label: string }[] = [];
+
+  interface NavItem {
+    href?: string;
+    label: string;
+    children?: NavItem[];
+  }
+  const nav: NavItem[] = [];
+
+  // Everyday queues stay as top-level tabs.
   if (canDeals) nav.push({ href: '/staff', label: 'Deals' });
   if (canMail) nav.push({ href: '/staff/mail', label: 'Mail' });
-  if (canDirectory) nav.push({ href: '/staff/directory', label: 'Directory' });
-  if (await canViewReportsArea(user)) nav.push({ href: '/staff/reports', label: 'Reports' });
-  if (isSuperAdmin(user) || canAdminSection(user, 'leads')) nav.push({ href: '/staff/leads', label: 'Leads' });
+
+  // Directory, customer search, leads and reports collapse into one "Tools"
+  // menu so the bar stays short; only the permitted items are included, and the
+  // group is skipped entirely when none apply.
+  const tools: NavItem[] = [];
+  if (canDirectory) tools.push({ href: '/staff/directory', label: 'Directory' });
   if ((await isGlobalSearchEnabled()) && (await canSearchAllCustomers(user)))
-    nav.push({ href: '/staff/find-customer', label: 'Find customer' });
+    tools.push({ href: '/staff/find-customer', label: 'Find customer' });
+  if (isSuperAdmin(user) || canAdminSection(user, 'leads')) tools.push({ href: '/staff/leads', label: 'Leads' });
+  if (await canViewReportsArea(user)) tools.push({ href: '/staff/reports', label: 'Reports' });
+  if (tools.length > 0) nav.push({ label: 'Tools', children: tools });
+
   nav.push({ href: '/account', label: 'My account' });
   // Admins with any back-end access get a jump link back to the admin area.
   if (user.role === 'ADMIN' && hasAnyAdminSection(user)) nav.push({ href: '/admin', label: 'Admin' });
