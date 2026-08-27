@@ -1,15 +1,21 @@
 import { requireAdminSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
+import { journalCodeFromName } from '@/lib/journalCode';
 import { ProductForm } from './ProductForm';
 import { ProductRowActions } from './ProductRowActions';
+import { DealerProductRow } from './DealerProductRow';
 
 export const dynamic = 'force-dynamic';
 
 export default async function ProductsPage() {
   await requireAdminSection('products');
-  const products = await prisma.product.findMany({
-    orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
-  });
+  const [products, dealerProducts] = await Promise.all([
+    prisma.product.findMany({ orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }] }),
+    prisma.dealerCustomProduct.findMany({
+      orderBy: [{ dealer: { name: 'asc' } }, { name: 'asc' }],
+      include: { dealer: { select: { name: true } } },
+    }),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -64,6 +70,43 @@ export default async function ProductsPage() {
                     />
                   </td>
                 </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Dealer-added products — auto first-letters code; admin sets the final. */}
+      <div>
+        <h2 className="text-base font-semibold text-gray-900">Dealer-added products</h2>
+        <p className="mt-1 text-sm text-gray-500">
+          Products dealers added to their own lists. They arrive with an auto code (first letter of each word) —
+          set the <strong>final journal code</strong> here. These stay on that dealer&apos;s picker only.
+        </p>
+      </div>
+      <div className="card overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200 text-sm">
+          <thead className="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500">
+            <tr>
+              <th className="px-4 py-3">Product</th>
+              <th className="px-4 py-3">Dealer</th>
+              <th className="px-4 py-3">Journal code</th>
+              <th className="px-4 py-3"></th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {dealerProducts.length === 0 ? (
+              <tr><td colSpan={4} className="px-4 py-6 text-center text-gray-500">No dealer-added products yet.</td></tr>
+            ) : (
+              dealerProducts.map((p) => (
+                <DealerProductRow
+                  key={p.id}
+                  id={p.id}
+                  name={p.name}
+                  dealerName={p.dealer?.name ?? '—'}
+                  journalName={p.journalName}
+                  suggested={journalCodeFromName(p.name)}
+                />
               ))
             )}
           </tbody>

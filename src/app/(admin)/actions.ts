@@ -560,6 +560,29 @@ export async function createProductAction(_prev: ActionState, formData: FormData
   return { ok: true };
 }
 
+// An admin sets the FINAL journal code for a dealer-added custom product (the
+// dealer's auto first-letters code is just the starting suggestion).
+export async function setDealerCustomProductCodeAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const session = await requireAdminSection('products');
+  const id = String(formData.get('id') || '');
+  const journalName = cleanJournalName(String(formData.get('journalName') || ''));
+  const row = await prisma.dealerCustomProduct.findUnique({ where: { id } });
+  if (!row) return { error: 'Product not found.' };
+  await prisma.dealerCustomProduct.update({ where: { id }, data: { journalName } });
+  await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'DealerCustomProduct', entityId: id, detail: `journal code: ${row.name} -> ${journalName ?? '(none)'}` });
+  revalidatePath('/admin/products');
+  return { ok: true, message: 'Journal code saved.' };
+}
+
+export async function deleteDealerCustomProductAction(id: string): Promise<void> {
+  const session = await requireAdminSection('products');
+  const row = await prisma.dealerCustomProduct.findUnique({ where: { id } });
+  if (!row) return;
+  await prisma.dealerCustomProduct.delete({ where: { id } });
+  await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'DealerCustomProduct', entityId: id, detail: `removed dealer product: ${row.name}` });
+  revalidatePath('/admin/products');
+}
+
 export async function renameProductAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const session = await requireAdminSection('products');
   const id = String(formData.get('id') || '');
