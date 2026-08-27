@@ -25,6 +25,7 @@ const STEPS: Step[] = [
       'The first time you log in, a short welcome tour pops up automatically — you can replay it anytime from “My account.” For extra security you can also turn on a 6-digit code at sign-in.',
     ],
     illo: 'login',
+    img: '/tutorial/01-login.png',
     alt: 'The Georgian Water & Air dealer portal sign-in screen.',
   },
   {
@@ -45,6 +46,7 @@ const STEPS: Step[] = [
       'Tap a customer’s name to open their deal, or tap “New customer” to start a new one.',
     ],
     illo: 'dashboard',
+    img: '/tutorial/03-dashboard.png',
     alt: 'The dealer dashboard listing deals with search, status chips and paging.',
   },
   {
@@ -66,6 +68,7 @@ const STEPS: Step[] = [
       'Confirm consent at the bottom and tap Submit. It lands on your dashboard and with our team for review.',
     ],
     illo: 'newdeal',
+    img: '/tutorial/05-new-customer.png',
     alt: 'The new-customer form with entry-method buttons, deal, sales and consent sections.',
   },
   {
@@ -85,6 +88,7 @@ const STEPS: Step[] = [
       'Anything we share back — paperwork for your customer, or a payout receipt — shows up here too. A “What’s needed from you” card spells out any next step in plain language.',
     ],
     illo: 'deal',
+    img: '/tutorial/07-deal.png',
     alt: 'A deal page showing the status bar, summary, chat and documents.',
   },
   {
@@ -142,6 +146,7 @@ const STEPS: Step[] = [
       'Until it’s sent it shows as Pending, and you can cancel a request while it’s still pending. Everything you’ve requested stays listed with its status.',
     ],
     illo: 'giftcards',
+    img: '/tutorial/13-gift-cards.png',
     alt: 'The gift-card request form with name, email and amount, and a dated sent receipt below.',
   },
   {
