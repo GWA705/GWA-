@@ -84,15 +84,10 @@ export default async function DealerLayout({ children }: { children: React.React
             ];
             return tools.length > 0 ? [{ label: 'Tools', children: tools }] : [];
           })(),
-          // Ordering gear, HD leads, and water-test gift cards.
-          {
-            label: 'Sales & rewards',
-            children: [
-              { href: '/dealer/marketplace', label: 'Marketplace' },
-              { href: '/dealer/leads', label: 'Leads' },
-              { href: '/dealer/gift-cards', label: 'Gift cards', badge: giftCardUnread },
-            ],
-          },
+          // Ordering gear, HD leads, and water-test gift cards — top-level tabs.
+          { href: '/dealer/marketplace', label: 'Marketplace' },
+          { href: '/dealer/leads', label: 'Leads' },
+          { href: '/dealer/gift-cards', label: 'Gift cards', badge: giftCardUnread },
           {
             label: 'Resources',
             children: [
