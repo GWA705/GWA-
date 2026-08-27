@@ -12,8 +12,13 @@ interface Step {
 const STEPS: Step[] = [
   {
     emoji: '👋',
-    title: 'Welcome to the GWA Dealer Portal',
+    title: 'Welcome to your dealer portal',
     body: 'This quick tour shows you where everything is. It takes under a minute — you can replay it any time from “My account.”',
+  },
+  {
+    emoji: '🧭',
+    title: 'Finding your way around',
+    body: 'Your everyday tabs — Applications, New customer and Mail — stay at the top. The rest is grouped into menus: Tools (Find customer, HD Payout, Reports), Sales & rewards (Marketplace, Leads, Gift cards), Resources, and My office. On a phone, tap ☰ to see them stacked.',
   },
   {
     emoji: '➕',
@@ -37,18 +42,23 @@ const STEPS: Step[] = [
   },
   {
     emoji: '✉️',
-    title: 'Mail from GWA',
+    title: 'Mail from the office',
     body: 'The Mail tab is where we send you messages and files — bulletins, promos, and paperwork. A dot means something new; open a message to read it and grab any attachments. Some ask you to tap “I have read this.”',
   },
   {
     emoji: '🛍️',
     title: 'Marketplace',
-    body: 'Order branded gear (apparel, signage, sample kits) and download ready-to-use files like print-ready signage — all organized by category. There are no prices; just choose what you need and submit.',
+    body: 'Under Sales & rewards, order branded gear (apparel, signage, sample kits) and download ready-to-use files like print-ready signage — all organized by category. There are no prices; just choose what you need and submit.',
+  },
+  {
+    emoji: '🎁',
+    title: 'Water-test gift cards',
+    body: 'Did a water test? Under Sales & rewards → Gift cards, enter the customer’s name, email and amount and tap Request. We email the Home Depot card through Guusto and mark it sent — you’ll see a dated “Sent” receipt, so there’s no more posting names in a group chat.',
   },
   {
     emoji: '📚',
     title: 'Resources & promotions',
-    body: 'The Resources, HD Promotions, and HD Credit Card tabs hold guides and current promos. Check back — we keep them up to date.',
+    body: 'The Resources menu holds product guides, HD Promotions, and HD Credit Card help. Check back — we keep them up to date.',
   },
   {
     emoji: '📱',
