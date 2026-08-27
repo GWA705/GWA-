@@ -4,11 +4,11 @@ import { TutorialIllo } from './illustrations';
 export const dynamic = 'force-dynamic';
 
 interface Step {
-  n: number;
   title: string;
   body: string[];
   // Either an illustrated mockup (illo) or a real screenshot (img). If both are
-  // set, the screenshot wins.
+  // set, the screenshot wins. Step numbers are assigned automatically by
+  // position, so steps can be inserted or reordered without renumbering.
   illo?: string;
   img?: string;
   alt?: string;
@@ -19,31 +19,38 @@ interface Step {
 
 const STEPS: Step[] = [
   {
-    n: 1,
     title: 'Sign in',
     body: [
       'Go to portal.ghsbarrie.ca and sign in with your email and password.',
       'The first time you log in, a short welcome tour pops up automatically — you can replay it anytime from “My account.” For extra security you can also turn on a 6-digit code at sign-in.',
     ],
     illo: 'login',
-    alt: 'The GWA Dealer Portal sign-in screen.',
+    alt: 'The Georgian Water & Air dealer portal sign-in screen.',
   },
   {
-    n: 2,
+    title: 'Finding your way around',
+    body: [
+      'The top menu keeps your everyday tabs — Applications (all your deals), New customer, and Mail — one tap away. Everything else is tucked into a few labelled menus so the bar stays tidy.',
+      'Tap Tools for Find customer, the HD Payout calculator and Reports. Tap Sales & rewards for Marketplace, Leads and Gift cards. Resources holds your guides and promotions, and My office has your profile, logins and support.',
+      'On a phone, tap the menu button (☰) to see the very same groups stacked down the screen.',
+    ],
+    illo: 'nav',
+    alt: 'The top navigation with everyday tabs and dropdown menus grouping the rest.',
+  },
+  {
     title: 'Your dashboard — all your deals',
     body: [
       'Every customer you process appears here with its current status. A coloured chip flags anything that needs you — “⚠ Action needed” or “✓ Ready to submit” — so you can see what’s waiting at a glance.',
       'Search by customer name, phone number, HD #, or loan # to find anyone fast. The list shows 10 at a time — tap 25 / 50 / 100 to see more. Pin a deal (📌) to keep it at the top.',
-      'Tap a customer’s name to open their deal, or tap “New customer processing” to start a new one.',
+      'Tap a customer’s name to open their deal, or tap “New customer” to start a new one.',
     ],
     illo: 'dashboard',
     alt: 'The dealer dashboard listing deals with search, status chips and paging.',
   },
   {
-    n: 3,
     title: 'Find a customer',
     body: [
-      'The “Find a customer” page lets you look up a customer you’ve done before — by name or phone number — to pull up their snapshot, products purchased, and contact details.',
+      'Under the Tools menu, “Find a customer” lets you look up a customer you’ve done before — by name or phone number — to pull up their snapshot, products purchased, and contact details.',
       'The heading is personalised to your office (“Search {your company} customers”). If you enter someone’s exact phone number and they belong to another office, you’ll see which office to contact.',
       'Need to fix a phone number, address or email? Tap “✎ Edit info” right on the snapshot. Your correction is saved and dated — the original sales journal is never changed.',
     ],
@@ -51,21 +58,20 @@ const STEPS: Step[] = [
     alt: 'The Find a customer search with a customer snapshot and edit option.',
   },
   {
-    n: 4,
     title: 'Process a new customer',
     body: [
       'Pick how you’re entering the deal at the top: Express (the deal’s already approved — a FinanceIT number or paid by cash/cheque/credit card), Priority (type the details in), or Standard (upload documents). Choosing Express hides the fields you don’t need, like date of birth.',
       'Fill in the customer’s details, then complete the required Sales details — salesperson, installer, whether SOAP is included (Yes – NV, Yes – PS, or Yes – Other), and the product(s) sold. These feed the sales journal.',
+      'For employment, choose the customer’s status first. Pick Retired and the employer fields drop away, leaving just gross income — so you’re never asked for details that don’t apply.',
       'Confirm consent at the bottom and tap Submit. It lands on your dashboard and with our team for review.',
     ],
     illo: 'newdeal',
     alt: 'The new-customer form with entry-method buttons, deal, sales and consent sections.',
   },
   {
-    n: 5,
     title: 'Payout calculator',
     body: [
-      'The calculator shows your estimated EFT payout in seconds. Enter the approved amount (total sale with tax) and pick the province — the province sets the tax rate — and every line updates live.',
+      'The HD Payout calculator (under the Tools menu) shows your estimated EFT payout in seconds. Enter the approved amount (total sale with tax) and pick the province — the province sets the tax rate — and every line updates live.',
       'Already have the deal in the portal? Type the customer name or deal # in “Find a portal deal” and it pulls the approved amount and province straight in.',
       'Tap Copy to grab the breakdown for your records.',
     ],
@@ -73,7 +79,6 @@ const STEPS: Step[] = [
     alt: 'The payout calculator with an approved amount, province and an estimated EFT payout.',
   },
   {
-    n: 6,
     title: 'Open & track a deal',
     body: [
       'Tap any customer to open their deal. You’ll see the summary, the review decision, a “Chat with the Reviewer” box, and everything you’ve uploaded.',
@@ -83,7 +88,6 @@ const STEPS: Step[] = [
     alt: 'A deal page showing the status bar, summary, chat and documents.',
   },
   {
-    n: 7,
     title: 'Read the status bar',
     body: [
       'Across the top of every deal is a status bar that shows exactly where it is: Submitted → Approved → Docs uploaded → Confirmation → In for funding → Funded → Paid.',
@@ -93,18 +97,16 @@ const STEPS: Step[] = [
     alt: 'The deal status bar with seven stages from Submitted to Paid.',
   },
   {
-    n: 8,
     title: 'Upload your funding documents',
     body: [
       'When a deal is approved and installed, send us the funding package. Drag your files straight onto the big drop area — or tap “Add files.” You can drop several at once (PDFs or photos), then tap Upload.',
-      'The checklist shows exactly what’s needed and ticks green as each item arrives. It adapts to the deal: HD-program deals include the Home Depot documents and waiver, while GWA-program deals don’t ask for those at all.',
+      'The checklist shows exactly what’s needed and ticks green as each item arrives. It adapts to the deal: HD-program deals include the Home Depot documents and waiver, while Georgian Water & Air-program deals don’t ask for those at all.',
       'If a file lands just outside the box, nothing happens — simply drop it again inside the dashed area.',
     ],
     illo: 'upload',
     alt: 'The drag-and-drop upload area with a funding checklist of required items.',
   },
   {
-    n: 9,
     title: 'View documents in the portal',
     body: [
       'Tap View on any file — a brochure, manual, mail attachment or a document on a deal — and it opens right inside the portal with a “Back” button, so you’re never stranded on a raw file with no way back.',
@@ -114,10 +116,9 @@ const STEPS: Step[] = [
     alt: 'An in-portal document viewer showing a multi-page PDF with a Back button.',
   },
   {
-    n: 10,
-    title: 'Mail from GWA',
+    title: 'Mail from the office',
     body: [
-      'The Mail tab is where GWA sends you messages and files — bulletins, promos, and paperwork. A dot on the Mail tab means something new is waiting.',
+      'The Mail tab is where our office sends you messages and files — bulletins, promos, and paperwork. A dot on the Mail tab means something new is waiting.',
       'Open a message to read it and see any attachments as small previews, just like your email. Tap an attachment to view it right inside the portal, or tap Download to save it.',
       'If a message asks you to confirm you’ve read it, tap “I have read this” so our team knows it reached you.',
     ],
@@ -125,37 +126,43 @@ const STEPS: Step[] = [
     alt: 'The Mail inbox with unread markers and attachment previews.',
   },
   {
-    n: 11,
     title: 'Marketplace — order gear',
     body: [
-      'The Marketplace tab lists items you can order — clothing, signage, and more. There are no prices and nothing to pay; it’s simply an order form.',
+      'Under Sales & rewards, the Marketplace lists items you can order — clothing, signage, and more. There are no prices and nothing to pay; it’s simply an order form.',
       'Pick a size or option where offered, set the quantity, add a note if you need to, and tap Submit order. Our team gets it and takes care of the rest.',
     ],
     illo: 'marketplace',
     alt: 'The Marketplace grid of orderable items.',
   },
   {
-    n: 12,
+    title: 'Water-test gift cards',
+    body: [
+      'Completed a water test? Send the customer their Home Depot gift card right from Sales & rewards → Gift cards. Enter their name, email, and the amount ($25 by default), then tap Request gift card.',
+      'Our team emails the card through Guusto and marks it sent — no more posting names in an office group chat. A dated “Sent” receipt appears next to the request, so you always know it went out and when.',
+      'Until it’s sent it shows as Pending, and you can cancel a request while it’s still pending. Everything you’ve requested stays listed with its status.',
+    ],
+    illo: 'giftcards',
+    alt: 'The gift-card request form with name, email and amount, and a dated sent receipt below.',
+  },
+  {
     title: 'Resources, HD Promotions & HD Credit Card',
     body: [
-      'The top menu has product guides, current promotions, and step-by-step help for the Home Depot credit card.',
+      'The Resources menu has product guides, current promotions, and step-by-step help for the Home Depot credit card.',
       'Each item shows a preview — tap View to open it inside the portal, or Download to save and share it. Product pages let you tap the image to enlarge it, just like a store listing.',
     ],
     illo: 'resources',
     alt: 'The Resources area with preview cards and PDF thumbnails.',
   },
   {
-    n: 13,
     title: 'Your account',
     body: [
-      'Under “My account” you can update your details, choose which email notifications you get, and turn on extra sign-in security (a 6-digit code).',
+      'Under “My office → My account” you can update your details, choose which email notifications you get, and turn on extra sign-in security (a 6-digit code).',
       'You can also replay the welcome tour here anytime you need a refresher.',
     ],
     illo: 'account',
     alt: 'The My account page with profile, notifications, security and replay-tour options.',
   },
   {
-    n: 14,
     title: 'Get notifications & pop-ups on your phone',
     body: [
       'The portal can pop up a notification on your phone or computer the moment there’s activity on a deal — even when the portal isn’t open. These come on top of the emails you already get.',
@@ -168,7 +175,7 @@ const STEPS: Step[] = [
           'Open portal.ghsbarrie.ca in Safari.',
           'Tap the Share button (the square with an up-arrow) at the bottom.',
           'Tap “Add to Home Screen,” then Add.',
-          'Open “GWA Portal” from the new Home Screen icon (not Safari).',
+          'Open the portal from the new Home Screen icon (not Safari).',
           'Go to My account → Desktop & phone notifications → Enable, and allow when asked.',
         ],
       },
@@ -203,11 +210,11 @@ export default async function TutorialPage() {
       </div>
 
       <ol className="space-y-8">
-        {STEPS.map((s) => (
-          <li key={s.n} className="card overflow-hidden">
+        {STEPS.map((s, idx) => (
+          <li key={idx} className="card overflow-hidden">
             <div className="flex items-start gap-3 p-6 pb-4">
               <span className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-brand-600 text-sm font-bold text-white">
-                {s.n}
+                {idx + 1}
               </span>
               <div>
                 <h2 className="text-base font-semibold text-gray-900">{s.title}</h2>

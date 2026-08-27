@@ -291,8 +291,69 @@ function Account() {
   );
 }
 
+// The top navigation bar, showing a few everyday tabs plus a dropdown "group"
+// opened to reveal its sub-items — the concept behind the consolidated menus.
+function Nav() {
+  const tabs: [number, number, string, boolean][] = [
+    [40, 58, 'Applications', false],
+    [104, 62, 'New customer', false],
+    [172, 34, 'Mail', false],
+    [212, 44, 'Tools ▾', false],
+    [262, 96, 'Sales & rewards ▾', true],
+  ];
+  return (
+    <Frame>
+      <rect x="0.75" y="34" width="398.5" height="30" fill="currentColor" fillOpacity="0.05" />
+      <circle cx="22" cy="49" r="7" fill={BRAND} fillOpacity="0.8" />
+      {tabs.map(([x, w, label, active]) => (
+        <g key={label}>
+          <rect x={x} y="41" width={w} height="16" rx="6" fill={active ? BRAND : 'currentColor'} fillOpacity={active ? 0.85 : 0.06} />
+          <text x={x + w / 2} y="52" fontSize="7.5" textAnchor="middle" fill={active ? '#fff' : 'currentColor'} fillOpacity={active ? 0.95 : 0.6}>{label}</text>
+        </g>
+      ))}
+      {/* Dropdown opened under the active group. */}
+      <rect x="262" y="70" width="120" height="98" rx="9" fill="currentColor" fillOpacity="0.04" stroke="currentColor" strokeOpacity="0.28" />
+      {['Marketplace', 'Leads', 'Gift cards'].map((t, i) => {
+        const y = 82 + i * 28;
+        return (
+          <g key={t}>
+            {i === 2 && <rect x="270" y={y - 8} width="104" height="24" rx="6" fill={BRAND} fillOpacity="0.1" />}
+            <circle cx="282" cy={y + 4} r="3.5" fill={BRAND} fillOpacity={0.35 + i * 0.2} />
+            <text x="296" y={y + 7} fontSize="8.5" fill="currentColor" fillOpacity="0.7">{t}</text>
+          </g>
+        );
+      })}
+    </Frame>
+  );
+}
+
+// The water-test gift-card request form, with a dated "sent" receipt below.
+function GiftCards() {
+  return (
+    <Frame>
+      <Line x="20" y="52" w={110} o={0.55} />
+      <Box x="20" y="64" width="360" height="26" />
+      <Line x="32" y="74" w={90} o={0.3} />
+      <Box x="20" y="96" width="360" height="26" />
+      <Line x="32" y="106" w={140} o={0.3} />
+      <Box x="20" y="128" width="120" height="26" />
+      <text x="32" y="146" fontSize="13" fontWeight="700" fill={BRAND}>$</text>
+      <rect x="48" y="137" width="30" height="8" rx="4" fill="currentColor" fillOpacity="0.55" />
+      <rect x="20" y="162" width="140" height="26" rx="7" fill={BRAND} fillOpacity="0.85" />
+      <text x="90" y="179" fontSize="8.5" textAnchor="middle" fill="#fff" fillOpacity="0.95">Request gift card</text>
+      {/* Sent receipt */}
+      <rect x="20" y="204" width="360" height="34" rx="8" fill={GREEN} fillOpacity="0.12" stroke={GREEN} strokeOpacity="0.3" />
+      <circle cx="42" cy="221" r="9" fill={GREEN} fillOpacity="0.22" stroke={GREEN} strokeOpacity="0.6" />
+      <path d="M37 221 l3.5 4 l7 -8.5" stroke={GREEN} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <text x="60" y="219" fontSize="8.5" fontWeight="700" fill={GREEN} fillOpacity="0.9">Sent</text>
+      <Line x="60" y="226" w={150} o={0.3} />
+    </Frame>
+  );
+}
+
 const ILLOS: Record<string, () => JSX.Element> = {
   login: Login,
+  nav: Nav,
   dashboard: Dashboard,
   search: Search,
   newdeal: NewDeal,
@@ -303,6 +364,7 @@ const ILLOS: Record<string, () => JSX.Element> = {
   viewer: Viewer,
   mail: Mail,
   marketplace: Marketplace,
+  giftcards: GiftCards,
   resources: Resources,
   account: Account,
 };
