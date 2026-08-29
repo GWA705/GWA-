@@ -23,6 +23,56 @@ function cleanPhone(raw: string): string | null {
   return t;
 }
 
+export interface BulkRow {
+  name?: string;
+  email?: string;
+  phone?: string;
+  amount?: string | number;
+}
+export interface BulkResult {
+  created: number;
+  errors: string[];
+}
+
+/**
+ * Bulk-create gift-card requests from an uploaded spreadsheet (name, email,
+ * optional cell, optional amount — defaults to $25). Validates every row; valid
+ * ones are created and any problems are returned line-by-line so the dealer can
+ * fix and re-upload. Nothing is created if the whole batch is empty/oversized.
+ */
+export async function bulkCreateGiftCardRequestsAction(rows: BulkRow[]): Promise<BulkResult> {
+  const session = await requireDealerAccess();
+  if (!session.dealerId) return { created: 0, errors: ['Your login is not attached to a dealer.'] };
+  if (!Array.isArray(rows) || rows.length === 0) return { created: 0, errors: ['No rows found in the file.'] };
+  if (rows.length > 500) return { created: 0, errors: ['Too many rows — please upload 500 or fewer at a time.'] };
+
+  const data: { dealerId: string; requestedById: string; customerName: string; customerEmail: string; customerPhone: string | null; amount: number }[] = [];
+  const errors: string[] = [];
+  rows.forEach((r, i) => {
+    const line = i + 2; // account for the header row + 1-based numbering
+    const name = String(r.name ?? '').replace(/\s+/g, ' ').trim();
+    const email = String(r.email ?? '').trim().toLowerCase();
+    const phone = cleanPhone(String(r.phone ?? ''));
+    const amtRaw = String(r.amount ?? '').replace(/[$,\s]/g, '');
+    const amount = amtRaw === '' ? 25 : Number(amtRaw);
+
+    if (!name && !email) return; // silently skip fully blank rows
+    if (!name) { errors.push(`Row ${line}: missing customer name.`); return; }
+    if (!EMAIL_RE.test(email)) { errors.push(`Row ${line}: “${email || '(blank)'}” is not a valid email.`); return; }
+    if (phone === null) { errors.push(`Row ${line}: cell number needs at least 10 digits (or leave it blank).`); return; }
+    if (!Number.isFinite(amount) || amount <= 0 || amount > 1000) { errors.push(`Row ${line}: amount must be between $1 and $1,000.`); return; }
+
+    data.push({ dealerId: session.dealerId!, requestedById: session.userId, customerName: name, customerEmail: email, customerPhone: phone || null, amount });
+  });
+
+  if (data.length > 0) {
+    await prisma.giftCardRequest.createMany({ data });
+    await audit({ actorId: session.userId, action: 'ORDER_SUBMIT', entityType: 'GiftCardRequest', entityId: 'bulk', detail: `Bulk gift-card request: ${data.length} created` });
+    revalidatePath('/dealer/gift-cards');
+  }
+  return { created: data.length, errors: errors.slice(0, 25) };
+}
+
 /**
  * A dealer requests a Home Depot gift card for a customer who completed a water
  * test. Goes into the PENDING queue GWA sends from Guusto.

@@ -2,6 +2,7 @@ import { requireDealerAccess } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { queryGiftCards, monthLabel } from '@/lib/giftCardHistory';
 import { GiftCardForm } from './GiftCardForm';
+import { GiftCardBulkImport } from './GiftCardBulkImport';
 import { DealerGiftCards, type DealerRequestVM } from './DealerGiftCards';
 import { GiftCardBrowseControls } from '@/components/GiftCardBrowseControls';
 import { GiftCardPager } from '@/components/GiftCardPager';
@@ -69,9 +70,10 @@ export default async function DealerGiftCardsPage({
         </p>
       </div>
 
-      <div className="card p-6">
-        <h2 className="mb-3 text-base font-semibold text-gray-900">New request</h2>
+      <div className="card space-y-4 p-6">
+        <h2 className="text-base font-semibold text-gray-900">New request</h2>
         <GiftCardForm defaultAmount={25} />
+        <GiftCardBulkImport />
       </div>
 
       <div className="card overflow-hidden">
