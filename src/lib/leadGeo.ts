@@ -35,15 +35,23 @@ function normKey(s: string): string {
     .trim();
 }
 
-/** The address string we send to the geocoder for a lead (structured if we can). */
+/**
+ * The string we geocode for a lead. We position by POSTAL CODE, not the exact
+ * street address — the same idea as the booking map's postal table — so leads in
+ * the same area share a single lookup (fast, cached once), and rural addresses
+ * the geocoder struggles with still resolve. Falls back to street/city only when
+ * a lead has no postal code; empty when there's nothing to place it by.
+ */
 export function leadGeoQuery(l: Lead): string {
   const p = parseLeadAddress(l.address || '');
-  const bits = [p.street, p.city, p.province, p.postal].map((x) => x.trim()).filter(Boolean);
+  if (p.postal) return `${p.postal}, ${p.province || 'ON'}, Canada`;
+  const bits = [p.street, p.city, p.province].map((x) => x.trim()).filter(Boolean);
   const structured = bits.join(', ');
-  return (structured || (l.address || '').trim()) + (bits.length || l.address ? ', Canada' : '');
+  return structured ? `${structured}, Canada` : '';
 }
 
-/** Stable geocode-cache key for a lead (by its address, so it's shared/reused). */
+/** Stable geocode-cache key for a lead — by postal code, so a whole area's leads
+ *  share one cached point (and warm up together). */
 export function leadGeoKey(l: Lead): string {
   return normKey(leadGeoQuery(l));
 }

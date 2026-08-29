@@ -32,6 +32,19 @@ function esc(s: string): string {
   return s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] as string));
 }
 
+// We position leads by postal code, so many share the same centroid. Fan them
+// out by a small, deterministic offset (≤ ~300 m) keyed on the lead, so pins in
+// one area don't stack and each stays individually clickable.
+function jitter(c: LatLng, seed: string): LatLng {
+  let h = 0;
+  for (let i = 0; i < seed.length; i += 1) h = (h * 31 + seed.charCodeAt(i)) | 0;
+  const angle = ((h % 360) + 360) % 360 * (Math.PI / 180);
+  const radius = 0.0006 + (((h >>> 8) % 1000) / 1000) * 0.0022; // ~65 m … ~310 m
+  const latOff = radius * Math.cos(angle);
+  const lngOff = (radius * Math.sin(angle)) / Math.max(0.2, Math.cos((c.lat * Math.PI) / 180));
+  return { lat: c.lat + latOff, lng: c.lng + lngOff };
+}
+
 // A teardrop pin as an HTML divIcon (no external marker images needed).
 function pinHtml(color: string): string {
   return (
@@ -169,10 +182,11 @@ export function LeadsMap({ leads, stores, pendingStores = [] }: { leads: MapLead
       const c = coords[l.key];
       if (!c) continue;
       placed += 1;
-      Lmod.marker([c.lat, c.lng], { icon: Lmod.divIcon({ html: pinHtml(COLOR[l.status]), className: '', iconSize: [24, 24], iconAnchor: [12, 22], popupAnchor: [0, -20] }) })
+      const j = jitter(c, l.rowId || l.key);
+      Lmod.marker([j.lat, j.lng], { icon: Lmod.divIcon({ html: pinHtml(COLOR[l.status]), className: '', iconSize: [24, 24], iconAnchor: [12, 22], popupAnchor: [0, -20] }) })
         .addTo(layer)
         .bindPopup(popupHtml(l));
-      bounds.extend([c.lat, c.lng]);
+      bounds.extend([j.lat, j.lng]);
     }
     // If we hadn't been able to fit to anything yet, fit to the leads now.
     if (placed > 0 && !didFitRef.current && bounds.isValid()) {
@@ -246,7 +260,7 @@ export function LeadsMap({ leads, stores, pendingStores = [] }: { leads: MapLead
             ? `Placing leads on the map… (${placedCount} of ${total} so far)`
             : `${placedCount} of ${total} lead${total === 1 ? '' : 's'} on the map`}
         </span>
-        {!geocoding && unplaced > 0 && <span>{unplaced} couldn&apos;t be placed (no address match)</span>}
+        {!geocoding && unplaced > 0 && <span>{unplaced} couldn&apos;t be placed (no postal code)</span>}
       </div>
     </div>
   );
