@@ -24,6 +24,7 @@ import { parseDealerProfileForm } from '@/lib/dealerProfile';
 import type { Prisma } from '@prisma/client';
 import { applyDealerLogo, applySupportContactLogo } from '@/lib/dealerLogo';
 import { saveCostConfig, type CostConfig } from '@/lib/costs';
+import { geocodeAddress } from '@/lib/googlePlaces';
 
 export interface ActionState {
   error?: string;
@@ -1607,4 +1608,54 @@ export async function deleteSupportContactAction(id: string): Promise<void> {
   await audit({ actorId: session.userId, action: 'CONTENT_UPDATE', entityType: 'SupportContact', entityId: id, detail: `deleted: ${c.name}` });
   revalidatePath('/admin/support-contacts');
   revalidatePath('/dealer/support');
+}
+
+// ---- Store map locations (Leads map) --------------------------------------
+// Managed under the "dealers" section, since HD stores belong to dealers.
+
+interface StoreLocationResult {
+  ok: boolean;
+  error?: string;
+  lat?: number;
+  lng?: number;
+}
+
+/** Set a store's exact map location (from a dragged marker or pasted lat/lng). */
+export async function setStoreLocationAction(storeId: string, lat: number, lng: number): Promise<StoreLocationResult> {
+  const session = await requireAdminSection('dealers');
+  if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) {
+    return { ok: false, error: 'Those coordinates don’t look right.' };
+  }
+  const store = await prisma.homeDepotStore.findUnique({ where: { id: storeId } });
+  if (!store) return { ok: false, error: 'Store not found.' };
+  await prisma.homeDepotStore.update({ where: { id: storeId }, data: { latitude: lat, longitude: lng, geocodedAt: new Date() } });
+  await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'HomeDepotStore', entityId: storeId, detail: `Set store ${store.number} map location to ${lat.toFixed(5)}, ${lng.toFixed(5)}` });
+  revalidatePath('/admin/dealers/locations');
+  return { ok: true, lat, lng };
+}
+
+/** Re-place a store automatically by geocoding its name. */
+export async function autoGeocodeStoreAction(storeId: string): Promise<StoreLocationResult> {
+  const session = await requireAdminSection('dealers');
+  const store = await prisma.homeDepotStore.findUnique({ where: { id: storeId } });
+  if (!store) return { ok: false, error: 'Store not found.' };
+  const name = (store.name || '').trim();
+  if (!name) return { ok: false, error: 'This store has no name to look up — set its location by hand instead.' };
+  const hit = await geocodeAddress(`The Home Depot ${name}, Ontario, Canada`);
+  if (!hit) return { ok: false, error: 'Couldn’t find that store automatically — set its location by hand.' };
+  await prisma.homeDepotStore.update({ where: { id: storeId }, data: { latitude: hit.lat, longitude: hit.lng, geocodedAt: new Date() } });
+  await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'HomeDepotStore', entityId: storeId, detail: `Auto-placed store ${store.number} at ${hit.lat.toFixed(5)}, ${hit.lng.toFixed(5)}` });
+  revalidatePath('/admin/dealers/locations');
+  return { ok: true, lat: hit.lat, lng: hit.lng };
+}
+
+/** Clear a store's location (drops it off the map until re-placed). */
+export async function clearStoreLocationAction(storeId: string): Promise<StoreLocationResult> {
+  const session = await requireAdminSection('dealers');
+  const store = await prisma.homeDepotStore.findUnique({ where: { id: storeId } });
+  if (!store) return { ok: false, error: 'Store not found.' };
+  await prisma.homeDepotStore.update({ where: { id: storeId }, data: { latitude: null, longitude: null, geocodedAt: null } });
+  await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'HomeDepotStore', entityId: storeId, detail: `Cleared store ${store.number} map location` });
+  revalidatePath('/admin/dealers/locations');
+  return { ok: true };
 }

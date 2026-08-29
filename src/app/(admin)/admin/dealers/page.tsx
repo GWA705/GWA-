@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { requireAdminSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { DealerForm } from './DealerForm';
@@ -16,7 +17,11 @@ export default async function DealersPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-semibold text-gray-900">Dealers</h1>
-        <div className="flex items-center gap-3 text-sm">
+        <div className="flex flex-wrap items-center gap-3 text-sm">
+          <Link href="/admin/dealers/locations" className="font-medium text-brand-700 hover:underline">
+            Store map locations
+          </Link>
+          <span className="text-gray-300">·</span>
           <span className="text-xs text-gray-400">HD store → dealer list:</span>
           <a href="/api/admin/store-dealers" className="font-medium text-brand-700 hover:underline">
             Download CSV
