@@ -18,6 +18,7 @@ export type MapLead = {
   coord?: LatLng | null;
 };
 export type MapStore = { number: string; name: string; lat: number; lng: number };
+export type PendingStore = { id: string; number: string; name: string };
 
 const COLOR: Record<MapLead['status'], string> = {
   new: '#2563eb',
@@ -50,6 +51,16 @@ function storeHtml(): string {
   );
 }
 
+// Add a store marker + its coverage ring to the map, once per store number.
+function addStoreMarker(Lmod: typeof L, map: L.Map, s: MapStore, seen: Set<string>) {
+  if (seen.has(s.number)) return;
+  seen.add(s.number);
+  Lmod.circle([s.lat, s.lng], { radius: 8000, color: '#2563eb', weight: 1.5, opacity: 0.4, fillColor: '#2563eb', fillOpacity: 0.05, dashArray: '5 5' }).addTo(map);
+  Lmod.marker([s.lat, s.lng], { icon: Lmod.divIcon({ html: storeHtml(), className: '', iconSize: [24, 24], iconAnchor: [12, 12] }), zIndexOffset: 1000 })
+    .addTo(map)
+    .bindPopup(`<div style="font-weight:800;font-size:13px;color:#0f1b2d">Store ${esc(s.number)}${s.name ? ` — ${esc(s.name)}` : ''}</div><div style="font-size:12px;color:#5c6b80">Home Depot</div>`);
+}
+
 function popupHtml(l: MapLead): string {
   return (
     `<div style="font-family:inherit;min-width:180px">` +
@@ -68,12 +79,13 @@ function popupHtml(l: MapLead): string {
  * Leads with cached coordinates draw immediately; any without are geocoded
  * progressively via /api/leads/geocode and dropped in as they resolve.
  */
-export function LeadsMap({ leads, stores }: { leads: MapLead[]; stores: MapStore[] }) {
+export function LeadsMap({ leads, stores, pendingStores = [] }: { leads: MapLead[]; stores: MapStore[]; pendingStores?: PendingStore[] }) {
   const elRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
   const LRef = useRef<typeof L | null>(null);
   const leadLayerRef = useRef<L.LayerGroup | null>(null);
   const didFitRef = useRef(false);
+  const storeSeenRef = useRef<Set<string>>(new Set());
 
   // key → coord (null = tried, no result). Seeded from the server's cache.
   const [coords, setCoords] = useState<Record<string, LatLng | null>>(() => {
@@ -98,13 +110,10 @@ export function LeadsMap({ leads, stores }: { leads: MapLead[]; stores: MapStore
         attribution: '&copy; OpenStreetMap contributors',
       }).addTo(map);
 
-      // Store markers + coverage rings.
+      // Store markers + coverage rings (already-placed stores).
       const bounds = Lmod.latLngBounds([]);
       for (const s of stores) {
-        Lmod.circle([s.lat, s.lng], { radius: 8000, color: '#2563eb', weight: 1.5, opacity: 0.4, fillColor: '#2563eb', fillOpacity: 0.05, dashArray: '5 5' }).addTo(map);
-        Lmod.marker([s.lat, s.lng], { icon: Lmod.divIcon({ html: storeHtml(), className: '', iconSize: [24, 24], iconAnchor: [12, 12] }), zIndexOffset: 1000 })
-          .addTo(map)
-          .bindPopup(`<div style="font-weight:800;font-size:13px;color:#0f1b2d">Store ${esc(s.number)}${s.name ? ` — ${esc(s.name)}` : ''}</div><div style="font-size:12px;color:#5c6b80">Home Depot</div>`);
+        addStoreMarker(Lmod, map, s, storeSeenRef.current);
         bounds.extend([s.lat, s.lng]);
       }
 
@@ -119,6 +128,25 @@ export function LeadsMap({ leads, stores }: { leads: MapLead[]; stores: MapStore
       setPending(false);
       // Leaflet needs a nudge once its container has real dimensions.
       setTimeout(() => map.invalidateSize(), 0);
+
+      // Geocode any not-yet-placed stores in the background and drop them in as
+      // they resolve, so store pins appear without a manual step.
+      for (let i = 0; i < pendingStores.length && !cancelled; i += 6) {
+        const ids = pendingStores.slice(i, i + 6).map((s) => s.id);
+        try {
+          const res = await fetch('/api/stores/geocode', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids }),
+          });
+          if (!res.ok) break;
+          const data = (await res.json()) as { stores?: MapStore[] };
+          if (cancelled || !data.stores) continue;
+          for (const s of data.stores) addStoreMarker(Lmod, map, s, storeSeenRef.current);
+        } catch {
+          break;
+        }
+      }
     })();
     return () => {
       cancelled = true;

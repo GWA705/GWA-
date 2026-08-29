@@ -147,6 +147,60 @@ export async function unplacedStoreCount(): Promise<number> {
   return prisma.homeDepotStore.count({ where: { active: true, OR: [{ latitude: null }, { longitude: null }] } });
 }
 
+export interface PendingStore {
+  id: string;
+  number: string;
+  name: string;
+}
+
+/** Active, named stores that still need placing — handed to the map so it can
+ *  geocode them in the background (via /api/stores/geocode), like leads. */
+export async function unplacedStoresForMap(dealerId?: string): Promise<PendingStore[]> {
+  const stores = await prisma.homeDepotStore.findMany({
+    where: { active: true, name: { not: null }, OR: [{ latitude: null }, { longitude: null }], ...(dealerId ? { dealerId } : {}) },
+    select: { id: true, number: true, name: true },
+  });
+  return stores
+    .filter((s) => (s.name || '').trim())
+    .map((s) => ({ id: s.id, number: s.number, name: (s.name || '').trim() }));
+}
+
+/**
+ * Geocode a small batch of stores by id and save the coordinates onto each row.
+ * Scoped by dealer when scopeDealerId is given (a dealer only ever places their
+ * own stores). Returns the ones now placed. Throttled + capped by the caller.
+ */
+export async function geocodeStoresByIds(
+  ids: string[],
+  scopeDealerId?: string,
+): Promise<StoreGeo[]> {
+  if (ids.length === 0) return [];
+  const stores = await prisma.homeDepotStore.findMany({
+    where: { id: { in: ids }, active: true, ...(scopeDealerId ? { dealerId: scopeDealerId } : {}) },
+    select: { id: true, number: true, name: true, latitude: true, longitude: true },
+  });
+  const out: StoreGeo[] = [];
+  for (const s of stores) {
+    const name = (s.name || '').trim();
+    if (s.latitude != null && s.longitude != null) {
+      out.push({ number: s.number, name, lat: s.latitude, lng: s.longitude });
+      continue;
+    }
+    if (!name) continue;
+    let hit: Awaited<ReturnType<typeof geocodeOSM>> = null;
+    try {
+      hit = await geocodeOSM(`The Home Depot ${name}, Ontario, Canada`);
+    } catch {
+      break; // service down — stop, the map will retry on a later load
+    }
+    if (hit) {
+      await prisma.homeDepotStore.update({ where: { id: s.id }, data: { latitude: hit.lat, longitude: hit.lng, geocodedAt: new Date() } });
+      out.push({ number: s.number, name, lat: hit.lat, lng: hit.lng });
+    }
+  }
+  return out;
+}
+
 /**
  * Ensure each store has coordinates, geocoding any that don't (by store name) and
  * saving them back onto the store row. Returns only the stores we could place.

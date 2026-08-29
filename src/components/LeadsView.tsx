@@ -6,7 +6,7 @@ import { LeadCallTracker } from './LeadCallTracker';
 import { LeadNoGoodControl } from './LeadNoGoodControl';
 import { LeadsMonthDropdown } from './LeadsMonthDropdown';
 import { LeadsSelect } from './LeadsSelect';
-import { LeadsMap, type MapLead, type MapStore, type LatLng } from './LeadsMap';
+import { LeadsMap, type MapLead, type MapStore, type LatLng, type PendingStore } from './LeadsMap';
 import { ProjectPhotosButton } from './ProjectPhotosButton';
 
 // Turn any URLs inside a text field into clickable links (shortened for display).
@@ -229,8 +229,9 @@ export function LeadsView({
   view?: 'list' | 'grouped' | 'map';
   // Filter to a single outcome (see LEAD_OUTCOME_FILTERS); '' = all.
   outcome?: string;
-  // Map data (only needed for the map view): store coords + per-lead geocode.
-  geo?: { stores: MapStore[]; byKey: Record<string, { geoKey: string; query: string; coord?: LatLng | null }> };
+  // Map data (only needed for the map view): store coords + per-lead geocode +
+  // the not-yet-placed stores the map should geocode in the background.
+  geo?: { stores: MapStore[]; pendingStores?: PendingStore[]; byKey: Record<string, { geoKey: string; query: string; coord?: LatLng | null }> };
 }) {
   const storeLabel = (num: string) => {
     if (!num) return '';
@@ -420,7 +421,7 @@ export function LeadsView({
           {q || status || month || outcome ? 'No leads match your search.' : 'No leads yet.'}
         </div>
       ) : view === 'map' ? (
-        <LeadsMap leads={mapLeads} stores={mapStores} />
+        <LeadsMap leads={mapLeads} stores={mapStores} pendingStores={geo?.pendingStores ?? []} />
       ) : (
         <>
           {view === 'grouped' ? (

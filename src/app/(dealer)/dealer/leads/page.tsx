@@ -5,7 +5,7 @@ import { readLeadCalls } from '@/lib/leadCalls';
 import { reportingJournalEnabled } from '@/lib/reporting/journalRead';
 import { leadsSheetId } from '@/lib/reporting/journalRead';
 import { LeadsView, filterLeads, leadMonthOptions, leadOutcomeKey } from '@/components/LeadsView';
-import { leadsGeoData, storeGeos } from '@/lib/leadGeo';
+import { leadsGeoData, storeGeos, unplacedStoresForMap } from '@/lib/leadGeo';
 import { PageHeader } from '@/components/PageHeader';
 
 export const dynamic = 'force-dynamic';
@@ -55,7 +55,11 @@ export default async function DealerLeadsPage({ searchParams }: { searchParams: 
   // cache + may geocode stores). Scoped to this dealer's own stores.
   const geo =
     view === 'map' && user.dealerId
-      ? { stores: await storeGeos(user.dealerId), byKey: await leadsGeoData(filtered) }
+      ? {
+          stores: await storeGeos(user.dealerId),
+          pendingStores: await unplacedStoresForMap(user.dealerId),
+          byKey: await leadsGeoData(filtered),
+        }
       : undefined;
 
   return (

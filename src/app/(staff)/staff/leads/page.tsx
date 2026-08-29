@@ -7,7 +7,7 @@ import { readLeadCalls } from '@/lib/leadCalls';
 import { leadsSheetId, reportingJournalEnabled } from '@/lib/reporting/journalRead';
 import { listReportOffices } from '@/lib/reporting/monthly';
 import { LeadsView, filterLeads, leadMonthOptions, leadOutcomeKey } from '@/components/LeadsView';
-import { leadsGeoData, storeGeos } from '@/lib/leadGeo';
+import { leadsGeoData, storeGeos, unplacedStoresForMap } from '@/lib/leadGeo';
 
 export const dynamic = 'force-dynamic';
 
@@ -61,7 +61,11 @@ export default async function StaffLeadsPage({
   // offices when none is picked (the leadership all-offices map).
   const geo =
     view === 'map'
-      ? { stores: await storeGeos(office?.dealerId), byKey: await leadsGeoData(filtered) }
+      ? {
+          stores: await storeGeos(office?.dealerId),
+          pendingStores: await unplacedStoresForMap(office?.dealerId),
+          byKey: await leadsGeoData(filtered),
+        }
       : undefined;
 
   return (
