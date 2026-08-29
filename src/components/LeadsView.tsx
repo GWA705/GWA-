@@ -143,10 +143,10 @@ function LeadRow({
   isStaff: boolean;
 }) {
   return (
-    <details className="group border-b border-gray-100 last:border-b-0">
-      <summary className={`flex cursor-pointer list-none items-center gap-3 border-l-4 ${stripe} px-4 py-2.5 hover:bg-gray-50`}>
+    <details className="group overflow-hidden rounded-xl border border-gray-200 bg-white transition hover:border-gray-300 hover:shadow-sm open:shadow-sm">
+      <summary className={`flex cursor-pointer list-none items-center gap-3 border-l-[6px] ${stripe} rounded-l-xl px-4 py-3 hover:bg-gray-50 group-open:bg-gray-50/60`}>
         <span className="min-w-0 flex-1">
-          <span className="block truncate font-medium text-gray-900">{titleCase(l.customerName) || '(no name)'}</span>
+          <span className="block truncate font-semibold text-gray-900">{titleCase(l.customerName) || '(no name)'}</span>
           <span className="mt-0.5 block truncate text-xs text-gray-500">
             {l.storeNumber ? storeLabel(l.storeNumber) : l.service || fmtDate(l.dateReceived, l.dateText)}
           </span>
@@ -155,7 +155,7 @@ function LeadRow({
         <span className={`badge shrink-0 ${l.noGood ? 'bg-red-100 text-red-700' : CALL_CHIP[cs.tone]}`} title={cs.next ? `Next: ${cs.next}` : undefined}>
           {l.noGood ? 'No-good' : cs.label}
         </span>
-        <span className="shrink-0 text-gray-300 transition group-open:rotate-180">▾</span>
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-gray-200 text-[11px] text-gray-400 transition group-hover:border-gray-300 group-hover:text-gray-600 group-open:rotate-180" aria-hidden>▾</span>
       </summary>
       <div className="border-t border-gray-100 bg-gray-50/50 px-4 py-3">
         <div className="mb-3 text-sm font-medium text-gray-600">
@@ -442,7 +442,7 @@ export function LeadsView({
                         <span className={`badge ${g.chip}`}>{g.label}</span>
                         <span className="text-xs text-gray-400">{groupTotals[b.key]}</span>
                       </div>
-                      <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+                      <div className="space-y-2">
                         {b.items.map((x) => (
                           <LeadRow key={x.l.rowId} l={x.l} leadKey={x.leadKey} calls={x.calls} cs={x.cs} stripe={g.stripe} storeLabel={storeLabel} isStaff={isStaff} />
                         ))}
@@ -453,7 +453,7 @@ export function LeadsView({
               })()}
             </div>
           ) : (
-            <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+            <div className="space-y-2">
               {pageItems.map((x) => (
                 <LeadRow key={x.l.rowId} l={x.l} leadKey={x.leadKey} calls={x.calls} cs={x.cs} stripe={STRIPE[x.stateKey]} storeLabel={storeLabel} isStaff={isStaff} />
               ))}

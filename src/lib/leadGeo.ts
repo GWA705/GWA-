@@ -126,13 +126,25 @@ export async function leadsGeoData(leads: Lead[]): Promise<Record<string, LeadGe
   return out;
 }
 
-/** Store coordinates for the Leads map, scoped to one dealer (or all offices). */
+/**
+ * Store coordinates for the Leads map, scoped to one dealer (or all offices).
+ * Read-only and fast: returns only stores that are already placed. Placing a
+ * store geocodes it, which is throttled (~1/sec) and must never run inside a
+ * page render — that's done by the admin "Store map locations" editor instead.
+ */
 export async function storeGeos(dealerId?: string): Promise<StoreGeo[]> {
   const stores = await prisma.homeDepotStore.findMany({
-    where: { active: true, ...(dealerId ? { dealerId } : {}) },
-    select: { id: true, number: true, name: true, latitude: true, longitude: true },
+    where: { active: true, latitude: { not: null }, longitude: { not: null }, ...(dealerId ? { dealerId } : {}) },
+    select: { number: true, name: true, latitude: true, longitude: true },
   });
-  return ensureStoreCoords(stores);
+  return stores
+    .filter((s) => s.latitude != null && s.longitude != null)
+    .map((s) => ({ number: s.number, name: s.name ?? '', lat: s.latitude as number, lng: s.longitude as number }));
+}
+
+/** How many active stores still need coordinates (for the admin editor prompt). */
+export async function unplacedStoreCount(): Promise<number> {
+  return prisma.homeDepotStore.count({ where: { active: true, OR: [{ latitude: null }, { longitude: null }] } });
 }
 
 /**

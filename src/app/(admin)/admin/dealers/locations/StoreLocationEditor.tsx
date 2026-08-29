@@ -3,7 +3,7 @@
 import 'leaflet/dist/leaflet.css';
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import type * as L from 'leaflet';
-import { setStoreLocationAction, autoGeocodeStoreAction, clearStoreLocationAction } from '../../../actions';
+import { setStoreLocationAction, autoGeocodeStoreAction, autoGeocodeAllStoresAction, clearStoreLocationAction } from '../../../actions';
 
 type Store = { id: string; number: string; name: string; dealer: string; lat: number | null; lng: number | null };
 
@@ -141,6 +141,18 @@ export function StoreLocationEditor({ stores }: { stores: Store[] }) {
   }
 
   const placedCount = rows.filter((s) => s.lat != null && s.lng != null).length;
+  const unplaced = rows.length - placedCount;
+
+  function autoPlaceAll() {
+    startTransition(async () => {
+      const r = await autoGeocodeAllStoresAction();
+      if (r.placed.length) {
+        const byId = new Map(r.placed.map((p) => [p.id, p]));
+        setRows((prev) => prev.map((s) => (byId.has(s.id) ? { ...s, lat: byId.get(s.id)!.lat, lng: byId.get(s.id)!.lng } : s)));
+      }
+      setMsg({ ok: true, text: `Placed ${r.placed.length}. ${r.remaining} still to go${r.remaining ? ' — click again to continue.' : '.'}` });
+    });
+  }
 
   return (
     <div className="grid gap-5 lg:grid-cols-[320px_1fr]">
@@ -154,6 +166,11 @@ export function StoreLocationEditor({ stores }: { stores: Store[] }) {
             className="input w-full text-sm"
           />
           <div className="mt-2 text-xs text-gray-400">{placedCount} of {rows.length} placed</div>
+          {unplaced > 0 && (
+            <button onClick={autoPlaceAll} disabled={pending} className="btn-secondary mt-2 w-full text-xs">
+              {pending ? 'Placing…' : `Auto-place all (${unplaced} left)`}
+            </button>
+          )}
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto">
           {filtered.length === 0 ? (

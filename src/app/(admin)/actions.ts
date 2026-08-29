@@ -1654,6 +1654,38 @@ export async function autoGeocodeStoreAction(storeId: string): Promise<StoreLoca
   return { ok: true, lat: hit.lat, lng: hit.lng };
 }
 
+/** Geocode a batch of not-yet-placed stores (throttled). Capped per call so an
+ *  admin click stays quick; returns what it placed and how many still remain. */
+export async function autoGeocodeAllStoresAction(): Promise<{ ok: boolean; placed: { id: string; lat: number; lng: number }[]; remaining: number }> {
+  const session = await requireAdminSection('dealers');
+  const todo = await prisma.homeDepotStore.findMany({
+    where: { active: true, OR: [{ latitude: null }, { longitude: null }] },
+    select: { id: true, number: true, name: true },
+    take: 15,
+  });
+  const placed: { id: string; lat: number; lng: number }[] = [];
+  for (const s of todo) {
+    const name = (s.name || '').trim();
+    if (!name) continue;
+    let hit: Awaited<ReturnType<typeof geocodeOSM>> = null;
+    try {
+      hit = await geocodeOSM(`The Home Depot ${name}, Ontario, Canada`);
+    } catch {
+      break; // service down — stop and let the admin retry
+    }
+    if (hit) {
+      await prisma.homeDepotStore.update({ where: { id: s.id }, data: { latitude: hit.lat, longitude: hit.lng, geocodedAt: new Date() } });
+      placed.push({ id: s.id, lat: hit.lat, lng: hit.lng });
+    }
+  }
+  if (placed.length) {
+    await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'HomeDepotStore', entityId: 'bulk', detail: `Auto-placed ${placed.length} store location(s)` });
+  }
+  revalidatePath('/admin/dealers/locations');
+  const remaining = await prisma.homeDepotStore.count({ where: { active: true, OR: [{ latitude: null }, { longitude: null }] } });
+  return { ok: true, placed, remaining };
+}
+
 /** Clear a store's location (drops it off the map until re-placed). */
 export async function clearStoreLocationAction(storeId: string): Promise<StoreLocationResult> {
   const session = await requireAdminSection('dealers');
