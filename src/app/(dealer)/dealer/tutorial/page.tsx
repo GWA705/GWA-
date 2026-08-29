@@ -1,5 +1,6 @@
 import { requireDealerAccess } from '@/lib/session';
 import { TutorialIllo } from './illustrations';
+import { TutorialImage } from './TutorialImage';
 
 export const dynamic = 'force-dynamic';
 
@@ -245,18 +246,7 @@ export default async function TutorialPage() {
               </div>
             )}
             {s.img ? (
-              <div className="border-t border-gray-100 bg-gray-50 p-4 text-center">
-                <a href={s.img} target="_blank" rel="noopener noreferrer" className="inline-block">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={s.img}
-                    alt={s.alt}
-                    loading="lazy"
-                    className="mx-auto max-h-96 w-auto rounded-lg border border-gray-200 bg-white shadow-sm"
-                  />
-                </a>
-                <p className="mt-2 text-xs text-gray-400">Tap the image to enlarge</p>
-              </div>
+              <TutorialImage src={s.img} alt={s.alt} />
             ) : (
               s.illo && (
                 <div className="border-t border-gray-100 bg-gray-50 p-5">
