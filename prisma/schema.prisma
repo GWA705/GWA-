@@ -374,9 +374,29 @@ model HomeDepotStore {
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
 
+  // Map location for the Leads map. Geocoded once from the store's name/number
+  // (or set by an admin); null until placed. lat/lng in WGS84 degrees.
+  latitude   Float?
+  longitude  Float?
+  geocodedAt DateTime?
+
   applications Application[]
 
   @@index([dealerId])
+}
+
+// Cache of geocoded addresses (street address → lat/lng) so a lead's location is
+// looked up once, not on every map load. Keyed by a normalized address string.
+// Shared across leads at the same address. Populated via Google Geocoding.
+model GeocodeCache {
+  id        String   @id @default(cuid())
+  key       String   @unique // normalized address (see leadGeo.geocodeKey)
+  latitude  Float?   // null = geocoded but no result ("negative cache")
+  longitude Float?
+  label     String? // provider's formatted address, for debugging/override
+  source    String   @default("google")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model User {

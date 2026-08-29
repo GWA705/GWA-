@@ -7,6 +7,7 @@ import { readLeadCalls } from '@/lib/leadCalls';
 import { leadsSheetId, reportingJournalEnabled } from '@/lib/reporting/journalRead';
 import { listReportOffices } from '@/lib/reporting/monthly';
 import { LeadsView, filterLeads, leadMonthOptions, leadOutcomeKey } from '@/components/LeadsView';
+import { leadsGeoData, storeGeos } from '@/lib/leadGeo';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,7 +25,7 @@ export default async function StaffLeadsPage({
   const officeId = (searchParams.office ?? '').trim();
   const month = (searchParams.month ?? '').trim();
   const outcome = (searchParams.outcome ?? '').trim();
-  const view = searchParams.view === 'grouped' ? 'grouped' : 'list';
+  const view = searchParams.view === 'grouped' ? 'grouped' : searchParams.view === 'map' ? 'map' : 'list';
   const page = Math.max(1, parseInt(searchParams.page ?? '1', 10) || 1);
 
   if (!leadsSheetId() || !reportingJournalEnabled()) {
@@ -55,6 +56,13 @@ export default async function StaffLeadsPage({
   if (outcome) {
     filtered = filtered.filter((l) => leadOutcomeKey(l.noGood, callsByKey[leadKeyOf(l)] ?? []) === outcome);
   }
+
+  // Map data — only when the map is shown. Scoped to the selected office, or all
+  // offices when none is picked (the leadership all-offices map).
+  const geo =
+    view === 'map'
+      ? { stores: await storeGeos(office?.dealerId), byKey: await leadsGeoData(filtered) }
+      : undefined;
 
   return (
     <div className="space-y-5">
@@ -102,6 +110,7 @@ export default async function StaffLeadsPage({
         isStaff
         view={view}
         outcome={outcome}
+        geo={geo}
       />
     </div>
   );

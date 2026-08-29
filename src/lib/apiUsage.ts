@@ -10,6 +10,7 @@ import { prisma } from './db';
 export const API_SERVICES = {
   googleAutocomplete: 'google_places_autocomplete',
   googleDetails: 'google_places_details',
+  googleGeocode: 'google_geocode',
 } as const;
 
 export type ApiService = (typeof API_SERVICES)[keyof typeof API_SERVICES];

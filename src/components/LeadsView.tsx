@@ -6,6 +6,7 @@ import { LeadCallTracker } from './LeadCallTracker';
 import { LeadNoGoodControl } from './LeadNoGoodControl';
 import { LeadsMonthDropdown } from './LeadsMonthDropdown';
 import { LeadsSelect } from './LeadsSelect';
+import { LeadsMap, type MapLead, type MapStore, type LatLng } from './LeadsMap';
 import { ProjectPhotosButton } from './ProjectPhotosButton';
 
 // Turn any URLs inside a text field into clickable links (shortened for display).
@@ -112,6 +113,17 @@ function Field({ label, value }: { label: string; value: string }) {
 
 const PAGE_SIZE = 40;
 
+/** Great-circle distance in km between two lat/lng points. */
+function haversineKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+  const R = 6371;
+  const dLat = ((b.lat - a.lat) * Math.PI) / 180;
+  const dLng = ((b.lng - a.lng) * Math.PI) / 180;
+  const s =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((a.lat * Math.PI) / 180) * Math.cos((b.lat * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(s)));
+}
+
 /** One lead row — a status-striped summary that expands to the full detail. */
 function LeadRow({
   l,
@@ -195,6 +207,7 @@ export function LeadsView({
   isStaff = false,
   view = 'list',
   outcome = '',
+  geo,
 }: {
   leads: Lead[];
   summary: { total: number; noGood: number; forwarded: number };
@@ -211,10 +224,13 @@ export function LeadsView({
   callsByKey?: Record<string, LeadCallRow[]>;
   // Staff may reverse a No-Good flag; dealers can only set it.
   isStaff?: boolean;
-  // 'list' = flat status-striped list; 'grouped' = grouped by what to do next.
-  view?: 'list' | 'grouped';
+  // 'list' = flat status-striped list; 'grouped' = grouped by what to do next;
+  // 'map' = Leaflet map of leads + stores.
+  view?: 'list' | 'grouped' | 'map';
   // Filter to a single outcome (see LEAD_OUTCOME_FILTERS); '' = all.
   outcome?: string;
+  // Map data (only needed for the map view): store coords + per-lead geocode.
+  geo?: { stores: MapStore[]; byKey: Record<string, { geoKey: string; query: string; coord?: LatLng | null }> };
 }) {
   const storeLabel = (num: string) => {
     if (!num) return '';
@@ -226,7 +242,7 @@ export function LeadsView({
     if (q) params.set('q', q);
     if (status) params.set('status', status);
     if (month) params.set('month', month);
-    if (view === 'grouped') params.set('view', view);
+    if (view !== 'list') params.set('view', view);
     if (outcome) params.set('outcome', outcome);
     for (const h of extraHidden ?? []) if (h.value) params.set(h.name, h.value);
     for (const [k, v] of Object.entries(over)) {
@@ -243,7 +259,7 @@ export function LeadsView({
     if (q) params.set('q', q);
     if (val) params.set('status', val);
     if (month) params.set('month', month);
-    if (view === 'grouped') params.set('view', view);
+    if (view !== 'list') params.set('view', view);
     if (outcome) params.set('outcome', outcome);
     for (const h of extraHidden ?? []) if (h.value) params.set(h.name, h.value);
     return (
@@ -256,12 +272,12 @@ export function LeadsView({
     );
   };
 
-  // Segmented List / Grouped toggle — preserves the current search + filters.
-  const viewLink = (val: 'list' | 'grouped', label: string) => {
+  // Segmented List / Grouped / Map toggle — preserves the current search + filters.
+  const viewLink = (val: 'list' | 'grouped' | 'map', label: string) => {
     const active = view === val;
     return (
       <Link
-        href={buildHref({ view: val === 'grouped' ? 'grouped' : '', page: '' })}
+        href={buildHref({ view: val === 'list' ? '' : val, page: '' })}
         className={`px-3 py-1 text-sm font-medium transition ${active ? 'bg-white text-brand-700 shadow-sm' : 'text-gray-600 hover:text-gray-800'}`}
       >
         {label}
@@ -291,6 +307,42 @@ export function LeadsView({
   const startIdx = (current - 1) * PAGE_SIZE;
   const pageItems = ordered.slice(startIdx, startIdx + PAGE_SIZE);
 
+  // Map data (only used when view === 'map'): turn the annotated leads into
+  // pins, attaching cached coordinates and a distance to their store.
+  const mapStores: MapStore[] = geo?.stores ?? [];
+  const storeByNum: Record<string, MapStore> = {};
+  for (const s of mapStores) storeByNum[s.number] = s;
+  const openHrefFor = (l: Lead) => {
+    const p = new URLSearchParams();
+    for (const h of extraHidden ?? []) if (h.value) p.set(h.name, h.value);
+    p.set('view', 'list');
+    const digits = (l.bookingId || '').replace(/\D/g, '');
+    p.set('q', digits || l.customerName || '');
+    return `${basePath}?${p}`;
+  };
+  const mapLeads: MapLead[] = annotated.map((x) => {
+    const g = geo?.byKey[x.leadKey];
+    const coord = g?.coord;
+    const st = storeByNum[x.l.storeNumber];
+    let dist: string | undefined;
+    if (coord && st) {
+      const km = haversineKm(coord, st);
+      dist = km >= 10 ? `${km.toFixed(0)} km away` : `${km.toFixed(1)} km away`;
+    }
+    return {
+      key: g?.geoKey ?? x.leadKey,
+      query: g?.query ?? '',
+      rowId: x.l.rowId,
+      name: titleCase(x.l.customerName),
+      status: x.stateKey,
+      statusLabel: x.l.noGood ? 'No-good' : x.cs.label,
+      sub: x.l.storeNumber ? storeLabel(x.l.storeNumber) : x.l.service || '',
+      dist,
+      openHref: openHrefFor(x.l),
+      coord,
+    };
+  });
+
   return (
     <div className="space-y-5">
       {/* Totals */}
@@ -316,7 +368,7 @@ export function LeadsView({
         {status && <input type="hidden" name="status" value={status} />}
         {month && <input type="hidden" name="month" value={month} />}
         {outcome && <input type="hidden" name="outcome" value={outcome} />}
-        {view === 'grouped' && <input type="hidden" name="view" value="grouped" />}
+        {view !== 'list' && <input type="hidden" name="view" value={view} />}
         <button type="submit" className="btn-primary">Search</button>
       </form>
       <div className="flex flex-wrap items-center gap-2">
@@ -327,6 +379,7 @@ export function LeadsView({
           <div className="inline-flex rounded-full bg-gray-100 p-0.5" role="group" aria-label="View">
             {viewLink('list', 'List')}
             {viewLink('grouped', 'Grouped')}
+            {viewLink('map', 'Map')}
           </div>
           <LeadsSelect
             paramName="outcome"
@@ -339,7 +392,7 @@ export function LeadsView({
               { name: 'q', value: q },
               { name: 'status', value: status },
               { name: 'month', value: month },
-              { name: 'view', value: view === 'grouped' ? 'grouped' : '' },
+              { name: 'view', value: view === 'list' ? '' : view },
               ...(extraHidden ?? []),
             ]}
           />
@@ -352,7 +405,7 @@ export function LeadsView({
                 { name: 'q', value: q },
                 { name: 'status', value: status },
                 { name: 'outcome', value: outcome },
-                { name: 'view', value: view === 'grouped' ? 'grouped' : '' },
+                { name: 'view', value: view === 'list' ? '' : view },
                 ...(extraHidden ?? []),
               ]}
             />
@@ -366,6 +419,8 @@ export function LeadsView({
         <div className="rounded-lg border border-gray-200 bg-gray-50 p-6 text-sm text-gray-500">
           {q || status || month || outcome ? 'No leads match your search.' : 'No leads yet.'}
         </div>
+      ) : view === 'map' ? (
+        <LeadsMap leads={mapLeads} stores={mapStores} />
       ) : (
         <>
           {view === 'grouped' ? (

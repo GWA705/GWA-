@@ -58,7 +58,9 @@ function buildCsp(nonce: string): string {
     : `script-src 'self' 'unsafe-eval' 'unsafe-inline'`;
   return [
     "default-src 'self'",
-    "img-src 'self' data:",
+    // OpenStreetMap raster tiles for the Leads map (Leaflet). Tiles are <img>
+    // requests, so they need img-src, not connect-src.
+    "img-src 'self' data: https://*.tile.openstreetmap.org",
     "style-src 'self' 'unsafe-inline'",
     scriptSrc,
     "connect-src 'self'",
