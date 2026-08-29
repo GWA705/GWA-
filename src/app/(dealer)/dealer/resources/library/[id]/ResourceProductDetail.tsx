@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { RESOURCE_FILE_KIND_LABELS } from '@/lib/constants';
 import { DocViewer } from '@/components/DocViewer';
+import { DownloadButton } from '@/components/DownloadButton';
 import type { ResourceFileKind } from '@prisma/client';
 
 export interface ResourceFileView {
@@ -174,7 +175,7 @@ export function ResourceProductDetail({
                   <DocViewer id={f.id} fileName={title} mimeType={f.mime} src={`/api/resource-files/${f.id}`} className="btn-secondary text-sm">
                     View
                   </DocViewer>
-                  <a href={`/api/resource-files/${f.id}?download=1`} className="btn-primary text-sm">Download</a>
+                  <DownloadButton url={`/api/resource-files/${f.id}?download=1`} fileName={title} className="btn-primary text-sm">Download</DownloadButton>
                 </div>
               );
             })}

@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db';
 import { mailWhereForDealer } from '@/lib/inbox';
 import { friendlyFileName } from '@/lib/filenames';
 import { PdfPagesImage } from '@/components/PdfPagesImage';
+import { DownloadButton } from '@/components/DownloadButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,7 +38,7 @@ export default async function DealerAttachmentViewer({
         <Link href={`/dealer/mail/${mail.id}`} className="text-sm text-gray-500 hover:underline">
           ← Back to message
         </Link>
-        <a href={`${src}?download=1`} className="btn-secondary text-xs">Download</a>
+        <DownloadButton url={`${src}?download=1`} fileName={name} className="btn-secondary text-xs">Download</DownloadButton>
       </div>
 
       <h1 className="truncate text-lg font-semibold text-gray-900" title={att.fileName}>{name}</h1>
@@ -51,7 +52,7 @@ export default async function DealerAttachmentViewer({
         ) : (
           <div className="p-6 text-center text-sm text-gray-600">
             This file type can&apos;t be previewed.{' '}
-            <a href={`${src}?download=1`} className="text-brand-700 hover:underline">Download it</a> to view.
+            <DownloadButton url={`${src}?download=1`} fileName={name} className="text-brand-700 hover:underline">Download it</DownloadButton> to view.
           </div>
         )}
       </div>

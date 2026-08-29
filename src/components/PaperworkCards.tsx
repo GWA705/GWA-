@@ -1,6 +1,7 @@
 import type { Document } from '@prisma/client';
 import { DOCUMENT_TYPE_LABELS } from '@/lib/constants';
 import { DocViewer } from '@/components/DocViewer';
+import { DownloadButton } from '@/components/DownloadButton';
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -75,12 +76,13 @@ export function PaperworkCards({ documents }: { documents: Document[] }) {
               >
                 View
               </DocViewer>
-              <a
-                href={`/api/documents/${d.id}?download=1`}
+              <DownloadButton
+                url={`/api/documents/${d.id}?download=1`}
+                fileName={d.fileName}
                 className="rounded-md bg-green-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-green-700"
               >
                 Download
-              </a>
+              </DownloadButton>
             </div>
           </div>
         </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { DownloadButton } from './DownloadButton';
 
 /**
  * Opens a deal document inside the app in a full-screen overlay with a Back
@@ -66,22 +67,14 @@ export function DocViewer({
               ‹ Back
             </button>
             <span className="min-w-0 flex-1 truncate text-center text-sm font-medium text-gray-700">{fileName}</span>
-            <a
-              href={src}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-none rounded-md px-2.5 py-1.5 text-sm text-gray-600 hover:bg-gray-100"
-              title="Open in a new tab"
-            >
-              ↗
-            </a>
-            <a
-              href={`${src}?download=1`}
+            <DownloadButton
+              url={`${src}?download=1`}
+              fileName={fileName}
               className="flex-none rounded-md px-2.5 py-1.5 text-sm text-gray-600 hover:bg-gray-100"
               title="Download"
             >
               ⬇
-            </a>
+            </DownloadButton>
           </div>
           <div className="min-h-0 flex-1 overflow-auto">
             {isImage ? (
@@ -117,7 +110,7 @@ function PdfPages({ pagesUrl, fileUrl, fileName }: { pagesUrl: string; fileUrl: 
       {state === 'error' ? (
         <div className="py-12 text-center text-sm text-white/80">
           Couldn’t render a preview.{' '}
-          <a href={`${fileUrl}?download=1`} className="font-semibold text-white underline">Download the PDF</a> instead.
+          <DownloadButton url={`${fileUrl}?download=1`} fileName={fileName} className="font-semibold text-white underline">Download the PDF</DownloadButton> instead.
         </div>
       ) : (
         // eslint-disable-next-line @next/next/no-img-element

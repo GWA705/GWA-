@@ -6,6 +6,7 @@ import { mailWhereForDealer } from '@/lib/inbox';
 import { friendlyFileName } from '@/lib/filenames';
 import { acknowledgeMailAction } from '../actions';
 import { DealerReplyForm } from './DealerReplyForm';
+import { DownloadButton } from '@/components/DownloadButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -85,7 +86,7 @@ export default async function DealerMailItem({ params }: { params: { id: string 
                     </Link>
                     <div className="text-xs text-gray-400">{fmtSize(a.sizeBytes)}</div>
                   </div>
-                  <a href={`/api/mail/attachments/${a.id}?download=1`} className="btn-secondary shrink-0 text-xs">Download</a>
+                  <DownloadButton url={`/api/mail/attachments/${a.id}?download=1`} fileName={friendlyFileName(a.fileName, i)} className="btn-secondary shrink-0 text-xs">Download</DownloadButton>
                 </li>
               );
             })}

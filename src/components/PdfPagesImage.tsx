@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { DownloadButton } from './DownloadButton';
 
 /**
  * A multi-page PDF shown as one tall, scrollable image (all pages rendered
@@ -22,7 +23,7 @@ export function PdfPagesImage({
     return (
       <div className="p-6 text-center text-sm text-gray-600">
         Couldn’t render a preview.{' '}
-        <a href={downloadUrl} className="font-semibold text-brand-700 hover:underline">Download it</a> to view.
+        <DownloadButton url={downloadUrl} fileName={alt} className="font-semibold text-brand-700 hover:underline">Download it</DownloadButton> to view.
       </div>
     );
   }

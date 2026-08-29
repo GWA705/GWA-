@@ -1,5 +1,6 @@
 import type { ContentItem } from '@prisma/client';
 import { DocViewer } from '@/components/DocViewer';
+import { DownloadButton } from '@/components/DownloadButton';
 
 // Known acronyms that should stay uppercase when we standardize a title's case.
 const ACRONYMS = new Set(['HD', 'HDCC', 'GHS', 'GWA', 'FAQ', 'UV', 'PH', 'SIN', 'PDF', 'ON', 'US', 'CA', 'HDFINIT']);
@@ -115,12 +116,13 @@ export function ContentSectionView({
                         >
                           View
                         </DocViewer>
-                        <a
-                          href={`${fileUrl}?download=1`}
+                        <DownloadButton
+                          url={`${fileUrl}?download=1`}
+                          fileName={c.fileName || c.title}
                           className="rounded-md bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-brand-700"
                         >
                           Download
-                        </a>
+                        </DownloadButton>
                       </>
                     )}
                   </div>
