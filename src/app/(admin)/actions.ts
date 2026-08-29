@@ -24,7 +24,7 @@ import { parseDealerProfileForm } from '@/lib/dealerProfile';
 import type { Prisma } from '@prisma/client';
 import { applyDealerLogo, applySupportContactLogo } from '@/lib/dealerLogo';
 import { saveCostConfig, type CostConfig } from '@/lib/costs';
-import { geocodeAddress } from '@/lib/googlePlaces';
+import { geocodeOSM } from '@/lib/osmGeocode';
 
 export interface ActionState {
   error?: string;
@@ -1641,7 +1641,12 @@ export async function autoGeocodeStoreAction(storeId: string): Promise<StoreLoca
   if (!store) return { ok: false, error: 'Store not found.' };
   const name = (store.name || '').trim();
   if (!name) return { ok: false, error: 'This store has no name to look up — set its location by hand instead.' };
-  const hit = await geocodeAddress(`The Home Depot ${name}, Ontario, Canada`);
+  let hit: Awaited<ReturnType<typeof geocodeOSM>> = null;
+  try {
+    hit = await geocodeOSM(`The Home Depot ${name}, Ontario, Canada`);
+  } catch {
+    return { ok: false, error: 'The map lookup service didn’t answer — try again, or set the location by hand.' };
+  }
   if (!hit) return { ok: false, error: 'Couldn’t find that store automatically — set its location by hand.' };
   await prisma.homeDepotStore.update({ where: { id: storeId }, data: { latitude: hit.lat, longitude: hit.lng, geocodedAt: new Date() } });
   await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'HomeDepotStore', entityId: storeId, detail: `Auto-placed store ${store.number} at ${hit.lat.toFixed(5)}, ${hit.lng.toFixed(5)}` });

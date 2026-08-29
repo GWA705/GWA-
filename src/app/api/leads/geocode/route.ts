@@ -10,7 +10,9 @@ export const dynamic = 'force-dynamic';
 // key is only ever looked up once) and return whatever we could place. Signed-in
 // users only; rate-limited. Results are shared cache, so no per-office scoping is
 // needed here — the map only ever asks about leads it is already showing.
-const MAX_PER_REQUEST = 12;
+// Kept small because the OSM geocoder is throttled to ~1/sec, so each item adds
+// ~1s to the request; 6 keeps a request well under any gateway timeout.
+const MAX_PER_REQUEST = 6;
 
 export async function POST(req: NextRequest) {
   const session = await getSession();

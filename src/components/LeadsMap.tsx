@@ -166,8 +166,8 @@ export function LeadsMap({ leads, stores }: { leads: MapLead[]; stores: MapStore
     setGeocoding(true);
 
     (async () => {
-      for (let i = 0; i < unique.length && !cancelled; i += 12) {
-        const chunk = unique.slice(i, i + 12).map((l) => ({ key: l.key, query: l.query }));
+      for (let i = 0; i < unique.length && !cancelled; i += 6) {
+        const chunk = unique.slice(i, i + 6).map((l) => ({ key: l.key, query: l.query }));
         try {
           const res = await fetch('/api/leads/geocode', {
             method: 'POST',

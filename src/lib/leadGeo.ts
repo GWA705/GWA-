@@ -1,6 +1,6 @@
 import 'server-only';
 import { prisma } from './db';
-import { geocodeAddress, placesConfigured } from './googlePlaces';
+import { geocodeOSM } from './osmGeocode';
 import { parseLeadAddress, leadKeyOf, type Lead } from './leads';
 
 /**
@@ -21,9 +21,9 @@ export interface StoreGeo {
   lng: number;
 }
 
-/** Whether geocoding is possible at all (needs the Google key). */
+/** Whether geocoding is possible. OSM/Nominatim is keyless, so always true. */
 export function geocodingConfigured(): boolean {
-  return placesConfigured();
+  return true;
 }
 
 /** Normalize any address string into a stable cache key. */
@@ -66,16 +66,16 @@ export async function getCachedGeocodes(keys: string[]): Promise<Record<string, 
  * Geocode one address (by its cache key). A successful hit is cached forever; a
  * genuine no-match is cached as null but stays *retryable* (we only short-circuit
  * on a placed row). A hard failure (API not enabled, quota, network) throws out
- * of geocodeAddress — we swallow it and write nothing, so nothing is poisoned.
+ * of geocodeOSM — we swallow it and write nothing, so nothing is poisoned.
  */
 async function geocodeOne(key: string, query: string): Promise<LatLng | null> {
   const existing = await prisma.geocodeCache.findUnique({ where: { key } });
   if (existing && existing.latitude != null && existing.longitude != null) {
     return { lat: existing.latitude, lng: existing.longitude };
   }
-  let hit: Awaited<ReturnType<typeof geocodeAddress>>;
+  let hit: Awaited<ReturnType<typeof geocodeOSM>>;
   try {
-    hit = await geocodeAddress(query);
+    hit = await geocodeOSM(query);
   } catch {
     return null; // transient/config failure — leave the cache untouched, retry later
   }
@@ -152,9 +152,9 @@ export async function ensureStoreCoords(
       continue;
     }
     if (!canGeocode || !name) continue;
-    let hit: Awaited<ReturnType<typeof geocodeAddress>> = null;
+    let hit: Awaited<ReturnType<typeof geocodeOSM>> = null;
     try {
-      hit = await geocodeAddress(`The Home Depot ${name}, Ontario, Canada`);
+      hit = await geocodeOSM(`The Home Depot ${name}, Ontario, Canada`);
     } catch {
       continue; // config/transient failure — leave unplaced, admin can set it by hand
     }
