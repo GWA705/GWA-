@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { PageHeader } from '@/components/PageHeader';
 
 // Simple two-tab header for the dealer reports area.
 export function DealerReportTabs({ active }: { active: 'monthly' | 'weekly' }) {
@@ -14,8 +15,7 @@ export function DealerReportTabs({ active }: { active: 'monthly' | 'weekly' }) {
   );
   return (
     <div>
-      <h1 className="text-xl font-semibold text-gray-900">My reports</h1>
-      <p className="mt-1 text-sm text-gray-600">Performance for your office only.</p>
+      <PageHeader eyebrow="Reports" title="My reports" subtitle="Performance for your office only." />
       <div className="mt-3 flex flex-wrap gap-2">
         {tab('/dealer/reports', 'Monthly performance', 'monthly')}
         {tab('/dealer/reports/weekly', 'Weekly store detail', 'weekly')}

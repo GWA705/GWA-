@@ -12,6 +12,7 @@ import { searchWhere } from '@/lib/search';
 import { programLabel, STATUS_LABELS } from '@/lib/constants';
 import { dealerOutstanding } from '@/lib/outstanding';
 import { getBannerRotation } from '@/lib/settings';
+import { PageHeader } from '@/components/PageHeader';
 import type { ApplicationStatus, Prisma } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
@@ -128,12 +129,16 @@ export default async function DealerHome({
       <AnnouncementBanner announcements={topBanners} rotate={rotation.top} />
 
       <div className="mb-6 space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-xl font-semibold text-gray-900">Applications</h1>
-          <Link href="/dealer/applications/new" className="btn-primary whitespace-nowrap text-sm">
-            New customer processing
-          </Link>
-        </div>
+        <PageHeader
+          variant="rail"
+          eyebrow="Deals"
+          title="Applications"
+          right={
+            <Link href="/dealer/applications/new" className="btn-primary whitespace-nowrap text-sm">
+              New customer processing
+            </Link>
+          }
+        />
         <SearchBox action="/dealer" q={searchParams.q} />
         <DealerListControls
           status={statusFilter}

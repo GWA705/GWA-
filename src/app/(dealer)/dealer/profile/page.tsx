@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/PageHeader';
 import { requireDealerAccess } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { DealerProfileForm } from '@/components/DealerProfileForm';
@@ -19,13 +20,11 @@ export default async function DealerProfilePage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold text-gray-900">Office profile</h1>
-        <p className="mt-1 text-sm text-gray-600">
-          Keep your office details up to date so the GWA team always has the right contacts. This is
-          shared with GWA reviewers and admins only — it is not shown to other dealers.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="My office"
+        title="Office profile"
+        subtitle="Keep your office details up to date so the GWA team always has the right contacts. This is shared with GWA reviewers and admins only — it is not shown to other dealers."
+      />
       <section className="card p-6">
         <DealerProfileForm action={saveDealerProfileAction} values={values} logoUrl={logoUrl} />
       </section>

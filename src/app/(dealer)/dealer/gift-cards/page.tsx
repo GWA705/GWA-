@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { queryGiftCards, monthLabel } from '@/lib/giftCardHistory';
 import { GiftCardForm } from './GiftCardForm';
 import { GiftCardBulkImport } from './GiftCardBulkImport';
+import { PageHeader } from '@/components/PageHeader';
 import { DealerGiftCards, type DealerRequestVM } from './DealerGiftCards';
 import { GiftCardBrowseControls } from '@/components/GiftCardBrowseControls';
 import { GiftCardPager } from '@/components/GiftCardPager';
@@ -61,14 +62,11 @@ export default async function DealerGiftCardsPage({
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold text-gray-900">Water-test gift cards</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Completed a water test? Request the customer&apos;s Home Depot gift card here. We email it through Guusto and
-          mark it sent — you&apos;ll get a dated receipt below. Wrong email, or need to send by text? Open a request to
-          fix the details or message the team.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="Rewards"
+        title="Water-test gift cards"
+        subtitle="Completed a water test? Request the customer's Home Depot gift card here. We email it through Guusto and mark it sent — you'll get a dated receipt below. Wrong email, or need to send by text? Open a request to fix the details or message the team."
+      />
 
       <div className="card space-y-4 p-6">
         <h2 className="text-base font-semibold text-gray-900">New request</h2>

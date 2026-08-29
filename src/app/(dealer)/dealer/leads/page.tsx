@@ -5,6 +5,7 @@ import { readLeadCalls } from '@/lib/leadCalls';
 import { reportingJournalEnabled } from '@/lib/reporting/journalRead';
 import { leadsSheetId } from '@/lib/reporting/journalRead';
 import { LeadsView, filterLeads, leadMonthOptions } from '@/components/LeadsView';
+import { PageHeader } from '@/components/PageHeader';
 
 export const dynamic = 'force-dynamic';
 
@@ -59,10 +60,12 @@ export default async function DealerLeadsPage({ searchParams }: { searchParams: 
 
 function Header() {
   return (
-    <div>
-      <h1 className="text-xl font-semibold text-gray-900">Leads</h1>
-      <p className="mt-1 text-sm text-gray-600">Home Depot leads sent to your office. Search and review — updated from the leads log.</p>
-    </div>
+    <PageHeader
+      variant="rail"
+      eyebrow="Leads"
+      title="Leads"
+      subtitle="Home Depot leads sent to your office. Search and review — updated from the leads log."
+    />
   );
 }
 

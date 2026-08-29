@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/PageHeader';
 import { requireDealerAccess } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { UserRequestForm } from './UserRequestForm';
@@ -28,13 +29,11 @@ export default async function DealerUserRequestsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold text-gray-900">Request portal logins</h1>
-        <p className="mt-1 text-sm text-gray-600">
-          List the people at your office who need a login. GWA reviews each request and sets up the
-          accounts — new users get an email to choose their password and turn on two-factor sign-in.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="My office"
+        title="Request portal logins"
+        subtitle="List the people at your office who need a login. GWA reviews each request and sets up the accounts — new users get an email to choose their password and turn on two-factor sign-in."
+      />
 
       <section className="card p-6">
         <h2 className="mb-4 text-base font-semibold text-gray-900">New request</h2>

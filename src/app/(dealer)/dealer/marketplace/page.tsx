@@ -1,6 +1,7 @@
 import { requireDealerAccess } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { MarketplaceOrderForm } from './MarketplaceOrderForm';
+import { PageHeader } from '@/components/PageHeader';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,8 +37,13 @@ export default async function DealerMarketplace({ searchParams }: { searchParams
   return (
     <div>
       <div className="mb-5">
-        <h1 className="text-xl font-semibold text-gray-900">Marketplace</h1>
-        <p className="mt-1 text-sm text-gray-500">Choose what you&apos;d like and submit an order — our team will take it from there.</p>
+        <PageHeader
+          variant="hero"
+          icon="🛍️"
+          eyebrow="Sales & rewards"
+          title="Marketplace"
+          subtitle="Choose what you'd like and submit an order — our team will take it from there."
+        />
       </div>
 
       {searchParams.ok && (

@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/PageHeader';
 import { requireDealerAccess } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { productChecklistOptions } from '@/lib/products';
@@ -19,7 +20,9 @@ export default async function NewApplicationPage() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <h1 className="mb-6 text-xl font-semibold text-gray-900">New customer processing</h1>
+      <div className="mb-6">
+        <PageHeader eyebrow="Deals" title="New customer processing" />
+      </div>
       <NewApplicationForm stores={stores} products={products} />
     </div>
   );

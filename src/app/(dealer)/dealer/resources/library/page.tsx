@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/PageHeader';
 import Link from 'next/link';
 import type { Prisma } from '@prisma/client';
 import { requireDealerAccess } from '@/lib/session';
@@ -100,8 +101,13 @@ export default async function DealerResourceLibraryPage({
     <div className="space-y-5">
       <div>
         <Link href="/dealer/resources" className="text-sm text-gray-500 hover:underline">← Resources</Link>
-        <h1 className="mt-2 text-xl font-semibold text-gray-900">Product manuals &amp; brochures</h1>
-        <p className="mt-1 text-sm text-gray-600">Find product info, manuals, brochures and spec sheets. View or download.</p>
+        <div className="mt-2">
+          <PageHeader
+            eyebrow="Resources"
+            title="Product manuals & brochures"
+            subtitle="Find product info, manuals, brochures and spec sheets. View or download."
+          />
+        </div>
       </div>
 
       <form method="GET" className="flex gap-2">

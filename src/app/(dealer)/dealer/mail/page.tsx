@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/PageHeader';
 import Link from 'next/link';
 import { requireDealerAccess } from '@/lib/session';
 import { prisma } from '@/lib/db';
@@ -24,8 +25,7 @@ export default async function DealerMailbox() {
   return (
     <div>
       <div className="mb-5">
-        <h1 className="text-xl font-semibold text-gray-900">Mail</h1>
-        <p className="mt-1 text-sm text-gray-500">Messages and files from GWA.</p>
+        <PageHeader eyebrow="Messages" title="Mail" subtitle="Messages and files from the GWA team." />
       </div>
 
       {mails.length === 0 ? (
