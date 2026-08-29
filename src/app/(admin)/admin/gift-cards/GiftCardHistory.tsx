@@ -65,6 +65,7 @@ export function GiftCardHistory({
           status={status}
           month={month}
           sort={sort}
+          perPage={String(perPage)}
           months={months}
           showStatus
         />

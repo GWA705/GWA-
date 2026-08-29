@@ -86,6 +86,7 @@ export default async function DealerGiftCardsPage({
             status={result.status}
             month={result.month}
             sort={result.sort}
+            perPage={String(result.perPage)}
             months={monthOpts}
           />
         </div>
