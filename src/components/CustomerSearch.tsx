@@ -9,10 +9,17 @@ export function CustomerSearch({
   mode,
   placeholder,
   large,
+  onSearch,
+  pushQuery,
 }: {
   mode: 'internal' | 'dealer';
   placeholder?: string;
   large?: boolean;
+  // Called when a real search fires (3+ chars) — used to record recent lookups.
+  onSearch?: (q: string) => void;
+  // Push a query in from outside (e.g. tapping a recent chip); bump `nonce` to
+  // re-trigger the same text.
+  pushQuery?: { q: string; nonce: number };
 }) {
   const live = mode === 'internal'; // GWA team gets live typeahead
   const [query, setQuery] = useState('');
@@ -25,6 +32,7 @@ export function CustomerSearch({
       setResult(null);
       return;
     }
+    onSearch?.(q.trim());
     const mine = ++seq.current;
     start(async () => {
       const r = await customerSearchAction(q);
@@ -32,6 +40,14 @@ export function CustomerSearch({
       if (mine === seq.current) setResult(r);
     });
   }
+
+  // A recent-lookup chip (or any external trigger) pushed a query in.
+  useEffect(() => {
+    if (!pushQuery) return;
+    setQuery(pushQuery.q);
+    run(pushQuery.q);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pushQuery?.nonce]);
 
   // Live typeahead (internal): debounce keystrokes; fire at 3+ chars.
   useEffect(() => {
