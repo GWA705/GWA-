@@ -125,7 +125,7 @@ export function UserRequestForm() {
 
       <div>
         <label className="label">Anything else for GWA? (optional)</label>
-        <textarea className="input" rows={2} value={note} maxLength={500} onChange={(e) => setNote(e.target.value)} placeholder="e.g. please set these up before Monday" />
+        <textarea className="input" rows={2} value={note} maxLength={500} onChange={(e) => setNote(e.target.value)} />
       </div>
 
       <div className="flex items-center gap-3">
