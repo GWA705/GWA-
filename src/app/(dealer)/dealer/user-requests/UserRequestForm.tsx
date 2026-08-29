@@ -20,7 +20,7 @@ function SubmitButton({ disabled }: { disabled: boolean }) {
   const { pending } = useFormStatus();
   return (
     <button type="submit" className="btn-primary" disabled={pending || disabled}>
-      {pending ? 'Sending…' : 'Request distributor access'}
+      {pending ? 'Sending…' : 'Send request to GWA'}
     </button>
   );
 }
@@ -115,7 +115,7 @@ export function UserRequestForm() {
             </div>
             <label className="mt-3 flex items-center gap-2 text-sm text-gray-700">
               <input type="checkbox" checked={r.isMainContact} onChange={(e) => update(r.id, { isMainContact: e.target.checked })} className="h-4 w-4" />
-              This person is the owner / main contact for the office
+              Request distributor access — owner / main contact for the office
             </label>
           </div>
         ))}
