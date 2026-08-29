@@ -5,6 +5,7 @@ import { leadCallStatus, type LeadCallRow } from '@/lib/leadCalls';
 import { LeadCallTracker } from './LeadCallTracker';
 import { LeadNoGoodControl } from './LeadNoGoodControl';
 import { LeadsMonthDropdown } from './LeadsMonthDropdown';
+import { LeadsSelect } from './LeadsSelect';
 import { ProjectPhotosButton } from './ProjectPhotosButton';
 
 // Turn any URLs inside a text field into clickable links (shortened for display).
@@ -67,6 +68,29 @@ const STRIPE: Record<LeadStateKey, string> = {
   booked: 'border-emerald-500',
   nogood: 'border-red-500',
 };
+const GROUP_ORDER: Record<LeadStateKey, number> = { new: 0, working: 1, booked: 2, nogood: 3 };
+const GROUP_META: Record<LeadStateKey, { label: string; chip: string; stripe: string }> = Object.fromEntries(
+  GROUPS.map((g) => [g.key, { label: g.label, chip: g.chip, stripe: g.stripe }]),
+) as Record<LeadStateKey, { label: string; chip: string; stripe: string }>;
+
+// Options for the "Outcome" filter dropdown (last call result, or lead state).
+export const LEAD_OUTCOME_FILTERS: { value: string; label: string }[] = [
+  { value: 'new', label: 'New (needs a call)' },
+  { value: 'NO_ANSWER', label: 'No answer' },
+  { value: 'LEFT_MESSAGE', label: 'Message left' },
+  { value: 'SPOKE', label: 'Spoke' },
+  { value: 'BOOKED', label: 'Booked' },
+  { value: 'SOLD', label: 'Sold' },
+  { value: 'NOT_INTERESTED', label: 'No interest' },
+  { value: 'nogood', label: 'No-good' },
+];
+
+/** A single filterable outcome key for a lead: no-good, uncalled ('new'), or its last call outcome. */
+export function leadOutcomeKey(noGood: boolean, calls: { outcome: string }[]): string {
+  if (noGood) return 'nogood';
+  if (calls.length === 0) return 'new';
+  return calls[calls.length - 1].outcome;
+}
 
 // Read-only, searchable list of HD leads with running totals. Shared by the
 // dealer (own office) and internal (all offices) pages. No download — view only.
@@ -170,6 +194,7 @@ export function LeadsView({
   callsByKey = {},
   isStaff = false,
   view = 'list',
+  outcome = '',
 }: {
   leads: Lead[];
   summary: { total: number; noGood: number; forwarded: number };
@@ -188,6 +213,8 @@ export function LeadsView({
   isStaff?: boolean;
   // 'list' = flat status-striped list; 'grouped' = grouped by what to do next.
   view?: 'list' | 'grouped';
+  // Filter to a single outcome (see LEAD_OUTCOME_FILTERS); '' = all.
+  outcome?: string;
 }) {
   const storeLabel = (num: string) => {
     if (!num) return '';
@@ -200,6 +227,7 @@ export function LeadsView({
     if (status) params.set('status', status);
     if (month) params.set('month', month);
     if (view === 'grouped') params.set('view', view);
+    if (outcome) params.set('outcome', outcome);
     for (const h of extraHidden ?? []) if (h.value) params.set(h.name, h.value);
     for (const [k, v] of Object.entries(over)) {
       if (v) params.set(k, v);
@@ -216,6 +244,7 @@ export function LeadsView({
     if (val) params.set('status', val);
     if (month) params.set('month', month);
     if (view === 'grouped') params.set('view', view);
+    if (outcome) params.set('outcome', outcome);
     for (const h of extraHidden ?? []) if (h.value) params.set(h.name, h.value);
     return (
       <Link
@@ -240,10 +269,27 @@ export function LeadsView({
     );
   };
 
-  const totalPages = Math.max(1, Math.ceil(leads.length / PAGE_SIZE));
+  // Annotate every lead with its calls + call status + pile, once.
+  const annotated = leads.map((l) => {
+    const leadKey = leadKeyOf(l);
+    const calls = callsByKey[leadKey] ?? [];
+    const cs = leadCallStatus(calls);
+    const stateKey = leadStateKey(l.noGood, calls.length > 0, cs.tone);
+    return { l, leadKey, calls, cs, stateKey };
+  });
+  // In grouped view, order leads by pile so pagination walks group-by-group.
+  const ordered =
+    view === 'grouped'
+      ? [...annotated].sort((a, b) => GROUP_ORDER[a.stateKey] - GROUP_ORDER[b.stateKey])
+      : annotated;
+  // Total per pile across the whole filtered set (headers show the real count).
+  const groupTotals: Record<LeadStateKey, number> = { new: 0, working: 0, booked: 0, nogood: 0 };
+  for (const x of annotated) groupTotals[x.stateKey]++;
+
+  const totalPages = Math.max(1, Math.ceil(ordered.length / PAGE_SIZE));
   const current = Math.min(Math.max(1, page), totalPages);
   const startIdx = (current - 1) * PAGE_SIZE;
-  const pageLeads = leads.slice(startIdx, startIdx + PAGE_SIZE);
+  const pageItems = ordered.slice(startIdx, startIdx + PAGE_SIZE);
 
   return (
     <div className="space-y-5">
@@ -269,6 +315,7 @@ export function LeadsView({
         {extraHidden?.map((h) => (h.value ? <input key={h.name} type="hidden" name={h.name} value={h.value} /> : null))}
         {status && <input type="hidden" name="status" value={status} />}
         {month && <input type="hidden" name="month" value={month} />}
+        {outcome && <input type="hidden" name="outcome" value={outcome} />}
         {view === 'grouped' && <input type="hidden" name="view" value="grouped" />}
         <button type="submit" className="btn-primary">Search</button>
       </form>
@@ -276,11 +323,26 @@ export function LeadsView({
         {statusLink('', 'All')}
         {statusLink('forwarded', 'Forwarded')}
         {statusLink('nogood', 'No-good')}
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex flex-wrap items-center gap-2">
           <div className="inline-flex rounded-full bg-gray-100 p-0.5" role="group" aria-label="View">
             {viewLink('list', 'List')}
             {viewLink('grouped', 'Grouped')}
           </div>
+          <LeadsSelect
+            paramName="outcome"
+            value={outcome}
+            options={LEAD_OUTCOME_FILTERS}
+            allLabel="All outcomes"
+            ariaLabel="Filter by outcome"
+            basePath={basePath}
+            params={[
+              { name: 'q', value: q },
+              { name: 'status', value: status },
+              { name: 'month', value: month },
+              { name: 'view', value: view === 'grouped' ? 'grouped' : '' },
+              ...(extraHidden ?? []),
+            ]}
+          />
           {monthOptions.length > 0 && (
             <LeadsMonthDropdown
               value={month}
@@ -289,6 +351,7 @@ export function LeadsView({
               params={[
                 { name: 'q', value: q },
                 { name: 'status', value: status },
+                { name: 'outcome', value: outcome },
                 { name: 'view', value: view === 'grouped' ? 'grouped' : '' },
                 ...(extraHidden ?? []),
               ]}
@@ -297,56 +360,55 @@ export function LeadsView({
         </div>
       </div>
 
-      {/* Leads — a flat status-striped list, or grouped by what to do next */}
+      {/* Leads — a flat status-striped list, or grouped by what to do next.
+          Both views paginate so a long list never runs off the bottom. */}
       {leads.length === 0 ? (
         <div className="rounded-lg border border-gray-200 bg-gray-50 p-6 text-sm text-gray-500">
-          {q || status ? 'No leads match your search.' : 'No leads yet.'}
-        </div>
-      ) : view === 'grouped' ? (
-        <div className="space-y-4">
-          {GROUPS.map((g) => {
-            const items = leads
-              .map((l) => {
-                const leadKey = leadKeyOf(l);
-                const calls = callsByKey[leadKey] ?? [];
-                const cs = leadCallStatus(calls);
-                return { l, leadKey, calls, cs, key: leadStateKey(l.noGood, calls.length > 0, cs.tone) };
-              })
-              .filter((x) => x.key === g.key);
-            if (items.length === 0) return null;
-            return (
-              <div key={g.key}>
-                <div className="mb-2 flex items-center gap-2 px-1">
-                  <span className={`badge ${g.chip}`}>{g.label}</span>
-                  <span className="text-xs text-gray-400">{items.length}</span>
-                </div>
-                <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-                  {items.map((x) => (
-                    <LeadRow key={x.l.rowId} l={x.l} leadKey={x.leadKey} calls={x.calls} cs={x.cs} stripe={g.stripe} storeLabel={storeLabel} isStaff={isStaff} />
-                  ))}
-                </div>
-              </div>
-            );
-          })}
+          {q || status || month || outcome ? 'No leads match your search.' : 'No leads yet.'}
         </div>
       ) : (
         <>
-          <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-            {pageLeads.map((l) => {
-              const leadKey = leadKeyOf(l);
-              const calls = callsByKey[leadKey] ?? [];
-              const cs = leadCallStatus(calls);
-              const stripe = STRIPE[leadStateKey(l.noGood, calls.length > 0, cs.tone)];
-              return (
-                <LeadRow key={l.rowId} l={l} leadKey={leadKey} calls={calls} cs={cs} stripe={stripe} storeLabel={storeLabel} isStaff={isStaff} />
-              );
-            })}
-          </div>
+          {view === 'grouped' ? (
+            <div className="space-y-4">
+              {(() => {
+                // Break the current page into contiguous runs by pile, so a page
+                // that straddles two piles shows a header for each.
+                const blocks: { key: LeadStateKey; items: typeof pageItems }[] = [];
+                for (const x of pageItems) {
+                  const last = blocks[blocks.length - 1];
+                  if (last && last.key === x.stateKey) last.items.push(x);
+                  else blocks.push({ key: x.stateKey, items: [x] });
+                }
+                return blocks.map((b, bi) => {
+                  const g = GROUP_META[b.key];
+                  return (
+                    <div key={`${b.key}-${bi}`}>
+                      <div className="mb-2 flex items-center gap-2 px-1">
+                        <span className={`badge ${g.chip}`}>{g.label}</span>
+                        <span className="text-xs text-gray-400">{groupTotals[b.key]}</span>
+                      </div>
+                      <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+                        {b.items.map((x) => (
+                          <LeadRow key={x.l.rowId} l={x.l} leadKey={x.leadKey} calls={x.calls} cs={x.cs} stripe={g.stripe} storeLabel={storeLabel} isStaff={isStaff} />
+                        ))}
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+          ) : (
+            <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+              {pageItems.map((x) => (
+                <LeadRow key={x.l.rowId} l={x.l} leadKey={x.leadKey} calls={x.calls} cs={x.cs} stripe={STRIPE[x.stateKey]} storeLabel={storeLabel} isStaff={isStaff} />
+              ))}
+            </div>
+          )}
 
-          {/* Pagination (list view) */}
+          {/* Pagination (shared by both views) */}
           <div className="flex items-center justify-between text-sm text-gray-500">
             <span>
-              Showing {startIdx + 1}–{Math.min(startIdx + PAGE_SIZE, leads.length)} of {leads.length}
+              Showing {startIdx + 1}–{Math.min(startIdx + PAGE_SIZE, ordered.length)} of {ordered.length}
             </span>
             {totalPages > 1 && (
               <div className="flex items-center gap-2">

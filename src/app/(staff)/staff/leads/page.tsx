@@ -6,14 +6,14 @@ import { readLeads, summarize, storeNameMap, leadKeyOf } from '@/lib/leads';
 import { readLeadCalls } from '@/lib/leadCalls';
 import { leadsSheetId, reportingJournalEnabled } from '@/lib/reporting/journalRead';
 import { listReportOffices } from '@/lib/reporting/monthly';
-import { LeadsView, filterLeads, leadMonthOptions } from '@/components/LeadsView';
+import { LeadsView, filterLeads, leadMonthOptions, leadOutcomeKey } from '@/components/LeadsView';
 
 export const dynamic = 'force-dynamic';
 
 export default async function StaffLeadsPage({
   searchParams,
 }: {
-  searchParams: { q?: string; status?: string; office?: string; page?: string; month?: string; view?: string };
+  searchParams: { q?: string; status?: string; office?: string; page?: string; month?: string; view?: string; outcome?: string };
 }) {
   const user = await requireRole('REVIEWER', 'ADMIN');
   // All-offices leads = leadership view: super admin or a granted 'leads' section.
@@ -23,6 +23,7 @@ export default async function StaffLeadsPage({
   const status = (searchParams.status ?? '').trim();
   const officeId = (searchParams.office ?? '').trim();
   const month = (searchParams.month ?? '').trim();
+  const outcome = (searchParams.outcome ?? '').trim();
   const view = searchParams.view === 'grouped' ? 'grouped' : 'list';
   const page = Math.max(1, parseInt(searchParams.page ?? '1', 10) || 1);
 
@@ -49,8 +50,11 @@ export default async function StaffLeadsPage({
   }
   const summary = summarize(scoped);
   const monthOptions = leadMonthOptions(scoped);
-  const filtered = filterLeads(scoped, q, status, month);
+  let filtered = filterLeads(scoped, q, status, month);
   const callsByKey = await readLeadCalls(filtered.map(leadKeyOf));
+  if (outcome) {
+    filtered = filtered.filter((l) => leadOutcomeKey(l.noGood, callsByKey[leadKeyOf(l)] ?? []) === outcome);
+  }
 
   return (
     <div className="space-y-5">
@@ -71,6 +75,9 @@ export default async function StaffLeadsPage({
         </div>
         {q && <input type="hidden" name="q" value={q} />}
         {status && <input type="hidden" name="status" value={status} />}
+        {month && <input type="hidden" name="month" value={month} />}
+        {outcome && <input type="hidden" name="outcome" value={outcome} />}
+        {view === 'grouped' && <input type="hidden" name="view" value="grouped" />}
         <button type="submit" className="btn-primary">View</button>
       </form>
 
@@ -94,6 +101,7 @@ export default async function StaffLeadsPage({
         callsByKey={callsByKey}
         isStaff
         view={view}
+        outcome={outcome}
       />
     </div>
   );
