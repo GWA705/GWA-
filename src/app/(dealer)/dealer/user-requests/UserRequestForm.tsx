@@ -20,7 +20,7 @@ function SubmitButton({ disabled }: { disabled: boolean }) {
   const { pending } = useFormStatus();
   return (
     <button type="submit" className="btn-primary" disabled={pending || disabled}>
-      {pending ? 'Sending…' : 'Send request to GWA'}
+      {pending ? 'Sending…' : 'Request distributor access'}
     </button>
   );
 }
