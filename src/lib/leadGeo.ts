@@ -36,22 +36,20 @@ function normKey(s: string): string {
 }
 
 /**
- * The string we geocode for a lead. We position by POSTAL CODE, not the exact
- * street address — the same idea as the booking map's postal table — so leads in
- * the same area share a single lookup (fast, cached once), and rural addresses
- * the geocoder struggles with still resolve. Falls back to street/city only when
- * a lead has no postal code; empty when there's nothing to place it by.
+ * The string we geocode for a lead. We position by STREET ADDRESS (street, city,
+ * province) — NOT the postal code: OpenStreetMap's coverage of Canadian postal
+ * codes is thin (Canada Post data is proprietary), so postal lookups miss most
+ * of the time, whereas street/city coverage is good. Empty when a lead has no
+ * usable address at all.
  */
 export function leadGeoQuery(l: Lead): string {
   const p = parseLeadAddress(l.address || '');
-  if (p.postal) return `${p.postal}, ${p.province || 'ON'}, Canada`;
   const bits = [p.street, p.city, p.province].map((x) => x.trim()).filter(Boolean);
-  const structured = bits.join(', ');
-  return structured ? `${structured}, Canada` : '';
+  return bits.length ? `${bits.join(', ')}, Canada` : '';
 }
 
-/** Stable geocode-cache key for a lead — by postal code, so a whole area's leads
- *  share one cached point (and warm up together). */
+/** Stable geocode-cache key for a lead (by its address, so identical addresses
+ *  share one cached point). */
 export function leadGeoKey(l: Lead): string {
   return normKey(leadGeoQuery(l));
 }

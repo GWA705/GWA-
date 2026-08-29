@@ -32,14 +32,14 @@ function esc(s: string): string {
   return s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] as string));
 }
 
-// We position leads by postal code, so many share the same centroid. Fan them
-// out by a small, deterministic offset (≤ ~300 m) keyed on the lead, so pins in
-// one area don't stack and each stays individually clickable.
+// A tiny deterministic nudge (≤ ~90 m) so two leads that resolve to the exact
+// same point (e.g. a shared building or a city-level fallback) don't stack and
+// each stays clickable. Small enough not to visibly move a real street address.
 function jitter(c: LatLng, seed: string): LatLng {
   let h = 0;
   for (let i = 0; i < seed.length; i += 1) h = (h * 31 + seed.charCodeAt(i)) | 0;
   const angle = ((h % 360) + 360) % 360 * (Math.PI / 180);
-  const radius = 0.0006 + (((h >>> 8) % 1000) / 1000) * 0.0022; // ~65 m … ~310 m
+  const radius = 0.0002 + (((h >>> 8) % 1000) / 1000) * 0.0006; // ~22 m … ~90 m
   const latOff = radius * Math.cos(angle);
   const lngOff = (radius * Math.sin(angle)) / Math.max(0.2, Math.cos((c.lat * Math.PI) / 180));
   return { lat: c.lat + latOff, lng: c.lng + lngOff };
@@ -260,7 +260,7 @@ export function LeadsMap({ leads, stores, pendingStores = [] }: { leads: MapLead
             ? `Placing leads on the map… (${placedCount} of ${total} so far)`
             : `${placedCount} of ${total} lead${total === 1 ? '' : 's'} on the map`}
         </span>
-        {!geocoding && unplaced > 0 && <span>{unplaced} couldn&apos;t be placed (no postal code)</span>}
+        {!geocoding && unplaced > 0 && <span>{unplaced} couldn&apos;t be placed (no address match)</span>}
       </div>
     </div>
   );
