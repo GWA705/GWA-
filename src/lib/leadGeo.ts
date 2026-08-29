@@ -48,24 +48,37 @@ export function leadGeoKey(l: Lead): string {
   return normKey(leadGeoQuery(l));
 }
 
-/** Read whatever is already cached for these keys (null value = geocoded, no hit). */
+/** Read cached coordinates for these keys. Only *placed* rows are returned; a
+ *  "no result" (null) row is treated as unknown so the map will retry it — this
+ *  is what lets a batch that failed under a config outage heal once it's fixed. */
 export async function getCachedGeocodes(keys: string[]): Promise<Record<string, LatLng | null>> {
   const uniq = Array.from(new Set(keys.filter(Boolean)));
   if (uniq.length === 0) return {};
-  const rows = await prisma.geocodeCache.findMany({ where: { key: { in: uniq } } });
+  const rows = await prisma.geocodeCache.findMany({ where: { key: { in: uniq }, latitude: { not: null }, longitude: { not: null } } });
   const out: Record<string, LatLng | null> = {};
   for (const r of rows) {
-    out[r.key] = r.latitude != null && r.longitude != null ? { lat: r.latitude, lng: r.longitude } : null;
+    if (r.latitude != null && r.longitude != null) out[r.key] = { lat: r.latitude, lng: r.longitude };
   }
   return out;
 }
 
-/** Geocode one address (by its cache key), writing the result — including a
- *  "no result" negative cache — so we never repeat the same lookup. */
+/**
+ * Geocode one address (by its cache key). A successful hit is cached forever; a
+ * genuine no-match is cached as null but stays *retryable* (we only short-circuit
+ * on a placed row). A hard failure (API not enabled, quota, network) throws out
+ * of geocodeAddress — we swallow it and write nothing, so nothing is poisoned.
+ */
 async function geocodeOne(key: string, query: string): Promise<LatLng | null> {
   const existing = await prisma.geocodeCache.findUnique({ where: { key } });
-  if (existing) return existing.latitude != null && existing.longitude != null ? { lat: existing.latitude, lng: existing.longitude } : null;
-  const hit = await geocodeAddress(query);
+  if (existing && existing.latitude != null && existing.longitude != null) {
+    return { lat: existing.latitude, lng: existing.longitude };
+  }
+  let hit: Awaited<ReturnType<typeof geocodeAddress>>;
+  try {
+    hit = await geocodeAddress(query);
+  } catch {
+    return null; // transient/config failure — leave the cache untouched, retry later
+  }
   await prisma.geocodeCache.upsert({
     where: { key },
     create: { key, latitude: hit?.lat ?? null, longitude: hit?.lng ?? null, label: hit?.label ?? null },
@@ -139,7 +152,12 @@ export async function ensureStoreCoords(
       continue;
     }
     if (!canGeocode || !name) continue;
-    const hit = await geocodeAddress(`The Home Depot ${name}, Ontario, Canada`);
+    let hit: Awaited<ReturnType<typeof geocodeAddress>> = null;
+    try {
+      hit = await geocodeAddress(`The Home Depot ${name}, Ontario, Canada`);
+    } catch {
+      continue; // config/transient failure — leave unplaced, admin can set it by hand
+    }
     if (hit) {
       await prisma.homeDepotStore.update({
         where: { id: s.id },

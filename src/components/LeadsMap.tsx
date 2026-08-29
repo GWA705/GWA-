@@ -82,6 +82,7 @@ export function LeadsMap({ leads, stores }: { leads: MapLead[]; stores: MapStore
     return seed;
   });
   const [pending, setPending] = useState(true);
+  const [geocoding, setGeocoding] = useState(false);
 
   // Init the map once.
   useEffect(() => {
@@ -162,6 +163,7 @@ export function LeadsMap({ leads, stores }: { leads: MapLead[]; stores: MapStore
       new Map(leads.filter((l) => l.key && l.query && coords[l.key] === undefined).map((l) => [l.key, l])).values(),
     );
     if (unique.length === 0) return;
+    setGeocoding(true);
 
     (async () => {
       for (let i = 0; i < unique.length && !cancelled; i += 12) {
@@ -180,6 +182,7 @@ export function LeadsMap({ leads, stores }: { leads: MapLead[]; stores: MapStore
           break;
         }
       }
+      if (!cancelled) setGeocoding(false);
     })();
     return () => {
       cancelled = true;
@@ -210,8 +213,12 @@ export function LeadsMap({ leads, stores }: { leads: MapLead[]; stores: MapStore
         </div>
       </div>
       <div className="flex items-center justify-between text-xs text-gray-500">
-        <span>{placedCount} of {total} lead{total === 1 ? '' : 's'} on the map</span>
-        {unplaced > 0 && <span>{unplaced} couldn&apos;t be placed (no address match)</span>}
+        <span>
+          {geocoding
+            ? `Placing leads on the map… (${placedCount} of ${total} so far)`
+            : `${placedCount} of ${total} lead${total === 1 ? '' : 's'} on the map`}
+        </span>
+        {!geocoding && unplaced > 0 && <span>{unplaced} couldn&apos;t be placed (no address match)</span>}
       </div>
     </div>
   );

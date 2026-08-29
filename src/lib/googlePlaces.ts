@@ -71,13 +71,18 @@ export interface GeocodeResult {
 
 /**
  * Forward-geocode a free-form address string to a lat/lng, using the same
- * server-only Google key as the Places lookups. Returns null when the key is
- * missing or Google can't place the address. Metered like the other calls.
+ * server-only Google key as the Places lookups. Metered like the other calls.
+ *
+ * Returns null ONLY for a genuine no-match (Google's ZERO_RESULTS) — that's safe
+ * to cache. A hard failure (key missing, Geocoding API not enabled, quota, a
+ * network error) THROWS instead, so the caller doesn't poison its cache with a
+ * "no result" that was really just a configuration/transient problem.
  */
 export async function geocodeAddress(address: string): Promise<GeocodeResult | null> {
   const key = apiKey();
   const q = address.trim();
-  if (!key || q.length < 4) return null;
+  if (!key) throw new Error('geocode_unavailable: no GOOGLE_MAPS_API_KEY');
+  if (q.length < 4) return null;
   const url = new URL('https://maps.googleapis.com/maps/api/geocode/json');
   url.searchParams.set('address', q);
   url.searchParams.set('region', 'ca');
@@ -86,26 +91,24 @@ export async function geocodeAddress(address: string): Promise<GeocodeResult | n
   url.searchParams.set('components', 'country:CA');
   url.searchParams.set('key', key);
 
-  try {
-    const res = await fetch(url, { cache: 'no-store' });
-    void recordApiUsage(API_SERVICES.googleGeocode);
-    if (!res.ok) return null;
-    const data = (await res.json()) as {
-      status?: string;
-      results?: { formatted_address?: string; geometry?: { location?: { lat: number; lng: number } } }[];
-    };
-    if (data.status !== 'OK' || !data.results?.length) {
-      if (data.status && data.status !== 'ZERO_RESULTS') console.error('[geocode] status', data.status);
-      return null;
-    }
-    const top = data.results[0];
-    const loc = top.geometry?.location;
-    if (!loc || typeof loc.lat !== 'number' || typeof loc.lng !== 'number') return null;
-    return { lat: loc.lat, lng: loc.lng, label: (top.formatted_address || '').replace(/,\s*Canada$/i, '').trim() };
-  } catch (err) {
-    console.error('[geocode] failed', err);
-    return null;
+  const res = await fetch(url, { cache: 'no-store' });
+  void recordApiUsage(API_SERVICES.googleGeocode);
+  if (!res.ok) throw new Error(`geocode_http_${res.status}`);
+  const data = (await res.json()) as {
+    status?: string;
+    error_message?: string;
+    results?: { formatted_address?: string; geometry?: { location?: { lat: number; lng: number } } }[];
+  };
+  if (data.status === 'ZERO_RESULTS' || (data.status === 'OK' && !data.results?.length)) return null;
+  if (data.status !== 'OK') {
+    // REQUEST_DENIED (API not enabled / key restricted), OVER_QUERY_LIMIT, etc.
+    console.error('[geocode] status', data.status, data.error_message || '');
+    throw new Error(`geocode_status_${data.status}`);
   }
+  const top = data.results![0];
+  const loc = top.geometry?.location;
+  if (!loc || typeof loc.lat !== 'number' || typeof loc.lng !== 'number') return null;
+  return { lat: loc.lat, lng: loc.lng, label: (top.formatted_address || '').replace(/,\s*Canada$/i, '').trim() };
 }
 
 type Comp = { long_name: string; short_name: string; types: string[] };
