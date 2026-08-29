@@ -31,8 +31,10 @@ export default async function DealerSupportPage() {
   await requireDealerAccess();
   const contacts = await prisma.supportContact.findMany({
     where: { active: true },
-    orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+    orderBy: [{ name: 'asc' }],
   });
+  // Alphabetical by name, case-insensitively (so "JJ" sorts with the j's).
+  contacts.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
 
   return (
     <div className="space-y-6">
