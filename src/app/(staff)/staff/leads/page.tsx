@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic';
 export default async function StaffLeadsPage({
   searchParams,
 }: {
-  searchParams: { q?: string; status?: string; office?: string; page?: string; month?: string };
+  searchParams: { q?: string; status?: string; office?: string; page?: string; month?: string; view?: string };
 }) {
   const user = await requireRole('REVIEWER', 'ADMIN');
   // All-offices leads = leadership view: super admin or a granted 'leads' section.
@@ -23,6 +23,7 @@ export default async function StaffLeadsPage({
   const status = (searchParams.status ?? '').trim();
   const officeId = (searchParams.office ?? '').trim();
   const month = (searchParams.month ?? '').trim();
+  const view = searchParams.view === 'grouped' ? 'grouped' : 'list';
   const page = Math.max(1, parseInt(searchParams.page ?? '1', 10) || 1);
 
   if (!leadsSheetId() || !reportingJournalEnabled()) {
@@ -92,6 +93,7 @@ export default async function StaffLeadsPage({
         storeNames={storeNames}
         callsByKey={callsByKey}
         isStaff
+        view={view}
       />
     </div>
   );

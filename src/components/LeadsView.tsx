@@ -41,6 +41,33 @@ const CALL_CHIP: Record<string, string> = {
   violet: 'bg-violet-100 text-violet-800',
 };
 
+// HD sends names in ALL CAPS — show them Title Cased so the list reads cleanly.
+function titleCase(s: string): string {
+  return s.toLowerCase().replace(/\b\p{L}/gu, (m) => m.toUpperCase());
+}
+
+type LeadStateKey = 'new' | 'working' | 'booked' | 'nogood';
+const GROUPS: { key: LeadStateKey; label: string; chip: string; stripe: string }[] = [
+  { key: 'new', label: 'Needs a call', chip: 'bg-brand-50 text-brand-700', stripe: 'border-brand-500' },
+  { key: 'working', label: 'Working', chip: 'bg-amber-100 text-amber-800', stripe: 'border-amber-500' },
+  { key: 'booked', label: 'Booked & sold', chip: 'bg-emerald-100 text-emerald-800', stripe: 'border-emerald-500' },
+  { key: 'nogood', label: 'No-good', chip: 'bg-red-100 text-red-700', stripe: 'border-red-500' },
+];
+
+/** Which pile a lead is in — drives the left stripe and the grouped view. */
+function leadStateKey(noGood: boolean, hasCalls: boolean, tone: string): LeadStateKey {
+  if (noGood) return 'nogood';
+  if (tone === 'green' || tone === 'violet') return 'booked'; // Booked or Sold
+  if (hasCalls) return 'working';
+  return 'new';
+}
+const STRIPE: Record<LeadStateKey, string> = {
+  new: 'border-brand-500',
+  working: 'border-amber-500',
+  booked: 'border-emerald-500',
+  nogood: 'border-red-500',
+};
+
 // Read-only, searchable list of HD leads with running totals. Shared by the
 // dealer (own office) and internal (all offices) pages. No download — view only.
 
@@ -61,6 +88,74 @@ function Field({ label, value }: { label: string; value: string }) {
 
 const PAGE_SIZE = 40;
 
+/** One lead row — a status-striped summary that expands to the full detail. */
+function LeadRow({
+  l,
+  leadKey,
+  calls,
+  cs,
+  stripe,
+  storeLabel,
+  isStaff,
+}: {
+  l: Lead;
+  leadKey: string;
+  calls: LeadCallRow[];
+  cs: { tone: string; label: string; next: string | null };
+  stripe: string;
+  storeLabel: (n: string) => string;
+  isStaff: boolean;
+}) {
+  return (
+    <details className="group border-b border-gray-100 last:border-b-0">
+      <summary className={`flex cursor-pointer list-none items-center gap-3 border-l-4 ${stripe} px-4 py-2.5 hover:bg-gray-50`}>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate font-medium text-gray-900">{titleCase(l.customerName) || '(no name)'}</span>
+          <span className="mt-0.5 block truncate text-xs text-gray-500">
+            {l.storeNumber ? storeLabel(l.storeNumber) : l.service || fmtDate(l.dateReceived, l.dateText)}
+          </span>
+        </span>
+        <span className="hidden shrink-0 text-xs text-gray-500 md:inline">{l.phone}</span>
+        <span className={`badge shrink-0 ${l.noGood ? 'bg-red-100 text-red-700' : CALL_CHIP[cs.tone]}`} title={cs.next ? `Next: ${cs.next}` : undefined}>
+          {l.noGood ? 'No-good' : cs.label}
+        </span>
+        <span className="shrink-0 text-gray-300 transition group-open:rotate-180">▾</span>
+      </summary>
+      <div className="border-t border-gray-100 bg-gray-50/50 px-4 py-3">
+        <div className="mb-3 text-sm font-medium text-gray-600">
+          {fmtDate(l.dateReceived, l.dateText)}
+          {l.storeNumber && <span className="font-bold text-gray-800"> · {storeLabel(l.storeNumber)}</span>}
+          {l.service && ` · ${l.service}`}
+          {l.bookingId && ` · #${l.bookingId}`}
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <Field label="Phone" value={l.phone} />
+          <Field label="Email" value={l.email} />
+          <Field label="Contact pref" value={l.contactPreference} />
+          <div className="col-span-2 sm:col-span-3"><Field label="Address" value={l.address} /></div>
+          <Field label="Emergency" value={l.emergency} />
+          <Field label="Financing" value={l.financing} />
+          <Field label="Forwarded to" value={l.forwardedTo} />
+          <div className="col-span-2 sm:col-span-3"><Field label="Service details" value={l.serviceDetails} /></div>
+          <div className="col-span-2 sm:col-span-3"><Field label="Additional info" value={l.additionalInfo} /></div>
+        </div>
+        {(() => {
+          const photos = projectPhotosUrl(l.serviceDetails, l.additionalInfo);
+          return photos ? <ProjectPhotosButton url={photos} bookingId={l.bookingId} /> : null;
+        })()}
+        {l.noGood && (l.noGoodReason || l.reportedToHd) && (
+          <div className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-800">
+            {l.noGoodReason && <div><span className="font-semibold">No-good reason:</span> {l.noGoodReason}</div>}
+            {l.reportedToHd && <div className="mt-0.5"><span className="font-semibold">Reported to HD:</span> {l.reportedToHd}{l.dateReported ? ` (${l.dateReported})` : ''}</div>}
+          </div>
+        )}
+        <LeadNoGoodControl rowId={l.rowId} bookingId={l.bookingId} noGood={l.noGood} canUnmark={isStaff} />
+        <LeadCallTracker leadKey={leadKey} initial={calls} />
+      </div>
+    </details>
+  );
+}
+
 export function LeadsView({
   leads,
   summary,
@@ -74,6 +169,7 @@ export function LeadsView({
   storeNames = {},
   callsByKey = {},
   isStaff = false,
+  view = 'list',
 }: {
   leads: Lead[];
   summary: { total: number; noGood: number; forwarded: number };
@@ -90,6 +186,8 @@ export function LeadsView({
   callsByKey?: Record<string, LeadCallRow[]>;
   // Staff may reverse a No-Good flag; dealers can only set it.
   isStaff?: boolean;
+  // 'list' = flat status-striped list; 'grouped' = grouped by what to do next.
+  view?: 'list' | 'grouped';
 }) {
   const storeLabel = (num: string) => {
     if (!num) return '';
@@ -101,6 +199,7 @@ export function LeadsView({
     if (q) params.set('q', q);
     if (status) params.set('status', status);
     if (month) params.set('month', month);
+    if (view === 'grouped') params.set('view', view);
     for (const h of extraHidden ?? []) if (h.value) params.set(h.name, h.value);
     for (const [k, v] of Object.entries(over)) {
       if (v) params.set(k, v);
@@ -116,11 +215,25 @@ export function LeadsView({
     if (q) params.set('q', q);
     if (val) params.set('status', val);
     if (month) params.set('month', month);
+    if (view === 'grouped') params.set('view', view);
     for (const h of extraHidden ?? []) if (h.value) params.set(h.name, h.value);
     return (
       <Link
         href={`${basePath}${params.toString() ? `?${params}` : ''}`}
         className={`rounded-full px-3 py-1 text-sm font-medium transition ${active ? 'bg-slate-800 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+      >
+        {label}
+      </Link>
+    );
+  };
+
+  // Segmented List / Grouped toggle — preserves the current search + filters.
+  const viewLink = (val: 'list' | 'grouped', label: string) => {
+    const active = view === val;
+    return (
+      <Link
+        href={buildHref({ view: val === 'grouped' ? 'grouped' : '', page: '' })}
+        className={`px-3 py-1 text-sm font-medium transition ${active ? 'bg-white text-brand-700 shadow-sm' : 'text-gray-600 hover:text-gray-800'}`}
       >
         {label}
       </Link>
@@ -138,15 +251,15 @@ export function LeadsView({
       <div className="grid grid-cols-3 gap-3">
         <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
           <div className="text-xl font-bold text-gray-900 tabular-nums">{summary.total}</div>
-          <div className="text-[10px] uppercase text-gray-500">Leads received</div>
+          <div className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Received</div>
         </div>
         <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
           <div className="text-xl font-bold text-emerald-600 tabular-nums">{summary.forwarded}</div>
-          <div className="text-[10px] uppercase text-gray-500">Forwarded / active</div>
+          <div className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Forwarded</div>
         </div>
         <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
           <div className="text-xl font-bold text-red-600 tabular-nums">{summary.noGood}</div>
-          <div className="text-[10px] uppercase text-gray-500">Marked no-good</div>
+          <div className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">No-good</div>
         </div>
       </div>
 
@@ -156,28 +269,65 @@ export function LeadsView({
         {extraHidden?.map((h) => (h.value ? <input key={h.name} type="hidden" name={h.name} value={h.value} /> : null))}
         {status && <input type="hidden" name="status" value={status} />}
         {month && <input type="hidden" name="month" value={month} />}
+        {view === 'grouped' && <input type="hidden" name="view" value="grouped" />}
         <button type="submit" className="btn-primary">Search</button>
       </form>
       <div className="flex flex-wrap items-center gap-2">
         {statusLink('', 'All')}
         {statusLink('forwarded', 'Forwarded')}
         {statusLink('nogood', 'No-good')}
-        {monthOptions.length > 0 && (
-          <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-2">
+          <div className="inline-flex rounded-full bg-gray-100 p-0.5" role="group" aria-label="View">
+            {viewLink('list', 'List')}
+            {viewLink('grouped', 'Grouped')}
+          </div>
+          {monthOptions.length > 0 && (
             <LeadsMonthDropdown
               value={month}
               options={monthOptions}
               basePath={basePath}
-              params={[{ name: 'q', value: q }, { name: 'status', value: status }, ...(extraHidden ?? [])]}
+              params={[
+                { name: 'q', value: q },
+                { name: 'status', value: status },
+                { name: 'view', value: view === 'grouped' ? 'grouped' : '' },
+                ...(extraHidden ?? []),
+              ]}
             />
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
-      {/* List — compact rows that expand on click */}
+      {/* Leads — a flat status-striped list, or grouped by what to do next */}
       {leads.length === 0 ? (
         <div className="rounded-lg border border-gray-200 bg-gray-50 p-6 text-sm text-gray-500">
           {q || status ? 'No leads match your search.' : 'No leads yet.'}
+        </div>
+      ) : view === 'grouped' ? (
+        <div className="space-y-4">
+          {GROUPS.map((g) => {
+            const items = leads
+              .map((l) => {
+                const leadKey = leadKeyOf(l);
+                const calls = callsByKey[leadKey] ?? [];
+                const cs = leadCallStatus(calls);
+                return { l, leadKey, calls, cs, key: leadStateKey(l.noGood, calls.length > 0, cs.tone) };
+              })
+              .filter((x) => x.key === g.key);
+            if (items.length === 0) return null;
+            return (
+              <div key={g.key}>
+                <div className="mb-2 flex items-center gap-2 px-1">
+                  <span className={`badge ${g.chip}`}>{g.label}</span>
+                  <span className="text-xs text-gray-400">{items.length}</span>
+                </div>
+                <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+                  {items.map((x) => (
+                    <LeadRow key={x.l.rowId} l={x.l} leadKey={x.leadKey} calls={x.calls} cs={x.cs} stripe={g.stripe} storeLabel={storeLabel} isStaff={isStaff} />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
         </div>
       ) : (
         <>
@@ -186,82 +336,14 @@ export function LeadsView({
               const leadKey = leadKeyOf(l);
               const calls = callsByKey[leadKey] ?? [];
               const cs = leadCallStatus(calls);
+              const stripe = STRIPE[leadStateKey(l.noGood, calls.length > 0, cs.tone)];
               return (
-              <details key={l.rowId} className="group border-b border-gray-100 last:border-b-0">
-                <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-2.5 hover:bg-gray-50">
-                  <span className={`h-2 w-2 shrink-0 rounded-full ${l.noGood ? 'bg-red-500' : 'bg-emerald-500'}`} />
-                  <span className="min-w-0 flex-1">
-                    <span className="truncate font-medium text-gray-900">{l.customerName || '(no name)'}</span>
-                    {/* Desktop meta */}
-                    <span className="ml-2 hidden text-xs text-gray-500 sm:inline">
-                      {fmtDate(l.dateReceived, l.dateText)}
-                      {l.storeNumber && <span className="font-semibold text-gray-700"> · {storeLabel(l.storeNumber)}</span>}
-                      {l.service && ` · ${l.service}`}
-                    </span>
-                    {/* Mobile short meta — store number fits now that "Forwarded" is a symbol */}
-                    <span className="mt-0.5 block truncate text-xs text-gray-500 sm:hidden">
-                      {l.storeNumber ? storeLabel(l.storeNumber) : l.service}
-                    </span>
-                  </span>
-                  {calls.length > 0 && (
-                    <span className={`badge shrink-0 ${CALL_CHIP[cs.tone]}`} title={cs.next ? `Next: ${cs.next}` : undefined}>
-                      {cs.label}
-                    </span>
-                  )}
-                  <span className="hidden shrink-0 text-xs text-gray-500 md:inline">{l.phone}</span>
-                  {/* Status: full word on desktop; a compact symbol on mobile to save room */}
-                  <span
-                    className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${l.noGood ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-800'}`}
-                    title={l.noGood ? 'No good' : 'Forwarded'}
-                    aria-label={l.noGood ? 'No good' : 'Forwarded'}
-                  >
-                    <span className="sm:hidden">{l.noGood ? '✕' : '✓'}</span>
-                    <span className="hidden sm:inline">{l.noGood ? 'No good' : 'Forwarded'}</span>
-                  </span>
-                  <span className="shrink-0 text-gray-300 transition group-open:rotate-180">▾</span>
-                </summary>
-                <div className="border-t border-gray-100 bg-gray-50/50 px-4 py-3">
-                  <div className="mb-3 text-sm font-medium text-gray-600">
-                    {fmtDate(l.dateReceived, l.dateText)}
-                    {l.storeNumber && <span className="font-bold text-gray-800"> · {storeLabel(l.storeNumber)}</span>}
-                    {l.service && ` · ${l.service}`}
-                    {l.bookingId && ` · #${l.bookingId}`}
-                  </div>
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                    <Field label="Phone" value={l.phone} />
-                    <Field label="Email" value={l.email} />
-                    <Field label="Contact pref" value={l.contactPreference} />
-                    <div className="col-span-2 sm:col-span-3"><Field label="Address" value={l.address} /></div>
-                    <Field label="Emergency" value={l.emergency} />
-                    <Field label="Financing" value={l.financing} />
-                    <Field label="Forwarded to" value={l.forwardedTo} />
-                    <div className="col-span-2 sm:col-span-3"><Field label="Service details" value={l.serviceDetails} /></div>
-                    <div className="col-span-2 sm:col-span-3"><Field label="Additional info" value={l.additionalInfo} /></div>
-                  </div>
-                  {(() => {
-                    const photos = projectPhotosUrl(l.serviceDetails, l.additionalInfo);
-                    return photos ? <ProjectPhotosButton url={photos} bookingId={l.bookingId} /> : null;
-                  })()}
-                  {l.noGood && (l.noGoodReason || l.reportedToHd) && (
-                    <div className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-800">
-                      {l.noGoodReason && <div><span className="font-semibold">No-good reason:</span> {l.noGoodReason}</div>}
-                      {l.reportedToHd && <div className="mt-0.5"><span className="font-semibold">Reported to HD:</span> {l.reportedToHd}{l.dateReported ? ` (${l.dateReported})` : ''}</div>}
-                    </div>
-                  )}
-                  <LeadNoGoodControl
-                    rowId={l.rowId}
-                    bookingId={l.bookingId}
-                    noGood={l.noGood}
-                    canUnmark={isStaff}
-                  />
-                  <LeadCallTracker leadKey={leadKey} initial={calls} />
-                </div>
-              </details>
+                <LeadRow key={l.rowId} l={l} leadKey={leadKey} calls={calls} cs={cs} stripe={stripe} storeLabel={storeLabel} isStaff={isStaff} />
               );
             })}
           </div>
 
-          {/* Pagination */}
+          {/* Pagination (list view) */}
           <div className="flex items-center justify-between text-sm text-gray-500">
             <span>
               Showing {startIdx + 1}–{Math.min(startIdx + PAGE_SIZE, leads.length)} of {leads.length}

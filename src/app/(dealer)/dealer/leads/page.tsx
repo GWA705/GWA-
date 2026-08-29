@@ -9,11 +9,12 @@ import { PageHeader } from '@/components/PageHeader';
 
 export const dynamic = 'force-dynamic';
 
-export default async function DealerLeadsPage({ searchParams }: { searchParams: { q?: string; status?: string; page?: string; month?: string } }) {
+export default async function DealerLeadsPage({ searchParams }: { searchParams: { q?: string; status?: string; page?: string; month?: string; view?: string } }) {
   const user = await requireDealerAccess();
   const q = (searchParams.q ?? '').trim();
   const status = (searchParams.status ?? '').trim();
   const month = (searchParams.month ?? '').trim();
+  const view = searchParams.view === 'grouped' ? 'grouped' : 'list';
   const page = Math.max(1, parseInt(searchParams.page ?? '1', 10) || 1);
 
   if (!leadsSheetId() || !reportingJournalEnabled()) {
@@ -53,7 +54,7 @@ export default async function DealerLeadsPage({ searchParams }: { searchParams: 
           Couldn&apos;t read the leads log right now: {read.error}
         </div>
       )}
-      <LeadsView leads={filtered} summary={summary} q={q} status={status} basePath="/dealer/leads" page={page} month={month} monthOptions={monthOptions} storeNames={storeNames} callsByKey={callsByKey} />
+      <LeadsView leads={filtered} summary={summary} q={q} status={status} basePath="/dealer/leads" page={page} month={month} monthOptions={monthOptions} storeNames={storeNames} callsByKey={callsByKey} view={view} />
     </div>
   );
 }
