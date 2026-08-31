@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { requireAdminSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { roleLabel } from '@/lib/rbac';
@@ -69,7 +70,14 @@ export default async function UsersPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-semibold text-gray-900">Users</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-xl font-semibold text-gray-900">Users</h1>
+        {admin.superAdmin && (
+          <Link href="/admin/reset" className="text-sm text-gray-500 hover:text-red-600 hover:underline">
+            Reset test data →
+          </Link>
+        )}
+      </div>
       <div className="card p-6">
         <h2 className="mb-4 text-base font-semibold text-gray-900">Create user</h2>
         <UserForm dealers={dealers} />

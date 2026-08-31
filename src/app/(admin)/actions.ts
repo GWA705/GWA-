@@ -25,6 +25,7 @@ import type { Prisma } from '@prisma/client';
 import { applyDealerLogo, applySupportContactLogo } from '@/lib/dealerLogo';
 import { saveCostConfig, type CostConfig } from '@/lib/costs';
 import { geocodeOSM } from '@/lib/osmGeocode';
+import { wipeDeals, wipeMail } from '@/lib/goLiveReset';
 
 export interface ActionState {
   error?: string;
@@ -1684,6 +1685,32 @@ export async function autoGeocodeAllStoresAction(): Promise<{ ok: boolean; place
   revalidatePath('/admin/dealers/locations');
   const remaining = await prisma.homeDepotStore.count({ where: { active: true, OR: [{ latitude: null }, { longitude: null }] } });
   return { ok: true, placed, remaining };
+}
+
+// ---- Go-live / pre-test data reset (Super Admin only) ---------------------
+
+/** Wipe every deal (Application) + everything attached. Keeps everything else. */
+export async function wipeDealsAction(confirm: string): Promise<{ ok: boolean; error?: string; message?: string }> {
+  const session = await requireSuperAdmin();
+  if ((confirm || '').trim().toUpperCase() !== 'DELETE DEALS') {
+    return { ok: false, error: 'Type DELETE DEALS exactly to confirm.' };
+  }
+  const res = await wipeDeals();
+  await audit({ actorId: session.userId, action: 'DATA_RESET', entityType: 'Application', entityId: 'all', detail: `Wiped ${res.deals} deal(s), ${res.files} file(s)` });
+  revalidatePath('/admin/reset');
+  return { ok: true, message: `Removed ${res.deals} deal${res.deals === 1 ? '' : 's'} and ${res.files} file${res.files === 1 ? '' : 's'}.` };
+}
+
+/** Wipe every mail message + its thread. Keeps everything else. */
+export async function wipeMailAction(confirm: string): Promise<{ ok: boolean; error?: string; message?: string }> {
+  const session = await requireSuperAdmin();
+  if ((confirm || '').trim().toUpperCase() !== 'DELETE MAIL') {
+    return { ok: false, error: 'Type DELETE MAIL exactly to confirm.' };
+  }
+  const res = await wipeMail();
+  await audit({ actorId: session.userId, action: 'DATA_RESET', entityType: 'Mail', entityId: 'all', detail: `Wiped ${res.mails} mail message(s), ${res.files} attachment file(s)` });
+  revalidatePath('/admin/reset');
+  return { ok: true, message: `Removed ${res.mails} message${res.mails === 1 ? '' : 's'}.` };
 }
 
 /** Clear a store's location (drops it off the map until re-placed). */

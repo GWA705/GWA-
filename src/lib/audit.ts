@@ -33,6 +33,7 @@ export type AuditAction =
   | 'USER_REQUEST_DECISION'
   | 'DEALER_CREATE'
   | 'DEALER_UPDATE'
+  | 'DATA_RESET'
   | 'MAIL_SEND'
   | 'MAIL_ACK'
   | 'MAIL_REPLY'

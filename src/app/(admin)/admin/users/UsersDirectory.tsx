@@ -24,8 +24,17 @@ export type DirGroup = { key: string; name: string; users: DirUser[] };
  */
 export function UsersDirectory({ groups }: { groups: DirGroup[] }) {
   const [selected, setSelected] = useState<string>('ALL');
-  const total = groups.reduce((n, g) => n + g.users.length, 0);
-  const shown = selected === 'ALL' ? groups : groups.filter((g) => g.key === selected);
+  const [hideInactive, setHideInactive] = useState<boolean>(true);
+
+  // Count of deactivated logins across everything, for the toggle label.
+  const inactiveCount = groups.reduce((n, g) => n + g.users.filter((u) => !u.active).length, 0);
+
+  // Apply the "hide deactivated" filter first, dropping groups left empty.
+  const base = hideInactive
+    ? groups.map((g) => ({ ...g, users: g.users.filter((u) => u.active) })).filter((g) => g.users.length)
+    : groups;
+  const total = base.reduce((n, g) => n + g.users.length, 0);
+  const shown = selected === 'ALL' ? base : base.filter((g) => g.key === selected);
 
   return (
     <div className="space-y-4">
@@ -40,7 +49,7 @@ export function UsersDirectory({ groups }: { groups: DirGroup[] }) {
           onChange={(e) => setSelected(e.target.value)}
         >
           <option value="ALL">All users ({total})</option>
-          {groups.map((g) => (
+          {base.map((g) => (
             <option key={g.key} value={g.key}>
               {g.name} ({g.users.length})
             </option>
@@ -51,6 +60,15 @@ export function UsersDirectory({ groups }: { groups: DirGroup[] }) {
             Show all
           </button>
         )}
+        <label className="ml-auto inline-flex cursor-pointer items-center gap-2 text-xs text-gray-600">
+          <input
+            type="checkbox"
+            className="h-4 w-4 rounded border-gray-300"
+            checked={hideInactive}
+            onChange={(e) => setHideInactive(e.target.checked)}
+          />
+          Hide deactivated{inactiveCount > 0 ? ` (${inactiveCount})` : ''}
+        </label>
       </div>
 
       {shown.map((group) => (
