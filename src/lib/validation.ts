@@ -391,6 +391,11 @@ export const contentSchema = z.object({
     (v) => (v === '' || v == null ? undefined : v),
     z.coerce.number().int().min(-1000).max(1000).optional(),
   ),
+  // Optional end date as 'YYYY-MM-DD' (from a date input); '' means no end date.
+  endsAt: z
+    .string()
+    .optional()
+    .refine((v) => !v || /^\d{4}-\d{2}-\d{2}$/.test(v), 'Enter a valid date'),
 });
 
 const boolFromForm = z.preprocess((v) => v === 'on' || v === 'true' || v === true, z.boolean());

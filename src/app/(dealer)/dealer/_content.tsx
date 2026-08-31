@@ -13,7 +13,12 @@ export async function ContentPage({ slug }: { slug: string }) {
   if (!meta) notFound();
 
   const items = await prisma.contentItem.findMany({
-    where: { section: meta.section, active: true },
+    // Hide items whose end date has passed (endsAt in the past); no end date shows always.
+    where: {
+      section: meta.section,
+      active: true,
+      OR: [{ endsAt: null }, { endsAt: { gte: new Date() } }],
+    },
     orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
   });
 

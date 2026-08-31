@@ -183,6 +183,9 @@ model ContentItem {
   thumbStorageKey String?
   thumbMime       String?
   active         Boolean        @default(true)
+  // Optional end date. Once it passes, the item is hidden from dealers
+  // automatically (it still shows in admin, flagged expired). Null = no end.
+  endsAt         DateTime?
   sortOrder      Int            @default(0)
   createdById    String?
   createdAt      DateTime       @default(now())

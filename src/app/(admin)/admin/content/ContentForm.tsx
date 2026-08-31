@@ -20,6 +20,7 @@ export interface ContentItemLite {
   sortOrder: number;
   fileName: string | null;
   hasThumb?: boolean;
+  endsAt?: string | null; // 'YYYY-MM-DD' for the date input
 }
 
 function SubmitButton({ isEdit }: { isEdit: boolean }) {
@@ -61,6 +62,13 @@ export function ContentForm({ defaultSection, item }: { defaultSection?: string;
           <label className="label" htmlFor={`sortOrder-${item?.id ?? 'new'}`}>Sort order <span className="font-normal text-gray-400">(lower shows first)</span></label>
           <input id={`sortOrder-${item?.id ?? 'new'}`} name="sortOrder" type="number" defaultValue={item?.sortOrder ?? 0} className="input" />
         </div>
+      </div>
+
+      <div>
+        <label className="label" htmlFor={`endsAt-${item?.id ?? 'new'}`}>
+          End date <span className="font-normal text-gray-400">(optional — hides from dealers automatically after this day)</span>
+        </label>
+        <input id={`endsAt-${item?.id ?? 'new'}`} name="endsAt" type="date" defaultValue={item?.endsAt ?? ''} className="input sm:max-w-xs" />
       </div>
 
       <div>

@@ -875,6 +875,14 @@ function revalidateContent(section?: string) {
   else CONTENT_SECTIONS.forEach((s) => revalidatePath(`/dealer/${s.slug}`));
 }
 
+// A 'YYYY-MM-DD' end date is stored as the end of that day (inclusive), so a
+// promo shows through its last day and hides the next. Empty → null (no end).
+function parseEndsAt(v?: string): Date | null {
+  if (!v) return null;
+  const d = new Date(`${v}T23:59:59`);
+  return isNaN(d.getTime()) ? null : d;
+}
+
 export async function createContentAction(
   _prev: ActionState,
   formData: FormData,
@@ -889,6 +897,7 @@ export async function createContentAction(
     body: (formData.get('body') as string) || undefined,
     linkUrl: (formData.get('linkUrl') as string) || undefined,
     sortOrder: (formData.get('sortOrder') as string) || undefined,
+    endsAt: (formData.get('endsAt') as string) || undefined,
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Please check the form.' };
   const d = parsed.data;
@@ -900,6 +909,7 @@ export async function createContentAction(
       body: sentenceOrNull(d.body),
       linkUrl: d.linkUrl || null,
       sortOrder: d.sortOrder ?? 0,
+      endsAt: parseEndsAt(d.endsAt),
       createdById: session.userId,
     },
   });
@@ -950,6 +960,7 @@ export async function updateContentAction(
     body: (formData.get('body') as string) || undefined,
     linkUrl: (formData.get('linkUrl') as string) || undefined,
     sortOrder: (formData.get('sortOrder') as string) || undefined,
+    endsAt: (formData.get('endsAt') as string) || undefined,
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Please check the form.' };
   const d = parsed.data;
@@ -962,6 +973,7 @@ export async function updateContentAction(
       body: sentenceOrNull(d.body),
       linkUrl: d.linkUrl || null,
       sortOrder: d.sortOrder ?? 0,
+      endsAt: parseEndsAt(d.endsAt),
     },
   });
 

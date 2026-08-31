@@ -49,6 +49,13 @@ export default async function ContentPage() {
                           <span className={`badge ${c.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
                             {c.active ? 'Visible' : 'Hidden'}
                           </span>
+                          {c.endsAt && (
+                            c.endsAt.getTime() < Date.now() ? (
+                              <span className="badge bg-red-100 text-red-700">Expired {c.endsAt.toLocaleDateString('en-CA')}</span>
+                            ) : (
+                              <span className="badge bg-amber-100 text-amber-800">Ends {c.endsAt.toLocaleDateString('en-CA')}</span>
+                            )
+                          )}
                           <span className="font-medium text-gray-900">{c.title}</span>
                           <span className="text-xs text-gray-400">#{c.sortOrder}</span>
                         </div>
@@ -79,6 +86,7 @@ export default async function ContentPage() {
                           sortOrder: c.sortOrder,
                           fileName: c.fileName,
                           hasThumb: !!c.thumbStorageKey,
+                          endsAt: c.endsAt ? c.endsAt.toISOString().slice(0, 10) : null,
                         }}
                       />
                     </div>
