@@ -1,8 +1,14 @@
 import { requireAdminSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
+import { getSetting } from '@/lib/settings';
+import { ONBOARD_CODE_KEY, portalBaseUrl } from '@/lib/onboard';
+import { resolveOnboardRequestAction } from '@/app/(admin)/actions';
 import { ItemActions } from './ItemActions';
+import { OnboardCodeForm } from './OnboardCodeForm';
 
 export const dynamic = 'force-dynamic';
+
+type OnboardPerson = { name?: string; email?: string; phone?: string; jobTitle?: string; isMainContact?: boolean };
 
 const ITEM_BADGE: Record<string, string> = {
   PENDING: 'bg-amber-100 text-amber-800',
@@ -30,6 +36,62 @@ export default async function AdminUserRequestsPage() {
   const pending = requests.filter((r) => r.status === 'PENDING');
   const done = requests.filter((r) => r.status !== 'PENDING');
   const pendingPeople = pending.reduce((n, r) => n + r.items.filter((i) => i.status === 'PENDING').length, 0);
+
+  // New-dealer intake (public link) — the shareable link, current code, and requests.
+  const [onboardCode, onboardRequests] = await Promise.all([
+    getSetting(ONBOARD_CODE_KEY),
+    prisma.onboardRequest.findMany({ orderBy: [{ status: 'asc' }, { createdAt: 'desc' }], take: 100 }),
+  ]);
+  const onboardNew = onboardRequests.filter((r) => r.status === 'NEW');
+  const intakeLink = `${portalBaseUrl()}/request-access`;
+
+  function OnboardCard({ r }: { r: (typeof onboardRequests)[number] }) {
+    const people = (Array.isArray(r.people) ? r.people : []) as OnboardPerson[];
+    return (
+      <li className="card p-5">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h3 className="text-base font-semibold text-gray-900">{r.company}</h3>
+            <p className="text-xs text-gray-500">
+              {r.contactName} · <span className="break-all">{r.email}</span>
+              {r.phone ? ` · ${r.phone}` : ''}{r.city ? ` · ${r.city}` : ''}
+            </p>
+            <p className="text-xs text-gray-400">Sent {r.createdAt.toLocaleString('en-CA')}</p>
+          </div>
+          <span className="text-xs text-gray-400">{people.length} {people.length === 1 ? 'person' : 'people'}</span>
+        </div>
+        {r.note && <p className="mb-2 rounded bg-gray-50 p-2 text-xs text-gray-600">Note: {r.note}</p>}
+        <ul className="divide-y divide-gray-100">
+          {people.map((p, i) => (
+            <li key={i} className="py-2 text-sm">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-medium text-gray-900">{p.name || '(no name)'}</span>
+                {p.isMainContact && <span className="badge bg-brand-50 text-brand-700">Owner / main contact</span>}
+              </div>
+              <div className="break-all text-gray-600">{p.email}</div>
+              <div className="text-xs text-gray-400">{p.phone ? `${p.phone} · ` : ''}{p.jobTitle || 'No job title'}</div>
+            </li>
+          ))}
+        </ul>
+        {r.status === 'NEW' ? (
+          <div className="mt-3 flex gap-2">
+            <form action={resolveOnboardRequestAction.bind(null, r.id, 'HANDLED')}>
+              <button type="submit" className="btn-primary text-xs">Mark handled</button>
+            </form>
+            <form action={resolveOnboardRequestAction.bind(null, r.id, 'DISMISSED')}>
+              <button type="submit" className="btn-secondary text-xs">Dismiss</button>
+            </form>
+          </div>
+        ) : (
+          <div className="mt-3">
+            <span className={`badge ${r.status === 'HANDLED' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+              {r.status === 'HANDLED' ? 'Handled' : 'Dismissed'}
+            </span>
+          </div>
+        )}
+      </li>
+    );
+  }
 
   function Card({ req }: { req: (typeof requests)[number] }) {
     return (
@@ -86,6 +148,19 @@ export default async function AdminUserRequestsPage() {
         </p>
       </div>
 
+      <OnboardCodeForm link={intakeLink} currentCode={onboardCode ?? ''} />
+
+      {onboardNew.length > 0 && (
+        <section>
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-brand-800">
+            New dealer requests <span className="ml-1 rounded-full bg-brand-600 px-2 py-0.5 text-xs text-white">{onboardNew.length}</span>
+          </h2>
+          <ul className="space-y-4">
+            {onboardNew.map((r) => <OnboardCard key={r.id} r={r} />)}
+          </ul>
+        </section>
+      )}
+
       <section>
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-brand-800">
           Waiting on you {pendingPeople > 0 && <span className="ml-1 rounded-full bg-brand-600 px-2 py-0.5 text-xs text-white">{pendingPeople}</span>}
@@ -104,6 +179,15 @@ export default async function AdminUserRequestsPage() {
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">Handled</h2>
           <ul className="space-y-4">
             {done.map((req) => <Card key={req.id} req={req} />)}
+          </ul>
+        </section>
+      )}
+
+      {onboardRequests.some((r) => r.status !== 'NEW') && (
+        <section>
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">Past new-dealer requests</h2>
+          <ul className="space-y-4">
+            {onboardRequests.filter((r) => r.status !== 'NEW').map((r) => <OnboardCard key={r.id} r={r} />)}
           </ul>
         </section>
       )}

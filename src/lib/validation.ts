@@ -398,6 +398,24 @@ export const contentSchema = z.object({
     .refine((v) => !v || /^\d{4}-\d{2}-\d{2}$/.test(v), 'Enter a valid date'),
 });
 
+// Public new-dealer intake (/request-access).
+export const onboardPersonSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  email: z.string().trim().email().max(200),
+  phone: z.string().trim().max(40).optional().default(''),
+  jobTitle: z.string().trim().max(120).optional().default(''),
+  isMainContact: z.boolean().optional().default(false),
+});
+export const onboardSchema = z.object({
+  company: z.string().trim().min(1, 'Enter your company / office name').max(200),
+  contactName: z.string().trim().min(1, 'Enter a contact name').max(120),
+  email: z.string().trim().email('Enter a valid email').max(200),
+  phone: z.string().trim().max(40).optional().default(''),
+  city: z.string().trim().max(120).optional().default(''),
+  note: z.string().trim().max(1000).optional().default(''),
+  people: z.array(onboardPersonSchema).min(1, 'Add at least one person who needs a login').max(25),
+});
+
 const boolFromForm = z.preprocess((v) => v === 'on' || v === 'true' || v === true, z.boolean());
 
 export const confirmationSchema = z.object({

@@ -26,6 +26,7 @@ import { applyDealerLogo, applySupportContactLogo } from '@/lib/dealerLogo';
 import { saveCostConfig, type CostConfig } from '@/lib/costs';
 import { geocodeOSM } from '@/lib/osmGeocode';
 import { wipeDeals, wipeMail } from '@/lib/goLiveReset';
+import { ONBOARD_CODE_KEY } from '@/lib/onboard';
 
 export interface ActionState {
   error?: string;
@@ -1697,6 +1698,29 @@ export async function autoGeocodeAllStoresAction(): Promise<{ ok: boolean; place
   revalidatePath('/admin/dealers/locations');
   const remaining = await prisma.homeDepotStore.count({ where: { active: true, OR: [{ latitude: null }, { longitude: null }] } });
   return { ok: true, placed, remaining };
+}
+
+// ---- New-dealer intake (public /request-access) ---------------------------
+
+/** Set (or clear) the shared access code for the public intake link. */
+export async function setOnboardCodeAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const session = await requireAdminSection('user-requests');
+  const code = String(formData.get('code') || '').trim().slice(0, 60);
+  await setSetting(ONBOARD_CODE_KEY, code);
+  await audit({ actorId: session.userId, action: 'CONTENT_UPDATE', entityType: 'AppSetting', entityId: ONBOARD_CODE_KEY, detail: code ? 'Set intake access code' : 'Cleared intake access code (form closed)' });
+  revalidatePath('/admin/user-requests');
+  return { ok: true, message: code ? 'Access code saved.' : 'Code cleared — the public form is now closed.' };
+}
+
+/** Mark a new-dealer intake request handled (accounts set up) or dismiss it. */
+export async function resolveOnboardRequestAction(id: string, outcome: 'HANDLED' | 'DISMISSED'): Promise<void> {
+  const session = await requireAdminSection('user-requests');
+  await prisma.onboardRequest.update({
+    where: { id },
+    data: { status: outcome, handledAt: new Date(), handledById: session.userId },
+  });
+  await audit({ actorId: session.userId, action: 'USER_REQUEST_DECISION', entityType: 'OnboardRequest', entityId: id, detail: outcome });
+  revalidatePath('/admin/user-requests');
 }
 
 // ---- Go-live / pre-test data reset (Super Admin only) ---------------------

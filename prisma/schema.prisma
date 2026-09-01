@@ -203,6 +203,27 @@ model AppSetting {
   updatedAt DateTime @updatedAt
 }
 
+// A new dealer's self-serve intake from the public /request-access link. Captures
+// the office + the people who need logins; GWA reviews in Admin → User requests
+// and creates the dealer + accounts. `people` is a JSON array of
+// { name, email, phone, jobTitle, isMainContact }.
+model OnboardRequest {
+  id          String    @id @default(cuid())
+  company     String
+  contactName String
+  email       String
+  phone       String?
+  city        String?
+  note        String?
+  people      Json
+  status      String    @default("NEW") // NEW | HANDLED | DISMISSED
+  createdAt   DateTime  @default(now())
+  handledAt   DateTime?
+  handledById String?
+
+  @@index([status])
+}
+
 // Per-day tally of billable outside-service calls the portal makes (currently
 // the Google address-lookup API). One row per (service, UTC day); incremented
 // on each real call. The admin Costs page sums these by month and prices them.
