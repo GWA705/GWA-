@@ -27,6 +27,7 @@ import { saveCostConfig, type CostConfig } from '@/lib/costs';
 import { geocodeOSM } from '@/lib/osmGeocode';
 import { wipeDeals, wipeMail } from '@/lib/goLiveReset';
 import { ONBOARD_CODE_KEY } from '@/lib/onboard';
+import { guustoConfigured, guustoRequest } from '@/lib/guusto';
 
 export interface ActionState {
   error?: string;
@@ -1698,6 +1699,33 @@ export async function autoGeocodeAllStoresAction(): Promise<{ ok: boolean; place
   revalidatePath('/admin/dealers/locations');
   const remaining = await prisma.homeDepotStore.count({ where: { active: true, OR: [{ latitude: null }, { longitude: null }] } });
   return { ok: true, placed, remaining };
+}
+
+// ---- Guusto API test harness (Super Admin) --------------------------------
+
+/** Fire a raw call to the Guusto API and return the response, for confirming the
+ *  exact request shape against the live account before wiring it into the flow. */
+export async function guustoTestAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  await requireSuperAdmin();
+  if (!guustoConfigured()) {
+    return { error: 'Add GUUSTO_API_TOKEN in Render → Environment (then redeploy) before testing.' };
+  }
+  const base = String(formData.get('base') || '').trim();
+  const path = String(formData.get('path') || '/api/v1/orders').trim() || '/api/v1/orders';
+  const method = (String(formData.get('method') || 'POST').trim() || 'POST').toUpperCase();
+  const bodyText = String(formData.get('body') || '').trim();
+  let body: unknown;
+  if (bodyText) {
+    try {
+      body = JSON.parse(bodyText);
+    } catch {
+      return { error: 'The request body isn’t valid JSON — check for a stray comma or quote.' };
+    }
+  }
+  const res = await guustoRequest(path, method, body, base || undefined);
+  if (res.error) return { error: res.error };
+  const pretty = typeof res.body === 'string' ? res.body : JSON.stringify(res.body, null, 2);
+  return { ok: res.ok, message: `HTTP ${res.status}\n\n${pretty}` };
 }
 
 // ---- New-dealer intake (public /request-access) ---------------------------

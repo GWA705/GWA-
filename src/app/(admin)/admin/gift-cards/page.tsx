@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { requireAdminSection } from '@/lib/session';
 import { loadGiftCardQueue } from '@/lib/giftCardQueueData';
 import { queryGiftCards, monthLabel } from '@/lib/giftCardHistory';
@@ -15,7 +16,7 @@ export default async function AdminGiftCardsPage({
 }: {
   searchParams: { q?: string; status?: string; month?: string; sort?: string; perPage?: string; page?: string };
 }) {
-  await requireAdminSection('gift-cards');
+  const admin = await requireAdminSection('gift-cards');
   const [{ pending, flagged }, history] = await Promise.all([
     loadGiftCardQueue(),
     queryGiftCards({ ...searchParams }),
@@ -35,12 +36,19 @@ export default async function AdminGiftCardsPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold text-gray-900">Water-test gift cards</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Dealers submit a customer + card amount for each completed water test. Copy the selected emails (or CSV) into
-          Guusto, send, then <strong>mark them sent</strong> — that stamps a dated receipt back to the dealer.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold text-gray-900">Water-test gift cards</h1>
+          <p className="mt-1 text-sm text-gray-500">
+            Dealers submit a customer + card amount for each completed water test. Copy the selected emails (or CSV) into
+            Guusto, send, then <strong>mark them sent</strong> — that stamps a dated receipt back to the dealer.
+          </p>
+        </div>
+        {admin.superAdmin && (
+          <Link href="/admin/guusto-test" className="shrink-0 text-sm text-brand-700 hover:underline">
+            Guusto API test →
+          </Link>
+        )}
       </div>
 
       <StaffFlaggedGiftCards flagged={flagged} />
