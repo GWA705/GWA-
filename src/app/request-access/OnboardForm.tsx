@@ -23,15 +23,37 @@ function SubmitButton({ disabled }: { disabled: boolean }) {
   );
 }
 
+function Field({ label, value, onChange, type = 'text', placeholder, hint }: {
+  label: string; value: string; onChange: (v: string) => void; type?: string; placeholder?: string; hint?: string;
+}) {
+  return (
+    <div>
+      <label className="label">{label}</label>
+      <input className="input" type={type} value={value} placeholder={placeholder} autoComplete="off" onChange={(e) => onChange(e.target.value)} />
+      {hint && <p className="mt-1 text-xs text-gray-400">{hint}</p>}
+    </div>
+  );
+}
+
 export function OnboardForm() {
   const [state, action] = useFormState(submitOnboardRequestAction, {} as OnboardState);
   const [rows, setRows] = useState<Row[]>([blank(1)]);
   const [nextId, setNextId] = useState(2);
-  const [company, setCompany] = useState('');
+
+  // Main contact
   const [contactName, setContactName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  // Office
+  const [company, setCompany] = useState('');
+  const [legalName, setLegalName] = useState('');
+  const [officePhone, setOfficePhone] = useState('');
+  const [officeEmail, setOfficeEmail] = useState('');
+  const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
+  const [province, setProvince] = useState('');
+  const [postal, setPostal] = useState('');
+  const [mailingAddress, setMailingAddress] = useState('');
   const [note, setNote] = useState('');
 
   function update(id: number, patch: Partial<Row>) {
@@ -46,15 +68,16 @@ export function OnboardForm() {
   }
 
   const payload = JSON.stringify({
-    company,
-    contactName,
-    email,
-    phone,
-    city,
-    note,
+    contactName, email, phone,
+    company, legalName, officePhone, officeEmail, address, city, province, postal, mailingAddress, note,
     people: rows.map(({ name, email: e, phone: p, jobTitle, isMainContact }) => ({ name, email: e, phone: p, jobTitle, isMainContact })),
   });
-  const ready = company.trim() && contactName.trim() && email.trim() && rows.some((r) => r.name.trim() && r.email.trim());
+
+  // The office section reveals once the main contact is named.
+  const showOffice = contactName.trim().length > 0;
+  const ready =
+    contactName.trim() && email.trim() && company.trim() && address.trim() && city.trim() &&
+    province.trim() && postal.trim() && rows.some((r) => r.name.trim() && r.email.trim());
 
   if (state.ok) {
     return (
@@ -79,30 +102,47 @@ export function OnboardForm() {
       </div>
 
       <div className="border-t border-gray-100 pt-4">
-        <h2 className="mb-3 text-sm font-semibold text-gray-800">Your office</h2>
+        <h2 className="mb-3 text-sm font-semibold text-gray-800">Main contact</h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div>
-            <label className="label">Company / office name</label>
-            <input className="input" value={company} onChange={(e) => setCompany(e.target.value)} placeholder="Barrie Water Co." />
-          </div>
-          <div>
-            <label className="label">City / town</label>
-            <input className="input" value={city} onChange={(e) => setCity(e.target.value)} placeholder="Barrie, ON" />
-          </div>
-          <div>
-            <label className="label">Main contact name</label>
-            <input className="input" value={contactName} onChange={(e) => setContactName(e.target.value)} placeholder="Jane Doe" />
-          </div>
-          <div>
-            <label className="label">Contact email</label>
-            <input className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="jane@office.ca" autoComplete="off" />
-          </div>
-          <div>
-            <label className="label">Contact phone</label>
-            <input className="input" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(705) 555-0123" />
-          </div>
+          <Field label="Full name" value={contactName} onChange={setContactName} placeholder="Jane Doe" />
+          <Field label="Email" value={email} onChange={setEmail} type="email" placeholder="jane@office.ca" />
+          <Field label="Phone" value={phone} onChange={setPhone} placeholder="(705) 555-0123" />
         </div>
       </div>
+
+      {showOffice && (
+        <div className="border-t border-gray-100 pt-4">
+          <h2 className="mb-1 text-sm font-semibold text-gray-800">Office details</h2>
+          <p className="mb-3 text-xs text-gray-400">So we have everything on file for agreements, payments and future contact.</p>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Field label="Operating / office name" value={company} onChange={setCompany} placeholder="Barrie Water Co." />
+            <Field label="Legal company name" value={legalName} onChange={setLegalName} placeholder="1234567 Ontario Inc." hint="If different from the operating name" />
+            <Field label="Office phone" value={officePhone} onChange={setOfficePhone} placeholder="(705) 555-0100" />
+            <Field label="Office email" value={officeEmail} onChange={setOfficeEmail} type="email" placeholder="office@company.ca" />
+          </div>
+          <div className="mt-3">
+            <Field label="Street address" value={address} onChange={setAddress} placeholder="123 Main St, Unit 4" />
+          </div>
+          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <Field label="City / town" value={city} onChange={setCity} placeholder="Barrie" />
+            <Field label="Province" value={province} onChange={setProvince} placeholder="ON" />
+            <Field label="Postal code" value={postal} onChange={setPostal} placeholder="L4M 1A1" />
+          </div>
+          <div className="mt-3">
+            <label className="label">Mailing address <span className="font-normal text-gray-400">(only if different from above)</span></label>
+            <textarea className="input" rows={2} value={mailingAddress} maxLength={300} onChange={(e) => setMailingAddress(e.target.value)} placeholder="PO Box 123, Barrie ON L4M 1A1" />
+          </div>
+          <div className="mt-3">
+            <label className="label">Company logo <span className="font-normal text-gray-400">(optional — PNG, JPG or WEBP, up to 4&nbsp;MB)</span></label>
+            <input
+              type="file"
+              name="logo"
+              accept="image/png,image/jpeg,image/webp"
+              className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-md file:border-0 file:bg-brand-600 file:px-3 file:py-1.5 file:font-semibold file:text-white hover:file:bg-brand-700"
+            />
+          </div>
+        </div>
+      )}
 
       <div className="border-t border-gray-100 pt-4">
         <h2 className="mb-3 text-sm font-semibold text-gray-800">People who need a login</h2>

@@ -209,11 +209,20 @@ model AppSetting {
 // { name, email, phone, jobTitle, isMainContact }.
 model OnboardRequest {
   id          String    @id @default(cuid())
-  company     String
+  company     String // operating / office name
+  legalName   String? // legal company name (for agreements/records)
   contactName String
-  email       String
-  phone       String?
+  email       String // main contact email
+  phone       String? // main contact phone
+  officePhone String?
+  officeEmail String?
+  address     String? // office street address
   city        String?
+  province    String?
+  postal      String?
+  mailingAddress String? // if different from the office address
+  logoStorageKey String? // uploaded company logo (encrypted at rest)
+  logoMime       String?
   note        String?
   people      Json
   status      String    @default("NEW") // NEW | HANDLED | DISMISSED

@@ -2,7 +2,7 @@ import { requireAdminSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { getSetting } from '@/lib/settings';
 import { ONBOARD_CODE_KEY, portalBaseUrl } from '@/lib/onboard';
-import { resolveOnboardRequestAction } from '@/app/(admin)/actions';
+import { resolveOnboardRequestAction, attachOnboardToDealerAction } from '@/app/(admin)/actions';
 import { ItemActions } from './ItemActions';
 import { OnboardCodeForm } from './OnboardCodeForm';
 
@@ -38,9 +38,10 @@ export default async function AdminUserRequestsPage() {
   const pendingPeople = pending.reduce((n, r) => n + r.items.filter((i) => i.status === 'PENDING').length, 0);
 
   // New-dealer intake (public link) — the shareable link, current code, and requests.
-  const [onboardCode, onboardRequests] = await Promise.all([
+  const [onboardCode, onboardRequests, activeDealers] = await Promise.all([
     getSetting(ONBOARD_CODE_KEY),
     prisma.onboardRequest.findMany({ orderBy: [{ status: 'asc' }, { createdAt: 'desc' }], take: 100 }),
+    prisma.dealer.findMany({ where: { active: true }, orderBy: { name: 'asc' }, select: { id: true, name: true } }),
   ]);
   const onboardNew = onboardRequests.filter((r) => r.status === 'NEW');
   const intakeLink = `${portalBaseUrl()}/request-access`;
@@ -50,16 +51,32 @@ export default async function AdminUserRequestsPage() {
     return (
       <li className="card p-5">
         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <h3 className="text-base font-semibold text-gray-900">{r.company}</h3>
-            <p className="text-xs text-gray-500">
-              {r.contactName} · <span className="break-all">{r.email}</span>
-              {r.phone ? ` · ${r.phone}` : ''}{r.city ? ` · ${r.city}` : ''}
-            </p>
-            <p className="text-xs text-gray-400">Sent {r.createdAt.toLocaleString('en-CA')}</p>
+          <div className="flex items-center gap-3">
+            {r.logoStorageKey && (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img src={`/api/onboard/${r.id}/logo`} alt="" className="h-12 w-12 shrink-0 rounded object-contain ring-1 ring-gray-200" />
+            )}
+            <div>
+              <h3 className="text-base font-semibold text-gray-900">{r.company}</h3>
+              {r.legalName && <p className="text-xs text-gray-500">Legal name: {r.legalName}</p>}
+              <p className="text-xs text-gray-400">Sent {r.createdAt.toLocaleString('en-CA')}</p>
+            </div>
           </div>
           <span className="text-xs text-gray-400">{people.length} {people.length === 1 ? 'person' : 'people'}</span>
         </div>
+
+        <dl className="mb-3 grid grid-cols-1 gap-x-6 gap-y-1 rounded-lg bg-gray-50 p-3 text-xs text-gray-600 sm:grid-cols-2">
+          <div><dt className="inline font-semibold text-gray-500">Main contact: </dt><dd className="inline">{r.contactName}{r.phone ? ` · ${r.phone}` : ''} · <span className="break-all">{r.email}</span></dd></div>
+          {(r.officePhone || r.officeEmail) && (
+            <div><dt className="inline font-semibold text-gray-500">Office: </dt><dd className="inline">{r.officePhone || ''}{r.officePhone && r.officeEmail ? ' · ' : ''}<span className="break-all">{r.officeEmail || ''}</span></dd></div>
+          )}
+          {(r.address || r.city || r.province || r.postal) && (
+            <div className="sm:col-span-2"><dt className="inline font-semibold text-gray-500">Address: </dt><dd className="inline">{[r.address, r.city, r.province, r.postal].filter(Boolean).join(', ')}</dd></div>
+          )}
+          {r.mailingAddress && (
+            <div className="sm:col-span-2"><dt className="inline font-semibold text-gray-500">Mailing: </dt><dd className="inline whitespace-pre-wrap">{r.mailingAddress}</dd></div>
+          )}
+        </dl>
         {r.note && <p className="mb-2 rounded bg-gray-50 p-2 text-xs text-gray-600">Note: {r.note}</p>}
         <ul className="divide-y divide-gray-100">
           {people.map((p, i) => (
@@ -74,13 +91,31 @@ export default async function AdminUserRequestsPage() {
           ))}
         </ul>
         {r.status === 'NEW' ? (
-          <div className="mt-3 flex gap-2">
-            <form action={resolveOnboardRequestAction.bind(null, r.id, 'HANDLED')}>
-              <button type="submit" className="btn-primary text-xs">Mark handled</button>
+          <div className="mt-3 space-y-2 border-t border-gray-100 pt-3">
+            <form action={attachOnboardToDealerAction.bind(null, r.id)} className="flex flex-wrap items-end gap-2">
+              <div>
+                <label className="label text-xs">Attach to dealer</label>
+                <select name="dealerId" required defaultValue="" className="input w-56 text-sm">
+                  <option value="" disabled>Choose the right dealer…</option>
+                  {activeDealers.map((d) => (
+                    <option key={d.id} value={d.id}>{d.name}</option>
+                  ))}
+                </select>
+              </div>
+              <button type="submit" className="btn-primary text-xs">Attach &amp; create request</button>
             </form>
-            <form action={resolveOnboardRequestAction.bind(null, r.id, 'DISMISSED')}>
-              <button type="submit" className="btn-secondary text-xs">Dismiss</button>
-            </form>
+            <p className="text-xs text-gray-400">
+              Sends this office&rsquo;s people into the approval queue under the dealer you pick. New dealer? Create it under{' '}
+              <a href="/admin/dealers" className="text-brand-700 hover:underline">Dealers</a> first, then attach.
+            </p>
+            <div className="flex gap-2">
+              <form action={resolveOnboardRequestAction.bind(null, r.id, 'HANDLED')}>
+                <button type="submit" className="btn-secondary text-xs">Mark handled (no request)</button>
+              </form>
+              <form action={resolveOnboardRequestAction.bind(null, r.id, 'DISMISSED')}>
+                <button type="submit" className="btn-secondary text-xs">Dismiss</button>
+              </form>
+            </div>
           </div>
         ) : (
           <div className="mt-3">

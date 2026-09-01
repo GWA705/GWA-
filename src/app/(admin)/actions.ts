@@ -1712,6 +1712,54 @@ export async function setOnboardCodeAction(_prev: ActionState, formData: FormDat
   return { ok: true, message: code ? 'Access code saved.' : 'Code cleared — the public form is now closed.' };
 }
 
+/**
+ * Attach an intake to an existing dealer: converts its people into a normal
+ * login request on that dealer (so it flows through the usual approval queue),
+ * and marks the intake handled. Lets an admin route a request to the right
+ * dealer even when the typed company name doesn't match.
+ */
+export async function attachOnboardToDealerAction(onboardId: string, formData: FormData): Promise<void> {
+  const session = await requireAdminSection('user-requests');
+  const dealerId = String(formData.get('dealerId') || '').trim();
+  if (!dealerId) return;
+  const [onboard, dealer] = await Promise.all([
+    prisma.onboardRequest.findUnique({ where: { id: onboardId } }),
+    prisma.dealer.findUnique({ where: { id: dealerId }, select: { id: true, name: true } }),
+  ]);
+  if (!onboard || onboard.status !== 'NEW' || !dealer) return;
+
+  const people = (Array.isArray(onboard.people) ? onboard.people : []) as {
+    name?: string; email?: string; phone?: string; jobTitle?: string; isMainContact?: boolean;
+  }[];
+  const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const seen = new Set<string>();
+  const rows: { name: string; email: string; phone: string | null; jobTitle: string | null; isMainContact: boolean }[] = [];
+  for (const p of people) {
+    const name = toTitleCase(String(p.name ?? '').trim());
+    const email = String(p.email ?? '').trim().toLowerCase();
+    if (!name || !emailRe.test(email) || seen.has(email)) continue;
+    seen.add(email);
+    rows.push({
+      name,
+      email,
+      phone: String(p.phone ?? '').trim().slice(0, 40) || null,
+      jobTitle: titleOrNull(String(p.jobTitle ?? '').trim().slice(0, 80)),
+      isMainContact: p.isMainContact === true,
+    });
+  }
+
+  if (rows.length > 0) {
+    const note = `New-dealer intake: ${onboard.company}${onboard.city ? ` (${onboard.city})` : ''}${onboard.note ? ` — ${onboard.note}` : ''}`.slice(0, 500);
+    const request = await prisma.userRequest.create({
+      data: { dealerId, submittedById: session.userId, note, items: { create: rows } },
+    });
+    await audit({ actorId: session.userId, action: 'USER_REQUEST', entityType: 'UserRequest', entityId: request.id, detail: `From intake ${onboardId} → dealer ${dealer.name} (${rows.length} people)` });
+  }
+  await prisma.onboardRequest.update({ where: { id: onboardId }, data: { status: 'HANDLED', handledAt: new Date(), handledById: session.userId } });
+  await audit({ actorId: session.userId, action: 'USER_REQUEST_DECISION', entityType: 'OnboardRequest', entityId: onboardId, detail: `Attached to dealer ${dealer.name}` });
+  revalidatePath('/admin/user-requests');
+}
+
 /** Mark a new-dealer intake request handled (accounts set up) or dismiss it. */
 export async function resolveOnboardRequestAction(id: string, outcome: 'HANDLED' | 'DISMISSED'): Promise<void> {
   const session = await requireAdminSection('user-requests');

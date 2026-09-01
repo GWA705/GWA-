@@ -406,12 +406,29 @@ export const onboardPersonSchema = z.object({
   jobTitle: z.string().trim().max(120).optional().default(''),
   isMainContact: z.boolean().optional().default(false),
 });
+const optEmail = z
+  .string()
+  .trim()
+  .max(200)
+  .optional()
+  .default('')
+  .refine((v) => !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), 'Enter a valid email');
+
 export const onboardSchema = z.object({
-  company: z.string().trim().min(1, 'Enter your company / office name').max(200),
-  contactName: z.string().trim().min(1, 'Enter a contact name').max(120),
-  email: z.string().trim().email('Enter a valid email').max(200),
+  // Main contact
+  contactName: z.string().trim().min(1, 'Enter the main contact name').max(120),
+  email: z.string().trim().email('Enter a valid contact email').max(200),
   phone: z.string().trim().max(40).optional().default(''),
-  city: z.string().trim().max(120).optional().default(''),
+  // Office
+  company: z.string().trim().min(1, 'Enter the operating / office name').max(200),
+  legalName: z.string().trim().max(200).optional().default(''),
+  officePhone: z.string().trim().max(40).optional().default(''),
+  officeEmail: optEmail,
+  address: z.string().trim().min(1, 'Enter the office street address').max(200),
+  city: z.string().trim().min(1, 'Enter the city / town').max(120),
+  province: z.string().trim().min(2, 'Enter the province').max(40),
+  postal: z.string().trim().min(3, 'Enter the postal code').max(12),
+  mailingAddress: z.string().trim().max(300).optional().default(''),
   note: z.string().trim().max(1000).optional().default(''),
   people: z.array(onboardPersonSchema).min(1, 'Add at least one person who needs a login').max(25),
 });
