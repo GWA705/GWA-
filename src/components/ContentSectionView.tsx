@@ -24,6 +24,30 @@ function standardizeTitle(s: string): string {
     .trim();
 }
 
+// A promo is "ending soon" in its last few days. endsAt is stored end-of-day and
+// expired items are already filtered out for dealers, so this only fires while
+// the promo is still live.
+const ENDING_SOON_DAYS = 3;
+function endingSoonLabel(endsAt: Date | null): string | null {
+  if (!endsAt) return null;
+  const ms = endsAt.getTime() - Date.now();
+  if (ms < 0 || ms > ENDING_SOON_DAYS * 86_400_000) return null;
+  const daysLeft = Math.ceil(ms / 86_400_000);
+  return daysLeft <= 1 ? 'Ends today' : `Ends in ${daysLeft} days`;
+}
+
+function EndingSoonTag({ label }: { label: string }) {
+  return (
+    <span className="absolute left-2 top-2 z-10 inline-flex items-center gap-1 rounded-full bg-amber-500 px-2.5 py-1 text-[11px] font-bold text-white shadow-md">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden>
+        <circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth="2" />
+        <path d="M12 7.5V12l3 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+      {label}
+    </span>
+  );
+}
+
 function PdfCover() {
   return (
     <div className="flex h-40 w-full items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
@@ -69,8 +93,10 @@ export function ContentSectionView({
             const isImage = (c.fileMime || '').startsWith('image/');
             const isPdf = (c.fileMime || '').includes('pdf');
             const fileUrl = `/api/content/${c.id}/file`;
+            const soon = endingSoonLabel(c.endsAt);
             return (
-              <article key={c.id} className="card flex flex-col overflow-hidden">
+              <article key={c.id} className="card relative flex flex-col overflow-hidden">
+                {soon && <EndingSoonTag label={soon} />}
                 {/* Preview — a custom cover wins; otherwise the image itself, a
                     PDF cover, or a link cover. */}
                 {c.thumbStorageKey ? (
