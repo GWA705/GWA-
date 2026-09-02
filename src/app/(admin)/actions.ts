@@ -1895,7 +1895,7 @@ export async function attachOnboardToDealerAction(onboardId: string, formData: F
     }
   }
 
-  await prisma.onboardRequest.update({ where: { id: onboardId }, data: { status: 'HANDLED', handledAt: new Date(), handledById: session.userId } });
+  await prisma.onboardRequest.update({ where: { id: onboardId }, data: { status: 'HANDLED', attachedDealerId: dealerId, handledAt: new Date(), handledById: session.userId } });
   await audit({
     actorId: session.userId,
     action: 'USER_REQUEST_DECISION',
@@ -1905,6 +1905,43 @@ export async function attachOnboardToDealerAction(onboardId: string, formData: F
   });
   revalidatePath('/admin/user-requests');
   if (fillProfile) revalidatePath('/staff/directory');
+}
+
+/**
+ * Backfill an office's directory profile from an intake that's already on file
+ * (e.g. one attached before directory-fill existed, or a "past" intake). Same
+ * non-destructive fill as the attach flow — pick the office, fill from the
+ * intake. Also records the dealer link on the intake for the record.
+ */
+export async function backfillProfileFromIntakeAction(onboardId: string, formData: FormData): Promise<void> {
+  const session = await requireAdminSection('user-requests');
+  const dealerId = String(formData.get('dealerId') || '').trim();
+  if (!dealerId) return;
+  const [onboard, dealer] = await Promise.all([
+    prisma.onboardRequest.findUnique({ where: { id: onboardId } }),
+    prisma.dealer.findUnique({ where: { id: dealerId }, select: { id: true, name: true } }),
+  ]);
+  if (!onboard || !dealer) return;
+
+  let summary = '';
+  try {
+    summary = await applyOnboardToProfile(dealerId, session.userId, onboard);
+  } catch {
+    return; // storage/db hiccup — leave everything as-is
+  }
+  // Record the link if the intake wasn't already tied to a dealer.
+  if (!onboard.attachedDealerId) {
+    await prisma.onboardRequest.update({ where: { id: onboardId }, data: { attachedDealerId: dealerId } });
+  }
+  await audit({
+    actorId: session.userId,
+    action: 'DEALER_UPDATE',
+    entityType: 'DealerProfile',
+    entityId: dealerId,
+    detail: `Directory ${summary} from intake ${onboard.company}`,
+  });
+  revalidatePath('/admin/user-requests');
+  revalidatePath('/staff/directory');
 }
 
 /** Mark a new-dealer intake request handled (accounts set up) or dismiss it. */

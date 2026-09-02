@@ -2,7 +2,7 @@ import { requireAdminSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { getSetting } from '@/lib/settings';
 import { ONBOARD_CODE_KEY, portalBaseUrl } from '@/lib/onboard';
-import { resolveOnboardRequestAction, attachOnboardToDealerAction } from '@/app/(admin)/actions';
+import { resolveOnboardRequestAction, attachOnboardToDealerAction, backfillProfileFromIntakeAction } from '@/app/(admin)/actions';
 import { ItemActions } from './ItemActions';
 import { OnboardCodeForm } from './OnboardCodeForm';
 
@@ -126,10 +126,26 @@ export default async function AdminUserRequestsPage() {
             </div>
           </div>
         ) : (
-          <div className="mt-3">
+          <div className="mt-3 space-y-2 border-t border-gray-100 pt-3">
             <span className={`badge ${r.status === 'HANDLED' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
               {r.status === 'HANDLED' ? 'Handled' : 'Dismissed'}
             </span>
+            <form action={backfillProfileFromIntakeAction.bind(null, r.id)} className="flex flex-wrap items-end gap-2">
+              <div>
+                <label className="label text-xs">Fill office directory from this intake</label>
+                <select name="dealerId" required defaultValue={r.attachedDealerId ?? ''} className="input w-56 text-sm">
+                  <option value="" disabled>Choose the office…</option>
+                  {activeDealers.map((d) => (
+                    <option key={d.id} value={d.id}>{d.name}</option>
+                  ))}
+                </select>
+              </div>
+              <button type="submit" className="btn-secondary text-xs">Fill directory</button>
+            </form>
+            <p className="text-xs text-gray-400">
+              Builds/refreshes the office&rsquo;s <a href="/staff/directory" className="text-brand-700 hover:underline">directory profile</a>{' '}
+              from this intake — only fills blanks and adds new people, never overwrites.
+            </p>
           </div>
         )}
       </li>

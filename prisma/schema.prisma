@@ -226,6 +226,7 @@ model OnboardRequest {
   note        String?
   people      Json
   status      String    @default("NEW") // NEW | HANDLED | DISMISSED
+  attachedDealerId String? // dealer this intake was attached to (for directory backfill)
   createdAt   DateTime  @default(now())
   handledAt   DateTime?
   handledById String?
