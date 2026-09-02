@@ -20,7 +20,7 @@ import { CONTENT_SECTIONS } from '@/lib/constants';
 import { sendEmail, emailEnabled } from '@/lib/email';
 import { renderEmail } from '@/lib/email-templates';
 import { setSetting, EMAIL_SETTING_KEYS, BANNER_SETTING_KEYS, SECURITY_SETTING_KEYS, MFA_TRUST_DAY_OPTIONS, DEFAULT_MFA_TRUST_DAYS, type MfaRequirement } from '@/lib/settings';
-import { parseDealerProfileForm } from '@/lib/dealerProfile';
+import { parseDealerProfileForm, readExtraContacts, type OfficeContact } from '@/lib/dealerProfile';
 import type { Prisma } from '@prisma/client';
 import { applyDealerLogo, applySupportContactLogo } from '@/lib/dealerLogo';
 import { saveCostConfig, type CostConfig } from '@/lib/costs';
@@ -1746,10 +1746,111 @@ export async function setOnboardCodeAction(_prev: ActionState, formData: FormDat
  * and marks the intake handled. Lets an admin route a request to the right
  * dealer even when the typed company name doesn't match.
  */
+/**
+ * Build/refresh a dealer's Office Directory profile from a new-dealer intake.
+ *
+ * Non-destructive by design: creates the profile if the office has none (so it
+ * moves out of "No profile yet" and gets a directory card), and on an existing
+ * profile fills only empty office fields + appends people not already listed —
+ * it never overwrites details an office has curated for itself. Each intake
+ * person becomes one labelled contact card (role = their job title). Returns a
+ * short human summary for the audit trail.
+ */
+async function applyOnboardToProfile(
+  dealerId: string,
+  actorId: string,
+  onboard: {
+    company: string;
+    address: string | null; city: string | null; province: string | null; postal: string | null;
+    officePhone: string | null; phone: string | null;
+    logoStorageKey: string | null; logoMime: string | null;
+    people: unknown;
+  },
+): Promise<string> {
+  const existing = await prisma.dealerProfile.findUnique({ where: { dealerId } });
+
+  // Office-level fields, composed from the intake.
+  const officeName = titleOrNull(onboard.company);
+  const addressLine =
+    [onboard.address, onboard.city, onboard.province, onboard.postal].map((v) => (v ?? '').trim()).filter(Boolean).join(', ') || null;
+  const officePhone = (onboard.officePhone || onboard.phone || '').trim() || null;
+
+  // People → contact cards (each becomes an extra contact; role = job title).
+  const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const people = (Array.isArray(onboard.people) ? onboard.people : []) as {
+    name?: string; email?: string; phone?: string; jobTitle?: string; isMainContact?: boolean;
+  }[];
+  const incoming: OfficeContact[] = [];
+  for (const p of people) {
+    const name = toTitleCase(String(p.name ?? '').trim());
+    const email = String(p.email ?? '').trim().toLowerCase();
+    const phone = String(p.phone ?? '').trim().slice(0, 40);
+    if (!name && !phone && !email) continue;
+    const role = String(p.jobTitle ?? '').trim().slice(0, 60) || (p.isMainContact ? 'Owner / main contact' : 'Contact');
+    incoming.push({ name, role, phone, email: emailRe.test(email) ? email : '' });
+  }
+
+  // Merge: keep every existing contact, add only ones not already present
+  // (dedupe by email where we have one, else by name). Cap at the directory max.
+  const prevExtras = existing ? readExtraContacts(existing.extraContacts) : [];
+  const seenEmail = new Set(prevExtras.map((c) => c.email.toLowerCase()).filter(Boolean));
+  const seenName = new Set(prevExtras.map((c) => c.name.toLowerCase()).filter(Boolean));
+  const added: OfficeContact[] = [];
+  for (const c of incoming) {
+    const ek = c.email.toLowerCase();
+    if (ek ? seenEmail.has(ek) : seenName.has(c.name.toLowerCase())) continue;
+    if (ek) seenEmail.add(ek);
+    seenName.add(c.name.toLowerCase());
+    added.push(c);
+  }
+  const mergedExtras = [...prevExtras, ...added].slice(0, 12);
+
+  if (!existing) {
+    await prisma.dealerProfile.create({
+      data: {
+        dealerId,
+        businessName: officeName,
+        address: addressLine,
+        phone: officePhone,
+        extraContacts: mergedExtras as unknown as Prisma.InputJsonValue,
+        updatedById: actorId,
+      },
+    });
+  } else {
+    await prisma.dealerProfile.update({
+      where: { dealerId },
+      data: {
+        // Only fill blanks — never clobber what the office already set.
+        businessName: existing.businessName ?? officeName,
+        address: existing.address ?? addressLine,
+        phone: existing.phone ?? officePhone,
+        extraContacts: mergedExtras as unknown as Prisma.InputJsonValue,
+        updatedById: actorId,
+      },
+    });
+  }
+
+  // Copy the uploaded logo across, but only if the office has none yet.
+  if (onboard.logoStorageKey && !existing?.logoStorageKey) {
+    try {
+      const bytes = await getDocument(onboard.logoStorageKey);
+      const ext = path.extname(onboard.logoStorageKey).slice(0, 12).replace(/[^a-zA-Z0-9.]/g, '') || '.img';
+      const key = `dealer-logos/${dealerId}/${crypto.randomBytes(8).toString('hex')}${ext}`;
+      await putDocument(key, bytes);
+      await prisma.dealerProfile.update({ where: { dealerId }, data: { logoStorageKey: key, logoMime: onboard.logoMime || 'image/png' } });
+    } catch {
+      /* the logo is a nicety — never let a storage hiccup block the attach */
+    }
+  }
+
+  return `${existing ? 'updated' : 'created'} profile, +${added.length} contact${added.length === 1 ? '' : 's'}`;
+}
+
 export async function attachOnboardToDealerAction(onboardId: string, formData: FormData): Promise<void> {
   const session = await requireAdminSection('user-requests');
   const dealerId = String(formData.get('dealerId') || '').trim();
   if (!dealerId) return;
+  const fillProfile = String(formData.get('fillProfile') || '') === 'on';
   const [onboard, dealer] = await Promise.all([
     prisma.onboardRequest.findUnique({ where: { id: onboardId } }),
     prisma.dealer.findUnique({ where: { id: dealerId }, select: { id: true, name: true } }),
@@ -1783,9 +1884,27 @@ export async function attachOnboardToDealerAction(onboardId: string, formData: F
     });
     await audit({ actorId: session.userId, action: 'USER_REQUEST', entityType: 'UserRequest', entityId: request.id, detail: `From intake ${onboardId} → dealer ${dealer.name} (${rows.length} people)` });
   }
+  // Optionally fold the intake's office details + people into the dealer's
+  // Office Directory profile (create it if missing; fill blanks otherwise).
+  let profileSummary = '';
+  if (fillProfile) {
+    try {
+      profileSummary = await applyOnboardToProfile(dealerId, session.userId, onboard);
+    } catch {
+      /* directory fill is a convenience — never let it block the attach */
+    }
+  }
+
   await prisma.onboardRequest.update({ where: { id: onboardId }, data: { status: 'HANDLED', handledAt: new Date(), handledById: session.userId } });
-  await audit({ actorId: session.userId, action: 'USER_REQUEST_DECISION', entityType: 'OnboardRequest', entityId: onboardId, detail: `Attached to dealer ${dealer.name}` });
+  await audit({
+    actorId: session.userId,
+    action: 'USER_REQUEST_DECISION',
+    entityType: 'OnboardRequest',
+    entityId: onboardId,
+    detail: `Attached to dealer ${dealer.name}${profileSummary ? ` — directory ${profileSummary}` : ''}`,
+  });
   revalidatePath('/admin/user-requests');
+  if (fillProfile) revalidatePath('/staff/directory');
 }
 
 /** Mark a new-dealer intake request handled (accounts set up) or dismiss it. */

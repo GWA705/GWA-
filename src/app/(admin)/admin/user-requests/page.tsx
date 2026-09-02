@@ -92,20 +92,28 @@ export default async function AdminUserRequestsPage() {
         </ul>
         {r.status === 'NEW' ? (
           <div className="mt-3 space-y-2 border-t border-gray-100 pt-3">
-            <form action={attachOnboardToDealerAction.bind(null, r.id)} className="flex flex-wrap items-end gap-2">
-              <div>
-                <label className="label text-xs">Attach to dealer</label>
-                <select name="dealerId" required defaultValue="" className="input w-56 text-sm">
-                  <option value="" disabled>Choose the right dealer…</option>
-                  {activeDealers.map((d) => (
-                    <option key={d.id} value={d.id}>{d.name}</option>
-                  ))}
-                </select>
+            <form action={attachOnboardToDealerAction.bind(null, r.id)} className="space-y-2">
+              <div className="flex flex-wrap items-end gap-2">
+                <div>
+                  <label className="label text-xs">Attach to dealer</label>
+                  <select name="dealerId" required defaultValue="" className="input w-56 text-sm">
+                    <option value="" disabled>Choose the right dealer…</option>
+                    {activeDealers.map((d) => (
+                      <option key={d.id} value={d.id}>{d.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <button type="submit" className="btn-primary text-xs">Attach &amp; create request</button>
               </div>
-              <button type="submit" className="btn-primary text-xs">Attach &amp; create request</button>
+              <label className="flex items-center gap-2 text-xs text-gray-600">
+                <input type="checkbox" name="fillProfile" defaultChecked className="h-3.5 w-3.5 rounded border-gray-300" />
+                Also fill the office directory — address, phone, logo &amp; each person as a contact card
+              </label>
             </form>
             <p className="text-xs text-gray-400">
-              Sends this office&rsquo;s people into the approval queue under the dealer you pick. New dealer? Create it under{' '}
+              Sends this office&rsquo;s people into the approval queue under the dealer you pick. With the box ticked it also
+              builds that office&rsquo;s <a href="/staff/directory" className="text-brand-700 hover:underline">directory profile</a>{' '}
+              from the intake (safe to re-run — it only fills blanks and adds new people, never overwrites). New dealer? Create it under{' '}
               <a href="/admin/dealers" className="text-brand-700 hover:underline">Dealers</a> first, then attach.
             </p>
             <div className="flex gap-2">
