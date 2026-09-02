@@ -73,6 +73,9 @@ export default async function AdminUserRequestsPage() {
           {(r.address || r.city || r.province || r.postal) && (
             <div className="sm:col-span-2"><dt className="inline font-semibold text-gray-500">Address: </dt><dd className="inline">{[r.address, r.city, r.province, r.postal].filter(Boolean).join(', ')}</dd></div>
           )}
+          {r.website && (
+            <div><dt className="inline font-semibold text-gray-500">Website: </dt><dd className="inline"><a href={r.website.startsWith('http') ? r.website : `https://${r.website}`} target="_blank" rel="noreferrer" className="break-all text-brand-700 hover:underline">{r.website.replace(/^https?:\/\//, '')}</a></dd></div>
+          )}
           {r.mailingAddress && (
             <div className="sm:col-span-2"><dt className="inline font-semibold text-gray-500">Mailing: </dt><dd className="inline whitespace-pre-wrap">{r.mailingAddress}</dd></div>
           )}

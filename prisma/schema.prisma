@@ -221,6 +221,7 @@ model OnboardRequest {
   province    String?
   postal      String?
   mailingAddress String? // if different from the office address
+  website     String? // dealer's public website
   logoStorageKey String? // uploaded company logo (encrypted at rest)
   logoMime       String?
   note        String?

@@ -54,6 +54,7 @@ export function OnboardForm() {
   const [province, setProvince] = useState('');
   const [postal, setPostal] = useState('');
   const [mailingAddress, setMailingAddress] = useState('');
+  const [website, setWebsite] = useState('');
   const [note, setNote] = useState('');
 
   function update(id: number, patch: Partial<Row>) {
@@ -69,7 +70,7 @@ export function OnboardForm() {
 
   const payload = JSON.stringify({
     contactName, email, phone,
-    company, legalName, officePhone, officeEmail, address, city, province, postal, mailingAddress, note,
+    company, legalName, officePhone, officeEmail, address, city, province, postal, mailingAddress, website, note,
     people: rows.map(({ name, email: e, phone: p, jobTitle, isMainContact }) => ({ name, email: e, phone: p, jobTitle, isMainContact })),
   });
 
@@ -119,6 +120,7 @@ export function OnboardForm() {
             <Field label="Legal company name" value={legalName} onChange={setLegalName} placeholder="1234567 Ontario Inc." hint="If different from the operating name" />
             <Field label="Office phone" value={officePhone} onChange={setOfficePhone} placeholder="(705) 555-0100" />
             <Field label="Office email" value={officeEmail} onChange={setOfficeEmail} type="email" placeholder="office@company.ca" />
+            <Field label="Website" value={website} onChange={setWebsite} placeholder="www.company.ca" hint="Optional — your public site" />
           </div>
           <div className="mt-3">
             <Field label="Street address" value={address} onChange={setAddress} placeholder="123 Main St, Unit 4" />

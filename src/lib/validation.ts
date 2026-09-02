@@ -429,6 +429,7 @@ export const onboardSchema = z.object({
   province: z.string().trim().min(2, 'Enter the province').max(40),
   postal: z.string().trim().min(3, 'Enter the postal code').max(12),
   mailingAddress: z.string().trim().max(300).optional().default(''),
+  website: z.string().trim().max(200).optional().default(''),
   note: z.string().trim().max(1000).optional().default(''),
   people: z.array(onboardPersonSchema).min(1, 'Add at least one person who needs a login').max(25),
 });

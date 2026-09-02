@@ -1762,7 +1762,7 @@ async function applyOnboardToProfile(
   onboard: {
     company: string;
     address: string | null; city: string | null; province: string | null; postal: string | null;
-    officePhone: string | null; phone: string | null;
+    officePhone: string | null; phone: string | null; website: string | null;
     logoStorageKey: string | null; logoMime: string | null;
     people: unknown;
   },
@@ -1774,6 +1774,7 @@ async function applyOnboardToProfile(
   const addressLine =
     [onboard.address, onboard.city, onboard.province, onboard.postal].map((v) => (v ?? '').trim()).filter(Boolean).join(', ') || null;
   const officePhone = (onboard.officePhone || onboard.phone || '').trim() || null;
+  const website = (onboard.website || '').trim() || null;
 
   // People → contact cards (each becomes an extra contact; role = job title).
   const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -1812,6 +1813,7 @@ async function applyOnboardToProfile(
         businessName: officeName,
         address: addressLine,
         phone: officePhone,
+        website,
         extraContacts: mergedExtras as unknown as Prisma.InputJsonValue,
         updatedById: actorId,
       },
@@ -1824,6 +1826,7 @@ async function applyOnboardToProfile(
         businessName: existing.businessName ?? officeName,
         address: existing.address ?? addressLine,
         phone: existing.phone ?? officePhone,
+        website: existing.website ?? website,
         extraContacts: mergedExtras as unknown as Prisma.InputJsonValue,
         updatedById: actorId,
       },
