@@ -31,6 +31,7 @@ import {
   applicableVerificationChecks,
   referenceGateError,
   approvalGateError,
+  hdReferenceRequired,
   soapLabel,
 } from '@/lib/constants';
 import { dealHasFinancing, financedAmountOf, nonFinancedAmountOf, journalPayCode } from '@/lib/payments';
@@ -353,6 +354,13 @@ export async function uploadReviewerPaperworkAction(
   const session = await requireStaffSection('review-queue');
   const app = await prisma.application.findUnique({ where: { id: applicationId } });
   if (!app) return { error: 'Not found.' };
+
+  // Rule: an HD-program deal must carry its HD Customer # before install
+  // paperwork goes to the dealer. The deal can be approved (and journalled)
+  // without it, but the number has to be recorded before the documents are sent.
+  if (hdReferenceRequired(app.programType) && !app.hdReference?.trim()) {
+    return { error: 'Add the HD Customer # in “Review & decide” before sending install paperwork to the dealer.' };
+  }
 
   const category = String(formData.get('category') || '');
   const allowed = REVIEWER_PAPERWORK_TYPES.map((t) => t.type) as string[];
@@ -1105,15 +1113,18 @@ const JOURNAL_SYNC_STATUSES: ApplicationStatus[] = [
  * ignore a skip or failure without derailing the decision or the reference save.
  *
  *  - 'disabled' — the journal isn't configured on this server (no-op).
- *  - 'skipped'  — a required reference number isn't present yet (message says
- *                 which); nothing was written.
  *  - 'error'    — the write was attempted but failed (message has the reason).
  *  - 'ok'       — written; the deal's journal tab / row / syncedAt are updated.
+ *
+ * It intentionally writes whatever reference numbers are present rather than
+ * gating on them — a deal is journalled the moment it's approved (so the sheet
+ * fills right away, not held up by a still-missing HD Customer #), and each
+ * later change re-writes the SAME row, filling the HD # in when it arrives.
  */
 async function syncApplicationToJournal(
   applicationId: string,
   actorId: string,
-): Promise<{ status: 'ok' | 'skipped' | 'disabled' | 'error'; message?: string }> {
+): Promise<{ status: 'ok' | 'disabled' | 'error'; message?: string }> {
   if (!journalEnabled()) return { status: 'disabled' };
 
   const app = await prisma.application.findUnique({
@@ -1121,8 +1132,6 @@ async function syncApplicationToJournal(
     include: { homeDepotStore: true, dealer: true, loanApplication: true, financeCompany: true, paymentSplits: true },
   });
   if (!app) return { status: 'error', message: 'Deal not found.' };
-  const refError = referenceGateError({ ...app, financed: dealHasFinancing(app) }, 'writing to the journal');
-  if (refError) return { status: 'skipped', message: refError };
 
   const fmtDate = (d: Date | null | undefined) => (d ? d.toISOString().slice(0, 10) : null);
   const fmtAmount = (a: unknown) => (a == null ? null : Number(a).toFixed(2));
@@ -1206,7 +1215,6 @@ export async function writeToJournalAction(
         'The sales journal is not connected yet (JOURNAL_SHEET_ID / Google credentials are missing on the server).',
     };
   }
-  if (res.status === 'skipped') return { error: res.message };
   if (res.status === 'error') return { error: `Could not write to the journal: ${res.message}` };
   await markReviewerAction(applicationId);
   revalidatePath(`/staff/applications/${applicationId}`);

@@ -271,6 +271,13 @@ export default async function StaffApplicationDetail({
       />
     ) : null;
 
+  // A deal is "decided" (and belongs in the journal) once it's approved or
+  // beyond. The journal is seeded at approval and re-synced on every change, so
+  // its status shows from approval on — not held back until every number is in.
+  const decided = (['CONDITIONAL', 'APPROVED', 'DOCS_SENT', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW', 'FUNDED'] as ApplicationStatus[]).includes(app.status);
+  // Rule: an HD deal can't send install paperwork until its HD Customer # is in.
+  const hdBlocksPaperwork = hdReferenceRequired(app.programType) && !app.hdReference?.trim();
+
   const dealNumbersSection = (
     <div className="rounded-lg border border-gray-200 bg-gray-50/60 p-4">
       <h3 className="mb-3 text-sm font-semibold text-gray-700">Deal numbers</h3>
@@ -286,7 +293,7 @@ export default async function StaffApplicationDetail({
         financed={dealFinanced}
         hdRequired={hdReferenceRequired(app.programType)}
       />
-      {missingRequiredReferences({ ...app, financed: dealFinanced }).length === 0 && (
+      {journalEnabled() && decided && (
         <WriteToJournalButton
           applicationId={app.id}
           syncedAt={app.journalSyncedAt ? app.journalSyncedAt.toISOString() : null}
@@ -387,17 +394,29 @@ export default async function StaffApplicationDetail({
     // 2 · Produce install documents
     produce: (
       <div>
-        <p className="mb-4 text-xs text-gray-500">Upload paperwork the dealer can view and download — send as many as you need, now or later. Files are converted to PDF.</p>
-        <div className="mb-4">
-          <DocumentList documents={reviewerDocs} deleteAction={deleteDocumentAction} />
-        </div>
-        <div className="border-t border-gray-100 pt-4">
-          <ReviewerPaperworkBoxes
-            action={uploadReviewerPaperworkAction.bind(null, app.id)}
-            categories={REVIEWER_PAPERWORK_TYPES}
-            scope={app.id}
-          />
-        </div>
+        {hdBlocksPaperwork ? (
+          <div className="rounded-md border border-amber-300 bg-amber-50 p-4 text-sm">
+            <p className="font-semibold text-amber-900">Add the HD Customer # first</p>
+            <p className="mt-1 text-amber-800">
+              This HD deal needs its HD Customer # before install paperwork can go to the dealer. Add it under{' '}
+              <strong>Review &amp; decide → Deal numbers</strong> (it also writes to the sales journal), then send the documents here.
+            </p>
+          </div>
+        ) : (
+          <>
+            <p className="mb-4 text-xs text-gray-500">Upload paperwork the dealer can view and download — send as many as you need, now or later. Files are converted to PDF.</p>
+            <div className="mb-4">
+              <DocumentList documents={reviewerDocs} deleteAction={deleteDocumentAction} />
+            </div>
+            <div className="border-t border-gray-100 pt-4">
+              <ReviewerPaperworkBoxes
+                action={uploadReviewerPaperworkAction.bind(null, app.id)}
+                categories={REVIEWER_PAPERWORK_TYPES}
+                scope={app.id}
+              />
+            </div>
+          </>
+        )}
       </div>
     ),
     // 3 · Sent — awaiting install. Not a dead "waiting" step: the reviewer often
