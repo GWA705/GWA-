@@ -20,6 +20,23 @@ report/deck/document must follow the brand kit: **`docs/BRAND-KIT.md`**
 See the kit for the canonical contact block, taglines, boilerplate, and
 deliverable standards.
 
+## Project memory — read & update these first
+
+This project has no memory between sessions except what's in the repo. So:
+
+- **At the start of work, read `docs/CHANGELOG.md` and `docs/BUILD-FACTS.md`.**
+  The changelog is the running record of what's already shipped and — in its
+  **Operational status** table — which integrations/env config are live (e.g. the
+  sales journal is connected in Render, SMTP is live, DNS auth is set). Don't
+  re-ask about or redo something that's already recorded there.
+- **When you ship a change, append a dated bullet to `docs/CHANGELOG.md`** in the
+  same commit.
+- **When an integration goes live or external config changes** (Render env vars,
+  DNS, Google, S3, a third-party API), update the **Operational status** table
+  with the date — that's the stuff that otherwise only lives in a dashboard and
+  gets forgotten.
+- **When a core architecture/config fact changes, update `docs/BUILD-FACTS.md`.**
+
 ## Repo docs
 
 Other reference material lives in `docs/` (deployment, compliance, security
