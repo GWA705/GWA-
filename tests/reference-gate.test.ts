@@ -92,17 +92,24 @@ describe('referenceGateError', () => {
 });
 
 // Approval gate — nothing reaches Approved/Conditional without a finance company
-// + loan number (+ HD Customer # for HD deals; GWA deals are exempt).
+// + loan number. The HD Customer # is NOT required to approve (it can be added
+// afterward); it's enforced later, at the funding/journal gate.
 describe('approvalGateError', () => {
-  it('requires finance company, loan number, and HD # for an empty HD deal', () => {
+  it('requires the finance company and loan number for an empty HD deal (but not the HD #)', () => {
     expect(
       approvalGateError({ programType: 'HD', financeCompanyId: null, financeItNumber: null, hdReference: null }),
-    ).toBe('Add a finance company, the loan / approval number and the HD Customer # before approving this deal.');
+    ).toBe('Add a finance company and the loan / approval number before approving this deal.');
   });
 
   it('does not require an HD # for a GWA deal', () => {
     expect(
       approvalGateError({ programType: 'GWA', financeCompanyId: 'fc1', financeItNumber: 'L-1', hdReference: null }),
+    ).toBeNull();
+  });
+
+  it('lets an HD deal approve without the HD # once it has finance company + loan number', () => {
+    expect(
+      approvalGateError({ programType: 'HD', financeCompanyId: 'fc1', financeItNumber: 'L-1', hdReference: null }),
     ).toBeNull();
   });
 
@@ -112,7 +119,7 @@ describe('approvalGateError', () => {
     ).toBe('Add the loan / approval number before approving this deal.');
   });
 
-  it('passes once an HD deal has all three', () => {
+  it('passes once an HD deal has finance company + loan number', () => {
     expect(
       approvalGateError({ programType: 'HD', financeCompanyId: 'fc1', financeItNumber: 'L-1', hdReference: '800123' }),
     ).toBeNull();

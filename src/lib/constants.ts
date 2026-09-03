@@ -107,18 +107,20 @@ export function missingRequiredReferences(app: {
 }
 
 // What a deal must have before it can be marked Approved (or Conditional): the
-// finance company it's approved on, its loan/approval number, and — for HD-
-// program deals only — the HD Customer #. GWA deals need no HD Customer #.
+// finance company it's approved on and its loan/approval number. The HD Customer
+// # is deliberately NOT required here — a deal can be approved before it's known
+// and the number added afterward (which then writes it to the sales journal).
+// The HD Customer # is still required later, at the funding/journal gate
+// (referenceGateError), so a deal can't be funded or journalled without it.
 export function approvalGateError(app: {
   financeCompanyId: string | null;
   financeItNumber: string | null; // the loan / approval number
-  hdReference: string | null;
+  hdReference: string | null; // accepted for call-site compatibility; not gated here
   programType: ProgramType;
 }): string | null {
   const missing: string[] = [];
   if (!app.financeCompanyId) missing.push('a finance company');
   if (!app.financeItNumber || !app.financeItNumber.trim()) missing.push('the loan / approval number');
-  if (app.programType === 'HD' && (!app.hdReference || !app.hdReference.trim())) missing.push('the HD Customer #');
   if (missing.length === 0) return null;
   const list =
     missing.length === 1 ? missing[0] : `${missing.slice(0, -1).join(', ')} and ${missing[missing.length - 1]}`;

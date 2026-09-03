@@ -791,8 +791,9 @@ export async function changeStatusAction(
   if (app.status === status) return { ok: true };
 
   // A deal can't reach an approved state (or anything past it) without the
-  // finance company + loan number (+ HD Customer # for HD deals). Use the Approve
-  // form to add them — the manual status change can't collect them.
+  // finance company + loan number. (The HD Customer # is not required to approve;
+  // it's added afterward.) Use the Approve form to add them — the manual status
+  // change can't collect them.
   const APPROVED_OR_BEYOND: ApplicationStatus[] = [
     'CONDITIONAL', 'APPROVED', 'DOCS_SENT', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW', 'FUNDED',
   ];

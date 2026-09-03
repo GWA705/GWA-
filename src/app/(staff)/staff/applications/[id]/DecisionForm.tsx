@@ -82,12 +82,15 @@ export function DecisionForm({
           </div>
           {hdRequired && (
             <div>
-              <label className="label" htmlFor="hdReference">HD Customer # <span className="text-red-500">*</span></label>
+              <label className="label" htmlFor="hdReference">HD Customer # <span className="font-normal text-gray-400">(optional — add now or later)</span></label>
               <input id="hdReference" name="hdReference" value={hd} onChange={(e) => setHd(e.target.value)} className="input" autoComplete="off" placeholder="Starts with 701 or 800" />
               {origin && <p className="mt-1 text-xs font-medium text-brand-700">{origin === 'Home Depot lead' ? '🏬' : '🆕'} {origin}</p>}
             </div>
           )}
-          <p className="text-xs text-gray-500">Finance company, loan number{hdRequired ? ', and HD Customer #' : ''} are required before this deal can be approved.</p>
+          <p className="text-xs text-gray-500">
+            Finance company and loan number are required to approve.
+            {hdRequired ? ' The HD Customer # can be added now or after approval — it writes to the sales journal when you add it.' : ''}
+          </p>
         </div>
       )}
 
