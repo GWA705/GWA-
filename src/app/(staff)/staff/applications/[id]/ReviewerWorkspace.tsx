@@ -36,7 +36,7 @@ export function ReviewerWorkspace({
 }: {
   phases: PhaseView[];
   comms: ReactNode; // notes + history, always available (not a phase)
-  rail: ReactNode; // decision + snapshot, persistent on the right
+  rail?: ReactNode; // optional side rail; when omitted the workspace is full-width
   dealerStatus: string;
   // A prominent banner shown above everything (e.g. an approved deal still
   // missing its HD / loan number).
@@ -103,16 +103,22 @@ export function ReviewerWorkspace({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="order-2 lg:order-1 lg:col-span-2">
-          {layout === 'flow' ? (
-            <FlowLayout phases={phases} comms={comms} />
-          ) : (
-            <TabsLayout phases={phases} comms={comms} activeTab={activeTab} setActiveTab={setActiveTab} />
-          )}
+      {rail ? (
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="order-2 lg:order-1 lg:col-span-2">
+            {layout === 'flow' ? (
+              <FlowLayout phases={phases} comms={comms} />
+            ) : (
+              <TabsLayout phases={phases} comms={comms} activeTab={activeTab} setActiveTab={setActiveTab} />
+            )}
+          </div>
+          <div className="order-1 space-y-6 lg:order-2">{rail}</div>
         </div>
-        <div className="order-1 space-y-6 lg:order-2">{rail}</div>
-      </div>
+      ) : layout === 'flow' ? (
+        <FlowLayout phases={phases} comms={comms} />
+      ) : (
+        <TabsLayout phases={phases} comms={comms} activeTab={activeTab} setActiveTab={setActiveTab} />
+      )}
     </div>
   );
 }

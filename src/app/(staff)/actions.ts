@@ -108,7 +108,7 @@ export async function setDealReferencesAction(
 
   const financeItNumber = parsed.data.financeItNumber?.trim() || null;
   const hdReference = parsed.data.hdReference?.trim() || null;
-  await prisma.application.update({
+  const updated = await prisma.application.update({
     where: { id: applicationId },
     data: { financeItNumber, hdReference },
   });
@@ -120,6 +120,13 @@ export async function setDealReferencesAction(
     entityId: applicationId,
     detail: `References set — financing #${financeItNumber ?? '—'}, HD customer #${hdReference ?? '—'}`,
   });
+  // Once a deal is decided, saving or correcting its numbers keeps the sales
+  // journal in step automatically — so an HD Customer # that only came in after
+  // approval lands in the journal without a second manual step. Best-effort: a
+  // still-missing required number, or an unconfigured journal, is a silent no-op.
+  if (JOURNAL_SYNC_STATUSES.includes(updated.status)) {
+    await syncApplicationToJournal(applicationId, session.userId);
+  }
   revalidatePath(`/staff/applications/${applicationId}`);
   revalidatePath(`/dealer/applications/${applicationId}`);
   return { ok: true };
@@ -282,6 +289,15 @@ export async function recordDecisionAction(
     entityId: applicationId,
     detail: `${type}${notes ? `: ${notes.slice(0, 200)}` : ''}`,
   });
+
+  // Seed the sales journal the moment the deal is approved (best-effort). The
+  // approval gate above guarantees the required numbers are present, so this
+  // writes the row right away; a still-missing HD Customer # (on an auto-approved
+  // deal) is picked up later by the reference-save sync. An unconfigured journal
+  // or a failed write is a silent no-op — the manual button remains as a fallback.
+  if (isApproval) {
+    await syncApplicationToJournal(applicationId, session.userId);
+  }
 
   if (to && to !== app.status) await notifyStatusChange(applicationId, to);
   revalidatePath(`/staff/applications/${applicationId}`);
@@ -1068,26 +1084,44 @@ export async function setVerificationCheckAction(
  * deal number are recorded. Best-effort: a Sheets failure never touches the
  * deal, it just returns an error for the reviewer to retry.
  */
-export async function writeToJournalAction(
+// Statuses at which a deal is "decided" and belongs in the sales journal. Used
+// to gate the automatic journal sync so a still-in-review (or dead) deal never
+// writes a row on its own — the manual button can still be used any time.
+const JOURNAL_SYNC_STATUSES: ApplicationStatus[] = [
+  'CONDITIONAL',
+  'APPROVED',
+  'DOCS_SENT',
+  'FUNDING_SUBMITTED',
+  'FUNDING_REVIEW',
+  'FUNDED',
+];
+
+/**
+ * Write (or update) a deal's row in the Google Sheets sales journal. Shared by
+ * the manual "Write to Journal" button and the automatic syncs that fire on
+ * approval and whenever a deal's reference numbers change. Best-effort by
+ * contract — it reports a status instead of throwing, so an automatic caller can
+ * ignore a skip or failure without derailing the decision or the reference save.
+ *
+ *  - 'disabled' — the journal isn't configured on this server (no-op).
+ *  - 'skipped'  — a required reference number isn't present yet (message says
+ *                 which); nothing was written.
+ *  - 'error'    — the write was attempted but failed (message has the reason).
+ *  - 'ok'       — written; the deal's journal tab / row / syncedAt are updated.
+ */
+async function syncApplicationToJournal(
   applicationId: string,
-  _prev: ActionState,
-  _formData: FormData,
-): Promise<ActionState> {
-  const session = await requireStaffSection('review-queue');
-  if (!journalEnabled()) {
-    return {
-      error:
-        'The sales journal is not connected yet (JOURNAL_SHEET_ID / Google credentials are missing on the server).',
-    };
-  }
+  actorId: string,
+): Promise<{ status: 'ok' | 'skipped' | 'disabled' | 'error'; message?: string }> {
+  if (!journalEnabled()) return { status: 'disabled' };
 
   const app = await prisma.application.findUnique({
     where: { id: applicationId },
     include: { homeDepotStore: true, dealer: true, loanApplication: true, financeCompany: true, paymentSplits: true },
   });
-  if (!app) return { error: 'Deal not found.' };
+  if (!app) return { status: 'error', message: 'Deal not found.' };
   const refError = referenceGateError({ ...app, financed: dealHasFinancing(app) }, 'writing to the journal');
-  if (refError) return { error: refError };
+  if (refError) return { status: 'skipped', message: refError };
 
   const fmtDate = (d: Date | null | undefined) => (d ? d.toISOString().slice(0, 10) : null);
   const fmtAmount = (a: unknown) => (a == null ? null : Number(a).toFixed(2));
@@ -1144,19 +1178,36 @@ export async function writeToJournalAction(
       where: { id: applicationId },
       data: { journalTab: result.tab, journalRow: result.row, journalSyncedAt: new Date() },
     });
-    await markReviewerAction(applicationId);
     await audit({
-      actorId: session.userId,
+      actorId,
       action: 'JOURNAL_WRITE',
       entityType: 'Application',
       entityId: applicationId,
       detail: `Wrote to sales journal — ${result.tab} row ${result.row} (${result.wrote.length} fields)`,
     });
-    revalidatePath(`/staff/applications/${applicationId}`);
-    return { ok: true };
+    return { status: 'ok' };
   } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Unknown error';
     console.error('[journal] write failed', err);
-    return { error: `Could not write to the journal: ${msg}` };
+    return { status: 'error', message: err instanceof Error ? err.message : 'Unknown error' };
   }
+}
+
+export async function writeToJournalAction(
+  applicationId: string,
+  _prev: ActionState,
+  _formData: FormData,
+): Promise<ActionState> {
+  const session = await requireStaffSection('review-queue');
+  const res = await syncApplicationToJournal(applicationId, session.userId);
+  if (res.status === 'disabled') {
+    return {
+      error:
+        'The sales journal is not connected yet (JOURNAL_SHEET_ID / Google credentials are missing on the server).',
+    };
+  }
+  if (res.status === 'skipped') return { error: res.message };
+  if (res.status === 'error') return { error: `Could not write to the journal: ${res.message}` };
+  await markReviewerAction(applicationId);
+  revalidatePath(`/staff/applications/${applicationId}`);
+  return { ok: true };
 }

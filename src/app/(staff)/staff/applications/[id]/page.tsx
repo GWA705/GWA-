@@ -37,6 +37,7 @@ import { ReviewerWorkspace } from './ReviewerWorkspace';
 import { reviewerPhaseStates, dealerFacingStatus, currentPhaseIndex, hasDealerReturned, type PhaseState } from '@/lib/reviewerFlow';
 import { exemptionSummary } from '@/lib/tax';
 import { dealHasFinancing, financedAmountOf } from '@/lib/payments';
+import { journalEnabled } from '@/lib/journal';
 import { PaymentBreakdown } from '@/components/PaymentBreakdown';
 import {
   startReviewAction,
@@ -273,6 +274,11 @@ export default async function StaffApplicationDetail({
   const dealNumbersSection = (
     <div className="rounded-lg border border-gray-200 bg-gray-50/60 p-4">
       <h3 className="mb-3 text-sm font-semibold text-gray-700">Deal numbers</h3>
+      {journalEnabled() && (
+        <p className="mb-3 -mt-1 text-xs text-gray-400">
+          Saved numbers sync to the sales journal automatically on approval and whenever you change them.
+        </p>
+      )}
       <DealReferencesForm
         applicationId={app.id}
         financeItNumber={app.financeItNumber}
@@ -300,11 +306,49 @@ export default async function StaffApplicationDetail({
     </div>
   );
 
+  // Decision + status controls. Previously these lived in a separate right-hand
+  // column; folding them into the top of "Review & decide" makes the whole step
+  // read as one flow — make the call here (approve / decline / request docs),
+  // change it later, or jump the status by hand.
+  const decisionSection = (
+    <div className="rounded-lg border border-gray-200 bg-white p-4">
+      <h3 className="mb-3 text-sm font-semibold text-gray-700">Decision</h3>
+      {app.status === 'SUBMITTED' && (
+        <form action={startReview} className="mb-4">
+          <button type="submit" className="btn-secondary w-full sm:w-auto">Start review</button>
+        </form>
+      )}
+      {options.some((o) => o.value === 'FUND') && !verificationComplete && (
+        <p className="mb-4 rounded bg-amber-50 p-2 text-xs text-amber-800">
+          Complete the funding verification checklist (every item Confirmed) before this deal can be funded.
+        </p>
+      )}
+      <DecisionForm
+        applicationId={app.id}
+        options={options}
+        financeCompanies={financeCompanies}
+        defaultAmount={app.requestedAmount.toString()}
+        defaultFinanceCompanyId={app.financeCompanyId}
+        defaultFinanceItNumber={app.financeItNumber}
+        defaultHdReference={app.hdReference}
+        hdRequired={hdReferenceRequired(app.programType)}
+      />
+      <div className="mt-5 border-t border-gray-100 pt-4">
+        <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Change status</h4>
+        <StatusChangeForm applicationId={app.id} current={app.status} />
+        <p className="mt-2 text-xs text-gray-400">
+          The flow sets the status for you as you work. Use this to jump back, change the decision, or flag a Problem.
+        </p>
+      </div>
+    </div>
+  );
+
   const phaseBody: Record<string, ReactNode> = {
     // 1 · Review & decide
     decide: (
       <div className="space-y-6">
         {paymentBreakdownSection}
+        {decisionSection}
         {dealNumbersSection}
         <CollapsibleEntry
           storageKey={`entryview:${app.id}`}
@@ -619,39 +663,6 @@ export default async function StaffApplicationDetail({
     </div>
   );
 
-  // Persistent right rail — the decision/action controls, always in reach.
-  const rail = (
-    <section className="card p-6">
-      <h2 className="mb-4 text-base font-semibold text-gray-900">Decision</h2>
-      {app.status === 'SUBMITTED' && (
-        <form action={startReview} className="mb-4">
-          <button type="submit" className="btn-secondary w-full">Start review</button>
-        </form>
-      )}
-      {options.some((o) => o.value === 'FUND') && !verificationComplete && (
-        <p className="mb-4 rounded bg-amber-50 p-2 text-xs text-amber-800">
-          Complete the funding verification checklist (every item Confirmed) before this deal can be funded.
-        </p>
-      )}
-      <DecisionForm
-        applicationId={app.id}
-        options={options}
-        financeCompanies={financeCompanies}
-        defaultAmount={app.requestedAmount.toString()}
-        defaultFinanceCompanyId={app.financeCompanyId}
-        defaultFinanceItNumber={app.financeItNumber}
-        defaultHdReference={app.hdReference}
-        hdRequired={hdReferenceRequired(app.programType)}
-      />
-      <div className="mt-5 border-t border-gray-100 pt-4">
-        <StatusChangeForm applicationId={app.id} current={app.status} />
-        <p className="mt-2 text-xs text-gray-400">
-          The flow sets the status for you as you work. Use this only to jump back or flag a Problem.
-        </p>
-      </div>
-    </section>
-  );
-
   return (
     <div className="space-y-6">
       <div>
@@ -712,7 +723,6 @@ export default async function StaffApplicationDetail({
       <ReviewerWorkspace
         phases={phases}
         comms={comms}
-        rail={rail}
         dealerStatus={dealerStatus}
         alert={reviewAlert}
       />
