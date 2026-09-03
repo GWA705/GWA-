@@ -575,8 +575,21 @@ export default async function StaffApplicationDetail({
     missingRefs.length > 0 && currentPhaseIndex(flowSignals) > 1 && !deadEnd;
   const refsList = missingRefs.length === 2 ? `${missingRefs[0]} and ${missingRefs[1]}` : missingRefs[0];
   const reviewAlert = decideNeedsRefs
-    ? { message: `This deal is already approved but still needs ${refsList}. Open “Review & decide” below and record it before producing the install documents.` }
+    ? { message: `This deal is already approved but still needs ${refsList}. Add it in the Deal numbers card below before producing the install documents.` }
     : null;
+
+  // While an approved deal is still missing a required number (the HD Customer #),
+  // keep the Deal numbers card pinned beneath the collapsed "Review & decide" step
+  // so it can be finished without expanding the whole step. It disappears — and
+  // the step collapses fully — the moment the number is saved.
+  const decidePinned = decideNeedsRefs ? (
+    <div className="space-y-2">
+      <p className="text-xs font-medium text-amber-700">
+        Add the HD Customer # to finish this deal — this stays here until it&apos;s in.
+      </p>
+      {dealNumbersSection}
+    </div>
+  ) : undefined;
 
   const phases = reviewerPhaseStates(flowSignals).map((p) => {
     const state = p.id === 'confirm' ? confirmState : p.state;
@@ -587,6 +600,7 @@ export default async function StaffApplicationDetail({
       summary: phaseSummary[p.id],
       autoNote: state === 'done' ? undefined : phaseAuto[p.id],
       attention: p.id === 'decide' ? decideNeedsRefs : undefined,
+      pinned: p.id === 'decide' ? decidePinned : undefined,
     };
   });
 

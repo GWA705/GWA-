@@ -13,9 +13,14 @@ export interface PhaseView {
   summary?: string; // one-line recap shown when the phase is Done
   autoNote?: string; // "when you finish this, the status becomes…"
   body: ReactNode; // the section content; null for a pure waiting phase
-  // Force this phase open + flag it even when it's already "done" — used when a
-  // required field (a deal number) is still missing on an auto-approved deal.
+  // Flag this phase (amber) even when it's already "done" — used when a required
+  // field (the HD Customer #) is still missing.
   attention?: boolean;
+  // Content kept visible BELOW the phase while it's collapsed — e.g. the Deal
+  // numbers card, pinned open until the HD Customer # is added, so the reviewer
+  // can finish it without expanding the whole step. Hidden once the phase is
+  // expanded (its body already contains the same section).
+  pinned?: ReactNode;
 }
 
 const LAYOUT_KEY = 'gwa:reviewer-layout';
@@ -145,33 +150,46 @@ function PhaseTag({ state }: { state: PhaseState }) {
   return <span className="badge bg-gray-100 text-gray-400">Upcoming</span>;
 }
 
+function PhaseDetails({ p }: { p: PhaseView }) {
+  // Track open state so a pinned section (e.g. Deal numbers while the HD Customer
+  // # is still missing) can stay visible below the phase while it's COLLAPSED,
+  // and hide once expanded (the body already contains the same section).
+  const [open, setOpen] = useState(p.state === 'now');
+  return (
+    <div className="space-y-2">
+      <details
+        open={open}
+        onToggle={(e) => setOpen((e.currentTarget as HTMLDetailsElement).open)}
+        className={`card overflow-hidden ${p.attention ? 'ring-2 ring-amber-400' : p.state === 'now' ? 'ring-brand-300' : ''}`}
+      >
+        <summary className="flex cursor-pointer list-none items-center gap-3 p-4 [&::-webkit-details-marker]:hidden">
+          <PhasePip index={p.index} state={p.state} />
+          <div className="min-w-0 flex-1">
+            <div className="text-sm font-semibold text-gray-900">{p.title}</div>
+            <div className={`text-xs ${p.attention ? 'text-amber-700' : p.state === 'now' ? 'text-brand-700' : 'text-gray-400'}`}>
+              {p.attention ? 'Missing the HD Customer # — add it below' : p.state === 'done' && p.summary ? p.summary : p.sub}
+            </div>
+          </div>
+          {p.attention ? <span className="badge bg-amber-100 text-amber-800">Action needed</span> : <PhaseTag state={p.state} />}
+          <svg className="chev flex-none text-gray-400" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+            <path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </summary>
+        <div className="border-t border-gray-100 px-4 pb-5 pt-4">
+          {p.body ?? <WaitingNote phase={p} />}
+          {p.autoNote && <AutoNote text={p.autoNote} />}
+        </div>
+      </details>
+      {!open && p.pinned && <div>{p.pinned}</div>}
+    </div>
+  );
+}
+
 function FlowLayout({ phases, comms }: { phases: PhaseView[]; comms: ReactNode }) {
   return (
     <div className="space-y-3">
       {phases.map((p) => (
-        <details
-          key={p.id}
-          open={p.state === 'now' || p.attention}
-          className={`card overflow-hidden ${p.attention ? 'ring-2 ring-amber-400' : p.state === 'now' ? 'ring-brand-300' : ''}`}
-        >
-          <summary className="flex cursor-pointer list-none items-center gap-3 p-4 [&::-webkit-details-marker]:hidden">
-            <PhasePip index={p.index} state={p.state} />
-            <div className="min-w-0 flex-1">
-              <div className="text-sm font-semibold text-gray-900">{p.title}</div>
-              <div className={`text-xs ${p.attention ? 'text-amber-700' : p.state === 'now' ? 'text-brand-700' : 'text-gray-400'}`}>
-                {p.attention ? 'Missing a required deal number — add it here' : p.state === 'done' && p.summary ? p.summary : p.sub}
-              </div>
-            </div>
-            {p.attention ? <span className="badge bg-amber-100 text-amber-800">Action needed</span> : <PhaseTag state={p.state} />}
-            <svg className="chev flex-none text-gray-400" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
-              <path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </summary>
-          <div className="border-t border-gray-100 px-4 pb-5 pt-4">
-            {p.body ?? <WaitingNote phase={p} />}
-            {p.autoNote && <AutoNote text={p.autoNote} />}
-          </div>
-        </details>
+        <PhaseDetails key={p.id} p={p} />
       ))}
 
       <details className="card overflow-hidden">

@@ -26,6 +26,12 @@ source of truth; this file is the human-readable index.
 | Bell Total Connect voicemail | 📝 Documented, not built here | Guide delivered for the **booking site** (voicemail-to-email + IMAP). Not part of this portal. |
 
 ## 2026-09-03
+- **Deal numbers pin while the HD Customer # is missing.** When an approved deal
+  still needs its HD #, the Review & decide step collapses but keeps the Deal
+  numbers card pinned below it (Flow layout), so it can be finished without
+  expanding the whole step; it disappears and the step collapses fully once the
+  HD # is saved. (`ReviewerWorkspace` gained a `pinned` slot shown only while a
+  phase is collapsed.)
 - **Reviewer deal page — Decision moved into the tab.** Removed the right-hand
   Decision column; the decision, approval fields, and status controls now live at
   the top of the **Review & decide** tab (`ReviewerWorkspace` renders full-width
