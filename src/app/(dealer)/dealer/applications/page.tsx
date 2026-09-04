@@ -11,6 +11,7 @@ import { searchWhere } from '@/lib/search';
 import { programLabel, STATUS_LABELS } from '@/lib/constants';
 import { dealerOutstanding } from '@/lib/outstanding';
 import { PageHeader } from '@/components/PageHeader';
+import { NeedsAttention, type AttentionItem } from '@/components/dashboard/NeedsAttention';
 import type { ApplicationStatus, Prisma } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
@@ -115,6 +116,25 @@ export default async function DealerApplications({
   const firstShown = total === 0 ? 0 : (page - 1) * perPage + 1;
   const lastShown = Math.min(page * perPage, total);
 
+  // "Needs your attention" — deals to action across all of this dealer's deals
+  // (independent of the current search/filter/page). Reviewer send-backs
+  // (PROBLEM) first, flagged red.
+  const attentionApps = await prisma.application.findMany({
+    where: { AND: [dealerPortalScopeWhere(user), { status: { in: ['PROBLEM', 'APPROVED', 'CONDITIONAL', 'DOCS_SENT'] } }] },
+    orderBy: { createdAt: 'desc' },
+    select: { id: true, status: true, applicantFirstName: true, applicantLastName: true },
+    take: 20,
+  });
+  const attention: AttentionItem[] = attentionApps
+    .sort((a, b) => (b.status === 'PROBLEM' ? 1 : 0) - (a.status === 'PROBLEM' ? 1 : 0))
+    .slice(0, 6)
+    .map((a) => ({
+      id: a.id,
+      name: `${a.applicantFirstName} ${a.applicantLastName}`.trim(),
+      status: a.status,
+      problem: a.status === 'PROBLEM',
+    }));
+
   return (
     <div>
       <div className="mb-4 space-y-2.5">
@@ -139,6 +159,12 @@ export default async function DealerApplications({
           />
         </div>
       </div>
+
+      {attention.length > 0 && (
+        <div className="mb-4">
+          <NeedsAttention items={attention} />
+        </div>
+      )}
 
       {apps.length === 0 ? (
         <div className="card p-8 text-center text-sm text-gray-500">

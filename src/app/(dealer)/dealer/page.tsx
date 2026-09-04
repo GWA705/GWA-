@@ -5,7 +5,6 @@ import { programLabel } from '@/lib/constants';
 import { DashboardHero } from '@/components/dashboard/DashboardHero';
 import { KpiCard } from '@/components/dashboard/KpiCard';
 import { RecentApplications, type RecentApp } from '@/components/dashboard/RecentApplications';
-import { NeedsAttention, type AttentionItem } from '@/components/dashboard/NeedsAttention';
 import { QuickActions } from '@/components/dashboard/QuickActions';
 import { SupportCard } from '@/components/dashboard/SupportCard';
 import { StatusDonut } from '@/components/dashboard/StatusDonut';
@@ -97,26 +96,11 @@ export default async function DealerDashboard() {
       pinned: pinnedSet.has(a.id),
     }));
 
-  // "Needs your attention" — deals to action, reviewer send-backs (PROBLEM)
-  // first and flagged red.
-  const attention: AttentionItem[] = apps
-    .filter((a) => ACTION_NEEDED.includes(a.status))
-    .sort((a, b) => (b.status === 'PROBLEM' ? 1 : 0) - (a.status === 'PROBLEM' ? 1 : 0))
-    .slice(0, 6)
-    .map((a) => ({
-      id: a.id,
-      name: `${a.applicantFirstName} ${a.applicantLastName}`.trim(),
-      status: a.status,
-      problem: a.status === 'PROBLEM',
-    }));
-
   const firstName = user.name.split(' ')[0] || user.name;
 
   return (
     <div className="space-y-4">
       <DashboardHero firstName={firstName} companyName={profile?.businessName ?? null} />
-
-      <NeedsAttention items={attention} />
 
       {/* KPI row */}
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
