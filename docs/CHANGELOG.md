@@ -27,9 +27,10 @@ source of truth; this file is the human-readable index.
 
 ## 2026-09-04
 - **Card-number redaction in chat.** Card numbers typed into chat are stripped
-  enforced server-side (never stored) with an instant client warning. Uses
-  length + Luhn so real cards are caught but the portal's own numbers (HD
-  Customer #, financing #, phones) are not. `src/lib/cardGuard.ts` (+ tests).
+  and replaced with "[card number removed]" server-side (raw number never
+  stored); the message still goes through and the sender sees an amber notice.
+  Length + Luhn detection, so the portal's own numbers (HD Customer #,
+  financing #, phones) are untouched. `src/lib/cardGuard.ts` (+ tests).
 - **Chat polish.** Fixed the chat auto-scroll stealing the whole page (it now
   scrolls only the message list, and only when you're already at the bottom).
   Removed the redundant inline "Chat with the Reviewer" section from the dealer
