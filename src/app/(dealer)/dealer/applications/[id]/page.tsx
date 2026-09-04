@@ -15,7 +15,7 @@ import { DealProgress } from '@/components/DealProgress';
 import { UploadForm } from '@/components/UploadForm';
 import { SerialNumberForm } from '@/components/SerialNumberForm';
 import { ProductSerialForm } from '@/components/ProductSerialForm';
-import { fundingDocumentTypesFor, STATUS_LABELS, programLabel, soapLabel, REVIEWER_DISPLAY } from '@/lib/constants';
+import { fundingDocumentTypesFor, STATUS_LABELS, programLabel, soapLabel, REVIEWER_DISPLAY, decisionLabel, decisionTone } from '@/lib/constants';
 import { dealerFacingStatus, hasDealerReturned } from '@/lib/reviewerFlow';
 import { dealerOutstanding } from '@/lib/outstanding';
 import {
@@ -199,15 +199,18 @@ export default async function DealerApplicationDetail({
         <section className="card p-6">
           <h2 className="mb-3 border-l-4 border-brand-500 pl-2.5 text-lg font-bold text-gray-900">Review decisions</h2>
           <ul className="space-y-2 text-sm">
-            {app.decisions.map((d) => (
-              <li key={d.id} className="rounded border border-gray-100 bg-gray-50 p-3">
-                <span className="font-medium">{d.type.replace('_', ' ')}</span>
-                {d.notes && <p className="mt-1 text-gray-600">{d.notes}</p>}
-                <p className="mt-1 text-xs text-gray-400">
-                  {REVIEWER_DISPLAY} · {d.createdAt.toLocaleString('en-CA')}
-                </p>
-              </li>
-            ))}
+            {app.decisions.map((d) => {
+              const tone = decisionTone(d.type);
+              return (
+                <li key={d.id} className={`rounded border p-3 ${tone.card}`}>
+                  <span className={`font-semibold ${tone.label}`}>{decisionLabel(d.type)}</span>
+                  {d.notes && <p className="mt-1 text-gray-700">{d.notes}</p>}
+                  <p className="mt-1 text-xs text-gray-500">
+                    {REVIEWER_DISPLAY} · {d.createdAt.toLocaleString('en-CA')}
+                  </p>
+                </li>
+              );
+            })}
           </ul>
         </section>
       )}

@@ -46,7 +46,7 @@ import {
   deleteDocumentAction,
 } from '@/app/(staff)/actions';
 import { VerifyFinanceNumberButton } from '@/components/VerifyFinanceNumberButton';
-import { STATUS_LABELS, REVIEWER_PAPERWORK_TYPES, applicableVerificationChecks } from '@/lib/constants';
+import { STATUS_LABELS, REVIEWER_PAPERWORK_TYPES, applicableVerificationChecks, decisionLabel, decisionTone } from '@/lib/constants';
 import type { ApplicationStatus } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
@@ -699,13 +699,16 @@ export default async function StaffApplicationDetail({
         <div className="border-t border-gray-100 pt-4">
           <h3 className="mb-3 text-sm font-semibold text-gray-900">Decision log</h3>
           <ul className="space-y-2 text-sm">
-            {app.decisions.map((d) => (
-              <li key={d.id} className="rounded border border-gray-100 bg-gray-50 p-2">
-                <span className="font-medium">{d.type.replace('_', ' ')}</span>
-                {d.notes && <p className="text-gray-600">{d.notes}</p>}
-                <p className="text-xs text-gray-400">{d.decidedBy.name} · {d.createdAt.toLocaleString('en-CA')}</p>
-              </li>
-            ))}
+            {app.decisions.map((d) => {
+              const tone = decisionTone(d.type);
+              return (
+                <li key={d.id} className={`rounded border p-2 ${tone.card}`}>
+                  <span className={`font-semibold ${tone.label}`}>{decisionLabel(d.type)}</span>
+                  {d.notes && <p className="text-gray-700">{d.notes}</p>}
+                  <p className="text-xs text-gray-500">{d.decidedBy.name} · {d.createdAt.toLocaleString('en-CA')}</p>
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}

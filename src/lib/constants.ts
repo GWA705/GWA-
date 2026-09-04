@@ -90,6 +90,28 @@ export function hdReferenceRequired(programType: ProgramType): boolean {
   return programType === 'HD';
 }
 
+// Past-tense labels for a RECORDED decision (what it became), vs. the imperative
+// verbs on the decision buttons ("Approve"). Shown in decision logs on both sides.
+export const DECISION_LABELS: Record<string, string> = {
+  APPROVE: 'Approved',
+  CONDITIONAL: 'Conditionally approved',
+  REQUEST_DOCS: 'More documents requested',
+  DECLINE: 'Declined',
+  FUND: 'Funding approved',
+};
+
+export function decisionLabel(type: string): string {
+  return DECISION_LABELS[type] ?? type.replace(/_/g, ' ').toLowerCase();
+}
+
+// Colour tone for a recorded decision: green = approved/funded, red = declined,
+// amber = more documents requested. Returns Tailwind classes for the card + label.
+export function decisionTone(type: string): { card: string; label: string } {
+  if (type === 'DECLINE') return { card: 'border-red-200 bg-red-50', label: 'text-red-800' };
+  if (type === 'REQUEST_DOCS') return { card: 'border-amber-200 bg-amber-50', label: 'text-amber-900' };
+  return { card: 'border-green-200 bg-green-50', label: 'text-green-800' };
+}
+
 // Label shown to DEALERS in place of an individual GWA staff member's name —
 // dealers see "Reviewer" (with the timestamp), never a specific reviewer's name.
 // Used site-wide on dealer-facing surfaces. Change here to change it everywhere.
