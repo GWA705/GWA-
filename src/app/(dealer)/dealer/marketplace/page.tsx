@@ -48,7 +48,6 @@ export default async function DealerMarketplace({ searchParams }: { searchParams
           { Icon: Gift, title: 'Promotional items' },
           { Icon: Package, title: 'Sample kits & more' },
         ]}
-        flourish={['Represent', 'Grow', 'Succeed', 'Together']}
       />
 
       {searchParams.ok && (
