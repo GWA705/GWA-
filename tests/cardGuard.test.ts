@@ -1,0 +1,29 @@
+import { describe, it, expect } from 'vitest';
+import { looksLikeCardNumber, luhnValid } from '../src/lib/cardGuard';
+
+describe('luhnValid', () => {
+  it('accepts a valid card number and rejects a bad one', () => {
+    expect(luhnValid('4242424242424242')).toBe(true);
+    expect(luhnValid('4242424242424243')).toBe(false);
+  });
+});
+
+describe('looksLikeCardNumber', () => {
+  it('blocks real card numbers (spaces, dashes, Amex 15)', () => {
+    expect(looksLikeCardNumber('my card is 4242 4242 4242 4242')).toBe(true);
+    expect(looksLikeCardNumber('4111-1111-1111-1111')).toBe(true);
+    expect(looksLikeCardNumber('378282246310005')).toBe(true); // Amex, 15 digits
+  });
+
+  it('does NOT block the portal’s own reference numbers', () => {
+    expect(looksLikeCardNumber('HD Customer # 800251798')).toBe(false); // 9 digits
+    expect(looksLikeCardNumber('financing deal 7810696')).toBe(false); // 7 digits
+    expect(looksLikeCardNumber('call me at 705-555-0123')).toBe(false); // phone
+    expect(looksLikeCardNumber('serial ABC123456789')).toBe(false); // < 13 digits
+    expect(looksLikeCardNumber('1111 1111 1111 1111')).toBe(false); // 16 digits but fails Luhn
+  });
+
+  it('ignores ordinary text', () => {
+    expect(looksLikeCardNumber('Approved — sending paperwork today')).toBe(false);
+  });
+});

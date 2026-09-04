@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { looksLikeCardNumber, CARD_BLOCK_MESSAGE } from '@/lib/cardGuard';
 
 interface Msg {
   id: string;
@@ -34,6 +35,7 @@ export function ConversationThread({
   const [messages, setMessages] = useState<Msg[]>([]);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
+  const [cardWarn, setCardWarn] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
   // Only auto-scroll the message list (never the page) and only when the reader
@@ -80,6 +82,8 @@ export function ConversationThread({
   async function send() {
     const body = text.trim();
     if (!body || sending) return;
+    if (looksLikeCardNumber(body)) { setCardWarn(true); return; }
+    setCardWarn(false);
     setSending(true);
     try {
       const r = await fetch('/api/chat/send', {
@@ -87,6 +91,7 @@ export function ConversationThread({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ conversationId, applicationId: conversationId ? undefined : applicationId, body }),
       });
+      if (r.status === 422) { setCardWarn(true); return; }
       if (r.ok) {
         const data = await r.json();
         setConversationId(data.conversationId);
@@ -111,17 +116,20 @@ export function ConversationThread({
           </div>
         ))}
       </div>
-      <form onSubmit={(e) => { e.preventDefault(); send(); }} className="flex items-end gap-2 border-t border-gray-200 bg-white p-3">
-        <textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
-          rows={1}
-          placeholder={placeholder}
-          className="max-h-28 min-h-[40px] flex-1 resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-        />
-        <button type="submit" disabled={sending || !text.trim()} className="btn-primary flex-none px-4 py-2 text-sm disabled:opacity-50">Send</button>
-      </form>
+      <div className="border-t border-gray-200 bg-white p-3">
+        {cardWarn && <p className="mb-2 rounded bg-red-50 px-2 py-1.5 text-xs text-red-700">{CARD_BLOCK_MESSAGE}</p>}
+        <form onSubmit={(e) => { e.preventDefault(); send(); }} className="flex items-end gap-2">
+          <textarea
+            value={text}
+            onChange={(e) => { setText(e.target.value); if (cardWarn) setCardWarn(false); }}
+            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
+            rows={1}
+            placeholder={placeholder}
+            className="max-h-28 min-h-[40px] flex-1 resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+          />
+          <button type="submit" disabled={sending || !text.trim()} className="btn-primary flex-none px-4 py-2 text-sm disabled:opacity-50">Send</button>
+        </form>
+      </div>
     </div>
   );
 }

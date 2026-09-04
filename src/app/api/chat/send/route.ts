@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getSession } from '@/lib/session';
 import { isInternalRole } from '@/lib/constants';
+import { looksLikeCardNumber, CARD_BLOCK_MESSAGE } from '@/lib/cardGuard';
 import { notifyNewNote } from '@/lib/notify';
 import {
   canAccessConversation,
@@ -27,6 +28,9 @@ export async function POST(req: NextRequest) {
   }
   const body = (payload.body ?? '').trim();
   if (!body) return new NextResponse('Empty message', { status: 400 });
+
+  // Never let a full card number into chat (kept out of storage entirely).
+  if (looksLikeCardNumber(body)) return new NextResponse(CARD_BLOCK_MESSAGE, { status: 422 });
 
   // Resolve the target conversation.
   let conv: { id: string; dealerId: string } | null = null;
