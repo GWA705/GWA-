@@ -26,6 +26,17 @@ source of truth; this file is the human-readable index.
 | Bell Total Connect voicemail | 📝 Documented, not built here | Guide delivered for the **booking site** (voicemail-to-email + IMAP). Not part of this portal. |
 
 ## 2026-09-04
+- **Live chat (Phase 1 — polling).** Corner chat bubble on the dealer side
+  (deal-aware + a General support thread, unread badge) and a reviewer
+  **Conversations inbox** (`/staff/conversations`), plus a **Chat** nav item with
+  an unread badge. Unified `Conversation`/`ChatMessage`/`ConversationRead` model
+  (backfilled from existing dealer-facing deal notes); the deal page's inline
+  chat (both sides) now reads/writes the same conversation, so bubble, inbox and
+  deal page are one thread. Reviewer names show as "Reviewer" to dealers. Deal
+  messages still fire the existing new-message notification. Near-real-time via
+  polling; SSE + Postgres LISTEN/NOTIFY is the planned Phase 2 upgrade (no UI
+  change). API: `/api/chat/{summary,messages,send,read}`. See
+  `scratchpad/live-chat-architecture.md`.
 - **Reviewer names hidden from dealers.** Dealer-facing surfaces now show
   **"Reviewer"** (with the timestamp) instead of an individual GWA staff name —
   review decisions, the deal chat/notes, the confirmation line, and mail

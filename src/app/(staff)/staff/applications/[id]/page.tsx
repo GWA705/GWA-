@@ -17,6 +17,7 @@ import { ReviewerDoneButton } from './ReviewerDoneButton';
 import { FundingStepActions } from './FundingStepActions';
 import { NoteThread } from '@/components/NoteThread';
 import { NoteForm } from '@/components/NoteForm';
+import { ConversationThread } from '@/components/ConversationThread';
 import { ConfirmationBadge } from '@/components/ConfirmationBadge';
 import { DealProgress } from '@/components/DealProgress';
 import { ProgramBadge } from '@/components/ProgramBadge';
@@ -151,7 +152,6 @@ export default async function StaffApplicationDetail({
     (i) => verificationStates[i.key]?.status === 'CONFIRMED',
   );
 
-  const dealerNotes = app.dealNotes.filter((n) => !n.internal);
   const internalNotes = app.dealNotes.filter((n) => n.internal);
 
   const reveal = searchParams.reveal === '1';
@@ -632,18 +632,9 @@ export default async function StaffApplicationDetail({
   const comms = (
     <div className="space-y-6">
       <div>
-        <h3 className="text-sm font-semibold text-gray-900">Notes to dealer</h3>
-        <p className="mb-3 text-xs text-gray-500">Visible to the dealer on this deal.</p>
-        <div className="mb-4">
-          <NoteThread notes={dealerNotes} emptyText="No messages with the dealer yet." />
-        </div>
-        <NoteForm
-          action={addStaffNoteAction}
-          hidden={{ applicationId: app.id, internal: 'false' }}
-          placeholder="Write a note to the dealer…"
-          label="Send to dealer"
-          templates={noteTemplates}
-        />
+        <h3 className="text-sm font-semibold text-gray-900">Chat with the dealer</h3>
+        <p className="mb-3 text-xs text-gray-500">Live conversation on this deal — the dealer sees you as &ldquo;Reviewer.&rdquo;</p>
+        <ConversationThread applicationId={app.id} placeholder="Message the dealer…" />
       </div>
       <div className="rounded-lg border border-amber-200 p-4">
         <h3 className="text-sm font-semibold text-gray-900">Internal notes</h3>

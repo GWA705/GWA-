@@ -7,8 +7,7 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { DocumentList } from '@/components/DocumentList';
 import { PaperworkCards } from '@/components/PaperworkCards';
 import { PayoutReceipt } from '@/components/PayoutReceipt';
-import { NoteThread } from '@/components/NoteThread';
-import { NoteForm } from '@/components/NoteForm';
+import { ConversationThread } from '@/components/ConversationThread';
 import { ConfirmationBadge } from '@/components/ConfirmationBadge';
 import { ConfirmationView } from '@/components/ConfirmationView';
 import { DealProgress } from '@/components/DealProgress';
@@ -23,7 +22,6 @@ import {
   uploadFundingBatchAction,
   addSerialNumberAction,
   submitFundingAction,
-  addDealerNoteAction,
   deleteOwnDocumentAction,
 } from '@/app/(dealer)/actions';
 import { FundingItemUploader } from '@/components/FundingItemUploader';
@@ -232,17 +230,11 @@ export default async function DealerApplicationDetail({
         )}
       </section>
 
-      {/* Chat with the Reviewer */}
+      {/* Chat with the Reviewer — live conversation (also in the corner bubble) */}
       <section className="card p-6">
-        <h2 className="mb-3 border-l-4 border-brand-500 pl-2.5 text-lg font-bold text-gray-900">Chat with the Reviewer</h2>
-        <div className="mb-4">
-          <NoteThread notes={app.dealNotes} anonymizeStaff emptyText="No messages yet. Use this to chat with the reviewer about this deal." />
-        </div>
-        <NoteForm
-          action={addDealerNoteAction.bind(null, app.id)}
-          placeholder="Write a message to the reviewer…"
-          label="Send"
-        />
+        <h2 className="mb-1 border-l-4 border-brand-500 pl-2.5 text-lg font-bold text-gray-900">Chat with the Reviewer</h2>
+        <p className="mb-3 text-xs text-gray-500">Messages about this deal, live with the GWA team. You can also use the chat bubble in the corner.</p>
+        <ConversationThread applicationId={app.id} placeholder="Write a message to the reviewer…" />
       </section>
 
       {/* Documents for approval */}

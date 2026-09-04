@@ -8,6 +8,7 @@ import { canViewReportsArea } from '@/lib/reporting/access';
 import { isGlobalSearchEnabled } from '@/lib/settings';
 import { canSearchAllCustomers } from '@/lib/customerSearch';
 import { canManageGiftCards, staffHasGiftCardUnread } from '@/lib/giftCardAccess';
+import { totalUnread } from '@/lib/chat';
 
 export default async function StaffLayout({ children }: { children: React.ReactNode }) {
   const user = await requireRole('REVIEWER', 'ADMIN');
@@ -29,6 +30,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
   // Everyday queues stay as top-level tabs.
   if (canDeals) nav.push({ href: '/staff', label: 'Deals' });
   if (canMail) nav.push({ href: '/staff/mail', label: 'Mail' });
+  if (canDeals) nav.push({ href: '/staff/conversations', label: 'Chat', badge: (await totalUnread(user)) > 0 });
   if (await canManageGiftCards(user)) {
     nav.push({ href: '/staff/gift-cards', label: 'Gift cards', badge: await staffHasGiftCardUnread() });
   }

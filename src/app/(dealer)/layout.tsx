@@ -2,6 +2,7 @@ import { requireDealerAccess } from '@/lib/session';
 import { AppShell } from '@/components/AppShell';
 import { WelcomeTour } from '@/components/WelcomeTour';
 import { AlertModal } from '@/components/AlertModal';
+import { ChatWidget } from '@/components/ChatWidget';
 import { alertWhereForUser } from '@/lib/alerts';
 import { newContentSectionsForUser, unreadMailCountForUser } from '@/lib/inbox';
 import { hasCalculatorAccess } from '@/lib/calculatorAccess';
@@ -113,6 +114,7 @@ export default async function DealerLayout({ children }: { children: React.React
       </AppShell>
       {showTour && <WelcomeTour userName={user.name} />}
       {dealerAlerts.length > 0 && <AlertModal alerts={dealerAlerts} />}
+      <ChatWidget />
     </>
   );
 }

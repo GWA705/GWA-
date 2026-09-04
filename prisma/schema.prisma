@@ -323,6 +323,7 @@ model Dealer {
   orders           Order[]
   userRequests     UserRequest[]
   profile          DealerProfile?
+  conversations    Conversation[]
   customProducts   DealerCustomProduct[]
   giftCardRequests GiftCardRequest[]
 }
@@ -539,6 +540,8 @@ model User {
   auditLogs           AuditLog[]
   payoutsRecorded     Payout[]
   notesAuthored       Note[]
+  chatMessages        ChatMessage[]
+  conversationReads   ConversationRead[]
   confirmations       Confirmation[]
   verificationChecks  VerificationCheck[]
   pushSubscriptions   PushSubscription[]
@@ -1050,6 +1053,7 @@ model Application {
   loanApplication LoanApplication?
   payouts         Payout[]
   dealNotes       Note[]
+  conversation    Conversation?
   confirmation    Confirmation?
   verificationChecks VerificationCheck[]
   dealerReminders DealerReminder[]
@@ -1647,4 +1651,53 @@ model LeadCall {
 model LeadNotified {
   leadKey   String   @id
   createdAt DateTime @default(now())
+}
+
+// ---- Chat / conversations -------------------------------------------------
+// A dealer's live chat with the GWA team. One DEAL conversation per deal, plus
+// one SUPPORT (general) conversation per dealer. Reviewer identities are hidden
+// from dealers in the UI (shown as "Reviewer"); the data still records who.
+enum ConversationKind {
+  DEAL
+  SUPPORT
+}
+
+model Conversation {
+  id            String             @id @default(cuid())
+  dealerId      String
+  dealer        Dealer             @relation(fields: [dealerId], references: [id], onDelete: Cascade)
+  kind          ConversationKind
+  applicationId String?            @unique
+  application   Application?       @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  messages      ChatMessage[]
+  reads         ConversationRead[]
+  createdAt     DateTime           @default(now())
+  lastMessageAt DateTime           @default(now())
+
+  @@index([dealerId])
+  @@index([lastMessageAt])
+}
+
+model ChatMessage {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  authorId       String
+  author         User         @relation(fields: [authorId], references: [id])
+  fromStaff      Boolean // true = GWA team; dealers see the author as "Reviewer"
+  body           String       @db.Text
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId, createdAt])
+}
+
+model ConversationRead {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id])
+  lastReadAt     DateTime     @default(now())
+
+  @@unique([conversationId, userId])
 }
