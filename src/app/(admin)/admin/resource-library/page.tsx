@@ -25,11 +25,18 @@ export default async function ResourceLibraryAdminPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold text-gray-900">Resource library</h1>
-        <p className="mt-1 text-sm text-gray-600">
-          Product manuals, brochures and spec sheets dealers can view and download under their Resources tab.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold text-gray-900">Resource library</h1>
+          <p className="mt-1 text-sm text-gray-600">
+            Product manuals, brochures and spec sheets dealers can view and download under their Resources tab.
+          </p>
+        </div>
+        {products.length > 0 && (
+          <a href="/api/resource-products/export" className="btn-secondary shrink-0 text-sm" title="Download the product catalog as a CSV (for the booking site / other systems)">
+            ↓ Export products (CSV)
+          </a>
+        )}
       </div>
 
       <div className="card p-6">
