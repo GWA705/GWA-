@@ -36,6 +36,7 @@ export function ChatWidget() {
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const [cardWarn, setCardWarn] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const stickRef = useRef(true);
   const onScroll = () => {
@@ -121,6 +122,7 @@ export function ChatWidget() {
     if (!body || !active || sending) return;
     // The server strips card numbers; let the sender know when that happens.
     setCardWarn(looksLikeCardNumber(body));
+    setSendError(null);
     setSending(true);
     try {
       const r = await fetch('/api/chat/send', {
@@ -140,7 +142,14 @@ export function ChatWidget() {
         if (!active.conversationId) setActive({ ...active, conversationId: cid });
         await loadMessages(cid);
         loadSummary();
+      } else {
+        // Surface the reason instead of failing silently (the message stays in
+        // the box so nothing is lost).
+        const msg = await r.json().catch(() => null);
+        setSendError(msg?.error || 'Couldn’t send your message. Please try again.');
       }
+    } catch {
+      setSendError('You appear to be offline. Please check your connection and try again.');
     } finally {
       setSending(false);
     }
@@ -241,10 +250,11 @@ export function ChatWidget() {
               </div>
               <div className="border-t border-gray-200 p-3">
                 {cardWarn && <p className="mb-2 rounded bg-amber-50 px-2 py-1.5 text-xs text-amber-800">{CARD_REDACT_NOTICE}</p>}
+                {sendError && <p className="mb-2 rounded bg-red-50 px-2 py-1.5 text-xs text-red-700" role="alert">{sendError}</p>}
                 <form onSubmit={(e) => { e.preventDefault(); send(); }} className="flex items-end gap-2">
                   <textarea
                     value={text}
-                    onChange={(e) => { setText(e.target.value); if (cardWarn) setCardWarn(false); }}
+                    onChange={(e) => { setText(e.target.value); if (cardWarn) setCardWarn(false); if (sendError) setSendError(null); }}
                     onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
                     rows={1}
                     placeholder="Write a message…"

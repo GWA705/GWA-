@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
   }
   // Strip any full card number before the message is ever stored.
   const body = redactCardNumbers((payload.body ?? '').trim());
-  if (!body) return new NextResponse('Empty message', { status: 400 });
+  if (!body) return NextResponse.json({ error: 'Type a message first.' }, { status: 400 });
 
   // Resolve the target conversation.
   let conv: { id: string; dealerId: string } | null = null;
@@ -39,11 +39,16 @@ export async function POST(req: NextRequest) {
   } else if (payload.kind === 'SUPPORT') {
     // The general thread belongs to a dealer; anyone with a dealerId (a dealer,
     // or an admin viewing as one) can open it. Staff reply by conversationId.
-    if (!session.dealerId) return new NextResponse('Bad request', { status: 400 });
+    if (!session.dealerId) {
+      return NextResponse.json(
+        { error: 'General support chat is for dealer accounts. As GWA staff, open a dealer’s thread from the Conversations inbox to reply.' },
+        { status: 400 },
+      );
+    }
     conv = await getOrCreateSupportConversation(session.dealerId);
   }
-  if (!conv) return new NextResponse('Conversation not found', { status: 404 });
-  if (!canAccessConversation(session, conv)) return new NextResponse('Forbidden', { status: 403 });
+  if (!conv) return NextResponse.json({ error: 'That conversation could not be found.' }, { status: 404 });
+  if (!canAccessConversation(session, conv)) return NextResponse.json({ error: 'You don’t have access to that conversation.' }, { status: 403 });
 
   await postChatMessage({ conversationId: conv.id, user: session, body });
 
