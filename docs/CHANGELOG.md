@@ -26,6 +26,19 @@ source of truth; this file is the human-readable index.
 | Bell Total Connect voicemail | 📝 Documented, not built here | Guide delivered for the **booking site** (voicemail-to-email + IMAP). Not part of this portal. |
 
 ## 2026-09-04
+- **Marketplace facelift (dealer).** New shared enterprise page hero
+  (`SectionHero`, reusable across dealer tabs): blue gradient + swappable
+  background photo (`public/marketplace-hero.jpg`), eyebrow/title/subtitle,
+  feature tiles and a "Represent / Grow / Succeed / Together" script flourish.
+  Categories are now big icon cards with counts; added a product search + sort
+  (Featured / A–Z). On desktop the cart is a **persistent right rail** (with a
+  "Need help with your order?" support card that opens the corner chat, plus
+  Fast-processing / Dealer-exclusive / Questions tiles); mobile keeps the
+  floating cart button + drawer. All order logic unchanged — still an
+  order request, **no prices/checkout** (items carry no price in the system).
+- **"Needs your attention" moved to the Applications page.** Off the dashboard;
+  it now sits above the full Applications list (reviewer send-backs first,
+  flagged red), where the dealer actually actions deals.
 - **Dealer dashboard facelift — round 2.** Hero rebuilt as a wide photographic
   banner: swappable background photo (`public/hero-banner.jpg`, on-brand gradient
   until one is added), a **time-aware icon** on the greeting (sunrise / sun /

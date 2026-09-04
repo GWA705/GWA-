@@ -1,7 +1,8 @@
 import { requireDealerAccess } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { MarketplaceOrderForm } from './MarketplaceOrderForm';
-import { PageHeader } from '@/components/PageHeader';
+import { SectionHero } from '@/components/SectionHero';
+import { Shirt, Presentation, Gift, Package } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,19 +36,23 @@ export default async function DealerMarketplace({ searchParams }: { searchParams
   }));
 
   return (
-    <div>
-      <div className="mb-5">
-        <PageHeader
-          variant="hero"
-          icon="🛍️"
-          eyebrow="Sales & rewards"
-          title="Marketplace"
-          subtitle="Choose what you'd like and submit an order — our team will take it from there."
-        />
-      </div>
+    <div className="space-y-5">
+      <SectionHero
+        eyebrow="Sales & rewards"
+        title="Marketplace"
+        subtitle="High-quality branded products to help you grow your business."
+        bgImage="/marketplace-hero.jpg"
+        tiles={[
+          { Icon: Shirt, title: 'Professional apparel' },
+          { Icon: Presentation, title: 'Marketing signage' },
+          { Icon: Gift, title: 'Promotional items' },
+          { Icon: Package, title: 'Sample kits & more' },
+        ]}
+        flourish={['Represent', 'Grow', 'Succeed', 'Together']}
+      />
 
       {searchParams.ok && (
-        <div className="mb-5 rounded-md border border-green-200 bg-green-50 p-4 text-sm text-green-800">
+        <div className="rounded-md border border-green-200 bg-green-50 p-4 text-sm text-green-800">
           ✓ Your order was submitted. Thanks — we&apos;ll be in touch.
         </div>
       )}
