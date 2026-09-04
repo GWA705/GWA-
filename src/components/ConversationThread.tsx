@@ -35,7 +35,15 @@ export function ConversationThread({
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const [loaded, setLoaded] = useState(false);
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  // Only auto-scroll the message list (never the page) and only when the reader
+  // is already near the bottom — so a poll never yanks them away from what
+  // they're reading higher up.
+  const stickRef = useRef(true);
+  const onScroll = () => {
+    const el = listRef.current;
+    if (el) stickRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 60;
+  };
 
   const load = useCallback(async () => {
     const q = conversationId
@@ -65,7 +73,8 @@ export function ConversationThread({
   }, [load]);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ block: 'end' });
+    const el = listRef.current;
+    if (el && stickRef.current) el.scrollTop = el.scrollHeight;
   }, [messages]);
 
   async function send() {
@@ -91,7 +100,7 @@ export function ConversationThread({
 
   return (
     <div className="overflow-hidden rounded-lg border border-gray-200">
-      <div className={`${heightClass} space-y-3 overflow-y-auto bg-gray-50 p-4`}>
+      <div ref={listRef} onScroll={onScroll} className={`${heightClass} space-y-3 overflow-y-auto bg-gray-50 p-4`}>
         {loaded && messages.length === 0 && <p className="text-center text-sm text-gray-400">No messages yet.</p>}
         {messages.map((m) => (
           <div key={m.id} className={`flex ${m.fromStaff ? 'justify-start' : 'justify-end'}`}>
@@ -101,7 +110,6 @@ export function ConversationThread({
             </div>
           </div>
         ))}
-        <div ref={bottomRef} />
       </div>
       <form onSubmit={(e) => { e.preventDefault(); send(); }} className="flex items-end gap-2 border-t border-gray-200 bg-white p-3">
         <textarea

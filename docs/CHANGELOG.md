@@ -26,6 +26,11 @@ source of truth; this file is the human-readable index.
 | Bell Total Connect voicemail | 📝 Documented, not built here | Guide delivered for the **booking site** (voicemail-to-email + IMAP). Not part of this portal. |
 
 ## 2026-09-04
+- **Chat polish.** Fixed the chat auto-scroll stealing the whole page (it now
+  scrolls only the message list, and only when you're already at the bottom).
+  Removed the redundant inline "Chat with the Reviewer" section from the dealer
+  deal page — the corner bubble covers it (the reviewer deal page keeps its
+  inline chat).
 - **Live chat (Phase 1 — polling).** Corner chat bubble on the dealer side
   (deal-aware + a General support thread, unread badge) and a reviewer
   **Conversations inbox** (`/staff/conversations`), plus a **Chat** nav item with

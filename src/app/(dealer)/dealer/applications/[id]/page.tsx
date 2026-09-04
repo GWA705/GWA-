@@ -7,7 +7,6 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { DocumentList } from '@/components/DocumentList';
 import { PaperworkCards } from '@/components/PaperworkCards';
 import { PayoutReceipt } from '@/components/PayoutReceipt';
-import { ConversationThread } from '@/components/ConversationThread';
 import { ConfirmationBadge } from '@/components/ConfirmationBadge';
 import { ConfirmationView } from '@/components/ConfirmationView';
 import { DealProgress } from '@/components/DealProgress';
@@ -228,13 +227,6 @@ export default async function DealerApplicationDetail({
         ) : (
           <p className="text-sm text-gray-500">This deal has not been confirmed yet.</p>
         )}
-      </section>
-
-      {/* Chat with the Reviewer — live conversation (also in the corner bubble) */}
-      <section className="card p-6">
-        <h2 className="mb-1 border-l-4 border-brand-500 pl-2.5 text-lg font-bold text-gray-900">Chat with the Reviewer</h2>
-        <p className="mb-3 text-xs text-gray-500">Messages about this deal, live with the GWA team. You can also use the chat bubble in the corner.</p>
-        <ConversationThread applicationId={app.id} placeholder="Write a message to the reviewer…" />
       </section>
 
       {/* Documents for approval */}

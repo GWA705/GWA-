@@ -34,7 +34,12 @@ export function ChatWidget() {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const stickRef = useRef(true);
+  const onScroll = () => {
+    const el = listRef.current;
+    if (el) stickRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 60;
+  };
 
   // Deal-aware: on a specific deal page, offer that deal's thread directly.
   const dealMatch = pathname?.match(/^\/dealer\/applications\/([^/]+)/);
@@ -78,7 +83,8 @@ export function ChatWidget() {
   }, [view, active?.conversationId, loadMessages]);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ block: 'end' });
+    const el = listRef.current;
+    if (el && stickRef.current) el.scrollTop = el.scrollHeight;
   }, [messages, view]);
 
   function openThread(a: Active) {
@@ -191,7 +197,7 @@ export function ChatWidget() {
             </div>
           ) : (
             <>
-              <div className="flex-1 space-y-3 overflow-y-auto bg-gray-50 p-4">
+              <div ref={listRef} onScroll={onScroll} className="flex-1 space-y-3 overflow-y-auto bg-gray-50 p-4">
                 {messages.length === 0 && <p className="text-center text-sm text-gray-400">No messages yet — say hello.</p>}
                 {messages.map((m) => (
                   <div key={m.id} className={`flex ${m.fromStaff ? 'justify-start' : 'justify-end'}`}>
@@ -201,7 +207,6 @@ export function ChatWidget() {
                     </div>
                   </div>
                 ))}
-                <div ref={bottomRef} />
               </div>
               <form
                 onSubmit={(e) => { e.preventDefault(); send(); }}
