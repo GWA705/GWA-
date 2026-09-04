@@ -18,11 +18,13 @@ function openChat() {
  */
 export function SupportCard() {
   return (
-    <div className="relative flex h-full min-h-[188px] flex-col justify-between overflow-hidden rounded-2xl bg-[#0e2b5c] p-6 text-white shadow-sm">
-      {/* Agent photo — right side, cropped to fill, faded into the card */}
+    <div className="relative flex min-h-[168px] flex-col justify-between gap-4 overflow-hidden rounded-2xl bg-[#0e2b5c] p-5 text-white shadow-sm">
+      {/* Agent photo — right side, cropped to fill, faded into the card. The
+          position keeps a right-of-centre face (like the supplied photo) in
+          frame; a transparent/blue-background PNG blends most cleanly. */}
       <div
-        className="pointer-events-none absolute inset-y-0 right-0 w-[46%] bg-cover bg-center bg-no-repeat sm:w-[42%]"
-        style={{ backgroundImage: "url('/support-agent.png')" }}
+        className="pointer-events-none absolute inset-y-0 right-0 w-[48%] bg-cover bg-no-repeat sm:w-[44%]"
+        style={{ backgroundImage: "url('/support-agent.png')", backgroundPosition: '68% 22%' }}
         aria-hidden
       />
       {/* Watermark shown when no photo is present (sits behind the photo) */}

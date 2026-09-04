@@ -48,6 +48,13 @@ const THEME_SCRIPT = `(function(){try{var t=localStorage.getItem('theme');var d=
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Elegant script face for the dashboard hero flourish ("Better Water /
+            Brighter Lives"). Loaded at runtime; degrades to cursive if blocked. */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap" rel="stylesheet" />
+      </head>
       <body>
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
         <VersionWatcher currentBuildId={getBuildId()} />

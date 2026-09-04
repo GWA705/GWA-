@@ -322,3 +322,11 @@ body {
 @keyframes wmGreetIn { 0% { opacity:0; transform:translateY(10px); } 100% { opacity:1; transform:translateY(0); } }
 .wm-greet-in { animation: wmGreetIn .6s ease-out both; }
 @media (prefers-reduced-motion: reduce) { .wm-gwa, .wm-co, .wm-greet-in { animation: none; } }
+
+/* Slim, on-brand scrollbar for the dealer sidebar nav (replaces the chunky
+   native bar). Falls back gracefully where unsupported. */
+.sidebar-scroll { scrollbar-width: thin; scrollbar-color: rgba(148,197,255,0.35) transparent; }
+.sidebar-scroll::-webkit-scrollbar { width: 6px; }
+.sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
+.sidebar-scroll::-webkit-scrollbar-thumb { background-color: rgba(148,197,255,0.28); border-radius: 9999px; }
+.sidebar-scroll:hover::-webkit-scrollbar-thumb { background-color: rgba(148,197,255,0.45); }

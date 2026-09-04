@@ -5,6 +5,7 @@ import { programLabel } from '@/lib/constants';
 import { DashboardHero } from '@/components/dashboard/DashboardHero';
 import { KpiCard } from '@/components/dashboard/KpiCard';
 import { RecentApplications, type RecentApp } from '@/components/dashboard/RecentApplications';
+import { NeedsAttention, type AttentionItem } from '@/components/dashboard/NeedsAttention';
 import { QuickActions } from '@/components/dashboard/QuickActions';
 import { SupportCard } from '@/components/dashboard/SupportCard';
 import { StatusDonut } from '@/components/dashboard/StatusDonut';
@@ -25,7 +26,7 @@ export default async function DealerDashboard() {
   const user = await requireDealerAccess();
   const where = dealerPortalScopeWhere(user);
 
-  const [apps, profile] = await Promise.all([
+  const [apps, profile, pinRows] = await Promise.all([
     prisma.application.findMany({
       where,
       orderBy: { createdAt: 'desc' },
@@ -37,7 +38,9 @@ export default async function DealerDashboard() {
       },
     }),
     user.dealerId ? prisma.dealerProfile.findUnique({ where: { dealerId: user.dealerId }, select: { businessName: true } }) : Promise.resolve(null),
+    prisma.applicationPin.findMany({ where: { userId: user.userId }, select: { applicationId: true } }).catch(() => []),
   ]);
+  const pinnedSet = new Set(pinRows.map((p) => p.applicationId));
 
   const amountOf = (a: (typeof apps)[number]) => Number(a.approvedAmount ?? a.requestedAmount);
 
@@ -76,22 +79,44 @@ export default async function DealerDashboard() {
     .sort((a, b) => b.count - a.count)
     .slice(0, 5);
 
-  const recent: RecentApp[] = apps.slice(0, 4).map((a) => ({
-    id: a.id,
-    name: `${a.applicantFirstName} ${a.applicantLastName}`.trim(),
-    province: a.province,
-    program: programLabel(a.programType, a.programCategory),
-    amount: money(amountOf(a)),
-    status: a.status,
-    submitted: a.createdAt.toLocaleDateString('en-CA'),
-    actionNeeded: ACTION_NEEDED.includes(a.status),
-  }));
+  // Pinned deals float to the top of the preview (stable sort keeps date order
+  // within each group), then show a handful with a "Show more" expander.
+  const recent: RecentApp[] = [...apps]
+    .sort((a, b) => (pinnedSet.has(b.id) ? 1 : 0) - (pinnedSet.has(a.id) ? 1 : 0))
+    .slice(0, 15)
+    .map((a) => ({
+      id: a.id,
+      name: `${a.applicantFirstName} ${a.applicantLastName}`.trim(),
+      province: a.province,
+      program: programLabel(a.programType, a.programCategory),
+      amount: money(amountOf(a)),
+      status: a.status,
+      submitted: a.createdAt.toLocaleDateString('en-CA'),
+      actionNeeded: ACTION_NEEDED.includes(a.status),
+      problem: a.status === 'PROBLEM',
+      pinned: pinnedSet.has(a.id),
+    }));
+
+  // "Needs your attention" — deals to action, reviewer send-backs (PROBLEM)
+  // first and flagged red.
+  const attention: AttentionItem[] = apps
+    .filter((a) => ACTION_NEEDED.includes(a.status))
+    .sort((a, b) => (b.status === 'PROBLEM' ? 1 : 0) - (a.status === 'PROBLEM' ? 1 : 0))
+    .slice(0, 6)
+    .map((a) => ({
+      id: a.id,
+      name: `${a.applicantFirstName} ${a.applicantLastName}`.trim(),
+      status: a.status,
+      problem: a.status === 'PROBLEM',
+    }));
 
   const firstName = user.name.split(' ')[0] || user.name;
 
   return (
     <div className="space-y-4">
       <DashboardHero firstName={firstName} companyName={profile?.businessName ?? null} />
+
+      <NeedsAttention items={attention} />
 
       {/* KPI row */}
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">

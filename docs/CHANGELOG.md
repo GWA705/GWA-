@@ -26,6 +26,19 @@ source of truth; this file is the human-readable index.
 | Bell Total Connect voicemail | 📝 Documented, not built here | Guide delivered for the **booking site** (voicemail-to-email + IMAP). Not part of this portal. |
 
 ## 2026-09-04
+- **Dealer dashboard facelift — round 2.** Hero rebuilt as a wide photographic
+  banner: swappable background photo (`public/hero-banner.jpg`, on-brand gradient
+  until one is added), a **time-aware icon** on the greeting (sunrise / sun /
+  moon-and-stars for morning / afternoon / evening) and a "Better Water /
+  Brighter Lives" script flourish (Great Vibes web font). Header shows the
+  dealer's own company logo + "Dealer Portal". Sidebar got a **slim on-brand
+  scrollbar** (replacing the chunky native bar) and tighter spacing; the
+  "Switch to Reviewer view" control moved up to a small top-bar pill beside the
+  search. **Recent Applications** is now expandable (Show more/less), pinnable
+  (per-user pins float to the top), and flags reviewer send-backs. New
+  **"Needs your attention"** panel lists deals to action — reviewer send-backs
+  (PROBLEM) first, flagged red with a "!". Support card made compact + shows a
+  swappable agent photo (`public/support-agent.png`). UI-only.
 - **Dealer dashboard facelift — refinements.** Header now shows the **dealer's own
   uploaded company logo** beside "Dealer Portal" (falls back to the Georgian
   wordmark when no logo is set). Hero rebuilt to the enterprise "Welcome to your

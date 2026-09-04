@@ -7,7 +7,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { MobileNav } from '@/components/MobileNav';
 import {
   Home, FileText, UserPlus, Mail, Users, ShoppingCart, Gift, BookOpen, BarChart3,
-  Building2, Headphones, Wrench, Search, Bell, LogOut, Droplets, ChevronRight, type LucideIcon,
+  Building2, Headphones, Wrench, Search, Bell, LogOut, Droplets, ArrowLeftRight, type LucideIcon,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -107,6 +107,17 @@ export function DealerShell({
             <input name="q" className="w-52 bg-transparent text-sm outline-none" placeholder="Search customers or applications…" />
           </form>
 
+          {showSwitcher && (
+            <Link
+              href="/staff"
+              className="hidden items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-[#0e2756] transition hover:bg-slate-100 sm:inline-flex"
+              title="Switch to Reviewer view"
+            >
+              <ArrowLeftRight size={14} className="text-blue-600" />
+              <span className="hidden lg:inline">Reviewer</span>
+            </Link>
+          )}
+
           <Link href="/dealer/mail" className="relative text-[#0e2756] hover:text-blue-700" aria-label="Mail">
             <Bell size={22} />
             {mailUnread > 0 && (
@@ -132,17 +143,12 @@ export function DealerShell({
 
       <div className="flex">
         {/* SIDEBAR (desktop) */}
-        <aside className="sticky top-0 hidden h-[calc(100vh-72px)] w-[230px] flex-none flex-col justify-between bg-gradient-to-b from-[#052755] to-[#031d43] px-3 py-6 text-white lg:flex">
-          <nav className="space-y-1 overflow-y-auto">
-            {showSwitcher && (
-              <Link href="/staff" className="mb-2 flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold text-sky-200 hover:bg-white/10">
-                <ChevronRight size={14} /> Switch to Reviewer view
-              </Link>
-            )}
+        <aside className="sticky top-0 hidden h-[calc(100vh-72px)] w-[230px] flex-none flex-col bg-gradient-to-b from-[#052755] to-[#031d43] px-3 py-4 text-white lg:flex">
+          <nav className="sidebar-scroll min-h-0 flex-1 space-y-0.5 overflow-y-auto pr-1">
             {nav.map((item) =>
               item.children ? (
-                <div key={item.label} className="pt-2">
-                  <div className="px-4 pb-1 text-[10px] font-bold uppercase tracking-wider text-blue-300/70">{item.label}</div>
+                <div key={item.label} className="pt-1.5">
+                  <div className="px-4 pb-0.5 text-[10px] font-bold uppercase tracking-wider text-blue-300/70">{item.label}</div>
                   {item.children.map((c) => <SidebarLink key={c.label} item={c} pathname={pathname} sub />)}
                 </div>
               ) : (
@@ -150,10 +156,10 @@ export function DealerShell({
               ),
             )}
           </nav>
-          <div className="px-4 pb-2 pt-4">
-            <Droplets size={44} className="mb-3 text-sky-400" />
-            <div className="text-[11px] font-semibold leading-6 tracking-[0.22em] text-blue-200">
-              CLEANER WATER<br />HEALTHIER AIR<br />BRIGHTER<br />TOMORROWS
+          <div className="flex flex-none items-center gap-3 border-t border-white/10 px-4 pb-1 pt-3">
+            <Droplets size={26} className="flex-none text-sky-400" />
+            <div className="text-[10px] font-semibold leading-4 tracking-[0.2em] text-blue-200/90">
+              CLEANER WATER · HEALTHIER AIR<br />BRIGHTER TOMORROWS
             </div>
           </div>
         </aside>
