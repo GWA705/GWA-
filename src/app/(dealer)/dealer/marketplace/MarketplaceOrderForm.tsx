@@ -409,19 +409,24 @@ function SupportRailCard() {
   return (
     <div className="relative overflow-hidden rounded-2xl bg-[#0e2b5c] p-5 text-white shadow-sm">
       <div
-        className="pointer-events-none absolute inset-y-0 right-0 w-[42%] bg-cover bg-no-repeat"
-        style={{ backgroundImage: "url('/support-agent.png')", backgroundPosition: '68% 22%' }}
+        className="pointer-events-none absolute inset-y-0 right-0 w-[56%] bg-cover bg-no-repeat"
+        style={{
+          backgroundImage: "url('/support-agent.png')",
+          backgroundPosition: '62% 16%',
+          maskImage: 'linear-gradient(to right, transparent 0%, #000 46%)',
+          WebkitMaskImage: 'linear-gradient(to right, transparent 0%, #000 46%)',
+        }}
         aria-hidden
       />
       <LifeBuoy className="pointer-events-none absolute -right-3 bottom-2 text-white/5" size={120} aria-hidden />
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#0e2b5c] via-[#0e2b5c]/85 to-transparent" aria-hidden />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#0e2b5c] via-[#0e2b5c]/70 to-transparent" aria-hidden />
       <div className="relative z-10 max-w-[62%]">
         <div className="text-lg font-bold">Need help with your order?</div>
         <p className="mt-1 text-sm text-blue-100">Our support team is here to help.</p>
         <button
           type="button"
           onClick={() => window.dispatchEvent(new CustomEvent('gwa:open-chat', { detail: { support: true } }))}
-          className="mt-4 inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-[#0e2b5c] transition hover:bg-blue-50"
+          className="mt-4 inline-flex items-center gap-2 rounded-lg bg-white px-3.5 py-1.5 text-[13px] font-semibold text-[#0e2b5c] transition hover:bg-blue-50"
         >
           Contact Support <ArrowRight size={16} />
         </button>
@@ -609,13 +614,12 @@ export function MarketplaceOrderForm({ items, categories }: { items: Item[]; cat
         </div>
       </div>
 
-      {featured.length > 0 && !query.trim() && (active === ALL || active === NEW_ARRIVALS) && (
-        <NewArrivalsRail items={featured} onImageClick={openImage} />
-      )}
-
       {/* Products + rail */}
       <div className="grid grid-cols-1 gap-5 pb-24 xl:grid-cols-[1fr_320px] xl:pb-5">
-        <div className="min-w-0 space-y-3">
+        <div className="min-w-0 space-y-4">
+          {featured.length > 0 && !query.trim() && (active === ALL || active === NEW_ARRIVALS) && (
+            <NewArrivalsRail items={featured} onImageClick={openImage} />
+          )}
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">{query.trim() ? 'Search results' : activeLabel}</h2>
             <span className="text-xs text-gray-400">{visibleItems.length} item{visibleItems.length === 1 ? '' : 's'}</span>
