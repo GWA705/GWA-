@@ -42,14 +42,24 @@ export default async function DealerLayout({ children }: { children: React.React
   }
 
   // Attention dots: content sections with something new, and unread mail.
-  const [freshSections, unreadMail, calcAccess, reportAccess, searchEnabled, giftCardUnread] = await Promise.all([
+  const [freshSections, unreadMail, calcAccess, reportAccess, searchEnabled, giftCardUnread, dealerProfile] = await Promise.all([
     newContentSectionsForUser(user.userId),
     user.dealerId ? unreadMailCountForUser(user.userId, user.dealerId, user.isDistributor) : Promise.resolve(0),
     hasCalculatorAccess(user),
     hasDealerReportAccess(user),
     isGlobalSearchEnabled(),
     user.dealerId ? dealerHasGiftCardUnread(user.dealerId) : Promise.resolve(false),
+    user.dealerId
+      ? prisma.dealerProfile.findUnique({ where: { dealerId: user.dealerId }, select: { logoStorageKey: true, updatedAt: true, businessName: true } })
+      : Promise.resolve(null),
   ]);
+  // The dealer's own uploaded logo (falls back to the Georgian wordmark in the
+  // header when none is set). Cache-busted on profile update.
+  const companyLogoUrl =
+    dealerProfile?.logoStorageKey && user.dealerId
+      ? `/api/dealer-profiles/${user.dealerId}/logo?v=${dealerProfile.updatedAt.getTime()}`
+      : null;
+  const companyName = dealerProfile?.businessName ?? null;
   const initials =
     user.name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase()).join('') || '?';
 
@@ -76,6 +86,8 @@ export default async function DealerLayout({ children }: { children: React.React
         initials={initials}
         mailUnread={unreadMail}
         showSwitcher={hasBothPortals(user)}
+        companyLogoUrl={companyLogoUrl}
+        companyName={companyName}
         nav={[
           // Everyday actions stay as top-level tabs.
           { href: '/dealer', label: 'Home' },

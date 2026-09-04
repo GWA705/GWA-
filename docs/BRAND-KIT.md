@@ -363,6 +363,32 @@ These apply to every report, dashboard, and analysis produced under the GWA name
 
 ---
 
+## 13. Support-agent photo (dealer dashboard "Need Support?" card)
+
+The dashboard Support card renders a swappable photo from
+`public/support-agent.png` (cropped to fill and blended into the blue card). To
+generate a perfectly-formatted one, paste this into an AI image generator
+(ChatGPT/DALL·E, Midjourney, etc.):
+
+> Professional friendly female customer-support agent wearing a black headset,
+> warm genuine smile, looking at the camera. Head-and-shoulders portrait,
+> subject positioned slightly right of centre with clear headroom. Clean modern
+> office softly blurred in the background. Bright, even, natural lighting.
+> Corporate, approachable, trustworthy. **Cool blue colour grade** to match a
+> deep-navy brand (#0e2b5c). **Vertical 4:5 aspect ratio, ~1000×1250 px.**
+> Photorealistic, high resolution, no text, no logos, no watermark.
+
+Export/placement notes so it fits the card without cropping the face:
+- **Vertical 4:5**, ~1000×1250 px, PNG (transparent background is ideal — she
+  blends straight into the blue; a soft blue office background also works).
+- Keep the **face in the upper-centre**; the card fades the left edge into the
+  card colour, so leave the left ~15% uncluttered.
+- Save as `public/support-agent.png` and commit. No code change needed — the
+  card picks it up automatically. Until a file is added, a headset watermark
+  shows in its place (nothing looks broken).
+
+---
+
 *Maintained by Sean Jaiko · Georgian Water & Air · Last updated August 22, 2026*
 
 **v1.1 changes:** Added toll-free, fax, and HST numbers; print logo lockup and

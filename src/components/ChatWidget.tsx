@@ -89,6 +89,26 @@ export function ChatWidget() {
     if (el && stickRef.current) el.scrollTop = el.scrollHeight;
   }, [messages, view]);
 
+  // Let other parts of the portal (e.g. the dashboard "Contact Support" card)
+  // pop the chat open — straight into a support thread when asked.
+  useEffect(() => {
+    const onOpen = (e: Event) => {
+      setOpen(true);
+      const wantsSupport = (e as CustomEvent).detail?.support;
+      if (wantsSupport) {
+        const existing = summary.conversations.find((c) => c.kind === 'SUPPORT');
+        if (existing) openThread({ conversationId: existing.id, title: existing.title });
+        else openThread({ kind: 'SUPPORT', title: 'General support' });
+      } else {
+        setView('list');
+      }
+    };
+    window.addEventListener('gwa:open-chat', onOpen);
+    return () => window.removeEventListener('gwa:open-chat', onOpen);
+    // openThread is stable enough for this handler; summary is read at fire time.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [summary.conversations]);
+
   function openThread(a: Active) {
     setActive(a);
     setMessages([]);

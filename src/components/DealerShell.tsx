@@ -60,7 +60,7 @@ function SidebarLink({ item, pathname, sub }: { item: NavItem; pathname: string;
 }
 
 export function DealerShell({
-  userName, roleLabel, initials, nav, mailUnread, showSwitcher, children,
+  userName, roleLabel, initials, nav, mailUnread, showSwitcher, companyLogoUrl, companyName, children,
 }: {
   userName: string;
   roleLabel: string;
@@ -68,6 +68,8 @@ export function DealerShell({
   nav: NavItem[];
   mailUnread: number;
   showSwitcher: boolean;
+  companyLogoUrl?: string | null;
+  companyName?: string | null;
   children: React.ReactNode;
 }) {
   const pathname = usePathname() ?? '/dealer';
@@ -78,20 +80,25 @@ export function DealerShell({
       <header className="flex h-[72px] items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 sm:px-6">
         <div className="flex items-center gap-3">
           <MobileNav userName={userName} roleLabel={roleLabel} nav={nav} triggerClassName="topbar-btn px-2.5 lg:hidden" />
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 flex-none items-center justify-center rounded-full bg-blue-600">
-              <Droplets className="text-white" size={24} />
-            </div>
+          <Link href="/dealer" className="flex items-center gap-3">
+            {companyLogoUrl ? (
+              // The dealer's own uploaded company logo.
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={companyLogoUrl}
+                alt={companyName ? `${companyName} logo` : 'Company logo'}
+                className="h-11 w-11 flex-none rounded-xl border border-slate-200 bg-white object-contain p-1"
+              />
+            ) : (
+              <div className="flex h-11 w-11 flex-none items-center justify-center rounded-full bg-blue-600">
+                <Droplets className="text-white" size={24} />
+              </div>
+            )}
             <div className="leading-tight">
-              <div className="text-[15px] font-extrabold tracking-wide text-[#0d2a63] sm:text-lg">GEORGIAN</div>
-              <div className="text-[9px] font-bold tracking-[0.28em] text-blue-500">WATER &amp; AIR</div>
+              <div className="text-base font-extrabold tracking-tight text-[#0e2756] sm:text-lg">Dealer Portal</div>
+              <div className="text-[10px] font-semibold tracking-[0.18em] text-blue-500">GEORGIAN WATER &amp; AIR</div>
             </div>
-            <div className="mx-2 hidden h-9 w-px bg-slate-200 md:block" />
-            <div className="hidden md:block">
-              <div className="text-lg font-bold text-[#0e2756]">DEALER PORTAL</div>
-              <div className="text-[10px] font-medium tracking-[0.18em] text-slate-500">GROW TODAY · HEALTHIER HOMES TOMORROW</div>
-            </div>
-          </div>
+          </Link>
         </div>
 
         <div className="flex items-center gap-3 sm:gap-4">

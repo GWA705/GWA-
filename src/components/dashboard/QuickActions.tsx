@@ -1,9 +1,9 @@
 import Link from 'next/link';
-import { UserPlus, FileText, Users, ShoppingCart, Zap } from 'lucide-react';
+import { UserPlus, BookOpen, Users, ShoppingCart, Zap } from 'lucide-react';
 
 const ITEMS = [
   { href: '/dealer/applications/new', title: 'New Customer', subtitle: 'Add a new customer', tone: 'dark' as const, Icon: UserPlus },
-  { href: '/dealer/applications/new', title: 'Process Application', subtitle: 'Start a new deal', tone: 'blue' as const, Icon: FileText },
+  { href: '/dealer/resources/library', title: 'Product Resources', subtitle: 'Guides & product library', tone: 'blue' as const, Icon: BookOpen },
   { href: '/dealer/leads', title: 'Find a Lead', subtitle: 'View available leads', tone: 'soft' as const, Icon: Users },
   { href: '/dealer/marketplace', title: 'Visit Marketplace', subtitle: 'Products & resources', tone: 'soft' as const, Icon: ShoppingCart },
 ];

@@ -26,6 +26,18 @@ source of truth; this file is the human-readable index.
 | Bell Total Connect voicemail | 📝 Documented, not built here | Guide delivered for the **booking site** (voicemail-to-email + IMAP). Not part of this portal. |
 
 ## 2026-09-04
+- **Dealer dashboard facelift — refinements.** Header now shows the **dealer's own
+  uploaded company logo** beside "Dealer Portal" (falls back to the Georgian
+  wordmark when no logo is set). Hero rebuilt to the enterprise "Welcome to your
+  Dealer Portal" treatment (line-art house + growth-arrow graphic, "Your hub for
+  managing and organizing your business"); removed the four feature chips and the
+  announcement banner under the hero. Support card ("Need Support?") now **opens
+  the corner chat** on click (was a link to `/dealer/support`) and shows a
+  swappable, auto-cropped agent photo from `public/support-agent.png` (headset
+  watermark until one is added; AI image prompt in `BRAND-KIT.md` §13). Quick
+  Actions "Process Application" → **"Product Resources"** (→ product library).
+  `ChatWidget` listens for a `gwa:open-chat` event. UI-only; backend/routes/auth
+  unchanged.
 - **Dealer portal facelift (dashboard + shell).** New enterprise-style dealer
   UI: dark-blue left sidebar + white top header (`DealerShell`, reuses the
   existing mobile drawer), and a real-data dashboard at `/dealer` (hero with
