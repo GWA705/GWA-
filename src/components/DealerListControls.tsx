@@ -8,10 +8,12 @@ export function DealerListControls({
   status,
   sort,
   statuses,
+  basePath = '/dealer',
 }: {
   status: string;
   sort: string;
   statuses: { value: string; label: string }[];
+  basePath?: string;
 }) {
   const router = useRouter();
   const sp = useSearchParams();
@@ -21,7 +23,7 @@ export function DealerListControls({
     if (value) next.set(key, value);
     else next.delete(key);
     next.set('page', '1'); // any filter/sort change goes back to the first page
-    router.push(`/dealer?${next.toString()}`);
+    router.push(`${basePath}?${next.toString()}`);
   }
 
   return (

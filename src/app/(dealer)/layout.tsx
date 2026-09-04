@@ -1,5 +1,6 @@
-import { requireDealerAccess } from '@/lib/session';
-import { AppShell } from '@/components/AppShell';
+import { requireDealerAccess, hasBothPortals } from '@/lib/session';
+import { roleLabel } from '@/lib/rbac';
+import { DealerShell } from '@/components/DealerShell';
 import { WelcomeTour } from '@/components/WelcomeTour';
 import { AlertModal } from '@/components/AlertModal';
 import { ChatWidget } from '@/components/ChatWidget';
@@ -41,16 +42,16 @@ export default async function DealerLayout({ children }: { children: React.React
   }
 
   // Attention dots: content sections with something new, and unread mail.
-  const [freshSections, unreadMail, calcAccess, reportAccess, searchEnabled, giftCardUnread, profile] = await Promise.all([
+  const [freshSections, unreadMail, calcAccess, reportAccess, searchEnabled, giftCardUnread] = await Promise.all([
     newContentSectionsForUser(user.userId),
     user.dealerId ? unreadMailCountForUser(user.userId, user.dealerId, user.isDistributor) : Promise.resolve(0),
     hasCalculatorAccess(user),
     hasDealerReportAccess(user),
     isGlobalSearchEnabled(),
     user.dealerId ? dealerHasGiftCardUnread(user.dealerId) : Promise.resolve(false),
-    user.dealerId ? prisma.dealerProfile.findUnique({ where: { dealerId: user.dealerId }, select: { businessName: true } }) : Promise.resolve(null),
   ]);
-  const companyName = profile?.businessName ?? null;
+  const initials =
+    user.name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase()).join('') || '?';
 
   return (
     <>
@@ -69,13 +70,16 @@ export default async function DealerLayout({ children }: { children: React.React
           </div>
         </div>
       )}
-      <AppShell
-        user={user}
-        portal="dealer"
-        companyName={companyName}
+      <DealerShell
+        userName={user.name}
+        roleLabel={roleLabel(user.role)}
+        initials={initials}
+        mailUnread={unreadMail}
+        showSwitcher={hasBothPortals(user)}
         nav={[
           // Everyday actions stay as top-level tabs.
-          { href: '/dealer', label: 'Applications' },
+          { href: '/dealer', label: 'Home' },
+          { href: '/dealer/applications', label: 'Applications' },
           { href: '/dealer/applications/new', label: 'New customer' },
           { href: '/dealer/mail', label: 'Mail', badge: unreadMail > 0 },
           // Lookups & calculators — only the ones this office has access to. The
@@ -114,7 +118,7 @@ export default async function DealerLayout({ children }: { children: React.React
         ]}
       >
         {children}
-      </AppShell>
+      </DealerShell>
       {showTour && <WelcomeTour userName={user.name} />}
       {dealerAlerts.length > 0 && <AlertModal alerts={dealerAlerts} />}
       <ChatWidget />

@@ -1,316 +1,128 @@
-import Link from 'next/link';
 import { requireDealerAccess } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { dealerPortalScopeWhere } from '@/lib/rbac';
-import { StatusBadge } from '@/components/StatusBadge';
-import { SearchBox } from '@/components/SearchBox';
-import { AnnouncementBanner } from '@/components/AnnouncementBanner';
-import { PinButton } from '@/components/PinButton';
-import { DealerListControls } from '@/components/DealerListControls';
-import { DEALER_SORTS } from '@/lib/sortOptions';
-import { searchWhere } from '@/lib/search';
-import { programLabel, STATUS_LABELS } from '@/lib/constants';
-import { dealerOutstanding } from '@/lib/outstanding';
+import { programLabel } from '@/lib/constants';
 import { getBannerRotation } from '@/lib/settings';
-import { PageHeader } from '@/components/PageHeader';
-import { DashboardGreeting } from '@/components/DashboardGreeting';
-import type { ApplicationStatus, Prisma } from '@prisma/client';
+import { AnnouncementBanner } from '@/components/AnnouncementBanner';
+import { DashboardHero } from '@/components/dashboard/DashboardHero';
+import { KpiCard } from '@/components/dashboard/KpiCard';
+import { RecentApplications, type RecentApp } from '@/components/dashboard/RecentApplications';
+import { QuickActions } from '@/components/dashboard/QuickActions';
+import { SupportCard } from '@/components/dashboard/SupportCard';
+import { StatusDonut } from '@/components/dashboard/StatusDonut';
+import { MonthlyTrend } from '@/components/dashboard/MonthlyTrend';
+import { ProgramBreakdown } from '@/components/dashboard/ProgramBreakdown';
+import { FileText, CheckCircle2, Clock, DollarSign } from 'lucide-react';
+import type { ApplicationStatus } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
 
-const PAGE_SIZES = [10, 25, 50, 100];
+const APPROVED: ApplicationStatus[] = ['CONDITIONAL', 'APPROVED', 'DOCS_SENT', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW', 'FUNDED'];
+const PENDING: ApplicationStatus[] = ['SUBMITTED', 'UNDER_REVIEW'];
+const ACTION_NEEDED: ApplicationStatus[] = ['APPROVED', 'CONDITIONAL', 'DOCS_SENT', 'PROBLEM'];
 
-// Statuses a dealer can filter by (all the ones their own deals move through).
-const FILTER_STATUSES: ApplicationStatus[] = [
-  'DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'CONDITIONAL', 'APPROVED', 'DOCS_SENT',
-  'FUNDING_SUBMITTED', 'FUNDING_REVIEW', 'FUNDED', 'PROBLEM', 'DECLINED', 'WITHDRAWN',
-];
+const money = (n: number) => `$${n.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-function sortOrderBy(sort: string): Prisma.ApplicationOrderByWithRelationInput | Prisma.ApplicationOrderByWithRelationInput[] {
-  switch (sort) {
-    case 'oldest': return { createdAt: 'asc' };
-    case 'amount_high': return { requestedAmount: 'desc' };
-    case 'amount_low': return { requestedAmount: 'asc' };
-    case 'name': return [{ applicantLastName: 'asc' }, { applicantFirstName: 'asc' }];
-    case 'status': return { status: 'asc' };
-    default: return { createdAt: 'desc' };
-  }
-}
-
-export default async function DealerHome({
-  searchParams,
-}: {
-  searchParams: { q?: string; page?: string; perPage?: string; status?: string; sort?: string };
-}) {
+export default async function DealerDashboard() {
   const user = await requireDealerAccess();
-  const search = searchWhere(searchParams.q);
-  const statusFilter = FILTER_STATUSES.includes(searchParams.status as ApplicationStatus)
-    ? (searchParams.status as ApplicationStatus)
-    : '';
-  const sort = DEALER_SORTS.some((s) => s.value === searchParams.sort) ? searchParams.sort! : 'newest';
-  const orderBy = sortOrderBy(sort);
+  const where = dealerPortalScopeWhere(user);
 
-  const filters: Prisma.ApplicationWhereInput[] = [dealerPortalScopeWhere(user)];
-  if (search) filters.push(search);
-  if (statusFilter) filters.push({ status: statusFilter });
-  const baseWhere: Prisma.ApplicationWhereInput = { AND: filters };
-
-  // This user's pinned deals — they float to the top of page 1 and are kept out
-  // of the normal paginated list so they never appear twice. Fail-safe: if the
-  // pins table isn't there yet (migration still rolling out), just show no pins
-  // rather than crashing the whole Applications page.
-  let pinnedIds: string[] = [];
-  try {
-    const pinRows = await prisma.applicationPin.findMany({
-      where: { userId: user.userId },
-      select: { applicationId: true },
-    });
-    pinnedIds = pinRows.map((r) => r.applicationId);
-  } catch {
-    pinnedIds = [];
-  }
-  const listWhere: Prisma.ApplicationWhereInput = pinnedIds.length
-    ? { AND: [baseWhere, { id: { notIn: pinnedIds } }] }
-    : baseWhere;
-
-  const perPage = PAGE_SIZES.includes(Number(searchParams.perPage)) ? Number(searchParams.perPage) : 10;
-  const total = await prisma.application.count({ where: listWhere });
-  const pageCount = Math.max(1, Math.ceil(total / perPage));
-  const page = Math.min(Math.max(1, Number(searchParams.page) || 1), pageCount);
-
-  const listInclude = {
-    documents: { where: { stage: 'FUNDING' as const }, select: { type: true, verifiedAt: true } },
-    serialNumbers: { select: { productLabel: true, value: true } },
-    financeCompany: { select: { requiresSerialPerProduct: true } },
-  };
-
-  const [listApps, pinnedApps, announcements] = await Promise.all([
+  const [apps, profile, announcements, rotation] = await Promise.all([
     prisma.application.findMany({
-      where: listWhere,
-      orderBy,
-      skip: (page - 1) * perPage,
-      take: perPage,
-      include: listInclude,
+      where,
+      orderBy: { createdAt: 'desc' },
+      take: 500,
+      select: {
+        id: true, status: true, createdAt: true, approvedAmount: true, requestedAmount: true,
+        programType: true, programCategory: true, province: true,
+        applicantFirstName: true, applicantLastName: true,
+      },
     }),
-    // Pinned deals only on page 1, still respecting search + status filter.
-    page === 1 && pinnedIds.length
-      ? prisma.application.findMany({
-          where: { AND: [baseWhere, { id: { in: pinnedIds } }] },
-          orderBy: { createdAt: 'desc' },
-          include: listInclude,
-        })
-      : Promise.resolve([]),
+    user.dealerId ? prisma.dealerProfile.findUnique({ where: { dealerId: user.dealerId }, select: { businessName: true } }) : Promise.resolve(null),
     prisma.announcement.findMany({ where: { active: true }, orderBy: { createdAt: 'desc' } }),
+    getBannerRotation(),
   ]);
 
-  const pinnedSet = new Set(pinnedIds);
-  const apps = [...pinnedApps, ...listApps];
+  const amountOf = (a: (typeof apps)[number]) => Number(a.approvedAmount ?? a.requestedAmount);
 
-  const topBanners = announcements.filter((a) => a.position !== 'BOTTOM');
-  const bottomBanners = announcements.filter((a) => a.position === 'BOTTOM');
-  const rotation = await getBannerRotation();
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const thisMonth = apps.filter((a) => a.createdAt >= monthStart);
 
-  // Build a dashboard URL preserving the search query, status filter and sort.
-  const q = searchParams.q;
-  const url = (params: { page?: number; perPage?: number }) => {
-    const sp = new URLSearchParams();
-    if (q) sp.set('q', q);
-    if (statusFilter) sp.set('status', statusFilter);
-    if (sort !== 'newest') sp.set('sort', sort);
-    sp.set('perPage', String(params.perPage ?? perPage));
-    sp.set('page', String(params.page ?? page));
-    return `/dealer?${sp.toString()}`;
-  };
+  const totalThisMonth = thisMonth.length;
+  const approvedThisMonth = thisMonth.filter((a) => APPROVED.includes(a.status)).length;
+  const approvalRate = totalThisMonth ? Math.round((approvedThisMonth / totalThisMonth) * 100) : 0;
+  const pendingNow = apps.filter((a) => PENDING.includes(a.status)).length;
+  const valueThisMonth = thisMonth.reduce((s, a) => s + amountOf(a), 0);
 
-  const firstShown = total === 0 ? 0 : (page - 1) * perPage + 1;
-  const lastShown = Math.min(page * perPage, total);
+  // Donut — all-time
+  const approvedAll = apps.filter((a) => APPROVED.includes(a.status)).length;
+  const pendingAll = apps.filter((a) => PENDING.includes(a.status)).length;
+  const declinedAll = apps.filter((a) => a.status === 'DECLINED').length;
+
+  // Monthly trend — last 3 calendar months
+  const months = [2, 1, 0].map((back) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - back, 1);
+    const next = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+    const value = apps.filter((a) => a.createdAt >= d && a.createdAt < next).length;
+    return { label: d.toLocaleDateString('en-CA', { month: 'short' }), value };
+  });
+
+  // Program breakdown
+  const progMap = new Map<string, number>();
+  for (const a of apps) {
+    const label = programLabel(a.programType, a.programCategory);
+    progMap.set(label, (progMap.get(label) ?? 0) + 1);
+  }
+  const progTotal = apps.length || 1;
+  const programs = [...progMap.entries()]
+    .map(([label, count]) => ({ label, count, pct: Math.round((count / progTotal) * 100) }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5);
+
+  const recent: RecentApp[] = apps.slice(0, 4).map((a) => ({
+    id: a.id,
+    name: `${a.applicantFirstName} ${a.applicantLastName}`.trim(),
+    province: a.province,
+    program: programLabel(a.programType, a.programCategory),
+    amount: money(amountOf(a)),
+    status: a.status,
+    submitted: a.createdAt.toLocaleDateString('en-CA'),
+    actionNeeded: ACTION_NEEDED.includes(a.status),
+  }));
+
+  const topBanners = announcements.filter((b) => b.position !== 'BOTTOM');
+  const firstName = user.name.split(' ')[0] || user.name;
 
   return (
-    <div>
-      <DashboardGreeting firstName={user.name.split(' ')[0] || user.name} />
+    <div className="space-y-4">
+      <DashboardHero firstName={firstName} companyName={profile?.businessName ?? null} />
 
-      <AnnouncementBanner announcements={topBanners} rotate={rotation.top} />
+      {topBanners.length > 0 && <AnnouncementBanner announcements={topBanners} rotate={rotation.top} />}
 
-      <div className="mb-4 space-y-2.5">
-        <PageHeader
-          variant="rail"
-          eyebrow="Deals"
-          title="Applications"
-          right={
-            <Link href="/dealer/applications/new" className="btn-primary whitespace-nowrap text-sm">
-              New customer processing
-            </Link>
-          }
-        />
-        {/* Search + filters share one row on desktop; stack on mobile. */}
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <SearchBox action="/dealer" q={searchParams.q} />
-          <DealerListControls
-            status={statusFilter}
-            sort={sort}
-            statuses={FILTER_STATUSES.map((s) => ({ value: s, label: STATUS_LABELS[s] }))}
-          />
+      {/* KPI row */}
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <KpiCard icon={FileText} title="Total Applications" value={String(totalThisMonth)} subtitle="This month" tone="blue" href="/dealer/applications" />
+        <KpiCard icon={CheckCircle2} title="Approved" value={String(approvedThisMonth)} subtitle={`${approvalRate}% approval rate`} tone="green" />
+        <KpiCard icon={Clock} title="Pending" value={String(pendingNow)} subtitle="Awaiting review" tone="blue" href="/dealer/applications?status=SUBMITTED" />
+        <KpiCard icon={DollarSign} title="Total Value" value={money(valueThisMonth)} subtitle="This month" tone="blue" />
+      </div>
+
+      {/* Recent applications + right rail */}
+      <div className="grid grid-cols-1 gap-3 xl:grid-cols-[1fr_360px]">
+        <RecentApplications items={recent} />
+        <div className="space-y-3">
+          <QuickActions />
+          <SupportCard />
         </div>
       </div>
 
-      {apps.length === 0 ? (
-        <div className="card p-8 text-center text-sm text-gray-500">
-          {searchParams.q || statusFilter ? 'No applications match your search or filter.' : 'No customers yet — start by clicking “New customer processing”.'}
-        </div>
-      ) : (
-        <>
-          {/* Mobile: a stacked card per application so nothing runs off the
-              screen. The full table appears from the sm breakpoint up. */}
-          <ul className="space-y-3 sm:hidden">
-            {apps.map((a) => {
-              const outstanding = dealerOutstanding({
-                status: a.status,
-                programType: a.programType,
-                paymentMethod: a.paymentMethod,
-                isSplitPayment: a.isSplitPayment,
-                productsSold: a.productsSold,
-                requiresSerials: !!a.financeCompany?.requiresSerialPerProduct && a.productsSold.length > 0,
-                serialNumbers: a.serialNumbers,
-                fundingDocs: a.documents,
-              });
-              const pinned = pinnedSet.has(a.id);
-              return (
-                <li key={a.id} className="relative">
-                  <Link href={`/dealer/applications/${a.id}`} className={`card block p-4 pr-12 hover:bg-gray-50 ${pinned ? 'ring-1 ring-brand-200' : ''}`}>
-                    <div className="min-w-0">
-                      <div className="font-medium text-brand-700">
-                        {a.applicantFirstName} {a.applicantLastName}
-                      </div>
-                      <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-500">
-                        <StatusBadge status={a.status} short />
-                        <span>{programLabel(a.programType, a.programCategory)} · ${a.requestedAmount.toString()}</span>
-                      </div>
-                    </div>
-                    {outstanding.hasAction && (
-                      <span
-                        className={`mt-2 inline-flex w-fit items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                          outstanding.readyToSubmit ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'
-                        }`}
-                      >
-                        {outstanding.readyToSubmit ? '✓ Ready to submit' : '⚠ Action needed'}
-                      </span>
-                    )}
-                  </Link>
-                  <div className="absolute right-2 top-2">
-                    <PinButton applicationId={a.id} pinned={pinned} />
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-
-          <div className="card hidden overflow-x-auto sm:block">
-            <table className="min-w-full divide-y divide-gray-200 text-sm">
-              <thead className="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500">
-                <tr>
-                  <th className="px-3 py-3 sm:px-4">Applicant</th>
-                  <th className="hidden px-3 py-3 sm:table-cell sm:px-4">Province</th>
-                  <th className="px-3 py-3 sm:px-4">Program</th>
-                  <th className="px-3 py-3 sm:px-4">Amount</th>
-                  <th className="px-3 py-3 sm:px-4">Status</th>
-                  <th className="hidden px-3 py-3 sm:table-cell sm:px-4">Submitted</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {apps.map((a) => {
-                  const outstanding = dealerOutstanding({
-                    status: a.status,
-                    programType: a.programType,
-                paymentMethod: a.paymentMethod,
-                isSplitPayment: a.isSplitPayment,
-                    productsSold: a.productsSold,
-                    requiresSerials: !!a.financeCompany?.requiresSerialPerProduct && a.productsSold.length > 0,
-                    serialNumbers: a.serialNumbers,
-                    fundingDocs: a.documents,
-                  });
-                  const pinned = pinnedSet.has(a.id);
-                  return (
-                  <tr key={a.id} className={`hover:bg-gray-50 ${pinned ? 'bg-brand-50/40' : ''}`}>
-                    <td className="px-3 py-3 sm:px-4">
-                      <div className="flex items-start gap-1.5">
-                        <PinButton applicationId={a.id} pinned={pinned} />
-                        <div className="min-w-0">
-                      <Link
-                        href={`/dealer/applications/${a.id}`}
-                        className="block font-medium text-brand-700 hover:underline"
-                      >
-                        {a.applicantFirstName} {a.applicantLastName}
-                      </Link>
-                      {outstanding.hasAction && (
-                        <span
-                          className={`mt-1 inline-flex w-fit items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                            outstanding.readyToSubmit ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'
-                          }`}
-                        >
-                          {outstanding.readyToSubmit ? '✓ Ready to submit' : '⚠ Action needed'}
-                        </span>
-                      )}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="hidden px-3 py-3 sm:table-cell sm:px-4">{a.province}</td>
-                    <td className="px-3 py-3 sm:px-4">{programLabel(a.programType, a.programCategory)}</td>
-                    <td className="px-3 py-3 sm:px-4">${a.requestedAmount.toString()}</td>
-                    <td className="px-3 py-3 sm:px-4">
-                      <StatusBadge status={a.status} />
-                    </td>
-                    <td className="hidden px-3 py-3 text-gray-500 sm:table-cell sm:px-4">
-                      {a.createdAt.toLocaleDateString('en-CA')}
-                    </td>
-                  </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Pagination — 10 per page by default; expand or page through. */}
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-gray-500">
-            <div className="flex items-center gap-2">
-              <span>Show</span>
-              {PAGE_SIZES.map((n) => (
-                <Link
-                  key={n}
-                  href={url({ perPage: n, page: 1 })}
-                  className={`rounded px-2 py-1 ${n === perPage ? 'bg-brand-100 font-semibold text-brand-800' : 'hover:bg-gray-100'}`}
-                >
-                  {n}
-                </Link>
-              ))}
-              <span>per page</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <span>{firstShown}–{lastShown} of {total}</span>
-              {pageCount > 1 && (
-                <div className="flex items-center gap-2">
-                  {page > 1 ? (
-                    <Link href={url({ page: page - 1 })} className="rounded border border-gray-200 px-2 py-1 hover:bg-gray-50">← Prev</Link>
-                  ) : (
-                    <span className="rounded border border-gray-100 px-2 py-1 text-gray-300">← Prev</span>
-                  )}
-                  <span>Page {page} of {pageCount}</span>
-                  {page < pageCount ? (
-                    <Link href={url({ page: page + 1 })} className="rounded border border-gray-200 px-2 py-1 hover:bg-gray-50">Next →</Link>
-                  ) : (
-                    <span className="rounded border border-gray-100 px-2 py-1 text-gray-300">Next →</span>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        </>
-      )}
-
-      {bottomBanners.length > 0 && (
-        <div className="mt-6">
-          <AnnouncementBanner announcements={bottomBanners} rotate={rotation.bottom} />
-        </div>
-      )}
+      {/* Insights row */}
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+        <StatusDonut approved={approvedAll} pending={pendingAll} declined={declinedAll} />
+        <MonthlyTrend months={months} />
+        <ProgramBreakdown items={programs} />
+      </div>
     </div>
   );
 }

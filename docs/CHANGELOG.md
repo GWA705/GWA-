@@ -26,6 +26,17 @@ source of truth; this file is the human-readable index.
 | Bell Total Connect voicemail | 📝 Documented, not built here | Guide delivered for the **booking site** (voicemail-to-email + IMAP). Not part of this portal. |
 
 ## 2026-09-04
+- **Dealer portal facelift (dashboard + shell).** New enterprise-style dealer
+  UI: dark-blue left sidebar + white top header (`DealerShell`, reuses the
+  existing mobile drawer), and a real-data dashboard at `/dealer` (hero with
+  time-aware greeting + office name, KPI cards, Recent Applications preview,
+  Quick Actions, Support card, and Status-donut / Monthly-trend / Program
+  breakdown). The full searchable/filterable Applications list moved to
+  `/dealer/applications` (logic unchanged; nav "Applications" points there,
+  "Home" → `/dealer`). Reusable components under `components/dashboard/`; added
+  `lucide-react`. Backend, routes, auth, permissions, forms unchanged;
+  staff/admin unaffected. Self-contained commit — revert to restore the
+  original look.
 - **Animated header wordmark + dashboard greeting (dealer).** The header opens as
   "GWA Dealer Portal" and, once per browser session, softly blurs into
   "<Company> Portal" (company from the office profile) after ~5s. The dealer

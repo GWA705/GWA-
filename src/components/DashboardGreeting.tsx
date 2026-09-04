@@ -3,10 +3,11 @@
 import { useEffect, useState } from 'react';
 
 /**
- * A time-aware welcome on the dealer dashboard: "Good morning/afternoon/evening,
- * <first name>". Computed client-side so it follows the viewer's own clock.
+ * A time-aware greeting: "Good morning/afternoon/evening, <first name>".
+ * Computed client-side so it follows the viewer's own clock. `className` styles
+ * the heading (e.g. white text in the hero).
  */
-export function DashboardGreeting({ firstName }: { firstName: string }) {
+export function DashboardGreeting({ firstName, className }: { firstName: string; className?: string }) {
   const [greeting, setGreeting] = useState<string | null>(null);
 
   useEffect(() => {
@@ -15,13 +16,11 @@ export function DashboardGreeting({ firstName }: { firstName: string }) {
   }, []);
 
   // Reserve the space until the clock is read, so nothing jumps.
-  if (!greeting) return <div className="mb-4 h-8" aria-hidden />;
+  if (!greeting) return <div className="h-10" aria-hidden />;
 
   return (
-    <div className="wm-greet-in mb-4">
-      <h1 className="text-2xl font-bold text-gray-900">
-        {greeting}, {firstName}
-      </h1>
-    </div>
+    <h1 className={`wm-greet-in ${className ?? 'text-2xl font-bold text-gray-900'}`}>
+      {greeting}, {firstName}
+    </h1>
   );
 }
