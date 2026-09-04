@@ -24,6 +24,8 @@ export function DashboardHero({ firstName }: { firstName: string; companyName?: 
       />
       {/* Left-to-right legibility wash over the photo */}
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#03152f] via-[#062a56]/85 to-[#062a56]/10" aria-hidden />
+      {/* Stronger scrim on phones, where the photo fills the whole width */}
+      <div className="pointer-events-none absolute inset-0 bg-[#04213f]/50 sm:hidden" aria-hidden />
 
       <div className="relative z-10 flex min-h-[196px] items-center justify-between gap-6 px-6 py-8 sm:min-h-[212px] sm:px-10">
         <div className="max-w-2xl">

@@ -53,6 +53,9 @@ export function SectionHero({
         />
       )}
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#03152f] via-[#062a56]/80 to-[#062a56]/10" aria-hidden />
+      {/* Extra scrim on phones: the photo fills the whole width there, so darken
+          it so the eyebrow/title/subtitle stay legible over it. */}
+      <div className="pointer-events-none absolute inset-0 bg-[#04213f]/55 sm:hidden" aria-hidden />
 
       <div className="relative z-10 flex items-center justify-between gap-6 px-6 py-7 sm:px-10 sm:py-8">
         <div className="min-w-0">
@@ -61,7 +64,9 @@ export function SectionHero({
           {subtitle && <p className="mt-2 max-w-xl text-sm text-blue-100/90 sm:text-base">{subtitle}</p>}
 
           {tiles && tiles.length > 0 && (
-            <div className="mt-5 flex flex-wrap gap-x-7 gap-y-3">
+            // Hidden on phones — they duplicate the category cards below and make
+            // the hero very tall on a small screen.
+            <div className="mt-5 hidden flex-wrap gap-x-7 gap-y-3 sm:flex">
               {tiles.map((t) => (
                 <div key={t.title} className="flex items-center gap-2.5">
                   <span className="flex h-9 w-9 flex-none items-center justify-center rounded-lg bg-white/10">
