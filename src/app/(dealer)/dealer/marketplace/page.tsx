@@ -41,7 +41,7 @@ export default async function DealerMarketplace({ searchParams }: { searchParams
         eyebrow="Sales & rewards"
         title="Marketplace"
         subtitle="High-quality branded products to help you grow your business."
-        bgImage="/marketplace-hero.jpg"
+        bgImage="/marketplace-hero.png"
         tiles={[
           { Icon: Shirt, title: 'Professional apparel' },
           { Icon: Presentation, title: 'Marketing signage' },

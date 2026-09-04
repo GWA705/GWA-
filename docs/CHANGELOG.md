@@ -28,7 +28,7 @@ source of truth; this file is the human-readable index.
 ## 2026-09-04
 - **Marketplace facelift (dealer).** New shared enterprise page hero
   (`SectionHero`, reusable across dealer tabs): blue gradient + swappable
-  background photo (`public/marketplace-hero.jpg`), eyebrow/title/subtitle,
+  background photo (`public/marketplace-hero.png`), eyebrow/title/subtitle,
   feature tiles and a "Represent / Grow / Succeed / Together" script flourish.
   Categories are now big icon cards with counts; added a product search + sort
   (Featured / A–Z). On desktop the cart is a **persistent right rail** (with a
@@ -40,7 +40,7 @@ source of truth; this file is the human-readable index.
   it now sits above the full Applications list (reviewer send-backs first,
   flagged red), where the dealer actually actions deals.
 - **Dealer dashboard facelift — round 2.** Hero rebuilt as a wide photographic
-  banner: swappable background photo (`public/hero-banner.jpg`, on-brand gradient
+  banner: swappable background photo (`public/hero-banner.png`, on-brand gradient
   until one is added), a **time-aware icon** on the greeting (sunrise / sun /
   moon-and-stars for morning / afternoon / evening) and a "Better Water /
   Brighter Lives" script flourish (Great Vibes web font). Header shows the

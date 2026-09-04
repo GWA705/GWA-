@@ -4,7 +4,7 @@ import { DashboardGreeting } from '@/components/DashboardGreeting';
  * The dashboard hero banner — a wide photographic welcome.
  *
  * The background is a swappable static asset: drop a file at
- * `public/hero-banner.jpg` and it fills the banner (cropped to cover). Until one
+ * `public/hero-banner.png` and it fills the banner (cropped to cover). Until one
  * is added, an on-brand blue gradient shows instead — so it always looks
  * finished. A left-to-right dark gradient keeps the greeting legible over any
  * photo. See the AI image prompt in `docs/BRAND-KIT.md` §14 for a
@@ -19,7 +19,7 @@ export function DashboardHero({ firstName }: { firstName: string; companyName?: 
       {/* Swappable photo */}
       <div
         className="pointer-events-none absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: "url('/hero-banner.jpg')" }}
+        style={{ backgroundImage: "url('/hero-banner.png')" }}
         aria-hidden
       />
       {/* Left-to-right legibility wash over the photo */}
