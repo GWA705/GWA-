@@ -301,3 +301,15 @@ body {
 }
 .topnav a.has-dot[aria-current="page"] .nav-dot { box-shadow: 0 0 0 2px #1d4ed8; }
 .dark .nav-dot { box-shadow: 0 0 0 2px #131a27; }
+
+/* Deal progress bar/timeline — subtle motion (disabled under reduced-motion). */
+@keyframes gwaShimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+@keyframes gwaPulseRing {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, .40); }
+  50% { box-shadow: 0 0 0 6px rgba(37, 99, 235, 0); }
+}
+.gwa-shimmer { animation: gwaShimmer 1.8s linear infinite; }
+.gwa-pulse-ring { animation: gwaPulseRing 2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .gwa-shimmer, .gwa-pulse-ring { animation: none; }
+}

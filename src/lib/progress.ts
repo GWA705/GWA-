@@ -56,6 +56,21 @@ export function dealProgress(s: ProgressSignals): ProgressStage[] {
   ];
 }
 
+/** How many stages are complete. */
+export function doneCount(stages: ProgressStage[]): number {
+  return stages.filter((s) => s.done).length;
+}
+
+/** Whole-number percent complete across all stages. */
+export function progressPercent(stages: ProgressStage[]): number {
+  return Math.round((doneCount(stages) / stages.length) * 100);
+}
+
+/** Index of the current (first not-yet-done) stage, or -1 when all are done. */
+export function currentStageIndex(stages: ProgressStage[]): number {
+  return stages.findIndex((s) => !s.done);
+}
+
 /** A deal that's off the normal track — shown as a coloured flag on the tracker. */
 export function offPathFlag(status: ApplicationStatus): { label: string; cls: string } | null {
   switch (status) {

@@ -25,6 +25,16 @@ source of truth; this file is the human-readable index.
 | Guusto gift-card API | ⏳ Parked | Awaiting `GUUSTO_API_TOKEN` in Render + exact field names (test at `/admin/guusto-test`) + office→reason mapping. |
 | Bell Total Connect voicemail | 📝 Documented, not built here | Guide delivered for the **booking site** (voicemail-to-email + IMAP). Not part of this portal. |
 
+## 2026-09-04
+- **New deal progress bar.** `DealProgress` is now variant-based: dealers see a
+  **segmented progress bar** (Option 1 — filling segments, shimmer on the active
+  stage, big % / step-of count); reviewers see a **milestone timeline** (Option 2
+  — stage icons, completion dates from the status history, and a live "what's
+  happening now" detail strip with an Auto-advances cue). Same real stages
+  (Submitted → Approved → Docs uploaded → Confirmation → In for funding → Funded
+  → Paid); off-path flags (Problem/Declined/Withdrawn) preserved. Motion respects
+  `prefers-reduced-motion`.
+
 ## 2026-09-03
 - **Deal numbers pin while the HD Customer # is missing.** When an approved deal
   still needs its HD #, the Review & decide step collapses but keeps the Deal

@@ -225,6 +225,30 @@ export default async function StaffApplicationDetail({
   // uploaded to the wrong place still advances the flow to "Review".
   const dealerReturnedDocs = hasDealerReturned(app.documents);
 
+  // Per-stage completion dates for the reviewer timeline (best-effort, from the
+  // status history + records already loaded). Missing ones just render blank.
+  const fmtStage = (d: Date | null | undefined) =>
+    d ? d.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' }) : null;
+  const firstEventTo = (statuses: ApplicationStatus[]): Date | null =>
+    app.statusEvents
+      .filter((e) => statuses.includes(e.to))
+      .reduce<Date | null>((min, e) => (min === null || e.createdAt < min ? e.createdAt : min), null);
+  const earliestFundingDoc = fundingDocs.length
+    ? fundingDocs.reduce((min, d) => (d.createdAt < min ? d.createdAt : min), fundingDocs[0].createdAt)
+    : null;
+  const latestPayout = app.payouts.length
+    ? app.payouts.reduce((max, p) => (p.paidOn > max ? p.paidOn : max), app.payouts[0].paidOn)
+    : null;
+  const stageDates = {
+    submitted: fmtStage(app.createdAt),
+    approved: fmtStage(firstEventTo(['APPROVED', 'CONDITIONAL'])),
+    docs: fmtStage(earliestFundingDoc ?? firstEventTo(['FUNDING_SUBMITTED'])),
+    confirmation: fmtStage(app.confirmationStatus === 'COMPLETED' ? app.confirmation?.completedAt ?? null : null),
+    funding: fmtStage(firstEventTo(['FUNDING_SUBMITTED', 'FUNDING_REVIEW'])),
+    funded: fmtStage(firstEventTo(['FUNDED'])),
+    paid: fmtStage(latestPayout),
+  };
+
   const options = decisionOptions(app.status);
   const startReview = startReviewAction.bind(null, app.id);
 
@@ -726,11 +750,13 @@ export default async function StaffApplicationDetail({
 
         {/* Progress tracker */}
         <DealProgress
+          variant="timeline"
           status={app.status}
           approvedById={app.approvedById}
           confirmationStatus={app.confirmationStatus}
           hasFundingDocs={app.documents.some((d) => d.stage === 'FUNDING')}
           hasPayouts={app.payouts.length > 0}
+          stageDates={stageDates}
         />
 
         {app.taxExempt && (() => {
