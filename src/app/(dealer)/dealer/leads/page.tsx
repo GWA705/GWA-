@@ -6,7 +6,7 @@ import { reportingJournalEnabled } from '@/lib/reporting/journalRead';
 import { leadsSheetId } from '@/lib/reporting/journalRead';
 import { LeadsView, filterLeads, leadMonthOptions, leadOutcomeKey } from '@/components/LeadsView';
 import { leadsGeoData, storeGeos, unplacedStoresForMap } from '@/lib/leadGeo';
-import { PageHeader } from '@/components/PageHeader';
+import { SectionHero } from '@/components/SectionHero';
 
 export const dynamic = 'force-dynamic';
 
@@ -77,11 +77,12 @@ export default async function DealerLeadsPage({ searchParams }: { searchParams: 
 
 function Header() {
   return (
-    <PageHeader
-      variant="rail"
+    <SectionHero
       eyebrow="Leads"
-      title="Leads"
-      subtitle="Home Depot leads sent to your office. Search and review — updated from the leads log."
+      title="Home Depot Leads"
+      subtitle="Turn opportunities into healthier homes. Review, follow up and track your Home Depot leads — all in one place."
+      bgImage="/leads-hero.png"
+      flourish={['More', 'Customers.', 'Stronger', 'Communities.']}
     />
   );
 }

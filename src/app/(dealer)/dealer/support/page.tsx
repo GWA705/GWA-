@@ -1,6 +1,7 @@
 import { requireDealerAccess } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { formatPhoneDisplay } from '@/lib/format';
+import { SectionHero } from '@/components/SectionHero';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,17 +40,12 @@ export default async function DealerSupportPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-brand-600 to-brand-800 p-6 text-white sm:p-8">
-        <div className="flex items-center gap-4">
-          <div className="flex h-12 w-12 flex-none items-center justify-center rounded-xl bg-white/15">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M12 3a7 7 0 0 0-7 7v4a3 3 0 0 0 3 3h1v-6H7v-1a5 5 0 0 1 10 0v1h-2v6h1a3 3 0 0 0 3-3v-4a7 7 0 0 0-7-7Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/></svg>
-          </div>
-          <div>
-            <h1 className="text-xl font-semibold">Contact &amp; Support</h1>
-            <p className="mt-0.5 text-sm text-white/80">Reach the right people at GWA. Tap a number to call or an email to write.</p>
-          </div>
-        </div>
-      </div>
+      <SectionHero
+        eyebrow="Help"
+        title="Contact & Support"
+        subtitle="Reach the right people at Georgian Water & Air. Tap a number to call or an email to write."
+        flourish={['Here', 'To', 'Help.']}
+      />
 
       {contacts.length === 0 ? (
         <div className="card p-8 text-center text-sm text-gray-500">Contact details will appear here soon.</div>

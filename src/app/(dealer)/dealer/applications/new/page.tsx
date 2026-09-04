@@ -1,4 +1,4 @@
-import { PageHeader } from '@/components/PageHeader';
+import { SectionHero } from '@/components/SectionHero';
 import { requireDealerAccess } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { productChecklistOptions } from '@/lib/products';
@@ -21,7 +21,7 @@ export default async function NewApplicationPage() {
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-6">
-        <PageHeader eyebrow="Deals" title="New customer processing" />
+        <SectionHero eyebrow="Deals" title="New customer processing" subtitle="Enter the customer's details and products to submit a new deal for review." />
       </div>
       <NewApplicationForm stores={stores} products={products} />
     </div>

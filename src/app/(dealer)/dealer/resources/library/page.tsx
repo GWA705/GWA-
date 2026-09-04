@@ -1,4 +1,4 @@
-import { PageHeader } from '@/components/PageHeader';
+import { SectionHero } from '@/components/SectionHero';
 import Link from 'next/link';
 import type { Prisma } from '@prisma/client';
 import { requireDealerAccess } from '@/lib/session';
@@ -102,10 +102,12 @@ export default async function DealerResourceLibraryPage({
       <div>
         <Link href="/dealer/resources" className="text-sm text-gray-500 hover:underline">← Resources</Link>
         <div className="mt-2">
-          <PageHeader
+          <SectionHero
             eyebrow="Resources"
             title="Product manuals & brochures"
-            subtitle="Find product info, manuals, brochures and spec sheets. View or download."
+            subtitle="Find product info, manuals, brochures and spec sheets. View online or download."
+            bgImage="/resources-hero.png"
+            flourish={['Knowledge', 'Today.', 'Healthier', 'Tomorrow.']}
           />
         </div>
       </div>

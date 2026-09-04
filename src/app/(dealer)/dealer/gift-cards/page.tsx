@@ -3,7 +3,7 @@ import { prisma } from '@/lib/db';
 import { queryGiftCards, monthLabel } from '@/lib/giftCardHistory';
 import { GiftCardForm } from './GiftCardForm';
 import { GiftCardBulkImport } from './GiftCardBulkImport';
-import { PageHeader } from '@/components/PageHeader';
+import { SectionHero } from '@/components/SectionHero';
 import { DealerGiftCards, type DealerRequestVM } from './DealerGiftCards';
 import { GiftCardBrowseControls } from '@/components/GiftCardBrowseControls';
 import { GiftCardPager } from '@/components/GiftCardPager';
@@ -62,10 +62,12 @@ export default async function DealerGiftCardsPage({
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      <PageHeader
+      <SectionHero
         eyebrow="Rewards"
         title="Water-test gift cards"
-        subtitle="Completed a water test? Request the customer's Home Depot gift card here. We email it through Guusto and mark it sent — you'll get a dated receipt below. Wrong email, or need to send by text? Open a request to fix the details or message the team."
+        subtitle="Reward your customers with a Home Depot gift card. Completed a water test? Request it here — we email it through Guusto and log a dated receipt below."
+        bgImage="/gift-cards-hero.png"
+        flourish={['People', 'Products', 'Partnerships']}
       />
 
       <div className="card space-y-4 p-6">

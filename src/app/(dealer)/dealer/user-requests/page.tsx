@@ -1,4 +1,4 @@
-import { PageHeader } from '@/components/PageHeader';
+import { SectionHero } from '@/components/SectionHero';
 import { requireDealerAccess } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { UserRequestForm } from './UserRequestForm';
@@ -29,10 +29,10 @@ export default async function DealerUserRequestsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
+      <SectionHero
         eyebrow="My office"
         title="Request portal logins"
-        subtitle="List the people at your office who need a login. GWA reviews each request and sets up the accounts — new users get an email to choose their password and turn on two-factor sign-in."
+        subtitle="List the people at your office who need a login. Georgian Water & Air reviews each request and sets up the accounts — new users get an email to choose their password and turn on two-factor sign-in."
       />
 
       <section className="card p-6">

@@ -10,7 +10,7 @@ import { DEALER_SORTS } from '@/lib/sortOptions';
 import { searchWhere } from '@/lib/search';
 import { programLabel, STATUS_LABELS } from '@/lib/constants';
 import { dealerOutstanding } from '@/lib/outstanding';
-import { PageHeader } from '@/components/PageHeader';
+import { SectionHero } from '@/components/SectionHero';
 import { NeedsAttention, type AttentionItem } from '@/components/dashboard/NeedsAttention';
 import type { ApplicationStatus, Prisma } from '@prisma/client';
 
@@ -137,13 +137,13 @@ export default async function DealerApplications({
 
   return (
     <div>
-      <div className="mb-4 space-y-2.5">
-        <PageHeader
-          variant="rail"
+      <div className="mb-4 space-y-3">
+        <SectionHero
           eyebrow="Deals"
           title="Applications"
-          right={
-            <Link href="/dealer/applications/new" className="btn-primary whitespace-nowrap text-sm">
+          subtitle="Search, track and manage every deal your office has submitted."
+          actions={
+            <Link href="/dealer/applications/new" className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-[#0e2b5c] transition hover:bg-blue-50">
               New customer processing
             </Link>
           }

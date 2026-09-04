@@ -1,4 +1,5 @@
 import { requireDealerAccess } from '@/lib/session';
+import { SectionHero } from '@/components/SectionHero';
 import { TutorialIllo } from './illustrations';
 import { TutorialImage } from './TutorialImage';
 
@@ -208,12 +209,11 @@ export default async function TutorialPage() {
   await requireDealerAccess();
   return (
     <div className="mx-auto max-w-3xl space-y-8">
-      <div>
-        <h1 className="text-xl font-semibold text-gray-900">How to use the portal</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          A quick, step-by-step walkthrough of everything you’ll do here. Come back anytime.
-        </p>
-      </div>
+      <SectionHero
+        eyebrow="Help"
+        title="How to use the portal"
+        subtitle="A quick, step-by-step walkthrough of everything you’ll do here. Come back anytime."
+      />
 
       <ol className="space-y-8">
         {STEPS.map((s, idx) => (

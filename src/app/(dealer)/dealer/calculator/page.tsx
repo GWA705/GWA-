@@ -3,6 +3,7 @@ import { requireDealerAccess } from '@/lib/session';
 import { hasCalculatorAccess } from '@/lib/calculatorAccess';
 import { prisma } from '@/lib/db';
 import { DealerCalculator } from '@/components/DealerCalculator';
+import { SectionHero } from '@/components/SectionHero';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,12 +24,11 @@ export default async function DealerCalculatorPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <div className="text-center">
-        <h1 className="text-2xl font-bold text-gray-900">HD Payout Calculator</h1>
-        <p className="mx-auto mt-1 max-w-md text-sm text-gray-600">
-          Enter the approved amount (total sale with tax) and province — or pull a deal from the portal.
-        </p>
-      </div>
+      <SectionHero
+        eyebrow="Tools"
+        title="HD Payout Calculator"
+        subtitle="Enter the approved amount (total sale with tax) and province — or pull a deal from the portal."
+      />
       <DealerCalculator defaultProvince={defaultProvince} />
     </div>
   );

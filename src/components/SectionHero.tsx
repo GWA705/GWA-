@@ -20,6 +20,8 @@ export function SectionHero({
   tiles,
   flourish,
   bgImage,
+  bgPosition = 'center right',
+  actions,
 }: {
   eyebrow: string;
   title: React.ReactNode;
@@ -27,18 +29,30 @@ export function SectionHero({
   tiles?: HeroTile[];
   flourish?: string[];
   bgImage?: string;
+  /** Which part of the photo to keep in frame (CSS background-position). The
+      photo is scaled to cover (never distorted) and cropped to this focus. */
+  bgPosition?: string;
+  /** Right-side action(s), e.g. a primary button. Shown instead of the flourish. */
+  actions?: React.ReactNode;
 }) {
   return (
-    <section className="relative overflow-hidden rounded-2xl text-white shadow-sm">
+    <section className="relative min-h-[188px] overflow-hidden rounded-2xl text-white shadow-sm">
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-[#04213f] via-[#0a3f82] to-[#0f68c9]" aria-hidden />
       {bgImage && (
+        // Photo scaled to cover (proportional, no distortion), focused per page,
+        // and feathered on the left so it blends into the gradient with no seam.
         <div
-          className="pointer-events-none absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: `url('${bgImage}')` }}
+          className="pointer-events-none absolute inset-0 bg-cover bg-no-repeat"
+          style={{
+            backgroundImage: `url('${bgImage}')`,
+            backgroundPosition: bgPosition,
+            maskImage: 'linear-gradient(to right, transparent 0%, #000 40%)',
+            WebkitMaskImage: 'linear-gradient(to right, transparent 0%, #000 40%)',
+          }}
           aria-hidden
         />
       )}
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#03152f] via-[#062a56]/85 to-[#062a56]/15" aria-hidden />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#03152f] via-[#062a56]/80 to-[#062a56]/10" aria-hidden />
 
       <div className="relative z-10 flex items-center justify-between gap-6 px-6 py-7 sm:px-10 sm:py-8">
         <div className="min-w-0">
@@ -63,16 +77,20 @@ export function SectionHero({
           )}
         </div>
 
-        {flourish && flourish.length > 0 && (
-          <div
-            className="hidden flex-none pr-1 text-right leading-[1.12] text-sky-50/95 drop-shadow lg:block"
-            style={{ fontFamily: "'Great Vibes', 'Segoe Script', cursive" }}
-            aria-hidden
-          >
-            {flourish.map((l) => (
-              <div key={l} className="text-3xl xl:text-4xl">{l}</div>
-            ))}
-          </div>
+        {actions ? (
+          <div className="hidden flex-none sm:block">{actions}</div>
+        ) : (
+          flourish && flourish.length > 0 && (
+            <div
+              className="hidden flex-none pr-1 text-right leading-[1.12] text-sky-50/95 drop-shadow lg:block"
+              style={{ fontFamily: "'Great Vibes', 'Segoe Script', cursive" }}
+              aria-hidden
+            >
+              {flourish.map((l) => (
+                <div key={l} className="text-3xl xl:text-4xl">{l}</div>
+              ))}
+            </div>
+          )
         )}
       </div>
     </section>

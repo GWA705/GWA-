@@ -1,4 +1,4 @@
-import { PageHeader } from '@/components/PageHeader';
+import { SectionHero } from '@/components/SectionHero';
 import { requireDealerAccess } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { DealerProfileForm } from '@/components/DealerProfileForm';
@@ -20,10 +20,10 @@ export default async function DealerProfilePage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <PageHeader
+      <SectionHero
         eyebrow="My office"
         title="Office profile"
-        subtitle="Keep your office details up to date so the GWA team always has the right contacts. This is shared with GWA reviewers and admins only — it is not shown to other dealers."
+        subtitle="Keep your office details up to date so the Georgian Water & Air team always has the right contacts. Shared with GWA reviewers and admins only — never shown to other dealers."
       />
       <section className="card p-6">
         <DealerProfileForm action={saveDealerProfileAction} values={values} logoUrl={logoUrl} />

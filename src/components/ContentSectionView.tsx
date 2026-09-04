@@ -1,4 +1,5 @@
 import type { ContentItem } from '@prisma/client';
+import { SectionHero } from '@/components/SectionHero';
 import { DocViewer } from '@/components/DocViewer';
 import { DownloadButton } from '@/components/DownloadButton';
 
@@ -80,10 +81,12 @@ export function ContentSectionView({
 }) {
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold text-gray-900">{title}</h1>
-        <p className="mt-1 text-sm text-gray-500">{blurb}</p>
-      </div>
+      <SectionHero
+        eyebrow="Resources"
+        title={standardizeTitle(title)}
+        subtitle={blurb}
+        flourish={['Knowledge', 'Today.', 'Healthier', 'Tomorrow.']}
+      />
 
       {items.length === 0 ? (
         <div className="card p-8 text-center text-sm text-gray-500">{emptyText}</div>

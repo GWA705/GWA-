@@ -1,18 +1,18 @@
 import Link from 'next/link';
 import { ContentPage } from '../_content';
-import { PageHeader } from '@/components/PageHeader';
+import { SectionHero } from '@/components/SectionHero';
 
 export const dynamic = 'force-dynamic';
 
 export default function ResourcesPage() {
   return (
     <div className="space-y-5">
-      <PageHeader
-        variant="hero"
-        icon="📚"
+      <SectionHero
         eyebrow="Resources"
         title="Resources & guides"
         subtitle="Product info, promotions, and how-tos — everything you need to sell and support."
+        bgImage="/resources-hero.png"
+        flourish={['Knowledge', 'Today.', 'Healthier', 'Tomorrow.']}
       />
       <Link
         href="/dealer/resources/library"

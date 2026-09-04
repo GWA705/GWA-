@@ -26,6 +26,17 @@ source of truth; this file is the human-readable index.
 | Bell Total Connect voicemail | 📝 Documented, not built here | Guide delivered for the **booking site** (voicemail-to-email + IMAP). Not part of this portal. |
 
 ## 2026-09-04
+- **Shared hero rolled across the dealer tabs.** Every dealer page now uses the
+  reusable `SectionHero` (added an optional `actions` slot for header buttons and
+  an `actions`/flourish right side; image is scaled to cover — never distorted —
+  focused via `bgPosition` and feathered on the left so a banner photo blends
+  into the gradient with no seam). Converted: Applications (with a "New customer
+  processing" hero button), New customer, Leads ("Home Depot Leads"), Gift cards,
+  Resources + Product library, HD Promotions / HD Credit Card (via
+  `ContentSectionView`), Mail, Office profile, Request logins, HD Payout
+  calculator, Find customer, Tutorial, Contact & Support. Swappable banner
+  slots wired for `public/{leads,gift-cards,resources}-hero.png` (gradient
+  fallback until uploaded).
 - **Marketplace facelift (dealer).** New shared enterprise page hero
   (`SectionHero`, reusable across dealer tabs): blue gradient + swappable
   background photo (`public/marketplace-hero.png`), eyebrow/title/subtitle,
