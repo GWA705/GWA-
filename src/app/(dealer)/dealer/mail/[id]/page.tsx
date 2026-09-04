@@ -4,6 +4,7 @@ import { requireDealerAccess } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { mailWhereForDealer } from '@/lib/inbox';
 import { friendlyFileName } from '@/lib/filenames';
+import { REVIEWER_DISPLAY } from '@/lib/constants';
 import { acknowledgeMailAction } from '../actions';
 import { DealerReplyForm } from './DealerReplyForm';
 import { DownloadButton } from '@/components/DownloadButton';
@@ -51,7 +52,7 @@ export default async function DealerMailItem({ params }: { params: { id: string 
         <Link href="/dealer/mail" className="text-sm text-gray-500 hover:underline">← Back to Mail</Link>
         <h1 className="mt-2 text-xl font-semibold text-gray-900">{mail.subject}</h1>
         <p className="mt-1 text-sm text-gray-500">
-          From {mail.senderLabel || mail.sender.name} · {mail.createdAt.toLocaleString('en-CA')}
+          From {mail.senderLabel || REVIEWER_DISPLAY} · {mail.createdAt.toLocaleString('en-CA')}
         </p>
       </div>
 
@@ -106,7 +107,7 @@ export default async function DealerMailItem({ params }: { params: { id: string 
                   className={`rounded-lg p-3 text-sm ${r.fromStaff ? 'bg-brand-50' : 'bg-gray-50'}`}
                 >
                   <div className="mb-1 flex items-center justify-between gap-2 text-xs text-gray-500">
-                    <span className="font-medium text-gray-700">{r.fromStaff ? 'GWA' : r.author.name}</span>
+                    <span className="font-medium text-gray-700">{r.fromStaff ? REVIEWER_DISPLAY : r.author.name}</span>
                     <span>{r.createdAt.toLocaleString('en-CA')}</span>
                   </div>
                   <div className="whitespace-pre-wrap text-gray-800">{r.body}</div>

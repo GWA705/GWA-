@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { requireDealerAccess } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { mailWhereForDealer } from '@/lib/inbox';
+import { REVIEWER_DISPLAY } from '@/lib/constants';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,7 +48,7 @@ export default async function DealerMailbox() {
                     )}
                   </div>
                   <div className="mt-0.5 text-xs text-gray-500">
-                    From {m.senderLabel || m.sender.name} · {m.createdAt.toLocaleDateString('en-CA', { year: 'numeric', month: 'short', day: 'numeric' })}
+                    From {m.senderLabel || REVIEWER_DISPLAY} · {m.createdAt.toLocaleDateString('en-CA', { year: 'numeric', month: 'short', day: 'numeric' })}
                   </div>
                 </div>
               </Link>

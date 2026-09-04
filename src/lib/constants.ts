@@ -90,6 +90,16 @@ export function hdReferenceRequired(programType: ProgramType): boolean {
   return programType === 'HD';
 }
 
+// Label shown to DEALERS in place of an individual GWA staff member's name —
+// dealers see "Reviewer" (with the timestamp), never a specific reviewer's name.
+// Used site-wide on dealer-facing surfaces. Change here to change it everywhere.
+export const REVIEWER_DISPLAY = 'Reviewer';
+
+/** True for internal (GWA) roles whose names are hidden from dealers. */
+export function isInternalRole(role: string | null | undefined): boolean {
+  return role === 'ADMIN' || role === 'REVIEWER';
+}
+
 // The reference numbers a deal must carry before it can move into funding or be
 // written to the sales journal. The HD Customer # is required only on HD-program
 // deals (GWA deals don't have one); the Financing deal number is required only

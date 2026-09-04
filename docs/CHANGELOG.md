@@ -26,6 +26,16 @@ source of truth; this file is the human-readable index.
 | Bell Total Connect voicemail | 📝 Documented, not built here | Guide delivered for the **booking site** (voicemail-to-email + IMAP). Not part of this portal. |
 
 ## 2026-09-04
+- **Reviewer names hidden from dealers.** Dealer-facing surfaces now show
+  **"Reviewer"** (with the timestamp) instead of an individual GWA staff name —
+  review decisions, the deal chat/notes, the confirmation line, and mail
+  (sender + staff replies). One shared constant `REVIEWER_DISPLAY` +
+  `isInternalRole()`; `NoteThread`/`ConfirmationView` gained an `anonymizeStaff`
+  prop (staff pages still show real names). Mail replies previously said "GWA" →
+  now "Reviewer" too (unified).
+- **"Review cycle times" admin report** (Reports → Review cycle times): time
+  between each pipeline milestone from the status history — median/avg/90th %
+  per task, GWA vs Dealer vs Total, selectable window.
 - **New deal progress bar.** `DealProgress` is now variant-based: dealers see a
   **segmented progress bar** (Option 1 — filling segments, shimmer on the active
   stage, big % / step-of count); reviewers see a **milestone timeline** (Option 2

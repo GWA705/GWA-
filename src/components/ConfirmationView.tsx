@@ -1,4 +1,5 @@
 import type { Confirmation } from '@prisma/client';
+import { REVIEWER_DISPLAY } from '@/lib/constants';
 
 type WithConfirmer = Confirmation & { confirmedBy?: { name: string } | null };
 
@@ -13,7 +14,7 @@ function Check({ ok, label }: { ok: boolean; label: string }) {
   );
 }
 
-export function ConfirmationView({ c }: { c: WithConfirmer }) {
+export function ConfirmationView({ c, anonymizeStaff = false }: { c: WithConfirmer; anonymizeStaff?: boolean }) {
   return (
     <div className="space-y-3 text-sm">
       <ul className="space-y-1.5">
@@ -42,7 +43,7 @@ export function ConfirmationView({ c }: { c: WithConfirmer }) {
       )}
       {c.completedAt && (
         <p className="text-xs text-gray-400">
-          Confirmed by {c.confirmedBy?.name ?? 'GWA'} · {new Date(c.completedAt).toLocaleString('en-CA')}
+          Confirmed by {anonymizeStaff ? REVIEWER_DISPLAY : c.confirmedBy?.name ?? 'GWA'} · {new Date(c.completedAt).toLocaleString('en-CA')}
         </p>
       )}
     </div>

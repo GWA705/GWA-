@@ -15,7 +15,7 @@ import { DealProgress } from '@/components/DealProgress';
 import { UploadForm } from '@/components/UploadForm';
 import { SerialNumberForm } from '@/components/SerialNumberForm';
 import { ProductSerialForm } from '@/components/ProductSerialForm';
-import { fundingDocumentTypesFor, STATUS_LABELS, programLabel, soapLabel } from '@/lib/constants';
+import { fundingDocumentTypesFor, STATUS_LABELS, programLabel, soapLabel, REVIEWER_DISPLAY } from '@/lib/constants';
 import { dealerFacingStatus, hasDealerReturned } from '@/lib/reviewerFlow';
 import { dealerOutstanding } from '@/lib/outstanding';
 import {
@@ -204,7 +204,7 @@ export default async function DealerApplicationDetail({
                 <span className="font-medium">{d.type.replace('_', ' ')}</span>
                 {d.notes && <p className="mt-1 text-gray-600">{d.notes}</p>}
                 <p className="mt-1 text-xs text-gray-400">
-                  {d.decidedBy.name} · {d.createdAt.toLocaleString('en-CA')}
+                  {REVIEWER_DISPLAY} · {d.createdAt.toLocaleString('en-CA')}
                 </p>
               </li>
             ))}
@@ -223,7 +223,7 @@ export default async function DealerApplicationDetail({
           <ConfirmationBadge status={app.confirmationStatus} />
         </div>
         {app.confirmation && app.confirmationStatus !== 'PENDING' ? (
-          <ConfirmationView c={app.confirmation} />
+          <ConfirmationView c={app.confirmation} anonymizeStaff />
         ) : (
           <p className="text-sm text-gray-500">This deal has not been confirmed yet.</p>
         )}
@@ -233,7 +233,7 @@ export default async function DealerApplicationDetail({
       <section className="card p-6">
         <h2 className="mb-3 border-l-4 border-brand-500 pl-2.5 text-lg font-bold text-gray-900">Chat with the Reviewer</h2>
         <div className="mb-4">
-          <NoteThread notes={app.dealNotes} emptyText="No messages yet. Use this to chat with the reviewer about this deal." />
+          <NoteThread notes={app.dealNotes} anonymizeStaff emptyText="No messages yet. Use this to chat with the reviewer about this deal." />
         </div>
         <NoteForm
           action={addDealerNoteAction.bind(null, app.id)}
