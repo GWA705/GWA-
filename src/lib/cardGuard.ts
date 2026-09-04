@@ -35,6 +35,16 @@ export function looksLikeCardNumber(text: string): boolean {
   return false;
 }
 
-// A shared, friendly message for when a card number is blocked.
-export const CARD_BLOCK_MESSAGE =
-  'For your security, please don’t send full card numbers in chat. Remove it and try again.';
+// Marker left in place of a stripped card number.
+export const CARD_REDACTION = '[card number removed]';
+
+// Shown to the sender when a card number is stripped from their message.
+export const CARD_REDACT_NOTICE = 'For your security, card numbers are removed from chat.';
+
+/** Replace card-like numbers with the redaction marker; other text is untouched. */
+export function redactCardNumbers(text: string): string {
+  return text.replace(/\d(?:[ -]?\d){12,18}/g, (m) => {
+    const digits = m.replace(/\D/g, '');
+    return digits.length >= 13 && digits.length <= 19 && luhnValid(digits) ? CARD_REDACTION : m;
+  });
+}

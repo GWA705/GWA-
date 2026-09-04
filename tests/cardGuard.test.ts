@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { looksLikeCardNumber, luhnValid } from '../src/lib/cardGuard';
+import { looksLikeCardNumber, luhnValid, redactCardNumbers, CARD_REDACTION } from '../src/lib/cardGuard';
 
 describe('luhnValid', () => {
   it('accepts a valid card number and rejects a bad one', () => {
@@ -25,5 +25,18 @@ describe('looksLikeCardNumber', () => {
 
   it('ignores ordinary text', () => {
     expect(looksLikeCardNumber('Approved — sending paperwork today')).toBe(false);
+  });
+});
+
+describe('redactCardNumbers', () => {
+  it('strips card numbers but keeps the rest of the message', () => {
+    expect(redactCardNumbers('here it is 4242 4242 4242 4242 thanks')).toBe(`here it is ${CARD_REDACTION} thanks`);
+    expect(redactCardNumbers('amex 378282246310005')).toBe(`amex ${CARD_REDACTION}`);
+  });
+
+  it('leaves portal reference numbers untouched', () => {
+    expect(redactCardNumbers('HD 800251798, financing 7810696, call 705-555-0123')).toBe(
+      'HD 800251798, financing 7810696, call 705-555-0123',
+    );
   });
 });

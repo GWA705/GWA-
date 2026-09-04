@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { looksLikeCardNumber, CARD_BLOCK_MESSAGE } from '@/lib/cardGuard';
+import { looksLikeCardNumber, CARD_REDACT_NOTICE } from '@/lib/cardGuard';
 
 interface Msg {
   id: string;
@@ -82,8 +82,8 @@ export function ConversationThread({
   async function send() {
     const body = text.trim();
     if (!body || sending) return;
-    if (looksLikeCardNumber(body)) { setCardWarn(true); return; }
-    setCardWarn(false);
+    // The server strips card numbers; let the sender know when that happens.
+    setCardWarn(looksLikeCardNumber(body));
     setSending(true);
     try {
       const r = await fetch('/api/chat/send', {
@@ -91,7 +91,6 @@ export function ConversationThread({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ conversationId, applicationId: conversationId ? undefined : applicationId, body }),
       });
-      if (r.status === 422) { setCardWarn(true); return; }
       if (r.ok) {
         const data = await r.json();
         setConversationId(data.conversationId);
@@ -117,7 +116,7 @@ export function ConversationThread({
         ))}
       </div>
       <div className="border-t border-gray-200 bg-white p-3">
-        {cardWarn && <p className="mb-2 rounded bg-red-50 px-2 py-1.5 text-xs text-red-700">{CARD_BLOCK_MESSAGE}</p>}
+        {cardWarn && <p className="mb-2 rounded bg-amber-50 px-2 py-1.5 text-xs text-amber-800">{CARD_REDACT_NOTICE}</p>}
         <form onSubmit={(e) => { e.preventDefault(); send(); }} className="flex items-end gap-2">
           <textarea
             value={text}
