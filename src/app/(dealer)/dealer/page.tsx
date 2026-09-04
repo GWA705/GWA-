@@ -13,6 +13,7 @@ import { programLabel, STATUS_LABELS } from '@/lib/constants';
 import { dealerOutstanding } from '@/lib/outstanding';
 import { getBannerRotation } from '@/lib/settings';
 import { PageHeader } from '@/components/PageHeader';
+import { DashboardGreeting } from '@/components/DashboardGreeting';
 import type { ApplicationStatus, Prisma } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
@@ -126,6 +127,8 @@ export default async function DealerHome({
 
   return (
     <div>
+      <DashboardGreeting firstName={user.name.split(' ')[0] || user.name} />
+
       <AnnouncementBanner announcements={topBanners} rotate={rotation.top} />
 
       <div className="mb-6 space-y-3">

@@ -26,6 +26,12 @@ source of truth; this file is the human-readable index.
 | Bell Total Connect voicemail | 📝 Documented, not built here | Guide delivered for the **booking site** (voicemail-to-email + IMAP). Not part of this portal. |
 
 ## 2026-09-04
+- **Animated header wordmark + dashboard greeting (dealer).** The header opens as
+  "GWA Dealer Portal" and, once per browser session, softly blurs into
+  "<Company> Portal" (company from the office profile) after ~5s. The dealer
+  dashboard shows a time-aware "Good morning/afternoon/evening, <first name>".
+  Falls back to "GWA Dealer Portal" when no company is set; respects
+  prefers-reduced-motion. `AnimatedWordmark` + `DashboardGreeting`.
 - **Card-number redaction in chat.** Card numbers typed into chat are stripped
   and replaced with "[card number removed]" server-side (raw number never
   stored); the message still goes through and the sender sees an amber notice.

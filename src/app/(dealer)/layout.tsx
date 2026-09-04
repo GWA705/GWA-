@@ -41,14 +41,16 @@ export default async function DealerLayout({ children }: { children: React.React
   }
 
   // Attention dots: content sections with something new, and unread mail.
-  const [freshSections, unreadMail, calcAccess, reportAccess, searchEnabled, giftCardUnread] = await Promise.all([
+  const [freshSections, unreadMail, calcAccess, reportAccess, searchEnabled, giftCardUnread, profile] = await Promise.all([
     newContentSectionsForUser(user.userId),
     user.dealerId ? unreadMailCountForUser(user.userId, user.dealerId, user.isDistributor) : Promise.resolve(0),
     hasCalculatorAccess(user),
     hasDealerReportAccess(user),
     isGlobalSearchEnabled(),
     user.dealerId ? dealerHasGiftCardUnread(user.dealerId) : Promise.resolve(false),
+    user.dealerId ? prisma.dealerProfile.findUnique({ where: { dealerId: user.dealerId }, select: { businessName: true } }) : Promise.resolve(null),
   ]);
+  const companyName = profile?.businessName ?? null;
 
   return (
     <>
@@ -70,6 +72,7 @@ export default async function DealerLayout({ children }: { children: React.React
       <AppShell
         user={user}
         portal="dealer"
+        companyName={companyName}
         nav={[
           // Everyday actions stay as top-level tabs.
           { href: '/dealer', label: 'Applications' },

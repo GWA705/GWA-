@@ -4,6 +4,7 @@ import { logoutAction } from '@/app/(auth)/actions';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { MobileNav } from '@/components/MobileNav';
 import { TopNav } from '@/components/TopNav';
+import { AnimatedWordmark } from '@/components/AnimatedWordmark';
 import Link from 'next/link';
 
 interface NavItem {
@@ -31,11 +32,15 @@ export function AppShell({
   user,
   nav,
   portal,
+  companyName,
   children,
 }: {
   user: SessionUser;
   nav: NavItem[];
   portal?: 'dealer' | 'staff' | 'admin';
+  // A dealer office's company name (from their profile). When set, the header
+  // wordmark morphs from "GWA Dealer Portal" to "<Company> Portal".
+  companyName?: string | null;
   children: React.ReactNode;
 }) {
   const showSwitcher = hasBothPortals(user) && (portal === 'dealer' || portal === 'staff');
@@ -51,7 +56,7 @@ export function AppShell({
               nav={nav}
               triggerClassName="topbar-btn px-2.5"
             />
-            <span className="text-lg font-semibold text-brand-700">GWA Dealer Portal</span>
+            <AnimatedWordmark companyName={companyName} />
             {showSwitcher && <PortalSwitcher current={portal as 'dealer' | 'staff'} />}
             <div className="ml-auto hidden items-center gap-2 sm:flex">
               <div className="text-right leading-tight">

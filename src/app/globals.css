@@ -313,3 +313,12 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .gwa-shimmer, .gwa-pulse-ring { animation: none; }
 }
+
+/* Animated dealer wordmark: "GWA Dealer Portal" → "<Company> Portal" (once/session). */
+@keyframes wmGwaOut { 0%,68% { opacity:1; filter:blur(0); } 82% { opacity:0; filter:blur(10px); } 100% { opacity:0; filter:blur(10px); } }
+@keyframes wmCoIn   { 0%,72% { opacity:0; filter:blur(10px); } 88% { opacity:1; filter:blur(0); } 100% { opacity:1; filter:blur(0); } }
+.wm-gwa { animation: wmGwaOut 7s ease-in-out forwards; }
+.wm-co  { animation: wmCoIn 7s ease-in-out forwards; }
+@keyframes wmGreetIn { 0% { opacity:0; transform:translateY(10px); } 100% { opacity:1; transform:translateY(0); } }
+.wm-greet-in { animation: wmGreetIn .6s ease-out both; }
+@media (prefers-reduced-motion: reduce) { .wm-gwa, .wm-co, .wm-greet-in { animation: none; } }
