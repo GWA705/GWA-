@@ -658,7 +658,7 @@ export function MarketplaceOrderForm({ items, categories }: { items: Item[]; cat
       <button
         type="button"
         onClick={() => setCartOpen(true)}
-        className="fixed bottom-5 right-5 z-40 inline-flex items-center gap-2 rounded-full bg-brand-600 px-5 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-brand-700 xl:hidden"
+        className="fixed bottom-24 right-5 z-40 inline-flex items-center gap-2 rounded-full bg-brand-600 px-5 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-brand-700 xl:hidden"
       >
         <ShoppingCart size={16} /> Cart
         {totalUnits > 0 && (

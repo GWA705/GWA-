@@ -48,7 +48,49 @@ export function RecentApplications({ items }: { items: RecentApp[] }) {
         <p className="px-5 pb-6 text-sm text-slate-500">No applications yet — start with &ldquo;New Customer.&rdquo;</p>
       ) : (
         <>
-          <div className="overflow-x-auto px-4">
+          {/* Mobile: a stacked card per application (the table scrolls sideways). */}
+          <ul className="space-y-2.5 px-4 pb-1 sm:hidden">
+            {shown.map((a) => (
+              <li
+                key={a.id}
+                className={`rounded-xl border p-3 ${a.pinned ? 'border-blue-200 bg-blue-50/50' : 'border-slate-200'}`}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <Link href={`/dealer/applications/${a.id}`} className="text-sm font-semibold text-blue-600">
+                    {a.name}
+                  </Link>
+                  <PinButton applicationId={a.id} pinned={a.pinned} />
+                </div>
+                <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                  <StatusBadge status={a.status} />
+                  {a.problem && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700">
+                      <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-red-600 text-[9px] font-black leading-none text-white">!</span>
+                      Sent back
+                    </span>
+                  )}
+                  {a.actionNeeded && !a.problem && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">
+                      <AlertTriangle size={11} /> Action needed
+                    </span>
+                  )}
+                </div>
+                <div className="mt-2 flex items-center justify-between text-xs">
+                  <span className="text-slate-500">{a.program} · {a.province}</span>
+                  <span className="font-semibold text-slate-800">{a.amount}</span>
+                </div>
+                <div className="mt-1 flex items-center justify-between text-xs">
+                  <span className="text-slate-400">Submitted {a.submitted}</span>
+                  <Link href={`/dealer/applications/${a.id}`} className="inline-flex items-center gap-1 font-semibold text-blue-600">
+                    <Eye size={13} /> View
+                  </Link>
+                </div>
+              </li>
+            ))}
+          </ul>
+
+          {/* Desktop: the full table. */}
+          <div className="hidden overflow-x-auto px-4 sm:block">
             <table className="w-full min-w-[760px]">
               <thead>
                 <tr className="bg-[#f5f8fc] text-[11px] uppercase text-slate-500">
