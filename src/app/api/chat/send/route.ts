@@ -35,8 +35,9 @@ export async function POST(req: NextRequest) {
   } else if (payload.applicationId) {
     conv = await getOrCreateDealConversation(payload.applicationId);
   } else if (payload.kind === 'SUPPORT') {
-    // Only a dealer opens their own general thread; staff reply by conversationId.
-    if (isInternalRole(session.role) || !session.dealerId) return new NextResponse('Bad request', { status: 400 });
+    // The general thread belongs to a dealer; anyone with a dealerId (a dealer,
+    // or an admin viewing as one) can open it. Staff reply by conversationId.
+    if (!session.dealerId) return new NextResponse('Bad request', { status: 400 });
     conv = await getOrCreateSupportConversation(session.dealerId);
   }
   if (!conv) return new NextResponse('Conversation not found', { status: 404 });

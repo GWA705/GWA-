@@ -20,7 +20,7 @@ interface Msg {
   authorName: string;
   createdAt: string;
 }
-type Active = { conversationId?: string; applicationId?: string; title: string };
+type Active = { conversationId?: string; applicationId?: string; kind?: 'SUPPORT'; title: string };
 
 const fmtTime = (iso: string) =>
   new Date(iso).toLocaleString('en-CA', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
@@ -172,6 +172,16 @@ export function ChatWidget() {
                   <span className="min-w-0"><span className="block text-sm font-semibold text-gray-900">Chat about this deal</span><span className="block truncate text-xs text-gray-500">Start a message about the deal you&apos;re viewing</span></span>
                 </button>
               )}
+              {!summary.conversations.some((c) => c.kind === 'SUPPORT') && (
+                <button
+                  type="button"
+                  onClick={() => openThread({ kind: 'SUPPORT', title: 'General support' })}
+                  className="flex w-full items-center gap-3 border-b border-gray-100 px-4 py-3 text-left hover:bg-gray-50"
+                >
+                  <span className="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-amber-100 text-amber-700 text-xs font-bold">?</span>
+                  <span className="min-w-0"><span className="block text-sm font-semibold text-gray-900">General support</span><span className="block truncate text-xs text-gray-500">Ask the GWA team anything</span></span>
+                </button>
+              )}
               {summary.conversations.map((c) => (
                 <button
                   key={c.id}
@@ -191,9 +201,6 @@ export function ChatWidget() {
                   </span>
                 </button>
               ))}
-              {summary.conversations.length === 0 && !dealAppId && (
-                <p className="p-6 text-center text-sm text-gray-500">No conversations yet.</p>
-              )}
             </div>
           ) : (
             <>

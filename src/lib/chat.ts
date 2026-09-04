@@ -193,12 +193,9 @@ export async function staffConversationSummaries(userId: string, opts?: { search
 
 /** Total unread across a user's accessible conversations (for the bubble badge). */
 export async function totalUnread(user: SessionUser): Promise<number> {
-  const where = isInternalRole(user.role)
-    ? { messages: { some: {} } }
-    : user.dealerId
-      ? { dealerId: user.dealerId }
-      : null;
-  if (!where) return 0;
+  // A dealerId (real dealer, or an admin viewing as one) → that dealer's threads;
+  // otherwise (reviewer/admin in the staff area) → all active threads.
+  const where = user.dealerId ? { dealerId: user.dealerId } : { messages: { some: {} } };
   const convs = await prisma.conversation.findMany({ where, select: { id: true }, take: 300 });
   const unread = await unreadCounts(convs.map((c) => c.id), user.userId);
   let total = 0;
