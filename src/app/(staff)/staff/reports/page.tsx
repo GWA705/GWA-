@@ -66,6 +66,15 @@ export default async function ReportsLandingPage() {
       badge: 'Super Admin',
       available: canDealerSnapshot,
     },
+    {
+      href: '/staff/reports/cycle-times',
+      title: 'Review cycle times',
+      blurb:
+        'How long deals spend between each milestone — start-of-review, review-to-decision, producing install docs, funding, payout — with medians and a slow-tail (90th %). Spot where time goes and track improvements.',
+      accent: '#0f766e',
+      badge: 'Operations',
+      available: true,
+    },
   ];
 
   const visible = cards.filter((c) => c.available || c.badge === 'Coming soon');
