@@ -131,7 +131,7 @@ export default async function DealerHome({
 
       <AnnouncementBanner announcements={topBanners} rotate={rotation.top} />
 
-      <div className="mb-6 space-y-3">
+      <div className="mb-4 space-y-2.5">
         <PageHeader
           variant="rail"
           eyebrow="Deals"
@@ -142,12 +142,15 @@ export default async function DealerHome({
             </Link>
           }
         />
-        <SearchBox action="/dealer" q={searchParams.q} />
-        <DealerListControls
-          status={statusFilter}
-          sort={sort}
-          statuses={FILTER_STATUSES.map((s) => ({ value: s, label: STATUS_LABELS[s] }))}
-        />
+        {/* Search + filters share one row on desktop; stack on mobile. */}
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <SearchBox action="/dealer" q={searchParams.q} />
+          <DealerListControls
+            status={statusFilter}
+            sort={sort}
+            statuses={FILTER_STATUSES.map((s) => ({ value: s, label: STATUS_LABELS[s] }))}
+          />
+        </div>
       </div>
 
       {apps.length === 0 ? (
