@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { SectionHero } from '@/components/SectionHero';
 import { notFound } from 'next/navigation';
 import { requireRole } from '@/lib/session';
 import { isSuperAdmin, canAdminSection } from '@/lib/rbac';
@@ -70,10 +71,11 @@ export default async function StaffLeadsPage({
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-xl font-semibold text-gray-900">Leads</h1>
-        <p className="mt-1 text-sm text-gray-600">Home Depot leads across all offices, from the leads log.</p>
-      </div>
+      <SectionHero
+        eyebrow="Leads"
+        title="Home Depot Leads"
+        subtitle="Home Depot leads across all offices, from the leads log."
+      />
 
       <form method="GET" className="flex flex-wrap items-end gap-3">
         <div>

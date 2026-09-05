@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { SectionHero } from '@/components/SectionHero';
 import { requireStaffSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { SearchBox } from '@/components/SearchBox';
@@ -195,9 +196,9 @@ export default async function StaffQueue({ searchParams }: { searchParams: { q?:
     const rows = sortDeals(matches, sort).map(toRow);
     return (
       <div>
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-xl font-semibold text-gray-900">Deals</h1>
-          <div className="flex flex-wrap items-center gap-2">
+        <div className="mb-5 space-y-4">
+          <SectionHero eyebrow="Reviewer" title="Deals" subtitle="Review, approve and track every dealer submission." />
+          <div className="flex flex-wrap items-center justify-end gap-2">
             <SearchBox action="/staff" q={q} />
             <QueueSortControl sort={sort} />
           </div>

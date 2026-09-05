@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { SectionHero } from '@/components/SectionHero';
 import { notFound } from 'next/navigation';
 import { requireRole } from '@/lib/session';
 import { canViewReportsArea, canViewLeadershipSnapshot, canViewDealerSnapshot } from '@/lib/reporting/access';
@@ -81,15 +82,16 @@ export default async function ReportsLandingPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold text-gray-900">Reports</h1>
-          <p className="mt-1 text-sm text-gray-600">Performance reporting, drawn from the sales journals and the portal pipeline.</p>
-        </div>
-        <Link href="/staff/reports/connection" className="btn-secondary text-sm">
-          Journal connection
-        </Link>
-      </div>
+      <SectionHero
+        eyebrow="Insights"
+        title="Reports"
+        subtitle="Performance reporting, drawn from the sales journals and the portal pipeline."
+        actions={
+          <Link href="/staff/reports/connection" className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-[#0e2b5c] transition hover:bg-blue-50">
+            Journal connection
+          </Link>
+        }
+      />
 
       {!canLeadership && (
         <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">

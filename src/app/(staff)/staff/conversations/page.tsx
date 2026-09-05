@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { SectionHero } from '@/components/SectionHero';
 import { requireRole } from '@/lib/session';
 import { staffConversationSummaries } from '@/lib/chat';
 
@@ -15,18 +16,15 @@ export default async function StaffConversationsPage({ searchParams }: { searchP
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold text-gray-900">Conversations</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Live chat with dealers — deal threads and general support.{totalUnread > 0 ? ` ${totalUnread} unread.` : ''}
-          </p>
-        </div>
-        <form className="flex items-center gap-2" action="/staff/conversations">
-          <input name="q" defaultValue={q} placeholder="Search dealer or customer…" className="input h-9 w-64 text-sm" />
-          <button type="submit" className="btn-secondary text-sm">Search</button>
-        </form>
-      </div>
+      <SectionHero
+        eyebrow="Reviewer"
+        title="Conversations"
+        subtitle={`Live chat with dealers — deal threads and general support.${totalUnread > 0 ? ` ${totalUnread} unread.` : ''}`}
+      />
+      <form className="flex items-center gap-2" action="/staff/conversations">
+        <input name="q" defaultValue={q} placeholder="Search dealer or customer…" className="input h-9 w-64 text-sm" />
+        <button type="submit" className="btn-secondary text-sm">Search</button>
+      </form>
 
       {conversations.length === 0 ? (
         <div className="card p-8 text-center text-sm text-gray-500">No conversations yet.</div>

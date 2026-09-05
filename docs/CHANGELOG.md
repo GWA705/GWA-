@@ -25,6 +25,16 @@ source of truth; this file is the human-readable index.
 | Guusto gift-card API | ⏳ Parked | Awaiting `GUUSTO_API_TOKEN` in Render + exact field names (test at `/admin/guusto-test`) + office→reason mapping. |
 | Bell Total Connect voicemail | 📝 Documented, not built here | Guide delivered for the **booking site** (voicemail-to-email + IMAP). Not part of this portal. |
 
+## 2026-09-05
+- **Reviewer (staff) area brought up to match the dealer portal.** New
+  `StaffShell` gives the reviewer area the same dark-blue sidebar + white top
+  header (slim scrollbar, Dealer-view switcher pill, mail bell, account block)
+  as the dealer portal, replacing the old top-nav `AppShell` (content stays in a
+  centered column). `SectionHero` now heads the main reviewer pages — Deals
+  queue, Mail, Conversations, Gift cards, Directory, Find customer, Leads,
+  Reports (with a "Journal connection" hero action). Admin area still on the old
+  shell (next phase). UI-only; queue/search/sort/logic unchanged.
+
 ## 2026-09-04
 - **Shared hero rolled across the dealer tabs.** Every dealer page now uses the
   reusable `SectionHero` (added an optional `actions` slot for header buttons and

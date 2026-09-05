@@ -1,4 +1,5 @@
 import { requireGiftCardAccess } from '@/lib/giftCardAccess';
+import { SectionHero } from '@/components/SectionHero';
 import { loadGiftCardQueue } from '@/lib/giftCardQueueData';
 import { queryGiftCards, monthLabel } from '@/lib/giftCardHistory';
 import { GiftCardQueue } from '@/app/(admin)/admin/gift-cards/GiftCardQueue';
@@ -35,13 +36,11 @@ export default async function StaffGiftCardsPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold text-gray-900">Water-test gift cards</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Dealers submit a customer + card amount for each completed water test. Copy the selected emails (or CSV) into
-          Guusto, send, then <strong>mark them sent</strong> — that stamps a dated receipt back to the dealer.
-        </p>
-      </div>
+      <SectionHero
+        eyebrow="Rewards"
+        title="Water-test gift cards"
+        subtitle="Dealers submit a customer + card amount for each completed water test. Copy the selected emails (or CSV) into Guusto, send, then mark them sent — that stamps a dated receipt back to the dealer."
+      />
 
       <StaffFlaggedGiftCards flagged={flagged} />
 

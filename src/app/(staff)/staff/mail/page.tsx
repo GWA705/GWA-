@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { SectionHero } from '@/components/SectionHero';
 import { requireStaffSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { MailComposeForm } from './MailComposeForm';
@@ -40,9 +41,15 @@ export default async function StaffMail() {
   const unreadByMail = new Map(unreadReplies.map((u) => [u.mailId, u._count._all]));
 
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+    <div className="space-y-6">
+      <SectionHero
+        eyebrow="Messages"
+        title="Mail to dealers"
+        subtitle="Message dealers with files attached — every open is recorded."
+      />
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
       <section className="card p-6">
-        <h1 className="mb-1 text-lg font-semibold text-gray-900">Send mail to dealers</h1>
+        <h2 className="mb-1 text-lg font-semibold text-gray-900">Send mail to dealers</h2>
         <p className="mb-5 text-sm text-gray-500">Message + files delivered to the dealer portal. Every open is recorded.</p>
         <MailComposeForm dealers={dealers} />
       </section>
@@ -72,6 +79,7 @@ export default async function StaffMail() {
           </div>
         )}
       </section>
+      </div>
     </div>
   );
 }

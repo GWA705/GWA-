@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { SectionHero } from '@/components/SectionHero';
 import { requireStaffSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { formatPhoneDisplay } from '@/lib/format';
@@ -78,18 +79,15 @@ export default async function DirectoryPage({ searchParams }: { searchParams: { 
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold text-gray-900">Office directory</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Locations and key contacts, kept up to date by each office.{canEdit ? ' You can edit any profile.' : ' Read-only.'}
-          </p>
-        </div>
-        <form className="flex items-center gap-2" action="/staff/directory">
-          <input name="q" defaultValue={q} placeholder="Search office name…" className="input h-9 w-56 text-sm" />
-          <button type="submit" className="btn-secondary text-sm">Search</button>
-        </form>
-      </div>
+      <SectionHero
+        eyebrow="Dealers"
+        title="Office directory"
+        subtitle={`Locations and key contacts, kept up to date by each office.${canEdit ? ' You can edit any profile.' : ' Read-only.'}`}
+      />
+      <form className="flex items-center gap-2" action="/staff/directory">
+        <input name="q" defaultValue={q} placeholder="Search office name…" className="input h-9 w-56 text-sm" />
+        <button type="submit" className="btn-secondary text-sm">Search</button>
+      </form>
 
       {dealers.length === 0 ? (
         <div className="card p-8 text-center text-sm text-gray-500">No offices found.</div>
