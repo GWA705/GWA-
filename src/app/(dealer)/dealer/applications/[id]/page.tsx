@@ -142,7 +142,7 @@ export default async function DealerApplicationDetail({
           <h2 className={`mb-2 text-base font-semibold ${outstanding.readyToSubmit ? 'text-green-800' : 'text-amber-900'}`}>
             {outstanding.readyToSubmit ? '✅ Ready to submit' : '⚠️ What’s needed from you'}
           </h2>
-          <ul className="space-y-1.5 text-sm text-gray-700">
+          <ul className={`space-y-1.5 text-sm ${outstanding.readyToSubmit ? 'text-green-900' : 'text-amber-900'}`}>
             {outstanding.items.map((it, i) => (
               <li key={i} className="flex items-start gap-2">
                 <span aria-hidden className={outstanding.readyToSubmit ? 'text-green-600' : 'text-amber-600'}>›</span>
