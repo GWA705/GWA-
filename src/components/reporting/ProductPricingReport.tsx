@@ -1,4 +1,5 @@
 import type { ProductPricingResult, PriceStat } from '@/lib/reporting/productPricing';
+import { ManualPackageBuilder } from '@/components/reporting/ManualPackageBuilder';
 
 const money = (n: number) => `$${n.toLocaleString('en-CA', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
@@ -74,6 +75,9 @@ export function ProductPricingReport({ data, scopeLabel }: { data: ProductPricin
         rows={data.packages}
         unitLabel="Package"
       />
+
+      <ManualPackageBuilder deals={data.deals} products={data.allProducts} />
+
 
       <p className="px-1 text-xs text-gray-400">
         Based on approved deals (approved amount, falling back to requested). A deal with one product counts toward that

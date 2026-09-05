@@ -31,12 +31,20 @@ export interface PriceStat {
   total: number;
 }
 
+/** One counted deal, reduced to what the manual grouping tool needs. */
+export interface PricingDeal {
+  products: string[]; // cleaned product names
+  amount: number;
+}
+
 export interface ProductPricingResult {
   dealsCounted: number; // deals with at least one product
   singleUnitDeals: number;
   packageDeals: number;
   products: PriceStat[]; // stand-alone (single-product) sales
   packages: PriceStat[]; // 2+ products sold together
+  deals: PricingDeal[]; // raw rows for the manual "group these products" tool
+  allProducts: string[]; // every distinct product seen, for the picker
 }
 
 const clean = (names: string[]): string[] =>
@@ -68,6 +76,8 @@ export async function productPricing(opts: { dealerIds?: string[]; since?: Date 
   // key -> { label, amounts[] }
   const products = new Map<string, { label: string; amounts: number[] }>();
   const packages = new Map<string, { label: string; amounts: number[] }>();
+  const deals: PricingDeal[] = [];
+  const allProducts = new Map<string, string>(); // lowercased key -> display label
   let dealsCounted = 0;
   let singleUnitDeals = 0;
   let packageDeals = 0;
@@ -78,6 +88,8 @@ export async function productPricing(opts: { dealerIds?: string[]; since?: Date 
     const amount = Number(a.approvedAmount ?? a.requestedAmount);
     if (!Number.isFinite(amount) || amount <= 0) continue;
     dealsCounted++;
+    deals.push({ products: items, amount });
+    for (const it of items) if (!allProducts.has(it.toLowerCase())) allProducts.set(it.toLowerCase(), it);
 
     if (items.length === 1) {
       singleUnitDeals++;
@@ -108,5 +120,7 @@ export async function productPricing(opts: { dealerIds?: string[]; since?: Date 
     packageDeals,
     products: toStats(products),
     packages: toStats(packages),
+    deals,
+    allProducts: [...allProducts.values()].sort((a, b) => a.localeCompare(b)),
   };
 }
