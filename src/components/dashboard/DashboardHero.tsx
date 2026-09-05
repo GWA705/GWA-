@@ -8,8 +8,7 @@ import { DashboardGreeting } from '@/components/DashboardGreeting';
  * is added, an on-brand blue gradient shows instead — so it always looks
  * finished. A left-to-right dark gradient keeps the greeting legible over any
  * photo. See the AI image prompt in `docs/BRAND-KIT.md` §14 for a
- * perfectly-formatted background. The "Better Water / Brighter Lives" flourish
- * is live text (crisp at any size), so the photo itself should carry no text.
+ * perfectly-formatted background.
  */
 export function DashboardHero({ firstName }: { firstName: string; companyName?: string | null }) {
   return (
@@ -36,20 +35,8 @@ export function DashboardHero({ firstName }: { firstName: string; companyName?: 
           />
           <p className="mt-2 text-xl font-bold text-white sm:text-2xl">Welcome to your Dealer Portal</p>
           <p className="mt-1.5 max-w-xl text-sm text-blue-100/90 sm:text-base">
-            Everything you need to manage, process and grow your business — all in one place.
+            Everything in one place.
           </p>
-        </div>
-
-        {/* Script flourish — live text so it stays crisp (photo carries no text) */}
-        <div
-          className="hidden flex-none pr-1 text-right leading-[1.15] text-sky-50/95 drop-shadow lg:block"
-          style={{ fontFamily: "'Great Vibes', 'Segoe Script', cursive" }}
-          aria-hidden
-        >
-          <div className="text-4xl xl:text-5xl">Better</div>
-          <div className="text-4xl xl:text-5xl">Water</div>
-          <div className="text-4xl xl:text-5xl">Brighter</div>
-          <div className="text-4xl xl:text-5xl">Lives</div>
         </div>
       </div>
     </section>
