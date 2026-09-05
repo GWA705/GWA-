@@ -24,12 +24,13 @@ function StatTable({ title, blurb, rows, unitLabel }: { title: string; blurb: st
         <p className="px-5 py-8 text-center text-sm text-gray-500">No {unitLabel} sales in this range yet.</p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px]">
+          <table className="w-full min-w-[680px]">
             <thead>
               <tr className="bg-gray-50 text-[11px] uppercase text-gray-500">
                 <th className="px-4 py-3 text-left">{unitLabel}</th>
                 <th className="px-4 py-3 text-right">Sales</th>
-                <th className="px-4 py-3 text-right">Avg price</th>
+                <th className="px-4 py-3 text-right">Avg net</th>
+                <th className="px-4 py-3 text-right">Avg after-tax</th>
                 <th className="px-4 py-3 text-right">Low</th>
                 <th className="px-4 py-3 text-right">High</th>
               </tr>
@@ -39,7 +40,8 @@ function StatTable({ title, blurb, rows, unitLabel }: { title: string; blurb: st
                 <tr key={r.key} className="border-t border-gray-100">
                   <td className="px-4 py-3 text-sm font-medium text-gray-900">{r.label}</td>
                   <td className="px-4 py-3 text-right text-sm tabular-nums text-gray-600">{r.count}</td>
-                  <td className="px-4 py-3 text-right text-sm font-bold tabular-nums text-gray-900">{money(r.avg)}</td>
+                  <td className="px-4 py-3 text-right text-sm font-bold tabular-nums text-gray-900">{money(r.avgNet)}</td>
+                  <td className="px-4 py-3 text-right text-sm tabular-nums text-gray-600">{money(r.avg)}</td>
                   <td className="px-4 py-3 text-right text-sm tabular-nums text-gray-500">{money(r.min)}</td>
                   <td className="px-4 py-3 text-right text-sm tabular-nums text-gray-500">{money(r.max)}</td>
                 </tr>
@@ -113,8 +115,9 @@ export function ProductPricingReport({ data, scopeLabel }: { data: ProductPricin
 
 
       <p className="px-1 text-xs text-gray-400">
-        Based on approved deals (approved amount, falling back to requested). A deal with one product counts toward that
-        product&rsquo;s average; a deal with two or more counts as a package.
+        Averages use approved deals (approved amount, falling back to requested). <strong>After-tax</strong> is the full sale
+        total; <strong>net</strong> backs the tax out using the deal&rsquo;s province rate. A deal with one product counts
+        toward that product&rsquo;s average; two or more counts as a package.
       </p>
     </div>
   );

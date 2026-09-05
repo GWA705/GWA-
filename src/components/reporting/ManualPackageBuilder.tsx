@@ -20,7 +20,7 @@ export function ManualPackageBuilder({ deals, products }: { deals: PricingDeal[]
 
   // Pre-lowercase each deal's product set once.
   const dealSets = useMemo(
-    () => deals.map((d) => ({ set: new Set(d.products.map((p) => p.toLowerCase())), amount: d.amount, approved: d.approved, installed: d.installed })),
+    () => deals.map((d) => ({ set: new Set(d.products.map((p) => p.toLowerCase())), amount: d.amount, net: d.net, approved: d.approved, installed: d.installed })),
     [deals],
   );
 
@@ -49,16 +49,17 @@ export function ManualPackageBuilder({ deals, products }: { deals: PricingDeal[]
     const sold = matched.length;
     const approved = matched.filter((m) => m.approved).length;
     const installed = matched.filter((m) => m.installed).length;
-    // Average uses approved deals with a real amount (falls back to any matched).
-    const priced = matched.filter((m) => m.approved && m.amount > 0).map((m) => m.amount);
-    const amounts = priced.length ? priced : matched.filter((m) => m.amount > 0).map((m) => m.amount);
-    const total = amounts.reduce((s, a) => s + a, 0);
+    // Averages use approved deals with a real amount (falls back to any matched).
+    let priced = matched.filter((m) => m.approved && m.amount > 0);
+    if (priced.length === 0) priced = matched.filter((m) => m.amount > 0);
+    const n = priced.length;
     return {
       sold,
       approved,
       installed,
-      count: amounts.length,
-      avg: amounts.length ? total / amounts.length : 0,
+      count: n,
+      avg: n ? priced.reduce((s, m) => s + m.amount, 0) / n : 0,
+      avgNet: n ? priced.reduce((s, m) => s + m.net, 0) / n : 0,
     };
   }, [dealSets, selected, mode]);
 
@@ -112,8 +113,9 @@ export function ManualPackageBuilder({ deals, products }: { deals: PricingDeal[]
                 No deals {mode === 'exact' ? 'sold exactly this set' : 'included all of these'} yet.
               </p>
             ) : (
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <Stat label="Avg sale price" value={result.count ? money(result.avg) : '—'} strong />
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+                <Stat label="Avg net" value={result.count ? money(result.avgNet) : '—'} strong />
+                <Stat label="Avg after-tax" value={result.count ? money(result.avg) : '—'} />
                 <Stat label="Sold" value={String(result.sold)} />
                 <Stat label="Approved" value={String(result.approved)} />
                 <Stat label="Installed" value={String(result.installed)} />
