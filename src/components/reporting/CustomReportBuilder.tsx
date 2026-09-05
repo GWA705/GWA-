@@ -1,7 +1,8 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useTransition } from 'react';
 import type { ReportRow } from '@/lib/reporting/reportDataset';
+import { saveCustomReport, deleteCustomReport, type SavedReportVM } from '@/app/(dealer)/dealer/reports/customActions';
 
 const money = (n: number) => `$${n.toLocaleString('en-CA', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
@@ -50,11 +51,44 @@ interface Agg { key: string; label: string; count: number; total: number; avg: n
  * and status filters, and see a live table + bar chart. Runs in the browser over
  * the office's own deals — instant, tenant-isolated.
  */
-export function CustomReportBuilder({ rows }: { rows: ReportRow[] }) {
+export function CustomReportBuilder({ rows, saved = [] }: { rows: ReportRow[]; saved?: SavedReportVM[] }) {
   const [measure, setMeasure] = useState<Measure>('count');
   const [dimension, setDimension] = useState<Dimension>('ym');
   const [range, setRange] = useState<Range>('12m');
   const [statuses, setStatuses] = useState<Set<string>>(new Set());
+
+  const [savedList, setSavedList] = useState<SavedReportVM[]>(saved);
+  const [name, setName] = useState('');
+  const [note, setNote] = useState<string | null>(null);
+  const [pending, start] = useTransition();
+
+  function loadSaved(s: SavedReportVM) {
+    setMeasure(s.config.measure as Measure);
+    setDimension(s.config.dimension as Dimension);
+    setRange(s.config.range as Range);
+    setStatuses(new Set(s.config.statuses ?? []));
+    setNote(`Loaded “${s.name}”.`);
+  }
+
+  function doSave() {
+    const trimmed = name.trim();
+    if (!trimmed) { setNote('Give the report a name first.'); return; }
+    start(async () => {
+      const res = await saveCustomReport({ name: trimmed, config: { measure, dimension, range, statuses: [...statuses] } });
+      if ('error' in res) { setNote(res.error); return; }
+      setSavedList((prev) => [{ id: res.id, name: res.name, config: { measure, dimension, range, statuses: [...statuses] } }, ...prev]);
+      setName('');
+      setNote(`Saved “${res.name}”.`);
+    });
+  }
+
+  function doDelete(id: string) {
+    start(async () => {
+      const res = await deleteCustomReport(id);
+      if ('error' in res) { setNote(res.error); return; }
+      setSavedList((prev) => prev.filter((s) => s.id !== id));
+    });
+  }
 
   const allStatuses = useMemo(() => {
     const m = new Map<string, string>();
@@ -114,6 +148,34 @@ export function CustomReportBuilder({ rows }: { rows: ReportRow[] }) {
       <div className="border-b border-gray-100 px-5 py-3">
         <h3 className="text-base font-bold text-gray-900">Custom report</h3>
         <p className="text-xs text-gray-500">Pick what to measure, how to group it, and the range. Your office only.</p>
+      </div>
+
+      {/* Saved reports + save current view */}
+      <div className="space-y-3 border-b border-gray-100 bg-blue-50/50 px-5 py-3">
+        {savedList.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Saved</span>
+            {savedList.map((s) => (
+              <span key={s.id} className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white py-1 pl-3 pr-1 text-sm">
+                <button type="button" onClick={() => loadSaved(s)} className="font-medium text-blue-700 hover:underline">{s.name}</button>
+                <button type="button" onClick={() => doDelete(s.id)} disabled={pending} aria-label={`Delete ${s.name}`} className="flex h-5 w-5 items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-red-600">×</button>
+              </span>
+            ))}
+          </div>
+        )}
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Name this report…"
+            maxLength={80}
+            className="input h-9 w-56 text-sm"
+          />
+          <button type="button" onClick={doSave} disabled={pending} className="btn-primary text-sm disabled:opacity-50">
+            {pending ? 'Saving…' : 'Save current view'}
+          </button>
+          {note && <span className="text-xs text-gray-500">{note}</span>}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-3 border-b border-gray-100 bg-gray-50 p-4 sm:grid-cols-3">

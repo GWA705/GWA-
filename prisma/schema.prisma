@@ -1716,3 +1716,18 @@ model ApplicationViewUsage {
   @@unique([userId, view])
   @@index([dealerId, view])
 }
+
+// A dealer owner's saved custom report (the builder's config), shared at the
+// office level so any owner at that office can reuse it.
+model SavedReport {
+  id        String   @id @default(cuid())
+  userId    String
+  dealerId  String?
+  name      String
+  config    Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([dealerId])
+}

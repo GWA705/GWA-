@@ -26,6 +26,11 @@ source of truth; this file is the human-readable index.
 | Bell Total Connect voicemail | 📝 Documented, not built here | Guide delivered for the **booking site** (voicemail-to-email + IMAP). Not part of this portal. |
 
 ## 2026-09-05
+- **Save & name custom reports.** The custom report builder can now save a named
+  view (measure + group-by + range + status filters) and reload or delete it.
+  Saved reports are **office-shared** (any owner at that office sees them). New
+  `SavedReport` model + additive migration `20260905020000_saved_report`; server
+  actions `saveCustomReport` / `deleteCustomReport` (owner-gated).
 - **By-sales-rep report (dealer owner).** `/dealer/reports/sales-reps`: each rep's
   deals, total and average sale value, plus their top program, with a date-range
   filter. Uses the salesperson name captured on the new-customer form
