@@ -143,7 +143,7 @@ export default async function DealerApplications({
           title="Applications"
           subtitle="Search, track and manage every deal your office has submitted."
           actions={
-            <Link href="/dealer/applications/new" className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-[#0e2b5c] transition hover:bg-blue-50">
+            <Link href="/dealer/applications/new" className="inline-flex items-center gap-2 rounded-lg bg-[#ffffff] px-4 py-2 text-sm font-semibold text-[#0e2b5c] transition hover:bg-blue-50">
               New customer processing
             </Link>
           }

@@ -31,13 +31,13 @@ export function RecentApplications({ items }: { items: RecentApp[] }) {
   const shown = expanded ? items : items.slice(0, COLLAPSED);
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
       <div className="flex items-center justify-between px-5 py-4">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50">
             <FileText size={20} className="text-blue-600" />
           </div>
-          <h3 className="text-xl font-bold text-[#0d2a63]">Recent Applications</h3>
+          <h3 className="text-xl font-bold text-[#0d2a63] dark:text-slate-100">Recent Applications</h3>
         </div>
         <Link href="/dealer/applications" className="flex items-center gap-2 text-sm font-semibold text-blue-600 hover:underline">
           View all applications <ArrowRight size={17} />
@@ -45,7 +45,7 @@ export function RecentApplications({ items }: { items: RecentApp[] }) {
       </div>
 
       {items.length === 0 ? (
-        <p className="px-5 pb-6 text-sm text-slate-500">No applications yet — start with &ldquo;New Customer.&rdquo;</p>
+        <p className="px-5 pb-6 text-sm text-gray-500">No applications yet — start with &ldquo;New Customer.&rdquo;</p>
       ) : (
         <>
           {/* Mobile: a stacked card per application (the table scrolls sideways). */}
@@ -53,7 +53,7 @@ export function RecentApplications({ items }: { items: RecentApp[] }) {
             {shown.map((a) => (
               <li
                 key={a.id}
-                className={`rounded-xl border p-3 ${a.pinned ? 'border-blue-200 bg-blue-50/50' : 'border-slate-200'}`}
+                className={`rounded-xl border p-3 ${a.pinned ? 'border-blue-200 bg-blue-50/50' : 'border-gray-200'}`}
               >
                 <div className="flex items-start justify-between gap-2">
                   <Link href={`/dealer/applications/${a.id}`} className="text-sm font-semibold text-blue-600">
@@ -76,11 +76,11 @@ export function RecentApplications({ items }: { items: RecentApp[] }) {
                   )}
                 </div>
                 <div className="mt-2 flex items-center justify-between text-xs">
-                  <span className="text-slate-500">{a.program} · {a.province}</span>
-                  <span className="font-semibold text-slate-800">{a.amount}</span>
+                  <span className="text-gray-500">{a.program} · {a.province}</span>
+                  <span className="font-semibold text-gray-800">{a.amount}</span>
                 </div>
                 <div className="mt-1 flex items-center justify-between text-xs">
-                  <span className="text-slate-400">Submitted {a.submitted}</span>
+                  <span className="text-gray-400">Submitted {a.submitted}</span>
                   <Link href={`/dealer/applications/${a.id}`} className="inline-flex items-center gap-1 font-semibold text-blue-600">
                     <Eye size={13} /> View
                   </Link>
@@ -93,7 +93,7 @@ export function RecentApplications({ items }: { items: RecentApp[] }) {
           <div className="hidden overflow-x-auto px-4 sm:block">
             <table className="w-full min-w-[760px]">
               <thead>
-                <tr className="bg-[#f5f8fc] text-[11px] uppercase text-slate-500">
+                <tr className="bg-gray-50 text-[11px] uppercase text-gray-500">
                   <th className="w-8 px-2 py-3" aria-label="Pin" />
                   <th className="px-4 py-3 text-left">Applicant</th>
                   <th className="px-4 py-3 text-left">Province</th>
@@ -106,7 +106,7 @@ export function RecentApplications({ items }: { items: RecentApp[] }) {
               </thead>
               <tbody>
                 {shown.map((a) => (
-                  <tr key={a.id} className={`border-t border-slate-100 hover:bg-slate-50 ${a.pinned ? 'bg-blue-50/50' : ''}`}>
+                  <tr key={a.id} className={`border-t border-gray-100 hover:bg-gray-50 ${a.pinned ? 'bg-blue-50/50' : ''}`}>
                     <td className="px-2 py-3 align-top">
                       <PinButton applicationId={a.id} pinned={a.pinned} />
                     </td>
@@ -132,11 +132,11 @@ export function RecentApplications({ items }: { items: RecentApp[] }) {
                     <td className="px-4 py-3 text-sm">{a.program}</td>
                     <td className="px-4 py-3 text-sm font-medium">{a.amount}</td>
                     <td className="px-4 py-3"><StatusBadge status={a.status} /></td>
-                    <td className="px-4 py-3 text-sm text-slate-500">{a.submitted}</td>
+                    <td className="px-4 py-3 text-sm text-gray-500">{a.submitted}</td>
                     <td className="px-4 py-3">
                       <Link
                         href={`/dealer/applications/${a.id}`}
-                        className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-blue-600 hover:bg-blue-50"
+                        className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-blue-600 hover:bg-blue-50"
                       >
                         <Eye size={14} /> View
                       </Link>
@@ -148,7 +148,7 @@ export function RecentApplications({ items }: { items: RecentApp[] }) {
           </div>
 
           {canToggle && (
-            <div className="border-t border-slate-100 px-4 py-3 text-center">
+            <div className="border-t border-gray-100 px-4 py-3 text-center">
               <button
                 type="button"
                 onClick={() => setExpanded((v) => !v)}

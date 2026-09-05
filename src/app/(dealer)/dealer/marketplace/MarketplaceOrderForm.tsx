@@ -191,7 +191,7 @@ function ItemCard({
   onAdd: (item: Item, option: string | null, qty: number) => void;
 }) {
   return (
-    <div className="flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md">
+    <div className="flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition hover:shadow-md">
       <ItemImage item={item} onImageClick={onImageClick} />
       <div className="flex flex-1 flex-col p-4">
         <div className="font-semibold text-gray-900">{item.name}</div>
@@ -296,15 +296,15 @@ function CategoryCards({
             onClick={() => onSelect(c.key)}
             aria-pressed={on}
             className={`flex items-center gap-3 rounded-2xl border px-3.5 py-3 text-left transition ${
-              on ? 'border-blue-500 bg-blue-50 shadow-sm ring-1 ring-blue-200' : 'border-slate-200 bg-white hover:bg-slate-50'
+              on ? 'border-blue-500 bg-blue-50 shadow-sm ring-1 ring-blue-200' : 'border-gray-200 bg-white hover:bg-gray-50'
             }`}
           >
             <span className={`flex h-9 w-9 flex-none items-center justify-center rounded-lg ${on ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-600'}`}>
               <Icon size={18} />
             </span>
             <span className="min-w-0">
-              <span className="block truncate text-sm font-bold text-[#0d2a63]">{c.label.replace(/^✨\s*/, '')}</span>
-              <span className="block text-xs text-slate-500">{c.count} item{c.count === 1 ? '' : 's'}</span>
+              <span className="block truncate text-sm font-bold text-[#0d2a63] dark:text-slate-100">{c.label.replace(/^✨\s*/, '')}</span>
+              <span className="block text-xs text-gray-500">{c.count} item{c.count === 1 ? '' : 's'}</span>
             </span>
           </button>
         );
@@ -426,7 +426,7 @@ function SupportRailCard() {
         <button
           type="button"
           onClick={() => window.dispatchEvent(new CustomEvent('gwa:open-chat', { detail: { support: true } }))}
-          className="mt-4 inline-flex items-center gap-2 rounded-lg bg-white px-3.5 py-1.5 text-[13px] font-semibold text-[#0e2b5c] transition hover:bg-blue-50"
+          className="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#ffffff] px-3.5 py-1.5 text-[13px] font-semibold text-[#0e2b5c] transition hover:bg-blue-50"
         >
           Contact Support <ArrowRight size={16} />
         </button>
@@ -443,14 +443,14 @@ const INFO_TILES: { Icon: LucideIcon; title: string; body: string }[] = [
 
 function InfoTiles() {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
       <ul className="space-y-3">
         {INFO_TILES.map((t) => (
           <li key={t.title} className="flex items-start gap-3">
             <span className="flex h-9 w-9 flex-none items-center justify-center rounded-lg bg-blue-50 text-blue-600"><t.Icon size={18} /></span>
             <div className="leading-tight">
-              <div className="text-sm font-bold text-[#0d2a63]">{t.title}</div>
-              <div className="text-xs text-slate-500">{t.body}</div>
+              <div className="text-sm font-bold text-[#0d2a63] dark:text-slate-100">{t.title}</div>
+              <div className="text-xs text-gray-500">{t.body}</div>
             </div>
           </li>
         ))}
@@ -591,8 +591,8 @@ export function MarketplaceOrderForm({ items, categories }: { items: Item[]; cat
 
       {/* Search + sort */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="flex flex-1 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
-          <Search size={17} className="text-slate-400" />
+        <div className="flex flex-1 items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 shadow-sm">
+          <Search size={17} className="text-gray-400" />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -601,12 +601,12 @@ export function MarketplaceOrderForm({ items, categories }: { items: Item[]; cat
           />
         </div>
         <div className="flex items-center gap-2">
-          <label htmlFor="mp-sort" className="text-xs font-semibold text-slate-500">Sort by</label>
+          <label htmlFor="mp-sort" className="text-xs font-semibold text-gray-500">Sort by</label>
           <select
             id="mp-sort"
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as 'featured' | 'name')}
-            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm outline-none"
+            className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm outline-none"
           >
             <option value="featured">Featured first</option>
             <option value="name">Name (A–Z)</option>
@@ -625,7 +625,7 @@ export function MarketplaceOrderForm({ items, categories }: { items: Item[]; cat
             <span className="text-xs text-gray-400">{visibleItems.length} item{visibleItems.length === 1 ? '' : 's'}</span>
           </div>
           {visibleItems.length === 0 ? (
-            <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-gray-500">
+            <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center text-sm text-gray-500">
               No products match{query.trim() ? ` “${query.trim()}”` : ' this category'}.
             </div>
           ) : (
@@ -636,14 +636,14 @@ export function MarketplaceOrderForm({ items, categories }: { items: Item[]; cat
         {/* Desktop rail */}
         <aside className="hidden xl:block">
           <div className="sticky top-4 space-y-4">
-            <section className="flex max-h-[70vh] flex-col rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <section className="flex max-h-[70vh] flex-col rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
               <div className="mb-2 flex items-center justify-between">
-                <h3 className="flex items-center gap-2 text-base font-bold text-[#0d2a63]">
+                <h3 className="flex items-center gap-2 text-base font-bold text-[#0d2a63] dark:text-slate-100">
                   <ShoppingCart size={18} className="text-blue-600" /> Your cart
                   {totalUnits > 0 && <span className="rounded-full bg-blue-600 px-2 py-0.5 text-xs font-bold text-white">{totalUnits}</span>}
                 </h3>
                 {cart.length > 0 && (
-                  <button type="button" onClick={() => setCart([])} className="text-xs font-semibold text-slate-400 hover:text-red-600">Clear all</button>
+                  <button type="button" onClick={() => setCart([])} className="text-xs font-semibold text-gray-400 hover:text-red-600">Clear all</button>
                 )}
               </div>
               <CartContents lines={cart} onQty={setQty} onRemove={remove} action={action} error={state.error} listClass="max-h-[38vh]" />

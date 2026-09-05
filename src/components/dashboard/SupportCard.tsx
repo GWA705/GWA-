@@ -55,7 +55,7 @@ export function SupportCard() {
       <button
         type="button"
         onClick={openChat}
-        className="relative z-10 mt-5 inline-flex w-fit items-center gap-2 rounded-lg bg-white px-3.5 py-1.5 text-[13px] font-semibold text-[#0e2b5c] transition hover:bg-blue-50"
+        className="relative z-10 mt-5 inline-flex w-fit items-center gap-2 rounded-lg bg-[#ffffff] px-3.5 py-1.5 text-[13px] font-semibold text-[#0e2b5c] transition hover:bg-blue-50"
       >
         Contact Support <ArrowRight size={16} />
       </button>

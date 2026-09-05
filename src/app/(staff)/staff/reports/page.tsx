@@ -87,7 +87,7 @@ export default async function ReportsLandingPage() {
         title="Reports"
         subtitle="Performance reporting, drawn from the sales journals and the portal pipeline."
         actions={
-          <Link href="/staff/reports/connection" className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-[#0e2b5c] transition hover:bg-blue-50">
+          <Link href="/staff/reports/connection" className="inline-flex items-center gap-2 rounded-lg bg-[#ffffff] px-4 py-2 text-sm font-semibold text-[#0e2b5c] transition hover:bg-blue-50">
             Journal connection
           </Link>
         }
@@ -115,7 +115,7 @@ export default async function ReportsLandingPage() {
                   <h2 className="font-semibold text-gray-900">{c.title}</h2>
                   <span
                     className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-                      c.available ? 'bg-slate-800 text-white' : 'bg-gray-100 text-gray-500'
+                      c.available ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-500'
                     }`}
                   >
                     {c.badge}

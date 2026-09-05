@@ -45,7 +45,7 @@ export function NeedsAttention({ items }: { items: AttentionItem[] }) {
                 ) : (
                   <AlertTriangle size={18} className="flex-none text-amber-500" />
                 )}
-                <span className="truncate text-sm font-semibold text-slate-800">{i.name}</span>
+                <span className="truncate text-sm font-semibold text-gray-800">{i.name}</span>
                 <span className="hidden sm:block"><StatusBadge status={i.status} /></span>
               </div>
               <span className="flex flex-none items-center gap-1 text-xs font-semibold text-red-700">

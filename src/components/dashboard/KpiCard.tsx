@@ -26,16 +26,16 @@ export function KpiCard({
   href?: string;
 }) {
   const inner = (
-    <div className="flex h-full items-center gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md">
+    <div className="flex h-full items-center gap-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:shadow-md">
       <div className={`flex h-14 w-14 flex-none items-center justify-center rounded-full text-white ${TONES[tone]}`}>
         <Icon size={26} />
       </div>
       <div className="min-w-0 flex-1">
-        <div className="text-sm font-semibold text-slate-600">{title}</div>
+        <div className="text-sm font-semibold text-gray-600">{title}</div>
         <div className="text-3xl font-extrabold leading-tight text-[#10265a]">{value}</div>
-        <div className="truncate text-sm text-slate-500">{subtitle}</div>
+        <div className="truncate text-sm text-gray-500">{subtitle}</div>
       </div>
-      {href && <ChevronRight size={20} className="flex-none text-slate-300" />}
+      {href && <ChevronRight size={20} className="flex-none text-gray-300" />}
     </div>
   );
   return href ? <Link href={href} className="block h-full">{inner}</Link> : inner;

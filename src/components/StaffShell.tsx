@@ -73,9 +73,9 @@ export function StaffShell({
   const pathname = usePathname() ?? '/staff';
 
   return (
-    <div className="min-h-screen bg-[#f2f6fb] text-slate-900">
+    <div className="min-h-screen bg-[#f2f6fb] dark:bg-[#0a1120] text-gray-900">
       {/* TOP HEADER */}
-      <header className="flex h-[72px] items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 sm:px-6">
+      <header className="flex h-[72px] items-center justify-between gap-3 border-b border-gray-200 bg-white px-4 sm:px-6">
         <div className="flex items-center gap-3">
           <MobileNav userName={userName} roleLabel={roleLabel} nav={nav} triggerClassName="topbar-btn px-2.5 lg:hidden" />
           <Link href="/staff" className="flex items-center gap-3">
@@ -83,22 +83,22 @@ export function StaffShell({
               <Droplets className="text-white" size={24} />
             </div>
             <div className="leading-tight">
-              <div className="text-base font-extrabold tracking-tight text-[#0e2756] sm:text-lg">Reviewer Portal</div>
+              <div className="text-base font-extrabold tracking-tight text-[#0e2756] dark:text-slate-100 sm:text-lg">Reviewer Portal</div>
               <div className="text-[10px] font-semibold tracking-[0.18em] text-blue-500">GEORGIAN WATER &amp; AIR</div>
             </div>
           </Link>
         </div>
 
         <div className="flex items-center gap-3 sm:gap-4">
-          <form action="/staff" method="get" className="hidden items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 xl:flex">
-            <Search size={17} className="text-slate-400" />
+          <form action="/staff" method="get" className="hidden items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 xl:flex">
+            <Search size={17} className="text-gray-400" />
             <input name="q" className="w-52 bg-transparent text-sm outline-none" placeholder="Search deals…" />
           </form>
 
           {showSwitcher && (
             <Link
               href="/dealer"
-              className="hidden items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-[#0e2756] transition hover:bg-slate-100 sm:inline-flex"
+              className="hidden items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-semibold text-[#0e2756] dark:text-slate-100 transition hover:bg-gray-100 sm:inline-flex"
               title="Switch to Dealer view"
             >
               <ArrowLeftRight size={14} className="text-blue-600" />
@@ -106,7 +106,7 @@ export function StaffShell({
             </Link>
           )}
 
-          <Link href="/staff/mail" className="relative text-[#0e2756] hover:text-blue-700" aria-label="Mail">
+          <Link href="/staff/mail" className="relative text-[#0e2756] dark:text-slate-100 hover:text-blue-700" aria-label="Mail">
             <Bell size={22} />
             {mailUnread > 0 && (
               <span className="absolute -right-2 -top-2 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
@@ -116,8 +116,8 @@ export function StaffShell({
           </Link>
 
           <div className="hidden text-right leading-tight sm:block">
-            <div className="text-sm font-bold text-[#0e2756]">{userName}</div>
-            <div className="text-xs text-slate-500">{roleLabel}</div>
+            <div className="text-sm font-bold text-[#0e2756] dark:text-slate-100">{userName}</div>
+            <div className="text-xs text-gray-500">{roleLabel}</div>
           </div>
           <div className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-blue-700 text-sm font-bold text-white">{initials}</div>
           <ThemeToggle className="topbar-btn hidden sm:inline-flex" />

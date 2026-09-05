@@ -4,8 +4,8 @@ function Legend({ color, label, count, pct }: { color: string; label: string; co
   return (
     <div className="grid grid-cols-[14px_1fr_auto] items-center gap-2 text-sm">
       <span className="h-3 w-3 rounded-full" style={{ background: color }} />
-      <span className="text-slate-700">{label}</span>
-      <span className="tabular-nums text-slate-500">{count} ({pct}%)</span>
+      <span className="text-gray-700">{label}</span>
+      <span className="tabular-nums text-gray-500">{count} ({pct}%)</span>
     </div>
   );
 }
@@ -22,13 +22,13 @@ export function StatusDonut({ approved, pending, declined }: { approved: number;
     : '#e5e7eb';
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <h3 className="font-bold text-[#0d2a63]">Applications by Status</h3>
+    <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+      <h3 className="font-bold text-[#0d2a63] dark:text-slate-100">Applications by Status</h3>
       <div className="flex items-center justify-around py-5">
         <div className="relative h-32 w-32 rounded-full" style={{ background: gradient }}>
           <div className="absolute inset-5 flex flex-col items-center justify-center rounded-full bg-white">
             <div className="text-2xl font-bold text-[#10265a]">{total}</div>
-            <div className="text-xs text-slate-500">Total</div>
+            <div className="text-xs text-gray-500">Total</div>
           </div>
         </div>
         <div className="space-y-3">

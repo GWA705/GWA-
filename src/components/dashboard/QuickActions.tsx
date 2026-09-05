@@ -17,10 +17,10 @@ const TONE: Record<'dark' | 'blue' | 'soft', string> = {
 /** The right-rail Quick Actions grid. Links to the real routes. */
 export function QuickActions() {
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+    <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
       <div className="mb-4 flex items-center gap-2">
         <Zap size={22} className="text-blue-600" />
-        <h3 className="text-xl font-bold text-[#0d2a63]">Quick Actions</h3>
+        <h3 className="text-xl font-bold text-[#0d2a63] dark:text-slate-100">Quick Actions</h3>
       </div>
       <div className="grid grid-cols-2 gap-3">
         {ITEMS.map((a) => (
@@ -31,7 +31,7 @@ export function QuickActions() {
           >
             <a.Icon size={26} />
             <div className="mt-2 text-sm font-bold">{a.title}</div>
-            <div className={`mt-1 text-[11px] ${a.tone === 'soft' ? 'text-slate-500' : 'text-blue-100'}`}>{a.subtitle}</div>
+            <div className={`mt-1 text-[11px] ${a.tone === 'soft' ? 'text-gray-500' : 'text-blue-100'}`}>{a.subtitle}</div>
           </Link>
         ))}
       </div>
