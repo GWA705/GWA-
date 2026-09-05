@@ -63,11 +63,9 @@ export default async function DealerGiftCardsPage({
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <SectionHero
-        eyebrow="Rewards"
         title="Water-test gift cards"
-        subtitle="Reward your customers with a Home Depot gift card. Completed a water test? Request it here — we email it through Guusto and log a dated receipt below."
+        subtitle="Enter and track your HD gift cards, and send confirmation receipts."
         bgImage="/gift-cards-hero.png"
-        flourish={['People', 'Products', 'Partnerships']}
       />
 
       <div className="card space-y-4 p-6">

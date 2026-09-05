@@ -23,7 +23,7 @@ export function SectionHero({
   bgPosition = 'center right',
   actions,
 }: {
-  eyebrow: string;
+  eyebrow?: string;
   title: React.ReactNode;
   subtitle?: string;
   tiles?: HeroTile[];
@@ -59,8 +59,8 @@ export function SectionHero({
 
       <div className="relative z-10 flex items-center justify-between gap-6 px-6 py-7 sm:px-10 sm:py-8">
         <div className="min-w-0">
-          <div className="text-xs font-bold uppercase tracking-[0.22em] text-sky-300">{eyebrow}</div>
-          <h1 className="mt-2 text-3xl font-extrabold tracking-tight sm:text-4xl">{title}</h1>
+          {eyebrow && <div className="text-xs font-bold uppercase tracking-[0.22em] text-sky-300">{eyebrow}</div>}
+          <h1 className={`text-3xl font-extrabold tracking-tight sm:text-4xl ${eyebrow ? 'mt-2' : ''}`}>{title}</h1>
           {subtitle && <p className="mt-2 max-w-xl text-sm text-blue-100/90 sm:text-base">{subtitle}</p>}
 
           {tiles && tiles.length > 0 && (
