@@ -26,6 +26,12 @@ source of truth; this file is the human-readable index.
 | Bell Total Connect voicemail | 📝 Documented, not built here | Guide delivered for the **booking site** (voicemail-to-email + IMAP). Not part of this portal. |
 
 ## 2026-09-05
+- **Hero cleanup + HD Credit Card hero slot.** Removed the white script flourish
+  from the **Leads** hero and from the shared **Resources** content heroes (it
+  overlapped the photos / read as clutter). Added a per-slug hero image map in
+  `ContentPage` so content tabs can carry their own banner; wired the **HD Credit
+  Card** page to `/hd-credit-card-hero.png` (drop that file in `/public`).
+  `ContentSectionView` now takes an optional `bgImage`.
 - **Pricing report: unit counts + all products.** Added a "Products — sold /
   approved / installed" table (units per product across all deals; installed =
   installation date reached), and the "Group products your way" picker now lists

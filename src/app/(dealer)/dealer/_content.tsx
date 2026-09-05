@@ -5,7 +5,13 @@ import { CONTENT_SECTIONS } from '@/lib/constants';
 import { markContentSectionViewed } from '@/lib/inbox';
 import { ContentSectionView } from '@/components/ContentSectionView';
 
-// Shared server component behind the three dealer content tabs. Underscore
+// Per-slug hero background photo. Drop a matching file in /public to give a
+// content tab its own banner; slugs not listed here fall back to the gradient.
+const HERO_IMAGE: Record<string, string> = {
+  'hd-credit-card': '/hd-credit-card-hero.png',
+};
+
+// Shared server component behind the dealer content tabs. Underscore
 // prefix keeps this file out of the router.
 export async function ContentPage({ slug }: { slug: string }) {
   const session = await requireDealerAccess();
@@ -31,6 +37,7 @@ export async function ContentPage({ slug }: { slug: string }) {
       blurb={meta.blurb}
       emptyText={meta.emptyText}
       items={items}
+      bgImage={HERO_IMAGE[slug]}
     />
   );
 }

@@ -82,7 +82,6 @@ function Header() {
       title="Home Depot Leads"
       subtitle="Turn opportunities into healthier homes. Review, follow up and track your Home Depot leads — all in one place."
       bgImage="/leads-hero.png"
-      flourish={['More', 'Customers.', 'Stronger', 'Communities.']}
     />
   );
 }

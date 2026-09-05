@@ -73,11 +73,13 @@ export function ContentSectionView({
   blurb,
   emptyText,
   items,
+  bgImage,
 }: {
   title: string;
   blurb: string;
   emptyText: string;
   items: ContentItem[];
+  bgImage?: string;
 }) {
   return (
     <div className="space-y-6">
@@ -85,7 +87,7 @@ export function ContentSectionView({
         eyebrow="Resources"
         title={standardizeTitle(title)}
         subtitle={blurb}
-        flourish={['Knowledge', 'Today.', 'Healthier', 'Tomorrow.']}
+        bgImage={bgImage}
       />
 
       {items.length === 0 ? (
