@@ -49,7 +49,7 @@ export function RecentApplications({ items }: { items: RecentApp[] }) {
       ) : (
         <>
           {/* Mobile: a stacked card per application (the table scrolls sideways). */}
-          <ul className="space-y-2.5 px-4 pb-1 sm:hidden">
+          <ul className={`space-y-2.5 px-4 pb-1 sm:hidden ${expanded ? 'max-h-[60vh] overflow-y-auto' : ''}`}>
             {shown.map((a) => (
               <li
                 key={a.id}
@@ -90,7 +90,7 @@ export function RecentApplications({ items }: { items: RecentApp[] }) {
           </ul>
 
           {/* Desktop: the full table. */}
-          <div className="hidden overflow-x-auto px-4 sm:block">
+          <div className={`hidden overflow-x-auto px-4 sm:block ${expanded ? 'max-h-[58vh] overflow-y-auto' : ''}`}>
             <table className="w-full min-w-[760px]">
               <thead>
                 <tr className="bg-gray-50 text-[11px] uppercase text-gray-500">

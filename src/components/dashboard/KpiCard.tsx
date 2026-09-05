@@ -26,16 +26,16 @@ export function KpiCard({
   href?: string;
 }) {
   const inner = (
-    <div className="flex h-full items-center gap-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:shadow-md">
-      <div className={`flex h-14 w-14 flex-none items-center justify-center rounded-full text-white ${TONES[tone]}`}>
-        <Icon size={26} />
+    <div className="flex h-full items-center gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm transition hover:shadow-md sm:gap-4 sm:p-5">
+      <div className={`flex h-11 w-11 flex-none items-center justify-center rounded-full text-white sm:h-14 sm:w-14 ${TONES[tone]}`}>
+        <Icon className="h-5 w-5 sm:h-[26px] sm:w-[26px]" />
       </div>
       <div className="min-w-0 flex-1">
-        <div className="text-sm font-semibold text-gray-600">{title}</div>
-        <div className="text-3xl font-extrabold leading-tight text-[#10265a]">{value}</div>
-        <div className="truncate text-sm text-gray-500">{subtitle}</div>
+        <div className="text-xs font-semibold text-gray-600 sm:text-sm">{title}</div>
+        <div className="text-2xl font-extrabold leading-tight text-[#10265a] dark:text-slate-100 sm:text-3xl">{value}</div>
+        <div className="truncate text-xs text-gray-500 sm:text-sm">{subtitle}</div>
       </div>
-      {href && <ChevronRight size={20} className="flex-none text-gray-300" />}
+      {href && <ChevronRight size={20} className="hidden flex-none text-gray-300 sm:block" />}
     </div>
   );
   return href ? <Link href={href} className="block h-full">{inner}</Link> : inner;

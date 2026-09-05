@@ -104,8 +104,8 @@ export default async function DealerDashboard() {
     <div className="space-y-4">
       <DashboardHero firstName={firstName} companyName={profile?.businessName ?? null} bgImage={heroImage} />
 
-      {/* KPI row */}
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+      {/* KPI row — compact 2-up on phones so it flows into the list below */}
+      <div className="grid grid-cols-2 gap-2.5 sm:gap-3 md:grid-cols-2 xl:grid-cols-4">
         <KpiCard icon={FileText} title="Total Applications" value={String(totalThisMonth)} subtitle="This month" tone="blue" href="/dealer/applications" />
         <KpiCard icon={CheckCircle2} title="Approved" value={String(approvedThisMonth)} subtitle={`${approvalRate}% approval rate`} tone="green" />
         <KpiCard icon={Clock} title="Pending" value={String(pendingNow)} subtitle="Awaiting review" tone="blue" href="/dealer/applications?status=SUBMITTED" />

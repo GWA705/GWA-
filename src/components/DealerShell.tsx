@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { logoutAction } from '@/app/(auth)/actions';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -8,7 +9,8 @@ import { MobileNav } from '@/components/MobileNav';
 import {
   Home, FileText, UserPlus, Mail, Users, ShoppingCart, Gift, BookOpen, BarChart3,
   Building2, Headphones, Wrench, Search, Bell, LogOut, Droplets, ArrowLeftRight,
-  Calculator, CreditCard, Megaphone, GraduationCap, UserCircle, type LucideIcon,
+  Calculator, CreditCard, Megaphone, GraduationCap, UserCircle, PanelLeftClose,
+  PanelLeftOpen, Plus, type LucideIcon,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -50,13 +52,16 @@ function isActive(pathname: string, href?: string): boolean {
   return pathname === href || pathname.startsWith(href + '/');
 }
 
-function SidebarLink({ item, pathname }: { item: NavItem; pathname: string }) {
+function SidebarLink({ item, pathname, collapsed }: { item: NavItem; pathname: string; collapsed: boolean }) {
   const Icon = iconFor(item.label);
   const active = isActive(pathname, item.href);
   return (
     <Link
       href={item.href ?? '#'}
-      className={`group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${
+      title={collapsed ? item.label : undefined}
+      className={`nav-water group relative flex items-center rounded-lg text-sm transition ${
+        collapsed ? 'justify-center px-0 py-2.5' : 'gap-3 px-3 py-2'
+      } ${
         active
           ? 'bg-blue-600 font-semibold text-white shadow-sm'
           : 'text-blue-100/85 hover:bg-white/10 hover:text-white'
@@ -64,8 +69,12 @@ function SidebarLink({ item, pathname }: { item: NavItem; pathname: string }) {
     >
       {active && <span className="absolute inset-y-1.5 left-0 w-1 rounded-full bg-sky-300" aria-hidden />}
       <Icon size={18} className={`flex-none transition ${active ? 'text-white' : 'text-sky-300/80 group-hover:text-white'}`} />
-      <span className="flex-1 truncate">{item.label}</span>
-      {item.badge && <span className="h-1.5 w-1.5 flex-none rounded-full bg-sky-300" />}
+      {!collapsed && <span className="flex-1 truncate">{item.label}</span>}
+      {item.badge && (
+        <span
+          className={`flex-none rounded-full bg-sky-300 ${collapsed ? 'absolute right-1.5 top-1.5 h-1.5 w-1.5' : 'h-1.5 w-1.5'}`}
+        />
+      )}
     </Link>
   );
 }
@@ -84,6 +93,29 @@ export function DealerShell({
   children: React.ReactNode;
 }) {
   const pathname = usePathname() ?? '/dealer';
+  const [collapsed, setCollapsed] = useState(false);
+
+  // Remember the collapsed state across visits (per browser). Read after mount
+  // so the server-rendered markup and first client render agree.
+  useEffect(() => {
+    try {
+      setCollapsed(localStorage.getItem('gwa:nav-collapsed') === '1');
+    } catch {
+      /* storage blocked — default to expanded */
+    }
+  }, []);
+
+  function toggleCollapsed() {
+    setCollapsed((v) => {
+      const next = !v;
+      try {
+        localStorage.setItem('gwa:nav-collapsed', next ? '1' : '0');
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  }
 
   return (
     <div className="min-h-screen bg-[#f2f6fb] dark:bg-[#0a1120] text-gray-900">
@@ -91,6 +123,16 @@ export function DealerShell({
       <header className="flex h-[72px] items-center justify-between gap-3 border-b border-gray-200 bg-white px-4 sm:px-6">
         <div className="flex items-center gap-3">
           <MobileNav userName={userName} roleLabel={roleLabel} nav={nav} triggerClassName="topbar-btn px-2.5 lg:hidden" />
+          {/* Collapse / expand the sidebar (desktop only) */}
+          <button
+            type="button"
+            onClick={toggleCollapsed}
+            className="topbar-btn hidden px-2.5 lg:inline-flex"
+            aria-pressed={collapsed}
+            title={collapsed ? 'Expand menu' : 'Collapse menu'}
+          >
+            {collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
+          </button>
           <Link href="/dealer" className="flex items-center gap-3">
             {companyLogoUrl ? (
               // The dealer's own uploaded company logo.
@@ -113,6 +155,15 @@ export function DealerShell({
         </div>
 
         <div className="flex items-center gap-3 sm:gap-4">
+          <Link
+            href="/dealer/applications/new"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
+            title="Start a new application"
+          >
+            <Plus size={17} />
+            <span className="hidden sm:inline">New application</span>
+          </Link>
+
           <form action="/dealer/applications" method="get" className="hidden items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 xl:flex">
             <Search size={17} className="text-gray-400" />
             <input name="q" className="w-52 bg-transparent text-sm outline-none" placeholder="Search customers or applications…" />
@@ -154,29 +205,39 @@ export function DealerShell({
 
       <div className="flex">
         {/* SIDEBAR (desktop) */}
-        <aside className="sticky top-0 hidden h-[calc(100vh-72px)] w-[240px] flex-none flex-col bg-gradient-to-b from-[#06285a] to-[#04173a] lg:flex">
-          <nav className="sidebar-scroll min-h-0 flex-1 space-y-0.5 overflow-y-auto px-3 py-4">
+        <aside
+          className={`sidebar-collapsible sticky top-0 hidden h-[calc(100vh-72px)] flex-none flex-col bg-gradient-to-b from-[#06285a] to-[#04173a] lg:flex ${
+            collapsed ? 'w-[72px]' : 'w-[240px]'
+          }`}
+        >
+          <nav className={`sidebar-scroll min-h-0 flex-1 space-y-0.5 overflow-y-auto py-4 ${collapsed ? 'px-2' : 'px-3'}`}>
             {nav.map((item) =>
               item.children ? (
                 <div key={item.label} className="pt-3 first:pt-0">
-                  <div className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-300/60">{item.label}</div>
+                  {collapsed ? (
+                    <div className="mx-auto my-1 h-px w-6 bg-white/10" aria-hidden />
+                  ) : (
+                    <div className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-300/60">{item.label}</div>
+                  )}
                   <div className="space-y-0.5">
-                    {item.children.map((c) => <SidebarLink key={c.label} item={c} pathname={pathname} />)}
+                    {item.children.map((c) => <SidebarLink key={c.label} item={c} pathname={pathname} collapsed={collapsed} />)}
                   </div>
                 </div>
               ) : (
-                <SidebarLink key={item.label} item={item} pathname={pathname} />
+                <SidebarLink key={item.label} item={item} pathname={pathname} collapsed={collapsed} />
               ),
             )}
           </nav>
-          <div className="flex flex-none items-center gap-2.5 border-t border-white/10 px-4 py-3">
+          <div className={`flex flex-none items-center border-t border-white/10 py-3 ${collapsed ? 'justify-center px-2' : 'gap-2.5 px-4'}`}>
             <div className="flex h-8 w-8 flex-none items-center justify-center rounded-lg bg-white/10">
               <Droplets size={17} className="text-sky-300" />
             </div>
-            <div className="leading-tight">
-              <div className="text-[11px] font-semibold text-blue-50">Georgian Water &amp; Air</div>
-              <div className="text-[9px] font-medium tracking-wide text-blue-300/70">Cleaner water · Healthier air</div>
-            </div>
+            {!collapsed && (
+              <div className="leading-tight">
+                <div className="text-[11px] font-semibold text-blue-50">Georgian Water &amp; Air</div>
+                <div className="text-[9px] font-medium tracking-wide text-blue-300/70">Cleaner water · Healthier air</div>
+              </div>
+            )}
           </div>
         </aside>
 

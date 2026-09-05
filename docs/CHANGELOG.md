@@ -26,6 +26,15 @@ source of truth; this file is the human-readable index.
 | Bell Total Connect voicemail | 📝 Documented, not built here | Guide delivered for the **booking site** (voicemail-to-email + IMAP). Not part of this portal. |
 
 ## 2026-09-05
+- **Dashboard & shell polish.** The dealer sidebar is now **collapsible** (toggle
+  in the top-left; icon-only rail at 72px, state remembered per browser) so the
+  content area can go wider. Added a **New application** button to the top bar.
+  Sidebar links get a subtle **"water" hover** (caustic wash + light sheen,
+  reduced-motion aware). Mobile dashboard KPIs are now a **compact 2-up grid**
+  (smaller tiles that flow into the list). The **Support** card is slimmer (a
+  single compact row, "Chat" button) so it doesn't read as a big call-out.
+  **Recent Applications** stays at 4 rows collapsed and, when expanded (up to
+  15), scrolls inside its own card so the page never gets pushed around.
 - **Hero cleanup + HD Credit Card hero slot.** Removed the white script flourish
   from the **Leads** hero and from the shared **Resources** content heroes (it
   overlapped the photos / read as clutter). Added a per-slug hero image map in

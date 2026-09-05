@@ -18,46 +18,40 @@ function openChat() {
  */
 export function SupportCard() {
   return (
-    <div className="relative flex min-h-[168px] flex-col justify-between gap-4 overflow-hidden rounded-2xl bg-[#0e2b5c] p-5 text-white shadow-sm">
+    <div className="relative flex items-center justify-between gap-3 overflow-hidden rounded-2xl bg-[#0e2b5c] p-4 text-white shadow-sm">
       {/* Agent photo — right side, cropped to fill. A left-edge mask feathers
-          the photo so it bleeds into the card with no hard seam. The position
-          keeps a right-of-centre face (like the supplied photo) in frame. */}
+          the photo so it bleeds into the card with no hard seam. */}
       <div
-        className="pointer-events-none absolute inset-y-0 right-0 w-[62%] bg-cover bg-no-repeat sm:w-[58%]"
+        className="pointer-events-none absolute inset-y-0 right-0 w-[48%] bg-cover bg-no-repeat"
         style={{
           backgroundImage: "url('/support-agent.png')",
           backgroundPosition: '62% 16%',
-          maskImage: 'linear-gradient(to right, transparent 0%, #000 46%)',
-          WebkitMaskImage: 'linear-gradient(to right, transparent 0%, #000 46%)',
+          maskImage: 'linear-gradient(to right, transparent 0%, #000 55%)',
+          WebkitMaskImage: 'linear-gradient(to right, transparent 0%, #000 55%)',
         }}
         aria-hidden
       />
       {/* Watermark shown when no photo is present (sits behind the photo) */}
-      <Headphones className="pointer-events-none absolute -right-4 bottom-2 -z-0 text-white/5" size={140} aria-hidden />
+      <Headphones className="pointer-events-none absolute -right-3 bottom-1 -z-0 text-white/5" size={104} aria-hidden />
       {/* Colour wash on the left keeps the text crisp over the feathered photo */}
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#0e2b5c] via-[#0e2b5c]/70 to-transparent" aria-hidden />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#0e2b5c] via-[#0e2b5c]/75 to-transparent" aria-hidden />
 
-      <div className="relative z-10 max-w-[62%]">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-white/10">
-            <LifeBuoy size={22} className="text-sky-300" />
-          </div>
-          <div>
-            <div className="text-lg font-bold">Need Support?</div>
-            <div className="text-sm text-blue-100">We&rsquo;re here to help.</div>
-          </div>
+      <div className="relative z-10 flex min-w-0 items-center gap-3">
+        <div className="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-white/10">
+          <LifeBuoy size={18} className="text-sky-300" />
         </div>
-        <p className="mt-4 text-sm text-blue-100">
-          Questions on a deal, funding, or the portal? Chat with the Georgian Water &amp; Air team right here.
-        </p>
+        <div className="min-w-0">
+          <div className="text-sm font-bold leading-tight">Need support?</div>
+          <div className="truncate text-xs text-blue-100">We&rsquo;re here to help.</div>
+        </div>
       </div>
 
       <button
         type="button"
         onClick={openChat}
-        className="relative z-10 mt-5 inline-flex w-fit items-center gap-2 rounded-lg bg-[#ffffff] px-3.5 py-1.5 text-[13px] font-semibold text-[#0e2b5c] transition hover:bg-blue-50"
+        className="relative z-10 inline-flex flex-none items-center gap-1.5 rounded-lg bg-[#ffffff] px-3 py-1.5 text-xs font-semibold text-[#0e2b5c] transition hover:bg-blue-50"
       >
-        Contact Support <ArrowRight size={16} />
+        Chat <ArrowRight size={14} />
       </button>
     </div>
   );
