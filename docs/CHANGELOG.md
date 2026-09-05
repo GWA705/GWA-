@@ -26,6 +26,21 @@ source of truth; this file is the human-readable index.
 | Bell Total Connect voicemail | 📝 Documented, not built here | Guide delivered for the **booking site** (voicemail-to-email + IMAP). Not part of this portal. |
 
 ## 2026-09-05
+- **Product & package pricing report.** Average sale price per product and per
+  package, per office. Because a deal stores one total + a product list (no
+  per-product price): a deal with **one** product feeds that product's average;
+  a deal with **two or more** is a **package**, auto-grouped by the exact set of
+  products (no hard-coded package list). Basis: approved-or-beyond deals, using
+  the approved amount (falls back to requested). Two surfaces:
+  **Staff** (`/staff/reports/product-pricing`, Reports area, gated by the
+  Dealer-Snapshot grant) with an office picker (All / each office); and
+  **dealer owner** (`/dealer/reports/product-pricing`) scoped to their own office.
+  Dealer access is deliberately double-gated so the control is clear: the user
+  must be the **office owner** (`User.isDistributor`) **and** the office's
+  reports must be enabled by an admin (`Dealer.reportsEnabled`, the existing
+  Admin → Dealers → "Reports" toggle) — regular office staff never see it.
+  `lib/reporting/productPricing.ts`, `canViewOwnerPricingReport`,
+  `ProductPricingReport`. No schema change.
 - **Applications: multi-view deal tracker (dealer).** The Applications list is now
   a switchable workspace so dealers can track deals through approval → docs →
   funding the way that suits them: **Tracker** (grouped by "Needs your action" /

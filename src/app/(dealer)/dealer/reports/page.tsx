@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireDealerAccess } from '@/lib/session';
-import { hasDealerReportAccess } from '@/lib/reporting/access';
+import { hasDealerReportAccess, canViewOwnerPricingReport } from '@/lib/reporting/access';
 import { reportingJournalEnabled } from '@/lib/reporting/journalRead';
 import { buildOfficeMonthlyReport } from '@/lib/reporting/monthly';
 import { MonthlyReportView } from '@/app/(staff)/staff/reports/MonthlyReportView';
@@ -34,10 +34,11 @@ export default async function DealerReportsPage({ searchParams }: { searchParams
   const [yStr, mStr] = ym.split('-');
   const year = parseInt(yStr, 10);
   const monthIndex = parseInt(mStr, 10) - 1;
+  const showPricing = await canViewOwnerPricingReport(user);
 
   return (
     <div className="space-y-5">
-      <DealerReportTabs active="monthly" />
+      <DealerReportTabs active="monthly" showPricing={showPricing} />
 
       <form method="GET" className="flex flex-wrap items-end gap-3">
         <div>

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireDealerAccess } from '@/lib/session';
-import { hasDealerReportAccess } from '@/lib/reporting/access';
+import { hasDealerReportAccess, canViewOwnerPricingReport } from '@/lib/reporting/access';
 import { reportingJournalEnabled } from '@/lib/reporting/journalRead';
 import { buildStoreWeekReport } from '@/lib/reporting/storeWeek';
 import { StoreWeekView } from '@/app/(staff)/staff/reports/StoreWeekView';
@@ -35,9 +35,11 @@ export default async function DealerWeeklyReportPage({ searchParams }: { searchP
   const asOf = new Date();
   asOf.setDate(asOf.getDate() + weeksOffset * 7);
 
+  const showPricing = await canViewOwnerPricingReport(user);
+
   return (
     <div className="space-y-5">
-      <DealerReportTabs active="weekly" />
+      <DealerReportTabs active="weekly" showPricing={showPricing} />
 
       <form method="GET" className="flex flex-wrap items-end gap-3">
         <div>

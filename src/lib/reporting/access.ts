@@ -50,6 +50,26 @@ export async function canViewReportsArea(user: SessionUser): Promise<boolean> {
   return canViewDealerSnapshot(user);
 }
 
+/**
+ * The owner-only product-pricing report on the dealer side. Two gates that must
+ * BOTH hold, so it's clear where the control is:
+ *   1. the user is the office OWNER (User.isDistributor — the "main contact"
+ *      login), so regular office staff never see it; and
+ *   2. an admin has switched the office's reports on (Dealer.reportsEnabled),
+ *      so it's off by default until GWA enables it for that office.
+ * Scoped to the owner's own office only. Internal staff use the staff report.
+ */
+export async function canViewOwnerPricingReport(user: SessionUser): Promise<boolean> {
+  if (user.role !== 'DEALER_USER') return false;
+  if (!user.isDistributor) return false; // owner login only
+  if (!user.dealerId) return false;
+  const me = await prisma.user.findUnique({
+    where: { id: user.userId },
+    select: { dealer: { select: { reportsEnabled: true } } },
+  });
+  return !!me?.dealer?.reportsEnabled; // admin-enabled per office
+}
+
 /** Dealer-facing reports (own office only). Internal staff always qualify. */
 export async function hasDealerReportAccess(user: SessionUser): Promise<boolean> {
   if (isInternal(user)) return true;

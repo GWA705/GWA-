@@ -68,6 +68,15 @@ export default async function ReportsLandingPage() {
       available: canDealerSnapshot,
     },
     {
+      href: '/staff/reports/product-pricing',
+      title: 'Product & package pricing',
+      blurb:
+        'Average sale price per product (stand-alone sales) and per package (products sold together), per office. Watch what each product and combo sells for.',
+      accent: '#0b5bd3',
+      badge: 'Super Admin',
+      available: canDealerSnapshot,
+    },
+    {
       href: '/staff/reports/cycle-times',
       title: 'Review cycle times',
       blurb:
