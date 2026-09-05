@@ -35,11 +35,11 @@ export default async function DealerWeeklyReportPage({ searchParams }: { searchP
   const asOf = new Date();
   asOf.setDate(asOf.getDate() + weeksOffset * 7);
 
-  const showPricing = await canViewOwnerPricingReport(user);
+  const showOwner = await canViewOwnerPricingReport(user);
 
   return (
     <div className="space-y-5">
-      <DealerReportTabs active="weekly" showPricing={showPricing} />
+      <DealerReportTabs active="weekly" showOwner={showOwner} />
 
       <form method="GET" className="flex flex-wrap items-end gap-3">
         <div>

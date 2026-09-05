@@ -16,7 +16,7 @@ export default async function DealerProductPricingReport() {
 
   return (
     <div className="space-y-5">
-      <DealerReportTabs active="pricing" showPricing />
+      <DealerReportTabs active="pricing" showOwner />
       <ProductPricingReport data={data} scopeLabel="Your office" />
     </div>
   );

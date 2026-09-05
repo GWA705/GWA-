@@ -34,11 +34,11 @@ export default async function DealerReportsPage({ searchParams }: { searchParams
   const [yStr, mStr] = ym.split('-');
   const year = parseInt(yStr, 10);
   const monthIndex = parseInt(mStr, 10) - 1;
-  const showPricing = await canViewOwnerPricingReport(user);
+  const showOwner = await canViewOwnerPricingReport(user);
 
   return (
     <div className="space-y-5">
-      <DealerReportTabs active="monthly" showPricing={showPricing} />
+      <DealerReportTabs active="monthly" showOwner={showOwner} />
 
       <form method="GET" className="flex flex-wrap items-end gap-3">
         <div>

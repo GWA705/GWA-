@@ -26,6 +26,16 @@ source of truth; this file is the human-readable index.
 | Bell Total Connect voicemail | 📝 Documented, not built here | Guide delivered for the **booking site** (voicemail-to-email + IMAP). Not part of this portal. |
 
 ## 2026-09-05
+- **Custom report builder (dealer owner).** A curated, tenant-isolated report
+  builder at `/dealer/reports/custom`: pick a **measure** (deal count / total $ /
+  average $), a **group-by** (month, program, status, salesperson, province,
+  product), a **date range**, and **status filters** — live table + bar chart,
+  computed in the browser over the office's own deals (`reportDataset`). Owner-
+  gated (same as the pricing report). Save/name reports and sales forecasting are
+  the next phases.
+- **Pricing report: manual product grouping.** Tick products to see the average
+  sale price when sold together, with "Exactly these" / "Includes these" match
+  modes (`ManualPackageBuilder`).
 - **Product & package pricing report.** Average sale price per product and per
   package, per office. Because a deal stores one total + a product list (no
   per-product price): a deal with **one** product feeds that product's average;
