@@ -26,6 +26,13 @@ source of truth; this file is the human-readable index.
 | Bell Total Connect voicemail | 📝 Documented, not built here | Guide delivered for the **booking site** (voicemail-to-email + IMAP). Not part of this portal. |
 
 ## 2026-09-05
+- **Pricing report: unit counts + all products.** Added a "Products — sold /
+  approved / installed" table (units per product across all deals; installed =
+  installation date reached), and the "Group products your way" picker now lists
+  **every active catalog product** (even zero-sales ones). The manual grouping
+  result now shows Sold / Approved / Installed counts alongside the average.
+  `productPricing` now scans all non-draft deals (averages still approved-only)
+  and returns `productCounts` + full catalog.
 - **Custom builder — more measures, group-bys & CSV.** Added an **Approval rate
   (%)** measure and three group-bys — **Payment method, Entry method, HD store** —
   plus an **Export CSV** button. `reportDataset` now carries paymentMethod,

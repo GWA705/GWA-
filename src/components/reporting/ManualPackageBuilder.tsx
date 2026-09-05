@@ -19,7 +19,10 @@ export function ManualPackageBuilder({ deals, products }: { deals: PricingDeal[]
   const [mode, setMode] = useState<Mode>('exact');
 
   // Pre-lowercase each deal's product set once.
-  const dealSets = useMemo(() => deals.map((d) => ({ set: new Set(d.products.map((p) => p.toLowerCase())), amount: d.amount })), [deals]);
+  const dealSets = useMemo(
+    () => deals.map((d) => ({ set: new Set(d.products.map((p) => p.toLowerCase())), amount: d.amount, approved: d.approved, installed: d.installed })),
+    [deals],
+  );
 
   function toggle(p: string) {
     setSelected((prev) => {
@@ -43,13 +46,19 @@ export function ManualPackageBuilder({ deals, products }: { deals: PricingDeal[]
       for (const k of sel) if (!d.set.has(k)) return false;
       return true;
     });
-    const amounts = matched.map((m) => m.amount);
+    const sold = matched.length;
+    const approved = matched.filter((m) => m.approved).length;
+    const installed = matched.filter((m) => m.installed).length;
+    // Average uses approved deals with a real amount (falls back to any matched).
+    const priced = matched.filter((m) => m.approved && m.amount > 0).map((m) => m.amount);
+    const amounts = priced.length ? priced : matched.filter((m) => m.amount > 0).map((m) => m.amount);
     const total = amounts.reduce((s, a) => s + a, 0);
     return {
+      sold,
+      approved,
+      installed,
       count: amounts.length,
       avg: amounts.length ? total / amounts.length : 0,
-      min: amounts.length ? Math.min(...amounts) : 0,
-      max: amounts.length ? Math.max(...amounts) : 0,
     };
   }, [dealSets, selected, mode]);
 
@@ -98,16 +107,16 @@ export function ManualPackageBuilder({ deals, products }: { deals: PricingDeal[]
               <p className="rounded-xl border border-dashed border-gray-300 p-6 text-center text-sm text-gray-400">
                 Pick one or more products above to see the average.
               </p>
-            ) : result.count === 0 ? (
+            ) : result.sold === 0 ? (
               <p className="rounded-xl border border-dashed border-gray-300 p-6 text-center text-sm text-gray-500">
-                No deals {mode === 'exact' ? 'sold exactly this set' : 'included all of these'} in this range.
+                No deals {mode === 'exact' ? 'sold exactly this set' : 'included all of these'} yet.
               </p>
             ) : (
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <Stat label="Avg sale price" value={money(result.avg)} strong />
-                <Stat label="Deals" value={String(result.count)} />
-                <Stat label="Low" value={money(result.min)} />
-                <Stat label="High" value={money(result.max)} />
+                <Stat label="Avg sale price" value={result.count ? money(result.avg) : '—'} strong />
+                <Stat label="Sold" value={String(result.sold)} />
+                <Stat label="Approved" value={String(result.approved)} />
+                <Stat label="Installed" value={String(result.installed)} />
               </div>
             )}
           </>

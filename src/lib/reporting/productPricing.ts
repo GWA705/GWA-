@@ -3,20 +3,20 @@ import { prisma } from '@/lib/db';
 import type { ApplicationStatus, Prisma } from '@prisma/client';
 
 /**
- * Average sale-price reporting by product and by package.
+ * Product & package pricing + unit counts.
  *
  * A deal stores one total amount plus the list of products sold — there is no
- * per-product price. So:
+ * per-product price. So for AVERAGES:
  *  - a deal with EXACTLY ONE product tells us that product's stand-alone price;
- *  - a deal with TWO OR MORE products is a "package", grouped by the exact set
- *    of products sold (auto-detected — no hard-coded package list).
+ *  - a deal with TWO OR MORE products is a "package", grouped by the exact set.
+ * Averages use approved-or-beyond deals, on the approved amount (fallback
+ * requested).
  *
- * Basis: approved-or-beyond deals, using the approved amount (falling back to
- * the requested amount) — i.e. real, accepted sale prices. Declined / withdrawn
- * / draft deals are excluded.
+ * For COUNTS ("how many WS did we sell / approve / install"), every non-draft
+ * deal is counted — one unit per product per deal — split into sold / approved /
+ * installed. All active catalog products appear even with zero sales.
  */
 
-// Approved-or-beyond — the sale was accepted.
 const APPROVED_SALES: ApplicationStatus[] = [
   'CONDITIONAL', 'APPROVED', 'DOCS_SENT', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW', 'FUNDED',
 ];
@@ -31,20 +31,31 @@ export interface PriceStat {
   total: number;
 }
 
-/** One counted deal, reduced to what the manual grouping tool needs. */
+/** One deal, reduced to what the manual grouping tool needs. */
 export interface PricingDeal {
-  products: string[]; // cleaned product names
+  products: string[];
   amount: number;
+  approved: boolean;
+  installed: boolean;
+}
+
+/** Per-product unit counts across all non-draft deals. */
+export interface ProductCount {
+  name: string;
+  sold: number;
+  approved: number;
+  installed: number;
 }
 
 export interface ProductPricingResult {
-  dealsCounted: number; // deals with at least one product
+  dealsCounted: number; // approved deals feeding the averages
   singleUnitDeals: number;
   packageDeals: number;
-  products: PriceStat[]; // stand-alone (single-product) sales
-  packages: PriceStat[]; // 2+ products sold together
-  deals: PricingDeal[]; // raw rows for the manual "group these products" tool
-  allProducts: string[]; // every distinct product seen, for the picker
+  products: PriceStat[]; // stand-alone (single-product) approved averages
+  packages: PriceStat[]; // 2+ products sold together (approved)
+  productCounts: ProductCount[]; // sold / approved / installed per product (all catalog)
+  deals: PricingDeal[]; // rows for the manual "group these products" tool
+  allProducts: string[]; // full catalog + any seen, for the picker
 }
 
 const clean = (names: string[]): string[] =>
@@ -64,33 +75,61 @@ function statFrom(key: string, label: string, amounts: number[]): PriceStat {
 }
 
 export async function productPricing(opts: { dealerIds?: string[]; since?: Date } = {}): Promise<ProductPricingResult> {
-  const where: Prisma.ApplicationWhereInput = { status: { in: APPROVED_SALES } };
+  const where: Prisma.ApplicationWhereInput = { status: { not: 'DRAFT' } };
   if (opts.dealerIds) where.dealerId = { in: opts.dealerIds };
   if (opts.since) where.createdAt = { gte: opts.since };
 
-  const apps = await prisma.application.findMany({
-    where,
-    select: { productsSold: true, approvedAmount: true, requestedAmount: true },
-  });
+  const [apps, catalog] = await Promise.all([
+    prisma.application.findMany({
+      where,
+      select: { productsSold: true, approvedAmount: true, requestedAmount: true, status: true, installationDate: true },
+    }),
+    prisma.product.findMany({ where: { active: true }, select: { name: true } }).catch(() => []),
+  ]);
 
-  // key -> { label, amounts[] }
+  const now = Date.now();
   const products = new Map<string, { label: string; amounts: number[] }>();
   const packages = new Map<string, { label: string; amounts: number[] }>();
+  const counts = new Map<string, ProductCount>(); // key = lowercased
+  const allProducts = new Map<string, string>();
   const deals: PricingDeal[] = [];
-  const allProducts = new Map<string, string>(); // lowercased key -> display label
   let dealsCounted = 0;
   let singleUnitDeals = 0;
   let packageDeals = 0;
 
+  // Seed the picker + counts with every active catalog product (so zero-sales
+  // products still show and are selectable).
+  for (const p of catalog) {
+    const name = p.name.trim();
+    if (!name) continue;
+    const k = name.toLowerCase();
+    if (!allProducts.has(k)) allProducts.set(k, name);
+    if (!counts.has(k)) counts.set(k, { name, sold: 0, approved: 0, installed: 0 });
+  }
+
   for (const a of apps) {
     const items = clean(a.productsSold);
     if (items.length === 0) continue;
+    const approved = APPROVED_SALES.includes(a.status);
+    const installed = !!a.installationDate && a.installationDate.getTime() <= now;
     const amount = Number(a.approvedAmount ?? a.requestedAmount);
-    if (!Number.isFinite(amount) || amount <= 0) continue;
-    dealsCounted++;
-    deals.push({ products: items, amount });
-    for (const it of items) if (!allProducts.has(it.toLowerCase())) allProducts.set(it.toLowerCase(), it);
 
+    deals.push({ products: items, amount: Number.isFinite(amount) ? amount : 0, approved, installed });
+
+    // Unit counts (every product on the deal).
+    for (const it of items) {
+      const k = it.toLowerCase();
+      if (!allProducts.has(k)) allProducts.set(k, it);
+      const c = counts.get(k) ?? { name: it, sold: 0, approved: 0, installed: 0 };
+      c.sold += 1;
+      if (approved) c.approved += 1;
+      if (installed) c.installed += 1;
+      counts.set(k, c);
+    }
+
+    // Averages — approved deals with a valid amount only.
+    if (!approved || !Number.isFinite(amount) || amount <= 0) continue;
+    dealsCounted++;
     if (items.length === 1) {
       singleUnitDeals++;
       const label = items[0];
@@ -110,9 +149,7 @@ export async function productPricing(opts: { dealerIds?: string[]; since?: Date 
   }
 
   const toStats = (m: Map<string, { label: string; amounts: number[] }>): PriceStat[] =>
-    [...m.entries()]
-      .map(([key, v]) => statFrom(key, v.label, v.amounts))
-      .sort((x, y) => y.count - x.count || y.avg - x.avg);
+    [...m.entries()].map(([key, v]) => statFrom(key, v.label, v.amounts)).sort((x, y) => y.count - x.count || y.avg - x.avg);
 
   return {
     dealsCounted,
@@ -120,6 +157,7 @@ export async function productPricing(opts: { dealerIds?: string[]; since?: Date 
     packageDeals,
     products: toStats(products),
     packages: toStats(packages),
+    productCounts: [...counts.values()].sort((a, b) => b.sold - a.sold || a.name.localeCompare(b.name)),
     deals,
     allProducts: [...allProducts.values()].sort((a, b) => a.localeCompare(b)),
   };
