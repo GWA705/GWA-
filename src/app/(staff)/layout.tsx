@@ -1,5 +1,6 @@
-import { requireRole } from '@/lib/session';
-import { AppShell } from '@/components/AppShell';
+import { requireRole, hasBothPortals } from '@/lib/session';
+import { roleLabel } from '@/lib/rbac';
+import { StaffShell } from '@/components/StaffShell';
 import { AlertModal } from '@/components/AlertModal';
 import { alertWhereForUser } from '@/lib/alerts';
 import { prisma } from '@/lib/db';
@@ -56,10 +57,19 @@ export default async function StaffLayout({ children }: { children: React.ReactN
     select: { id: true, title: true, body: true, linkUrl: true },
   });
 
+  const initials =
+    user.name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase()).join('') || '?';
+
   return (
-    <AppShell user={user} portal="staff" nav={nav}>
+    <StaffShell
+      userName={user.name}
+      roleLabel={roleLabel(user.role)}
+      initials={initials}
+      showSwitcher={hasBothPortals(user)}
+      nav={nav}
+    >
       {children}
       {alerts.length > 0 && <AlertModal alerts={alerts} />}
-    </AppShell>
+    </StaffShell>
   );
 }
