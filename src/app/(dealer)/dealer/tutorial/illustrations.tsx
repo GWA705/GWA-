@@ -351,8 +351,95 @@ function GiftCards() {
   );
 }
 
+function Applications() {
+  return (
+    <Frame>
+      {['Tracker', 'Pipeline', 'List', 'Progress'].map((t, i) => (
+        <g key={t}>
+          <rect x={20 + i * 80} y="46" width="74" height="22" rx="7" fill={i === 0 ? BRAND : 'currentColor'} fillOpacity={i === 0 ? 0.85 : 0.06} stroke="currentColor" strokeOpacity={i === 0 ? 0 : 0.25} />
+          <text x={20 + i * 80 + 37} y="61" fontSize="8" fontWeight="700" textAnchor="middle" fill={i === 0 ? '#fff' : 'currentColor'} fillOpacity={i === 0 ? 0.95 : 0.5}>{t}</text>
+        </g>
+      ))}
+      <rect x="20" y="84" width="360" height="20" rx="6" fill={RED} fillOpacity="0.1" />
+      <text x="30" y="98" fontSize="8" fontWeight="700" fill={RED} fillOpacity="0.85">Needs your action</text>
+      {[112, 142, 172, 202].map((y, i) => (
+        <g key={y}>
+          <Box x="20" y={y} width="360" height="26" />
+          <Line x="34" y={y + 11} w={90} o={0.5} />
+          <rect x="300" y={y + 8} width="66" height="12" rx="6" fill={i === 0 ? AMBER : GREEN} fillOpacity="0.35" />
+        </g>
+      ))}
+    </Frame>
+  );
+}
+
+function Chat() {
+  return (
+    <Frame>
+      <rect x="120" y="40" width="220" height="182" rx="10" fill="currentColor" fillOpacity="0.05" stroke="currentColor" strokeOpacity="0.25" />
+      <path d="M120 50 A10 10 0 0 1 130 40 H330 A10 10 0 0 1 340 50 V66 H120 Z" fill={BRAND} fillOpacity="0.85" />
+      <text x="134" y="58" fontSize="8.5" fontWeight="700" fill="#fff">GWA team chat</text>
+      <rect x="134" y="80" width="120" height="24" rx="8" fill="currentColor" fillOpacity="0.08" />
+      <Line x="144" y="90" w={90} o={0.4} />
+      <rect x="206" y="116" width="120" height="24" rx="8" fill={BRAND} fillOpacity="0.7" />
+      <rect x="216" y="126" width="90" height="5" rx="2.5" fill="#fff" fillOpacity="0.85" />
+      <rect x="134" y="190" width="150" height="20" rx="10" fill="currentColor" fillOpacity="0.06" stroke="currentColor" strokeOpacity="0.2" />
+      <rect x="292" y="190" width="34" height="20" rx="8" fill={BRAND} fillOpacity="0.85" />
+      <circle cx="356" cy="212" r="15" fill={BRAND} fillOpacity="0.9" />
+      <path d="M349 208 h14 M349 213 h9" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
+    </Frame>
+  );
+}
+
+function Leads() {
+  const tiles: [string, string, string][] = [['60', 'RECEIVED', BRAND], ['47', 'FORWARDED', GREEN], ['13', 'NO-GOOD', RED]];
+  return (
+    <Frame>
+      {tiles.map(([n, label, color], i) => (
+        <g key={label}>
+          <Box x={20 + i * 123} y="46" width="113" height="40" />
+          <text x={32 + i * 123} y="66" fontSize="13" fontWeight="800" fill={color} fillOpacity="0.9">{n}</text>
+          <text x={32 + i * 123} y="80" fontSize="6.5" fontWeight="700" fill="currentColor" fillOpacity="0.45">{label}</text>
+        </g>
+      ))}
+      <Box x="20" y="98" width="360" height="24" />
+      <Line x="34" y="108" w={120} />
+      {[132, 164, 196].map((y, i) => (
+        <g key={y}>
+          <rect x="20" y={y} width="4" height="26" rx="2" fill={i === 1 ? RED : GREEN} fillOpacity="0.6" />
+          <Box x="20" y={y} width="360" height="26" />
+          <Line x="36" y={y + 9} w={100} o={0.5} />
+          <Line x="36" y={y + 18} w={70} o={0.28} />
+          <rect x="318" y={y + 8} width="48" height="12" rx="6" fill={i === 1 ? RED : GREEN} fillOpacity="0.3" />
+        </g>
+      ))}
+    </Frame>
+  );
+}
+
+function Reports() {
+  return (
+    <Frame>
+      {['Monthly', 'Pricing', 'Custom', 'Forecast'].map((t, i) => (
+        <g key={t}>
+          <rect x={20 + i * 82} y="46" width="76" height="20" rx="10" fill={i === 0 ? BRAND : 'currentColor'} fillOpacity={i === 0 ? 0.85 : 0.06} />
+          <text x={20 + i * 82 + 38} y="60" fontSize="7.5" fontWeight="700" textAnchor="middle" fill={i === 0 ? '#fff' : 'currentColor'} fillOpacity={i === 0 ? 0.95 : 0.5}>{t}</text>
+        </g>
+      ))}
+      {[60, 110, 150, 90, 170, 130].map((h, i) => (
+        <rect key={i} x={40 + i * 56} y={206 - h} width="34" height={h} rx="4" fill={BRAND} fillOpacity={0.35 + i * 0.08} />
+      ))}
+      <line x1="20" y1="208" x2="380" y2="208" stroke="currentColor" strokeOpacity="0.2" />
+    </Frame>
+  );
+}
+
 const ILLOS: Record<string, () => JSX.Element> = {
   login: Login,
+  applications: Applications,
+  chat: Chat,
+  leads: Leads,
+  reports: Reports,
   nav: Nav,
   dashboard: Dashboard,
   search: Search,
