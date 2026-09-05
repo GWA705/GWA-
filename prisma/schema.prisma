@@ -1701,3 +1701,18 @@ model ConversationRead {
 
   @@unique([conversationId, userId])
 }
+
+// Which Applications view a dealer uses (Tracker / Pipeline / List / Progress).
+// One row per user+view, incremented on each switch — powers "remember my last
+// view" (most recently updated) and "which views are used most" analytics.
+model ApplicationViewUsage {
+  id        String   @id @default(cuid())
+  userId    String
+  dealerId  String?
+  view      String
+  count     Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, view])
+  @@index([dealerId, view])
+}

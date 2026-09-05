@@ -26,6 +26,18 @@ source of truth; this file is the human-readable index.
 | Bell Total Connect voicemail | 📝 Documented, not built here | Guide delivered for the **booking site** (voicemail-to-email + IMAP). Not part of this portal. |
 
 ## 2026-09-05
+- **Applications: multi-view deal tracker (dealer).** The Applications list is now
+  a switchable workspace so dealers can track deals through approval → docs →
+  funding the way that suits them: **Tracker** (grouped by "Needs your action" /
+  "In progress — with GWA" / "Funded & paid" / "Closed"), **Pipeline** (Kanban
+  columns by stage), **List** (the detailed sortable table), and **Progress** (a
+  stage bar per deal). One search + sort drives all views; pins float to top.
+  The chosen view is remembered per user (most-recent) and **usage is counted in
+  the DB** (`ApplicationViewUsage`) so we can see which views dealers actually
+  use. Stage/grouping logic in `lib/dealerStage.ts` (reuses `dealerOutstanding`);
+  view logged via `/api/dealer/view-usage`. Replaces the old single table +
+  separate "Needs attention" panel on this page. Migration
+  `20260905010000_application_view_usage` (additive).
 - **Reviewer (staff) area brought up to match the dealer portal.** New
   `StaffShell` gives the reviewer area the same dark-blue sidebar + white top
   header (slim scrollbar, Dealer-view switcher pill, mail bell, account block)
