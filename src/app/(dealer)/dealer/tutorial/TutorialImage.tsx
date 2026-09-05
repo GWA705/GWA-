@@ -1,16 +1,19 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { TutorialIllo } from './illustrations';
 
 /**
  * A tutorial screenshot that enlarges in an in-app lightbox instead of opening
- * the raw image file in a new tab. Opening a bare image URL dead-ends inside the
- * installed mobile app (a standalone PWA has no browser back button), so tapping
- * here opens an overlay with a clear Close button, backdrop-tap and Esc to
- * dismiss — you always stay in the portal.
+ * the raw image file in a new tab (a standalone PWA has no browser back button).
+ *
+ * If the screenshot file isn't present yet, it falls back to the step's line
+ * mockup (`illo`) so the tutorial always looks finished while real screenshots
+ * are being captured — drop the PNG into `public/tutorial/` and it takes over.
  */
-export function TutorialImage({ src, alt }: { src: string; alt?: string }) {
+export function TutorialImage({ src, alt, illo }: { src: string; alt?: string; illo?: string }) {
   const [open, setOpen] = useState(false);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -18,7 +21,6 @@ export function TutorialImage({ src, alt }: { src: string; alt?: string }) {
       if (e.key === 'Escape') setOpen(false);
     };
     document.addEventListener('keydown', onKey);
-    // Prevent the page behind from scrolling while the overlay is up.
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => {
@@ -26,6 +28,21 @@ export function TutorialImage({ src, alt }: { src: string; alt?: string }) {
       document.body.style.overflow = prev;
     };
   }, [open]);
+
+  // No screenshot yet → show the mockup (or a neutral placeholder).
+  if (failed) {
+    return (
+      <div className="border-t border-gray-100 bg-gray-50 p-5">
+        {illo ? (
+          <TutorialIllo name={illo} />
+        ) : (
+          <div className="mx-auto flex h-40 max-w-md items-center justify-center rounded-lg border border-dashed border-gray-300 text-sm text-gray-400">
+            Screenshot coming soon
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="border-t border-gray-100 bg-gray-50 p-4 text-center">
@@ -35,6 +52,7 @@ export function TutorialImage({ src, alt }: { src: string; alt?: string }) {
           src={src}
           alt={alt}
           loading="lazy"
+          onError={() => setFailed(true)}
           className="mx-auto max-h-96 w-auto rounded-lg border border-gray-200 bg-white shadow-sm"
         />
       </button>
