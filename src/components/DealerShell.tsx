@@ -7,7 +7,8 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { MobileNav } from '@/components/MobileNav';
 import {
   Home, FileText, UserPlus, Mail, Users, ShoppingCart, Gift, BookOpen, BarChart3,
-  Building2, Headphones, Wrench, Search, Bell, LogOut, Droplets, ArrowLeftRight, type LucideIcon,
+  Building2, Headphones, Wrench, Search, Bell, LogOut, Droplets, ArrowLeftRight,
+  Calculator, CreditCard, Megaphone, GraduationCap, UserCircle, type LucideIcon,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -22,14 +23,22 @@ function iconFor(label: string): LucideIcon {
   const l = label.toLowerCase();
   if (l.includes('home') || l === 'dashboard') return Home;
   if (l.includes('new customer')) return UserPlus;
+  if (l.includes('find') || l.includes('search')) return Search;
   if (l.includes('application') || l.includes('deals')) return FileText;
   if (l.includes('mail')) return Mail;
-  if (l.includes('lead')) return Users;
-  if (l.includes('marketplace')) return ShoppingCart;
-  if (l.includes('gift')) return Gift;
-  if (l.includes('resource')) return BookOpen;
+  if (l.includes('payout') || l.includes('calculat')) return Calculator;
   if (l.includes('report')) return BarChart3;
+  if (l.includes('marketplace')) return ShoppingCart;
+  if (l.includes('lead')) return Users;
+  if (l.includes('gift')) return Gift;
+  if (l.includes('library') || l.includes('product')) return BookOpen;
+  if (l.includes('promotion')) return Megaphone;
+  if (l.includes('credit card')) return CreditCard;
+  if (l.includes('tutorial')) return GraduationCap;
+  if (l.includes('resource')) return BookOpen;
+  if (l.includes('request') || l.includes('login')) return UserPlus;
   if (l.includes('office') || l.includes('profile')) return Building2;
+  if (l.includes('account')) return UserCircle;
   if (l.includes('support') || l.includes('contact')) return Headphones;
   if (l.includes('tool')) return Wrench;
   return FileText;
@@ -41,20 +50,22 @@ function isActive(pathname: string, href?: string): boolean {
   return pathname === href || pathname.startsWith(href + '/');
 }
 
-function SidebarLink({ item, pathname, sub }: { item: NavItem; pathname: string; sub?: boolean }) {
+function SidebarLink({ item, pathname }: { item: NavItem; pathname: string }) {
   const Icon = iconFor(item.label);
   const active = isActive(pathname, item.href);
   return (
     <Link
       href={item.href ?? '#'}
-      className={`flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm transition ${
-        active ? 'bg-gradient-to-r from-blue-600 to-blue-500 font-semibold text-white shadow-lg'
-        : 'text-blue-50 hover:bg-white/10'
-      } ${sub ? 'py-2 pl-11 text-[13px]' : ''}`}
+      className={`group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${
+        active
+          ? 'bg-blue-600 font-semibold text-white shadow-sm'
+          : 'text-blue-100/85 hover:bg-white/10 hover:text-white'
+      }`}
     >
-      {!sub && <Icon size={20} className="flex-none" />}
+      {active && <span className="absolute inset-y-1.5 left-0 w-1 rounded-full bg-sky-300" aria-hidden />}
+      <Icon size={18} className={`flex-none transition ${active ? 'text-white' : 'text-sky-300/80 group-hover:text-white'}`} />
       <span className="flex-1 truncate">{item.label}</span>
-      {item.badge && <span className="h-2 w-2 flex-none rounded-full bg-sky-300" />}
+      {item.badge && <span className="h-1.5 w-1.5 flex-none rounded-full bg-sky-300" />}
     </Link>
   );
 }
@@ -143,23 +154,28 @@ export function DealerShell({
 
       <div className="flex">
         {/* SIDEBAR (desktop) */}
-        <aside className="sticky top-0 hidden h-[calc(100vh-72px)] w-[230px] flex-none flex-col bg-gradient-to-b from-[#052755] to-[#031d43] px-3 py-4 text-white lg:flex">
-          <nav className="sidebar-scroll min-h-0 flex-1 space-y-0.5 overflow-y-auto pr-1">
+        <aside className="sticky top-0 hidden h-[calc(100vh-72px)] w-[240px] flex-none flex-col bg-gradient-to-b from-[#06285a] to-[#04173a] lg:flex">
+          <nav className="sidebar-scroll min-h-0 flex-1 space-y-0.5 overflow-y-auto px-3 py-4">
             {nav.map((item) =>
               item.children ? (
-                <div key={item.label} className="pt-1.5">
-                  <div className="px-4 pb-0.5 text-[10px] font-bold uppercase tracking-wider text-blue-300/70">{item.label}</div>
-                  {item.children.map((c) => <SidebarLink key={c.label} item={c} pathname={pathname} sub />)}
+                <div key={item.label} className="pt-3 first:pt-0">
+                  <div className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-300/60">{item.label}</div>
+                  <div className="space-y-0.5">
+                    {item.children.map((c) => <SidebarLink key={c.label} item={c} pathname={pathname} />)}
+                  </div>
                 </div>
               ) : (
                 <SidebarLink key={item.label} item={item} pathname={pathname} />
               ),
             )}
           </nav>
-          <div className="flex flex-none items-center gap-3 border-t border-white/10 px-4 pb-1 pt-3">
-            <Droplets size={26} className="flex-none text-sky-400" />
-            <div className="text-[10px] font-semibold leading-4 tracking-[0.2em] text-blue-200/90">
-              CLEANER WATER · HEALTHIER AIR<br />BRIGHTER TOMORROWS
+          <div className="flex flex-none items-center gap-2.5 border-t border-white/10 px-4 py-3">
+            <div className="flex h-8 w-8 flex-none items-center justify-center rounded-lg bg-white/10">
+              <Droplets size={17} className="text-sky-300" />
+            </div>
+            <div className="leading-tight">
+              <div className="text-[11px] font-semibold text-blue-50">Georgian Water &amp; Air</div>
+              <div className="text-[9px] font-medium tracking-wide text-blue-300/70">Cleaner water · Healthier air</div>
             </div>
           </div>
         </aside>
