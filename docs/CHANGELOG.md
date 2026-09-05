@@ -26,6 +26,15 @@ source of truth; this file is the human-readable index.
 | Bell Total Connect voicemail | 📝 Documented, not built here | Guide delivered for the **booking site** (voicemail-to-email + IMAP). Not part of this portal. |
 
 ## 2026-09-05
+- **By-sales-rep report (dealer owner).** `/dealer/reports/sales-reps`: each rep's
+  deals, total and average sale value, plus their top program, with a date-range
+  filter. Uses the salesperson name captured on the new-customer form
+  (`Application.salespersonName`). Owner-gated.
+- **Rotating dashboard hero.** Drop a few images into `public/hero/` and the
+  dashboard shows a different one **each day** (deterministic; falls back to
+  `public/hero-banner.png`, then the gradient). Combined with the existing
+  time-of-day greeting (sunrise/sun/moon) so sign-in feels fresh without any
+  external weather call. `lib/heroImage.ts`.
 - **Sales forecasting centre (dealer owner).** `/dealer/reports/forecast`: 12-month
   trend, this-year-vs-last-year by month, and a **seasonal projection** for the
   next 3 months (each future month's historical average scaled by the recent

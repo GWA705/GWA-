@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { SectionHero } from '@/components/SectionHero';
 
-type Tab = 'monthly' | 'weekly' | 'pricing' | 'custom' | 'forecast';
+type Tab = 'monthly' | 'weekly' | 'pricing' | 'custom' | 'forecast' | 'reps';
 
 // Tab header for the dealer reports area. Owner-only tabs (pricing, custom) are
 // shown only when the page passes `showOwner`.
@@ -23,6 +23,7 @@ export function DealerReportTabs({ active, showOwner = false }: { active: Tab; s
         {tab('/dealer/reports', 'Monthly performance', 'monthly')}
         {tab('/dealer/reports/weekly', 'Weekly store detail', 'weekly')}
         {showOwner && tab('/dealer/reports/product-pricing', 'Product & package pricing', 'pricing')}
+        {showOwner && tab('/dealer/reports/sales-reps', 'By sales rep', 'reps')}
         {showOwner && tab('/dealer/reports/custom', 'Custom report', 'custom')}
         {showOwner && tab('/dealer/reports/forecast', 'Sales forecast', 'forecast')}
       </div>

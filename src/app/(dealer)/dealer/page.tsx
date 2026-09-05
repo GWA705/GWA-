@@ -2,6 +2,7 @@ import { requireDealerAccess } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { dealerPortalScopeWhere } from '@/lib/rbac';
 import { programLabel } from '@/lib/constants';
+import { pickHeroImage } from '@/lib/heroImage';
 import { DashboardHero } from '@/components/dashboard/DashboardHero';
 import { KpiCard } from '@/components/dashboard/KpiCard';
 import { RecentApplications, type RecentApp } from '@/components/dashboard/RecentApplications';
@@ -97,10 +98,11 @@ export default async function DealerDashboard() {
     }));
 
   const firstName = user.name.split(' ')[0] || user.name;
+  const heroImage = await pickHeroImage();
 
   return (
     <div className="space-y-4">
-      <DashboardHero firstName={firstName} companyName={profile?.businessName ?? null} />
+      <DashboardHero firstName={firstName} companyName={profile?.businessName ?? null} bgImage={heroImage} />
 
       {/* KPI row */}
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">

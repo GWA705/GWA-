@@ -10,15 +10,15 @@ import { DashboardGreeting } from '@/components/DashboardGreeting';
  * photo. See the AI image prompt in `docs/BRAND-KIT.md` §14 for a
  * perfectly-formatted background.
  */
-export function DashboardHero({ firstName }: { firstName: string; companyName?: string | null }) {
+export function DashboardHero({ firstName, bgImage = '/hero-banner.png' }: { firstName: string; companyName?: string | null; bgImage?: string }) {
   return (
     <section className="relative overflow-hidden rounded-2xl text-white shadow-sm">
       {/* Base gradient — shows through when no photo is present */}
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-[#04213f] via-[#0a3f82] to-[#0f68c9]" aria-hidden />
-      {/* Swappable photo */}
+      {/* Swappable / rotating photo */}
       <div
         className="pointer-events-none absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: "url('/hero-banner.png')" }}
+        style={{ backgroundImage: `url('${bgImage}')` }}
         aria-hidden
       />
       {/* Left-to-right legibility wash over the photo */}
