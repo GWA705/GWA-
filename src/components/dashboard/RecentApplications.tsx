@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { FileText, ArrowRight, Eye, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react';
 import { StatusBadge } from '@/components/StatusBadge';
 import { PinButton } from '@/components/PinButton';
+import { useT } from '@/i18n/client';
 import type { ApplicationStatus } from '@prisma/client';
 
 export interface RecentApp {
@@ -26,6 +27,7 @@ const COLLAPSED = 4;
 
 /** The "Recent Applications" preview on the dashboard — pin, flag, expandable. */
 export function RecentApplications({ items }: { items: RecentApp[] }) {
+  const t = useT();
   const [expanded, setExpanded] = useState(false);
   const canToggle = items.length > COLLAPSED;
   const shown = expanded ? items : items.slice(0, COLLAPSED);
@@ -37,15 +39,15 @@ export function RecentApplications({ items }: { items: RecentApp[] }) {
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50">
             <FileText size={20} className="text-blue-600" />
           </div>
-          <h3 className="text-xl font-bold text-[#0d2a63] dark:text-slate-100">Recent Applications</h3>
+          <h3 className="text-xl font-bold text-[#0d2a63] dark:text-slate-100">{t('dashboard.recentApplications')}</h3>
         </div>
         <Link href="/dealer/applications" className="flex items-center gap-2 text-sm font-semibold text-blue-600 hover:underline">
-          View all applications <ArrowRight size={17} />
+          {t('dashboard.viewAllApplications')} <ArrowRight size={17} />
         </Link>
       </div>
 
       {items.length === 0 ? (
-        <p className="px-5 pb-6 text-sm text-gray-500">No applications yet — start with &ldquo;New Customer.&rdquo;</p>
+        <p className="px-5 pb-6 text-sm text-gray-500">{t('dashboard.noApplications')}</p>
       ) : (
         <>
           {/* Mobile: a stacked card per application (the table scrolls sideways). */}
@@ -66,12 +68,12 @@ export function RecentApplications({ items }: { items: RecentApp[] }) {
                   {a.problem && (
                     <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700">
                       <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-red-600 text-[9px] font-black leading-none text-white">!</span>
-                      Sent back
+                      {t('dashboard.sentBack')}
                     </span>
                   )}
                   {a.actionNeeded && !a.problem && (
                     <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">
-                      <AlertTriangle size={11} /> Action needed
+                      <AlertTriangle size={11} /> {t('dashboard.actionNeeded')}
                     </span>
                   )}
                 </div>
@@ -80,9 +82,9 @@ export function RecentApplications({ items }: { items: RecentApp[] }) {
                   <span className="font-semibold text-gray-800">{a.amount}</span>
                 </div>
                 <div className="mt-1 flex items-center justify-between text-xs">
-                  <span className="text-gray-400">Submitted {a.submitted}</span>
+                  <span className="text-gray-400">{t('dashboard.submitted')} {a.submitted}</span>
                   <Link href={`/dealer/applications/${a.id}`} className="inline-flex items-center gap-1 font-semibold text-blue-600">
-                    <Eye size={13} /> View
+                    <Eye size={13} /> {t('common.view')}
                   </Link>
                 </div>
               </li>
@@ -95,13 +97,13 @@ export function RecentApplications({ items }: { items: RecentApp[] }) {
               <thead>
                 <tr className="bg-gray-50 text-[11px] uppercase text-gray-500">
                   <th className="w-8 px-2 py-3" aria-label="Pin" />
-                  <th className="px-4 py-3 text-left">Applicant</th>
-                  <th className="px-4 py-3 text-left">Province</th>
-                  <th className="px-4 py-3 text-left">Program</th>
-                  <th className="px-4 py-3 text-left">Amount</th>
-                  <th className="px-4 py-3 text-left">Status</th>
-                  <th className="px-4 py-3 text-left">Submitted</th>
-                  <th className="px-4 py-3 text-left">Actions</th>
+                  <th className="px-4 py-3 text-left">{t('dashboard.applicant')}</th>
+                  <th className="px-4 py-3 text-left">{t('dashboard.province')}</th>
+                  <th className="px-4 py-3 text-left">{t('dashboard.program')}</th>
+                  <th className="px-4 py-3 text-left">{t('dashboard.amount')}</th>
+                  <th className="px-4 py-3 text-left">{t('dashboard.status')}</th>
+                  <th className="px-4 py-3 text-left">{t('dashboard.submitted')}</th>
+                  <th className="px-4 py-3 text-left">{t('dashboard.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -118,12 +120,12 @@ export function RecentApplications({ items }: { items: RecentApp[] }) {
                         {a.problem && (
                           <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700">
                             <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-red-600 text-[9px] font-black leading-none text-white">!</span>
-                            Sent back
+                            {t('dashboard.sentBack')}
                           </span>
                         )}
                         {a.actionNeeded && !a.problem && (
                           <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">
-                            <AlertTriangle size={11} /> Action needed
+                            <AlertTriangle size={11} /> {t('dashboard.actionNeeded')}
                           </span>
                         )}
                       </div>
@@ -138,7 +140,7 @@ export function RecentApplications({ items }: { items: RecentApp[] }) {
                         href={`/dealer/applications/${a.id}`}
                         className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-blue-600 hover:bg-blue-50"
                       >
-                        <Eye size={14} /> View
+                        <Eye size={14} /> {t('common.view')}
                       </Link>
                     </td>
                   </tr>
@@ -155,9 +157,9 @@ export function RecentApplications({ items }: { items: RecentApp[] }) {
                 className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold text-blue-600 hover:bg-blue-50"
               >
                 {expanded ? (
-                  <>Show less <ChevronUp size={16} /></>
+                  <>{t('common.showLess')} <ChevronUp size={16} /></>
                 ) : (
-                  <>Show {items.length - COLLAPSED} more <ChevronDown size={16} /></>
+                  <>{t('dashboard.showNMore', { n: items.length - COLLAPSED })} <ChevronDown size={16} /></>
                 )}
               </button>
             </div>

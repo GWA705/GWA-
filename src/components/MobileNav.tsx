@@ -4,10 +4,12 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { logoutAction } from '@/app/(auth)/actions';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { useT } from '@/i18n/client';
 
 interface NavItem {
   href?: string;
   label: string;
+  labelKey?: string;
   badge?: boolean;
   children?: NavItem[];
 }
@@ -62,6 +64,8 @@ export function MobileNav({
   triggerClassName?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const t = useT();
+  const navLabel = (item: NavItem) => (item.labelKey ? t(item.labelKey) : item.label);
 
   useEffect(() => {
     document.body.style.overflow = open ? 'hidden' : '';
@@ -123,7 +127,7 @@ export function MobileNav({
                 item.children?.length ? (
                   <div key={item.label} className="mt-2">
                     <div className="flex items-center gap-2 px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
-                      {item.label}
+                      {navLabel(item)}
                       {item.children.some((c) => c.badge) && <span className="nav-dot" aria-label="New" />}
                     </div>
                     {item.children.map((c) => (
@@ -134,7 +138,7 @@ export function MobileNav({
                         className="flex items-center gap-3 rounded-md px-3 py-3 text-base font-medium text-gray-700 hover:bg-gray-50 hover:text-brand-700"
                       >
                         <NavIcon label={c.label} />
-                        {c.label}
+                        {navLabel(c)}
                         {c.badge && <span className="nav-dot ml-auto" title="New" aria-label="New" />}
                       </Link>
                     ))}
@@ -147,7 +151,7 @@ export function MobileNav({
                     className="flex items-center gap-3 rounded-md px-3 py-3 text-base font-medium text-gray-700 hover:bg-gray-50 hover:text-brand-700"
                   >
                     <NavIcon label={item.label} />
-                    {item.label}
+                    {navLabel(item)}
                     {item.badge && <span className="nav-dot ml-auto" title="New" aria-label="New" />}
                   </Link>
                 ),

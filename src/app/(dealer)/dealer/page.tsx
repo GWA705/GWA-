@@ -8,6 +8,8 @@ import { KpiCard } from '@/components/dashboard/KpiCard';
 import { RecentApplications, type RecentApp } from '@/components/dashboard/RecentApplications';
 import { QuickActions } from '@/components/dashboard/QuickActions';
 import { SupportCard } from '@/components/dashboard/SupportCard';
+import { LeadsPill } from '@/components/dashboard/LeadsPill';
+import { getT } from '@/i18n/server';
 import { StatusDonut } from '@/components/dashboard/StatusDonut';
 import { MonthlyTrend } from '@/components/dashboard/MonthlyTrend';
 import { ProgramBreakdown } from '@/components/dashboard/ProgramBreakdown';
@@ -99,6 +101,7 @@ export default async function DealerDashboard() {
 
   const firstName = user.name.split(' ')[0] || user.name;
   const heroImage = await pickHeroImage();
+  const t = getT();
 
   return (
     <div className="space-y-4">
@@ -106,10 +109,10 @@ export default async function DealerDashboard() {
 
       {/* KPI row — compact 2-up on phones so it flows into the list below */}
       <div className="grid grid-cols-2 gap-2.5 sm:gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <KpiCard icon={FileText} title="Total Applications" value={String(totalThisMonth)} subtitle="This month" tone="blue" href="/dealer/applications" />
-        <KpiCard icon={CheckCircle2} title="Approved" value={String(approvedThisMonth)} subtitle={`${approvalRate}% approval rate`} tone="green" />
-        <KpiCard icon={Clock} title="Pending" value={String(pendingNow)} subtitle="Awaiting review" tone="blue" href="/dealer/applications?status=SUBMITTED" />
-        <KpiCard icon={DollarSign} title="Total Value" value={money(valueThisMonth)} subtitle="This month" tone="blue" />
+        <KpiCard icon={FileText} title={t('dashboard.totalApplications')} value={String(totalThisMonth)} subtitle={t('dashboard.thisMonth')} tone="blue" href="/dealer/applications" />
+        <KpiCard icon={CheckCircle2} title={t('dashboard.approved')} value={String(approvedThisMonth)} subtitle={t('dashboard.approvalRate', { pct: approvalRate })} tone="green" />
+        <KpiCard icon={Clock} title={t('dashboard.pending')} value={String(pendingNow)} subtitle={t('dashboard.awaitingReview')} tone="blue" href="/dealer/applications?status=SUBMITTED" />
+        <KpiCard icon={DollarSign} title={t('dashboard.totalValue')} value={money(valueThisMonth)} subtitle={t('dashboard.thisMonth')} tone="blue" />
       </div>
 
       {/* Recent applications + right rail */}
@@ -117,6 +120,7 @@ export default async function DealerDashboard() {
         <RecentApplications items={recent} />
         <div className="space-y-3">
           <QuickActions />
+          <LeadsPill />
           <SupportCard />
         </div>
       </div>

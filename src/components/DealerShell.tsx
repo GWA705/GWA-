@@ -6,6 +6,9 @@ import { usePathname } from 'next/navigation';
 import { logoutAction } from '@/app/(auth)/actions';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { MobileNav } from '@/components/MobileNav';
+import { LanguageToggle } from '@/components/LanguageToggle';
+import { useT } from '@/i18n/client';
+import { I18N_UI_ENABLED } from '@/i18n/config';
 import {
   Home, FileText, UserPlus, Mail, Users, ShoppingCart, Gift, BookOpen, BarChart3,
   Building2, Headphones, Wrench, Search, Bell, LogOut, Droplets, ArrowLeftRight,
@@ -16,6 +19,8 @@ import {
 export interface NavItem {
   href?: string;
   label: string;
+  /** i18n key for the display label; falls back to `label` (also used for icons). */
+  labelKey?: string;
   badge?: boolean;
   children?: NavItem[];
 }
@@ -52,13 +57,13 @@ function isActive(pathname: string, href?: string): boolean {
   return pathname === href || pathname.startsWith(href + '/');
 }
 
-function SidebarLink({ item, pathname, collapsed }: { item: NavItem; pathname: string; collapsed: boolean }) {
+function SidebarLink({ item, pathname, collapsed, label }: { item: NavItem; pathname: string; collapsed: boolean; label: string }) {
   const Icon = iconFor(item.label);
   const active = isActive(pathname, item.href);
   return (
     <Link
       href={item.href ?? '#'}
-      title={collapsed ? item.label : undefined}
+      title={collapsed ? label : undefined}
       className={`nav-water group relative flex items-center rounded-lg text-sm transition ${
         collapsed ? 'justify-center px-0 py-2.5' : 'gap-3 px-3 py-2'
       } ${
@@ -69,7 +74,7 @@ function SidebarLink({ item, pathname, collapsed }: { item: NavItem; pathname: s
     >
       {active && <span className="absolute inset-y-1.5 left-0 w-1 rounded-full bg-sky-300" aria-hidden />}
       <Icon size={18} className={`flex-none transition ${active ? 'text-white' : 'text-sky-300/80 group-hover:text-white'}`} />
-      {!collapsed && <span className="flex-1 truncate">{item.label}</span>}
+      {!collapsed && <span className="nav-label flex-1 truncate">{label}</span>}
       {item.badge && (
         <span
           className={`flex-none rounded-full bg-sky-300 ${collapsed ? 'absolute right-1.5 top-1.5 h-1.5 w-1.5' : 'h-1.5 w-1.5'}`}
@@ -93,6 +98,8 @@ export function DealerShell({
   children: React.ReactNode;
 }) {
   const pathname = usePathname() ?? '/dealer';
+  const t = useT();
+  const navLabel = (item: NavItem) => (item.labelKey ? t(item.labelKey) : item.label);
   const [collapsed, setCollapsed] = useState(false);
 
   // Remember the collapsed state across visits (per browser). Read after mount
@@ -129,7 +136,7 @@ export function DealerShell({
             onClick={toggleCollapsed}
             className="topbar-btn hidden px-2.5 lg:inline-flex"
             aria-pressed={collapsed}
-            title={collapsed ? 'Expand menu' : 'Collapse menu'}
+            title={collapsed ? t('shell.expandMenu') : t('shell.collapseMenu')}
           >
             {collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
           </button>
@@ -148,7 +155,7 @@ export function DealerShell({
               </div>
             )}
             <div className="leading-tight">
-              <div className="text-base font-extrabold tracking-tight text-[#0e2756] dark:text-slate-100 sm:text-lg">Dealer Portal</div>
+              <div className="text-base font-extrabold tracking-tight text-[#0e2756] dark:text-slate-100 sm:text-lg">{t('shell.portalName')}</div>
               <div className="text-[10px] font-semibold tracking-[0.18em] text-blue-500">GEORGIAN WATER &amp; AIR</div>
             </div>
           </Link>
@@ -158,29 +165,31 @@ export function DealerShell({
           <Link
             href="/dealer/applications/new"
             className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
-            title="Start a new application"
+            title={t('shell.newApplication')}
           >
             <Plus size={17} />
-            <span className="hidden sm:inline">New application</span>
+            <span className="hidden sm:inline">{t('shell.newApplication')}</span>
           </Link>
 
           <form action="/dealer/applications" method="get" className="hidden items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 xl:flex">
             <Search size={17} className="text-gray-400" />
-            <input name="q" className="w-52 bg-transparent text-sm outline-none" placeholder="Search customers or applications…" />
+            <input name="q" className="w-52 bg-transparent text-sm outline-none" placeholder={t('shell.searchPlaceholder')} />
           </form>
+
+          {I18N_UI_ENABLED && <LanguageToggle className="hidden sm:inline-flex" />}
 
           {showSwitcher && (
             <Link
               href="/staff"
               className="hidden items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-semibold text-[#0e2756] dark:text-slate-100 transition hover:bg-gray-100 sm:inline-flex"
-              title="Switch to Reviewer view"
+              title={t('shell.switchToReviewer')}
             >
               <ArrowLeftRight size={14} className="text-blue-600" />
-              <span className="hidden lg:inline">Reviewer</span>
+              <span className="hidden lg:inline">{t('shell.reviewer')}</span>
             </Link>
           )}
 
-          <Link href="/dealer/mail" className="relative text-[#0e2756] dark:text-slate-100 hover:text-blue-700" aria-label="Mail">
+          <Link href="/dealer/mail" className="relative text-[#0e2756] dark:text-slate-100 hover:text-blue-700" aria-label={t('shell.mail')}>
             <Bell size={22} />
             {mailUnread > 0 && (
               <span className="absolute -right-2 -top-2 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
@@ -196,8 +205,8 @@ export function DealerShell({
           <div className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-blue-700 text-sm font-bold text-white">{initials}</div>
           <ThemeToggle className="topbar-btn hidden sm:inline-flex" />
           <form action={logoutAction}>
-            <button type="submit" className="topbar-btn inline-flex items-center gap-1.5 text-sm" title="Sign out">
-              <LogOut size={16} /> <span className="hidden sm:inline">Sign out</span>
+            <button type="submit" className="topbar-btn inline-flex items-center gap-1.5 text-sm" title={t('shell.signOut')}>
+              <LogOut size={16} /> <span className="hidden sm:inline">{t('shell.signOut')}</span>
             </button>
           </form>
         </div>
@@ -217,14 +226,14 @@ export function DealerShell({
                   {collapsed ? (
                     <div className="mx-auto my-1 h-px w-6 bg-white/10" aria-hidden />
                   ) : (
-                    <div className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-300/60">{item.label}</div>
+                    <div className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-300/60">{navLabel(item)}</div>
                   )}
                   <div className="space-y-0.5">
-                    {item.children.map((c) => <SidebarLink key={c.label} item={c} pathname={pathname} collapsed={collapsed} />)}
+                    {item.children.map((c) => <SidebarLink key={c.label} item={c} pathname={pathname} collapsed={collapsed} label={navLabel(c)} />)}
                   </div>
                 </div>
               ) : (
-                <SidebarLink key={item.label} item={item} pathname={pathname} collapsed={collapsed} />
+                <SidebarLink key={item.label} item={item} pathname={pathname} collapsed={collapsed} label={navLabel(item)} />
               ),
             )}
           </nav>
@@ -235,7 +244,7 @@ export function DealerShell({
             {!collapsed && (
               <div className="leading-tight">
                 <div className="text-[11px] font-semibold text-blue-50">Georgian Water &amp; Air</div>
-                <div className="text-[9px] font-medium tracking-wide text-blue-300/70">Cleaner water · Healthier air</div>
+                <div className="text-[9px] font-medium tracking-wide text-blue-300/70">{t('shell.tagline')}</div>
               </div>
             )}
           </div>

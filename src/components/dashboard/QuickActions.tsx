@@ -1,12 +1,8 @@
-import Link from 'next/link';
-import { UserPlus, BookOpen, Users, ShoppingCart, Zap } from 'lucide-react';
+'use client';
 
-const ITEMS = [
-  { href: '/dealer/applications/new', title: 'New Customer', subtitle: 'Add a new customer', tone: 'dark' as const, Icon: UserPlus },
-  { href: '/dealer/resources/library', title: 'Product Resources', subtitle: 'Guides & product library', tone: 'blue' as const, Icon: BookOpen },
-  { href: '/dealer/leads', title: 'Find a Lead', subtitle: 'View available leads', tone: 'soft' as const, Icon: Users },
-  { href: '/dealer/marketplace', title: 'Visit Marketplace', subtitle: 'Products & resources', tone: 'soft' as const, Icon: ShoppingCart },
-];
+import Link from 'next/link';
+import { UserPlus, BookOpen, Gift, ShoppingCart, Zap } from 'lucide-react';
+import { useT } from '@/i18n/client';
 
 const TONE: Record<'dark' | 'blue' | 'soft', string> = {
   dark: 'bg-[#073d8c] text-white',
@@ -16,14 +12,21 @@ const TONE: Record<'dark' | 'blue' | 'soft', string> = {
 
 /** The right-rail Quick Actions grid. Links to the real routes. */
 export function QuickActions() {
+  const t = useT();
+  const items = [
+    { href: '/dealer/applications/new', title: t('quickActions.newCustomer'), subtitle: t('quickActions.newCustomerSub'), tone: 'dark' as const, Icon: UserPlus },
+    { href: '/dealer/resources/library', title: t('quickActions.productResources'), subtitle: t('quickActions.productResourcesSub'), tone: 'blue' as const, Icon: BookOpen },
+    { href: '/dealer/gift-cards', title: t('nav.giftCards'), subtitle: t('quickActions.giftCardsSub'), tone: 'soft' as const, Icon: Gift },
+    { href: '/dealer/marketplace', title: t('quickActions.visitMarketplace'), subtitle: t('quickActions.visitMarketplaceSub'), tone: 'soft' as const, Icon: ShoppingCart },
+  ];
   return (
     <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
       <div className="mb-4 flex items-center gap-2">
         <Zap size={22} className="text-blue-600" />
-        <h3 className="text-xl font-bold text-[#0d2a63] dark:text-slate-100">Quick Actions</h3>
+        <h3 className="text-xl font-bold text-[#0d2a63] dark:text-slate-100">{t('quickActions.title')}</h3>
       </div>
       <div className="grid grid-cols-2 gap-3">
-        {ITEMS.map((a) => (
+        {items.map((a) => (
           <Link
             key={a.title}
             href={a.href}

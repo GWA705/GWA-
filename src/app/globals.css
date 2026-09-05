@@ -334,43 +334,24 @@ body {
 /* Sidebar collapse/expand — smooth width change. */
 .sidebar-collapsible { transition: width .22s ease; }
 
-/* "Water" hover for sidebar nav links: a soft caustic wash settles in and a
-   light sheen ripples across, like the surface catching light. Kept subtle so
-   it reads as polish, not noise. Respects prefers-reduced-motion below. */
-.nav-water { position: relative; overflow: hidden; isolation: isolate; }
-.nav-water::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  background:
-    radial-gradient(120% 140% at 15% 120%, rgba(56,189,248,0.22), transparent 55%),
-    radial-gradient(120% 140% at 85% -20%, rgba(125,211,252,0.16), transparent 55%);
-  opacity: 0;
-  transition: opacity .28s ease;
-  pointer-events: none;
+/* Sidebar nav hover: the label embosses and lifts so the letters pop out like a
+   raised ripple, and the icon rises with it. Subtle, and disabled for anyone
+   who prefers reduced motion. */
+.nav-water .nav-label,
+.nav-water svg {
+  transition: transform .22s ease, text-shadow .22s ease;
 }
-.nav-water::after {
-  content: "";
-  position: absolute;
-  top: 0; bottom: 0; left: 0;
-  width: 45%;
-  z-index: -1;
-  background: linear-gradient(100deg, transparent, rgba(191,235,255,0.35), transparent);
-  transform: translateX(-160%);
-  opacity: 0;
-  pointer-events: none;
+.nav-water:hover .nav-label {
+  transform: translateY(-1px);
+  text-shadow: 0 -1px 0 rgba(255, 255, 255, 0.45), 0 1px 2px rgba(0, 0, 0, 0.55);
 }
-.nav-water:hover::before { opacity: 1; }
-.nav-water:hover::after { opacity: 1; animation: navWaterSheen 1.15s ease-out; }
-@keyframes navWaterSheen {
-  0%   { transform: translateX(-160%); }
-  100% { transform: translateX(320%); }
-}
+.nav-water:hover svg { transform: translateY(-1px); }
 @media (prefers-reduced-motion: reduce) {
   .sidebar-collapsible { transition: none; }
-  .nav-water::after { display: none; }
-  .nav-water:hover::before { transition: none; }
+  .nav-water .nav-label,
+  .nav-water svg,
+  .nav-water:hover .nav-label,
+  .nav-water:hover svg { transition: none; transform: none; text-shadow: none; }
 }
 
 /* ==========================================================================

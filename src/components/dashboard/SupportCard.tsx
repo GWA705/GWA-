@@ -1,6 +1,7 @@
 'use client';
 
 import { LifeBuoy, ArrowRight, Headphones } from 'lucide-react';
+import { useT } from '@/i18n/client';
 
 /** Open the corner chat widget (ChatWidget listens for this event). */
 function openChat() {
@@ -17,6 +18,7 @@ function openChat() {
  * `docs/BRAND-KIT.md` for generating a perfectly-formatted photo.
  */
 export function SupportCard() {
+  const t = useT();
   return (
     <div className="relative flex items-center justify-between gap-3 overflow-hidden rounded-2xl bg-[#0e2b5c] p-4 text-white shadow-sm">
       {/* Agent photo — right side, cropped to fill. A left-edge mask feathers
@@ -41,8 +43,8 @@ export function SupportCard() {
           <LifeBuoy size={18} className="text-sky-300" />
         </div>
         <div className="min-w-0">
-          <div className="text-sm font-bold leading-tight">Need support?</div>
-          <div className="truncate text-xs text-blue-100">We&rsquo;re here to help.</div>
+          <div className="text-sm font-bold leading-tight">{t('support.needSupport')}</div>
+          <div className="truncate text-xs text-blue-100">{t('support.hereToHelp')}</div>
         </div>
       </div>
 
@@ -51,7 +53,7 @@ export function SupportCard() {
         onClick={openChat}
         className="relative z-10 inline-flex flex-none items-center gap-1.5 rounded-lg bg-[#ffffff] px-3 py-1.5 text-xs font-semibold text-[#0e2b5c] transition hover:bg-blue-50"
       >
-        Chat <ArrowRight size={14} />
+        {t('support.chat')} <ArrowRight size={14} />
       </button>
     </div>
   );

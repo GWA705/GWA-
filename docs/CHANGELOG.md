@@ -23,9 +23,25 @@ source of truth; this file is the human-readable index.
 | Email (SMTP) | ✅ Live | Sends from `hello@ghsbarrie.ca`. |
 | Domain email auth (SPF / DKIM / DMARC) on `ghsbarrie.ca` | ✅ Set | SPF `include:_spf.google.com`; DKIM authenticating (Google Workspace); DMARC `p=quarantine`. Confirmed 2026-09-03 (Sean). |
 | Guusto gift-card API | ⏳ Parked | Awaiting `GUUSTO_API_TOKEN` in Render + exact field names (test at `/admin/guusto-test`) + office→reason mapping. |
+| Bilingual UI toggle (EN/FR) | ⏳ Built, flag off | Set `NEXT_PUBLIC_I18N_ENABLED=1` in Render to reveal the language toggle. Keep off until fr-CA coverage is complete across the whole site. |
+| DeepL translation (user content) | ⏳ Parked | Awaiting `DEEPL_API_KEY` in Render (free keys end in `:fx`). Powers the on-demand Translate control for user-typed FR↔EN content. |
 | Bell Total Connect voicemail | 📝 Documented, not built here | Guide delivered for the **booking site** (voicemail-to-email + IMAP). Not part of this portal. |
 
 ## 2026-09-05
+- **Bilingual (EN/FR) foundation for the Québec launch.** Added a cookie-based
+  i18n system (`src/i18n/`) — no route restructuring: `getLocale()`/`getT()` for
+  server components, `<LocaleProvider>`/`useT()` for client, en + fr-CA
+  dictionaries, a `setLocale` server action, and an **EN/FR toggle** in the top
+  bar. The toggle is **hidden until `NEXT_PUBLIC_I18N_ENABLED=1`** in Render so
+  real users don't see half-translated pages during the all-at-once rollout.
+  First surfaces translated: the dealer shell (nav, top bar, mobile drawer) and
+  the whole dashboard. Also added **DeepL** live translation for user-typed
+  content (`src/lib/translate.ts` + `<TranslateText>`), gated on `DEEPL_API_KEY`.
+  fr-CA copy is a **draft for the Québec team to review**; legal/statutory text
+  is intentionally left for official French wording. *(Rollout continues across
+  applications, forms, reports, staff & admin before the flag is turned on.)*
+- **Right rail refresh.** Quick Actions swaps "Find a Lead" for **Gift cards**;
+  a compact **HD Leads** pill now sits above the (slimmer) Support pill.
 - **Dashboard & shell polish.** The dealer sidebar is now **collapsible** (toggle
   in the top-left; icon-only rail at 72px, state remembered per browser) so the
   content area can go wider. Added a **New application** button to the top bar.

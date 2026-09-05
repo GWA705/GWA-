@@ -3,6 +3,8 @@ import './globals.css';
 import { StagingBanner } from '@/components/StagingBanner';
 import { VersionWatcher } from '@/components/VersionWatcher';
 import { getBuildId } from '@/lib/version';
+import { LocaleProvider } from '@/i18n/client';
+import { getLocale } from '@/i18n/server';
 
 const SITE_URL = 'https://portal.ghsbarrie.ca';
 const SHARE_TITLE = 'GWA Dealer Portal';
@@ -46,8 +48,9 @@ export const viewport: Viewport = {
 const THEME_SCRIPT = `(function(){try{var t=localStorage.getItem('theme');var d=t==='dark'||(t!=='light'&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',d);}catch(e){}})();`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const locale = getLocale();
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <head>
         {/* Elegant script face for the dashboard hero flourish ("Better Water /
             Brighter Lives"). Loaded at runtime; degrades to cursive if blocked. */}
@@ -57,9 +60,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
-        <VersionWatcher currentBuildId={getBuildId()} />
-        <StagingBanner />
-        {children}
+        <LocaleProvider locale={locale}>
+          <VersionWatcher currentBuildId={getBuildId()} />
+          <StagingBanner />
+          {children}
+        </LocaleProvider>
       </body>
     </html>
   );

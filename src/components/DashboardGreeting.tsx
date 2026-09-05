@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Sun, Sunrise, MoonStar, type LucideIcon } from 'lucide-react';
+import { useT } from '@/i18n/client';
 
 /**
  * A time-aware greeting: "Good morning/afternoon/evening, <first name>".
@@ -18,14 +19,20 @@ export function DashboardGreeting({
   className?: string;
   withIcon?: boolean;
 }) {
-  const [state, setState] = useState<{ text: string; Icon: LucideIcon; tone: string } | null>(null);
+  const t = useT();
+  const [part, setPart] = useState<'morning' | 'afternoon' | 'evening' | null>(null);
 
   useEffect(() => {
     const h = new Date().getHours();
-    if (h < 12) setState({ text: 'Good morning', Icon: Sunrise, tone: 'text-amber-300' });
-    else if (h < 18) setState({ text: 'Good afternoon', Icon: Sun, tone: 'text-yellow-300' });
-    else setState({ text: 'Good evening', Icon: MoonStar, tone: 'text-sky-200' });
+    setPart(h < 12 ? 'morning' : h < 18 ? 'afternoon' : 'evening');
   }, []);
+
+  const BY_PART: Record<'morning' | 'afternoon' | 'evening', { key: string; Icon: LucideIcon; tone: string }> = {
+    morning: { key: 'dashboard.goodMorning', Icon: Sunrise, tone: 'text-amber-300' },
+    afternoon: { key: 'dashboard.goodAfternoon', Icon: Sun, tone: 'text-yellow-300' },
+    evening: { key: 'dashboard.goodEvening', Icon: MoonStar, tone: 'text-sky-200' },
+  };
+  const state = part ? { text: t(BY_PART[part].key), Icon: BY_PART[part].Icon, tone: BY_PART[part].tone } : null;
 
   // Reserve the space until the clock is read, so nothing jumps.
   if (!state) return <div className="h-10" aria-hidden />;

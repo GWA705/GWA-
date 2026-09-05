@@ -90,41 +90,43 @@ export default async function DealerLayout({ children }: { children: React.React
         companyName={companyName}
         nav={[
           // Everyday actions stay as top-level tabs.
-          { href: '/dealer', label: 'Home' },
-          { href: '/dealer/applications', label: 'Applications' },
-          { href: '/dealer/applications/new', label: 'New customer' },
-          { href: '/dealer/mail', label: 'Mail', badge: unreadMail > 0 },
+          { href: '/dealer', label: 'Home', labelKey: 'nav.home' },
+          { href: '/dealer/applications', label: 'Applications', labelKey: 'nav.applications' },
+          { href: '/dealer/applications/new', label: 'New customer', labelKey: 'nav.newCustomer' },
+          { href: '/dealer/mail', label: 'Mail', labelKey: 'nav.mail', badge: unreadMail > 0 },
           // Lookups & calculators — only the ones this office has access to. The
           // group is hidden entirely when the dealer has none of them.
           ...(() => {
             const tools = [
-              ...(searchEnabled ? [{ href: '/dealer/find-customer', label: 'Find customer' }] : []),
-              ...(calcAccess ? [{ href: '/dealer/calculator', label: 'HD Payout' }] : []),
-              ...(reportAccess ? [{ href: '/dealer/reports', label: 'Reports' }] : []),
+              ...(searchEnabled ? [{ href: '/dealer/find-customer', label: 'Find customer', labelKey: 'nav.findCustomer' }] : []),
+              ...(calcAccess ? [{ href: '/dealer/calculator', label: 'HD Payout', labelKey: 'nav.hdPayout' }] : []),
+              ...(reportAccess ? [{ href: '/dealer/reports', label: 'Reports', labelKey: 'nav.reports' }] : []),
             ];
-            return tools.length > 0 ? [{ label: 'Tools', children: tools }] : [];
+            return tools.length > 0 ? [{ label: 'Tools', labelKey: 'nav.tools', children: tools }] : [];
           })(),
           // Ordering gear, HD leads, and water-test gift cards — top-level tabs.
-          { href: '/dealer/marketplace', label: 'Marketplace' },
-          { href: '/dealer/leads', label: 'Leads' },
-          { href: '/dealer/gift-cards', label: 'Gift cards', badge: giftCardUnread },
+          { href: '/dealer/marketplace', label: 'Marketplace', labelKey: 'nav.marketplace' },
+          { href: '/dealer/leads', label: 'Leads', labelKey: 'nav.leads' },
+          { href: '/dealer/gift-cards', label: 'Gift cards', labelKey: 'nav.giftCards', badge: giftCardUnread },
           {
             label: 'Resources',
+            labelKey: 'nav.resources',
             children: [
-              { href: '/dealer/resources', label: 'Resources', badge: freshSections.has('RESOURCE') },
-              { href: '/dealer/resources/library', label: 'Product library' },
-              { href: '/dealer/hd-promotions', label: 'HD Promotions', badge: freshSections.has('HD_PROMOTION') },
-              { href: '/dealer/hd-credit-card', label: 'HD Credit Card', badge: freshSections.has('HD_CREDIT_CARD') },
-              { href: '/dealer/tutorial', label: 'Tutorial' },
+              { href: '/dealer/resources', label: 'Resources', labelKey: 'nav.resources', badge: freshSections.has('RESOURCE') },
+              { href: '/dealer/resources/library', label: 'Product library', labelKey: 'nav.productLibrary' },
+              { href: '/dealer/hd-promotions', label: 'HD Promotions', labelKey: 'nav.hdPromotions', badge: freshSections.has('HD_PROMOTION') },
+              { href: '/dealer/hd-credit-card', label: 'HD Credit Card', labelKey: 'nav.hdCreditCard', badge: freshSections.has('HD_CREDIT_CARD') },
+              { href: '/dealer/tutorial', label: 'Tutorial', labelKey: 'nav.tutorial' },
             ],
           },
           {
             label: 'My office',
+            labelKey: 'nav.myOffice',
             children: [
-              { href: '/dealer/profile', label: 'Office profile' },
-              { href: '/dealer/user-requests', label: 'Request logins' },
-              { href: '/dealer/support', label: 'Contact / Support' },
-              { href: '/account', label: 'My account' },
+              { href: '/dealer/profile', label: 'Office profile', labelKey: 'nav.officeProfile' },
+              { href: '/dealer/user-requests', label: 'Request logins', labelKey: 'nav.requestLogins' },
+              { href: '/dealer/support', label: 'Contact / Support', labelKey: 'nav.contactSupport' },
+              { href: '/account', label: 'My account', labelKey: 'nav.myAccount' },
             ],
           },
         ]}

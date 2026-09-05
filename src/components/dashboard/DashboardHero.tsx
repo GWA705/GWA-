@@ -1,4 +1,5 @@
 import { DashboardGreeting } from '@/components/DashboardGreeting';
+import { getT } from '@/i18n/server';
 
 /**
  * The dashboard hero banner — a wide photographic welcome.
@@ -11,6 +12,7 @@ import { DashboardGreeting } from '@/components/DashboardGreeting';
  * perfectly-formatted background.
  */
 export function DashboardHero({ firstName, bgImage = '/hero-banner.png' }: { firstName: string; companyName?: string | null; bgImage?: string }) {
+  const t = getT();
   return (
     <section className="relative overflow-hidden rounded-2xl text-white shadow-sm">
       {/* Base gradient — shows through when no photo is present */}
@@ -33,9 +35,9 @@ export function DashboardHero({ firstName, bgImage = '/hero-banner.png' }: { fir
             withIcon
             className="text-3xl font-extrabold tracking-tight text-white drop-shadow-sm sm:text-4xl"
           />
-          <p className="mt-2 text-xl font-bold text-white sm:text-2xl">Welcome to your Dealer Portal</p>
+          <p className="mt-2 text-xl font-bold text-white sm:text-2xl">{t('dashboard.welcome')}</p>
           <p className="mt-1.5 max-w-xl text-sm text-blue-100/90 sm:text-base">
-            Everything in one place.
+            {t('dashboard.everythingInOnePlace')}
           </p>
         </div>
       </div>

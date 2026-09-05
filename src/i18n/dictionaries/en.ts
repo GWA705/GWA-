@@ -1,0 +1,132 @@
+/**
+ * English dictionary — the source of truth. `fr.ts` mirrors this shape.
+ * Keys are grouped by area; look them up with dot paths, e.g. t('shell.signOut').
+ *
+ * Keep brand terms exact: the display name is always "Georgian Water & Air"
+ * (never "GWA" alone) in customer-facing copy.
+ */
+export const en = {
+  common: {
+    save: 'Save',
+    cancel: 'Cancel',
+    close: 'Close',
+    edit: 'Edit',
+    delete: 'Delete',
+    view: 'View',
+    search: 'Search',
+    loading: 'Loading…',
+    submit: 'Submit',
+    back: 'Back',
+    next: 'Next',
+    yes: 'Yes',
+    no: 'No',
+    showMore: 'Show more',
+    showLess: 'Show less',
+  },
+  shell: {
+    portalName: 'Dealer Portal',
+    brand: 'Georgian Water & Air',
+    searchPlaceholder: 'Search customers or applications…',
+    newApplication: 'New application',
+    reviewer: 'Reviewer',
+    switchToReviewer: 'Switch to Reviewer view',
+    mail: 'Mail',
+    signOut: 'Sign out',
+    expandMenu: 'Expand menu',
+    collapseMenu: 'Collapse menu',
+    tagline: 'Cleaner water · Healthier air',
+    administrator: 'Administrator',
+  },
+  nav: {
+    home: 'Home',
+    applications: 'Applications',
+    newCustomer: 'New customer',
+    mail: 'Mail',
+    tools: 'Tools',
+    findCustomer: 'Find customer',
+    hdPayout: 'HD Payout',
+    reports: 'Reports',
+    marketplace: 'Marketplace',
+    leads: 'Leads',
+    giftCards: 'Gift cards',
+    resources: 'Resources',
+    productLibrary: 'Product library',
+    hdPromotions: 'HD Promotions',
+    hdCreditCard: 'HD Credit Card',
+    tutorial: 'Tutorial',
+    myOffice: 'My office',
+    officeProfile: 'Office profile',
+    requestLogins: 'Request logins',
+    contactSupport: 'Contact / Support',
+    myAccount: 'My account',
+  },
+  dashboard: {
+    welcome: 'Welcome to your Dealer Portal',
+    everythingInOnePlace: 'Everything in one place.',
+    goodMorning: 'Good morning',
+    goodAfternoon: 'Good afternoon',
+    goodEvening: 'Good evening',
+    totalApplications: 'Total Applications',
+    approved: 'Approved',
+    pending: 'Pending',
+    totalValue: 'Total Value',
+    thisMonth: 'This month',
+    approvalRate: '{pct}% approval rate',
+    awaitingReview: 'Awaiting review',
+    recentApplications: 'Recent Applications',
+    viewAllApplications: 'View all applications',
+    noApplications: 'No applications yet — start with “New Customer.”',
+    showNMore: 'Show {n} more',
+    // table headers
+    applicant: 'Applicant',
+    province: 'Province',
+    program: 'Program',
+    amount: 'Amount',
+    status: 'Status',
+    submitted: 'Submitted',
+    actions: 'Actions',
+    actionNeeded: 'Action needed',
+    sentBack: 'Sent back',
+  },
+  quickActions: {
+    title: 'Quick Actions',
+    newCustomer: 'New Customer',
+    newCustomerSub: 'Add a new customer',
+    productResources: 'Product Resources',
+    productResourcesSub: 'Guides & product library',
+    findLead: 'Find a Lead',
+    findLeadSub: 'View available leads',
+    giftCardsSub: 'Water-test gift cards',
+    visitMarketplace: 'Visit Marketplace',
+    visitMarketplaceSub: 'Products & resources',
+  },
+  leadsPill: {
+    title: 'HD Leads',
+    subtitle: 'View available leads',
+  },
+  support: {
+    needSupport: 'Need support?',
+    hereToHelp: 'We’re here to help.',
+    chat: 'Chat',
+  },
+  language: {
+    label: 'Language',
+    english: 'English',
+    french: 'Français',
+    switchToFrench: 'Passer en français',
+    switchToEnglish: 'Switch to English',
+  },
+  translate: {
+    translate: 'Translate',
+    showOriginal: 'Show original',
+    translating: 'Translating…',
+    translatedFrom: 'Translated from {lang}',
+    unavailable: 'Translation is unavailable right now.',
+  },
+} as const;
+
+/** Recursively widen the literal `en` shape so translations only need to be
+ *  strings with the same keys (not the exact English literal). */
+type DeepStringify<T> = { [K in keyof T]: T[K] extends string ? string : DeepStringify<T[K]> };
+
+export type Dictionary = DeepStringify<typeof en>;
