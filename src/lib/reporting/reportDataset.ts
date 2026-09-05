@@ -1,7 +1,10 @@
 import 'server-only';
 import { prisma } from '@/lib/db';
-import { programLabel, STATUS_LABELS } from '@/lib/constants';
-import type { ApplicationStatus, Prisma } from '@prisma/client';
+import { programLabel, STATUS_LABELS, PAYMENT_METHOD_LABELS } from '@/lib/constants';
+import type { ApplicationStatus, EntryMethod, Prisma } from '@prisma/client';
+
+const APPROVED_SET: ApplicationStatus[] = ['CONDITIONAL', 'APPROVED', 'DOCS_SENT', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW', 'FUNDED'];
+const ENTRY_LABELS: Record<EntryMethod, string> = { FINANCEIT: 'Express', TYPED: 'Priority', PHOTO: 'Standard' };
 
 /**
  * A flat, per-deal dataset the custom report builder runs on entirely in the
@@ -17,6 +20,10 @@ export interface ReportRow {
   salesperson: string;
   province: string;
   products: string[];
+  paymentMethod: string;
+  entryMethod: string;
+  hdStore: string;
+  approved: boolean; // approved-or-beyond (for approval-rate measure)
 }
 
 export async function reportDataset(opts: { dealerIds?: string[] } = {}): Promise<ReportRow[]> {
@@ -31,6 +38,8 @@ export async function reportDataset(opts: { dealerIds?: string[] } = {}): Promis
       createdAt: true, approvedAmount: true, requestedAmount: true,
       programType: true, programCategory: true, status: true,
       salespersonName: true, province: true, productsSold: true,
+      paymentMethod: true, entryMethod: true,
+      homeDepotStore: { select: { number: true } },
     },
   });
 
@@ -43,5 +52,9 @@ export async function reportDataset(opts: { dealerIds?: string[] } = {}): Promis
     salesperson: (a.salespersonName ?? '').trim() || 'Unknown',
     province: a.province || '—',
     products: a.productsSold.map((p) => p.trim()).filter(Boolean),
+    paymentMethod: a.paymentMethod ? PAYMENT_METHOD_LABELS[a.paymentMethod] : '—',
+    entryMethod: ENTRY_LABELS[a.entryMethod] ?? a.entryMethod,
+    hdStore: a.homeDepotStore?.number || '—',
+    approved: APPROVED_SET.includes(a.status),
   }));
 }

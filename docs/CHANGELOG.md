@@ -26,6 +26,10 @@ source of truth; this file is the human-readable index.
 | Bell Total Connect voicemail | 📝 Documented, not built here | Guide delivered for the **booking site** (voicemail-to-email + IMAP). Not part of this portal. |
 
 ## 2026-09-05
+- **Custom builder — more measures, group-bys & CSV.** Added an **Approval rate
+  (%)** measure and three group-bys — **Payment method, Entry method, HD store** —
+  plus an **Export CSV** button. `reportDataset` now carries paymentMethod,
+  entryMethod, HD store number and an approved flag.
 - **Save & name custom reports.** The custom report builder can now save a named
   view (measure + group-by + range + status filters) and reload or delete it.
   Saved reports are **office-shared** (any owner at that office sees them). New

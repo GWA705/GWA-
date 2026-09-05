@@ -6,14 +6,15 @@ import { saveCustomReport, deleteCustomReport, type SavedReportVM } from '@/app/
 
 const money = (n: number) => `$${n.toLocaleString('en-CA', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
-type Measure = 'count' | 'total' | 'avg';
-type Dimension = 'ym' | 'program' | 'status' | 'salesperson' | 'province' | 'product';
+type Measure = 'count' | 'total' | 'avg' | 'rate';
+type Dimension = 'ym' | 'program' | 'status' | 'salesperson' | 'province' | 'product' | 'paymentMethod' | 'entryMethod' | 'hdStore';
 type Range = 'all' | 'ytd' | '12m' | '3m';
 
 const MEASURES: { key: Measure; label: string }[] = [
   { key: 'count', label: 'Number of deals' },
   { key: 'total', label: 'Total value ($)' },
   { key: 'avg', label: 'Average value ($)' },
+  { key: 'rate', label: 'Approval rate (%)' },
 ];
 const DIMENSIONS: { key: Dimension; label: string }[] = [
   { key: 'ym', label: 'Month' },
@@ -22,6 +23,9 @@ const DIMENSIONS: { key: Dimension; label: string }[] = [
   { key: 'salesperson', label: 'Salesperson' },
   { key: 'province', label: 'Province' },
   { key: 'product', label: 'Product' },
+  { key: 'paymentMethod', label: 'Payment method' },
+  { key: 'entryMethod', label: 'Entry method' },
+  { key: 'hdStore', label: 'HD store' },
 ];
 const RANGES: { key: Range; label: string }[] = [
   { key: 'all', label: 'All time' },
@@ -44,7 +48,7 @@ const fmtMonth = (ym: string) => {
   return new Date(y, (m || 1) - 1, 1).toLocaleDateString('en-CA', { month: 'short', year: 'numeric' });
 };
 
-interface Agg { key: string; label: string; count: number; total: number; avg: number; }
+interface Agg { key: string; label: string; count: number; total: number; avg: number; approved: number; rate: number; }
 
 /**
  * A curated custom-report builder: choose a measure, a group-by, a date range
@@ -104,11 +108,12 @@ export function CustomReportBuilder({ rows, saved = [] }: { rows: ReportRow[]; s
       return true;
     });
 
-    const map = new Map<string, { label: string; count: number; total: number }>();
-    const add = (key: string, label: string, amount: number) => {
-      const b = map.get(key) ?? { label, count: 0, total: 0 };
+    const map = new Map<string, { label: string; count: number; total: number; approved: number }>();
+    const add = (key: string, label: string, amount: number, approved: boolean) => {
+      const b = map.get(key) ?? { label, count: 0, total: 0, approved: 0 };
       b.count += 1;
       b.total += amount;
+      if (approved) b.approved += 1;
       map.set(key, b);
     };
     for (const r of scope) {
@@ -118,17 +123,18 @@ export function CustomReportBuilder({ rows, saved = [] }: { rows: ReportRow[]; s
           const k = p.toLowerCase();
           if (seen.has(k)) continue;
           seen.add(k);
-          add(k, p, r.amount);
+          add(k, p, r.amount, r.approved);
         }
       } else {
         const label = String(r[dimension]);
-        add(dimension === 'ym' ? label : label.toLowerCase(), dimension === 'ym' ? fmtMonth(label) : label, r.amount);
+        add(dimension === 'ym' ? label : label.toLowerCase(), dimension === 'ym' ? fmtMonth(label) : label, r.amount, r.approved);
       }
     }
     const list: Agg[] = [...map.entries()].map(([key, v]) => ({
       key, label: v.label, count: v.count, total: v.total, avg: v.count ? v.total / v.count : 0,
+      approved: v.approved, rate: v.count ? (v.approved / v.count) * 100 : 0,
     }));
-    const valueOf = (a: Agg) => (measure === 'count' ? a.count : measure === 'total' ? a.total : a.avg);
+    const valueOf = (a: Agg) => (measure === 'count' ? a.count : measure === 'total' ? a.total : measure === 'avg' ? a.avg : a.rate);
     if (dimension === 'ym') list.sort((a, b) => a.key.localeCompare(b.key));
     else list.sort((a, b) => valueOf(b) - valueOf(a));
 
@@ -139,9 +145,28 @@ export function CustomReportBuilder({ rows, saved = [] }: { rows: ReportRow[]; s
     };
   }, [rows, dimension, range, statuses, measure]);
 
-  const valueOf = (a: Agg) => (measure === 'count' ? a.count : measure === 'total' ? a.total : a.avg);
-  const fmtVal = (n: number) => (measure === 'count' ? String(n) : money(n));
+  const valueOf = (a: Agg) => (measure === 'count' ? a.count : measure === 'total' ? a.total : measure === 'avg' ? a.avg : a.rate);
+  const fmtVal = (n: number) => (measure === 'count' ? String(n) : measure === 'rate' ? `${Math.round(n)}%` : money(n));
   const peak = Math.max(1, ...aggs.map(valueOf));
+
+  function exportCsv() {
+    const dimLabel = DIMENSIONS.find((d) => d.key === dimension)?.label ?? 'Group';
+    const head = [dimLabel, 'Deals', 'Total', 'Average', 'Approval rate %'];
+    const esc = (v: string) => (/[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
+    const lines = [head.join(',')];
+    for (const a of aggs) {
+      lines.push([esc(a.label), String(a.count), String(Math.round(a.total)), String(Math.round(a.avg)), String(Math.round(a.rate))].join(','));
+    }
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `custom-report-${dimension}-${measure}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
 
   return (
     <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
@@ -216,9 +241,16 @@ export function CustomReportBuilder({ rows, saved = [] }: { rows: ReportRow[]; s
         </div>
       )}
 
-      <div className="flex flex-wrap gap-4 px-5 py-3 text-sm">
-        <span className="text-gray-500">In range: <strong className="text-gray-900">{dealsInScope}</strong> deals</span>
-        <span className="text-gray-500">Total value: <strong className="text-gray-900">{money(valueInScope)}</strong></span>
+      <div className="flex flex-wrap items-center justify-between gap-4 px-5 py-3 text-sm">
+        <div className="flex flex-wrap gap-4">
+          <span className="text-gray-500">In range: <strong className="text-gray-900">{dealsInScope}</strong> deals</span>
+          <span className="text-gray-500">Total value: <strong className="text-gray-900">{money(valueInScope)}</strong></span>
+        </div>
+        {aggs.length > 0 && (
+          <button type="button" onClick={exportCsv} className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50">
+            Export CSV
+          </button>
+        )}
       </div>
 
       {aggs.length === 0 ? (
@@ -254,7 +286,7 @@ export function CustomReportBuilder({ rows, saved = [] }: { rows: ReportRow[]; s
               ))}
             </tbody>
           </table>
-          {dimension === 'product' && (measure !== 'count') && (
+          {dimension === 'product' && (measure === 'total' || measure === 'avg') && (
             <p className="px-4 pt-2 text-xs text-gray-400">
               Note: a deal has one total, so when grouping $ by product a multi-product deal&rsquo;s full amount is counted under each of its products.
             </p>

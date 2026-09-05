@@ -19,8 +19,8 @@ export interface SavedReportVM {
   config: SavedReportConfig;
 }
 
-const MEASURES = ['count', 'total', 'avg'];
-const DIMENSIONS = ['ym', 'program', 'status', 'salesperson', 'province', 'product'];
+const MEASURES = ['count', 'total', 'avg', 'rate'];
+const DIMENSIONS = ['ym', 'program', 'status', 'salesperson', 'province', 'product', 'paymentMethod', 'entryMethod', 'hdStore'];
 const RANGES = ['all', 'ytd', '12m', '3m'];
 
 /** Save (or rename-overwrite) a named custom report for this office. */
