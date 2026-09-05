@@ -26,6 +26,11 @@ source of truth; this file is the human-readable index.
 | Bell Total Connect voicemail | 📝 Documented, not built here | Guide delivered for the **booking site** (voicemail-to-email + IMAP). Not part of this portal. |
 
 ## 2026-09-05
+- **Sales forecasting centre (dealer owner).** `/dealer/reports/forecast`: 12-month
+  trend, this-year-vs-last-year by month, and a **seasonal projection** for the
+  next 3 months (each future month's historical average scaled by the recent
+  12-month trend; trailing-3-month fallback). Clearly labelled as a directional
+  estimate. `lib/reporting/salesForecast.ts` + `SalesForecastView`. Owner-gated.
 - **Custom report builder (dealer owner).** A curated, tenant-isolated report
   builder at `/dealer/reports/custom`: pick a **measure** (deal count / total $ /
   average $), a **group-by** (month, program, status, salesperson, province,
