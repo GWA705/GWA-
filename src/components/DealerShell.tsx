@@ -127,8 +127,8 @@ export function DealerShell({
   return (
     <div className="min-h-screen bg-[#f2f6fb] dark:bg-[#0a1120] text-gray-900">
       {/* TOP HEADER */}
-      <header className="flex h-[72px] items-center justify-between gap-3 border-b border-gray-200 bg-white px-4 sm:px-6">
-        <div className="flex items-center gap-3">
+      <header className="flex h-[72px] items-center justify-between gap-2 border-b border-gray-200 bg-white px-3 sm:gap-3 sm:px-6">
+        <div className="flex min-w-0 items-center gap-1.5 sm:gap-3">
           <MobileNav userName={userName} roleLabel={roleLabel} nav={nav} triggerClassName="topbar-btn px-2.5 lg:hidden" />
           {/* Collapse / expand the sidebar (desktop only) */}
           <button
@@ -140,34 +140,34 @@ export function DealerShell({
           >
             {collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
           </button>
-          <Link href="/dealer" className="flex items-center gap-3">
+          <Link href="/dealer" className="flex min-w-0 items-center gap-2 sm:gap-3">
             {companyLogoUrl ? (
               // The dealer's own uploaded company logo.
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={companyLogoUrl}
                 alt={companyName ? `${companyName} logo` : 'Company logo'}
-                className="h-11 w-11 flex-none rounded-xl border border-gray-200 bg-white object-contain p-1"
+                className="h-10 w-10 flex-none rounded-xl border border-gray-200 bg-white object-contain p-1 sm:h-11 sm:w-11"
               />
             ) : (
-              <div className="flex h-11 w-11 flex-none items-center justify-center rounded-full bg-blue-600">
-                <Droplets className="text-white" size={24} />
+              <div className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-blue-600 sm:h-11 sm:w-11">
+                <Droplets className="text-white" size={22} />
               </div>
             )}
-            <div className="leading-tight">
-              <div className="text-base font-extrabold tracking-tight text-[#0e2756] dark:text-slate-100 sm:text-lg">{t('shell.portalName')}</div>
-              <div className="text-[10px] font-semibold tracking-[0.18em] text-blue-500">GEORGIAN WATER &amp; AIR</div>
+            <div className="min-w-0 leading-tight">
+              <div className="truncate whitespace-nowrap text-base font-extrabold tracking-tight text-[#0e2756] dark:text-slate-100 sm:text-lg">{t('shell.portalName')}</div>
+              <div className="hidden truncate whitespace-nowrap text-[10px] font-semibold tracking-[0.18em] text-blue-500 sm:block">GEORGIAN WATER &amp; AIR</div>
             </div>
           </Link>
         </div>
 
-        <div className="flex items-center gap-3 sm:gap-4">
+        <div className="flex flex-none items-center gap-1.5 sm:gap-4">
           <Link
             href="/dealer/applications/new"
-            className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
+            className="inline-flex flex-none items-center gap-1.5 rounded-xl bg-blue-600 px-2.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 sm:px-3"
             title={t('shell.newApplication')}
           >
-            <Plus size={17} />
+            <Plus size={18} />
             <span className="hidden sm:inline">{t('shell.newApplication')}</span>
           </Link>
 
@@ -202,9 +202,10 @@ export function DealerShell({
             <div className="text-sm font-bold text-[#0e2756] dark:text-slate-100">{userName}</div>
             <div className="text-xs text-gray-500">{roleLabel}</div>
           </div>
-          <div className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-blue-700 text-sm font-bold text-white">{initials}</div>
+          <div className="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-blue-700 text-sm font-bold text-white sm:h-10 sm:w-10">{initials}</div>
           <ThemeToggle className="topbar-btn hidden sm:inline-flex" />
-          <form action={logoutAction}>
+          {/* Sign out lives in the mobile drawer; shown here from sm up. */}
+          <form action={logoutAction} className="hidden sm:block">
             <button type="submit" className="topbar-btn inline-flex items-center gap-1.5 text-sm" title={t('shell.signOut')}>
               <LogOut size={16} /> <span className="hidden sm:inline">{t('shell.signOut')}</span>
             </button>

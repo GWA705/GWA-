@@ -26,13 +26,13 @@ export function KpiCard({
   href?: string;
 }) {
   const inner = (
-    <div className="flex h-full items-center gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm transition hover:shadow-md sm:gap-4 sm:p-5">
-      <div className={`flex h-11 w-11 flex-none items-center justify-center rounded-full text-white sm:h-14 sm:w-14 ${TONES[tone]}`}>
+    <div className="flex h-full items-center gap-2.5 overflow-hidden rounded-2xl border border-gray-200 bg-white p-3.5 shadow-sm transition hover:shadow-md sm:gap-4 sm:p-5">
+      <div className={`flex h-10 w-10 flex-none items-center justify-center rounded-full text-white sm:h-14 sm:w-14 ${TONES[tone]}`}>
         <Icon className="h-5 w-5 sm:h-[26px] sm:w-[26px]" />
       </div>
       <div className="min-w-0 flex-1">
-        <div className="text-xs font-semibold text-gray-600 sm:text-sm">{title}</div>
-        <div className="text-2xl font-extrabold leading-tight text-[#10265a] dark:text-slate-100 sm:text-3xl">{value}</div>
+        <div className="truncate text-xs font-semibold text-gray-600 sm:text-sm">{title}</div>
+        <div className="truncate text-xl font-extrabold leading-tight text-[#10265a] tabular-nums dark:text-slate-100 sm:text-3xl">{value}</div>
         <div className="truncate text-xs text-gray-500 sm:text-sm">{subtitle}</div>
       </div>
       {href && <ChevronRight size={20} className="hidden flex-none text-gray-300 sm:block" />}
