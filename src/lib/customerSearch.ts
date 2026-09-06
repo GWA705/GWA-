@@ -3,8 +3,9 @@ import { prisma } from './db';
 import { audit } from './audit';
 import { rateLimit } from './ratelimit';
 import { isGlobalSearchEnabled } from './settings';
-import { STATUS_LABELS_SHORT, hdOriginLabel } from './constants';
+import { STATUS_LABELS_SHORT, hdOriginLabel, programLabel } from './constants';
 import type { SessionUser } from './session';
+import type { ApplicationStatus } from '@prisma/client';
 import { isInternal, isSuperAdmin, canAdminSection } from './rbac';
 import { readJournal, sheetIdFor, EARLIEST_JOURNAL_YEAR } from './reporting/journalRead';
 import { nameTokens, DEALER_ALIASES } from './reporting/dealerSnapshot';
@@ -144,6 +145,10 @@ export interface OwnMatch {
   name: string;
   province: string;
   statusLabel: string;
+  status: ApplicationStatus;
+  program: string;
+  amountLabel: string;
+  submitted: string;
 }
 
 export interface OtherOfficeMatch {
@@ -419,14 +424,24 @@ export async function searchCustomers(user: SessionUser, rawQuery: string): Prom
     where: isPhone ? { id: { in: await phoneMatchIds(digits(q), dealerId) } } : { ...nameWhere(terms), dealerId },
     orderBy: { createdAt: 'desc' },
     take: 20,
-    select: { id: true, applicantFirstName: true, applicantLastName: true, province: true, status: true },
+    select: {
+      id: true, applicantFirstName: true, applicantLastName: true, province: true, status: true,
+      programType: true, programCategory: true, approvedAmount: true, requestedAmount: true, createdAt: true,
+    },
   });
-  const own: OwnMatch[] = ownApps.map((a) => ({
-    applicationId: a.id,
-    name: `${a.applicantFirstName} ${a.applicantLastName}`.trim(),
-    province: a.province,
-    statusLabel: STATUS_LABELS_SHORT[a.status],
-  }));
+  const own: OwnMatch[] = ownApps.map((a) => {
+    const amt = Number(a.approvedAmount ?? a.requestedAmount ?? 0);
+    return {
+      applicationId: a.id,
+      name: `${a.applicantFirstName} ${a.applicantLastName}`.trim(),
+      province: a.province,
+      statusLabel: STATUS_LABELS_SHORT[a.status],
+      status: a.status,
+      program: programLabel(a.programType, a.programCategory),
+      amountLabel: amt > 0 ? `$${amt.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '',
+      submitted: a.createdAt.toLocaleDateString('en-CA'),
+    };
+  });
 
   // 2) Cross-office matches — only on the EXACT full phone number (≥10 digits).
   //    A name search never reveals another office (limits fishing to someone who

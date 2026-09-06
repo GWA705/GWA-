@@ -29,14 +29,14 @@ export default async function DealerFindCustomerPage() {
   // the all-offices live-typeahead hero.
   if (!canAll) {
     return (
-      <div className="mx-auto max-w-2xl">
+      <div className="mx-auto max-w-4xl">
         <FindCustomerPanel companyName={companyName} />
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-5">
+    <div className="mx-auto max-w-4xl space-y-5">
       <SectionHero
         eyebrow="Tools"
         title="Search all customers"

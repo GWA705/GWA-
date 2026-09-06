@@ -2,8 +2,14 @@
 
 import { useEffect, useRef, useState, useTransition } from 'react';
 import Link from 'next/link';
+import { ArrowRight } from 'lucide-react';
 import { customerSearchAction, updateCustomerInfoAction } from '@/app/(dealer)/dealer/find-customer/actions';
+import { StatusBadge } from '@/components/StatusBadge';
 import type { CustomerSearchResult, JournalMatch } from '@/lib/customerSearch';
+
+function initials(name: string): string {
+  return name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase()).join('') || '?';
+}
 
 export function CustomerSearch({
   mode,
@@ -147,11 +153,24 @@ function Results({ result }: { result: CustomerSearchResult }) {
       {result.own.length > 0 && (
         <div>
           <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Your customers</h3>
-          <div className="divide-y divide-gray-100 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
             {result.own.map((m) => (
-              <Link key={m.applicationId} href={`/dealer/applications/${m.applicationId}`} className="flex items-center justify-between gap-3 px-4 py-2.5 hover:bg-gray-50">
-                <span className="truncate font-medium text-gray-900">{m.name}</span>
-                <span className="badge shrink-0 bg-gray-100 text-gray-600">{m.statusLabel}</span>
+              <Link
+                key={m.applicationId}
+                href={`/dealer/applications/${m.applicationId}`}
+                className="group flex items-center gap-3 rounded-2xl border border-gray-200 bg-white p-3 shadow-sm transition hover:border-sky-300 hover:shadow-md"
+              >
+                <span className="flex h-11 w-11 flex-none items-center justify-center rounded-full bg-sky-100 text-sm font-bold text-sky-700">{initials(m.name)}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center gap-2">
+                    <span className="truncate text-sm font-semibold text-gray-900">{m.name}</span>
+                    <StatusBadge status={m.status} short />
+                  </span>
+                  <span className="mt-0.5 block truncate text-xs text-gray-400">
+                    {[m.program, m.province, m.amountLabel, m.submitted].filter(Boolean).join(' · ')}
+                  </span>
+                </span>
+                <ArrowRight size={16} className="flex-none text-gray-300 transition group-hover:text-sky-500" />
               </Link>
             ))}
           </div>
