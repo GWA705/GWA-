@@ -28,6 +28,11 @@ source of truth; this file is the human-readable index.
 | Bell Total Connect voicemail | 📝 Documented, not built here | Guide delivered for the **booking site** (voicemail-to-email + IMAP). Not part of this portal. |
 
 ## 2026-09-06
+- **Bilingual coverage — sign-in / account-security screens.** Translated the
+  entire `(auth)` surface to fr-CA (draft): login, forgot-password,
+  reset-password, forced password change, two-factor verification (MFA), and
+  two-factor setup/enrollment (email-code + authenticator-app tabs, QR, resend).
+  New `auth` dictionary namespace. Still gated behind `NEXT_PUBLIC_I18N_ENABLED`.
 - **Dealer journal-archive search (office-scoped history).** Dealers can now
   find their own office's past Home Depot customers from the **closed** sales
   journals (2024+) right in Find customer. The old journals are no longer edited,

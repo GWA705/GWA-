@@ -2,20 +2,23 @@
 
 import { useFormState, useFormStatus } from 'react-dom';
 import { forcedChangePasswordAction, type FormState } from '../actions';
+import { useT } from '@/i18n/client';
 
 const initial: FormState = {};
 
 function SubmitButton() {
   const { pending } = useFormStatus();
+  const t = useT();
   return (
     <button type="submit" className="btn-primary w-full" disabled={pending}>
-      {pending ? 'Saving…' : 'Save and continue'}
+      {pending ? t('auth.saving') : t('auth.saveAndContinue')}
     </button>
   );
 }
 
 export function ChangePasswordForm() {
   const [state, action] = useFormState(forcedChangePasswordAction, initial);
+  const t = useT();
   return (
     <form action={action} className="space-y-4">
       {state.error && (
@@ -24,14 +27,14 @@ export function ChangePasswordForm() {
         </div>
       )}
       <div>
-        <label className="label" htmlFor="password">New password</label>
+        <label className="label" htmlFor="password">{t('auth.newPassword')}</label>
         <input id="password" name="password" type="password" autoComplete="new-password" required className="input" />
         <p className="mt-1 text-xs text-gray-400">
-          At least 8 characters with upper &amp; lower case, a number, and a symbol.
+          {t('auth.passwordHint')}
         </p>
       </div>
       <div>
-        <label className="label" htmlFor="confirm">Confirm new password</label>
+        <label className="label" htmlFor="confirm">{t('auth.confirmNewPassword')}</label>
         <input id="confirm" name="confirm" type="password" autoComplete="new-password" required className="input" />
       </div>
       <SubmitButton />

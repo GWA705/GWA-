@@ -9,6 +9,7 @@ import {
   setupMfaConfirmAppAction,
   type FormState,
 } from '@/app/(auth)/actions';
+import { useT } from '@/i18n/client';
 
 function Submit({ label, busy }: { label: string; busy: string }) {
   const { pending } = useFormStatus();
@@ -34,6 +35,7 @@ export function SetupTwoFactor({
 }) {
   // Default to the authenticator tab if a secret is already pending, else email
   // (unless email isn't available).
+  const t = useT();
   const [method, setMethod] = useState<'email' | 'app'>(appPending || !emailEnabled ? 'app' : 'email');
   const [sent, setSent] = useState(false);
 
@@ -57,39 +59,38 @@ export function SetupTwoFactor({
           onClick={() => setMethod('email')}
           className={`flex-1 rounded-md px-3 py-1.5 font-medium ${method === 'email' ? 'bg-white text-brand-700 shadow-sm' : 'text-gray-600'}`}
         >
-          Email code
+          {t('auth.tabEmailCode')}
         </button>
         <button
           type="button"
           onClick={() => setMethod('app')}
           className={`flex-1 rounded-md px-3 py-1.5 font-medium ${method === 'app' ? 'bg-white text-brand-700 shadow-sm' : 'text-gray-600'}`}
         >
-          Authenticator app
+          {t('auth.tabAuthApp')}
         </button>
       </div>
 
       {method === 'email' ? (
         <div className="space-y-4">
           <p className="text-sm text-gray-600">
-            We&apos;ll email a 6-digit code to <span className="font-medium">{email}</span> each time you
-            sign in.
+            {t('auth.setupEmailIntro', { email })}
           </p>
           {!sent ? (
             <form action={sendAction}>
-              <Submit label="Email me a code" busy="Sending…" />
+              <Submit label={t('auth.emailMeCode')} busy={t('auth.sending')} />
               {sendState.error && <p className="mt-2 text-sm text-red-600">{sendState.error}</p>}
             </form>
           ) : (
             <form action={emailConfirmAction} className="space-y-3">
-              <div className="rounded-md bg-green-50 p-2 text-sm text-green-700">Code sent — check your email.</div>
+              <div className="rounded-md bg-green-50 p-2 text-sm text-green-700">{t('auth.codeSentCheckEmail')}</div>
               <div>
-                <label className="label" htmlFor="token">Enter the 6-digit code</label>
+                <label className="label" htmlFor="token">{t('auth.enter6DigitCode')}</label>
                 <input id="token" name="token" inputMode="numeric" autoComplete="one-time-code" maxLength={6} className="input tracking-widest" placeholder="123456" />
               </div>
-              <Submit label="Turn on 2FA" busy="Verifying…" />
+              <Submit label={t('auth.turnOn2fa')} busy={t('auth.verifying')} />
               {emailConfirm.error && <p className="text-sm text-red-600">{emailConfirm.error}</p>}
               <form action={sendAction}>
-                <button type="submit" className="text-xs text-gray-500 hover:underline">Resend code</button>
+                <button type="submit" className="text-xs text-gray-500 hover:underline">{t('auth.resendCode')}</button>
               </form>
             </form>
           )}
@@ -97,30 +98,29 @@ export function SetupTwoFactor({
       ) : (
         <div className="space-y-4">
           <p className="text-sm text-gray-600">
-            Use an authenticator app (Google Authenticator, Authy, 1Password, etc.). Scan the code, then
-            enter the 6-digit number it shows.
+            {t('auth.setupAppIntro')}
           </p>
           {!appPending ? (
             <form action={beginAppAction}>
-              <Submit label="Show my setup code" busy="Preparing…" />
+              <Submit label={t('auth.showSetupCode')} busy={t('auth.preparing')} />
             </form>
           ) : (
             <>
               {qrDataUrl && (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={qrDataUrl} alt="Authenticator QR code" className="mx-auto h-44 w-44 rounded bg-white p-2 ring-1 ring-gray-200" />
+                <img src={qrDataUrl} alt={t('auth.qrAlt')} className="mx-auto h-44 w-44 rounded bg-white p-2 ring-1 ring-gray-200" />
               )}
               {otpauthUrl && (
                 <p className="break-all rounded bg-gray-50 p-2 text-center text-xs text-gray-500">
-                  Can&apos;t scan? Enter this key: <span className="font-mono">{otpauthUrl.match(/secret=([^&]+)/)?.[1] ?? ''}</span>
+                  {t('auth.cantScan')} <span className="font-mono">{otpauthUrl.match(/secret=([^&]+)/)?.[1] ?? ''}</span>
                 </p>
               )}
               <form action={appConfirmAction} className="space-y-3">
                 <div>
-                  <label className="label" htmlFor="apptoken">Enter the 6-digit code</label>
+                  <label className="label" htmlFor="apptoken">{t('auth.enter6DigitCode')}</label>
                   <input id="apptoken" name="token" inputMode="numeric" autoComplete="one-time-code" maxLength={6} className="input tracking-widest" placeholder="123456" />
                 </div>
-                <Submit label="Turn on 2FA" busy="Verifying…" />
+                <Submit label={t('auth.turnOn2fa')} busy={t('auth.verifying')} />
                 {appConfirm.error && <p className="text-sm text-red-600">{appConfirm.error}</p>}
               </form>
             </>

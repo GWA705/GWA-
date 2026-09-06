@@ -3,20 +3,23 @@
 import Link from 'next/link';
 import { useFormState, useFormStatus } from 'react-dom';
 import { loginAction, type FormState } from '../actions';
+import { useT } from '@/i18n/client';
 
 const initial: FormState = {};
 
 function SubmitButton() {
   const { pending } = useFormStatus();
+  const t = useT();
   return (
     <button type="submit" className="btn-primary w-full" disabled={pending}>
-      {pending ? 'Signing in…' : 'Sign in'}
+      {pending ? t('auth.signingIn') : t('auth.signIn')}
     </button>
   );
 }
 
 export function LoginForm() {
   const [state, action] = useFormState(loginAction, initial);
+  const t = useT();
   return (
     <form action={action} className="space-y-4">
       {state.error && (
@@ -26,13 +29,13 @@ export function LoginForm() {
       )}
       <div>
         <label className="label" htmlFor="email">
-          Email
+          {t('auth.email')}
         </label>
         <input id="email" name="email" type="email" autoComplete="username" required className="input" />
       </div>
       <div>
         <label className="label" htmlFor="password">
-          Password
+          {t('auth.password')}
         </label>
         <input
           id="password"
@@ -44,7 +47,7 @@ export function LoginForm() {
         />
         <div className="mt-1 text-right">
           <Link href="/forgot-password" className="text-xs text-brand-700 hover:underline">
-            Forgot password?
+            {t('auth.forgotPassword')}
           </Link>
         </div>
       </div>

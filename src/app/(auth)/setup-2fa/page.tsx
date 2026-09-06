@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { getMfaEnrollPendingUserId } from '@/lib/session';
 import { decryptMfaSecret, buildMfaEnrollment } from '@/lib/mfa';
 import { emailEnabled } from '@/lib/email';
+import { getT } from '@/i18n/server';
 import { SetupTwoFactor } from './SetupTwoFactor';
 
 export const dynamic = 'force-dynamic';
@@ -12,6 +13,7 @@ export default async function SetupTwoFactorPage() {
   if (!userId) redirect('/login');
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user || !user.active) redirect('/login');
+  const t = getT();
 
   // If an authenticator secret is already pending (user clicked "use an app"),
   // build the QR to show. Otherwise the page starts on the email-code method.
@@ -27,10 +29,9 @@ export default async function SetupTwoFactorPage() {
   return (
     <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-4 py-12">
       <div className="mb-6 text-center">
-        <h1 className="text-xl font-semibold text-gray-900">Set up two-factor authentication</h1>
+        <h1 className="text-xl font-semibold text-gray-900">{t('auth.setupTitle')}</h1>
         <p className="mt-2 text-sm text-gray-500">
-          For your security, this account needs a second step at sign-in. It only takes a minute — set
-          it up once and you&apos;re done.
+          {t('auth.setupSubtitle')}
         </p>
       </div>
       <div className="card p-6">

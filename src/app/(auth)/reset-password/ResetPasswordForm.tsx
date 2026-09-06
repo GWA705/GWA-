@@ -3,28 +3,31 @@
 import Link from 'next/link';
 import { useFormState, useFormStatus } from 'react-dom';
 import { resetPasswordAction, type FormState } from '../actions';
+import { useT } from '@/i18n/client';
 
 const initial: FormState = {};
 
 function SubmitButton() {
   const { pending } = useFormStatus();
+  const t = useT();
   return (
     <button type="submit" className="btn-primary w-full" disabled={pending}>
-      {pending ? 'Saving…' : 'Save new password'}
+      {pending ? t('auth.saving') : t('auth.saveNewPassword')}
     </button>
   );
 }
 
 export function ResetPasswordForm({ token }: { token: string }) {
   const [state, action] = useFormState(resetPasswordAction, initial);
+  const t = useT();
 
   if (state.ok) {
     return (
       <div className="space-y-4">
         <div className="rounded-md bg-green-50 p-4 text-sm text-green-800" role="status">
-          Your password has been updated. You can now sign in.
+          {t('auth.passwordUpdated')}
         </div>
-        <Link href="/login" className="btn-primary inline-block w-full text-center">Go to sign in</Link>
+        <Link href="/login" className="btn-primary inline-block w-full text-center">{t('auth.goToSignIn')}</Link>
       </div>
     );
   }
@@ -38,14 +41,14 @@ export function ResetPasswordForm({ token }: { token: string }) {
         </div>
       )}
       <div>
-        <label className="label" htmlFor="password">New password</label>
+        <label className="label" htmlFor="password">{t('auth.newPassword')}</label>
         <input id="password" name="password" type="password" autoComplete="new-password" required className="input" />
         <p className="mt-1 text-xs text-gray-400">
-          At least 8 characters with upper &amp; lower case, a number, and a symbol.
+          {t('auth.passwordHint')}
         </p>
       </div>
       <div>
-        <label className="label" htmlFor="confirm">Confirm new password</label>
+        <label className="label" htmlFor="confirm">{t('auth.confirmNewPassword')}</label>
         <input id="confirm" name="confirm" type="password" autoComplete="new-password" required className="input" />
       </div>
       <SubmitButton />

@@ -2,26 +2,28 @@
 
 import { useFormState, useFormStatus } from 'react-dom';
 import { requestPasswordResetAction, type FormState } from '../actions';
+import { useT } from '@/i18n/client';
 
 const initial: FormState = {};
 
 function SubmitButton() {
   const { pending } = useFormStatus();
+  const t = useT();
   return (
     <button type="submit" className="btn-primary w-full" disabled={pending}>
-      {pending ? 'Sending…' : 'Send reset link'}
+      {pending ? t('auth.sending') : t('auth.sendResetLink')}
     </button>
   );
 }
 
 export function ForgotPasswordForm() {
   const [state, action] = useFormState(requestPasswordResetAction, initial);
+  const t = useT();
 
   if (state.ok) {
     return (
       <div className="rounded-md bg-green-50 p-4 text-sm text-green-800" role="status">
-        If an account exists for that email, a password reset link is on its way.
-        The link expires in 60 minutes.
+        {t('auth.resetLinkSent')}
       </div>
     );
   }
@@ -34,7 +36,7 @@ export function ForgotPasswordForm() {
         </div>
       )}
       <div>
-        <label className="label" htmlFor="email">Email</label>
+        <label className="label" htmlFor="email">{t('auth.email')}</label>
         <input id="email" name="email" type="email" autoComplete="username" required className="input" />
       </div>
       <SubmitButton />
