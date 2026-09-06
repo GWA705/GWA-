@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { DownloadButton } from './DownloadButton';
+import { useT } from '@/i18n/client';
 
 /**
  * Opens a deal document inside the app in a full-screen overlay with a Back
@@ -32,6 +33,7 @@ export function DocViewer({
   src?: string;
   children: React.ReactNode;
 }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const src = srcProp ?? `/api/documents/${id}`;
   const isImage = (mimeType ?? '').startsWith('image/');
@@ -64,14 +66,14 @@ export function DocViewer({
               onClick={() => setOpen(false)}
               className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-sm font-semibold text-brand-700 hover:bg-gray-100"
             >
-              ‹ Back
+              {t('docViewer.back')}
             </button>
             <span className="min-w-0 flex-1 truncate text-center text-sm font-medium text-gray-700">{fileName}</span>
             <DownloadButton
               url={`${src}?download=1`}
               fileName={fileName}
               className="flex-none rounded-md px-2.5 py-1.5 text-sm text-gray-600 hover:bg-gray-100"
-              title="Download"
+              title={t('docViewer.download')}
             >
               ⬇
             </DownloadButton>
@@ -101,16 +103,17 @@ export function DocViewer({
  * isn't available.
  */
 function PdfPages({ pagesUrl, fileUrl, fileName }: { pagesUrl: string; fileUrl: string; fileName: string }) {
+  const t = useT();
   const [state, setState] = useState<'loading' | 'ok' | 'error'>('loading');
   return (
     <div className="mx-auto min-h-full w-full max-w-3xl p-2 sm:p-4">
       {state === 'loading' && (
-        <div className="py-12 text-center text-sm text-white/70">Loading pages…</div>
+        <div className="py-12 text-center text-sm text-white/70">{t('docViewer.loadingPages')}</div>
       )}
       {state === 'error' ? (
         <div className="py-12 text-center text-sm text-white/80">
-          Couldn’t render a preview.{' '}
-          <DownloadButton url={`${fileUrl}?download=1`} fileName={fileName} className="font-semibold text-white underline">Download the PDF</DownloadButton> instead.
+          {t('docViewer.renderErrorPre')}{' '}
+          <DownloadButton url={`${fileUrl}?download=1`} fileName={fileName} className="font-semibold text-white underline">{t('docViewer.downloadPdf')}</DownloadButton> {t('docViewer.renderErrorPost')}
         </div>
       ) : (
         // eslint-disable-next-line @next/next/no-img-element

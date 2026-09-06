@@ -1562,6 +1562,38 @@ export const en = {
     statApproved: 'Approved',
     statInstalled: 'Installed',
   },
+  docViewer: {
+    back: '‹ Back',
+    download: 'Download',
+    loadingPages: 'Loading pages…',
+    renderErrorPre: 'Couldn’t render a preview.',
+    downloadPdf: 'Download the PDF',
+    renderErrorPost: 'instead.',
+  },
+  productPicker: {
+    searchPlaceholder: 'Search {n} products…',
+    yours: 'yours',
+    noMatchPre: 'No products match “{q}”. Add it under',
+    otherInline: 'Other',
+    noMatchPost: 'below.',
+    otherLabel: 'Other',
+    otherPlaceholder: 'Type a product not listed (separate several with commas)',
+    addPrefix: 'Add',
+    journalCode: 'journal code {code}',
+    theseProducts: 'these {n} products',
+    toMyListSuffix: 'to my product list for next time',
+  },
+  uploadForm: {
+    uploading: 'Uploading…',
+    upload: 'Upload',
+    whatDocument: 'What is this document?',
+    choose: '— Choose —',
+    describeIt: 'Describe it',
+    describePlaceholder: 'e.g. Proof of address',
+    noCardsWarning: '⚠ Do not upload payment cards. Credit Cards, HD Consumer Cards, and FinanceIT one-time-use cards are automatically rejected.',
+    chooseFirst: 'Choose what the document is first.',
+    clear: 'Clear',
+  },
 } as const;
 
 /** Recursively widen the literal `en` shape so translations only need to be

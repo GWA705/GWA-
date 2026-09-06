@@ -43,6 +43,15 @@ source of truth; this file is the human-readable index.
   auto-translates lead free-text via DeepL. (2026-09-06, Sean.)
 
 ## 2026-09-06
+- **Bilingual coverage — shared dealer components (upload, product picker,
+  doc viewer).** Translated the file **upload form** (`UploadForm` — category
+  prompt, "describe it", the no-payment-cards warning, submit/clear states), the
+  **product picker** (`ProductPicker` — search, "Other" free-text, "add to my
+  list" opt-in, empty state), and the in-app **document viewer** (`DocViewer` —
+  Back/Download, PDF loading + render-error fallback). New `uploadForm`,
+  `productPicker`, `docViewer` namespaces. Form field names, submitted product
+  names, and the printable **payout receipt** (`PayoutReceipt`) stay English
+  (data-write / paperwork).
 - **Bilingual coverage — more dealer surfaces (forms, account, library, misc).**
   Translated to fr-CA (draft): the resource-library **brand/sort filters**
   (`LibraryFilters`); the **sales-rep report** page date-range control and the

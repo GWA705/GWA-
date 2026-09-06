@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { journalCodeFromName } from '@/lib/journalCode';
+import { useT } from '@/i18n/client';
 
 export interface ProductPickerOption {
   id: string;
@@ -34,6 +35,7 @@ export function ProductPicker({
   // (dealer new-deal form only).
   allowAddToList?: boolean;
 }) {
+  const t = useT();
   const [chosen, setChosen] = useState<Set<string>>(() => new Set(selected));
   const [q, setQ] = useState('');
   const [other, setOther] = useState(otherDefault);
@@ -65,7 +67,7 @@ export function ProductPicker({
           type="search"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder={`Search ${products.length} products…`}
+          placeholder={t('productPicker.searchPlaceholder', { n: products.length })}
           className="input mb-2"
           autoComplete="off"
         />
@@ -97,26 +99,26 @@ export function ProductPicker({
                 </span>
               )}
               {p.promoted && !p.journalName && (
-                <span className="badge flex-none bg-amber-50 text-[10px] text-amber-700">yours</span>
+                <span className="badge flex-none bg-amber-50 text-[10px] text-amber-700">{t('productPicker.yours')}</span>
               )}
             </label>
           );
         })}
         {filtered.length === 0 && (
           <p className="col-span-full py-1 text-xs text-gray-400">
-            No products match “{q}”. Add it under <span className="font-medium">Other</span> below.
+            {t('productPicker.noMatchPre', { q })} <span className="font-medium">{t('productPicker.otherInline')}</span> {t('productPicker.noMatchPost')}
           </p>
         )}
       </div>
       <div className="mt-2">
         <label className="flex flex-col gap-1 rounded-lg border border-dashed border-gray-300 px-3 py-2 text-sm">
-          <span className="font-medium text-gray-700">Other</span>
+          <span className="font-medium text-gray-700">{t('productPicker.otherLabel')}</span>
           <input
             name="productsSoldOther"
             value={other}
             onChange={(e) => setOther(e.target.value)}
             className="input"
-            placeholder="Type a product not listed (separate several with commas)"
+            placeholder={t('productPicker.otherPlaceholder')}
             autoComplete="off"
           />
         </label>
@@ -124,18 +126,18 @@ export function ProductPicker({
           <label className="mt-2 flex items-start gap-2 rounded-lg bg-sky-50 px-3 py-2 text-sm text-sky-900">
             <input type="checkbox" name="addOtherToList" value="on" className="mt-0.5 h-4 w-4 flex-none" />
             <span>
-              Add{' '}
+              {t('productPicker.addPrefix')}{' '}
               {otherNames.length === 1 ? (
                 <>
                   <span className="font-semibold">“{otherNames[0]}”</span>{' '}
                   <span className="rounded bg-white px-1 font-mono text-xs text-sky-700 ring-1 ring-inset ring-sky-200">
-                    journal code {journalCodeFromName(otherNames[0])}
+                    {t('productPicker.journalCode', { code: journalCodeFromName(otherNames[0]) })}
                   </span>
                 </>
               ) : (
-                <span className="font-semibold">these {otherNames.length} products</span>
+                <span className="font-semibold">{t('productPicker.theseProducts', { n: otherNames.length })}</span>
               )}{' '}
-              to my product list for next time
+              {t('productPicker.toMyListSuffix')}
             </span>
           </label>
         )}
