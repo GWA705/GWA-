@@ -11,7 +11,7 @@ const ITEM_BADGE: Record<string, string> = {
   REJECTED: 'bg-gray-100 text-gray-600',
 };
 const ITEM_LABEL: Record<string, string> = {
-  PENDING: 'Awaiting GWA',
+  PENDING: 'Awaiting Georgian Water & Air',
   CREATED: 'Login created',
   REJECTED: 'Declined',
 };

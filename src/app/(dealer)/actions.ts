@@ -404,8 +404,8 @@ export async function deleteOwnDocumentAction(documentId: string): Promise<{ err
   const session = await requireDealerAccess();
   const doc = await prisma.document.findUnique({ where: { id: documentId }, include: { application: true } });
   if (!doc || !canAccessAsDealer(session, doc.application.dealerId)) return { error: 'Not found.' };
-  if (doc.stage === 'REVIEWER') return { error: 'This document was sent by GWA and can’t be deleted here.' };
-  if (doc.verifiedAt) return { error: 'GWA has confirmed this file — contact them to change it.' };
+  if (doc.stage === 'REVIEWER') return { error: 'This document was sent by Georgian Water & Air and can’t be deleted here.' };
+  if (doc.verifiedAt) return { error: 'Georgian Water & Air has confirmed this file — contact them to change it.' };
 
   try {
     await deleteDocument(doc.storageKey);

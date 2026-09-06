@@ -158,7 +158,7 @@ const METHODS: {
     rank: 'Priority',
     icon: '⚡',
     title: 'Type in the details',
-    blurb: 'New application — type the customer’s details for GWA to submit.',
+    blurb: 'New application — type the customer’s details for Georgian Water & Air to submit.',
     action: 'Use priority option',
     badge: 'bg-blue-100 text-blue-800',
     selected: 'border-blue-600 bg-blue-50 ring-2 ring-blue-600/40',
@@ -170,7 +170,7 @@ const METHODS: {
     rank: 'Standard',
     icon: '📄',
     title: 'Upload documents',
-    blurb: 'Send the application and bill of sale — GWA takes it from there.',
+    blurb: 'Send the application and bill of sale — Georgian Water & Air takes it from there.',
     action: 'Use standard option',
     badge: 'bg-amber-100 text-amber-800',
     selected: 'border-amber-500 bg-amber-50 ring-2 ring-amber-500/40',
@@ -430,7 +430,7 @@ export function NewApplicationForm({
             <p className="mt-3 text-sm text-green-800">
               {needsFinanceNumber
                 ? 'Enter your FinanceIT loan number in Financing details below — the deal will be marked approved.'
-                : `Paid by ${PAYMENT_METHODS.find((p) => p.value === payment)?.label}. The deal will be marked approved and sent to GWA to produce the HD paperwork.`}
+                : `Paid by ${PAYMENT_METHODS.find((p) => p.value === payment)?.label}. The deal will be marked approved and sent to Georgian Water & Air to produce the HD paperwork.`}
             </p>
           </div>
         )}

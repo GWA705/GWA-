@@ -35,7 +35,7 @@ export default async function DealerLeadsPage({ searchParams }: { searchParams: 
         <Header />
         <div className="rounded-lg border border-sky-200 bg-sky-50 p-4 text-sm text-sky-800">
           Your office doesn&apos;t have any Home Depot store numbers on file yet, so we can&apos;t match leads to you.
-          Please <Link href="/dealer/support" className="underline">contact GWA</Link> to get set up.
+          Please <Link href="/dealer/support" className="underline">contact Georgian Water & Air</Link> to get set up.
         </div>
       </div>
     );
@@ -92,7 +92,7 @@ function NotReady() {
       <Header />
       <div className="rounded-lg border border-gray-200 bg-gray-50 p-5 text-sm text-gray-600">
         Leads aren&apos;t available yet. Please check back soon or{' '}
-        <Link href="/dealer/support" className="text-sky-600 hover:underline">contact GWA</Link>.
+        <Link href="/dealer/support" className="text-sky-600 hover:underline">contact Georgian Water & Air</Link>.
       </div>
     </div>
   );

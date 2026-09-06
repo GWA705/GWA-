@@ -98,7 +98,7 @@ export default async function DealerMailItem({ params }: { params: { id: string 
 
       {mail.allowReplies && (
         <section className="card p-6">
-          <h2 className="mb-3 text-base font-semibold text-gray-900">Reply to GWA</h2>
+          <h2 className="mb-3 text-base font-semibold text-gray-900">Reply to Georgian Water & Air</h2>
           {replies.length > 0 && (
             <ul className="mb-4 space-y-3">
               {replies.map((r) => (
@@ -126,7 +126,7 @@ export default async function DealerMailItem({ params }: { params: { id: string 
           ) : (
             <>
               <h2 className="mb-1 text-base font-semibold text-gray-900">Please confirm you&apos;ve read this</h2>
-              <p className="mb-3 text-sm text-gray-600">GWA has asked for confirmation that you&apos;ve read this message.</p>
+              <p className="mb-3 text-sm text-gray-600">Georgian Water & Air has asked for confirmation that you&apos;ve read this message.</p>
               <form action={acknowledgeMailAction.bind(null, mail.id)}>
                 <button type="submit" className="btn-primary">I have read this</button>
               </form>

@@ -250,7 +250,7 @@ export default async function DealerApplicationDetail({
       {gwaDocs.length > 0 && (
         <section className="card p-6">
           <h2 className="mb-1 border-l-4 border-brand-500 pl-2.5 text-lg font-bold text-gray-900">Paperwork for Customer</h2>
-          <p className="mb-4 text-xs text-gray-500">Documents from the GWA team — view in your browser or download to share with your customer.</p>
+          <p className="mb-4 text-xs text-gray-500">Documents from the Georgian Water &amp; Air team — view in your browser or download to share with your customer.</p>
           <PaperworkCards documents={gwaDocs} />
         </section>
       )}
@@ -273,8 +273,8 @@ export default async function DealerApplicationDetail({
           </div>
           <p className="mb-4 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
             <span><span className="mr-1 inline-block h-2.5 w-2.5 rounded-full bg-red-400 align-middle" />Missing</span>
-            <span><span className="mr-1 inline-block h-2.5 w-2.5 rounded-full bg-amber-400 align-middle" />Uploaded — pending GWA review</span>
-            <span><span className="mr-1 inline-block h-2.5 w-2.5 rounded-full bg-green-500 align-middle" />Confirmed by GWA</span>
+            <span><span className="mr-1 inline-block h-2.5 w-2.5 rounded-full bg-amber-400 align-middle" />Uploaded — pending Georgian Water &amp; Air review</span>
+            <span><span className="mr-1 inline-block h-2.5 w-2.5 rounded-full bg-green-500 align-middle" />Confirmed by Georgian Water &amp; Air</span>
           </p>
 
           {/* Serial numbers */}
@@ -357,7 +357,7 @@ export default async function DealerApplicationDetail({
                   {uploaded.length > 0 && (
                     <div className="mt-1.5 pl-8 text-xs">
                       <span className="font-medium text-green-700">
-                        ✓ {confirmed ? 'Upload complete — confirmed by GWA' : 'Uploaded — pending GWA review'}
+                        ✓ {confirmed ? 'Upload complete — confirmed by Georgian Water & Air' : 'Uploaded — pending Georgian Water & Air review'}
                         {uploaded.length > 1 ? ` · ${uploaded.length} files` : ''}
                       </span>
                       <span className="ml-3 inline-flex flex-wrap gap-3 text-gray-500">

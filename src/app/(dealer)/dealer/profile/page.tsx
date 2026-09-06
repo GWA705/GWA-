@@ -23,7 +23,7 @@ export default async function DealerProfilePage() {
       <SectionHero
         eyebrow="My office"
         title="Office profile"
-        subtitle="Keep your office details up to date so the Georgian Water & Air team always has the right contacts. Shared with GWA reviewers and admins only — never shown to other dealers."
+        subtitle="Keep your office details up to date so the Georgian Water & Air team always has the right contacts. Shared with Georgian Water & Air reviewers and admins only — never shown to other dealers."
       />
       <section className="card p-6">
         <DealerProfileForm action={saveDealerProfileAction} values={values} logoUrl={logoUrl} />

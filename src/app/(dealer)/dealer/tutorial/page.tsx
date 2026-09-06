@@ -54,7 +54,7 @@ const STEPS: Step[] = [
     title: 'Applications — track every deal your way',
     body: [
       'Applications is where you watch your deals move through approval, documents and funding. Four buttons at the top let you pick the view that suits you, and the portal remembers your choice:',
-      'Tracker groups deals by what needs doing — “Needs your action”, “In progress — with GWA”, “Funded & paid”, and “Closed”. Pipeline shows columns by stage (Submitted → Approved → Docs & funding → Funded/Paid). List is the classic sortable table, and Progress shows a progress bar for each deal.',
+      'Tracker groups deals by what needs doing — “Needs your action”, “In progress — with Georgian Water & Air”, “Funded & paid”, and “Closed”. Pipeline shows columns by stage (Submitted → Approved → Docs & funding → Funded/Paid). List is the classic sortable table, and Progress shows a progress bar for each deal.',
       'One search box and sort control drive every view, and deals you pin (📌) always float to the top. Tap any customer to open their deal.',
     ],
     illo: 'applications',
@@ -113,7 +113,7 @@ const STEPS: Step[] = [
     alt: 'The drag-and-drop upload area with a funding checklist.',
   },
   {
-    title: 'Chat with the GWA team',
+    title: 'Chat with the Georgian Water & Air team',
     body: [
       'The blue chat bubble in the bottom-right corner is a direct line to our team, on any page. It keeps a thread for each deal plus a General support thread, and shows a red badge when there’s a new reply.',
       'The Need Support card on your dashboard opens the same chat. Card numbers are automatically removed if they’re ever typed, so nothing sensitive is stored.',

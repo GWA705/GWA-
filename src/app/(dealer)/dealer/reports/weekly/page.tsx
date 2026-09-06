@@ -61,7 +61,7 @@ export default async function DealerWeeklyReportPage({ searchParams }: { searchP
         <div className="rounded-lg border border-gray-200 bg-gray-50 p-5 text-sm text-gray-600">
           Your reports aren&apos;t available yet. Please check back soon or{' '}
           <Link href="/dealer/support" className="text-sky-600 hover:underline">
-            contact GWA
+            contact Georgian Water & Air
           </Link>
           .
         </div>

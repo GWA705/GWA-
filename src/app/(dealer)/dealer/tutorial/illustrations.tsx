@@ -378,7 +378,7 @@ function Chat() {
     <Frame>
       <rect x="120" y="40" width="220" height="182" rx="10" fill="currentColor" fillOpacity="0.05" stroke="currentColor" strokeOpacity="0.25" />
       <path d="M120 50 A10 10 0 0 1 130 40 H330 A10 10 0 0 1 340 50 V66 H120 Z" fill={BRAND} fillOpacity="0.85" />
-      <text x="134" y="58" fontSize="8.5" fontWeight="700" fill="#fff">GWA team chat</text>
+      <text x="134" y="58" fontSize="8.5" fontWeight="700" fill="#fff">Support chat</text>
       <rect x="134" y="80" width="120" height="24" rx="8" fill="currentColor" fillOpacity="0.08" />
       <Line x="144" y="90" w={90} o={0.4} />
       <rect x="206" y="116" width="120" height="24" rx="8" fill={BRAND} fillOpacity="0.7" />

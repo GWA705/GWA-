@@ -35,7 +35,7 @@ export function DealerReplyForm({ mailId }: { mailId: string }) {
         rows={3}
         maxLength={5000}
         required
-        placeholder="Write a reply to GWA…"
+        placeholder="Write a reply to Georgian Water & Air…"
         className="input"
       />
       <div className="flex justify-end">
