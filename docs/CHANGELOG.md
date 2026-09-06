@@ -27,6 +27,22 @@ source of truth; this file is the human-readable index.
 | DeepL translation (user content) | ⏳ Parked — **set the key to enable reviewer auto-translate** | Awaiting `DEEPL_API_KEY` in Render (free keys end in `:fx`). Powers (a) the on-demand Translate control and (b) the **automatic** FR→EN conversion of chat messages, deal-conversation and gift-card threads, and dealer free-text notes on the reviewer side (`<AutoTranslate>`). Degrades silently until the key is set — no redeploy needed to turn it on. |
 | Bell Total Connect voicemail | 📝 Documented, not built here | Guide delivered for the **booking site** (voicemail-to-email + IMAP). Not part of this portal. |
 
+### To do (parked — waiting on ONE input)
+- **French Home Depot lead parsing (HIGH PRIORITY — Québec/French leads).** The
+  portal only *reads* the "HD Leads Log" Google Sheet; HD lead emails are parsed
+  into that sheet by Sean's **external Apps Script** (now saved for reference at
+  `scripts/hd-leads-automation.gs`). **Root cause identified:** the Gmail search
+  query hard-requires the English subject `subject:"New Home Services Customer
+  Lead"`, so French-subject HD emails are never even fetched — plus the body
+  parser keys off English labels (Booking ID No, Service Name, Store, Your
+  Customer Information, Project Location, etc.). Fix = broaden the search to be
+  sender-based (`from:info@homedepot.ca`) with in-code validation, and add French
+  label alternates to the parser. **Still needs from Sean: ONE raw French HD lead
+  email** (subject + full body) to lock the exact French labels before shipping
+  into the live pipeline (leads = revenue; don't guess). Portal display already
+  auto-translates lead free-text, so once French leads land in the sheet the rest
+  works. (Raised 2026-09-06, Sean; current script received.)
+
 ## 2026-09-06
 - **HD Promotions hero slot.** Added a hero image slot for the HD Promotions
   content page — drop a file at `public/HD-Promotions.png` and it becomes the

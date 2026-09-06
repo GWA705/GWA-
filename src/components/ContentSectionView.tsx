@@ -2,6 +2,7 @@ import type { ContentItem } from '@prisma/client';
 import { SectionHero } from '@/components/SectionHero';
 import { DocViewer } from '@/components/DocViewer';
 import { DownloadButton } from '@/components/DownloadButton';
+import { AutoTranslate } from '@/components/AutoTranslate';
 import { getT } from '@/i18n/server';
 
 // Known acronyms that should stay uppercase when we standardize a title's case.
@@ -124,9 +125,15 @@ export function ContentSectionView({
                 ) : null}
 
                 <div className="flex flex-1 flex-col p-5">
-                  <h2 className="text-base font-semibold text-gray-900">{standardizeTitle(c.title)}</h2>
+                  {/* Admin-entered title/description: auto-translate to the viewer's
+                      language (DeepL) so FR dealers read them in French. */}
+                  <h2 className="text-base font-semibold text-gray-900">
+                    <AutoTranslate text={standardizeTitle(c.title)} />
+                  </h2>
                   {c.body && (
-                    <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-gray-700">{c.body}</p>
+                    <div className="mt-2 text-sm leading-relaxed text-gray-700">
+                      <AutoTranslate text={c.body} />
+                    </div>
                   )}
 
                   <div className="mt-4 flex flex-wrap items-center gap-2 pt-1">
