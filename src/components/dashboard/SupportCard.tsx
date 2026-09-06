@@ -24,10 +24,10 @@ export function SupportCard() {
       {/* Agent photo — right side, cropped to fill. A left-edge mask feathers
           the photo so it bleeds into the card with no hard seam. */}
       <div
-        className="pointer-events-none absolute inset-y-0 right-0 w-[48%] bg-cover bg-no-repeat"
+        className="pointer-events-none absolute inset-y-0 right-0 w-[44%] bg-cover bg-no-repeat"
         style={{
           backgroundImage: "url('/support-agent.png')",
-          backgroundPosition: '62% 16%',
+          backgroundPosition: '60% 0%',
           maskImage: 'linear-gradient(to right, transparent 0%, #000 55%)',
           WebkitMaskImage: 'linear-gradient(to right, transparent 0%, #000 55%)',
         }}

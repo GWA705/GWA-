@@ -163,8 +163,8 @@ export function ChatWidget() {
       <button
         type="button"
         onClick={() => { setOpen((o) => !o); setView('list'); }}
-        aria-label={open ? 'Close chat' : 'Open chat with the GWA team'}
-        className="fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-brand-600 text-white shadow-lg transition hover:bg-brand-700"
+        aria-label={open ? 'Close chat' : 'Open chat with the Georgian Water & Air team'}
+        className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-brand-600 text-white shadow-lg transition hover:bg-brand-700"
       >
         {open ? (
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
