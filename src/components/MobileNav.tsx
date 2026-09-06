@@ -56,12 +56,20 @@ export function MobileNav({
   roleLabel,
   nav,
   triggerClassName = 'btn-secondary px-2.5',
+  hideAt = 'sm',
 }: {
   userName: string;
   roleLabel: string;
   nav: NavItem[];
   /** Class for the hamburger trigger (drawer internals keep their own styles). */
   triggerClassName?: string;
+  /**
+   * Breakpoint at/above which the whole drawer is hidden because a larger nav
+   * takes over. Use 'sm' when an inline top nav appears at ≥sm (AppShell), and
+   * 'lg' when a persistent sidebar appears at ≥lg (Dealer/Staff shells) — so the
+   * hamburger covers the whole tablet range instead of vanishing at 640px.
+   */
+  hideAt?: 'sm' | 'lg';
 }) {
   const [open, setOpen] = useState(false);
   const t = useT();
@@ -84,7 +92,7 @@ export function MobileNav({
   }, [open]);
 
   return (
-    <div className="sm:hidden">
+    <div className={hideAt === 'lg' ? 'lg:hidden' : 'sm:hidden'}>
       <button
         type="button"
         onClick={() => setOpen(true)}

@@ -28,6 +28,15 @@ source of truth; this file is the human-readable index.
 | Bell Total Connect voicemail | 📝 Documented, not built here | Guide delivered for the **booking site** (voicemail-to-email + IMAP). Not part of this portal. |
 
 ## 2026-09-06
+- **Mobile/tablet nav fix — no stray collapse button, no dead nav gap.** The
+  sidebar collapse/expand toggle now only appears at `lg`+ where the persistent
+  sidebar actually lives (it was showing where it made no sense on smaller
+  screens). Fixed the underlying breakpoint mismatch: the hamburger drawer was
+  hidden at ≥`sm` (640px) while the sidebar didn't appear until `lg` (1024px),
+  leaving tablets (640–1023px) with no navigation at all. Added a `hideAt` prop
+  to `MobileNav` (default `sm`, preserving AppShell's inline nav) and set the
+  Dealer/Staff shells to `lg`, so below `lg` you get only the hamburger and at
+  `lg`+ only the collapse toggle — never both.
 - **Auto-translate chat & messages for reviewers (FR→EN, near-instant).** New
   `<AutoTranslate>` component converts each message to the viewer's interface
   language automatically on load — so an English reviewer reads a French dealer's

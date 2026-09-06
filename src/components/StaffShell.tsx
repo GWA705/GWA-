@@ -79,7 +79,7 @@ export function StaffShell({
       {/* TOP HEADER */}
       <header className="flex h-[72px] items-center justify-between gap-3 border-b border-gray-200 bg-white px-4 sm:px-6">
         <div className="flex items-center gap-3">
-          <MobileNav userName={userName} roleLabel={roleLabel} nav={nav} triggerClassName="topbar-btn px-2.5 lg:hidden" />
+          <MobileNav userName={userName} roleLabel={roleLabel} nav={nav} triggerClassName="topbar-btn px-2.5 lg:hidden" hideAt="lg" />
           <Link href="/staff" className="flex items-center gap-3">
             <div className="flex h-11 w-11 flex-none items-center justify-center rounded-full bg-blue-600">
               <Droplets className="text-white" size={24} />

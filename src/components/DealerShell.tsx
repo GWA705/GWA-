@@ -129,7 +129,7 @@ export function DealerShell({
       {/* TOP HEADER */}
       <header className="flex h-[72px] items-center justify-between gap-2 border-b border-gray-200 bg-white px-3 sm:gap-3 sm:px-6">
         <div className="flex min-w-0 items-center gap-1.5 sm:gap-3">
-          <MobileNav userName={userName} roleLabel={roleLabel} nav={nav} triggerClassName="topbar-btn px-2.5 lg:hidden" />
+          <MobileNav userName={userName} roleLabel={roleLabel} nav={nav} triggerClassName="topbar-btn px-2.5 lg:hidden" hideAt="lg" />
           {/* Collapse / expand the sidebar (desktop only) */}
           <button
             type="button"
