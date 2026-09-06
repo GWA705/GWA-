@@ -7,11 +7,13 @@ import { leadsSheetId } from '@/lib/reporting/journalRead';
 import { LeadsView, filterLeads, leadMonthOptions, leadOutcomeKey } from '@/components/LeadsView';
 import { leadsGeoData, storeGeos, unplacedStoresForMap } from '@/lib/leadGeo';
 import { SectionHero } from '@/components/SectionHero';
+import { getT } from '@/i18n/server';
 
 export const dynamic = 'force-dynamic';
 
 export default async function DealerLeadsPage({ searchParams }: { searchParams: { q?: string; status?: string; page?: string; month?: string; view?: string; outcome?: string } }) {
   const user = await requireDealerAccess();
+  const t = getT();
   const q = (searchParams.q ?? '').trim();
   const status = (searchParams.status ?? '').trim();
   const month = (searchParams.month ?? '').trim();
@@ -34,8 +36,9 @@ export default async function DealerLeadsPage({ searchParams }: { searchParams: 
       <div className="space-y-4">
         <Header />
         <div className="rounded-lg border border-sky-200 bg-sky-50 p-4 text-sm text-sky-800">
-          Your office doesn&apos;t have any Home Depot store numbers on file yet, so we can&apos;t match leads to you.
-          Please <Link href="/dealer/support" className="underline">contact Georgian Water & Air</Link> to get set up.
+          {t('leads.noStoresBefore')}
+          <Link href="/dealer/support" className="underline">{t('leads.contactLink')}</Link>
+          {t('leads.noStoresAfter')}
         </div>
       </div>
     );
@@ -67,7 +70,7 @@ export default async function DealerLeadsPage({ searchParams }: { searchParams: 
       <Header />
       {read.error && (
         <div className="rounded-lg border-l-4 border-amber-500 bg-amber-50 p-3 text-sm text-amber-800">
-          Couldn&apos;t read the leads log right now: {read.error}
+          {t('leads.readError', { error: read.error })}
         </div>
       )}
       <LeadsView leads={filtered} summary={summary} q={q} status={status} basePath="/dealer/leads" page={page} month={month} monthOptions={monthOptions} storeNames={storeNames} callsByKey={callsByKey} view={view} outcome={outcome} geo={geo} />
@@ -76,23 +79,26 @@ export default async function DealerLeadsPage({ searchParams }: { searchParams: 
 }
 
 function Header() {
+  const t = getT();
   return (
     <SectionHero
-      eyebrow="Leads"
-      title="Home Depot Leads"
-      subtitle="Turn opportunities into healthier homes. Review, follow up and track your Home Depot leads — all in one place."
+      eyebrow={t('leads.heroEyebrow')}
+      title={t('leads.heroTitle')}
+      subtitle={t('leads.heroSubtitle')}
       bgImage="/leads-hero.png"
     />
   );
 }
 
 function NotReady() {
+  const t = getT();
   return (
     <div className="space-y-4">
       <Header />
       <div className="rounded-lg border border-gray-200 bg-gray-50 p-5 text-sm text-gray-600">
-        Leads aren&apos;t available yet. Please check back soon or{' '}
-        <Link href="/dealer/support" className="text-sky-600 hover:underline">contact Georgian Water & Air</Link>.
+        {t('leads.notReadyBefore')}
+        <Link href="/dealer/support" className="text-sky-600 hover:underline">{t('leads.contactLink')}</Link>
+        {t('leads.notReadyAfter')}
       </div>
     </div>
   );

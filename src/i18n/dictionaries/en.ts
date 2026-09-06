@@ -108,6 +108,10 @@ export const en = {
     needSupport: 'Need support?',
     hereToHelp: 'We’re here to help.',
     chat: 'Chat',
+    heroEyebrow: 'Help',
+    heroTitle: 'Contact & Support',
+    heroSubtitle: 'Reach the right people at Georgian Water & Air. Tap a number to call or an email to write.',
+    contactsEmpty: 'Contact details will appear here soon.',
   },
   language: {
     label: 'Language',
@@ -263,6 +267,17 @@ export const en = {
     sending: 'Sending…',
     sendReply: 'Send reply',
     replyPlaceholder: 'Write a reply to Georgian Water & Air…',
+  },
+  leads: {
+    heroEyebrow: 'Leads',
+    heroTitle: 'Home Depot Leads',
+    heroSubtitle: 'Turn opportunities into healthier homes. Review, follow up and track your Home Depot leads — all in one place.',
+    contactLink: 'contact Georgian Water & Air',
+    noStoresBefore: 'Your office doesn’t have any Home Depot store numbers on file yet, so we can’t match leads to you. Please ',
+    noStoresAfter: ' to get set up.',
+    readError: 'Couldn’t read the leads log right now: {error}',
+    notReadyBefore: 'Leads aren’t available yet. Please check back soon or ',
+    notReadyAfter: '.',
   },
 } as const;
 

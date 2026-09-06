@@ -2,6 +2,7 @@ import { requireDealerAccess } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { formatPhoneDisplay } from '@/lib/format';
 import { SectionHero } from '@/components/SectionHero';
+import { getT } from '@/i18n/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,6 +31,7 @@ function Row({ icon, children }: { icon: React.ReactNode; children: React.ReactN
 
 export default async function DealerSupportPage() {
   await requireDealerAccess();
+  const t = getT();
   const contacts = await prisma.supportContact.findMany({
     where: { active: true },
     orderBy: [{ name: 'asc' }],
@@ -41,13 +43,13 @@ export default async function DealerSupportPage() {
     <div className="space-y-6">
       {/* Header */}
       <SectionHero
-        eyebrow="Help"
-        title="Contact & Support"
-        subtitle="Reach the right people at Georgian Water & Air. Tap a number to call or an email to write."
+        eyebrow={t('support.heroEyebrow')}
+        title={t('support.heroTitle')}
+        subtitle={t('support.heroSubtitle')}
       />
 
       {contacts.length === 0 ? (
-        <div className="card p-8 text-center text-sm text-gray-500">Contact details will appear here soon.</div>
+        <div className="card p-8 text-center text-sm text-gray-500">{t('support.contactsEmpty')}</div>
       ) : (
         <ul className="grid grid-cols-1 gap-5 lg:grid-cols-2">
           {contacts.map((c) => (

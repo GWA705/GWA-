@@ -112,6 +112,10 @@ export const fr: Dictionary = {
     needSupport: 'Besoin d’aide ?',
     hereToHelp: 'Nous sommes là pour vous aider.',
     chat: 'Clavarder',
+    heroEyebrow: 'Aide',
+    heroTitle: 'Contact et soutien',
+    heroSubtitle: 'Joignez les bonnes personnes chez Georgian Water & Air. Touchez un numéro pour appeler ou un courriel pour écrire.',
+    contactsEmpty: 'Les coordonnées apparaîtront ici bientôt.',
   },
   language: {
     label: 'Langue',
@@ -267,5 +271,16 @@ export const fr: Dictionary = {
     sending: 'Envoi…',
     sendReply: 'Envoyer la réponse',
     replyPlaceholder: 'Écrivez une réponse à Georgian Water & Air…',
+  },
+  leads: {
+    heroEyebrow: 'Prospects',
+    heroTitle: 'Prospects Home Depot',
+    heroSubtitle: 'Transformez les occasions en foyers plus sains. Consultez, faites le suivi et suivez vos prospects Home Depot — le tout au même endroit.',
+    contactLink: 'communiquer avec Georgian Water & Air',
+    noStoresBefore: 'Votre bureau n’a encore aucun numéro de magasin Home Depot au dossier, alors nous ne pouvons pas vous associer de prospects. Veuillez ',
+    noStoresAfter: ' pour être configuré.',
+    readError: 'Impossible de lire le journal des prospects pour le moment : {error}',
+    notReadyBefore: 'Les prospects ne sont pas encore disponibles. Revenez bientôt ou ',
+    notReadyAfter: '.',
   },
 };
