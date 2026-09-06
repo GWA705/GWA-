@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
+import { useT } from '@/i18n/client';
 
 export interface GiftCardNoteVM {
   id: string;
@@ -16,9 +17,10 @@ type AddAction = (prev: ThreadAddState, fd: FormData) => Promise<ThreadAddState>
 
 function SendBtn() {
   const { pending } = useFormStatus();
+  const t = useT();
   return (
     <button type="submit" className="btn-secondary shrink-0 text-xs" disabled={pending}>
-      {pending ? 'Sending…' : 'Send'}
+      {pending ? t('giftCards.sending') : t('giftCards.send')}
     </button>
   );
 }
@@ -38,6 +40,7 @@ export function GiftCardThread({
   side: 'dealer' | 'staff';
   addAction: AddAction;
 }) {
+  const t = useT();
   const [state, action] = useFormState(addAction, {} as ThreadAddState);
   const ref = useRef<HTMLFormElement>(null);
   useEffect(() => {
@@ -49,7 +52,7 @@ export function GiftCardThread({
     <div className="space-y-2">
       <div className="space-y-1.5">
         {notes.length === 0 ? (
-          <p className="text-xs text-gray-400">No messages yet. Use this to sort out a wrong email, a resend, or a cell number.</p>
+          <p className="text-xs text-gray-400">{t('giftCards.noMessagesYet')}</p>
         ) : (
           notes.map((n) => {
             const mine = n.fromDealer === viewerIsDealer;
@@ -60,7 +63,7 @@ export function GiftCardThread({
               >
                 <div className="whitespace-pre-wrap">{n.body}</div>
                 <div className="mt-0.5 text-[10px] text-gray-400">
-                  {n.fromDealer ? 'Dealer' : 'GWA team'} · {n.author} · {n.at}
+                  {n.fromDealer ? t('giftCards.fromDealer') : t('giftCards.fromTeam')} · {n.author} · {n.at}
                 </div>
               </div>
             );
@@ -69,7 +72,7 @@ export function GiftCardThread({
       </div>
       <form ref={ref} action={action} className="flex items-start gap-2">
         <input type="hidden" name="requestId" value={requestId} />
-        <textarea name="body" rows={1} placeholder="Write a message…" className="input min-h-[2.25rem] flex-1 text-xs" />
+        <textarea name="body" rows={1} placeholder={t('giftCards.writeMessage')} className="input min-h-[2.25rem] flex-1 text-xs" />
         <SendBtn />
       </form>
       {state.error && <p className="text-xs text-red-600">{state.error}</p>}

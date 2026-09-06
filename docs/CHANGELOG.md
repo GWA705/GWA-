@@ -28,6 +28,14 @@ source of truth; this file is the human-readable index.
 | Bell Total Connect voicemail | 📝 Documented, not built here | Guide delivered for the **booking site** (voicemail-to-email + IMAP). Not part of this portal. |
 
 ## 2026-09-06
+- **Bilingual coverage — gift-cards surface (dealer).** Translated the full
+  water-test gift-card flow to fr-CA (draft): the request form, per-request
+  cards + inline edit, the dealer↔team message thread, search/filter controls,
+  the pager, and the bulk-CSV importer (preview table, per-row validation
+  messages, plural "added/skipped" counts). Expanded the `giftCards` namespace
+  with ~70 keys. The downloadable CSV template stays English-headed on purpose
+  (its columns are machine-matched on import). Also fixed a brand slip in the
+  message thread ("GWA team" → "Georgian Water & Air team").
 - **Bilingual coverage — public "Request portal access" onboarding.** Translated
   the public `/request-access` page and its onboarding form to fr-CA (draft):
   access code, main contact, office details, people-who-need-a-login rows, and

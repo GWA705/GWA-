@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { useT } from '@/i18n/client';
 
 const SIZES = [25, 50, 100];
 
@@ -27,6 +28,7 @@ export function GiftCardPager({
   lastShown: number;
   total: number;
 }) {
+  const t = useT();
   const sp = useSearchParams();
   const build = (over: Record<string, string>) => {
     const next = new URLSearchParams(sp?.toString() ?? '');
@@ -41,7 +43,7 @@ export function GiftCardPager({
   return (
     <div className="mt-3 flex flex-wrap items-center justify-between gap-3 px-1 text-xs text-gray-500">
       <div className="flex items-center gap-1">
-        <span>Show</span>
+        <span>{t('giftCards.show')}</span>
         {SIZES.map((n) => (
           <Link
             key={n}
@@ -55,24 +57,24 @@ export function GiftCardPager({
           href={build({ perPage: 'all', page: '1' })}
           className={`rounded px-2 py-1 ${perPage === 'all' ? 'bg-brand-100 font-semibold text-brand-800' : 'hover:bg-gray-100'}`}
         >
-          All
+          {t('giftCards.all')}
         </Link>
-        <span>per page</span>
+        <span>{t('giftCards.perPage')}</span>
       </div>
       <div className="flex items-center gap-2">
-        <span>{firstShown}–{lastShown} of {total}</span>
+        <span>{t('giftCards.rangeOfTotal', { first: firstShown, last: lastShown, total })}</span>
         {pageCount > 1 && perPage !== 'all' && (
           <>
             {page > 1 ? (
-              <Link href={build({ page: String(page - 1) })} className="rounded border border-gray-200 px-2 py-1 hover:bg-gray-50">← Prev</Link>
+              <Link href={build({ page: String(page - 1) })} className="rounded border border-gray-200 px-2 py-1 hover:bg-gray-50">{t('giftCards.prev')}</Link>
             ) : (
-              <span className="rounded border border-gray-100 px-2 py-1 text-gray-300">← Prev</span>
+              <span className="rounded border border-gray-100 px-2 py-1 text-gray-300">{t('giftCards.prev')}</span>
             )}
-            <span>Page {page} of {pageCount}</span>
+            <span>{t('giftCards.pageOf', { page, pageCount })}</span>
             {page < pageCount ? (
-              <Link href={build({ page: String(page + 1) })} className="rounded border border-gray-200 px-2 py-1 hover:bg-gray-50">Next →</Link>
+              <Link href={build({ page: String(page + 1) })} className="rounded border border-gray-200 px-2 py-1 hover:bg-gray-50">{t('giftCards.next')}</Link>
             ) : (
-              <span className="rounded border border-gray-100 px-2 py-1 text-gray-300">Next →</span>
+              <span className="rounded border border-gray-100 px-2 py-1 text-gray-300">{t('giftCards.next')}</span>
             )}
           </>
         )}

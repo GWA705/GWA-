@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { bulkCreateGiftCardRequestsAction, type BulkRow } from './actions';
+import { useT } from '@/i18n/client';
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const TEMPLATE =
@@ -61,12 +62,13 @@ function toRows(text: string): ParsedRow[] {
     const phone = (cells[col.phone] ?? '').trim();
     const amount = (cells[col.amount] ?? '').trim();
     const row: ParsedRow = { name, email, phone, amount, _line: idx + 2 };
-    // Client-side pre-check (server re-validates before saving).
+    // Client-side pre-check (server re-validates before saving). Store a
+    // translation key so the message renders in the viewer's language.
     const digits = phone.replace(/\D/g, '');
-    if (!name) row._error = 'missing name';
-    else if (!EMAIL_RE.test(email.toLowerCase())) row._error = 'invalid email';
-    else if (phone && digits.length < 10) row._error = 'cell too short';
-    else if (amount && !(Number(amount.replace(/[$,\s]/g, '')) > 0)) row._error = 'bad amount';
+    if (!name) row._error = 'giftCards.errMissingName';
+    else if (!EMAIL_RE.test(email.toLowerCase())) row._error = 'giftCards.errInvalidEmail';
+    else if (phone && digits.length < 10) row._error = 'giftCards.errCellShort';
+    else if (amount && !(Number(amount.replace(/[$,\s]/g, '')) > 0)) row._error = 'giftCards.errBadAmount';
     return row;
   });
 }
@@ -84,6 +86,7 @@ function download(name: string, text: string) {
 }
 
 export function GiftCardBulkImport() {
+  const t = useT();
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
@@ -126,23 +129,22 @@ export function GiftCardBulkImport() {
   return (
     <div className="rounded-xl border border-gray-200 bg-gray-50/60 p-4">
       <button type="button" onClick={() => setOpen((o) => !o)} className="flex w-full items-center justify-between text-left">
-        <span className="text-sm font-semibold text-gray-800">📄 Add several at once (spreadsheet)</span>
+        <span className="text-sm font-semibold text-gray-800">{t('giftCards.addSeveral')}</span>
         <span className={`text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden>▾</span>
       </button>
 
       {open && (
         <div className="mt-3 space-y-3">
           <p className="text-sm text-gray-600">
-            Did a batch of water tests? Download the template, fill in a row per customer, and upload it — we’ll create all
-            the requests at once. Cell and amount are optional (amount defaults to $25).
+            {t('giftCards.bulkIntro')}
           </p>
 
           <div className="flex flex-wrap items-center gap-2">
             <button type="button" onClick={() => download('gift-card-template.csv', TEMPLATE)} className="btn-secondary text-sm">
-              ⬇ Download template
+              {t('giftCards.downloadTemplate')}
             </button>
             <label className="btn-secondary cursor-pointer text-sm">
-              ⬆ Upload filled sheet
+              {t('giftCards.uploadSheet')}
               <input ref={fileRef} type="file" accept=".csv,text/csv" onChange={onFile} className="hidden" />
             </label>
             {fileName && <span className="text-xs text-gray-500">{fileName}</span>}
@@ -150,10 +152,10 @@ export function GiftCardBulkImport() {
 
           {result && (
             <div className={`rounded-md p-2 text-sm ${result.created > 0 ? 'bg-green-50 text-green-800' : 'bg-amber-50 text-amber-800'}`}>
-              {result.created > 0 && <div>✓ Added {result.created} request{result.created === 1 ? '' : 's'}.</div>}
+              {result.created > 0 && <div>{result.created === 1 ? t('giftCards.addedOne') : t('giftCards.addedMany', { n: result.created })}</div>}
               {result.errors.length > 0 && (
                 <div className="mt-1">
-                  <div className="font-medium">Skipped {result.errors.length} row{result.errors.length === 1 ? '' : 's'}:</div>
+                  <div className="font-medium">{result.errors.length === 1 ? t('giftCards.skippedOne') : t('giftCards.skippedMany', { n: result.errors.length })}</div>
                   <ul className="mt-0.5 list-disc pl-5">{result.errors.map((er, i) => <li key={i}>{er}</li>)}</ul>
                 </div>
               )}
@@ -163,15 +165,15 @@ export function GiftCardBulkImport() {
           {rows && (
             <div className="space-y-2">
               <div className="text-sm">
-                <span className="font-medium text-green-700">{valid.length} ready</span>
-                {invalid.length > 0 && <span className="text-red-600"> · {invalid.length} need fixing</span>}
+                <span className="font-medium text-green-700">{t('giftCards.ready', { n: valid.length })}</span>
+                {invalid.length > 0 && <span className="text-red-600"> · {t('giftCards.needFixing', { n: invalid.length })}</span>}
               </div>
               <div className="max-h-64 overflow-auto rounded-lg border border-gray-200 bg-white">
                 <table className="min-w-full divide-y divide-gray-100 text-xs">
                   <thead className="bg-gray-50 text-left uppercase tracking-wide text-gray-500">
                     <tr>
-                      <th className="px-2 py-1.5">#</th><th className="px-2 py-1.5">Name</th><th className="px-2 py-1.5">Email</th>
-                      <th className="px-2 py-1.5">Cell</th><th className="px-2 py-1.5">Amount</th><th className="px-2 py-1.5"></th>
+                      <th className="px-2 py-1.5">{t('giftCards.colNum')}</th><th className="px-2 py-1.5">{t('giftCards.colName')}</th><th className="px-2 py-1.5">{t('giftCards.colEmail')}</th>
+                      <th className="px-2 py-1.5">{t('giftCards.colCell')}</th><th className="px-2 py-1.5">{t('giftCards.colAmount')}</th><th className="px-2 py-1.5"></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
@@ -182,7 +184,7 @@ export function GiftCardBulkImport() {
                         <td className="px-2 py-1.5">{r.email || <span className="text-gray-300">—</span>}</td>
                         <td className="px-2 py-1.5">{r.phone || <span className="text-gray-300">—</span>}</td>
                         <td className="px-2 py-1.5 tabular-nums">{r.amount ? `$${String(r.amount).replace(/[$\s]/g, '')}` : '$25'}</td>
-                        <td className="px-2 py-1.5">{r._error ? <span className="text-red-600">⚠ {r._error}</span> : <span className="text-green-600">✓</span>}</td>
+                        <td className="px-2 py-1.5">{r._error ? <span className="text-red-600">⚠ {t(r._error)}</span> : <span className="text-green-600">✓</span>}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -190,9 +192,9 @@ export function GiftCardBulkImport() {
               </div>
               <div className="flex items-center gap-3">
                 <button type="button" onClick={submit} disabled={pending || valid.length === 0} className="btn-primary text-sm">
-                  {pending ? 'Adding…' : `Add ${valid.length} request${valid.length === 1 ? '' : 's'}`}
+                  {pending ? t('giftCards.adding') : valid.length === 1 ? t('giftCards.addOne') : t('giftCards.addMany', { n: valid.length })}
                 </button>
-                <button type="button" onClick={reset} className="text-xs text-gray-500 hover:underline">Clear</button>
+                <button type="button" onClick={reset} className="text-xs text-gray-500 hover:underline">{t('giftCards.clear')}</button>
               </div>
             </div>
           )}
