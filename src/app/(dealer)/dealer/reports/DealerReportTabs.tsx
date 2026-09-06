@@ -1,11 +1,13 @@
 import Link from 'next/link';
 import { SectionHero } from '@/components/SectionHero';
+import { getT } from '@/i18n/server';
 
 type Tab = 'monthly' | 'weekly' | 'pricing' | 'custom' | 'forecast' | 'reps' | 'accounting';
 
 // Tab header for the dealer reports area. Owner-only tabs (pricing, custom) are
 // shown only when the page passes `showOwner`.
 export function DealerReportTabs({ active, showOwner = false }: { active: Tab; showOwner?: boolean }) {
+  const t = getT();
   const tab = (href: string, label: string, key: Tab) => (
     <Link
       href={href}
@@ -18,15 +20,15 @@ export function DealerReportTabs({ active, showOwner = false }: { active: Tab; s
   );
   return (
     <div className="space-y-3">
-      <SectionHero eyebrow="Insights" title="My reports" subtitle="Performance for your office only." bgImage="/reports-hero.png" />
+      <SectionHero eyebrow={t('reports.heroEyebrow')} title={t('reports.heroTitle')} subtitle={t('reports.heroSubtitle')} bgImage="/reports-hero.png" />
       <div className="flex flex-wrap gap-2">
-        {tab('/dealer/reports', 'Monthly performance', 'monthly')}
-        {tab('/dealer/reports/weekly', 'Weekly store detail', 'weekly')}
-        {showOwner && tab('/dealer/reports/product-pricing', 'Product & package pricing', 'pricing')}
-        {showOwner && tab('/dealer/reports/sales-reps', 'By sales rep', 'reps')}
-        {showOwner && tab('/dealer/reports/custom', 'Custom report', 'custom')}
-        {showOwner && tab('/dealer/reports/forecast', 'Sales forecast', 'forecast')}
-        {showOwner && tab('/dealer/reports/accounting', 'Accounting export', 'accounting')}
+        {tab('/dealer/reports', t('reports.tabMonthly'), 'monthly')}
+        {tab('/dealer/reports/weekly', t('reports.tabWeekly'), 'weekly')}
+        {showOwner && tab('/dealer/reports/product-pricing', t('reports.tabPricing'), 'pricing')}
+        {showOwner && tab('/dealer/reports/sales-reps', t('reports.tabReps'), 'reps')}
+        {showOwner && tab('/dealer/reports/custom', t('reports.tabCustom'), 'custom')}
+        {showOwner && tab('/dealer/reports/forecast', t('reports.tabForecast'), 'forecast')}
+        {showOwner && tab('/dealer/reports/accounting', t('reports.tabAccounting'), 'accounting')}
       </div>
     </div>
   );

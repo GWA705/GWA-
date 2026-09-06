@@ -6,6 +6,7 @@ import { reportingJournalEnabled } from '@/lib/reporting/journalRead';
 import { buildOfficeMonthlyReport } from '@/lib/reporting/monthly';
 import { MonthlyReportView } from '@/app/(staff)/staff/reports/MonthlyReportView';
 import { DealerReportTabs } from './DealerReportTabs';
+import { getT } from '@/i18n/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,6 +36,7 @@ export default async function DealerReportsPage({ searchParams }: { searchParams
   const year = parseInt(yStr, 10);
   const monthIndex = parseInt(mStr, 10) - 1;
   const showOwner = await canViewOwnerPricingReport(user);
+  const t = getT();
 
   return (
     <div className="space-y-5">
@@ -42,7 +44,7 @@ export default async function DealerReportsPage({ searchParams }: { searchParams
 
       <form method="GET" className="flex flex-wrap items-end gap-3">
         <div>
-          <label className="label" htmlFor="ym">Month</label>
+          <label className="label" htmlFor="ym">{t('reports.month')}</label>
           <select id="ym" name="ym" defaultValue={ym} className="input min-w-[180px]">
             {months.map((m) => (
               <option key={m.value} value={m.value}>
@@ -52,7 +54,7 @@ export default async function DealerReportsPage({ searchParams }: { searchParams
           </select>
         </div>
         <button type="submit" className="btn-primary">
-          View
+          {t('reports.view')}
         </button>
       </form>
 
@@ -66,13 +68,12 @@ export default async function DealerReportsPage({ searchParams }: { searchParams
 }
 
 function NotReady() {
+  const t = getT();
   return (
     <div className="rounded-lg border border-gray-200 bg-gray-50 p-5 text-sm text-gray-600">
-      Your reports aren&apos;t available yet. Please check back soon or{' '}
-      <Link href="/dealer/support" className="text-sky-600 hover:underline">
-        contact Georgian Water & Air
-      </Link>
-      .
+      {t('reports.notReady')}
+      <Link href="/dealer/support" className="text-sky-600 hover:underline">{t('reports.contactLink')}</Link>
+      {t('reports.notReadyAfter')}
     </div>
   );
 }

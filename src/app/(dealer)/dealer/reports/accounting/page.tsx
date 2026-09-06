@@ -3,6 +3,7 @@ import { Download, FileSpreadsheet } from 'lucide-react';
 import { requireDealerAccess } from '@/lib/session';
 import { canViewOwnerPricingReport } from '@/lib/reporting/access';
 import { DealerReportTabs } from '../DealerReportTabs';
+import { getT } from '@/i18n/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,6 +21,7 @@ function ym(offsetMonths: number): string {
 export default async function AccountingExportPage() {
   const user = await requireDealerAccess();
   if (!(await canViewOwnerPricingReport(user))) notFound();
+  const t = getT();
 
   const firstOfMonth = new Date();
   firstOfMonth.setDate(1);
@@ -36,33 +38,26 @@ export default async function AccountingExportPage() {
             <FileSpreadsheet size={22} />
           </span>
           <div>
-            <h2 className="text-base font-bold text-gray-900 dark:text-slate-100">Accounting export</h2>
-            <p className="text-sm text-gray-500">
-              Download a spreadsheet with one row per deal and the full EFT payout breakdown
-              (subtotal, HD discount, IBX, HD program, net, tax and payout) — ready for your
-              accounting team. Scoped to your office only.
-            </p>
+            <h2 className="text-base font-bold text-gray-900 dark:text-slate-100">{t('reports.acctTitle')}</h2>
+            <p className="text-sm text-gray-500">{t('reports.acctBody')}</p>
           </div>
         </div>
 
         <form action="/api/dealer/accounting-export" method="get" className="flex flex-wrap items-end gap-3">
           <div>
-            <label className="label" htmlFor="from">From (sale date)</label>
+            <label className="label" htmlFor="from">{t('reports.acctFrom')}</label>
             <input type="date" id="from" name="from" defaultValue={from} className="input" />
           </div>
           <div>
-            <label className="label" htmlFor="to">To</label>
+            <label className="label" htmlFor="to">{t('reports.acctTo')}</label>
             <input type="date" id="to" name="to" defaultValue={to} className="input" />
           </div>
           <button type="submit" className="btn-primary inline-flex items-center gap-2">
-            <Download size={16} /> Download CSV
+            <Download size={16} /> {t('reports.downloadCsv')}
           </button>
         </form>
 
-        <p className="mt-3 text-xs text-gray-400">
-          Leave the dates as-is for this month, or widen the range for a quarter or year.
-          Deals with no recorded sale date fall back to their created date.
-        </p>
+        <p className="mt-3 text-xs text-gray-400">{t('reports.acctNote')}</p>
       </section>
     </div>
   );
