@@ -26,7 +26,7 @@ export default async function DealerMailbox() {
   return (
     <div>
       <div className="mb-5">
-        <SectionHero eyebrow="Messages" title="Mail" subtitle="Messages and files from the Georgian Water & Air team." />
+        <SectionHero eyebrow="Messages" title="Mail" subtitle="Messages and files from the Georgian Water & Air team." bgImage="/mail-hero.png" />
       </div>
 
       {mails.length === 0 ? (
