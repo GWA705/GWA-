@@ -1,10 +1,11 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import { useT } from '@/i18n/client';
 
-const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
+const MONTH_KEYS = [
+  'monthJanuary', 'monthFebruary', 'monthMarch', 'monthApril', 'monthMay', 'monthJune',
+  'monthJuly', 'monthAugust', 'monthSeptember', 'monthOctober', 'monthNovember', 'monthDecember',
 ];
 
 function parse(value: string): { y: string; m: string; d: string } {
@@ -38,6 +39,7 @@ export function DateOfBirthInput({
   defaultValue?: string;
   invalid?: boolean;
 }) {
+  const t = useT();
   const init = parse(defaultValue);
   const [y, setY] = useState(init.y);
   const [m, setM] = useState(init.m);
@@ -56,20 +58,20 @@ export function DateOfBirthInput({
       <div className="flex gap-2">
         <select
           id={id}
-          aria-label="Birth month"
+          aria-label={t('dob.ariaBirthMonth')}
           className={`${base} flex-[1.4]`}
           value={m}
           onChange={(e) => setM(e.target.value)}
         >
-          <option value="">Month</option>
-          {MONTHS.map((label, i) => (
-            <option key={label} value={String(i + 1).padStart(2, '0')}>{label}</option>
+          <option value="">{t('dob.month')}</option>
+          {MONTH_KEYS.map((key, i) => (
+            <option key={key} value={String(i + 1).padStart(2, '0')}>{t(`dob.${key}`)}</option>
           ))}
         </select>
         <input
-          aria-label="Birth day"
+          aria-label={t('dob.ariaBirthDay')}
           inputMode="numeric"
-          placeholder="Day"
+          placeholder={t('dob.day')}
           maxLength={2}
           className={`${base} flex-1`}
           value={d}
@@ -81,9 +83,9 @@ export function DateOfBirthInput({
         />
         <input
           ref={yearRef}
-          aria-label="Birth year"
+          aria-label={t('dob.ariaBirthYear')}
           inputMode="numeric"
-          placeholder="Year"
+          placeholder={t('dob.year')}
           maxLength={4}
           className={`${base} flex-1`}
           value={y}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useT } from '@/i18n/client';
 
 // Chrome/Edge/Android fire this before showing their install prompt; we capture
 // it so we can trigger install from our own button. iOS Safari does NOT fire it,
@@ -13,6 +14,7 @@ type InstallPromptEvent = Event & {
 type Platform = 'ios' | 'android' | 'desktop';
 
 export function InstallApp() {
+  const t = useT();
   const [deferred, setDeferred] = useState<InstallPromptEvent | null>(null);
   const [installed, setInstalled] = useState(false);
   const [platform, setPlatform] = useState<Platform>('desktop');
@@ -53,55 +55,51 @@ export function InstallApp() {
 
   return (
     <div>
-      <h2 className="mb-1 text-base font-semibold text-gray-900">Install the app on your phone</h2>
-      <p className="mb-4 text-sm text-gray-500">
-        Add GWA Portal to your home screen so it opens like a regular app — full screen, its own icon,
-        and ready for push notifications. No app store needed.
-      </p>
+      <h2 className="mb-1 text-base font-semibold text-gray-900">{t('installApp.title')}</h2>
+      <p className="mb-4 text-sm text-gray-500">{t('installApp.description')}</p>
 
       {installed ? (
         <p className="rounded-md bg-green-50 p-3 text-sm text-green-800">
-          ✓ The app is installed on this device. You can open it from your home screen.
+          ✓ {t('installApp.installed')}
         </p>
       ) : deferred ? (
         // Android / desktop Chrome / Edge — one-tap install.
         <button type="button" onClick={install} className="btn-primary">
-          Install app
+          {t('installApp.installButton')}
         </button>
       ) : platform === 'ios' ? (
         <ol className="space-y-2 text-sm text-gray-700">
           <li>
             <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand-100 text-xs font-semibold text-brand-700">1</span>
-            Open this page in <strong>Safari</strong> (not Chrome or in-app browsers).
+            {t('installApp.ios.step1Pre')}<strong>Safari</strong>{t('installApp.ios.step1Post')}
           </li>
           <li>
             <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand-100 text-xs font-semibold text-brand-700">2</span>
-            Tap the <strong>Share</strong> button <span aria-hidden>（the square with an ↑）</span> at the bottom.
+            {t('installApp.ios.step2Pre')}<strong>{t('installApp.ios.shareLabel')}</strong>{t('installApp.ios.step2Mid')}<span aria-hidden>{t('installApp.ios.shareHint')}</span>{t('installApp.ios.step2Post')}
           </li>
           <li>
             <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand-100 text-xs font-semibold text-brand-700">3</span>
-            Scroll down and tap <strong>&ldquo;Add to Home Screen,&rdquo;</strong> then <strong>Add</strong>.
+            {t('installApp.ios.step3Pre')}<strong>{t('installApp.ios.addToHome')}</strong>{t('installApp.ios.step3Mid')}<strong>{t('installApp.ios.addLabel')}</strong>{t('installApp.ios.step3Post')}
           </li>
         </ol>
       ) : platform === 'android' ? (
         <ol className="space-y-2 text-sm text-gray-700">
           <li>
             <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand-100 text-xs font-semibold text-brand-700">1</span>
-            Open this page in <strong>Chrome</strong>.
+            {t('installApp.android.step1Pre')}<strong>Chrome</strong>{t('installApp.android.step1Post')}
           </li>
           <li>
             <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand-100 text-xs font-semibold text-brand-700">2</span>
-            Tap the <strong>⋮</strong> menu (top-right).
+            {t('installApp.android.step2Pre')}<strong>⋮</strong>{t('installApp.android.step2Post')}
           </li>
           <li>
             <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand-100 text-xs font-semibold text-brand-700">3</span>
-            Tap <strong>&ldquo;Install app&rdquo;</strong> (or &ldquo;Add to Home screen&rdquo;).
+            {t('installApp.android.step3Pre')}<strong>{t('installApp.android.installAppLabel')}</strong>{t('installApp.android.step3Post')}
           </li>
         </ol>
       ) : (
         <p className="text-sm text-gray-700">
-          In Chrome or Edge, click the <strong>install icon</strong> in the address bar (a small screen with a
-          down-arrow), or open the browser menu and choose <strong>&ldquo;Install GWA Portal.&rdquo;</strong>
+          {t('installApp.desktop.pre')}<strong>{t('installApp.desktop.installIcon')}</strong>{t('installApp.desktop.mid')}<strong>{t('installApp.desktop.installBrand')}</strong>
         </p>
       )}
     </div>

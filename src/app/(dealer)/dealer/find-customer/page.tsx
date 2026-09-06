@@ -6,12 +6,14 @@ import { canSearchAllCustomers } from '@/lib/customerSearch';
 import { CustomerSearch } from '@/components/CustomerSearch';
 import { FindCustomerPanel } from '@/components/FindCustomerPanel';
 import { SectionHero } from '@/components/SectionHero';
+import { getT } from '@/i18n/server';
 
 export const dynamic = 'force-dynamic';
 
 export default async function DealerFindCustomerPage() {
   const user = await requireDealerAccess();
   if (!(await isGlobalSearchEnabled())) notFound();
+  const t = getT();
 
   // Full cross-office search for those authorized for it (GWA's own team); every
   // other office searches their own customers, with the office name in the copy
@@ -23,7 +25,7 @@ export default async function DealerFindCustomerPage() {
         select: { name: true, profile: { select: { businessName: true } } },
       })
     : null;
-  const companyName = dealer?.profile?.businessName || dealer?.name || 'your office';
+  const companyName = dealer?.profile?.businessName || dealer?.name || t('findCustomer.yourOffice');
 
   // Dealers get the focused, mode-toggle search (Option A). The GWA team keeps
   // the all-offices live-typeahead hero.
@@ -38,15 +40,15 @@ export default async function DealerFindCustomerPage() {
   return (
     <div className="mx-auto max-w-4xl space-y-5">
       <SectionHero
-        eyebrow="Tools"
-        title="Search all customers"
-        subtitle="Look up any customer across every office by name, phone, or reference number."
+        eyebrow={t('findCustomer.allHeroEyebrow')}
+        title={t('findCustomer.allHeroTitle')}
+        subtitle={t('findCustomer.allHeroSubtitle')}
       />
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-7">
-        <CustomerSearch mode="internal" placeholder="Search any customer by name, phone, or reference #" large />
+        <CustomerSearch mode="internal" placeholder={t('findCustomer.allPlaceholder')} large />
       </section>
 
-      <p className="text-xs text-gray-400">Searches are logged. You can see full details for every office.</p>
+      <p className="text-xs text-gray-400">{t('findCustomer.allFooter')}</p>
     </div>
   );
 }

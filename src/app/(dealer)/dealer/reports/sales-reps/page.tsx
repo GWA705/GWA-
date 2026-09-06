@@ -4,15 +4,16 @@ import { canViewOwnerPricingReport } from '@/lib/reporting/access';
 import { reportDataset } from '@/lib/reporting/reportDataset';
 import { SalesRepReport, type RepStat } from '@/components/reporting/SalesRepReport';
 import { DealerReportTabs } from '../DealerReportTabs';
+import { getT } from '@/i18n/server';
 import type { ApplicationStatus } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
 
 const APPROVED: ApplicationStatus[] = ['CONDITIONAL', 'APPROVED', 'DOCS_SENT', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW', 'FUNDED'];
 const RANGES = [
-  { key: 'all', label: 'All time' },
-  { key: 'ytd', label: 'This year' },
-  { key: '12m', label: 'Last 12 months' },
+  { key: 'all', tKey: 'reports.rangeAll' },
+  { key: 'ytd', tKey: 'reports.rangeYtd' },
+  { key: '12m', tKey: 'reports.range12m' },
 ] as const;
 type RangeKey = (typeof RANGES)[number]['key'];
 
@@ -28,8 +29,9 @@ export default async function DealerSalesRepReport({ searchParams }: { searchPar
   const user = await requireDealerAccess();
   if (!(await canViewOwnerPricingReport(user)) || !user.dealerId) notFound();
 
+  const t = getT();
   const range = (RANGES.some((r) => r.key === searchParams.range) ? searchParams.range : '12m') as RangeKey;
-  const rangeLabel = RANGES.find((r) => r.key === range)!.label;
+  const rangeLabel = t(RANGES.find((r) => r.key === range)!.tKey);
   const cut = cutoffYm(range);
 
   const rows = (await reportDataset({ dealerIds: [user.dealerId] })).filter(
@@ -60,12 +62,12 @@ export default async function DealerSalesRepReport({ searchParams }: { searchPar
       <DealerReportTabs active="reps" showOwner />
       <form method="GET" className="flex flex-wrap items-end gap-3">
         <div>
-          <label className="label" htmlFor="range">Date range</label>
+          <label className="label" htmlFor="range">{t('reports.dateRange')}</label>
           <select id="range" name="range" defaultValue={range} className="input min-w-[180px]">
-            {RANGES.map((r) => <option key={r.key} value={r.key}>{r.label}</option>)}
+            {RANGES.map((r) => <option key={r.key} value={r.key}>{t(r.tKey)}</option>)}
           </select>
         </div>
-        <button type="submit" className="btn-primary">View</button>
+        <button type="submit" className="btn-primary">{t('reports.view')}</button>
       </form>
       <SalesRepReport reps={reps} rangeLabel={rangeLabel} />
     </div>

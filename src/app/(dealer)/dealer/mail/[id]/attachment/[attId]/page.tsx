@@ -6,6 +6,7 @@ import { mailWhereForDealer } from '@/lib/inbox';
 import { friendlyFileName } from '@/lib/filenames';
 import { PdfPagesImage } from '@/components/PdfPagesImage';
 import { DownloadButton } from '@/components/DownloadButton';
+import { getT } from '@/i18n/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,6 +20,7 @@ export default async function DealerAttachmentViewer({
 }) {
   const session = await requireDealerAccess();
   if (!session.dealerId) notFound();
+  const t = getT();
 
   const mail = await prisma.mail.findFirst({
     where: { id: params.id, ...mailWhereForDealer(session.userId, session.dealerId, session.isDistributor) },
@@ -36,9 +38,9 @@ export default async function DealerAttachmentViewer({
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Link href={`/dealer/mail/${mail.id}`} className="text-sm text-gray-500 hover:underline">
-          ← Back to message
+          {t('mail.backToMessage')}
         </Link>
-        <DownloadButton url={`${src}?download=1`} fileName={name} className="btn-secondary text-xs">Download</DownloadButton>
+        <DownloadButton url={`${src}?download=1`} fileName={name} className="btn-secondary text-xs">{t('mail.download')}</DownloadButton>
       </div>
 
       <h1 className="truncate text-lg font-semibold text-gray-900" title={att.fileName}>{name}</h1>
@@ -51,13 +53,13 @@ export default async function DealerAttachmentViewer({
           <PdfPagesImage pagesUrl={`${src}/pages`} downloadUrl={`${src}?download=1`} alt={name} />
         ) : (
           <div className="p-6 text-center text-sm text-gray-600">
-            This file type can&apos;t be previewed.{' '}
-            <DownloadButton url={`${src}?download=1`} fileName={name} className="text-brand-700 hover:underline">Download it</DownloadButton> to view.
+            {t('mail.cantPreviewPre')}{' '}
+            <DownloadButton url={`${src}?download=1`} fileName={name} className="text-brand-700 hover:underline">{t('mail.downloadIt')}</DownloadButton> {t('mail.cantPreviewPost')}
           </div>
         )}
       </div>
 
-      <p className="text-xs text-gray-400">Opening or downloading a file is recorded for compliance.</p>
+      <p className="text-xs text-gray-400">{t('mail.complianceNote')}</p>
     </div>
   );
 }

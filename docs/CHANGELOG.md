@@ -43,6 +43,21 @@ source of truth; this file is the human-readable index.
   auto-translates lead free-text via DeepL. (2026-09-06, Sean.)
 
 ## 2026-09-06
+- **Bilingual coverage — more dealer surfaces (forms, account, library, misc).**
+  Translated to fr-CA (draft): the resource-library **brand/sort filters**
+  (`LibraryFilters`); the **sales-rep report** page date-range control and the
+  **weekly report** week-range dropdown (now locale-formatted); the **Find a
+  customer** all-offices view (GWA-team) plus the "your office" fallback; the
+  **mail attachment viewer**; the **date-of-birth** picker (`DateOfBirthInput`,
+  incl. month names); the **split-payment** input (`SplitPaymentInput`, reusing
+  the shared `paymentMethodLabel` display helper); the **product-package
+  builder** inside pricing (`ManualPackageBuilder`); and the account-page
+  **Install app** (PWA) and **desktop-notification** controls. New `dob`,
+  `splitPayment`, `installApp`, `desktopNotifications`, `manualPackage`
+  namespaces plus additions to `resources`, `reports`, `findCustomer` and `mail`.
+  Data-write paths stay English (submitted DOB value, payment-method enum
+  values, money formatting). Fixed brand slips ("GWA Portal" → "Georgian Water
+  & Air Portal").
 - **Bilingual coverage — reporting views (dealer + reviewer).** Translated the
   shared report components to fr-CA (draft): the **monthly performance** report
   (`MonthlyReportView`), **weekly store detail** (`StoreWeekView`), **by sales

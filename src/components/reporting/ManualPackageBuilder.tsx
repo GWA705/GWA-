@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from 'react';
 import type { PricingDeal } from '@/lib/reporting/productPricing';
+import { useT } from '@/i18n/client';
+import type { TFunction } from '@/i18n/translator';
 
 const money = (n: number) => `$${n.toLocaleString('en-CA', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
@@ -15,6 +17,7 @@ type Mode = 'exact' | 'includes';
  * the browser over the already-loaded deals — instant, no round-trips.
  */
 export function ManualPackageBuilder({ deals, products }: { deals: PricingDeal[]; products: string[] }) {
+  const t = useT();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [mode, setMode] = useState<Mode>('exact');
 
@@ -66,13 +69,13 @@ export function ManualPackageBuilder({ deals, products }: { deals: PricingDeal[]
   return (
     <section className="overflow-hidden rounded-2xl border border-blue-200 bg-white shadow-sm">
       <div className="border-b border-gray-100 bg-blue-50/60 px-5 py-3">
-        <h3 className="text-base font-bold text-gray-900">Group products your way</h3>
-        <p className="text-xs text-gray-500">Tick the products you sell together to see the average sale price for that combination.</p>
+        <h3 className="text-base font-bold text-gray-900">{t('manualPackage.title')}</h3>
+        <p className="text-xs text-gray-500">{t('manualPackage.subtitle')}</p>
       </div>
 
       <div className="space-y-4 p-5">
         {products.length === 0 ? (
-          <p className="text-sm text-gray-500">No products in range yet.</p>
+          <p className="text-sm text-gray-500">{t('manualPackage.noProducts')}</p>
         ) : (
           <>
             <div className="flex flex-wrap gap-2">
@@ -96,29 +99,29 @@ export function ManualPackageBuilder({ deals, products }: { deals: PricingDeal[]
 
             <div className="flex flex-wrap items-center gap-4">
               <div className="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-1 text-sm">
-                <button type="button" onClick={() => setMode('exact')} className={`rounded-md px-3 py-1 font-semibold ${mode === 'exact' ? 'bg-white text-blue-700 shadow-sm' : 'text-gray-500'}`}>Exactly these</button>
-                <button type="button" onClick={() => setMode('includes')} className={`rounded-md px-3 py-1 font-semibold ${mode === 'includes' ? 'bg-white text-blue-700 shadow-sm' : 'text-gray-500'}`}>Includes these</button>
+                <button type="button" onClick={() => setMode('exact')} className={`rounded-md px-3 py-1 font-semibold ${mode === 'exact' ? 'bg-white text-blue-700 shadow-sm' : 'text-gray-500'}`}>{t('manualPackage.modeExact')}</button>
+                <button type="button" onClick={() => setMode('includes')} className={`rounded-md px-3 py-1 font-semibold ${mode === 'includes' ? 'bg-white text-blue-700 shadow-sm' : 'text-gray-500'}`}>{t('manualPackage.modeIncludes')}</button>
               </div>
               {selected.size > 0 && (
-                <button type="button" onClick={() => setSelected(new Set())} className="text-xs font-semibold text-gray-400 hover:text-red-600">Clear</button>
+                <button type="button" onClick={() => setSelected(new Set())} className="text-xs font-semibold text-gray-400 hover:text-red-600">{t('manualPackage.clear')}</button>
               )}
             </div>
 
             {result === null ? (
               <p className="rounded-xl border border-dashed border-gray-300 p-6 text-center text-sm text-gray-400">
-                Pick one or more products above to see the average.
+                {t('manualPackage.emptyPrompt')}
               </p>
             ) : result.sold === 0 ? (
               <p className="rounded-xl border border-dashed border-gray-300 p-6 text-center text-sm text-gray-500">
-                No deals {mode === 'exact' ? 'sold exactly this set' : 'included all of these'} yet.
+                {mode === 'exact' ? t('manualPackage.noMatchExact') : t('manualPackage.noMatchIncludes')}
               </p>
             ) : (
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-                <Stat label="Avg net" value={result.count ? money(result.avgNet) : '—'} strong />
-                <Stat label="Avg after-tax" value={result.count ? money(result.avg) : '—'} />
-                <Stat label="Sold" value={String(result.sold)} />
-                <Stat label="Approved" value={String(result.approved)} />
-                <Stat label="Installed" value={String(result.installed)} />
+                <Stat label={t('manualPackage.statAvgNet')} value={result.count ? money(result.avgNet) : '—'} strong />
+                <Stat label={t('manualPackage.statAvgAfterTax')} value={result.count ? money(result.avg) : '—'} />
+                <Stat label={t('manualPackage.statSold')} value={String(result.sold)} />
+                <Stat label={t('manualPackage.statApproved')} value={String(result.approved)} />
+                <Stat label={t('manualPackage.statInstalled')} value={String(result.installed)} />
               </div>
             )}
           </>

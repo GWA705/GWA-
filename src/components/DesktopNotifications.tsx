@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useT } from '@/i18n/client';
 
 /**
  * Enable/disable browser desktop (push) notifications for the current user.
@@ -24,6 +25,7 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
 type Status = 'loading' | 'unsupported' | 'off' | 'on' | 'denied';
 
 export function DesktopNotifications() {
+  const t = useT();
   const [status, setStatus] = useState<Status>('loading');
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -81,7 +83,7 @@ export function DesktopNotifications() {
     setMsg(null);
     try {
       if (!PUBLIC_KEY) {
-        setMsg('Notifications are not configured on the server yet.');
+        setMsg(t('desktopNotifications.notConfigured'));
         setBusy(false);
         return;
       }
@@ -104,9 +106,9 @@ export function DesktopNotifications() {
       });
       if (!res.ok) throw new Error('save failed');
       setStatus('on');
-      setMsg('Desktop notifications are on for this browser.');
+      setMsg(t('desktopNotifications.enabledMsg'));
     } catch (e) {
-      setMsg('Could not turn on notifications. Please try again.');
+      setMsg(t('desktopNotifications.enableError'));
     } finally {
       setBusy(false);
     }
@@ -127,9 +129,9 @@ export function DesktopNotifications() {
         await sub.unsubscribe();
       }
       setStatus('off');
-      setMsg('Desktop notifications are off for this browser.');
+      setMsg(t('desktopNotifications.disabledMsg'));
     } catch (e) {
-      setMsg('Could not turn off notifications.');
+      setMsg(t('desktopNotifications.disableError'));
     } finally {
       setBusy(false);
     }
@@ -140,7 +142,7 @@ export function DesktopNotifications() {
     setMsg(null);
     try {
       const res = await fetch('/api/push/test', { method: 'POST' });
-      setMsg(res.ok ? 'Test notification sent.' : 'Could not send a test notification.');
+      setMsg(res.ok ? t('desktopNotifications.testSent') : t('desktopNotifications.testError'));
     } finally {
       setBusy(false);
     }
@@ -149,60 +151,54 @@ export function DesktopNotifications() {
   return (
     <div className="space-y-2">
       <div>
-        <h3 className="text-sm font-medium text-gray-700">Desktop &amp; phone notifications</h3>
-        <p className="text-xs text-gray-500">
-          Get a pop-up on your computer or phone when there’s activity on a deal — new submissions,
-          uploads, funding packages, and notes — even when the portal isn’t open.
-        </p>
+        <h3 className="text-sm font-medium text-gray-700">{t('desktopNotifications.heading')}</h3>
+        <p className="text-xs text-gray-500">{t('desktopNotifications.description')}</p>
       </div>
 
-      {status === 'loading' && <p className="text-xs text-gray-400">Checking…</p>}
+      {status === 'loading' && (
+        <p className="text-xs text-gray-400">{t('desktopNotifications.checking')}</p>
+      )}
 
       {iosNeedsInstall ? (
         <p className="text-xs text-amber-700">
-          On iPhone/iPad: tap the <span className="font-medium">Share</span> button, then{' '}
-          <span className="font-medium">Add to Home Screen</span>. Open “GWA Portal” from your Home
-          Screen and come back here to turn on notifications. (Requires iOS 16.4 or newer.)
+          {t('desktopNotifications.iosTapShare')}
+          <span className="font-medium">{t('desktopNotifications.shareButton')}</span>
+          {t('desktopNotifications.iosThenAdd')}
+          <span className="font-medium">{t('desktopNotifications.addToHomeScreen')}</span>
+          {t('desktopNotifications.iosOpenPortal')}
         </p>
       ) : (
         status === 'unsupported' && (
-          <p className="text-xs text-amber-700">
-            This browser doesn’t support notifications. On a computer use Chrome, Edge, or Firefox;
-            on Android use Chrome; on iPhone add the portal to your Home Screen first.
-          </p>
+          <p className="text-xs text-amber-700">{t('desktopNotifications.unsupported')}</p>
         )
       )}
 
       {status === 'denied' && (
-        <p className="text-xs text-amber-700">
-          Notifications are blocked for this site in your browser settings. Allow notifications for
-          this site, then reload and try again.
-        </p>
+        <p className="text-xs text-amber-700">{t('desktopNotifications.blocked')}</p>
       )}
 
       {status === 'off' && (
         <button type="button" className="btn-primary text-sm" onClick={enable} disabled={busy}>
-          {busy ? 'Enabling…' : 'Enable desktop notifications'}
+          {busy ? t('desktopNotifications.enabling') : t('desktopNotifications.enable')}
         </button>
       )}
 
       {status === 'on' && (
         <div className="flex flex-wrap items-center gap-2">
-          <span className="badge bg-green-100 text-green-800">On for this browser</span>
+          <span className="badge bg-green-100 text-green-800">
+            {t('desktopNotifications.onForBrowser')}
+          </span>
           <button type="button" className="btn-secondary text-xs" onClick={sendTest} disabled={busy}>
-            Send a test
+            {t('desktopNotifications.sendTest')}
           </button>
           <button type="button" className="btn-secondary text-xs" onClick={disable} disabled={busy}>
-            Turn off
+            {t('desktopNotifications.turnOff')}
           </button>
         </div>
       )}
 
       {msg && <p className="text-xs text-gray-500">{msg}</p>}
-      <p className="text-[11px] text-gray-400">
-        Turn this on for each device (computer or phone) where you want pop-ups. Emails still send
-        regardless.
-      </p>
+      <p className="text-[11px] text-gray-400">{t('desktopNotifications.footer')}</p>
     </div>
   );
 }

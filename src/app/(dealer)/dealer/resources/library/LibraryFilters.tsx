@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { useT } from '@/i18n/client';
 
 /**
  * Brand filter + sort controls for the resource library. Navigates on change,
@@ -21,6 +22,7 @@ export function LibraryFilters({
   sort: string;
 }) {
   const router = useRouter();
+  const t = useT();
 
   function go(next: Partial<{ brand: string; sort: string }>) {
     const p = new URLSearchParams();
@@ -37,14 +39,14 @@ export function LibraryFilters({
     <div className="flex flex-wrap items-center gap-2">
       {brands.length > 0 && (
         <label className="flex items-center gap-1.5 text-xs font-medium text-gray-500">
-          <span className="hidden sm:inline">Brand</span>
+          <span className="hidden sm:inline">{t('resources.filterBrand')}</span>
           <select
             value={brand}
             onChange={(e) => go({ brand: e.target.value })}
             className="input w-auto py-1.5 text-sm"
-            aria-label="Filter by brand"
+            aria-label={t('resources.filterByBrand')}
           >
-            <option value="">All brands</option>
+            <option value="">{t('resources.allBrands')}</option>
             {brands.map((b) => (
               <option key={b} value={b}>{b}</option>
             ))}
@@ -52,16 +54,16 @@ export function LibraryFilters({
         </label>
       )}
       <label className="flex items-center gap-1.5 text-xs font-medium text-gray-500">
-        <span className="hidden sm:inline">Sort</span>
+        <span className="hidden sm:inline">{t('resources.sort')}</span>
         <select
           value={sort || 'featured'}
           onChange={(e) => go({ sort: e.target.value })}
           className="input w-auto py-1.5 text-sm"
-          aria-label="Sort products"
+          aria-label={t('resources.sortProducts')}
         >
-          <option value="featured">Featured</option>
-          <option value="name">Name (A–Z)</option>
-          <option value="brand">Brand (A–Z)</option>
+          <option value="featured">{t('resources.sortFeatured')}</option>
+          <option value="name">{t('resources.sortName')}</option>
+          <option value="brand">{t('resources.sortBrand')}</option>
         </select>
       </label>
     </div>
