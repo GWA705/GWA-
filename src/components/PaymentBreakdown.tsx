@@ -24,7 +24,7 @@ export function PaymentBreakdown({
 }) {
   return (
     <div className="rounded-lg border border-gray-200 p-4">
-      <h3 className="mb-2 text-sm font-medium text-gray-700">Payment breakdown</h3>
+      <h3 className="mb-2 text-sm font-medium text-gray-700">{t('paymentBreakdown.title')}</h3>
       <ul className="text-sm">
         {splits.map((s, i) => {
           const fin = isFinancedMethod(s.method);
@@ -33,7 +33,7 @@ export function PaymentBreakdown({
               <span className="flex items-center gap-2 text-gray-700">
                 {paymentMethodLabel(t, s.method)}
                 <span className={`badge ${fin ? 'bg-brand-50 text-brand-700' : 'bg-gray-100 text-gray-600'}`}>
-                  {fin ? 'Financed' : 'Paid'}
+                  {fin ? t('paymentBreakdown.financed') : t('paymentBreakdown.paid')}
                 </span>
               </span>
               <span className="font-mono tabular-nums">{money(Number(s.amount))}</span>
@@ -42,11 +42,11 @@ export function PaymentBreakdown({
         })}
       </ul>
       <div className="mt-2 flex items-center justify-between border-t-2 border-gray-200 pt-2 font-semibold">
-        <span>Deal total</span>
+        <span>{t('paymentBreakdown.dealTotal')}</span>
         <span className="font-mono tabular-nums">{money(total)}</span>
       </div>
       <div className="mt-2 flex items-center justify-between rounded-md bg-brand-50 px-3 py-2">
-        <span className="text-sm font-semibold text-brand-700">Amount financed</span>
+        <span className="text-sm font-semibold text-brand-700">{t('paymentBreakdown.amountFinanced')}</span>
         <span className="font-mono text-base font-bold tabular-nums text-brand-700">{money(financed)}</span>
       </div>
     </div>

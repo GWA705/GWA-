@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { setVerificationCheckAction, type ActionState } from '@/app/(staff)/actions';
 import { InfoPopover } from '@/components/InfoPopover';
+import { useT } from '@/i18n/client';
+import type { TFunction } from '@/i18n/translator';
 
 export type VerificationItem = { key: string; label: string; help?: string };
 export type VerificationState = {
@@ -13,10 +15,10 @@ export type VerificationState = {
   checkedAt: string | null;
 };
 
-function StatusPill({ status }: { status: VerificationState['status'] }) {
-  if (status === 'CONFIRMED') return <span className="badge bg-green-100 text-green-800">Confirmed</span>;
-  if (status === 'PROBLEM') return <span className="badge bg-red-100 text-red-800">Problem</span>;
-  return <span className="badge bg-gray-100 text-gray-600">Not checked</span>;
+function StatusPill({ status, t }: { status: VerificationState['status']; t: TFunction }) {
+  if (status === 'CONFIRMED') return <span className="badge bg-green-100 text-green-800">{t('verificationChecklist.confirmed')}</span>;
+  if (status === 'PROBLEM') return <span className="badge bg-red-100 text-red-800">{t('verificationChecklist.problem')}</span>;
+  return <span className="badge bg-gray-100 text-gray-600">{t('verificationChecklist.notChecked')}</span>;
 }
 
 function ActionButton({
@@ -59,21 +61,24 @@ function ChecklistItem({
   // The problem-note box stays hidden until the reviewer chooses to flag a
   // problem, so each row is compact by default.
   const [flagging, setFlagging] = useState(false);
+  const t = useT();
+  const label = t(`verificationChecklist.${item.key}`);
+  const help = item.help ? t(`verificationChecklist.${item.key}_help`) : null;
 
   return (
     <form action={action} className="rounded-md border border-gray-200 p-3">
       <input type="hidden" name="key" value={item.key} />
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="flex min-w-0 items-center gap-1.5">
-          <p className="text-sm font-medium text-gray-900">{item.label}</p>
-          {item.help && <InfoPopover label={`About: ${item.label}`}>{item.help}</InfoPopover>}
+          <p className="text-sm font-medium text-gray-900">{label}</p>
+          {help && <InfoPopover label={t('verificationChecklist.about', { label })}>{help}</InfoPopover>}
         </div>
-        <StatusPill status={status} />
+        <StatusPill status={status} t={t} />
       </div>
 
       {status === 'PROBLEM' && current.note && !flagging && (
         <p className="mt-2 rounded bg-red-50 p-2 text-xs text-red-800">
-          <span className="font-medium">Flagged: </span>
+          <span className="font-medium">{t('verificationChecklist.flagged')}</span>
           {current.note}
         </p>
       )}
@@ -81,7 +86,7 @@ function ChecklistItem({
       {flagging && (
         <div className="mt-3">
           <label className="label text-xs" htmlFor={`note_${item.key}`}>
-            Problem note (required — the dealer is notified)
+            {t('verificationChecklist.problemNoteLabel')}
           </label>
           <textarea
             id={`note_${item.key}`}
@@ -89,7 +94,7 @@ function ChecklistItem({
             rows={2}
             autoFocus
             defaultValue={current.note ?? ''}
-            placeholder="Describe what's wrong…"
+            placeholder={t('verificationChecklist.describePlaceholder')}
             className="input text-sm"
           />
         </div>
@@ -99,10 +104,10 @@ function ChecklistItem({
         {flagging ? (
           <>
             <ActionButton value="PROBLEM" className="btn-danger text-xs" onClick={() => setOptimistic('PROBLEM')}>
-              Submit problem
+              {t('verificationChecklist.submitProblem')}
             </ActionButton>
             <button type="button" onClick={() => setFlagging(false)} className="btn-secondary text-xs">
-              Cancel
+              {t('verificationChecklist.cancel')}
             </button>
           </>
         ) : (
@@ -112,10 +117,10 @@ function ChecklistItem({
               className={status === 'CONFIRMED' ? 'btn-primary text-xs' : 'btn-secondary text-xs'}
               onClick={() => setOptimistic('CONFIRMED')}
             >
-              {status === 'CONFIRMED' ? '✓ Confirmed' : 'Confirm'}
+              {status === 'CONFIRMED' ? t('verificationChecklist.confirmedBtn') : t('verificationChecklist.confirmBtn')}
             </ActionButton>
             <button type="button" onClick={() => setFlagging(true)} className="btn-danger text-xs">
-              Flag problem
+              {t('verificationChecklist.flagProblem')}
             </button>
           </>
         )}
@@ -145,6 +150,7 @@ export function VerificationChecklist({
   items: VerificationItem[];
   states: Record<string, VerificationState>;
 }) {
+  const t = useT();
   const remaining = items.filter((i) => (states[i.key]?.status ?? 'PENDING') !== 'CONFIRMED').length;
 
   return (
@@ -155,8 +161,8 @@ export function VerificationChecklist({
         }`}
       >
         {remaining === 0
-          ? 'All checks confirmed — this deal can be funded.'
-          : `${remaining} check${remaining === 1 ? '' : 's'} still to confirm before funding.`}
+          ? t('verificationChecklist.allConfirmed')
+          : t(remaining === 1 ? 'verificationChecklist.remainingOne' : 'verificationChecklist.remainingMany', { n: remaining })}
       </div>
       {items.map((item) => (
         <ChecklistItem

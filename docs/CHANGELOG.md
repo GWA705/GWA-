@@ -43,6 +43,15 @@ source of truth; this file is the human-readable index.
   auto-translates lead free-text via DeepL. (2026-09-06, Sean.)
 
 ## 2026-09-06
+- **Bilingual coverage — reviewer verification checklist, split-payment
+  breakdown, conversation thread.** Final staff stragglers (fr-CA draft): the
+  reviewer **funding verification checklist** (`VerificationChecklist` — the four
+  checks + help via a new `verificationChecklist` namespace keyed to the
+  constants, plus all row chrome/states/buttons), the split-payment
+  **PaymentBreakdown** (title, Financed/Paid badges, deal total, amount
+  financed), and the staff **conversation thread** page (title, back/open links,
+  the "sees you as Reviewer" note, composer placeholder). The check codes and
+  written values stay English; labels display via keys.
 - **Bilingual coverage — staff report page wrappers + hub.** Translated the
   remaining staff report shells: the **Reports hub** card grid (`staffReportsHub`
   — 7 card titles/blurbs, badges, hub chrome; badge strings stay English as
