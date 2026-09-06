@@ -2078,6 +2078,70 @@ export const en = {
     allOffices: 'All offices',
     viewButton: 'View',
   },
+  staffReports: {
+    eyebrow: 'Insights',
+    title: 'Reports',
+    subtitle: 'Performance reporting, drawn from the sales journals and the portal pipeline.',
+    office: 'Office',
+    noOfficesWithStores: 'No offices with HD stores',
+    allOffices: 'All offices',
+    ppTitle: 'Product & package pricing',
+    ppSubtitle: 'Average sale price per product, and per package (products sold together), across your offices.',
+    fcEyebrow: 'Tools',
+    fcTitle: 'Find a customer',
+    fcSubtitle: 'Search every customer across all offices by name, phone, or reference number — for when a customer calls Georgian Water & Air directly. Opens their deal.',
+    fcPlaceholder: 'Search any customer by name, phone, or reference #',
+    backAllReports: '← All reports',
+    journalNotConnected1: 'The sales journals aren’t connected yet. Set ',
+    journalNotConnected2: ' and ',
+    journalNotConnected3: ' on the server to enable reports.',
+    noOfficeStoresAssigned: 'No offices have Home Depot store numbers assigned. Add them under Admin → Dealers.',
+    journalNotConnectedShort: 'The sales journals aren’t connected yet.',
+    dsTitle: 'Dealer Snapshot',
+    dsDesc: 'One row per dealer — sold and paid this month, and what’s pending now. Open a dealer to see every paid and pending deal, each tagged HD or GWA. Built for a quick glance before a dealer call.',
+    searchesLogged: 'Searches are logged.',
+  },
+  staffReportsHub: {
+    journalConnection: 'Journal connection',
+    open: 'Open →',
+    noLeadershipAccess: 'You don’t have access to the company-wide leadership reports yet. A Super Admin can grant it from Admin → Users (the “company-wide leadership snapshot” option).',
+    weekly: {
+      title: 'Weekly Snapshot',
+      blurb: 'Company-wide performance for the week — Home Depot vs Outside-HD, deal-status funnel, aging flags, financing mix, and a journal data-health check.',
+    },
+    monthly: {
+      title: 'Monthly Performance (per office)',
+      blurb: 'Each office broken down by HD store — month-over-month, vs last year, and year-to-date, with a pending-installation block.',
+    },
+    storeWeek: {
+      title: 'Weekly Store Detail',
+      blurb: 'Per-store customer-level detail for a single week — each deal and its amount, with a store total.',
+    },
+    leads: {
+      title: 'Leads report',
+      blurb: 'Every HD lead by dealer — how many, what type, No-Good, and where each call landed (NA, LM, Spoke, Booked, Sold, NI). Search a dealer or read the group totals.',
+    },
+    dealerSnapshot: {
+      title: 'Dealer Snapshot',
+      blurb: 'One row per dealer — sold and paid this month, and what’s pending now, split HD vs GWA. Open a dealer for every paid and pending deal. Quick glance before a dealer call.',
+    },
+    productPricing: {
+      title: 'Product & package pricing',
+      blurb: 'Average sale price per product (stand-alone sales) and per package (products sold together), per office. Watch what each product and combo sells for.',
+    },
+    cycleTimes: {
+      title: 'Review cycle times',
+      blurb: 'How long deals spend between each milestone — start-of-review, review-to-decision, producing install docs, funding, payout — with medians and a slow-tail (90th %). Spot where time goes and track improvements.',
+    },
+    badge: {
+      leadership: 'Leadership',
+      perOffice: 'Per office',
+      perStore: 'Per store',
+      superAdmin: 'Super Admin',
+      operations: 'Operations',
+      comingSoon: 'Coming soon',
+    },
+  },
 } as const;
 
 /** Recursively widen the literal `en` shape so translations only need to be

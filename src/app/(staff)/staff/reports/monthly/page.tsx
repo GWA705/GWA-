@@ -5,17 +5,18 @@ import { canViewReportsArea } from '@/lib/reporting/access';
 import { reportingJournalEnabled } from '@/lib/reporting/journalRead';
 import { listReportOffices, buildOfficeMonthlyReport } from '@/lib/reporting/monthly';
 import { MonthlyReportView } from '../MonthlyReportView';
+import { getT, getLocale } from '@/i18n/server';
 
 export const dynamic = 'force-dynamic';
 
-function monthOptions(count: number): { value: string; label: string }[] {
+function monthOptions(count: number, intlLocale: string): { value: string; label: string }[] {
   const now = new Date();
   const out: { value: string; label: string }[] = [];
   for (let i = 0; i < count; i += 1) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     out.push({
       value: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
-      label: d.toLocaleString('en-US', { month: 'long', year: 'numeric' }),
+      label: d.toLocaleString(intlLocale, { month: 'long', year: 'numeric' }),
     });
   }
   return out;
@@ -29,8 +30,10 @@ export default async function MonthlyReportPage({
   const user = await requireRole('REVIEWER', 'ADMIN');
   if (!(await canViewReportsArea(user))) notFound();
 
+  const t = getT();
+  const intlLocale = getLocale() === 'fr' ? 'fr-CA' : 'en-US';
   const offices = await listReportOffices();
-  const months = monthOptions(18);
+  const months = monthOptions(18, intlLocale);
 
   // Defaults: previous complete month, first office with stores.
   const now = new Date();
@@ -48,14 +51,14 @@ export default async function MonthlyReportPage({
   return (
     <div className="space-y-5">
       <Link href="/staff/reports" className="text-sm text-gray-500 hover:underline">
-        ← All reports
+        {t('staffReports.backAllReports')}
       </Link>
 
       <form method="GET" className="flex flex-wrap items-end gap-3">
         <div>
-          <label className="label" htmlFor="office">Office</label>
+          <label className="label" htmlFor="office">{t('staffReports.office')}</label>
           <select id="office" name="office" defaultValue={officeId} className="input min-w-[200px]">
-            {offices.length === 0 && <option value="">No offices with HD stores</option>}
+            {offices.length === 0 && <option value="">{t('staffReports.noOfficesWithStores')}</option>}
             {offices.map((o) => (
               <option key={o.dealerId} value={o.dealerId}>
                 {o.name}
@@ -64,7 +67,7 @@ export default async function MonthlyReportPage({
           </select>
         </div>
         <div>
-          <label className="label" htmlFor="ym">Month</label>
+          <label className="label" htmlFor="ym">{t('reports.month')}</label>
           <select id="ym" name="ym" defaultValue={ym} className="input min-w-[160px]">
             {months.map((m) => (
               <option key={m.value} value={m.value}>
@@ -74,18 +77,18 @@ export default async function MonthlyReportPage({
           </select>
         </div>
         <button type="submit" className="btn-primary">
-          View
+          {t('reports.view')}
         </button>
       </form>
 
       {!reportingJournalEnabled() ? (
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-          The sales journals aren&apos;t connected yet. Set <code className="rounded bg-amber-100 px-1">JOURNAL_SHEET_ID_2026</code>{' '}
-          and <code className="rounded bg-amber-100 px-1">JOURNAL_SHEET_ID_2025</code> on the server to enable reports.
+          {t('staffReports.journalNotConnected1')}<code className="rounded bg-amber-100 px-1">JOURNAL_SHEET_ID_2026</code>
+          {t('staffReports.journalNotConnected2')}<code className="rounded bg-amber-100 px-1">JOURNAL_SHEET_ID_2025</code>{t('staffReports.journalNotConnected3')}
         </div>
       ) : !officeId ? (
         <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
-          No offices have Home Depot store numbers assigned. Add them under Admin → Dealers so sales can be attributed.
+          {t('staffReports.noOfficeStoresAssigned')}
         </div>
       ) : (
         <MonthlyReportView report={await buildOfficeMonthlyReport(officeId, year, monthIndex)} />

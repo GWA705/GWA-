@@ -3,6 +3,8 @@ import { SectionHero } from '@/components/SectionHero';
 import { notFound } from 'next/navigation';
 import { requireRole } from '@/lib/session';
 import { canViewReportsArea, canViewLeadershipSnapshot, canViewDealerSnapshot } from '@/lib/reporting/access';
+import { getT } from '@/i18n/server';
+import type { TFunction } from '@/i18n/translator';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,9 +17,30 @@ interface ReportCard {
   available: boolean;
 }
 
+/**
+ * Translate a badge for display only. `badge` stays its English value in the
+ * data array because it doubles as a machine filter key (see the
+ * `c.badge === 'Coming soon'` filter below), so we map it to a dictionary key
+ * at render time rather than translating the raw value.
+ */
+function badgeLabel(t: TFunction, badge: string): string {
+  const slug: Record<string, string> = {
+    Leadership: 'leadership',
+    'Per office': 'perOffice',
+    'Per store': 'perStore',
+    'Super Admin': 'superAdmin',
+    Operations: 'operations',
+    'Coming soon': 'comingSoon',
+  };
+  const key = slug[badge];
+  return key ? t(`staffReportsHub.badge.${key}`) : badge;
+}
+
 export default async function ReportsLandingPage() {
   const user = await requireRole('REVIEWER', 'ADMIN');
   if (!(await canViewReportsArea(user))) notFound();
+
+  const t = getT();
 
   const canLeadership = await canViewLeadershipSnapshot(user);
   const canDealerSnapshot = await canViewDealerSnapshot(user);
@@ -25,62 +48,56 @@ export default async function ReportsLandingPage() {
   const cards: ReportCard[] = [
     {
       href: '/staff/reports/weekly',
-      title: 'Weekly Snapshot',
-      blurb:
-        'Company-wide performance for the week — Home Depot vs Outside-HD, deal-status funnel, aging flags, financing mix, and a journal data-health check.',
+      title: t('staffReportsHub.weekly.title'),
+      blurb: t('staffReportsHub.weekly.blurb'),
       accent: '#1a2e44',
       badge: 'Leadership',
       available: canLeadership,
     },
     {
       href: '/staff/reports/monthly',
-      title: 'Monthly Performance (per office)',
-      blurb:
-        'Each office broken down by HD store — month-over-month, vs last year, and year-to-date, with a pending-installation block.',
+      title: t('staffReportsHub.monthly.title'),
+      blurb: t('staffReportsHub.monthly.blurb'),
       accent: '#1a5fa8',
       badge: 'Per office',
       available: true,
     },
     {
       href: '/staff/reports/store-week',
-      title: 'Weekly Store Detail',
-      blurb: 'Per-store customer-level detail for a single week — each deal and its amount, with a store total.',
+      title: t('staffReportsHub.storeWeek.title'),
+      blurb: t('staffReportsHub.storeWeek.blurb'),
       accent: '#1a7a4a',
       badge: 'Per store',
       available: true,
     },
     {
       href: '/staff/reports/leads',
-      title: 'Leads report',
-      blurb:
-        'Every HD lead by dealer — how many, what type, No-Good, and where each call landed (NA, LM, Spoke, Booked, Sold, NI). Search a dealer or read the group totals.',
+      title: t('staffReportsHub.leads.title'),
+      blurb: t('staffReportsHub.leads.blurb'),
       accent: '#b8860b',
       badge: 'Leadership',
       available: canLeadership,
     },
     {
       href: '/staff/reports/dealer-snapshot',
-      title: 'Dealer Snapshot',
-      blurb:
-        'One row per dealer — sold and paid this month, and what’s pending now, split HD vs GWA. Open a dealer for every paid and pending deal. Quick glance before a dealer call.',
+      title: t('staffReportsHub.dealerSnapshot.title'),
+      blurb: t('staffReportsHub.dealerSnapshot.blurb'),
       accent: '#7a3fa8',
       badge: 'Super Admin',
       available: canDealerSnapshot,
     },
     {
       href: '/staff/reports/product-pricing',
-      title: 'Product & package pricing',
-      blurb:
-        'Average sale price per product (stand-alone sales) and per package (products sold together), per office. Watch what each product and combo sells for.',
+      title: t('staffReportsHub.productPricing.title'),
+      blurb: t('staffReportsHub.productPricing.blurb'),
       accent: '#0b5bd3',
       badge: 'Super Admin',
       available: canDealerSnapshot,
     },
     {
       href: '/staff/reports/cycle-times',
-      title: 'Review cycle times',
-      blurb:
-        'How long deals spend between each milestone — start-of-review, review-to-decision, producing install docs, funding, payout — with medians and a slow-tail (90th %). Spot where time goes and track improvements.',
+      title: t('staffReportsHub.cycleTimes.title'),
+      blurb: t('staffReportsHub.cycleTimes.blurb'),
       accent: '#0f766e',
       badge: 'Operations',
       available: true,
@@ -92,20 +109,19 @@ export default async function ReportsLandingPage() {
   return (
     <div className="space-y-6">
       <SectionHero
-        eyebrow="Insights"
-        title="Reports"
-        subtitle="Performance reporting, drawn from the sales journals and the portal pipeline."
+        eyebrow={t('staffReports.eyebrow')}
+        title={t('staffReports.title')}
+        subtitle={t('staffReports.subtitle')}
         actions={
           <Link href="/staff/reports/connection" className="inline-flex items-center gap-2 rounded-lg bg-[#ffffff] px-4 py-2 text-sm font-semibold text-[#0e2b5c] transition hover:bg-blue-50">
-            Journal connection
+            {t('staffReportsHub.journalConnection')}
           </Link>
         }
       />
 
       {!canLeadership && (
         <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
-          You don&apos;t have access to the company-wide leadership reports yet. A Super Admin can grant it from
-          Admin → Users (the &ldquo;company-wide leadership snapshot&rdquo; option).
+          {t('staffReportsHub.noLeadershipAccess')}
         </div>
       )}
 
@@ -127,11 +143,11 @@ export default async function ReportsLandingPage() {
                       c.available ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-500'
                     }`}
                   >
-                    {c.badge}
+                    {badgeLabel(t, c.badge)}
                   </span>
                 </div>
                 <p className="text-sm text-gray-600">{c.blurb}</p>
-                {clickable && <div className="pt-1 text-sm font-medium text-sky-600">Open →</div>}
+                {clickable && <div className="pt-1 text-sm font-medium text-sky-600">{t('staffReportsHub.open')}</div>}
               </div>
             </div>
           );

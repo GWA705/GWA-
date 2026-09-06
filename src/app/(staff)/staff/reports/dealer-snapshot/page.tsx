@@ -5,17 +5,18 @@ import { canViewDealerSnapshot } from '@/lib/reporting/access';
 import { reportingJournalEnabled } from '@/lib/reporting/journalRead';
 import { buildDealerSnapshot } from '@/lib/reporting/dealerSnapshot';
 import { DealerSnapshotView } from '../DealerSnapshotView';
+import { getT, getLocale } from '@/i18n/server';
 
 export const dynamic = 'force-dynamic';
 
-function monthOptions(count: number): { value: string; label: string }[] {
+function monthOptions(count: number, intlLocale: string): { value: string; label: string }[] {
   const now = new Date();
   const out: { value: string; label: string }[] = [];
   for (let i = 0; i < count; i += 1) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     out.push({
       value: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
-      label: d.toLocaleString('en-US', { month: 'long', year: 'numeric' }),
+      label: d.toLocaleString(intlLocale, { month: 'long', year: 'numeric' }),
     });
   }
   return out;
@@ -26,7 +27,9 @@ export default async function DealerSnapshotPage({ searchParams }: { searchParam
   // Sensitive cross-dealer financials — Super Admin, or a specific granted user.
   if (!(await canViewDealerSnapshot(user))) notFound();
 
-  const months = monthOptions(18);
+  const t = getT();
+  const intlLocale = getLocale() === 'fr' ? 'fr-CA' : 'en-US';
+  const months = monthOptions(18, intlLocale);
 
   // Default to the current month (this report is a live "what's pending now" view).
   const now = new Date();
@@ -39,20 +42,19 @@ export default async function DealerSnapshotPage({ searchParams }: { searchParam
   return (
     <div className="space-y-5">
       <Link href="/staff/reports" className="text-sm text-gray-500 hover:underline">
-        ← All reports
+        {t('staffReports.backAllReports')}
       </Link>
 
       <div>
-        <h1 className="text-xl font-semibold text-gray-900">Dealer Snapshot</h1>
+        <h1 className="text-xl font-semibold text-gray-900">{t('staffReports.dsTitle')}</h1>
         <p className="mt-1 text-sm text-gray-600">
-          One row per dealer — sold and paid this month, and what&apos;s pending now. Open a dealer to see every paid and
-          pending deal, each tagged HD or GWA. Built for a quick glance before a dealer call.
+          {t('staffReports.dsDesc')}
         </p>
       </div>
 
       <form method="GET" className="flex flex-wrap items-end gap-3">
         <div>
-          <label className="label" htmlFor="ym">Month</label>
+          <label className="label" htmlFor="ym">{t('reports.month')}</label>
           <select id="ym" name="ym" defaultValue={ym} className="input min-w-[160px]">
             {months.map((m) => (
               <option key={m.value} value={m.value}>
@@ -61,12 +63,12 @@ export default async function DealerSnapshotPage({ searchParams }: { searchParam
             ))}
           </select>
         </div>
-        <button type="submit" className="btn-primary">View</button>
+        <button type="submit" className="btn-primary">{t('reports.view')}</button>
       </form>
 
       {!reportingJournalEnabled() ? (
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-          The sales journals aren&apos;t connected yet.
+          {t('staffReports.journalNotConnectedShort')}
         </div>
       ) : (
         <DealerSnapshotView snap={await buildDealerSnapshot(year, monthIndex)} />

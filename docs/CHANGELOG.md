@@ -43,6 +43,15 @@ source of truth; this file is the human-readable index.
   auto-translates lead free-text via DeepL. (2026-09-06, Sean.)
 
 ## 2026-09-06
+- **Bilingual coverage — staff report page wrappers + hub.** Translated the
+  remaining staff report shells: the **Reports hub** card grid (`staffReportsHub`
+  — 7 card titles/blurbs, badges, hub chrome; badge strings stay English as
+  filter keys and localize only at render), and the office/month/week selector
+  wrappers for **monthly**, **weekly store detail**, **dealer snapshot**,
+  **product & package pricing**, plus the staff **Find a customer** search page.
+  New `staffReports` + `staffReportsHub` namespaces (reusing `reports.*`
+  month/week/view keys); month/week dropdown labels now format in the viewer's
+  locale. With this the staff toggle is complete apart from the admin console.
 - **Bilingual coverage — staff/reviewer surfaces, part 3 (shell, mail,
   conversations, misc).** Finished the staff-side sweep (fr-CA draft): the
   **staff shell/nav** (`StaffShell`, reusing the shared `nav.*`/`shell.*` keys,
