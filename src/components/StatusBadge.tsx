@@ -1,7 +1,11 @@
+'use client';
+
 import type { ApplicationStatus } from '@prisma/client';
-import { STATUS_COLORS, STATUS_LABELS, STATUS_LABELS_SHORT } from '@/lib/constants';
+import { STATUS_COLORS } from '@/lib/constants';
+import { useT } from '@/i18n/client';
 
 export function StatusBadge({ status, short = false }: { status: ApplicationStatus; short?: boolean }) {
-  const label = short ? STATUS_LABELS_SHORT[status] : STATUS_LABELS[status];
+  const t = useT();
+  const label = t(`enum.${short ? 'statusShort' : 'status'}.${status}`);
   return <span className={`badge whitespace-nowrap ${STATUS_COLORS[status]}`}>{label}</span>;
 }

@@ -2,11 +2,12 @@ import Link from 'next/link';
 import { requireDealerAccess } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { dealerPortalScopeWhere } from '@/lib/rbac';
-import { programLabel, STATUS_LABELS } from '@/lib/constants';
+import { programLabel } from '@/lib/constants';
 import { dealerOutstanding } from '@/lib/outstanding';
 import { dealStage, dealGroup } from '@/lib/dealerStage';
 import { SectionHero } from '@/components/SectionHero';
 import { ApplicationsWorkspace, type DealVM } from '@/components/dashboard/ApplicationsWorkspace';
+import { getT } from '@/i18n/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,6 +18,7 @@ const money = (n: number) => `$${n.toLocaleString('en-CA', { minimumFractionDigi
 
 export default async function DealerApplications() {
   const user = await requireDealerAccess();
+  const t = getT();
 
   const [apps, pinRows, usage] = await Promise.all([
     prisma.application.findMany({
@@ -59,7 +61,7 @@ export default async function DealerApplications() {
       amount,
       amountLabel: money(amount),
       status: a.status,
-      statusLabel: STATUS_LABELS[a.status] ?? a.status,
+      statusLabel: t(`enum.status.${a.status}`),
       submitted: a.createdAt.toLocaleDateString('en-CA'),
       submittedTs: a.createdAt.getTime(),
       pinned: pinnedSet.has(a.id),
@@ -67,7 +69,7 @@ export default async function DealerApplications() {
       readyToSubmit: outstanding.readyToSubmit,
       problem: a.status === 'PROBLEM',
       stageKey: stage.key,
-      stageLabel: stage.label,
+      stageLabel: t(stage.labelKey),
       pct: stage.pct,
       group: dealGroup(a.status, isPaid, outstanding.hasAction),
     };
@@ -76,12 +78,12 @@ export default async function DealerApplications() {
   return (
     <div className="space-y-4">
       <SectionHero
-        eyebrow="Deals"
-        title="Applications"
-        subtitle="Track every deal through approval, documents and funding — your way."
+        eyebrow={t('applications.heroEyebrow')}
+        title={t('applications.heroTitle')}
+        subtitle={t('applications.heroSubtitle')}
         actions={
           <Link href="/dealer/applications/new" className="inline-flex items-center gap-2 rounded-lg bg-[#ffffff] px-4 py-2 text-sm font-semibold text-[#0e2b5c] transition hover:bg-blue-50">
-            New customer processing
+            {t('applications.newCustomerProcessing')}
           </Link>
         }
       />

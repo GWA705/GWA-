@@ -14,10 +14,12 @@ export interface DealStage {
   index: number; // 0..3 — column position
   key: DealStageKey;
   label: string;
+  /** i18n key under `deal.stage.*` for the localized label. */
+  labelKey: string;
   pct: number; // 0..100 — progress bar fill
 }
 
-/** The four pipeline columns, in order. */
+/** The four pipeline columns, in order. Labels localized via `deal.column.<key>`. */
 export const DEAL_COLUMNS: { key: DealStageKey; label: string }[] = [
   { key: 'submitted', label: 'Submitted' },
   { key: 'approved', label: 'Approved' },
@@ -26,21 +28,23 @@ export const DEAL_COLUMNS: { key: DealStageKey; label: string }[] = [
 ];
 
 export function dealStage(status: ApplicationStatus, isPaid: boolean): DealStage {
-  if (isPaid) return { index: 3, key: 'funded', label: 'Funded & paid', pct: 100 };
+  const k = (key: DealStageKey, index: number, label: string, labelKey: string, pct: number): DealStage =>
+    ({ key, index, label, labelKey: `deal.stage.${labelKey}`, pct });
+  if (isPaid) return k('funded', 3, 'Funded & paid', 'fundedPaid', 100);
   switch (status) {
-    case 'DRAFT': return { index: 0, key: 'submitted', label: 'Draft', pct: 5 };
-    case 'SUBMITTED': return { index: 0, key: 'submitted', label: 'Submitted', pct: 12 };
-    case 'UNDER_REVIEW': return { index: 0, key: 'submitted', label: 'Under review', pct: 22 };
-    case 'CONDITIONAL': return { index: 1, key: 'approved', label: 'Conditionally approved', pct: 38 };
-    case 'APPROVED': return { index: 1, key: 'approved', label: 'Approved', pct: 46 };
-    case 'PROBLEM': return { index: 1, key: 'approved', label: 'Problem — needs attention', pct: 40 };
-    case 'DOCS_SENT': return { index: 2, key: 'docs', label: 'Documents sent', pct: 58 };
-    case 'FUNDING_SUBMITTED': return { index: 2, key: 'docs', label: 'Funding submitted', pct: 72 };
-    case 'FUNDING_REVIEW': return { index: 2, key: 'docs', label: 'In funding review', pct: 84 };
-    case 'FUNDED': return { index: 3, key: 'funded', label: 'Funded', pct: 95 };
-    case 'DECLINED': return { index: 0, key: 'submitted', label: 'Declined', pct: 0 };
-    case 'WITHDRAWN': return { index: 0, key: 'submitted', label: 'Withdrawn', pct: 0 };
-    default: return { index: 0, key: 'submitted', label: String(status), pct: 10 };
+    case 'DRAFT': return k('submitted', 0, 'Draft', 'draft', 5);
+    case 'SUBMITTED': return k('submitted', 0, 'Submitted', 'submitted', 12);
+    case 'UNDER_REVIEW': return k('submitted', 0, 'Under review', 'underReview', 22);
+    case 'CONDITIONAL': return k('approved', 1, 'Conditionally approved', 'conditional', 38);
+    case 'APPROVED': return k('approved', 1, 'Approved', 'approved', 46);
+    case 'PROBLEM': return k('approved', 1, 'Problem — needs attention', 'problem', 40);
+    case 'DOCS_SENT': return k('docs', 2, 'Documents sent', 'docsSent', 58);
+    case 'FUNDING_SUBMITTED': return k('docs', 2, 'Funding submitted', 'fundingSubmitted', 72);
+    case 'FUNDING_REVIEW': return k('docs', 2, 'In funding review', 'fundingReview', 84);
+    case 'FUNDED': return k('funded', 3, 'Funded', 'funded', 95);
+    case 'DECLINED': return k('submitted', 0, 'Declined', 'declined', 0);
+    case 'WITHDRAWN': return k('submitted', 0, 'Withdrawn', 'withdrawn', 0);
+    default: return { index: 0, key: 'submitted', label: String(status), labelKey: `deal.stage.${status}`, pct: 10 };
   }
 }
 
@@ -52,9 +56,10 @@ export function dealGroup(status: ApplicationStatus, isPaid: boolean, hasAction:
   return 'progress';
 }
 
+// Labels/blurbs localized via `deal.group.<key>` / `deal.group.<key>Blurb`.
 export const DEAL_GROUPS: { key: DealGroup; label: string; blurb: string }[] = [
   { key: 'action', label: 'Needs your action', blurb: 'Upload documents, add details, or resolve a flagged problem.' },
-  { key: 'progress', label: 'In progress — with GWA', blurb: 'Submitted and moving through review and funding.' },
+  { key: 'progress', label: 'In progress — with Georgian Water & Air', blurb: 'Submitted and moving through review and funding.' },
   { key: 'done', label: 'Funded & paid', blurb: 'Complete — funds released.' },
   { key: 'closed', label: 'Closed', blurb: 'Declined or withdrawn.' },
 ];

@@ -8,6 +8,8 @@ import {
 import { StatusBadge } from '@/components/StatusBadge';
 import { PinButton } from '@/components/PinButton';
 import { DEAL_COLUMNS, DEAL_GROUPS, type DealGroup, type DealStageKey } from '@/lib/dealerStage';
+import { useT } from '@/i18n/client';
+import type { TFunction } from '@/i18n/translator';
 import type { ApplicationStatus } from '@prisma/client';
 
 export interface DealVM {
@@ -34,11 +36,11 @@ export interface DealVM {
 type ViewKey = 'tracker' | 'pipeline' | 'list' | 'progress';
 type SortKey = 'newest' | 'oldest' | 'amount_high' | 'amount_low' | 'name';
 
-const VIEWS: { key: ViewKey; label: string; Icon: LucideIcon }[] = [
-  { key: 'tracker', label: 'Tracker', Icon: LayoutList },
-  { key: 'pipeline', label: 'Pipeline', Icon: Kanban },
-  { key: 'list', label: 'List', Icon: Table2 },
-  { key: 'progress', label: 'Progress', Icon: GaugeCircle },
+const VIEWS: { key: ViewKey; labelKey: string; Icon: LucideIcon }[] = [
+  { key: 'tracker', labelKey: 'applications.viewTracker', Icon: LayoutList },
+  { key: 'pipeline', labelKey: 'applications.viewPipeline', Icon: Kanban },
+  { key: 'list', labelKey: 'applications.viewList', Icon: Table2 },
+  { key: 'progress', labelKey: 'applications.viewProgress', Icon: GaugeCircle },
 ];
 
 const PAGE = 12;
@@ -57,22 +59,22 @@ function recordView(view: ViewKey) {
   }
 }
 
-function ActionChip({ deal }: { deal: DealVM }) {
+function ActionChip({ deal, t }: { deal: DealVM; t: TFunction }) {
   if (deal.problem) {
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700">
         <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-red-600 text-[9px] font-black leading-none text-white">!</span>
-        Sent back
+        {t('dashboard.sentBack')}
       </span>
     );
   }
   if (deal.readyToSubmit) {
-    return <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-semibold text-green-700">Ready to submit</span>;
+    return <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-semibold text-green-700">{t('applications.readyToSubmit')}</span>;
   }
   if (deal.hasAction) {
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">
-        <AlertTriangle size={11} /> Action needed
+        <AlertTriangle size={11} /> {t('dashboard.actionNeeded')}
       </span>
     );
   }
@@ -91,6 +93,7 @@ function ProgressBar({ pct, problem }: { pct: number; problem?: boolean }) {
 }
 
 export function ApplicationsWorkspace({ deals, initialView }: { deals: DealVM[]; initialView: ViewKey }) {
+  const t = useT();
   const [view, setView] = useState<ViewKey>(initialView);
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<SortKey>('newest');
@@ -138,7 +141,7 @@ export function ApplicationsWorkspace({ deals, initialView }: { deals: DealVM[];
                   on ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'
                 }`}
               >
-                <v.Icon size={16} /> {v.label}
+                <v.Icon size={16} /> {t(v.labelKey)}
               </button>
             );
           })}
@@ -150,7 +153,7 @@ export function ApplicationsWorkspace({ deals, initialView }: { deals: DealVM[];
             <input
               value={query}
               onChange={(e) => { setQuery(e.target.value); setPage(1); }}
-              placeholder="Search deals…"
+              placeholder={t('applications.searchDeals')}
               className="w-full bg-transparent text-sm outline-none"
             />
           </div>
@@ -158,31 +161,31 @@ export function ApplicationsWorkspace({ deals, initialView }: { deals: DealVM[];
             value={sort}
             onChange={(e) => setSort(e.target.value as SortKey)}
             className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm outline-none"
-            aria-label="Sort deals"
+            aria-label={t('applications.sortAria')}
           >
-            <option value="newest">Newest</option>
-            <option value="oldest">Oldest</option>
-            <option value="amount_high">Amount ↑</option>
-            <option value="amount_low">Amount ↓</option>
-            <option value="name">Name A–Z</option>
+            <option value="newest">{t('applications.sortNewest')}</option>
+            <option value="oldest">{t('applications.sortOldest')}</option>
+            <option value="amount_high">{t('applications.sortAmountHigh')}</option>
+            <option value="amount_low">{t('applications.sortAmountLow')}</option>
+            <option value="name">{t('applications.sortName')}</option>
           </select>
         </div>
       </div>
 
       {deals.length === 0 ? (
         <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center text-sm text-gray-500">
-          No customers yet — start with “New customer processing”.
+          {t('applications.noCustomers')}
         </div>
       ) : filtered.length === 0 ? (
         <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center text-sm text-gray-500">
-          No deals match “{query.trim()}”.
+          {t('applications.noMatch', { q: query.trim() })}
         </div>
       ) : (
         <>
-          {view === 'tracker' && <TrackerView deals={filtered} />}
-          {view === 'pipeline' && <PipelineView deals={filtered} />}
-          {view === 'list' && <ListView deals={filtered} page={page} setPage={setPage} />}
-          {view === 'progress' && <ProgressView deals={filtered} page={page} setPage={setPage} />}
+          {view === 'tracker' && <TrackerView deals={filtered} t={t} />}
+          {view === 'pipeline' && <PipelineView deals={filtered} t={t} />}
+          {view === 'list' && <ListView deals={filtered} page={page} setPage={setPage} t={t} />}
+          {view === 'progress' && <ProgressView deals={filtered} page={page} setPage={setPage} t={t} />}
         </>
       )}
     </div>
@@ -190,7 +193,7 @@ export function ApplicationsWorkspace({ deals, initialView }: { deals: DealVM[];
 }
 
 /* ---- Tracker: grouped by what needs action ---- */
-function TrackerView({ deals }: { deals: DealVM[] }) {
+function TrackerView({ deals, t }: { deals: DealVM[]; t: TFunction }) {
   return (
     <div className="space-y-4">
       {DEAL_GROUPS.map((g) => {
@@ -202,9 +205,9 @@ function TrackerView({ deals }: { deals: DealVM[] }) {
             <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-5 py-3">
               <div>
                 <h3 className={`text-sm font-bold ${g.key === 'action' ? 'text-red-700' : 'text-[#0d2a63] dark:text-slate-100'}`}>
-                  {g.label} <span className="ml-1 text-gray-400">{items.length}</span>
+                  {t(`deal.group.${g.key}`)} <span className="ml-1 text-gray-400">{items.length}</span>
                 </h3>
-                <p className="text-xs text-gray-500">{g.blurb}</p>
+                <p className="text-xs text-gray-500">{t(`deal.group.${g.key}Blurb`)}</p>
               </div>
             </div>
             <ul className="divide-y divide-gray-100">
@@ -215,7 +218,7 @@ function TrackerView({ deals }: { deals: DealVM[] }) {
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="truncate text-sm font-semibold text-blue-600">{d.name}</span>
                         <StatusBadge status={d.status} />
-                        <ActionChip deal={d} />
+                        <ActionChip deal={d} t={t} />
                       </div>
                       <div className="mt-0.5 text-xs text-gray-500">{d.program} · {d.province} · {d.amountLabel} · {d.submitted}</div>
                     </div>
@@ -232,7 +235,7 @@ function TrackerView({ deals }: { deals: DealVM[] }) {
 }
 
 /* ---- Pipeline: columns by stage ---- */
-function PipelineView({ deals }: { deals: DealVM[] }) {
+function PipelineView({ deals, t }: { deals: DealVM[]; t: TFunction }) {
   const active = deals.filter((d) => d.group !== 'closed');
   return (
     <div className="overflow-x-auto pb-2">
@@ -242,11 +245,11 @@ function PipelineView({ deals }: { deals: DealVM[] }) {
           return (
             <div key={col.key} className="flex flex-col rounded-2xl border border-gray-200 bg-gray-50 dark:bg-white/5">
               <div className="flex items-center justify-between border-b border-gray-200 px-3 py-2.5">
-                <span className="text-xs font-bold uppercase tracking-wide text-[#0d2a63] dark:text-slate-100">{col.label}</span>
+                <span className="text-xs font-bold uppercase tracking-wide text-[#0d2a63] dark:text-slate-100">{t(`deal.column.${col.key}`)}</span>
                 <span className="rounded-full bg-white px-2 py-0.5 text-xs font-bold text-gray-500 shadow-sm">{items.length}</span>
               </div>
               <div className="space-y-2 p-2">
-                {items.length === 0 && <p className="px-1 py-4 text-center text-xs text-gray-400">Nothing here</p>}
+                {items.length === 0 && <p className="px-1 py-4 text-center text-xs text-gray-400">{t('applications.nothingHere')}</p>}
                 {items.map((d) => (
                   <Link
                     key={d.id}
@@ -255,14 +258,14 @@ function PipelineView({ deals }: { deals: DealVM[] }) {
                   >
                     <div className="flex items-start justify-between gap-2">
                       <span className="truncate text-sm font-semibold text-blue-600">{d.name}</span>
-                      {d.pinned && <span className="text-[10px] font-bold text-blue-500">PINNED</span>}
+                      {d.pinned && <span className="text-[10px] font-bold text-blue-500">{t('applications.pinned')}</span>}
                     </div>
                     <div className="mt-1"><StatusBadge status={d.status} /></div>
                     <div className="mt-2 flex items-center justify-between text-xs text-gray-500">
                       <span>{d.program}</span>
                       <span className="font-semibold text-gray-700">{d.amountLabel}</span>
                     </div>
-                    <div className="mt-2"><ActionChip deal={d} /></div>
+                    <div className="mt-2"><ActionChip deal={d} t={t} /></div>
                   </Link>
                 ))}
               </div>
@@ -275,7 +278,7 @@ function PipelineView({ deals }: { deals: DealVM[] }) {
 }
 
 /* ---- List: detailed table (client-side paged) ---- */
-function ListView({ deals, page, setPage }: { deals: DealVM[]; page: number; setPage: (n: number) => void }) {
+function ListView({ deals, page, setPage, t }: { deals: DealVM[]; page: number; setPage: (n: number) => void; t: TFunction }) {
   const pageCount = Math.max(1, Math.ceil(deals.length / PAGE));
   const cur = Math.min(page, pageCount);
   const rows = deals.slice((cur - 1) * PAGE, cur * PAGE);
@@ -294,7 +297,7 @@ function ListView({ deals, page, setPage }: { deals: DealVM[]; page: number; set
                 <span>{d.program} · {d.province}</span>
                 <span className="font-semibold text-gray-700">{d.amountLabel}</span>
               </div>
-              <div className="mt-1 flex items-center justify-between"><ActionChip deal={d} /><span className="text-xs text-gray-400">{d.submitted}</span></div>
+              <div className="mt-1 flex items-center justify-between"><ActionChip deal={d} t={t} /><span className="text-xs text-gray-400">{d.submitted}</span></div>
             </Link>
           </li>
         ))}
@@ -305,13 +308,13 @@ function ListView({ deals, page, setPage }: { deals: DealVM[]; page: number; set
           <thead>
             <tr className="bg-gray-50 text-[11px] uppercase text-gray-500">
               <th className="w-8 px-2 py-3" aria-label="Pin" />
-              <th className="px-4 py-3 text-left">Applicant</th>
-              <th className="px-4 py-3 text-left">Province</th>
-              <th className="px-4 py-3 text-left">Program</th>
-              <th className="px-4 py-3 text-left">Amount</th>
-              <th className="px-4 py-3 text-left">Status</th>
-              <th className="px-4 py-3 text-left">Submitted</th>
-              <th className="px-4 py-3 text-left">Actions</th>
+              <th className="px-4 py-3 text-left">{t('dashboard.applicant')}</th>
+              <th className="px-4 py-3 text-left">{t('dashboard.province')}</th>
+              <th className="px-4 py-3 text-left">{t('dashboard.program')}</th>
+              <th className="px-4 py-3 text-left">{t('dashboard.amount')}</th>
+              <th className="px-4 py-3 text-left">{t('dashboard.status')}</th>
+              <th className="px-4 py-3 text-left">{t('dashboard.submitted')}</th>
+              <th className="px-4 py-3 text-left">{t('dashboard.actions')}</th>
             </tr>
           </thead>
           <tbody>
@@ -320,7 +323,7 @@ function ListView({ deals, page, setPage }: { deals: DealVM[]; page: number; set
                 <td className="px-2 py-3 align-top"><PinButton applicationId={d.id} pinned={d.pinned} /></td>
                 <td className="px-4 py-3">
                   <Link href={`/dealer/applications/${d.id}`} className="text-sm font-medium text-blue-600 hover:underline">{d.name}</Link>
-                  <div className="mt-1"><ActionChip deal={d} /></div>
+                  <div className="mt-1"><ActionChip deal={d} t={t} /></div>
                 </td>
                 <td className="px-4 py-3 text-sm">{d.province}</td>
                 <td className="px-4 py-3 text-sm">{d.program}</td>
@@ -329,7 +332,7 @@ function ListView({ deals, page, setPage }: { deals: DealVM[]; page: number; set
                 <td className="px-4 py-3 text-sm text-gray-500">{d.submitted}</td>
                 <td className="px-4 py-3">
                   <Link href={`/dealer/applications/${d.id}`} className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-blue-600 hover:bg-blue-50">
-                    <Eye size={14} /> View
+                    <Eye size={14} /> {t('common.view')}
                   </Link>
                 </td>
               </tr>
@@ -337,13 +340,13 @@ function ListView({ deals, page, setPage }: { deals: DealVM[]; page: number; set
           </tbody>
         </table>
       </div>
-      <Pager count={deals.length} page={cur} pageCount={pageCount} setPage={setPage} />
+      <Pager count={deals.length} page={cur} pageCount={pageCount} setPage={setPage} t={t} />
     </div>
   );
 }
 
 /* ---- Progress: a stage bar per deal ---- */
-function ProgressView({ deals, page, setPage }: { deals: DealVM[]; page: number; setPage: (n: number) => void }) {
+function ProgressView({ deals, page, setPage, t }: { deals: DealVM[]; page: number; setPage: (n: number) => void; t: TFunction }) {
   const active = deals.filter((d) => d.group !== 'closed');
   const pageCount = Math.max(1, Math.ceil(active.length / PAGE));
   const cur = Math.min(page, pageCount);
@@ -370,20 +373,20 @@ function ProgressView({ deals, page, setPage }: { deals: DealVM[]; page: number;
           </li>
         ))}
       </ul>
-      <Pager count={active.length} page={cur} pageCount={pageCount} setPage={setPage} />
+      <Pager count={active.length} page={cur} pageCount={pageCount} setPage={setPage} t={t} />
     </div>
   );
 }
 
-function Pager({ count, page, pageCount, setPage }: { count: number; page: number; pageCount: number; setPage: (n: number) => void }) {
+function Pager({ count, page, pageCount, setPage, t }: { count: number; page: number; pageCount: number; setPage: (n: number) => void; t: TFunction }) {
   if (pageCount <= 1) return null;
   return (
     <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3 text-sm text-gray-500">
-      <span>{count} deal{count === 1 ? '' : 's'}</span>
+      <span>{count === 1 ? t('applications.dealCountOne') : t('applications.dealsCount', { n: count })}</span>
       <div className="flex items-center gap-2">
-        <button type="button" disabled={page <= 1} onClick={() => setPage(page - 1)} className="rounded-lg border border-gray-200 px-3 py-1 font-semibold disabled:opacity-40 hover:bg-gray-50">Prev</button>
+        <button type="button" disabled={page <= 1} onClick={() => setPage(page - 1)} className="rounded-lg border border-gray-200 px-3 py-1 font-semibold disabled:opacity-40 hover:bg-gray-50">{t('applications.prev')}</button>
         <span className="tabular-nums">{page} / {pageCount}</span>
-        <button type="button" disabled={page >= pageCount} onClick={() => setPage(page + 1)} className="rounded-lg border border-gray-200 px-3 py-1 font-semibold disabled:opacity-40 hover:bg-gray-50">Next</button>
+        <button type="button" disabled={page >= pageCount} onClick={() => setPage(page + 1)} className="rounded-lg border border-gray-200 px-3 py-1 font-semibold disabled:opacity-40 hover:bg-gray-50">{t('applications.next')}</button>
       </div>
     </div>
   );
