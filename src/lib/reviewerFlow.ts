@@ -1,4 +1,5 @@
 import type { ApplicationStatus } from '@prisma/client';
+import type { TFunction } from '@/i18n/translator';
 
 /**
  * The reviewer's real-world workflow, as eight ordered phases. The reviewer page
@@ -114,5 +115,19 @@ export function dealerFacingStatus(s: FlowSignals): string {
       return 'On hold — we need something from you';
     default:
       return REVIEWER_PHASES[currentPhaseIndex(s) - 1].dealerLabel;
+  }
+}
+
+/** Localized version of {@link dealerFacingStatus}, keyed by phase id. Display only. */
+export function dealerFacingStatusLabel(t: TFunction, s: FlowSignals): string {
+  switch (s.status) {
+    case 'DECLINED':
+      return t('dealerStatus.declined');
+    case 'WITHDRAWN':
+      return t('dealerStatus.withdrawn');
+    case 'PROBLEM':
+      return t('dealerStatus.problem');
+    default:
+      return t(`dealerStatus.phase.${REVIEWER_PHASES[currentPhaseIndex(s) - 1].id}`);
   }
 }

@@ -36,7 +36,7 @@ import { DecisionForm } from './DecisionForm';
 import { PayoutForm } from './PayoutForm';
 import { StatusChangeForm } from './StatusChangeForm';
 import { ReviewerWorkspace } from './ReviewerWorkspace';
-import { reviewerPhaseStates, dealerFacingStatus, currentPhaseIndex, hasDealerReturned, type PhaseState } from '@/lib/reviewerFlow';
+import { reviewerPhaseStates, dealerFacingStatusLabel, currentPhaseIndex, hasDealerReturned, type PhaseState } from '@/lib/reviewerFlow';
 import { exemptionSummary } from '@/lib/tax';
 import { dealHasFinancing, financedAmountOf } from '@/lib/payments';
 import { journalEnabled } from '@/lib/journal';
@@ -48,7 +48,8 @@ import {
   deleteDocumentAction,
 } from '@/app/(staff)/actions';
 import { VerifyFinanceNumberButton } from '@/components/VerifyFinanceNumberButton';
-import { STATUS_LABELS, REVIEWER_PAPERWORK_TYPES, applicableVerificationChecks, decisionLabel, decisionTone } from '@/lib/constants';
+import { STATUS_LABELS, REVIEWER_PAPERWORK_TYPES, applicableVerificationChecks, decisionTone } from '@/lib/constants';
+import { decisionDisplayLabel } from '@/lib/enumLabels';
 import type { ApplicationStatus } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
@@ -280,7 +281,7 @@ export default async function StaffApplicationDetail({
     // Paid = a recorded payout OR the journal showing the deal settled (paid).
     hasPayouts: app.payouts.length > 0 || !!app.journalPaidOn,
   };
-  const dealerStatus = dealerFacingStatus(flowSignals);
+  const dealerStatus = dealerFacingStatusLabel(t, flowSignals);
   const dealFinanced = dealHasFinancing(app);
   const financedAmt = financedAmountOf(app);
 
@@ -698,7 +699,7 @@ export default async function StaffApplicationDetail({
               const tone = decisionTone(d.type);
               return (
                 <li key={d.id} className={`rounded border p-2 ${tone.card}`}>
-                  <span className={`font-semibold ${tone.label}`}>{decisionLabel(d.type)}</span>
+                  <span className={`font-semibold ${tone.label}`}>{decisionDisplayLabel(t, d.type)}</span>
                   {d.notes && <p className="text-gray-700">{d.notes}</p>}
                   <p className="text-xs text-gray-500">{d.decidedBy.name} · {d.createdAt.toLocaleString('en-CA')}</p>
                 </li>

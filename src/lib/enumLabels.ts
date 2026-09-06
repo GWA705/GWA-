@@ -22,6 +22,12 @@ export const programDisplayLabel = (t: TFunction, type: ProgramType, category: P
 
 export const paymentMethodLabel = (t: TFunction, v: PaymentMethod): string => t(`enum.paymentMethod.${v}`);
 
+/** Localized recorded-decision label (APPROVE/CONDITIONAL/…). Display only. */
+export const decisionDisplayLabel = (t: TFunction, type: string): string =>
+  ['APPROVE', 'CONDITIONAL', 'REQUEST_DOCS', 'DECLINE', 'FUND'].includes(type)
+    ? t(`enum.decision.${type}`)
+    : type.replace(/_/g, ' ').toLowerCase();
+
 /**
  * Localized SOAP display label. Mirrors constants.soapLabel: prefers the
  * specific variant, else the legacy Yes/No boolean; returns null when unknown.

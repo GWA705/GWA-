@@ -13,10 +13,10 @@ import { DealProgress } from '@/components/DealProgress';
 import { UploadForm } from '@/components/UploadForm';
 import { SerialNumberForm } from '@/components/SerialNumberForm';
 import { ProductSerialForm } from '@/components/ProductSerialForm';
-import { fundingDocumentTypesFor, STATUS_LABELS, REVIEWER_DISPLAY, decisionLabel, decisionTone } from '@/lib/constants';
-import { programDisplayLabel, soapDisplayLabel } from '@/lib/enumLabels';
+import { fundingDocumentTypesFor, REVIEWER_DISPLAY, decisionTone } from '@/lib/constants';
+import { programDisplayLabel, soapDisplayLabel, decisionDisplayLabel } from '@/lib/enumLabels';
 import { getT } from '@/i18n/server';
-import { dealerFacingStatus, hasDealerReturned } from '@/lib/reviewerFlow';
+import { dealerFacingStatusLabel, hasDealerReturned } from '@/lib/reviewerFlow';
 import { dealerOutstanding } from '@/lib/outstanding';
 import {
   uploadSupportingDocAction,
@@ -105,7 +105,7 @@ export default async function DealerApplicationDetail({
   const dealerReturned = hasDealerReturned(app.documents);
 
   // Plain-language "where your deal stands", kept in step with the reviewer's flow.
-  const whereYouStand = dealerFacingStatus({
+  const whereYouStand = dealerFacingStatusLabel(t, {
     status: app.status,
     reviewerDocsSent: app.documents.some((d) => d.stage === 'REVIEWER'),
     fundingDocsReceived: dealerReturned,
@@ -116,7 +116,7 @@ export default async function DealerApplicationDetail({
     <div className="space-y-6">
       <div>
         <Link href="/dealer" className="text-sm text-gray-500 hover:underline">
-          ← Back to applications
+          {t('dealDetail.backToApplications')}
         </Link>
         <div className="mt-2 flex items-center justify-between">
           <h1 className="text-xl font-semibold text-gray-900">
@@ -125,7 +125,7 @@ export default async function DealerApplicationDetail({
           <StatusBadge status={app.status} />
         </div>
         <p className="mt-2 text-sm text-gray-600">
-          Where your deal stands: <span className="font-semibold text-brand-700">{whereYouStand}</span>
+          {t('dealDetail.whereYouStand')} <span className="font-semibold text-brand-700">{whereYouStand}</span>
         </p>
       </div>
 
@@ -143,7 +143,7 @@ export default async function DealerApplicationDetail({
       {outstanding.hasAction && (
         <section className={`card border p-5 ${outstanding.readyToSubmit ? 'border-green-300 bg-green-50' : 'border-amber-300 bg-amber-50'}`}>
           <h2 className={`mb-2 text-base font-semibold ${outstanding.readyToSubmit ? 'text-green-800' : 'text-amber-900'}`}>
-            {outstanding.readyToSubmit ? '✅ Ready to submit' : '⚠️ What’s needed from you'}
+            {outstanding.readyToSubmit ? t('dealDetail.readyToSubmit') : t('dealDetail.whatsNeeded')}
           </h2>
           <ul className={`space-y-1.5 text-sm ${outstanding.readyToSubmit ? 'text-green-900' : 'text-amber-900'}`}>
             {outstanding.items.map((it, i) => (
@@ -155,7 +155,7 @@ export default async function DealerApplicationDetail({
           </ul>
           {fundingVisible && (
             <a href="#funding-package" className="mt-3 inline-block text-sm font-semibold text-brand-700 hover:underline">
-              Go to funding package →
+              {t('dealDetail.goToFunding')}
             </a>
           )}
         </section>
@@ -165,45 +165,45 @@ export default async function DealerApplicationDetail({
           glance. The detailed application (employment, ID, income, housing) is
           not shown back to the dealer after intake. */}
       <section className="card p-6">
-        <h2 className="mb-4 border-l-4 border-brand-500 pl-2.5 text-lg font-bold text-gray-900">Customer snapshot</h2>
+        <h2 className="mb-4 border-l-4 border-brand-500 pl-2.5 text-lg font-bold text-gray-900">{t('dealDetail.customerSnapshot')}</h2>
         <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3 [&>div]:min-w-0 [&_dd]:break-words">
           <div className="col-span-2 sm:col-span-3">
-            <dt className="text-gray-500">Product(s) sold</dt>
+            <dt className="text-gray-500">{t('dealDetail.productsSold')}</dt>
             <dd className="font-medium">{app.productsSold.length ? app.productsSold.join(', ') : '—'}</dd>
           </div>
-          <div><dt className="text-gray-500">Program</dt><dd className="font-medium">{programDisplayLabel(t, app.programType, app.programCategory)}</dd></div>
-          <div><dt className="text-gray-500">Salesperson</dt><dd className="font-medium">{app.salespersonName ?? '—'}</dd></div>
-          <div><dt className="text-gray-500">Installer</dt><dd className="font-medium">{app.installerName ?? '—'}</dd></div>
-          <div><dt className="text-gray-500">SOAP included</dt><dd className="font-medium">{soapDisplayLabel(t, app.soapType, app.soapIncluded) ?? '—'}</dd></div>
-          <div><dt className="text-gray-500">Requested</dt><dd className="font-medium">${app.requestedAmount.toString()}</dd></div>
-          <div><dt className="text-gray-500">Approved amount</dt><dd className="font-medium">{app.approvedAmount ? `$${app.approvedAmount.toString()}` : '—'}</dd></div>
-          <div><dt className="text-gray-500">Finance company</dt><dd className="font-medium">{app.financeCompany?.name ?? '—'}</dd></div>
-          <div><dt className="text-gray-500">Date of sale</dt><dd className="font-medium">{app.dateOfSale ? app.dateOfSale.toLocaleDateString('en-CA') : '—'}</dd></div>
-          <div><dt className="text-gray-500">Installation date</dt><dd className="font-medium">{app.installationDate ? app.installationDate.toLocaleDateString('en-CA') : '—'}</dd></div>
-          <div><dt className="text-gray-500">HD store</dt><dd className="font-medium">{app.homeDepotStore ? app.homeDepotStore.number : '—'}</dd></div>
-          <div><dt className="text-gray-500">City</dt><dd className="font-medium">{app.loanApplication?.city ?? '—'}</dd></div>
-          <div><dt className="text-gray-500">Province</dt><dd className="font-medium">{app.province}</dd></div>
-          <div><dt className="text-gray-500">Postal code</dt><dd className="font-medium">{app.loanApplication?.postalCode ?? '—'}</dd></div>
-          <div><dt className="text-gray-500">Phone</dt><dd className="font-medium">{app.applicantPhone}</dd></div>
-          <div><dt className="text-gray-500">Email</dt><dd className="font-medium">{app.applicantEmail}</dd></div>
-          <div><dt className="text-gray-500">Financing deal number</dt><dd className="font-medium">{app.financeItNumber ?? '—'}</dd></div>
-          <div><dt className="text-gray-500">HD Customer #</dt><dd className="font-medium">{app.hdReference ?? '—'}</dd></div>
+          <div><dt className="text-gray-500">{t('dealDetail.program')}</dt><dd className="font-medium">{programDisplayLabel(t, app.programType, app.programCategory)}</dd></div>
+          <div><dt className="text-gray-500">{t('dealDetail.salesperson')}</dt><dd className="font-medium">{app.salespersonName ?? '—'}</dd></div>
+          <div><dt className="text-gray-500">{t('dealDetail.installer')}</dt><dd className="font-medium">{app.installerName ?? '—'}</dd></div>
+          <div><dt className="text-gray-500">{t('dealDetail.soapIncluded')}</dt><dd className="font-medium">{soapDisplayLabel(t, app.soapType, app.soapIncluded) ?? '—'}</dd></div>
+          <div><dt className="text-gray-500">{t('dealDetail.requested')}</dt><dd className="font-medium">${app.requestedAmount.toString()}</dd></div>
+          <div><dt className="text-gray-500">{t('dealDetail.approvedAmount')}</dt><dd className="font-medium">{app.approvedAmount ? `$${app.approvedAmount.toString()}` : '—'}</dd></div>
+          <div><dt className="text-gray-500">{t('dealDetail.financeCompany')}</dt><dd className="font-medium">{app.financeCompany?.name ?? '—'}</dd></div>
+          <div><dt className="text-gray-500">{t('dealDetail.dateOfSale')}</dt><dd className="font-medium">{app.dateOfSale ? app.dateOfSale.toLocaleDateString('en-CA') : '—'}</dd></div>
+          <div><dt className="text-gray-500">{t('dealDetail.installationDate')}</dt><dd className="font-medium">{app.installationDate ? app.installationDate.toLocaleDateString('en-CA') : '—'}</dd></div>
+          <div><dt className="text-gray-500">{t('dealDetail.hdStore')}</dt><dd className="font-medium">{app.homeDepotStore ? app.homeDepotStore.number : '—'}</dd></div>
+          <div><dt className="text-gray-500">{t('dealDetail.city')}</dt><dd className="font-medium">{app.loanApplication?.city ?? '—'}</dd></div>
+          <div><dt className="text-gray-500">{t('dealDetail.province')}</dt><dd className="font-medium">{app.province}</dd></div>
+          <div><dt className="text-gray-500">{t('dealDetail.postalCode')}</dt><dd className="font-medium">{app.loanApplication?.postalCode ?? '—'}</dd></div>
+          <div><dt className="text-gray-500">{t('dealDetail.phone')}</dt><dd className="font-medium">{app.applicantPhone}</dd></div>
+          <div><dt className="text-gray-500">{t('dealDetail.email')}</dt><dd className="font-medium">{app.applicantEmail}</dd></div>
+          <div><dt className="text-gray-500">{t('dealDetail.financingDealNumber')}</dt><dd className="font-medium">{app.financeItNumber ?? '—'}</dd></div>
+          <div><dt className="text-gray-500">{t('dealDetail.hdCustomerNumber')}</dt><dd className="font-medium">{app.hdReference ?? '—'}</dd></div>
         </dl>
         {app.financingNote && (
-          <p className="mt-4 rounded bg-gray-50 p-3 text-sm text-gray-600"><span className="font-medium text-gray-700">Financing note: </span>{app.financingNote}</p>
+          <p className="mt-4 rounded bg-gray-50 p-3 text-sm text-gray-600"><span className="font-medium text-gray-700">{t('dealDetail.financingNoteLabel')}</span>{app.financingNote}</p>
         )}
       </section>
 
       {/* Decisions / reviewer notes */}
       {app.decisions.length > 0 && (
         <section className="card p-6">
-          <h2 className="mb-3 border-l-4 border-brand-500 pl-2.5 text-lg font-bold text-gray-900">Review decisions</h2>
+          <h2 className="mb-3 border-l-4 border-brand-500 pl-2.5 text-lg font-bold text-gray-900">{t('dealDetail.reviewDecisions')}</h2>
           <ul className="space-y-2 text-sm">
             {app.decisions.map((d) => {
               const tone = decisionTone(d.type);
               return (
                 <li key={d.id} className={`rounded border p-3 ${tone.card}`}>
-                  <span className={`font-semibold ${tone.label}`}>{decisionLabel(d.type)}</span>
+                  <span className={`font-semibold ${tone.label}`}>{decisionDisplayLabel(t, d.type)}</span>
                   {d.notes && <p className="mt-1 text-gray-700">{d.notes}</p>}
                   <p className="mt-1 text-xs text-gray-500">
                     {REVIEWER_DISPLAY} · {d.createdAt.toLocaleString('en-CA')}
@@ -222,28 +222,28 @@ export default async function DealerApplicationDetail({
       {/* Confirmation */}
       <section className="card p-6">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="border-l-4 border-brand-500 pl-2.5 text-lg font-bold text-gray-900">Confirmation</h2>
+          <h2 className="border-l-4 border-brand-500 pl-2.5 text-lg font-bold text-gray-900">{t('dealDetail.confirmation')}</h2>
           <ConfirmationBadge status={app.confirmationStatus} />
         </div>
         {app.confirmation && app.confirmationStatus !== 'PENDING' ? (
           <ConfirmationView c={app.confirmation} anonymizeStaff />
         ) : (
-          <p className="text-sm text-gray-500">This deal has not been confirmed yet.</p>
+          <p className="text-sm text-gray-500">{t('dealDetail.notConfirmedYet')}</p>
         )}
       </section>
 
       {/* Documents for approval */}
       <section className="card p-6">
-        <h2 className="mb-3 border-l-4 border-brand-500 pl-2.5 text-lg font-bold text-gray-900">Documents for approval</h2>
+        <h2 className="mb-3 border-l-4 border-brand-500 pl-2.5 text-lg font-bold text-gray-900">{t('dealDetail.documentsForApproval')}</h2>
         <DocumentList documents={applicationDocs} deleteAction={deleteOwnDocumentAction} />
         <div className="mt-4 border-t border-gray-100 pt-4">
           <UploadForm
             action={uploadSupportingDocAction.bind(null, app.id)}
-            label="Upload document"
+            label={t('dealDetail.uploadDocument')}
             categories={[
-              { value: 'BILL_OF_SALE', label: 'Bill of Sale' },
-              { value: 'APPLICATION_INFO', label: 'Application info' },
-              { value: 'OTHER', label: 'Other (type it)' },
+              { value: 'BILL_OF_SALE', label: t('dealDetail.catBillOfSale') },
+              { value: 'APPLICATION_INFO', label: t('dealDetail.catApplicationInfo') },
+              { value: 'OTHER', label: t('dealDetail.catOther') },
             ]}
           />
         </div>
@@ -252,8 +252,8 @@ export default async function DealerApplicationDetail({
       {/* Paperwork for your Customer */}
       {gwaDocs.length > 0 && (
         <section className="card p-6">
-          <h2 className="mb-1 border-l-4 border-brand-500 pl-2.5 text-lg font-bold text-gray-900">Paperwork for Customer</h2>
-          <p className="mb-4 text-xs text-gray-500">Documents from the Georgian Water &amp; Air team — view in your browser or download to share with your customer.</p>
+          <h2 className="mb-1 border-l-4 border-brand-500 pl-2.5 text-lg font-bold text-gray-900">{t('dealDetail.paperworkForCustomer')}</h2>
+          <p className="mb-4 text-xs text-gray-500">{t('dealDetail.paperworkHint')}</p>
           <PaperworkCards documents={gwaDocs} />
         </section>
       )}
@@ -262,7 +262,7 @@ export default async function DealerApplicationDetail({
           (owner / main contact) sees it, not every dealer user. */}
       {user.isDistributor && app.payouts.length > 0 && (
         <section className="card p-6">
-          <h2 className="mb-3 border-l-4 border-brand-500 pl-2.5 text-lg font-bold text-gray-900">Payout receipt</h2>
+          <h2 className="mb-3 border-l-4 border-brand-500 pl-2.5 text-lg font-bold text-gray-900">{t('dealDetail.payoutReceipt')}</h2>
           <PayoutReceipt payouts={app.payouts} />
         </section>
       )}
@@ -271,18 +271,18 @@ export default async function DealerApplicationDetail({
       {fundingVisible && (
         <section id="funding-package" className="card scroll-mt-4 p-6">
           <div className="mb-1 flex items-center justify-between">
-            <h2 className="border-l-4 border-brand-500 pl-2.5 text-lg font-bold text-gray-900">Funding package</h2>
-            <span className="text-xs text-gray-500">Status: {STATUS_LABELS[app.status]}</span>
+            <h2 className="border-l-4 border-brand-500 pl-2.5 text-lg font-bold text-gray-900">{t('dealDetail.fundingPackage')}</h2>
+            <span className="text-xs text-gray-500">{t('dealDetail.statusPrefix')} {t(`enum.status.${app.status}`)}</span>
           </div>
           <p className="mb-4 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
-            <span><span className="mr-1 inline-block h-2.5 w-2.5 rounded-full bg-red-400 align-middle" />Missing</span>
-            <span><span className="mr-1 inline-block h-2.5 w-2.5 rounded-full bg-amber-400 align-middle" />Uploaded — pending Georgian Water &amp; Air review</span>
-            <span><span className="mr-1 inline-block h-2.5 w-2.5 rounded-full bg-green-500 align-middle" />Confirmed by Georgian Water &amp; Air</span>
+            <span><span className="mr-1 inline-block h-2.5 w-2.5 rounded-full bg-red-400 align-middle" />{t('dealDetail.legendMissing')}</span>
+            <span><span className="mr-1 inline-block h-2.5 w-2.5 rounded-full bg-amber-400 align-middle" />{t('dealDetail.legendUploaded')}</span>
+            <span><span className="mr-1 inline-block h-2.5 w-2.5 rounded-full bg-green-500 align-middle" />{t('dealDetail.legendConfirmed')}</span>
           </p>
 
           {/* Serial numbers */}
           <div className="mb-6">
-            <h3 className="mb-2 text-sm font-medium text-gray-700">Serial number(s)</h3>
+            <h3 className="mb-2 text-sm font-medium text-gray-700">{t('dealDetail.serialNumbers')}</h3>
             {requiresSerials ? (
               // One required serial per selected product (finance-company rule).
               canUploadFunding ? (
@@ -309,7 +309,7 @@ export default async function DealerApplicationDetail({
                     ))}
                   </ul>
                 ) : (
-                  <p className="mb-3 text-sm text-gray-500">No serial numbers added yet.</p>
+                  <p className="mb-3 text-sm text-gray-500">{t('dealDetail.noSerialsYet')}</p>
                 )}
                 {canUploadFunding && <SerialNumberForm action={addSerialNumberAction.bind(null, app.id)} />}
               </>
@@ -318,22 +318,22 @@ export default async function DealerApplicationDetail({
 
           {/* Funding document checklist */}
           <div className="space-y-3">
-            <h3 className="text-sm font-medium text-gray-700">Funding documents</h3>
-            <p className="text-xs text-gray-500">Add each one as you get it — snap a photo or choose files right on its line. You don&apos;t have to do them all at once.</p>
+            <h3 className="text-sm font-medium text-gray-700">{t('dealDetail.fundingDocuments')}</h3>
+            <p className="text-xs text-gray-500">{t('dealDetail.fundingDocsHint')}</p>
             {canUploadFunding && (
-              <p className="text-xs text-amber-700">⚠ Do not upload payment cards — Credit Cards, HD Consumer Cards, and FinanceIT one-time-use cards are automatically rejected.</p>
+              <p className="text-xs text-amber-700">{t('dealDetail.noPaymentCards')}</p>
             )}
 
             <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-            {requiredFunding.map((t) => {
-              const uploaded = fundingDocs.filter((d) => d.type === t.type);
+            {requiredFunding.map((ft) => {
+              const uploaded = fundingDocs.filter((d) => d.type === ft.type);
               const confirmed = uploaded.some((d) => d.verifiedAt);
               const state = confirmed ? 'confirmed' : uploaded.length > 0 ? 'pending' : 'missing';
               const badgeCls =
                 state === 'confirmed' ? 'bg-green-100 text-green-800'
                   : state === 'pending' ? 'bg-amber-100 text-amber-800'
                     : 'bg-red-100 text-red-700';
-              const badgeLabel = state === 'confirmed' ? 'Confirmed' : state === 'pending' ? 'Pending review' : 'Missing';
+              const badgeLabel = state === 'confirmed' ? t('dealDetail.badgeConfirmed') : state === 'pending' ? t('dealDetail.badgePendingReview') : t('dealDetail.badgeMissing');
               const dotCls =
                 state === 'confirmed' ? 'bg-green-100 text-green-700'
                   : state === 'pending' ? 'bg-amber-100 text-amber-700'
@@ -346,28 +346,28 @@ export default async function DealerApplicationDetail({
                   : state === 'pending' ? 'border-amber-300 bg-amber-50'
                     : 'border-red-300 bg-red-50';
               return (
-                <div key={t.type} className={`rounded border p-3 ${cardCls}`}>
+                <div key={ft.type} className={`rounded border p-3 ${cardCls}`}>
                   <div className="flex items-center justify-between">
                     <span className="flex items-center gap-2 border-l-4 border-brand-500 pl-2.5 text-lg font-bold text-gray-900">
                       <span className={`flex h-6 w-6 flex-none items-center justify-center rounded-full text-xs font-bold ${dotCls}`} aria-hidden>
                         {dotIcon}
                       </span>
-                      {t.label}
-                      {!t.required && <span className="text-xs font-normal text-gray-400">(optional)</span>}
+                      {ft.label}
+                      {!ft.required && <span className="text-xs font-normal text-gray-400">{t('dealDetail.optional')}</span>}
                     </span>
                     <span className={`badge ${badgeCls}`}>{badgeLabel}</span>
                   </div>
                   {uploaded.length > 0 && (
                     <div className="mt-1.5 pl-8 text-xs">
                       <span className="font-medium text-green-700">
-                        ✓ {confirmed ? 'Upload complete — confirmed by Georgian Water & Air' : 'Uploaded — pending Georgian Water & Air review'}
-                        {uploaded.length > 1 ? ` · ${uploaded.length} files` : ''}
+                        ✓ {confirmed ? t('dealDetail.uploadCompleteConfirmed') : t('dealDetail.uploadedPending')}
+                        {uploaded.length > 1 ? ` · ${t('dealDetail.filesCount', { n: uploaded.length })}` : ''}
                       </span>
                       <span className="ml-3 inline-flex flex-wrap gap-3 text-gray-500">
                         {uploaded.map((u, i) => (
                           <span key={u.id} className="inline-flex items-center gap-2">
                             <DocViewer id={u.id} fileName={u.fileName} mimeType={u.mimeType} className="text-brand-700 hover:underline">
-                              View{uploaded.length > 1 ? ` ${i + 1}` : ''}
+                              {t('dealDetail.view')}{uploaded.length > 1 ? ` ${i + 1}` : ''}
                             </DocViewer>
                             {!u.verifiedAt && canUploadFunding && (
                               <DeleteDocumentButton documentId={u.id} fileName={u.fileName} action={deleteOwnDocumentAction} />
@@ -381,8 +381,8 @@ export default async function DealerApplicationDetail({
                     <div className="pl-8">
                       <FundingItemUploader
                         action={uploadFundingBatchAction.bind(null, app.id)}
-                        category={t.type}
-                        isOther={t.type === 'OTHER'}
+                        category={ft.type}
+                        isOther={ft.type === 'OTHER'}
                       />
                     </div>
                   )}
@@ -396,14 +396,14 @@ export default async function DealerApplicationDetail({
             <form action={submitFunding} className="mt-6 flex flex-wrap items-center justify-end gap-3">
               {!serialsComplete && (
                 <span className="text-xs font-medium text-amber-700">
-                  Enter a serial number for every product above before submitting.
+                  {t('dealDetail.serialPerProductWarning')}
                 </span>
               )}
               {serialsComplete && missingCount > 0 && (
-                <span className="text-xs text-gray-500">{missingCount} still missing — you can submit now and add the rest later</span>
+                <span className="text-xs text-gray-500">{t('dealDetail.stillMissing', { n: missingCount })}</span>
               )}
               <button type="submit" className="btn-primary" disabled={!serialsComplete}>
-                Submit funding package
+                {t('dealDetail.submitFundingPackage')}
               </button>
             </form>
           )}
@@ -412,13 +412,13 @@ export default async function DealerApplicationDetail({
 
       {/* Status history */}
       <section className="card p-6">
-        <h2 className="mb-3 border-l-4 border-brand-500 pl-2.5 text-lg font-bold text-gray-900">History</h2>
+        <h2 className="mb-3 border-l-4 border-brand-500 pl-2.5 text-lg font-bold text-gray-900">{t('dealDetail.history')}</h2>
         <ul className="space-y-2 text-sm">
           {app.statusEvents.map((e) => (
             <li key={e.id} className="flex items-center justify-between">
               <span>
-                {e.from ? `${STATUS_LABELS[e.from]} → ` : ''}
-                <span className="font-medium">{STATUS_LABELS[e.to]}</span>
+                {e.from ? `${t(`enum.status.${e.from}`)} → ` : ''}
+                <span className="font-medium">{t(`enum.status.${e.to}`)}</span>
                 {e.note && <span className="ml-2 text-gray-500">— {e.note}</span>}
               </span>
               <span className="text-xs text-gray-400">{e.createdAt.toLocaleString('en-CA')}</span>

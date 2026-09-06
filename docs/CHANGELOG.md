@@ -28,6 +28,18 @@ source of truth; this file is the human-readable index.
 | Bell Total Connect voicemail | 📝 Documented, not built here | Guide delivered for the **booking site** (voicemail-to-email + IMAP). Not part of this portal. |
 
 ## 2026-09-06
+- **Bilingual coverage — deal-detail page (dealer).** Translated the dealer
+  deal-detail page to fr-CA (draft): header + "where your deal stands",
+  customer snapshot, review decisions, confirmation, documents-for-approval,
+  paperwork-for-customer, payout receipt, the whole funding-package section
+  (legend, serials, per-document checklist, badges, submit), and the status
+  history (via `enum.status`). New `dealDetail` namespace. Also localized two
+  shared display helpers used here and on the staff deal page: the "where you
+  stand" label (`dealerFacingStatusLabel`, keyed by reviewer-phase id →
+  `dealerStatus.*`) and recorded-decision labels (`decisionDisplayLabel` →
+  `enum.decision.*`). Still English (lib-driven, shared with staff/email paths —
+  a later careful pass): the "what's needed" outstanding items and the
+  funding-document type labels.
 - **Deal enum labels — staff/reviewer display too (site-wide).** Extended the
   display-only enum layer to the staff surfaces: the reviewer queue (program +
   category columns), the staff deal-detail page (program badge, payment method),
