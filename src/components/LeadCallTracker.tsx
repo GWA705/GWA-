@@ -4,19 +4,20 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { logLeadCallAction, deleteLeadCallAction } from '@/lib/leadCallActions';
 import type { LeadCallRow } from '@/lib/leadCalls';
+import { useT } from '@/i18n/client';
+import type { TFunction } from '@/i18n/translator';
 
 // `short` is the compact button face; `label` is the full wording used in the
-// status pill and the logged-call history.
-const OUTCOMES: { key: string; short: string; label: string; emoji: string; color: string }[] = [
-  { key: 'NO_ANSWER', short: 'NA', label: 'No answer', emoji: '📵', color: 'bg-amber-500 hover:bg-amber-600' },
-  { key: 'LEFT_MESSAGE', short: 'LM', label: 'Left message', emoji: '💬', color: 'bg-sky-500 hover:bg-sky-600' },
-  { key: 'SPOKE', short: 'Spoke', label: 'Spoke', emoji: '🗣️', color: 'bg-indigo-500 hover:bg-indigo-600' },
-  { key: 'BOOKED', short: 'Booked', label: 'Booked', emoji: '✅', color: 'bg-emerald-600 hover:bg-emerald-700' },
-  { key: 'SOLD', short: 'SOLD', label: 'Sold', emoji: '💰', color: 'bg-violet-600 hover:bg-violet-700' },
-  { key: 'NOT_INTERESTED', short: 'NI', label: 'Not interested', emoji: '🚫', color: 'bg-rose-500 hover:bg-rose-600' },
+// status pill and the logged-call history. Text is resolved from the dictionary
+// at render (see buildOutcomes); only key/emoji/color are static here.
+const OUTCOME_META: { key: string; shortKey: string; labelKey: string; emoji: string; color: string }[] = [
+  { key: 'NO_ANSWER', shortKey: 'ocNoAnswerShort', labelKey: 'ocNoAnswer', emoji: '📵', color: 'bg-amber-500 hover:bg-amber-600' },
+  { key: 'LEFT_MESSAGE', shortKey: 'ocLeftMessageShort', labelKey: 'ocLeftMessage', emoji: '💬', color: 'bg-sky-500 hover:bg-sky-600' },
+  { key: 'SPOKE', shortKey: 'ocSpokeShort', labelKey: 'ocSpoke', emoji: '🗣️', color: 'bg-indigo-500 hover:bg-indigo-600' },
+  { key: 'BOOKED', shortKey: 'ocBookedShort', labelKey: 'ocBooked', emoji: '✅', color: 'bg-emerald-600 hover:bg-emerald-700' },
+  { key: 'SOLD', shortKey: 'ocSoldShort', labelKey: 'ocSold', emoji: '💰', color: 'bg-violet-600 hover:bg-violet-700' },
+  { key: 'NOT_INTERESTED', shortKey: 'ocNotInterestedShort', labelKey: 'ocNotInterested', emoji: '🚫', color: 'bg-rose-500 hover:bg-rose-600' },
 ];
-const LABELS: Record<string, string> = Object.fromEntries(OUTCOMES.map((o) => [o.key, o.label]));
-LABELS.NOTE = 'Note';
 
 const TONE: Record<string, { pill: string; dot: string; chip: string }> = {
   grey: { pill: 'bg-gray-100 text-gray-600', dot: 'bg-gray-400', chip: 'bg-gray-100 text-gray-600' },
@@ -27,21 +28,21 @@ const TONE: Record<string, { pill: string; dot: string; chip: string }> = {
   violet: { pill: 'bg-violet-100 text-violet-800', dot: 'bg-violet-500', chip: 'bg-violet-100 text-violet-800' },
 };
 
-function derive(calls: { outcome: string }[]): { tone: keyof typeof TONE; label: string; next: string | null } {
-  if (calls.length === 0) return { tone: 'grey', label: 'Not called yet', next: 'Call now' };
+function derive(calls: { outcome: string }[], t: TFunction): { tone: keyof typeof TONE; label: string; next: string | null } {
+  if (calls.length === 0) return { tone: 'grey', label: t('leads.dNotCalled'), next: t('leads.nextCallNow') };
   const noAns = calls.filter((c) => c.outcome === 'NO_ANSWER').length;
   const last = calls[calls.length - 1].outcome;
   switch (last) {
-    case 'SOLD': return { tone: 'violet', label: 'Sold ✓', next: null };
-    case 'BOOKED': return { tone: 'green', label: 'Booked ✓', next: null };
-    case 'NOT_INTERESTED': return { tone: 'grey', label: 'Not interested', next: null };
-    case 'SPOKE': return { tone: 'teal', label: 'Spoke', next: 'Follow up / book' };
-    case 'LEFT_MESSAGE': return { tone: 'amber', label: 'Left message', next: 'Follow up' };
+    case 'SOLD': return { tone: 'violet', label: t('leads.dSold'), next: null };
+    case 'BOOKED': return { tone: 'green', label: t('leads.dBooked'), next: null };
+    case 'NOT_INTERESTED': return { tone: 'grey', label: t('leads.dNotInterested'), next: null };
+    case 'SPOKE': return { tone: 'teal', label: t('leads.dSpoke'), next: t('leads.nextFollowUpBook') };
+    case 'LEFT_MESSAGE': return { tone: 'amber', label: t('leads.dLeftMessage'), next: t('leads.nextFollowUp') };
     case 'NO_ANSWER':
       return noAns >= 2
-        ? { tone: 'red', label: `${noAns} attempts · no answer`, next: 'Call another time' }
-        : { tone: 'amber', label: '1 attempt · no answer', next: 'Try again' };
-    default: return { tone: 'grey', label: 'Note logged', next: 'Follow up' };
+        ? { tone: 'red', label: t('leads.dNoAnswerN', { n: noAns }), next: t('leads.nextCallAnother') }
+        : { tone: 'amber', label: t('leads.dNoAnswer1'), next: t('leads.nextTryAgain') };
+    default: return { tone: 'grey', label: t('leads.dNoteLogged'), next: t('leads.nextFollowUp') };
   }
 }
 
@@ -50,13 +51,20 @@ function fmt(iso: string) {
 }
 
 export function LeadCallTracker({ leadKey, initial }: { leadKey: string; initial: LeadCallRow[] }) {
+  const tr = useT();
+  const OUTCOMES = OUTCOME_META.map((o) => ({ ...o, short: tr(`leads.${o.shortKey}`), label: tr(`leads.${o.labelKey}`) }));
+  const outcomeLabel = (key: string): string => {
+    if (key === 'NOTE') return tr('leads.ocNote');
+    const m = OUTCOME_META.find((o) => o.key === key);
+    return m ? tr(`leads.${m.labelKey}`) : key;
+  };
   const [calls, setCalls] = useState<LeadCallRow[]>(initial);
   const [note, setNote] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [, start] = useTransition();
   const router = useRouter();
 
-  const s = derive(calls);
+  const s = derive(calls, tr);
 
   function log(outcome: string) {
     const n = note.trim();
@@ -66,7 +74,7 @@ export function LeadCallTracker({ leadKey, initial }: { leadKey: string; initial
       id: `tmp-${Date.now()}`,
       outcome,
       note: n || null,
-      actorName: 'You',
+      actorName: tr('leads.you'),
       createdAt: new Date().toISOString(),
     };
     setCalls((c) => [...c, optimistic]);
@@ -102,11 +110,11 @@ export function LeadCallTracker({ leadKey, initial }: { leadKey: string; initial
         <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${t.pill}`}>
           <span className={`h-1.5 w-1.5 rounded-full ${t.dot}`} /> {s.label}
         </span>
-        {s.next && <span className="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700">Next: {s.next}</span>}
-        <span className="ml-auto text-xs text-gray-400">{calls.length > 0 ? `${calls.length} logged` : ''}</span>
+        {s.next && <span className="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700">{tr('leads.nextTitle', { next: s.next })}</span>}
+        <span className="ml-auto text-xs text-gray-400">{calls.length > 0 ? tr('leads.loggedCount', { n: calls.length }) : ''}</span>
       </div>
 
-      <div className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Log a call</div>
+      <div className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">{tr('leads.logACall')}</div>
       <div className="mt-1.5 flex flex-wrap gap-1.5">
         {OUTCOMES.map((o) => (
           <button
@@ -114,7 +122,7 @@ export function LeadCallTracker({ leadKey, initial }: { leadKey: string; initial
             type="button"
             onClick={() => log(o.key)}
             title={o.label}
-            aria-label={`Log: ${o.label}`}
+            aria-label={tr('leads.logAria', { label: o.label })}
             className={`inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition active:scale-95 ${o.color}`}
           >
             <span aria-hidden>{o.emoji}</span> {o.short}
@@ -126,10 +134,10 @@ export function LeadCallTracker({ leadKey, initial }: { leadKey: string; initial
           value={note}
           onChange={(e) => setNote(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); log('NOTE'); } }}
-          placeholder="Optional note (e.g. call back after 5pm)"
+          placeholder={tr('leads.notePlaceholder')}
           className="input flex-1 py-1.5 text-sm"
         />
-        <button type="button" onClick={() => log('NOTE')} className="rounded-lg bg-slate-700 px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 active:scale-95">Add note</button>
+        <button type="button" onClick={() => log('NOTE')} className="rounded-lg bg-slate-700 px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 active:scale-95">{tr('leads.addNote')}</button>
       </div>
       {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
 
@@ -139,12 +147,12 @@ export function LeadCallTracker({ leadKey, initial }: { leadKey: string; initial
             <li key={c.id} className="flex items-start gap-2 text-xs text-gray-600">
               <span className="mt-0.5 text-gray-300">•</span>
               <span className="min-w-0 flex-1">
-                <span className="font-semibold text-gray-800">{LABELS[c.outcome] ?? c.outcome}</span>
+                <span className="font-semibold text-gray-800">{outcomeLabel(c.outcome)}</span>
                 <span className="text-gray-400"> · {fmt(c.createdAt)}</span>
                 {c.actorName && <span className="text-gray-500"> · {c.actorName}</span>}
                 {c.note && <span className="block text-gray-500">“{c.note}”</span>}
               </span>
-              <button type="button" onClick={() => remove(c.id)} className="shrink-0 text-gray-300 hover:text-red-500" title="Remove">✕</button>
+              <button type="button" onClick={() => remove(c.id)} className="shrink-0 text-gray-300 hover:text-red-500" title={tr('leads.removeCall')}>✕</button>
             </li>
           ))}
         </ul>

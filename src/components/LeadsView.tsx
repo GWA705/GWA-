@@ -2,6 +2,8 @@ import Link from 'next/link';
 import type { Lead } from '@/lib/leads';
 import { leadKeyOf } from '@/lib/leads';
 import { leadCallStatus, type LeadCallRow } from '@/lib/leadCalls';
+import { getT } from '@/i18n/server';
+import type { TFunction } from '@/i18n/translator';
 import { LeadCallTracker } from './LeadCallTracker';
 import { LeadNoGoodControl } from './LeadNoGoodControl';
 import { LeadsMonthDropdown } from './LeadsMonthDropdown';
@@ -133,6 +135,7 @@ function LeadRow({
   stripe,
   storeLabel,
   isStaff,
+  t,
 }: {
   l: Lead;
   leadKey: string;
@@ -141,19 +144,20 @@ function LeadRow({
   stripe: string;
   storeLabel: (n: string) => string;
   isStaff: boolean;
+  t: TFunction;
 }) {
   return (
     <details className="group overflow-hidden rounded-xl border border-gray-200 bg-white transition hover:border-gray-300 hover:shadow-sm open:shadow-sm">
       <summary className={`flex cursor-pointer list-none items-center gap-3 border-l-[6px] ${stripe} rounded-l-xl px-4 py-3 hover:bg-gray-50 group-open:bg-gray-50/60`}>
         <span className="min-w-0 flex-1">
-          <span className="block truncate font-semibold text-gray-900">{titleCase(l.customerName) || '(no name)'}</span>
+          <span className="block truncate font-semibold text-gray-900">{titleCase(l.customerName) || t('leads.noName')}</span>
           <span className="mt-0.5 block truncate text-xs text-gray-500">
             {l.storeNumber ? storeLabel(l.storeNumber) : l.service || fmtDate(l.dateReceived, l.dateText)}
           </span>
         </span>
         <span className="hidden shrink-0 text-xs text-gray-500 md:inline">{l.phone}</span>
-        <span className={`badge shrink-0 ${l.noGood ? 'bg-red-100 text-red-700' : CALL_CHIP[cs.tone]}`} title={cs.next ? `Next: ${cs.next}` : undefined}>
-          {l.noGood ? 'No-good' : cs.label}
+        <span className={`badge shrink-0 ${l.noGood ? 'bg-red-100 text-red-700' : CALL_CHIP[cs.tone]}`} title={cs.next ? t('leads.nextTitle', { next: cs.next }) : undefined}>
+          {l.noGood ? t('leads.noGood') : cs.label}
         </span>
         <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-gray-200 text-[11px] text-gray-400 transition group-hover:border-gray-300 group-hover:text-gray-600 group-open:rotate-180" aria-hidden>▾</span>
       </summary>
@@ -165,15 +169,15 @@ function LeadRow({
           {l.bookingId && ` · #${l.bookingId}`}
         </div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          <Field label="Phone" value={l.phone} />
-          <Field label="Email" value={l.email} />
-          <Field label="Contact pref" value={l.contactPreference} />
-          <div className="col-span-2 sm:col-span-3"><Field label="Address" value={l.address} /></div>
-          <Field label="Emergency" value={l.emergency} />
-          <Field label="Financing" value={l.financing} />
-          <Field label="Forwarded to" value={l.forwardedTo} />
-          <div className="col-span-2 sm:col-span-3"><Field label="Service details" value={l.serviceDetails} /></div>
-          <div className="col-span-2 sm:col-span-3"><Field label="Additional info" value={l.additionalInfo} /></div>
+          <Field label={t('leads.fieldPhone')} value={l.phone} />
+          <Field label={t('leads.fieldEmail')} value={l.email} />
+          <Field label={t('leads.fieldContactPref')} value={l.contactPreference} />
+          <div className="col-span-2 sm:col-span-3"><Field label={t('leads.fieldAddress')} value={l.address} /></div>
+          <Field label={t('leads.fieldEmergency')} value={l.emergency} />
+          <Field label={t('leads.fieldFinancing')} value={l.financing} />
+          <Field label={t('leads.fieldForwardedTo')} value={l.forwardedTo} />
+          <div className="col-span-2 sm:col-span-3"><Field label={t('leads.fieldServiceDetails')} value={l.serviceDetails} /></div>
+          <div className="col-span-2 sm:col-span-3"><Field label={t('leads.fieldAdditionalInfo')} value={l.additionalInfo} /></div>
         </div>
         {(() => {
           const photos = projectPhotosUrl(l.serviceDetails, l.additionalInfo);
@@ -181,8 +185,8 @@ function LeadRow({
         })()}
         {l.noGood && (l.noGoodReason || l.reportedToHd) && (
           <div className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-800">
-            {l.noGoodReason && <div><span className="font-semibold">No-good reason:</span> {l.noGoodReason}</div>}
-            {l.reportedToHd && <div className="mt-0.5"><span className="font-semibold">Reported to HD:</span> {l.reportedToHd}{l.dateReported ? ` (${l.dateReported})` : ''}</div>}
+            {l.noGoodReason && <div><span className="font-semibold">{t('leads.noGoodReasonLabel')}</span> {l.noGoodReason}</div>}
+            {l.reportedToHd && <div className="mt-0.5"><span className="font-semibold">{t('leads.reportedToHdLabel')}</span> {l.reportedToHd}{l.dateReported ? ` (${l.dateReported})` : ''}</div>}
           </div>
         )}
         <LeadNoGoodControl rowId={l.rowId} bookingId={l.bookingId} noGood={l.noGood} canUnmark={isStaff} />
@@ -233,11 +237,21 @@ export function LeadsView({
   // the not-yet-placed stores the map should geocode in the background.
   geo?: { stores: MapStore[]; pendingStores?: PendingStore[]; byKey: Record<string, { geoKey: string; query: string; coord?: LatLng | null }> };
 }) {
+  const t = getT();
   const storeLabel = (num: string) => {
     if (!num) return '';
     const name = storeNames[num];
-    return name ? `Store ${num} — ${name}` : `Store ${num}`;
+    return name ? t('leads.storeLabel', { num, name }) : t('leads.storeLabelPlain', { num });
   };
+  // Localized outcome-filter options + group labels (see LEAD_OUTCOME_FILTERS / GROUPS).
+  const OUTCOME_KEY: Record<string, string> = {
+    new: 'outcomeNew', NO_ANSWER: 'outcomeNoAnswer', LEFT_MESSAGE: 'outcomeLeftMessage',
+    SPOKE: 'outcomeSpoke', BOOKED: 'outcomeBooked', SOLD: 'outcomeSold',
+    NOT_INTERESTED: 'outcomeNotInterested', nogood: 'outcomeNoGood',
+  };
+  const outcomeFilterOptions = LEAD_OUTCOME_FILTERS.map((o) => ({ value: o.value, label: t(`leads.${OUTCOME_KEY[o.value]}`) }));
+  const GROUP_LABEL_KEY: Record<LeadStateKey, string> = { new: 'groupNew', working: 'groupWorking', booked: 'groupBooked', nogood: 'groupNoGood' };
+  const groupLabel = (k: LeadStateKey) => t(`leads.${GROUP_LABEL_KEY[k]}`);
   const buildHref = (over: Record<string, string>) => {
     const params = new URLSearchParams();
     if (q) params.set('q', q);
@@ -290,7 +304,7 @@ export function LeadsView({
   const annotated = leads.map((l) => {
     const leadKey = leadKeyOf(l);
     const calls = callsByKey[leadKey] ?? [];
-    const cs = leadCallStatus(calls);
+    const cs = leadCallStatus(calls, t);
     const stateKey = leadStateKey(l.noGood, calls.length > 0, cs.tone);
     return { l, leadKey, calls, cs, stateKey };
   });
@@ -336,7 +350,7 @@ export function LeadsView({
       rowId: x.l.rowId,
       name: titleCase(x.l.customerName),
       status: x.stateKey,
-      statusLabel: x.l.noGood ? 'No-good' : x.cs.label,
+      statusLabel: x.l.noGood ? t('leads.noGood') : x.cs.label,
       sub: x.l.storeNumber ? storeLabel(x.l.storeNumber) : x.l.service || '',
       dist,
       openHref: openHrefFor(x.l),
@@ -350,44 +364,44 @@ export function LeadsView({
       <div className="grid grid-cols-3 gap-3">
         <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
           <div className="text-xl font-bold text-gray-900 tabular-nums">{summary.total}</div>
-          <div className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Received</div>
+          <div className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">{t('leads.received')}</div>
         </div>
         <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
           <div className="text-xl font-bold text-emerald-600 tabular-nums">{summary.forwarded}</div>
-          <div className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Forwarded</div>
+          <div className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">{t('leads.forwarded')}</div>
         </div>
         <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
           <div className="text-xl font-bold text-red-600 tabular-nums">{summary.noGood}</div>
-          <div className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">No-good</div>
+          <div className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">{t('leads.noGood')}</div>
         </div>
       </div>
 
       {/* Search + filter */}
       <form method="GET" className="flex flex-wrap gap-2">
-        <input name="q" defaultValue={q} placeholder="Search name, phone, email, address, booking, store…" className="input min-w-[220px] flex-1" />
+        <input name="q" defaultValue={q} placeholder={t('leads.searchPlaceholder')} className="input min-w-[220px] flex-1" />
         {extraHidden?.map((h) => (h.value ? <input key={h.name} type="hidden" name={h.name} value={h.value} /> : null))}
         {status && <input type="hidden" name="status" value={status} />}
         {month && <input type="hidden" name="month" value={month} />}
         {outcome && <input type="hidden" name="outcome" value={outcome} />}
         {view !== 'list' && <input type="hidden" name="view" value={view} />}
-        <button type="submit" className="btn-primary">Search</button>
+        <button type="submit" className="btn-primary">{t('leads.search')}</button>
       </form>
       <div className="flex flex-wrap items-center gap-2">
-        {statusLink('', 'All')}
-        {statusLink('forwarded', 'Forwarded')}
-        {statusLink('nogood', 'No-good')}
+        {statusLink('', t('leads.filterAll'))}
+        {statusLink('forwarded', t('leads.forwarded'))}
+        {statusLink('nogood', t('leads.noGood'))}
         <div className="ml-auto flex flex-wrap items-center gap-2">
-          <div className="inline-flex rounded-full bg-gray-100 p-0.5" role="group" aria-label="View">
-            {viewLink('list', 'List')}
-            {viewLink('grouped', 'Grouped')}
-            {viewLink('map', 'Map')}
+          <div className="inline-flex rounded-full bg-gray-100 p-0.5" role="group" aria-label={t('leads.viewAria')}>
+            {viewLink('list', t('leads.viewList'))}
+            {viewLink('grouped', t('leads.viewGrouped'))}
+            {viewLink('map', t('leads.viewMap'))}
           </div>
           <LeadsSelect
             paramName="outcome"
             value={outcome}
-            options={LEAD_OUTCOME_FILTERS}
-            allLabel="All outcomes"
-            ariaLabel="Filter by outcome"
+            options={outcomeFilterOptions}
+            allLabel={t('leads.allOutcomes')}
+            ariaLabel={t('leads.filterByOutcome')}
             basePath={basePath}
             params={[
               { name: 'q', value: q },
@@ -418,7 +432,7 @@ export function LeadsView({
           Both views paginate so a long list never runs off the bottom. */}
       {leads.length === 0 ? (
         <div className="rounded-lg border border-gray-200 bg-gray-50 p-6 text-sm text-gray-500">
-          {q || status || month || outcome ? 'No leads match your search.' : 'No leads yet.'}
+          {q || status || month || outcome ? t('leads.emptyNoMatch') : t('leads.emptyNone')}
         </div>
       ) : view === 'map' ? (
         <LeadsMap leads={mapLeads} stores={mapStores} pendingStores={geo?.pendingStores ?? []} />
@@ -440,12 +454,12 @@ export function LeadsView({
                   return (
                     <div key={`${b.key}-${bi}`}>
                       <div className="mb-2 flex items-center gap-2 px-1">
-                        <span className={`badge ${g.chip}`}>{g.label}</span>
+                        <span className={`badge ${g.chip}`}>{groupLabel(b.key)}</span>
                         <span className="text-xs text-gray-400">{groupTotals[b.key]}</span>
                       </div>
                       <div className="space-y-2">
                         {b.items.map((x) => (
-                          <LeadRow key={x.l.rowId} l={x.l} leadKey={x.leadKey} calls={x.calls} cs={x.cs} stripe={g.stripe} storeLabel={storeLabel} isStaff={isStaff} />
+                          <LeadRow key={x.l.rowId} l={x.l} leadKey={x.leadKey} calls={x.calls} cs={x.cs} stripe={g.stripe} storeLabel={storeLabel} isStaff={isStaff} t={t} />
                         ))}
                       </div>
                     </div>
@@ -456,7 +470,7 @@ export function LeadsView({
           ) : (
             <div className="space-y-2">
               {pageItems.map((x) => (
-                <LeadRow key={x.l.rowId} l={x.l} leadKey={x.leadKey} calls={x.calls} cs={x.cs} stripe={STRIPE[x.stateKey]} storeLabel={storeLabel} isStaff={isStaff} />
+                <LeadRow key={x.l.rowId} l={x.l} leadKey={x.leadKey} calls={x.calls} cs={x.cs} stripe={STRIPE[x.stateKey]} storeLabel={storeLabel} isStaff={isStaff} t={t} />
               ))}
             </div>
           )}
@@ -464,20 +478,20 @@ export function LeadsView({
           {/* Pagination (shared by both views) */}
           <div className="flex items-center justify-between text-sm text-gray-500">
             <span>
-              Showing {startIdx + 1}–{Math.min(startIdx + PAGE_SIZE, ordered.length)} of {ordered.length}
+              {t('leads.showing', { from: startIdx + 1, to: Math.min(startIdx + PAGE_SIZE, ordered.length), total: ordered.length })}
             </span>
             {totalPages > 1 && (
               <div className="flex items-center gap-2">
                 {current > 1 ? (
-                  <Link href={buildHref({ page: String(current - 1) })} className="btn-secondary text-xs">← Prev</Link>
+                  <Link href={buildHref({ page: String(current - 1) })} className="btn-secondary text-xs">{t('leads.prev')}</Link>
                 ) : (
-                  <span className="btn-secondary pointer-events-none text-xs opacity-40">← Prev</span>
+                  <span className="btn-secondary pointer-events-none text-xs opacity-40">{t('leads.prev')}</span>
                 )}
-                <span className="text-xs">Page {current} / {totalPages}</span>
+                <span className="text-xs">{t('leads.pageOf', { current, total: totalPages })}</span>
                 {current < totalPages ? (
-                  <Link href={buildHref({ page: String(current + 1) })} className="btn-secondary text-xs">Next →</Link>
+                  <Link href={buildHref({ page: String(current + 1) })} className="btn-secondary text-xs">{t('leads.next')}</Link>
                 ) : (
-                  <span className="btn-secondary pointer-events-none text-xs opacity-40">Next →</span>
+                  <span className="btn-secondary pointer-events-none text-xs opacity-40">{t('leads.next')}</span>
                 )}
               </div>
             )}

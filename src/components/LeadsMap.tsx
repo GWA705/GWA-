@@ -3,6 +3,8 @@
 import 'leaflet/dist/leaflet.css';
 import { useEffect, useRef, useState } from 'react';
 import type * as L from 'leaflet';
+import { useT } from '@/i18n/client';
+import type { TFunction } from '@/i18n/translator';
 
 export type LatLng = { lat: number; lng: number };
 export type MapLead = {
@@ -65,24 +67,25 @@ function storeHtml(): string {
 }
 
 // Add a store marker + its coverage ring to the map, once per store number.
-function addStoreMarker(Lmod: typeof L, map: L.Map, s: MapStore, seen: Set<string>) {
+function addStoreMarker(Lmod: typeof L, map: L.Map, s: MapStore, seen: Set<string>, t: TFunction) {
   if (seen.has(s.number)) return;
   seen.add(s.number);
+  const storeTitle = s.name ? t('leads.storeLabel', { num: s.number, name: s.name }) : t('leads.storeLabelPlain', { num: s.number });
   Lmod.circle([s.lat, s.lng], { radius: 8000, color: '#2563eb', weight: 1.5, opacity: 0.4, fillColor: '#2563eb', fillOpacity: 0.05, dashArray: '5 5' }).addTo(map);
   Lmod.marker([s.lat, s.lng], { icon: Lmod.divIcon({ html: storeHtml(), className: '', iconSize: [24, 24], iconAnchor: [12, 12] }), zIndexOffset: 1000 })
     .addTo(map)
-    .bindPopup(`<div style="font-weight:800;font-size:13px;color:#0f1b2d">Store ${esc(s.number)}${s.name ? ` — ${esc(s.name)}` : ''}</div><div style="font-size:12px;color:#5c6b80">Home Depot</div>`);
+    .bindPopup(`<div style="font-weight:800;font-size:13px;color:#0f1b2d">${esc(storeTitle)}</div><div style="font-size:12px;color:#5c6b80">${esc(t('leads.mapHomeDepot'))}</div>`);
 }
 
-function popupHtml(l: MapLead): string {
+function popupHtml(l: MapLead, t: TFunction): string {
   return (
     `<div style="font-family:inherit;min-width:180px">` +
-    `<div style="font-weight:800;font-size:14px;color:#0f1b2d">${esc(l.name || '(no name)')}</div>` +
+    `<div style="font-weight:800;font-size:14px;color:#0f1b2d">${esc(l.name || t('leads.noName'))}</div>` +
     `<div style="display:inline-block;margin:5px 0;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;` +
     `color:#fff;background:${COLOR[l.status]}">${esc(l.statusLabel)}</div>` +
     `<div style="font-size:12px;color:#5c6b80">${esc(l.sub)}${l.dist ? ` · ${esc(l.dist)}` : ''}</div>` +
     `<a href="${esc(l.openHref)}" style="display:block;margin-top:9px;text-align:center;background:#2563eb;color:#fff;` +
-    `font-weight:700;font-size:12.5px;padding:7px;border-radius:8px;text-decoration:none">Open lead →</a>` +
+    `font-weight:700;font-size:12.5px;padding:7px;border-radius:8px;text-decoration:none">${esc(t('leads.mapOpenLead'))}</a>` +
     `</div>`
   );
 }
@@ -93,6 +96,7 @@ function popupHtml(l: MapLead): string {
  * progressively via /api/leads/geocode and dropped in as they resolve.
  */
 export function LeadsMap({ leads, stores, pendingStores = [] }: { leads: MapLead[]; stores: MapStore[]; pendingStores?: PendingStore[] }) {
+  const t = useT();
   const elRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
   const LRef = useRef<typeof L | null>(null);
@@ -126,7 +130,7 @@ export function LeadsMap({ leads, stores, pendingStores = [] }: { leads: MapLead
       // Store markers + coverage rings (already-placed stores).
       const bounds = Lmod.latLngBounds([]);
       for (const s of stores) {
-        addStoreMarker(Lmod, map, s, storeSeenRef.current);
+        addStoreMarker(Lmod, map, s, storeSeenRef.current, t);
         bounds.extend([s.lat, s.lng]);
       }
 
@@ -155,7 +159,7 @@ export function LeadsMap({ leads, stores, pendingStores = [] }: { leads: MapLead
           if (!res.ok) break;
           const data = (await res.json()) as { stores?: MapStore[] };
           if (cancelled || !data.stores) continue;
-          for (const s of data.stores) addStoreMarker(Lmod, map, s, storeSeenRef.current);
+          for (const s of data.stores) addStoreMarker(Lmod, map, s, storeSeenRef.current, t);
         } catch {
           break;
         }
@@ -185,7 +189,7 @@ export function LeadsMap({ leads, stores, pendingStores = [] }: { leads: MapLead
       const j = jitter(c, l.rowId || l.key);
       Lmod.marker([j.lat, j.lng], { icon: Lmod.divIcon({ html: pinHtml(COLOR[l.status]), className: '', iconSize: [24, 24], iconAnchor: [12, 22], popupAnchor: [0, -20] }) })
         .addTo(layer)
-        .bindPopup(popupHtml(l));
+        .bindPopup(popupHtml(l, t));
       bounds.extend([j.lat, j.lng]);
     }
     // If we hadn't been able to fit to anything yet, fit to the leads now.
@@ -239,28 +243,30 @@ export function LeadsMap({ leads, stores, pendingStores = [] }: { leads: MapLead
   return (
     <div className="space-y-2">
       <div className="relative overflow-hidden rounded-2xl border border-gray-200 shadow-sm" style={{ height: 520 }}>
-        <div ref={elRef} style={{ position: 'absolute', inset: 0 }} aria-label="Map of leads and stores" />
+        <div ref={elRef} style={{ position: 'absolute', inset: 0 }} aria-label={t('leads.mapAria')} />
         {pending && (
           <div className="absolute inset-0 z-[500] flex items-center justify-center bg-gray-50 text-sm text-gray-500">
-            Loading map…
+            {t('leads.mapLoading')}
           </div>
         )}
         {/* Legend */}
         <div className="pointer-events-none absolute bottom-3 left-3 z-[500] grid gap-1 rounded-xl border border-gray-200 bg-white/95 px-3 py-2 text-[11.5px] text-gray-600 shadow-sm">
-          <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full" style={{ background: COLOR.new }} />New · needs a call</div>
-          <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full" style={{ background: COLOR.working }} />Working</div>
-          <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full" style={{ background: COLOR.booked }} />Booked &amp; sold</div>
-          <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full" style={{ background: COLOR.nogood }} />No-good</div>
-          <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-[3px]" style={{ background: STORE_COLOR }} />Home Depot store</div>
+          <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full" style={{ background: COLOR.new }} />{t('leads.legendNew')}</div>
+          <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full" style={{ background: COLOR.working }} />{t('leads.groupWorking')}</div>
+          <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full" style={{ background: COLOR.booked }} />{t('leads.groupBooked')}</div>
+          <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full" style={{ background: COLOR.nogood }} />{t('leads.noGood')}</div>
+          <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-[3px]" style={{ background: STORE_COLOR }} />{t('leads.legendStore')}</div>
         </div>
       </div>
       <div className="flex items-center justify-between text-xs text-gray-500">
         <span>
           {geocoding
-            ? `Placing leads on the map… (${placedCount} of ${total} so far)`
-            : `${placedCount} of ${total} lead${total === 1 ? '' : 's'} on the map`}
+            ? t('leads.mapPlacing', { placed: placedCount, total })
+            : total === 1
+              ? t('leads.mapPlacedOne', { placed: placedCount, total })
+              : t('leads.mapPlacedMany', { placed: placedCount, total })}
         </span>
-        {!geocoding && unplaced > 0 && <span>{unplaced} couldn&apos;t be placed (no address match)</span>}
+        {!geocoding && unplaced > 0 && <span>{t('leads.mapUnplaced', { n: unplaced })}</span>}
       </div>
     </div>
   );
