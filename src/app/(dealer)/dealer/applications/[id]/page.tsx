@@ -13,7 +13,9 @@ import { DealProgress } from '@/components/DealProgress';
 import { UploadForm } from '@/components/UploadForm';
 import { SerialNumberForm } from '@/components/SerialNumberForm';
 import { ProductSerialForm } from '@/components/ProductSerialForm';
-import { fundingDocumentTypesFor, STATUS_LABELS, programLabel, soapLabel, REVIEWER_DISPLAY, decisionLabel, decisionTone } from '@/lib/constants';
+import { fundingDocumentTypesFor, STATUS_LABELS, REVIEWER_DISPLAY, decisionLabel, decisionTone } from '@/lib/constants';
+import { programDisplayLabel, soapDisplayLabel } from '@/lib/enumLabels';
+import { getT } from '@/i18n/server';
 import { dealerFacingStatus, hasDealerReturned } from '@/lib/reviewerFlow';
 import { dealerOutstanding } from '@/lib/outstanding';
 import {
@@ -35,6 +37,7 @@ export default async function DealerApplicationDetail({
   params: { id: string };
 }) {
   const user = await requireDealerAccess();
+  const t = getT();
   const app = await prisma.application.findUnique({
     where: { id: params.id },
     include: {
@@ -168,10 +171,10 @@ export default async function DealerApplicationDetail({
             <dt className="text-gray-500">Product(s) sold</dt>
             <dd className="font-medium">{app.productsSold.length ? app.productsSold.join(', ') : '—'}</dd>
           </div>
-          <div><dt className="text-gray-500">Program</dt><dd className="font-medium">{programLabel(app.programType, app.programCategory)}</dd></div>
+          <div><dt className="text-gray-500">Program</dt><dd className="font-medium">{programDisplayLabel(t, app.programType, app.programCategory)}</dd></div>
           <div><dt className="text-gray-500">Salesperson</dt><dd className="font-medium">{app.salespersonName ?? '—'}</dd></div>
           <div><dt className="text-gray-500">Installer</dt><dd className="font-medium">{app.installerName ?? '—'}</dd></div>
-          <div><dt className="text-gray-500">SOAP included</dt><dd className="font-medium">{soapLabel(app.soapType, app.soapIncluded) ?? '—'}</dd></div>
+          <div><dt className="text-gray-500">SOAP included</dt><dd className="font-medium">{soapDisplayLabel(t, app.soapType, app.soapIncluded) ?? '—'}</dd></div>
           <div><dt className="text-gray-500">Requested</dt><dd className="font-medium">${app.requestedAmount.toString()}</dd></div>
           <div><dt className="text-gray-500">Approved amount</dt><dd className="font-medium">{app.approvedAmount ? `$${app.approvedAmount.toString()}` : '—'}</dd></div>
           <div><dt className="text-gray-500">Finance company</dt><dd className="font-medium">{app.financeCompany?.name ?? '—'}</dd></div>

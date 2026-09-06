@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { requireDealerAccess } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { dealerPortalScopeWhere } from '@/lib/rbac';
-import { programLabel } from '@/lib/constants';
+import { programDisplayLabel } from '@/lib/enumLabels';
 import { dealerOutstanding } from '@/lib/outstanding';
 import { dealStage, dealGroup } from '@/lib/dealerStage';
 import { SectionHero } from '@/components/SectionHero';
@@ -57,7 +57,7 @@ export default async function DealerApplications() {
       id: a.id,
       name: `${a.applicantFirstName} ${a.applicantLastName}`.trim(),
       province: a.province,
-      program: programLabel(a.programType, a.programCategory),
+      program: programDisplayLabel(t, a.programType, a.programCategory),
       amount,
       amountLabel: money(amount),
       status: a.status,

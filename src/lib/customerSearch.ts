@@ -3,7 +3,9 @@ import { prisma } from './db';
 import { audit } from './audit';
 import { rateLimit } from './ratelimit';
 import { isGlobalSearchEnabled } from './settings';
-import { STATUS_LABELS_SHORT, hdOriginLabel, programLabel } from './constants';
+import { STATUS_LABELS_SHORT, hdOriginLabel } from './constants';
+import { programDisplayLabel } from './enumLabels';
+import { getT } from '@/i18n/server';
 import type { SessionUser } from './session';
 import type { ApplicationStatus } from '@prisma/client';
 import { isInternal, isSuperAdmin, canAdminSection } from './rbac';
@@ -430,6 +432,7 @@ export async function searchCustomers(user: SessionUser, rawQuery: string): Prom
       programType: true, programCategory: true, approvedAmount: true, requestedAmount: true, createdAt: true,
     },
   });
+  const t = getT();
   const own: OwnMatch[] = ownApps.map((a) => {
     const amt = Number(a.approvedAmount ?? a.requestedAmount ?? 0);
     return {
@@ -438,7 +441,7 @@ export async function searchCustomers(user: SessionUser, rawQuery: string): Prom
       province: a.province,
       statusLabel: STATUS_LABELS_SHORT[a.status],
       status: a.status,
-      program: programLabel(a.programType, a.programCategory),
+      program: programDisplayLabel(t, a.programType, a.programCategory),
       amountLabel: amt > 0 ? `$${amt.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '',
       submitted: a.createdAt.toLocaleDateString('en-CA'),
     };

@@ -20,6 +20,7 @@ import { SplitPaymentInput } from '@/components/SplitPaymentInput';
 import { ProductPicker } from '@/components/ProductPicker';
 import { useT } from '@/i18n/client';
 import type { TFunction } from '@/i18n/translator';
+import { programTypeLabel, programCategoryLabel, paymentMethodLabel } from '@/lib/enumLabels';
 
 const initial: ActionState = {};
 
@@ -408,7 +409,7 @@ export function NewApplicationForm({
                         : 'bg-white text-gray-700 ring-gray-300 hover:ring-green-400'
                     }`}
                   >
-                    {p.label}
+                    {paymentMethodLabel(t, p.value)}
                   </button>
                 );
               })}
@@ -419,7 +420,7 @@ export function NewApplicationForm({
             <p className="mt-3 text-sm text-green-800">
               {needsFinanceNumber
                 ? t('newApplication.financeitBelow')
-                : t('newApplication.paidByApproved', { method: PAYMENT_METHODS.find((p) => p.value === payment)?.label ?? '' })}
+                : t('newApplication.paidByApproved', { method: paymentMethodLabel(t, payment) })}
             </p>
           </div>
         )}
@@ -433,7 +434,7 @@ export function NewApplicationForm({
             <label className="label" htmlFor="programType">{t('newApplication.program')}</label>
             <select id="programType" name="programType" className={fieldCls('programType')}>
               <option value="">{t('newApplication.selectPlaceholder')}</option>
-              {PROGRAM_TYPES.map((p) => (<option key={p.value} value={p.value}>{p.label}</option>))}
+              {PROGRAM_TYPES.map((p) => (<option key={p.value} value={p.value}>{programTypeLabel(t, p.value)}</option>))}
             </select>
             <Err state={state} name="programType" />
           </div>
@@ -441,7 +442,7 @@ export function NewApplicationForm({
             <label className="label" htmlFor="programCategory">{t('newApplication.category')}</label>
             <select id="programCategory" name="programCategory" className={fieldCls('programCategory')}>
               <option value="">{t('newApplication.selectPlaceholder')}</option>
-              {PROGRAM_CATEGORIES.map((p) => (<option key={p.value} value={p.value}>{p.label}</option>))}
+              {PROGRAM_CATEGORIES.map((p) => (<option key={p.value} value={p.value}>{programCategoryLabel(t, p.value)}</option>))}
             </select>
             <Err state={state} name="programCategory" />
           </div>
@@ -569,7 +570,7 @@ export function NewApplicationForm({
             <select id="soapIncluded" name="soapIncluded" className={fieldCls('')}>
               <option value="">—</option>
               {SOAP_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
+                <option key={o.value} value={o.value}>{t(`enum.soap.${o.value}`)}</option>
               ))}
             </select>
           </div>

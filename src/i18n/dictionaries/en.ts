@@ -196,6 +196,32 @@ export const en = {
       PROBLEM: 'Problem',
       WITHDRAWN: 'Withdrawn',
     },
+    programType: {
+      HD: 'HD',
+      GWA: 'GWA',
+    },
+    programCategory: {
+      WATER: 'Water',
+      AIR: 'Air',
+      SMELL_BUSTERS: 'Smell Busters',
+      HVAC: 'HVAC',
+    },
+    paymentMethod: {
+      FINANCEIT: 'FinanceIT',
+      FINANCE_COMPANY: 'Finance company',
+      CASH: 'Cash',
+      CHEQUE: 'Cheque',
+      E_TRANSFER: 'E-Transfer',
+      CREDIT_CARD: 'Credit card',
+      HD_CREDIT_CARD: 'Home Depot Credit Card',
+    },
+    soap: {
+      NO: 'No',
+      NV: 'Yes - NV',
+      PS: 'Yes - PS',
+      OTHER: 'Yes - Other',
+      yes: 'Yes',
+    },
   },
   deal: {
     column: {

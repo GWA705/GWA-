@@ -200,6 +200,32 @@ export const fr: Dictionary = {
       PROBLEM: 'Problème',
       WITHDRAWN: 'Retirée',
     },
+    programType: {
+      HD: 'HD',
+      GWA: 'GWA',
+    },
+    programCategory: {
+      WATER: 'Eau',
+      AIR: 'Air',
+      SMELL_BUSTERS: 'Smell Busters',
+      HVAC: 'CVC',
+    },
+    paymentMethod: {
+      FINANCEIT: 'FinanceIT',
+      FINANCE_COMPANY: 'Société de financement',
+      CASH: 'Comptant',
+      CHEQUE: 'Chèque',
+      E_TRANSFER: 'Virement électronique',
+      CREDIT_CARD: 'Carte de crédit',
+      HD_CREDIT_CARD: 'Carte de crédit Home Depot',
+    },
+    soap: {
+      NO: 'Non',
+      NV: 'Oui - NV',
+      PS: 'Oui - PS',
+      OTHER: 'Oui - Autre',
+      yes: 'Oui',
+    },
   },
   deal: {
     column: {

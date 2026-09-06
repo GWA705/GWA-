@@ -28,6 +28,19 @@ source of truth; this file is the human-readable index.
 | Bell Total Connect voicemail | 📝 Documented, not built here | Guide delivered for the **booking site** (voicemail-to-email + IMAP). Not part of this portal. |
 
 ## 2026-09-06
+- **Bilingual coverage — deal enum labels (display-only layer).** Added a
+  locale-aware **display** layer for the deal enums — program type/category,
+  payment method, SOAP — as `enum.*` dictionary keys plus helpers in
+  `src/lib/enumLabels.ts` (`programDisplayLabel`, `paymentMethodLabel`,
+  `soapDisplayLabel`, …). Wired it into every **dealer-facing** display: the
+  new-application dropdowns + payment picker, the dashboard program breakdown +
+  recent deals, the applications list, the deal-detail page, and customer-search
+  results. **The English `constants.ts` labels are deliberately untouched** and
+  still back every data write — sales-journal columns, CSV/PDF exports, HD
+  paperwork, emails — so records stay consistent regardless of the viewer's
+  language. Staff/reviewer internal views (PaymentBreakdown, ReviewerEntryView,
+  staff deal pages) will adopt the same helper when those surfaces are
+  translated as a whole. `enum.programCategory.HVAC` → “CVC” in fr-CA.
 - **Bilingual coverage — new-application form (the big one).** Translated the
   full "New customer processing" form to fr-CA (draft): the three entry-method
   cards (Express/Priority/Standard), payment-type picker, financing details,

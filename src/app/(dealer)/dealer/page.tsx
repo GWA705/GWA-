@@ -1,7 +1,7 @@
 import { requireDealerAccess } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { dealerPortalScopeWhere } from '@/lib/rbac';
-import { programLabel } from '@/lib/constants';
+import { programDisplayLabel } from '@/lib/enumLabels';
 import { listHeroImages } from '@/lib/heroImage';
 import { DashboardHero } from '@/components/dashboard/DashboardHero';
 import { KpiCard } from '@/components/dashboard/KpiCard';
@@ -69,10 +69,12 @@ export default async function DealerDashboard() {
     return { label: d.toLocaleDateString('en-CA', { month: 'short' }), value };
   });
 
+  const t = getT();
+
   // Program breakdown
   const progMap = new Map<string, number>();
   for (const a of apps) {
-    const label = programLabel(a.programType, a.programCategory);
+    const label = programDisplayLabel(t, a.programType, a.programCategory);
     progMap.set(label, (progMap.get(label) ?? 0) + 1);
   }
   const progTotal = apps.length || 1;
@@ -90,7 +92,7 @@ export default async function DealerDashboard() {
       id: a.id,
       name: `${a.applicantFirstName} ${a.applicantLastName}`.trim(),
       province: a.province,
-      program: programLabel(a.programType, a.programCategory),
+      program: programDisplayLabel(t, a.programType, a.programCategory),
       amount: money(amountOf(a)),
       status: a.status,
       submitted: a.createdAt.toLocaleDateString('en-CA'),
@@ -101,7 +103,6 @@ export default async function DealerDashboard() {
 
   const firstName = user.name.split(' ')[0] || user.name;
   const heroImages = await listHeroImages();
-  const t = getT();
 
   return (
     <div className="space-y-4">
