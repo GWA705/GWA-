@@ -18,6 +18,8 @@ import { AddressAutocompleteInput } from '@/components/AddressAutocompleteInput'
 import { DateOfBirthInput } from '@/components/DateOfBirthInput';
 import { SplitPaymentInput } from '@/components/SplitPaymentInput';
 import { ProductPicker } from '@/components/ProductPicker';
+import { useT } from '@/i18n/client';
+import type { TFunction } from '@/i18n/translator';
 
 const initial: ActionState = {};
 
@@ -36,9 +38,10 @@ function Err({ state, name }: { state: ActionState; name: string }) {
 
 function SubmitButton() {
   const { pending } = useFormStatus();
+  const t = useT();
   return (
     <button type="submit" className="btn-primary" disabled={pending}>
-      {pending ? 'Submitting…' : 'Submit application'}
+      {pending ? t('newApplication.submitting') : t('newApplication.submitApplication')}
     </button>
   );
 }
@@ -50,28 +53,21 @@ const postalFmt = (e: React.FormEvent<HTMLInputElement>) => {
   e.currentTarget.value = formatPostal(e.currentTarget.value);
 };
 
-// Friendly labels for the error summary (keyed by form field name).
-const FIELD_LABELS: Record<string, string> = {
-  programType: 'Program',
-  programCategory: 'Category',
-  requestedAmount: 'Requested amount',
-  applicantFirstName: 'First name',
-  applicantLastName: 'Last name',
-  applicantEmail: 'Email',
-  applicantPhone: 'Phone',
-  applicantAddress: 'Street address',
-  province: 'Province',
-  dateOfSale: 'Date of sale',
-  installationDate: 'Installation date',
-  homeDepotStoreId: 'Home Depot store',
-  consent: 'Consent',
-  paymentMethod: 'Payment type',
-  financeItNumber: 'Financing deal number',
-  salespersonName: "Salesperson's name",
-  installerName: "Installer's name",
-  soapIncluded: 'SOAP included',
-  productsSold: 'Product(s) sold',
-};
+// Field names that have a friendly translated label for the error summary
+// (see newApplication.field.* in the dictionaries). Unknown names fall back to
+// showing the raw field name.
+const FIELD_LABEL_NAMES = new Set<string>([
+  'programType', 'programCategory', 'requestedAmount', 'applicantFirstName',
+  'applicantLastName', 'applicantEmail', 'applicantPhone', 'applicantAddress',
+  'province', 'dateOfSale', 'installationDate', 'homeDepotStoreId', 'consent',
+  'paymentMethod', 'financeItNumber', 'salespersonName', 'installerName',
+  'soapIncluded', 'productsSold', 'applicantDob', 'coDob', 'employerAddress',
+  'employerPhone',
+]);
+
+// The error-summary label for a field: translated when known, else the raw name.
+const fieldLabel = (t: TFunction, name: string): string =>
+  FIELD_LABEL_NAMES.has(name) ? t(`newApplication.field.${name}`) : name;
 
 type RequiredField = { name: string; label: string; checkbox?: boolean };
 
@@ -128,14 +124,13 @@ function focusField(name: string) {
   }
 }
 
-// Three ways to process a new customer, ranked by speed and colour-coded.
+// Three ways to process a new customer, ranked by speed and colour-coded. The
+// visible text (rank/title/blurb/action) is looked up by `key` from the
+// newApplication dictionary; only styling + value live here.
 const METHODS: {
   value: Method;
-  rank: string;
+  key: string; // dictionary prefix: express / priority / standard
   icon: string; // emoji shown in the badge
-  title: string;
-  blurb: string;
-  action: string; // call-to-action shown on the button when not selected
   badge: string; // badge colour
   selected: string; // selected card border + fill
   dot: string; // selected radio indicator fill
@@ -143,11 +138,8 @@ const METHODS: {
 }[] = [
   {
     value: 'FINANCEIT',
-    rank: 'Express',
+    key: 'express',
     icon: '🚀',
-    title: 'Deal already approved',
-    blurb: 'Paying by cash, cheque, credit card — or already financed.',
-    action: 'Use express option',
     badge: 'bg-green-100 text-green-800',
     selected: 'border-green-600 bg-green-50 ring-2 ring-green-600/40',
     dot: 'bg-green-600',
@@ -155,11 +147,8 @@ const METHODS: {
   },
   {
     value: 'TYPED',
-    rank: 'Priority',
+    key: 'priority',
     icon: '⚡',
-    title: 'Type in the details',
-    blurb: 'New application — type the customer’s details for Georgian Water & Air to submit.',
-    action: 'Use priority option',
     badge: 'bg-blue-100 text-blue-800',
     selected: 'border-blue-600 bg-blue-50 ring-2 ring-blue-600/40',
     dot: 'bg-blue-600',
@@ -167,11 +156,8 @@ const METHODS: {
   },
   {
     value: 'PHOTO',
-    rank: 'Standard',
+    key: 'standard',
     icon: '📄',
-    title: 'Upload documents',
-    blurb: 'Send the application and bill of sale — Georgian Water & Air takes it from there.',
-    action: 'Use standard option',
     badge: 'bg-amber-100 text-amber-800',
     selected: 'border-amber-500 bg-amber-50 ring-2 ring-amber-500/40',
     dot: 'bg-amber-500',
@@ -186,6 +172,7 @@ export function NewApplicationForm({
   stores: Store[];
   products: { id: string; name: string; journalName?: string | null; promoted?: boolean }[];
 }) {
+  const t = useT();
   const [state, action] = useFormState(createApplicationAction, initial);
   const [method, setMethod] = useState<Method>('TYPED');
   const [payment, setPayment] = useState<PaymentMethod>('FINANCEIT');
@@ -225,8 +212,8 @@ export function NewApplicationForm({
         setLeadLookup({
           state: 'notfound',
           msg: data?.reason === 'not-your-store'
-            ? 'That lead belongs to another store, so it can’t be loaded here.'
-            : 'No matching HD lead found for that number. Check the digits, or fill the form in manually.',
+            ? t('newApplication.leadNotYourStore')
+            : t('newApplication.leadNotFound'),
         });
         return;
       }
@@ -249,10 +236,10 @@ export function NewApplicationForm({
       }
       setLeadLookup({
         state: 'found',
-        msg: `Filled from HD lead — ${L.customerName || booking}${L.noGood ? ' · ⚠ this lead is marked “No good” in the log' : ''}`,
+        msg: t('newApplication.leadFilledFrom', { name: L.customerName || booking }) + (L.noGood ? t('newApplication.leadNoGoodSuffix') : ''),
       });
     } catch {
-      setLeadLookup({ state: 'error', msg: 'Couldn’t reach the lead lookup — try again in a moment.' });
+      setLeadLookup({ state: 'error', msg: t('newApplication.leadError') });
     }
   }
 
@@ -329,22 +316,25 @@ export function NewApplicationForm({
         <div ref={summaryRef} className="rounded-md border border-red-200 bg-red-50 p-4 text-sm" role="alert">
           <p className="font-semibold text-red-800">
             {errorEntries.length > 0
-              ? "Please complete or fix the following before submitting:"
+              ? t('newApplication.fixBeforeSubmit')
               : state.error}
           </p>
           {errorEntries.length > 0 && (
             <ul className="mt-2 space-y-1">
-              {errorEntries.map(([name, msg]) => (
-                <li key={name}>
-                  <button
-                    type="button"
-                    onClick={() => focusField(name)}
-                    className="text-left text-red-700 underline decoration-red-300 underline-offset-2 hover:text-red-900"
-                  >
-                    {FIELD_LABELS[name] ?? name} — {cleanMessage(msg)}
-                  </button>
-                </li>
-              ))}
+              {errorEntries.map(([name, msg]) => {
+                const cm = cleanMessage(msg);
+                return (
+                  <li key={name}>
+                    <button
+                      type="button"
+                      onClick={() => focusField(name)}
+                      className="text-left text-red-700 underline decoration-red-300 underline-offset-2 hover:text-red-900"
+                    >
+                      {fieldLabel(t, name)} — {cm === 'required' ? t('newApplication.required') : cm}
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>
@@ -353,11 +343,11 @@ export function NewApplicationForm({
       {/* Entry method */}
       <section className="card p-6">
         <span className="mb-2 inline-flex w-fit items-center gap-1 rounded-full bg-brand-100 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wide text-brand-800">
-          Start here
+          {t('newApplication.startHere')}
         </span>
-        <h2 className="mb-1 text-base font-semibold text-gray-900">Three choices to process a new customer</h2>
-        <p className="mb-4 text-xs text-gray-500">Tap the option that fits — faster options are at the top.</p>
-        <div role="radiogroup" aria-label="How to process this customer" className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <h2 className="mb-1 text-base font-semibold text-gray-900">{t('newApplication.threeChoices')}</h2>
+        <p className="mb-4 text-xs text-gray-500">{t('newApplication.tapOption')}</p>
+        <div role="radiogroup" aria-label={t('newApplication.methodGroupAria')} className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {METHODS.map((m, i) => {
             const active = method === m.value;
             return (
@@ -383,12 +373,12 @@ export function NewApplicationForm({
                   </svg>
                 </span>
                 <span className={`mb-2 inline-flex w-fit items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${m.badge}`}>
-                  {i + 1} · <span aria-hidden>{m.icon}</span> {m.rank}
+                  {i + 1} · <span aria-hidden>{m.icon}</span> {t(`newApplication.${m.key}Rank`)}
                 </span>
-                <div className="text-base font-bold leading-tight text-gray-900">{m.title}</div>
-                <div className="mt-1 text-xs text-gray-500">{m.blurb}</div>
+                <div className="text-base font-bold leading-tight text-gray-900">{t(`newApplication.${m.key}Title`)}</div>
+                <div className="mt-1 text-xs text-gray-500">{t(`newApplication.${m.key}Blurb`)}</div>
                 <span className={`mt-auto pt-3 text-xs font-semibold ${active ? 'text-gray-700' : 'text-brand-600 group-hover:text-brand-700'}`}>
-                  {active ? '✓ Selected' : `${m.action} →`}
+                  {active ? t('newApplication.selected') : `${t(`newApplication.${m.key}Action`)} →`}
                 </span>
               </button>
             );
@@ -396,14 +386,13 @@ export function NewApplicationForm({
         </div>
         {method === 'PHOTO' && (
           <p className="mt-4 rounded bg-amber-50 p-3 text-sm text-amber-800">
-            After you submit, open the application and upload the customer&apos;s application and bill of sale
-            under “Documents for approval.”
+            {t('newApplication.photoHint')}
           </p>
         )}
         {express && (
           <div className="mt-4 rounded-lg bg-green-50 p-4 ring-1 ring-green-200">
-            <p className="label mb-2 text-green-900">How did the customer pay?</p>
-            <div role="radiogroup" aria-label="Payment type" className="flex flex-wrap gap-2">
+            <p className="label mb-2 text-green-900">{t('newApplication.howDidPay')}</p>
+            <div role="radiogroup" aria-label={t('newApplication.paymentTypeAria')} className="flex flex-wrap gap-2">
               {PAYMENT_METHODS.map((p) => {
                 const active = payment === p.value;
                 return (
@@ -425,12 +414,12 @@ export function NewApplicationForm({
               })}
             </div>
             {errorNames.has('paymentMethod') && (
-              <p className="mt-2 text-xs text-red-600">Select how the customer paid.</p>
+              <p className="mt-2 text-xs text-red-600">{t('newApplication.selectHowPaid')}</p>
             )}
             <p className="mt-3 text-sm text-green-800">
               {needsFinanceNumber
-                ? 'Enter your FinanceIT loan number in Financing details below — the deal will be marked approved.'
-                : `Paid by ${PAYMENT_METHODS.find((p) => p.value === payment)?.label}. The deal will be marked approved and sent to Georgian Water & Air to produce the HD paperwork.`}
+                ? t('newApplication.financeitBelow')
+                : t('newApplication.paidByApproved', { method: PAYMENT_METHODS.find((p) => p.value === payment)?.label ?? '' })}
             </p>
           </div>
         )}
@@ -438,26 +427,26 @@ export function NewApplicationForm({
 
       {/* Financing details */}
       <section className="card p-6">
-        <h2 className="mb-4 text-base font-semibold text-gray-900">Financing details</h2>
+        <h2 className="mb-4 text-base font-semibold text-gray-900">{t('newApplication.financingDetails')}</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div>
-            <label className="label" htmlFor="programType">Program</label>
+            <label className="label" htmlFor="programType">{t('newApplication.program')}</label>
             <select id="programType" name="programType" className={fieldCls('programType')}>
-              <option value="">Select…</option>
+              <option value="">{t('newApplication.selectPlaceholder')}</option>
               {PROGRAM_TYPES.map((p) => (<option key={p.value} value={p.value}>{p.label}</option>))}
             </select>
             <Err state={state} name="programType" />
           </div>
           <div>
-            <label className="label" htmlFor="programCategory">Category</label>
+            <label className="label" htmlFor="programCategory">{t('newApplication.category')}</label>
             <select id="programCategory" name="programCategory" className={fieldCls('programCategory')}>
-              <option value="">Select…</option>
+              <option value="">{t('newApplication.selectPlaceholder')}</option>
               {PROGRAM_CATEGORIES.map((p) => (<option key={p.value} value={p.value}>{p.label}</option>))}
             </select>
             <Err state={state} name="programCategory" />
           </div>
           <div>
-            <label className="label" htmlFor="requestedAmount">Requested amount (CAD)</label>
+            <label className="label" htmlFor="requestedAmount">{t('newApplication.requestedAmountCad')}</label>
             <input id="requestedAmount" name="requestedAmount" type="number" step="0.01" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} className={fieldCls('requestedAmount')} />
             <Err state={state} name="requestedAmount" />
           </div>
@@ -473,10 +462,10 @@ export function NewApplicationForm({
           {!(express && !needsFinanceNumber) && (
             <div className={needsFinanceNumber ? 'rounded-lg bg-green-50 p-3 ring-1 ring-green-300' : ''}>
               <label className="label" htmlFor="financeItNumber">
-                Financing deal number{' '}
+                {t('newApplication.financingDealNumber')}{' '}
                 {needsFinanceNumber
-                  ? <span className="font-semibold text-green-700">← enter your FinanceIT number here</span>
-                  : <span className="font-normal text-gray-400">(if applicable)</span>}
+                  ? <span className="font-semibold text-green-700">{t('newApplication.enterFinanceitHere')}</span>
+                  : <span className="font-normal text-gray-400">{t('newApplication.ifApplicableParen')}</span>}
               </label>
               <input
                 id="financeItNumber"
@@ -489,22 +478,22 @@ export function NewApplicationForm({
                       ? 'input bg-white ring-2 ring-green-400 focus:ring-green-500'
                       : `input ${METHOD_RING[method]}`
                 }
-                placeholder={needsFinanceNumber ? 'FinanceIT loan number' : 'If applicable'}
+                placeholder={needsFinanceNumber ? t('newApplication.financeitLoanNumber') : t('newApplication.ifApplicable')}
                 autoComplete="off"
               />
               {needsFinanceNumber ? (
                 <p className="mt-1 text-xs text-green-700">
-                  Copy the approval number from your FinanceIT portal (for example <span className="font-mono font-semibold">7779477</span>). Double-check it matches before submitting — entering it marks the deal approved.
+                  {t('newApplication.financeitHelp', { example: '7779477' })}
                 </p>
               ) : (
-                <p className="mt-1 text-xs text-gray-400">Entering this indicates the deal is already approved.</p>
+                <p className="mt-1 text-xs text-gray-400">{t('newApplication.alreadyApprovedHint')}</p>
               )}
               <Err state={state} name="financeItNumber" />
             </div>
           )}
           <div>
-            <label className="label" htmlFor="financingNote">Financing note</label>
-            <textarea id="financingNote" name="financingNote" rows={2} className={fieldCls('')} placeholder="What kind of financing deal or promotion would you like with this?" />
+            <label className="label" htmlFor="financingNote">{t('newApplication.financingNote')}</label>
+            <textarea id="financingNote" name="financingNote" rows={2} className={fieldCls('')} placeholder={t('newApplication.financingNotePlaceholder')} />
           </div>
         </div>
 
@@ -513,11 +502,10 @@ export function NewApplicationForm({
       {/* HD lead pre-fill (always available) */}
       <section className="card border border-sky-200 bg-sky-50/40 p-6">
         <h2 className="mb-1 text-base font-semibold text-gray-900">
-          HD lead number <span className="font-normal text-gray-400">(optional)</span>
+          {t('newApplication.hdLeadNumber')} <span className="font-normal text-gray-400">{t('newApplication.optional')}</span>
         </h2>
         <p className="mb-3 text-xs text-gray-500">
-          Sold a Home Depot lead? Enter its <span className="font-semibold">701…</span> number and we&apos;ll fill in
-          the customer&apos;s name, phone, email and address from the lead. Check everything before you submit.
+          {t('newApplication.hdLeadIntro')}
         </p>
         <div className="flex flex-wrap items-center gap-2">
           <input
@@ -541,7 +529,7 @@ export function NewApplicationForm({
             disabled={leadLookup.state === 'loading'}
             className="btn-secondary text-sm disabled:opacity-60"
           >
-            {leadLookup.state === 'loading' ? 'Looking…' : 'Find & fill'}
+            {leadLookup.state === 'loading' ? t('newApplication.looking') : t('newApplication.findAndFill')}
           </button>
         </div>
         {leadLookup.state === 'found' && (
@@ -554,30 +542,30 @@ export function NewApplicationForm({
 
       {/* Deal details */}
       <section className="card p-6">
-        <h2 className="mb-4 text-base font-semibold text-gray-900">Deal details</h2>
+        <h2 className="mb-4 text-base font-semibold text-gray-900">{t('newApplication.dealDetails')}</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <div><label className="label" htmlFor="dateOfSale">Date of sale</label><input id="dateOfSale" name="dateOfSale" type="date" className={fieldCls('dateOfSale')} /><Err state={state} name="dateOfSale" /></div>
-          <div><label className="label" htmlFor="installationDate">Installation date</label><input id="installationDate" name="installationDate" type="date" className={fieldCls('installationDate')} /><Err state={state} name="installationDate" /></div>
+          <div><label className="label" htmlFor="dateOfSale">{t('newApplication.dateOfSale')}</label><input id="dateOfSale" name="dateOfSale" type="date" className={fieldCls('dateOfSale')} /><Err state={state} name="dateOfSale" /></div>
+          <div><label className="label" htmlFor="installationDate">{t('newApplication.installationDate')}</label><input id="installationDate" name="installationDate" type="date" className={fieldCls('installationDate')} /><Err state={state} name="installationDate" /></div>
           <div>
-            <label className="label" htmlFor="homeDepotStoreId">Home Depot store</label>
+            <label className="label" htmlFor="homeDepotStoreId">{t('newApplication.homeDepotStore')}</label>
             <select id="homeDepotStoreId" name="homeDepotStoreId" className={fieldCls('homeDepotStoreId')} disabled={stores.length === 0}>
-              <option value="">{stores.length === 0 ? 'No stores assigned' : 'Select…'}</option>
+              <option value="">{stores.length === 0 ? t('newApplication.noStoresAssigned') : t('newApplication.selectPlaceholder')}</option>
               {stores.map((s) => (<option key={s.id} value={s.id}>{s.number}{s.name ? ` — ${s.name}` : ''}</option>))}
             </select>
-            {stores.length === 0 && <p className="mt-1 text-xs text-gray-400">Ask an admin to assign your store(s).</p>}
+            {stores.length === 0 && <p className="mt-1 text-xs text-gray-400">{t('newApplication.askAdminStores')}</p>}
           </div>
         </div>
       </section>
 
       {/* Sales details — flow into the sales journal. Optional. */}
       <section className="card p-6">
-        <h2 className="mb-1 text-base font-semibold text-gray-900">Sales details</h2>
-        <p className="mb-4 text-xs text-gray-500">Required — these fill the sales journal.</p>
+        <h2 className="mb-1 text-base font-semibold text-gray-900">{t('newApplication.salesDetails')}</h2>
+        <p className="mb-4 text-xs text-gray-500">{t('newApplication.salesDetailsHint')}</p>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div><label className="label" htmlFor="salespersonName">Salesperson&apos;s name</label><input id="salespersonName" name="salespersonName" className={fieldCls('')} /></div>
-          <div><label className="label" htmlFor="installerName">Installer&apos;s name</label><input id="installerName" name="installerName" className={fieldCls('')} /></div>
+          <div><label className="label" htmlFor="salespersonName">{t('newApplication.salespersonName')}</label><input id="salespersonName" name="salespersonName" className={fieldCls('')} /></div>
+          <div><label className="label" htmlFor="installerName">{t('newApplication.installerName')}</label><input id="installerName" name="installerName" className={fieldCls('')} /></div>
           <div>
-            <label className="label" htmlFor="soapIncluded">SOAP included</label>
+            <label className="label" htmlFor="soapIncluded">{t('newApplication.soapIncluded')}</label>
             <select id="soapIncluded" name="soapIncluded" className={fieldCls('')}>
               <option value="">—</option>
               {SOAP_OPTIONS.map((o) => (
@@ -587,7 +575,7 @@ export function NewApplicationForm({
           </div>
         </div>
         <div className="mt-4">
-          <span className="label">Product(s) sold</span>
+          <span className="label">{t('newApplication.productsSold')}</span>
           <div className="mt-1">
             {/* Searchable chip picker. Anything typed under "Other" on more than
                 two deals is promoted onto this dealer's list automatically. */}
@@ -598,23 +586,23 @@ export function NewApplicationForm({
 
       {/* Applicant (always) */}
       <section className="card p-6">
-        <h2 className="mb-4 text-base font-semibold text-gray-900">Applicant</h2>
+        <h2 className="mb-4 text-base font-semibold text-gray-900">{t('newApplication.applicant')}</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div><label className="label" htmlFor="applicantFirstName">First name</label><input id="applicantFirstName" name="applicantFirstName" className={fieldCls('applicantFirstName')} /><Err state={state} name="applicantFirstName" /></div>
-          <div><label className="label" htmlFor="applicantLastName">Last name</label><input id="applicantLastName" name="applicantLastName" className={fieldCls('applicantLastName')} /><Err state={state} name="applicantLastName" /></div>
-          {typed && <div><label className="label" htmlFor="middleName">Middle name <span className="font-normal text-gray-400">(optional)</span></label><input id="middleName" name="middleName" className={fieldCls('')} /></div>}
+          <div><label className="label" htmlFor="applicantFirstName">{t('newApplication.firstName')}</label><input id="applicantFirstName" name="applicantFirstName" className={fieldCls('applicantFirstName')} /><Err state={state} name="applicantFirstName" /></div>
+          <div><label className="label" htmlFor="applicantLastName">{t('newApplication.lastName')}</label><input id="applicantLastName" name="applicantLastName" className={fieldCls('applicantLastName')} /><Err state={state} name="applicantLastName" /></div>
+          {typed && <div><label className="label" htmlFor="middleName">{t('newApplication.middleName')} <span className="font-normal text-gray-400">{t('newApplication.optional')}</span></label><input id="middleName" name="middleName" className={fieldCls('')} /></div>}
           {/* Express deals are already approved, so no date of birth is needed. */}
-          {!express && <div><label className="label" htmlFor="applicantDob">Date of birth</label><DateOfBirthInput name="applicantDob" id="applicantDob" invalid={errorNames.has('applicantDob')} /><Err state={state} name="applicantDob" /></div>}
-          <div><label className="label" htmlFor="applicantEmail">Email</label><input id="applicantEmail" name="applicantEmail" type="email" className={fieldCls('applicantEmail')} /><Err state={state} name="applicantEmail" /></div>
-          <div><label className="label" htmlFor="applicantPhone">Mobile phone</label><input id="applicantPhone" name="applicantPhone" className={fieldCls('applicantPhone')} inputMode="numeric" maxLength={12} placeholder="705-812-0320" onInput={phoneFmt} /><Err state={state} name="applicantPhone" /></div>
-          {typed && <div><label className="label" htmlFor="homePhone">Home phone <span className="font-normal text-gray-400">(optional)</span></label><input id="homePhone" name="homePhone" className={fieldCls('')} inputMode="numeric" maxLength={12} placeholder="705-812-0320" onInput={phoneFmt} /></div>}
+          {!express && <div><label className="label" htmlFor="applicantDob">{t('newApplication.dateOfBirth')}</label><DateOfBirthInput name="applicantDob" id="applicantDob" invalid={errorNames.has('applicantDob')} /><Err state={state} name="applicantDob" /></div>}
+          <div><label className="label" htmlFor="applicantEmail">{t('newApplication.email')}</label><input id="applicantEmail" name="applicantEmail" type="email" className={fieldCls('applicantEmail')} /><Err state={state} name="applicantEmail" /></div>
+          <div><label className="label" htmlFor="applicantPhone">{t('newApplication.mobilePhone')}</label><input id="applicantPhone" name="applicantPhone" className={fieldCls('applicantPhone')} inputMode="numeric" maxLength={12} placeholder="705-812-0320" onInput={phoneFmt} /><Err state={state} name="applicantPhone" /></div>
+          {typed && <div><label className="label" htmlFor="homePhone">{t('newApplication.homePhone')} <span className="font-normal text-gray-400">{t('newApplication.optional')}</span></label><input id="homePhone" name="homePhone" className={fieldCls('')} inputMode="numeric" maxLength={12} placeholder="705-812-0320" onInput={phoneFmt} /></div>}
           {typed && (
             <div>
-              <label className="label" htmlFor="maritalStatus">Marital status</label>
+              <label className="label" htmlFor="maritalStatus">{t('newApplication.maritalStatus')}</label>
               <select id="maritalStatus" name="maritalStatus" className={fieldCls('')}>
-                <option value="">Select…</option>
-                <option>Single</option><option>Married</option><option>Common-law</option>
-                <option>Separated</option><option>Divorced</option><option>Widowed</option>
+                <option value="">{t('newApplication.selectPlaceholder')}</option>
+                <option value="Single">{t('newApplication.single')}</option><option value="Married">{t('newApplication.married')}</option><option value="Common-law">{t('newApplication.commonLaw')}</option>
+                <option value="Separated">{t('newApplication.separated')}</option><option value="Divorced">{t('newApplication.divorced')}</option><option value="Widowed">{t('newApplication.widowed')}</option>
               </select>
             </div>
           )}
@@ -623,54 +611,54 @@ export function NewApplicationForm({
 
       {/* Address (always) */}
       <section className="card p-6">
-        <h2 className="mb-1 text-base font-semibold text-gray-900">Address</h2>
-        <p className="mb-4 text-xs text-gray-400">Start typing the street address and pick a suggestion to fill in the rest.</p>
+        <h2 className="mb-1 text-base font-semibold text-gray-900">{t('newApplication.address')}</h2>
+        <p className="mb-4 text-xs text-gray-400">{t('newApplication.addressHint')}</p>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">
-            <label className="label" htmlFor="applicantAddress">Street address</label>
+            <label className="label" htmlFor="applicantAddress">{t('newApplication.streetAddress')}</label>
             <AddressAutocompleteInput id="applicantAddress" name="applicantAddress" className={fieldCls('applicantAddress')} cityId="city" provinceId="province" postalId="postalCode" />
             <Err state={state} name="applicantAddress" />
           </div>
-          <div><label className="label" htmlFor="city">City</label><input id="city" name="city" className={fieldCls('')} /></div>
+          <div><label className="label" htmlFor="city">{t('newApplication.city')}</label><input id="city" name="city" className={fieldCls('')} /></div>
           <div>
-            <label className="label" htmlFor="province">Province</label>
+            <label className="label" htmlFor="province">{t('newApplication.province')}</label>
             <select id="province" name="province" className={fieldCls('province')}>
-              <option value="">Select…</option>
+              <option value="">{t('newApplication.selectPlaceholder')}</option>
               {PROVINCES.map((p) => (<option key={p.value} value={p.value}>{p.label}</option>))}
             </select>
             <Err state={state} name="province" />
           </div>
-          <div><label className="label" htmlFor="postalCode">Postal code</label><input id="postalCode" name="postalCode" className={fieldCls('')} placeholder="L0L 2T0" maxLength={7} onInput={postalFmt} /></div>
+          <div><label className="label" htmlFor="postalCode">{t('newApplication.postalCode')}</label><input id="postalCode" name="postalCode" className={fieldCls('')} placeholder="L0L 2T0" maxLength={7} onInput={postalFmt} /></div>
         </div>
 
         {typed && (
           <>
             <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div>
-                <label className="label" htmlFor="housingStatus">Housing status</label>
+                <label className="label" htmlFor="housingStatus">{t('newApplication.housingStatus')}</label>
                 <select id="housingStatus" name="housingStatus" className={fieldCls('')}>
-                  <option value="">Select…</option>
-                  <option value="OWN">Own</option><option value="RENT">Rent</option><option value="OTHER">Other</option>
+                  <option value="">{t('newApplication.selectPlaceholder')}</option>
+                  <option value="OWN">{t('newApplication.own')}</option><option value="RENT">{t('newApplication.rent')}</option><option value="OTHER">{t('newApplication.other')}</option>
                 </select>
               </div>
-              <div><label className="label" htmlFor="monthlyHousingCost">Monthly housing cost</label><input id="monthlyHousingCost" name="monthlyHousingCost" type="number" step="0.01" min="0" className={fieldCls('')} /></div>
-              <div><label className="label" htmlFor="yearsAtAddress">Years at this address</label><input id="yearsAtAddress" name="yearsAtAddress" type="number" min="0" className={fieldCls('')} /></div>
+              <div><label className="label" htmlFor="monthlyHousingCost">{t('newApplication.monthlyHousingCost')}</label><input id="monthlyHousingCost" name="monthlyHousingCost" type="number" step="0.01" min="0" className={fieldCls('')} /></div>
+              <div><label className="label" htmlFor="yearsAtAddress">{t('newApplication.yearsAtAddress')}</label><input id="yearsAtAddress" name="yearsAtAddress" type="number" min="0" className={fieldCls('')} /></div>
             </div>
 
             <details className="mt-4">
-              <summary className="cursor-pointer text-sm font-medium text-brand-700">Additional addresses (optional)</summary>
+              <summary className="cursor-pointer text-sm font-medium text-brand-700">{t('newApplication.additionalAddresses')}</summary>
               <div className="mt-3 space-y-4">
                 {[
-                  { key: 'mailing', label: 'Mailing address' },
-                  { key: 'previous', label: 'Previous address' },
-                  { key: 'worksite', label: 'Work-site (install) address' },
+                  { key: 'mailing', label: t('newApplication.mailingAddress') },
+                  { key: 'previous', label: t('newApplication.previousAddress') },
+                  { key: 'worksite', label: t('newApplication.worksiteAddress') },
                 ].map((a) => (
                   <div key={a.key} className="grid grid-cols-1 gap-3 sm:grid-cols-4">
                     <div className="sm:col-span-2"><label className="label">{a.label}</label><input name={`${a.key}Address`} className={fieldCls('')} /></div>
-                    <div><label className="label">City</label><input name={`${a.key}City`} className={fieldCls('')} /></div>
+                    <div><label className="label">{t('newApplication.city')}</label><input name={`${a.key}City`} className={fieldCls('')} /></div>
                     <div className="grid grid-cols-2 gap-2">
-                      <div><label className="label">Prov.</label><input name={`${a.key}Province`} className={fieldCls('')} /></div>
-                      <div><label className="label">Postal</label><input name={`${a.key}Postal`} className={fieldCls('')} maxLength={7} onInput={postalFmt} /></div>
+                      <div><label className="label">{t('newApplication.provAbbr')}</label><input name={`${a.key}Province`} className={fieldCls('')} /></div>
+                      <div><label className="label">{t('newApplication.postalAbbr')}</label><input name={`${a.key}Postal`} className={fieldCls('')} maxLength={7} onInput={postalFmt} /></div>
                     </div>
                   </div>
                 ))}
@@ -684,38 +672,38 @@ export function NewApplicationForm({
         <>
           {/* Borrower identification */}
           <section className="card p-6">
-            <h2 className="mb-4 text-base font-semibold text-gray-900">Borrower identification</h2>
+            <h2 className="mb-4 text-base font-semibold text-gray-900">{t('newApplication.borrowerId')}</h2>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <label className="label" htmlFor="idType">Photo ID type</label>
+                <label className="label" htmlFor="idType">{t('newApplication.photoIdType')}</label>
                 <select id="idType" name="idType" className={fieldCls('')}>
-                  <option value="">Select…</option>
-                  {PHOTO_ID_TYPES.map((t) => (
-                    <option key={t} value={t}>{t}</option>
+                  <option value="">{t('newApplication.selectPlaceholder')}</option>
+                  {PHOTO_ID_TYPES.map((idt) => (
+                    <option key={idt} value={idt}>{idt}</option>
                   ))}
                 </select>
               </div>
-              <div><label className="label" htmlFor="govIdNumber">Photo ID number</label><input id="govIdNumber" name="govIdNumber" className={fieldCls('')} autoComplete="off" /></div>
+              <div><label className="label" htmlFor="govIdNumber">{t('newApplication.photoIdNumber')}</label><input id="govIdNumber" name="govIdNumber" className={fieldCls('')} autoComplete="off" /></div>
               <div>
-                <label className="label" htmlFor="idProvince">Province of issue</label>
+                <label className="label" htmlFor="idProvince">{t('newApplication.provinceOfIssue')}</label>
                 <select id="idProvince" name="idProvince" className={fieldCls('')}>
-                  <option value="">Select…</option>
+                  <option value="">{t('newApplication.selectPlaceholder')}</option>
                   {PROVINCES.map((p) => (
                     <option key={p.value} value={p.value}>{p.label}</option>
                   ))}
                 </select>
               </div>
-              <div><label className="label" htmlFor="idExpiry">Expiry date</label><input id="idExpiry" name="idExpiry" type="date" className={fieldCls('')} /></div>
+              <div><label className="label" htmlFor="idExpiry">{t('newApplication.expiryDate')}</label><input id="idExpiry" name="idExpiry" type="date" className={fieldCls('')} /></div>
             </div>
           </section>
 
           {/* Employment & income */}
           <section className="card p-6">
-            <h2 className="mb-4 text-base font-semibold text-gray-900">Employment &amp; income</h2>
+            <h2 className="mb-4 text-base font-semibold text-gray-900">{t('newApplication.employmentIncome')}</h2>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {/* Status first — a "Retired" choice hides the employer fields below. */}
               <div>
-                <label className="label" htmlFor="employmentStatus">Employment status</label>
+                <label className="label" htmlFor="employmentStatus">{t('newApplication.employmentStatus')}</label>
                 <select
                   id="employmentStatus"
                   name="employmentStatus"
@@ -723,44 +711,44 @@ export function NewApplicationForm({
                   value={employmentStatus}
                   onChange={(e) => setEmploymentStatus(e.target.value)}
                 >
-                  <option value="">Select…</option>
-                  <option value="EMPLOYED">Employed</option><option value="SELF_EMPLOYED">Self-employed</option><option value="RETIRED">Retired</option><option value="OTHER">Other</option>
+                  <option value="">{t('newApplication.selectPlaceholder')}</option>
+                  <option value="EMPLOYED">{t('newApplication.employed')}</option><option value="SELF_EMPLOYED">{t('newApplication.selfEmployed')}</option><option value="RETIRED">{t('newApplication.retired')}</option><option value="OTHER">{t('newApplication.other')}</option>
                 </select>
               </div>
               {retired ? (
                 <div>
                   <label className="label" htmlFor="grossMonthlyIncome">
-                    Gross monthly income <span className="font-normal text-gray-400">(pension, CPP/OAS, etc.)</span>
+                    {t('newApplication.grossMonthlyIncome')} <span className="font-normal text-gray-400">{t('newApplication.pensionHint')}</span>
                   </label>
                   <input id="grossMonthlyIncome" name="grossMonthlyIncome" type="number" step="0.01" min="0" className={fieldCls('')} />
                 </div>
               ) : (
                 <>
-                  <div><label className="label" htmlFor="businessName">Employer / business name</label><input id="businessName" name="businessName" className={fieldCls('')} /></div>
-                  <div><label className="label" htmlFor="positionTitle">Position title</label><input id="positionTitle" name="positionTitle" className={fieldCls('')} /></div>
-                  <div><label className="label" htmlFor="employerAddress">Employer address</label><AddressAutocompleteInput id="employerAddress" name="employerAddress" className={fieldCls('employerAddress')} placeholder="Start typing the address…" /><Err state={state} name="employerAddress" /></div>
-                  <div><label className="label" htmlFor="employerPhone">Employer phone</label><input id="employerPhone" name="employerPhone" className={fieldCls('employerPhone')} inputMode="numeric" maxLength={12} placeholder="705-812-0320" onInput={phoneFmt} /><Err state={state} name="employerPhone" /></div>
-                  <div><label className="label" htmlFor="grossMonthlyIncome">Gross monthly income</label><input id="grossMonthlyIncome" name="grossMonthlyIncome" type="number" step="0.01" min="0" className={fieldCls('')} /></div>
-                  <div><label className="label" htmlFor="timeAtJobYears">Time at job (years)</label><input id="timeAtJobYears" name="timeAtJobYears" type="number" min="0" className={fieldCls('')} /></div>
+                  <div><label className="label" htmlFor="businessName">{t('newApplication.employerBusinessName')}</label><input id="businessName" name="businessName" className={fieldCls('')} /></div>
+                  <div><label className="label" htmlFor="positionTitle">{t('newApplication.positionTitle')}</label><input id="positionTitle" name="positionTitle" className={fieldCls('')} /></div>
+                  <div><label className="label" htmlFor="employerAddress">{t('newApplication.employerAddress')}</label><AddressAutocompleteInput id="employerAddress" name="employerAddress" className={fieldCls('employerAddress')} placeholder={t('newApplication.startTypingAddress')} /><Err state={state} name="employerAddress" /></div>
+                  <div><label className="label" htmlFor="employerPhone">{t('newApplication.employerPhone')}</label><input id="employerPhone" name="employerPhone" className={fieldCls('employerPhone')} inputMode="numeric" maxLength={12} placeholder="705-812-0320" onInput={phoneFmt} /><Err state={state} name="employerPhone" /></div>
+                  <div><label className="label" htmlFor="grossMonthlyIncome">{t('newApplication.grossMonthlyIncome')}</label><input id="grossMonthlyIncome" name="grossMonthlyIncome" type="number" step="0.01" min="0" className={fieldCls('')} /></div>
+                  <div><label className="label" htmlFor="timeAtJobYears">{t('newApplication.timeAtJob')}</label><input id="timeAtJobYears" name="timeAtJobYears" type="number" min="0" className={fieldCls('')} /></div>
                 </>
               )}
             </div>
             {retired && (
               <p className="mt-3 text-xs text-gray-500">
-                Retired — employer details aren&apos;t collected. Just add gross monthly income (pension, CPP/OAS, etc.).
+                {t('newApplication.retiredNote')}
               </p>
             )}
           </section>
 
           {/* Co-applicant */}
           <section className="card p-6">
-            <h2 className="mb-1 text-base font-semibold text-gray-900">Co-applicant</h2>
+            <h2 className="mb-1 text-base font-semibold text-gray-900">{t('newApplication.coApplicant')}</h2>
             <p className="mb-4 text-xs text-gray-400">
-              Optional. Enter a co-applicant first name to open the full set of questions — a co-applicant needs the same details as the main applicant.
+              {t('newApplication.coApplicantHint')}
             </p>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <label className="label" htmlFor="coFirstName">Co-applicant first name</label>
+                <label className="label" htmlFor="coFirstName">{t('newApplication.coFirstName')}</label>
                 <input
                   id="coFirstName"
                   name="coFirstName"
@@ -770,7 +758,7 @@ export function NewApplicationForm({
                 />
               </div>
               <div>
-                <label className="label" htmlFor="coLastName">Co-applicant last name</label>
+                <label className="label" htmlFor="coLastName">{t('newApplication.coLastName')}</label>
                 <input id="coLastName" name="coLastName" className={fieldCls('')} />
               </div>
             </div>
@@ -778,80 +766,80 @@ export function NewApplicationForm({
             {hasCoApplicant && (
               <div className="mt-5 space-y-5 border-t border-gray-100 pt-5">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div><label className="label" htmlFor="coMiddleName">Middle name <span className="font-normal text-gray-400">(optional)</span></label><input id="coMiddleName" name="coMiddleName" className={fieldCls('')} /></div>
-                  <div><label className="label" htmlFor="coRelationship">Relationship to applicant</label><input id="coRelationship" name="coRelationship" className={fieldCls('')} placeholder="e.g. Spouse" /></div>
-                  <div><label className="label" htmlFor="coDob">Date of birth</label><DateOfBirthInput name="coDob" id="coDob" invalid={errorNames.has('coDob')} /><Err state={state} name="coDob" /></div>
+                  <div><label className="label" htmlFor="coMiddleName">{t('newApplication.middleName')} <span className="font-normal text-gray-400">{t('newApplication.optional')}</span></label><input id="coMiddleName" name="coMiddleName" className={fieldCls('')} /></div>
+                  <div><label className="label" htmlFor="coRelationship">{t('newApplication.relationship')}</label><input id="coRelationship" name="coRelationship" className={fieldCls('')} placeholder={t('newApplication.relationshipPlaceholder')} /></div>
+                  <div><label className="label" htmlFor="coDob">{t('newApplication.dateOfBirth')}</label><DateOfBirthInput name="coDob" id="coDob" invalid={errorNames.has('coDob')} /><Err state={state} name="coDob" /></div>
                   <div>
-                    <label className="label" htmlFor="coMaritalStatus">Marital status</label>
+                    <label className="label" htmlFor="coMaritalStatus">{t('newApplication.maritalStatus')}</label>
                     <select id="coMaritalStatus" name="coMaritalStatus" className={fieldCls('')}>
-                      <option value="">Select…</option>
-                      <option>Single</option><option>Married</option><option>Common-law</option>
-                      <option>Separated</option><option>Divorced</option><option>Widowed</option>
+                      <option value="">{t('newApplication.selectPlaceholder')}</option>
+                      <option value="Single">{t('newApplication.single')}</option><option value="Married">{t('newApplication.married')}</option><option value="Common-law">{t('newApplication.commonLaw')}</option>
+                      <option value="Separated">{t('newApplication.separated')}</option><option value="Divorced">{t('newApplication.divorced')}</option><option value="Widowed">{t('newApplication.widowed')}</option>
                     </select>
                   </div>
-                  <div><label className="label" htmlFor="coEmail">Email</label><input id="coEmail" name="coEmail" type="email" className={fieldCls('')} /></div>
-                  <div><label className="label" htmlFor="coPhone">Mobile phone</label><input id="coPhone" name="coPhone" className={fieldCls('')} inputMode="numeric" maxLength={12} placeholder="705-812-0320" onInput={phoneFmt} /></div>
-                  <div><label className="label" htmlFor="coHomePhone">Home phone <span className="font-normal text-gray-400">(optional)</span></label><input id="coHomePhone" name="coHomePhone" className={fieldCls('')} inputMode="numeric" maxLength={12} placeholder="705-812-0320" onInput={phoneFmt} /></div>
+                  <div><label className="label" htmlFor="coEmail">{t('newApplication.email')}</label><input id="coEmail" name="coEmail" type="email" className={fieldCls('')} /></div>
+                  <div><label className="label" htmlFor="coPhone">{t('newApplication.mobilePhone')}</label><input id="coPhone" name="coPhone" className={fieldCls('')} inputMode="numeric" maxLength={12} placeholder="705-812-0320" onInput={phoneFmt} /></div>
+                  <div><label className="label" htmlFor="coHomePhone">{t('newApplication.homePhone')} <span className="font-normal text-gray-400">{t('newApplication.optional')}</span></label><input id="coHomePhone" name="coHomePhone" className={fieldCls('')} inputMode="numeric" maxLength={12} placeholder="705-812-0320" onInput={phoneFmt} /></div>
                 </div>
 
                 <div>
-                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Co-applicant address</h3>
-                  <p className="mb-3 text-xs text-gray-400">Leave blank if the co-applicant lives at the same address as the applicant.</p>
+                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">{t('newApplication.coAddress')}</h3>
+                  <p className="mb-3 text-xs text-gray-400">{t('newApplication.coAddressHint')}</p>
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div className="sm:col-span-2">
-                      <label className="label" htmlFor="coAddress">Street address</label>
+                      <label className="label" htmlFor="coAddress">{t('newApplication.streetAddress')}</label>
                       <AddressAutocompleteInput id="coAddress" name="coAddress" className={fieldCls('')} cityId="coCity" provinceId="coProvince" postalId="coPostal" />
                     </div>
-                    <div><label className="label" htmlFor="coCity">City</label><input id="coCity" name="coCity" className={fieldCls('')} /></div>
+                    <div><label className="label" htmlFor="coCity">{t('newApplication.city')}</label><input id="coCity" name="coCity" className={fieldCls('')} /></div>
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className="label" htmlFor="coProvince">Province</label>
+                        <label className="label" htmlFor="coProvince">{t('newApplication.province')}</label>
                         <select id="coProvince" name="coProvince" className={fieldCls('')}>
-                          <option value="">Select…</option>
+                          <option value="">{t('newApplication.selectPlaceholder')}</option>
                           {PROVINCES.map((p) => (<option key={p.value} value={p.value}>{p.value}</option>))}
                         </select>
                       </div>
-                      <div><label className="label" htmlFor="coPostal">Postal</label><input id="coPostal" name="coPostal" className={fieldCls('')} maxLength={7} onInput={postalFmt} /></div>
+                      <div><label className="label" htmlFor="coPostal">{t('newApplication.postalAbbr')}</label><input id="coPostal" name="coPostal" className={fieldCls('')} maxLength={7} onInput={postalFmt} /></div>
                     </div>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Co-applicant identification</h3>
+                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">{t('newApplication.coId')}</h3>
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
-                      <label className="label" htmlFor="coIdType">Photo ID type</label>
+                      <label className="label" htmlFor="coIdType">{t('newApplication.photoIdType')}</label>
                       <select id="coIdType" name="coIdType" className={fieldCls('')}>
-                        <option value="">Select…</option>
-                        {PHOTO_ID_TYPES.map((t) => (<option key={t} value={t}>{t}</option>))}
+                        <option value="">{t('newApplication.selectPlaceholder')}</option>
+                        {PHOTO_ID_TYPES.map((idt) => (<option key={idt} value={idt}>{idt}</option>))}
                       </select>
                     </div>
-                    <div><label className="label" htmlFor="coGovIdNumber">Photo ID number</label><input id="coGovIdNumber" name="coGovIdNumber" className={fieldCls('')} autoComplete="off" /></div>
+                    <div><label className="label" htmlFor="coGovIdNumber">{t('newApplication.photoIdNumber')}</label><input id="coGovIdNumber" name="coGovIdNumber" className={fieldCls('')} autoComplete="off" /></div>
                     <div>
-                      <label className="label" htmlFor="coIdProvince">Province of issue</label>
+                      <label className="label" htmlFor="coIdProvince">{t('newApplication.provinceOfIssue')}</label>
                       <select id="coIdProvince" name="coIdProvince" className={fieldCls('')}>
-                        <option value="">Select…</option>
+                        <option value="">{t('newApplication.selectPlaceholder')}</option>
                         {PROVINCES.map((p) => (<option key={p.value} value={p.value}>{p.label}</option>))}
                       </select>
                     </div>
-                    <div><label className="label" htmlFor="coIdExpiry">Expiry date</label><input id="coIdExpiry" name="coIdExpiry" type="date" className={fieldCls('')} /></div>
+                    <div><label className="label" htmlFor="coIdExpiry">{t('newApplication.expiryDate')}</label><input id="coIdExpiry" name="coIdExpiry" type="date" className={fieldCls('')} /></div>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Co-applicant employment &amp; income</h3>
+                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">{t('newApplication.coEmployment')}</h3>
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div><label className="label" htmlFor="coBusinessName">Employer / business name</label><input id="coBusinessName" name="coBusinessName" className={fieldCls('')} /></div>
-                    <div><label className="label" htmlFor="coPositionTitle">Position title</label><input id="coPositionTitle" name="coPositionTitle" className={fieldCls('')} /></div>
-                    <div><label className="label" htmlFor="coEmployerAddress">Employer address <span className="font-normal text-gray-400">(optional)</span></label><input id="coEmployerAddress" name="coEmployerAddress" className={fieldCls('')} /></div>
-                    <div><label className="label" htmlFor="coEmployerPhone">Employer phone <span className="font-normal text-gray-400">(optional)</span></label><input id="coEmployerPhone" name="coEmployerPhone" className={fieldCls('')} inputMode="numeric" maxLength={12} placeholder="705-812-0320" onInput={phoneFmt} /></div>
-                    <div><label className="label" htmlFor="coGrossMonthlyIncome">Gross monthly income</label><input id="coGrossMonthlyIncome" name="coGrossMonthlyIncome" type="number" step="0.01" min="0" className={fieldCls('')} /></div>
-                    <div><label className="label" htmlFor="coTimeAtJobYears">Time at job (years)</label><input id="coTimeAtJobYears" name="coTimeAtJobYears" type="number" min="0" className={fieldCls('')} /></div>
+                    <div><label className="label" htmlFor="coBusinessName">{t('newApplication.employerBusinessName')}</label><input id="coBusinessName" name="coBusinessName" className={fieldCls('')} /></div>
+                    <div><label className="label" htmlFor="coPositionTitle">{t('newApplication.positionTitle')}</label><input id="coPositionTitle" name="coPositionTitle" className={fieldCls('')} /></div>
+                    <div><label className="label" htmlFor="coEmployerAddress">{t('newApplication.employerAddress')} <span className="font-normal text-gray-400">{t('newApplication.optional')}</span></label><input id="coEmployerAddress" name="coEmployerAddress" className={fieldCls('')} /></div>
+                    <div><label className="label" htmlFor="coEmployerPhone">{t('newApplication.employerPhone')} <span className="font-normal text-gray-400">{t('newApplication.optional')}</span></label><input id="coEmployerPhone" name="coEmployerPhone" className={fieldCls('')} inputMode="numeric" maxLength={12} placeholder="705-812-0320" onInput={phoneFmt} /></div>
+                    <div><label className="label" htmlFor="coGrossMonthlyIncome">{t('newApplication.grossMonthlyIncome')}</label><input id="coGrossMonthlyIncome" name="coGrossMonthlyIncome" type="number" step="0.01" min="0" className={fieldCls('')} /></div>
+                    <div><label className="label" htmlFor="coTimeAtJobYears">{t('newApplication.timeAtJob')}</label><input id="coTimeAtJobYears" name="coTimeAtJobYears" type="number" min="0" className={fieldCls('')} /></div>
                     <div>
-                      <label className="label" htmlFor="coEmploymentStatus">Employment status</label>
+                      <label className="label" htmlFor="coEmploymentStatus">{t('newApplication.employmentStatus')}</label>
                       <select id="coEmploymentStatus" name="coEmploymentStatus" className={fieldCls('')}>
-                        <option value="">Select…</option>
-                        <option value="EMPLOYED">Employed</option><option value="SELF_EMPLOYED">Self-employed</option><option value="RETIRED">Retired</option><option value="OTHER">Other</option>
+                        <option value="">{t('newApplication.selectPlaceholder')}</option>
+                        <option value="EMPLOYED">{t('newApplication.employed')}</option><option value="SELF_EMPLOYED">{t('newApplication.selfEmployed')}</option><option value="RETIRED">{t('newApplication.retired')}</option><option value="OTHER">{t('newApplication.other')}</option>
                       </select>
                     </div>
                   </div>
@@ -862,16 +850,16 @@ export function NewApplicationForm({
 
           {/* Notes */}
           <section className="card p-6">
-            <h2 className="mb-4 text-base font-semibold text-gray-900">Notes</h2>
-            <div><label className="label" htmlFor="notes">Notes <span className="font-normal text-gray-400">(optional)</span></label><textarea id="notes" name="notes" rows={3} className={fieldCls('')} /></div>
+            <h2 className="mb-4 text-base font-semibold text-gray-900">{t('newApplication.notes')}</h2>
+            <div><label className="label" htmlFor="notes">{t('newApplication.notes')} <span className="font-normal text-gray-400">{t('newApplication.optional')}</span></label><textarea id="notes" name="notes" rows={3} className={fieldCls('')} /></div>
           </section>
         </>
       )}
 
       {/* First Nations tax exemption (always available) */}
       <section className="card p-6">
-        <h2 className="mb-1 text-base font-semibold text-gray-900">First Nations tax exemption</h2>
-        <p className="mb-3 text-xs text-gray-500">For a status First Nations customer. The reviewer verifies the status card and registers the exemption with Home Depot before payment.</p>
+        <h2 className="mb-1 text-base font-semibold text-gray-900">{t('newApplication.taxExemptionTitle')}</h2>
+        <p className="mb-3 text-xs text-gray-500">{t('newApplication.taxExemptionHint')}</p>
         <label className="flex items-start gap-2 rounded p-2 text-sm text-gray-700">
           <input
             type="checkbox"
@@ -881,35 +869,36 @@ export function NewApplicationForm({
             onChange={(e) => setTaxExempt(e.target.checked)}
             className="mt-0.5 rounded border-gray-300"
           />
-          <span>This customer is tax-exempt (has a valid Certificate of Indian Status)</span>
+          <span>{t('newApplication.taxExemptCheckbox')}</span>
         </label>
         {taxExempt && (
           <div className="mt-3 space-y-4 border-t border-gray-100 pt-4">
             <label className="flex items-start gap-2 text-sm text-gray-700">
               <input type="checkbox" name="deliveredToReserve" value="on" className="mt-0.5 rounded border-gray-300" />
-              <span>Delivered / installed on a reserve <span className="text-gray-400">(full GST + provincial exemption; otherwise the provincial portion only)</span></span>
+              <span>{t('newApplication.deliveredToReserve')} <span className="text-gray-400">{t('newApplication.deliveredToReserveHint')}</span></span>
             </label>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <label className="label" htmlFor="statusCardNumber">Status card number <span className="font-normal text-gray-400">(can be added later)</span></label>
-                <input id="statusCardNumber" name="statusCardNumber" className={fieldCls('')} autoComplete="off" placeholder="Certificate of Indian Status #" />
+                <label className="label" htmlFor="statusCardNumber">{t('newApplication.statusCardNumber')} <span className="font-normal text-gray-400">{t('newApplication.statusCardLater')}</span></label>
+                <input id="statusCardNumber" name="statusCardNumber" className={fieldCls('')} autoComplete="off" placeholder={t('newApplication.statusCardPlaceholder')} />
               </div>
               <div>
-                <label className="label" htmlFor="bandName">Band / First Nation</label>
-                <input id="bandName" name="bandName" className={fieldCls('')} autoComplete="off" placeholder="e.g. band name" />
+                <label className="label" htmlFor="bandName">{t('newApplication.bandName')}</label>
+                <input id="bandName" name="bandName" className={fieldCls('')} autoComplete="off" placeholder={t('newApplication.bandPlaceholder')} />
               </div>
             </div>
           </div>
         )}
       </section>
 
-      {/* Consent (always) */}
+      {/* Consent (always) — the notice text itself is a legal notice reproduced
+          verbatim (see CONSENT_TEXT); only the surrounding UI is translated. */}
       <section className="card p-6">
-        <h2 className="mb-2 text-base font-semibold text-gray-900">Consent</h2>
+        <h2 className="mb-2 text-base font-semibold text-gray-900">{t('newApplication.consent')}</h2>
         <div className="mb-3 max-h-40 overflow-y-auto rounded border border-gray-200 bg-gray-50 p-3 text-xs text-gray-600">{CONSENT_TEXT}</div>
         <label className={`flex items-start gap-2 rounded p-2 text-sm text-gray-700 ${errorNames.has('consent') ? 'bg-red-50 ring-1 ring-red-300' : ''}`}>
           <input type="checkbox" name="consent" value="on" className={`mt-0.5 rounded ${errorNames.has('consent') ? 'border-red-400 ring-1 ring-red-300' : 'border-gray-300'}`} />
-          <span>I confirm the applicant has provided informed consent as described above.</span>
+          <span>{t('newApplication.consentCheckbox')}</span>
         </label>
         <Err state={state} name="consent" />
       </section>

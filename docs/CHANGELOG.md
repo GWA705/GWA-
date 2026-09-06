@@ -28,6 +28,18 @@ source of truth; this file is the human-readable index.
 | Bell Total Connect voicemail | 📝 Documented, not built here | Guide delivered for the **booking site** (voicemail-to-email + IMAP). Not part of this portal. |
 
 ## 2026-09-06
+- **Bilingual coverage — new-application form (the big one).** Translated the
+  full "New customer processing" form to fr-CA (draft): the three entry-method
+  cards (Express/Priority/Standard), payment-type picker, financing details,
+  HD-lead pre-fill (incl. the live lookup status messages), deal + sales
+  details, applicant/address/borrower-ID/employment sections, the co-applicant
+  questionnaire, First Nations tax exemption, and the client-side error summary
+  (field labels + "required"). New `newApplication` namespace (~130 keys). Select
+  values are unchanged (labels display FR, submitted values stay the codes the
+  backend expects). The legal **consent notice** (`CONSENT_TEXT`) is left
+  verbatim per the brand kit — its fr-CA legal wording is for the Québec team to
+  supply. Constant-driven option lists (program/category/payment/SOAP) still
+  render their English labels for now — that shared enum layer is a separate pass.
 - **Bilingual coverage — gift-cards surface (dealer).** Translated the full
   water-test gift-card flow to fr-CA (draft): the request form, per-request
   cards + inline edit, the dealer↔team message thread, search/filter controls,

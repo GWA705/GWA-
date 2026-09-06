@@ -2,12 +2,14 @@ import { SectionHero } from '@/components/SectionHero';
 import { requireDealerAccess } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { productChecklistOptions } from '@/lib/products';
+import { getT } from '@/i18n/server';
 import { NewApplicationForm } from './NewApplicationForm';
 
 export const dynamic = 'force-dynamic';
 
 export default async function NewApplicationPage() {
   const user = await requireDealerAccess();
+  const t = getT();
   const stores = user.dealerId
     ? await prisma.homeDepotStore.findMany({
         where: { dealerId: user.dealerId, active: true },
@@ -21,7 +23,7 @@ export default async function NewApplicationPage() {
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-6">
-        <SectionHero eyebrow="Deals" title="New customer processing" subtitle="Enter the customer's details and products to submit a new deal for review." />
+        <SectionHero eyebrow={t('newApplication.heroEyebrow')} title={t('newApplication.heroTitle')} subtitle={t('newApplication.heroSubtitle')} />
       </div>
       <NewApplicationForm stores={stores} products={products} />
     </div>
