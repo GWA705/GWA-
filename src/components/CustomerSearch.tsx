@@ -146,7 +146,7 @@ function Results({ result }: { result: CustomerSearchResult }) {
   }
 
   // Dealer mode.
-  const nothing = result.own.length === 0 && result.other.length === 0;
+  const nothing = result.own.length === 0 && result.other.length === 0 && result.journal.length === 0;
   if (nothing) return <Note>No customers found.</Note>;
   return (
     <div className="space-y-4">
@@ -189,13 +189,43 @@ function Results({ result }: { result: CustomerSearchResult }) {
                   {m.officeLocation ? ` (${m.officeLocation})` : ''}. Please contact that office for more information.
                 </p>
                 <div className="mt-2 text-sm text-sky-900">
-                  <span className="mr-3">Contact: <strong>GWA office</strong></span>
+                  <span className="mr-3">Contact: <strong>Georgian Water &amp; Air office</strong></span>
                   {m.officePhone ? (
                     <span>📞 <a href={`tel:${m.officePhone.replace(/[^0-9+]/g, '')}`} className="font-semibold underline">{m.officePhone}</a></span>
                   ) : (
-                    <span className="text-sky-700">Contact GWA for this office&apos;s phone number.</span>
+                    <span className="text-sky-700">Contact Georgian Water &amp; Air for this office&apos;s phone number.</span>
                   )}
                 </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {result.journal.length > 0 && (
+        <div>
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">From your office&rsquo;s past sales journals</h3>
+          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+            {result.journal.map((m) => (
+              <div key={m.id} className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-11 w-11 flex-none items-center justify-center rounded-full bg-gray-100 text-sm font-bold text-gray-500">{initials(m.customerName)}</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="truncate text-sm font-semibold text-gray-900">{m.customerName}</span>
+                      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-500">{m.year}</span>
+                    </div>
+                    <div className="truncate text-xs text-gray-400">
+                      {[m.product, m.hdStore, m.finance, m.amount, m.saleDate].filter(Boolean).join(' · ')}
+                    </div>
+                  </div>
+                </div>
+                {(m.phone || m.address) && (
+                  <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-0.5 border-t border-gray-100 pt-2 text-xs">
+                    {m.phone && <a href={`tel:${m.phone.replace(/[^0-9+]/g, '')}`} className="font-medium text-sky-700 hover:underline">📞 {m.phone}</a>}
+                    {m.address && <span className="text-gray-500">{m.address}</span>}
+                  </div>
+                )}
               </div>
             ))}
           </div>

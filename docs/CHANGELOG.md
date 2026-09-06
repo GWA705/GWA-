@@ -28,6 +28,23 @@ source of truth; this file is the human-readable index.
 | Bell Total Connect voicemail | 📝 Documented, not built here | Guide delivered for the **booking site** (voicemail-to-email + IMAP). Not part of this portal. |
 
 ## 2026-09-06
+- **Dealer journal-archive search (office-scoped history).** Dealers can now
+  find their own office's past Home Depot customers from the **closed** sales
+  journals (2024+) right in Find customer. The old journals are no longer edited,
+  so they're **imported once into the database** (`JournalRecord` table +
+  migration) and searched from there — fast, permanent, and correctable. New
+  `scripts/import-journals.ts` reads each closed year via the existing journal
+  reader, attributes every row to an office with the shared Dealer-Snapshot
+  matcher (`src/lib/reporting/dealerMatch.ts`, store number → alias → distinctive
+  name token), and upserts on `(year, tab, rowNum)` so re-runs refresh without
+  duplicates. `searchOfficeJournalArchive()` (`src/lib/journalArchive.ts`) is
+  **strictly scoped to the dealer's own `dealerId`** (no cross-office leakage),
+  name/phone match, read-only. Results show as customer cards under "From your
+  office's past sales journals" (avatar, year, product · store · finance · amount
+  · sale date, phone/address). Going forward, run the import once per year as each
+  book closes. **To go live:** run the import in production (dry-run first) —
+  `npx tsx scripts/import-journals.ts --year=2024,2025 --dry`, then without
+  `--dry`.
 - **HD Payout Calculator — deal tool + printable receipt.** The "How the payout
   works" explainer now stays on the right at all times; the result breakdown
   renders under the inputs on the left (calculator layout unchanged). Portal deal

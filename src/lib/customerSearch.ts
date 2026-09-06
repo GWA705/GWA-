@@ -9,6 +9,7 @@ import type { ApplicationStatus } from '@prisma/client';
 import { isInternal, isSuperAdmin, canAdminSection } from './rbac';
 import { readJournal, sheetIdFor, EARLIEST_JOURNAL_YEAR } from './reporting/journalRead';
 import { nameTokens, DEALER_ALIASES } from './reporting/dealerSnapshot';
+import { searchOfficeJournalArchive, type ArchiveMatch } from './journalArchive';
 import { appOverrideKey, rowOverrideKey, getOverrides, overlay } from './customerOverride';
 
 interface DealerContact { name: string; phone: string }
@@ -197,7 +198,7 @@ export type CustomerSearchResult =
   | { status: 'too_short' }
   | { status: 'rate_limited'; retryAfterSec: number }
   | { status: 'internal'; matches: InternalMatch[]; journalMatches: JournalMatch[] }
-  | { status: 'dealer'; own: OwnMatch[]; other: OtherOfficeMatch[] };
+  | { status: 'dealer'; own: OwnMatch[]; other: OtherOfficeMatch[]; journal: ArchiveMatch[] };
 
 function digits(s: string): string {
   return s.replace(/\D/g, '');
@@ -485,12 +486,16 @@ export async function searchCustomers(user: SessionUser, rawQuery: string): Prom
     }
   }
 
+  // The office's own archived past-journal customers (2024+), name/phone scoped
+  // strictly to this dealer. Read-only history.
+  const journal = await searchOfficeJournalArchive(dealerId, q);
+
   await audit({
     actorId: user.userId,
     action: 'CUSTOMER_SEARCH',
     entityType: 'Application',
-    detail: `dealer q="${q}" own=${own.length} other=${other.length}`,
+    detail: `dealer q="${q}" own=${own.length} other=${other.length} journal=${journal.length}`,
   });
 
-  return { status: 'dealer', own, other };
+  return { status: 'dealer', own, other, journal };
 }
