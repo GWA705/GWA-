@@ -28,6 +28,17 @@ source of truth; this file is the human-readable index.
 | Bell Total Connect voicemail | 📝 Documented, not built here | Guide delivered for the **booking site** (voicemail-to-email + IMAP). Not part of this portal. |
 
 ## 2026-09-06
+- **HD Payout Calculator — deal tool + printable receipt.** The "How the payout
+  works" explainer now stays on the right at all times; the result breakdown
+  renders under the inputs on the left (calculator layout unchanged). Portal deal
+  search now returns full sale details (customer, sale date, products, sales rep,
+  installer, payment method) shown in a refined customer-profile card, with a
+  **Recent** quick-pick row remembered per browser. Added **Print receipt** — a
+  print-friendly Dealer Sale & Payout Receipt (sale details + accounting
+  breakdown) the dealer can attach to a sale or hand to accounting. Added hero
+  slots: `/reports-hero.png` (My reports) and `/mail-hero.png` (Mail). Removed
+  the "Sales & rewards" eyebrow from the Marketplace hero.
+
 - **Resources & content-page cleanup.** Removed the white script flourish from
   the Resources index, Product library and Support heroes; fixed the **double
   banner** on the Resources page (the embedded section no longer renders its own

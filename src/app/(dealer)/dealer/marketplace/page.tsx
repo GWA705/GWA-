@@ -40,7 +40,6 @@ export default async function DealerMarketplace({ searchParams }: { searchParams
   return (
     <div className="space-y-5">
       <SectionHero
-        eyebrow={t('marketplace.heroEyebrow')}
         title={t('marketplace.heroTitle')}
         subtitle={t('marketplace.heroSubtitle')}
         bgImage="/marketplace-hero.png"

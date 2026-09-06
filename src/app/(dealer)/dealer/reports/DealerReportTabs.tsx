@@ -18,7 +18,7 @@ export function DealerReportTabs({ active, showOwner = false }: { active: Tab; s
   );
   return (
     <div className="space-y-3">
-      <SectionHero eyebrow="Insights" title="My reports" subtitle="Performance for your office only." />
+      <SectionHero eyebrow="Insights" title="My reports" subtitle="Performance for your office only." bgImage="/reports-hero.png" />
       <div className="flex flex-wrap gap-2">
         {tab('/dealer/reports', 'Monthly performance', 'monthly')}
         {tab('/dealer/reports/weekly', 'Weekly store detail', 'weekly')}

@@ -331,6 +331,16 @@ body {
 .sidebar-scroll::-webkit-scrollbar-thumb { background-color: rgba(148,197,255,0.28); border-radius: 9999px; }
 .sidebar-scroll:hover::-webkit-scrollbar-thumb { background-color: rgba(148,197,255,0.45); }
 
+/* Print-only content (e.g. the payout receipt). Hidden on screen; on print,
+   everything else is hidden and only the .print-only block shows. */
+.print-only { display: none; }
+@media print {
+  body * { visibility: hidden !important; }
+  .print-only, .print-only * { visibility: visible !important; }
+  .print-only { display: block !important; position: absolute; left: 0; top: 0; width: 100%; }
+  .no-print { display: none !important; }
+}
+
 /* Sidebar collapse/expand — smooth width change. */
 .sidebar-collapsible { transition: width .22s ease; }
 

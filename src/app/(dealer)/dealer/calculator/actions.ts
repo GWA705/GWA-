@@ -4,7 +4,7 @@ import { requireDealerAccess } from '@/lib/session';
 import { hasCalculatorAccess } from '@/lib/calculatorAccess';
 import { prisma } from '@/lib/db';
 import { dealerPortalScopeWhere } from '@/lib/rbac';
-import { STATUS_LABELS_SHORT } from '@/lib/constants';
+import { STATUS_LABELS_SHORT, PAYMENT_METHOD_LABELS } from '@/lib/constants';
 
 export interface DealMatch {
   id: string;
@@ -13,6 +13,12 @@ export interface DealMatch {
   province: string;
   reference: string; // deal / HD reference for the label
   statusLabel: string;
+  // Sale details for the printable receipt (best-effort; may be empty).
+  saleDate: string | null;      // ISO date (yyyy-mm-dd) of the sale
+  products: string[];
+  salesperson: string | null;
+  installer: string | null;
+  paymentLabel: string | null;  // how the customer paid
 }
 
 /**
@@ -58,6 +64,11 @@ export async function searchDealerDeals(query: string): Promise<DealMatch[]> {
       hdReference: true,
       financeItNumber: true,
       status: true,
+      dateOfSale: true,
+      productsSold: true,
+      salespersonName: true,
+      installerName: true,
+      paymentMethod: true,
     },
   });
 
@@ -68,5 +79,10 @@ export async function searchDealerDeals(query: string): Promise<DealMatch[]> {
     province: a.province,
     reference: a.hdReference || a.financeItNumber || '',
     statusLabel: STATUS_LABELS_SHORT[a.status],
+    saleDate: a.dateOfSale ? a.dateOfSale.toISOString().slice(0, 10) : null,
+    products: Array.isArray(a.productsSold) ? a.productsSold.filter(Boolean) : [],
+    salesperson: a.salespersonName || null,
+    installer: a.installerName || null,
+    paymentLabel: a.paymentMethod ? (PAYMENT_METHOD_LABELS[a.paymentMethod] ?? null) : null,
   }));
 }
