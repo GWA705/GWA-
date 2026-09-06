@@ -43,6 +43,18 @@ source of truth; this file is the human-readable index.
   auto-translates lead free-text via DeepL. (2026-09-06, Sean.)
 
 ## 2026-09-06
+- **Bilingual coverage — staff/reviewer surfaces, part 2 (reviewer forms).**
+  Translated the reviewer action forms on the staff deal page (fr-CA draft):
+  the **decision** form (`DecisionForm` — options via `decisionDisplayLabel`,
+  approve/finance fields, notes), the customer **confirmation** call script +
+  checklist (`ConfirmationForm`), the **payout** form (`PayoutForm`), the manual
+  **status change** control (`StatusChangeForm`, reusing the existing
+  `enum.status.*` labels), and the reviewer **workspace** shell
+  (`ReviewerWorkspace` — flow/tabs layout, phase tags, action banners). New
+  `decisionForm`, `confirmationForm`, `payoutForm`, `statusChangeForm`,
+  `reviewerWorkspace` namespaces. All machine values written to the deal record
+  (decision/status/enum codes, amounts, confirmation numbers, reviewer-typed
+  notes) stay English; only visible chrome is localized.
 - **Bilingual coverage — staff/reviewer surfaces, part 1.** Began the staff-side
   sweep (fr-CA draft) for a fully bilingual toggle: the **reviewer queue**
   (`ReviewerQueue` — view modes, columns, tabs, priority bands, pager, empty

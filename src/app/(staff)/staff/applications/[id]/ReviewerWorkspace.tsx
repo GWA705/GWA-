@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from 'react';
 import type { PhaseState } from '@/lib/reviewerFlow';
+import { useT } from '@/i18n/client';
 
 export interface PhaseView {
   id: string;
@@ -47,6 +48,7 @@ export function ReviewerWorkspace({
   // missing its HD / loan number).
   alert?: { message: string; targetPhaseId?: string } | null;
 }) {
+  const t = useT();
   const [layout, setLayout] = useState<'flow' | 'tabs'>('flow');
   const attentionPhase = phases.find((p) => p.attention);
   const nowPhase = phases.find((p) => p.state === 'now') ?? phases[0];
@@ -74,7 +76,7 @@ export function ReviewerWorkspace({
         <div className="mb-4 flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4">
           <span className="mt-0.5 flex h-6 w-6 flex-none items-center justify-center rounded-full bg-amber-500 text-sm font-bold text-white" aria-hidden>!</span>
           <div className="text-sm text-amber-900">
-            <p className="font-semibold">Needs your attention before this deal moves on</p>
+            <p className="font-semibold">{t('reviewerWorkspace.attentionBanner')}</p>
             <p className="mt-0.5">{alert.message}</p>
           </div>
         </div>
@@ -82,9 +84,9 @@ export function ReviewerWorkspace({
       {/* Layout toggle */}
       <div className="mb-4 flex items-center justify-between gap-3">
         <p className="text-xs text-gray-500">
-          Dealer currently sees: <span className="font-semibold text-brand-700">{dealerStatus}</span>
+          {t('reviewerWorkspace.dealerSees')} <span className="font-semibold text-brand-700">{dealerStatus}</span>
         </p>
-        <div className="inline-flex rounded-md ring-1 ring-inset ring-gray-300" role="tablist" aria-label="Layout">
+        <div className="inline-flex rounded-md ring-1 ring-inset ring-gray-300" role="tablist" aria-label={t('reviewerWorkspace.layoutAria')}>
           <button
             type="button"
             onClick={() => choose('flow')}
@@ -93,7 +95,7 @@ export function ReviewerWorkspace({
             }`}
             aria-pressed={layout === 'flow'}
           >
-            ⭢ Flow
+            ⭢ {t('reviewerWorkspace.flow')}
           </button>
           <button
             type="button"
@@ -103,7 +105,7 @@ export function ReviewerWorkspace({
             }`}
             aria-pressed={layout === 'tabs'}
           >
-            ▦ Tabs
+            ▦ {t('reviewerWorkspace.tabs')}
           </button>
         </div>
       </div>
@@ -145,12 +147,14 @@ function PhasePip({ index, state }: { index: number; state: PhaseState }) {
 }
 
 function PhaseTag({ state }: { state: PhaseState }) {
-  if (state === 'done') return <span className="badge bg-green-100 text-green-800">Done</span>;
-  if (state === 'now') return <span className="badge bg-brand-50 text-brand-700">You're here</span>;
-  return <span className="badge bg-gray-100 text-gray-400">Upcoming</span>;
+  const t = useT();
+  if (state === 'done') return <span className="badge bg-green-100 text-green-800">{t('reviewerWorkspace.tagDone')}</span>;
+  if (state === 'now') return <span className="badge bg-brand-50 text-brand-700">{t('reviewerWorkspace.tagNow')}</span>;
+  return <span className="badge bg-gray-100 text-gray-400">{t('reviewerWorkspace.tagUpcoming')}</span>;
 }
 
 function PhaseDetails({ p }: { p: PhaseView }) {
+  const t = useT();
   // Track open state so a pinned section (e.g. Deal numbers while the HD Customer
   // # is still missing) can stay visible below the phase while it's COLLAPSED,
   // and hide once expanded (the body already contains the same section).
@@ -167,10 +171,10 @@ function PhaseDetails({ p }: { p: PhaseView }) {
           <div className="min-w-0 flex-1">
             <div className="text-sm font-semibold text-gray-900">{p.title}</div>
             <div className={`text-xs ${p.attention ? 'text-amber-700' : p.state === 'now' ? 'text-brand-700' : 'text-gray-400'}`}>
-              {p.attention ? 'Missing the HD Customer # — add it below' : p.state === 'done' && p.summary ? p.summary : p.sub}
+              {p.attention ? t('reviewerWorkspace.missingHdCustomer') : p.state === 'done' && p.summary ? p.summary : p.sub}
             </div>
           </div>
-          {p.attention ? <span className="badge bg-amber-100 text-amber-800">Action needed</span> : <PhaseTag state={p.state} />}
+          {p.attention ? <span className="badge bg-amber-100 text-amber-800">{t('reviewerWorkspace.actionNeeded')}</span> : <PhaseTag state={p.state} />}
           <svg className="chev flex-none text-gray-400" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
             <path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
@@ -186,6 +190,7 @@ function PhaseDetails({ p }: { p: PhaseView }) {
 }
 
 function FlowLayout({ phases, comms }: { phases: PhaseView[]; comms: ReactNode }) {
+  const t = useT();
   return (
     <div className="space-y-3">
       {phases.map((p) => (
@@ -196,8 +201,8 @@ function FlowLayout({ phases, comms }: { phases: PhaseView[]; comms: ReactNode }
         <summary className="flex cursor-pointer list-none items-center gap-3 p-4 [&::-webkit-details-marker]:hidden">
           <span className="flex h-7 w-7 flex-none items-center justify-center rounded-lg bg-gray-100 text-xs font-bold text-gray-400">✎</span>
           <div className="min-w-0 flex-1">
-            <div className="text-sm font-semibold text-gray-900">Notes &amp; history</div>
-            <div className="text-xs text-gray-400">Messages, internal notes and the full activity log</div>
+            <div className="text-sm font-semibold text-gray-900">{t('reviewerWorkspace.notesHistory')}</div>
+            <div className="text-xs text-gray-400">{t('reviewerWorkspace.notesHistoryHint')}</div>
           </div>
           <svg className="chev flex-none text-gray-400" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
             <path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
@@ -222,9 +227,10 @@ function TabsLayout({
   activeTab: string;
   setActiveTab: (id: string) => void;
 }) {
+  const t = useT();
   const tabs = [
     ...phases.map((p) => ({ id: p.id, index: p.index, title: p.title, state: p.state, attention: p.attention })),
-    { id: 'comms', index: 0, title: 'Notes & history', state: 'todo' as PhaseState, attention: false },
+    { id: 'comms', index: 0, title: t('reviewerWorkspace.notesHistory'), state: 'todo' as PhaseState, attention: false },
   ];
   const active = phases.find((p) => p.id === activeTab);
 
@@ -270,7 +276,7 @@ function TabsLayout({
         ) : active ? (
           <>
             {active.state === 'now' && (
-              <span className="badge mb-3 inline-flex bg-brand-50 text-brand-700">● You're on this step</span>
+              <span className="badge mb-3 inline-flex bg-brand-50 text-brand-700">● {t('reviewerWorkspace.onThisStep')}</span>
             )}
             <h2 className="mb-1 text-base font-semibold text-gray-900">{active.title}</h2>
             <p className="mb-4 text-xs text-gray-500">{active.sub}</p>
@@ -286,17 +292,19 @@ function TabsLayout({
 /* --------------------------------------------------------------- shared */
 
 function WaitingNote({ phase }: { phase: PhaseView }) {
+  const t = useT();
   return (
     <p className="rounded-md bg-gray-50 p-3 text-sm text-gray-500">
-      Nothing to do here yet — {phase.sub.toLowerCase()}. The deal moves forward on its own when that happens.
+      {t('reviewerWorkspace.waiting', { sub: phase.sub.toLowerCase() })}
     </p>
   );
 }
 
 function AutoNote({ text }: { text: string }) {
+  const t = useT();
   return (
     <div className="mt-3 flex items-start gap-2 rounded-md bg-gray-50 p-3 text-xs text-gray-600">
-      <span className="flex-none font-bold text-green-600">↳ auto</span>
+      <span className="flex-none font-bold text-green-600">↳ {t('reviewerWorkspace.auto')}</span>
       <span>{text}</span>
     </div>
   );
