@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { updateProfileAction, type ActionState } from '@/app/(account)/actions';
+import { useT } from '@/i18n/client';
 
 interface Profile {
   name: string;
@@ -19,15 +20,17 @@ interface Profile {
 }
 
 function SubmitButton() {
+  const t = useT();
   const { pending } = useFormStatus();
   return (
     <button type="submit" className="btn-primary" disabled={pending}>
-      {pending ? 'Saving…' : 'Save profile'}
+      {pending ? t('account.saving') : t('account.saveProfile')}
     </button>
   );
 }
 
 function Toggle({ name, label, defaultChecked }: { name: string; label: string; defaultChecked: boolean }) {
+  const t = useT();
   const [checked, setChecked] = useState(defaultChecked);
   return (
     <label className="flex items-center gap-2 text-sm text-gray-700">
@@ -40,9 +43,7 @@ function Toggle({ name, label, defaultChecked }: { name: string; label: string; 
           // Turning a notification OFF is a decision worth confirming — the user
           // may miss important updates. Turning one back on needs no prompt.
           if (!next) {
-            const ok = window.confirm(
-              `Are you sure you want to turn this off?\n\n“${label}”\n\nYou will not be notified of important updates.`,
-            );
+            const ok = window.confirm(t('account.turnOffConfirm', { label }));
             if (!ok) return; // keep it on
           }
           setChecked(next);
@@ -55,48 +56,46 @@ function Toggle({ name, label, defaultChecked }: { name: string; label: string; 
 }
 
 export function ProfileForm({ profile }: { profile: Profile }) {
+  const t = useT();
   const [state, action] = useFormState(updateProfileAction, {} as ActionState);
   return (
     <form action={action} className="space-y-4">
       {state.error && <div className="rounded-md bg-red-50 p-2 text-sm text-red-700">{state.error}</div>}
-      {state.ok && <div className="rounded-md bg-green-50 p-2 text-sm text-green-700">Profile saved.</div>}
+      {state.ok && <div className="rounded-md bg-green-50 p-2 text-sm text-green-700">{t('account.profileSaved')}</div>}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
-          <label className="label" htmlFor="name">Name</label>
+          <label className="label" htmlFor="name">{t('account.name')}</label>
           <input id="name" name="name" defaultValue={profile.name} required className="input" />
         </div>
         <div>
-          <label className="label" htmlFor="phone">Phone</label>
+          <label className="label" htmlFor="phone">{t('account.phone')}</label>
           <input id="phone" name="phone" defaultValue={profile.phone ?? ''} className="input" placeholder="705-812-0320" />
         </div>
         <div className="sm:col-span-2">
-          <label className="label" htmlFor="notificationEmail">Notification email <span className="font-normal text-gray-400">(leave blank to use {profile.email})</span></label>
+          <label className="label" htmlFor="notificationEmail">{t('account.notificationEmail')} <span className="font-normal text-gray-400">{t('account.notificationEmailHint', { email: profile.email })}</span></label>
           <input id="notificationEmail" name="notificationEmail" type="email" defaultValue={profile.notificationEmail ?? ''} className="input" />
         </div>
       </div>
 
       <div>
-        <h3 className="mb-2 text-sm font-medium text-gray-700">Notify me when…</h3>
+        <h3 className="mb-2 text-sm font-medium text-gray-700">{t('account.notifyWhen')}</h3>
         <div className="space-y-2">
           {profile.isStaff ? (
             <>
-              <Toggle name="notifyNewDocuments" label="A dealer uploads new documents" defaultChecked={profile.notifyNewDocuments} />
-              <Toggle name="notifyAttentionAlerts" label="A deal or upload waits over 2 hours without being looked at" defaultChecked={profile.notifyAttentionAlerts} />
+              <Toggle name="notifyNewDocuments" label={t('account.notifyNewDocuments')} defaultChecked={profile.notifyNewDocuments} />
+              <Toggle name="notifyAttentionAlerts" label={t('account.notifyAttentionAlerts')} defaultChecked={profile.notifyAttentionAlerts} />
             </>
           ) : (
             <>
-              <Toggle name="notifyNewLeads" label="A new lead arrives from Home Depot for my office" defaultChecked={profile.notifyNewLeads} />
-              <Toggle name="notifyStatusUpdates" label="A deal's status changes" defaultChecked={profile.notifyStatusUpdates} />
-              <Toggle name="notifyIdleReminders" label="A deal is waiting on me (reminders until it's actioned)" defaultChecked={profile.notifyIdleReminders} />
+              <Toggle name="notifyNewLeads" label={t('account.notifyNewLeads')} defaultChecked={profile.notifyNewLeads} />
+              <Toggle name="notifyStatusUpdates" label={t('account.notifyStatusUpdates')} defaultChecked={profile.notifyStatusUpdates} />
+              <Toggle name="notifyIdleReminders" label={t('account.notifyIdleReminders')} defaultChecked={profile.notifyIdleReminders} />
             </>
           )}
-          <Toggle name="notifyNewNotes" label="A new note is added on a deal" defaultChecked={profile.notifyNewNotes} />
+          <Toggle name="notifyNewNotes" label={t('account.notifyNewNotes')} defaultChecked={profile.notifyNewNotes} />
         </div>
-        <p className="mt-2 text-xs text-gray-400">
-          New-lead alerts are sent as a push notification to your phone and desktop — turn on notifications on
-          each device below. Status changes, reminders and notes are sent by email, and by push where available.
-        </p>
+        <p className="mt-2 text-xs text-gray-400">{t('account.notifyFootnote')}</p>
       </div>
 
       <SubmitButton />
