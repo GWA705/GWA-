@@ -43,6 +43,13 @@ source of truth; this file is the human-readable index.
   auto-translates lead free-text via DeepL. (2026-09-06, Sean.)
 
 ## 2026-09-06
+- **Translation: live health check + Google Translate as a dormant provider.**
+  Added a one-click **Live translation test** on Admin → System health (translates
+  a known French phrase and reports which provider answered) via a server action —
+  on-demand so it doesn't spend quota on page load. Extended the provider chain to
+  **DeepL → Google → MyMemory**: Google Cloud Translation is wired in but dormant
+  until `GOOGLE_TRANSLATE_API_KEY` is set in Render — switching to it later is just
+  adding the key, no code change. Added `providerLabel()` for diagnostics.
 - **Translation: usage meter + free fallback provider.** `src/lib/translate.ts`
   now runs a provider chain — DeepL first, then **MyMemory** (free, no account)
   automatically when DeepL is unconfigured, out of quota, or unreachable — so

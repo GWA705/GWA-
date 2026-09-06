@@ -4,20 +4,30 @@ import 'server-only';
  * Machine translation for dynamic, user-typed content (customer notes, chat,
  * free-text fields) — separate from the interface dictionaries in `src/i18n`.
  *
- * Provider chain:
+ * Provider chain (each step used only if the one before it is unavailable):
  *   1. DeepL (best quality) when `DEEPL_API_KEY` is set. Free "Developer" keys
  *      end in ":fx" and use the free host; everything else uses the pro host.
- *   2. MyMemory (free, no account) as an automatic fallback when DeepL is not
- *      configured, out of quota, or unreachable — so reviewers keep getting
- *      translations without a paid plan. Optionally set `MYMEMORY_EMAIL` to lift
- *      the free daily limit (anonymous ~5k words/day → ~50k with an email).
+ *   2. Google Cloud Translation when `GOOGLE_TRANSLATE_API_KEY` is set. Dormant
+ *      until that key is added — a drop-in future option, no code change needed.
+ *   3. MyMemory (free, no account) as the always-on fallback when the paid
+ *      providers are not configured, out of quota, or unreachable — so reviewers
+ *      keep getting translations without a paid plan. Optionally set
+ *      `MYMEMORY_EMAIL` to lift the free daily limit (~5k → ~50k words/day).
  *
  * When every provider fails, callers get a clear "unavailable" result rather
  * than an error, so the UI degrades gracefully (shows the original text).
  */
 
 export type TranslateTarget = 'EN' | 'FR';
-export type TranslateProvider = 'deepl' | 'mymemory' | 'none';
+export type TranslateProvider = 'deepl' | 'google' | 'mymemory' | 'none';
+
+/** Human label for a provider, for the admin health check / diagnostics. */
+export function providerLabel(p?: TranslateProvider): string {
+  return p === 'deepl' ? 'DeepL'
+    : p === 'google' ? 'Google Translate'
+    : p === 'mymemory' ? 'MyMemory (free)'
+    : '—';
+}
 
 export interface TranslateResult {
   ok: boolean;
@@ -64,14 +74,59 @@ export async function translateText(
   if (key) {
     const d = await translateViaDeepl(text, target, key, source);
     if (d.ok) return d;
-    // DeepL failed (out of quota, network, bad key…) — fall through to the free
-    // provider so translation keeps working.
+    // DeepL failed (out of quota, network, bad key…) — fall through.
+  }
+
+  if (process.env.GOOGLE_TRANSLATE_API_KEY) {
+    const g = await translateViaGoogle(text, target, source);
+    if (g.ok) return g;
+    // Google failed — fall through to the always-free provider.
   }
 
   const m = await translateViaMyMemory(text, target, source);
   if (m.ok) return m;
 
-  return { ok: false, text, provider: 'none', error: key ? 'all_providers_failed' : 'not_configured' };
+  const anyPaid = !!key || !!process.env.GOOGLE_TRANSLATE_API_KEY;
+  return { ok: false, text, provider: 'none', error: anyPaid ? 'all_providers_failed' : 'not_configured' };
+}
+
+/** Google Cloud Translation v2 (simple API-key REST). Dormant until
+ *  `GOOGLE_TRANSLATE_API_KEY` is set — a future drop-in provider. */
+async function translateViaGoogle(
+  text: string,
+  target: TranslateTarget,
+  source?: TranslateTarget,
+): Promise<TranslateResult> {
+  const key = process.env.GOOGLE_TRANSLATE_API_KEY;
+  if (!key) return { ok: false, text, provider: 'google', error: 'not_configured' };
+  try {
+    const body = new URLSearchParams();
+    body.append('q', text);
+    body.append('target', target.toLowerCase());
+    if (source) body.append('source', source.toLowerCase());
+    body.append('format', 'text');
+
+    const res = await fetch(`https://translation.googleapis.com/language/translate/v2?key=${encodeURIComponent(key)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body,
+      cache: 'no-store',
+    });
+    if (!res.ok) return { ok: false, text, provider: 'google', error: `google_${res.status}` };
+    const data = (await res.json()) as {
+      data?: { translations?: { translatedText?: string; detectedSourceLanguage?: string }[] };
+    };
+    const first = data.data?.translations?.[0];
+    if (!first?.translatedText) return { ok: false, text, provider: 'google', error: 'empty' };
+    return {
+      ok: true,
+      text: first.translatedText,
+      detectedSource: first.detectedSourceLanguage?.toUpperCase(),
+      provider: 'google',
+    };
+  } catch {
+    return { ok: false, text, provider: 'google', error: 'network' };
+  }
 }
 
 async function translateViaDeepl(
