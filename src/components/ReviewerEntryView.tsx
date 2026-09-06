@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { Application, LoanApplication, HomeDepotStore, FinanceCompany, User } from '@prisma/client';
-import { programLabel, soapLabel } from '@/lib/constants';
+import { programDisplayLabel, soapDisplayLabel } from '@/lib/enumLabels';
+import type { TFunction } from '@/i18n/translator';
 import { readEnc } from '@/lib/crypto';
 import { netBeforeTax } from '@/lib/tax';
 
@@ -81,6 +82,7 @@ export function ReviewerEntryView({
   revealHref,
   hideHref,
   printHref,
+  t,
 }: {
   app: AppForEntry;
   loan: LoanApplication | null;
@@ -89,6 +91,7 @@ export function ReviewerEntryView({
   revealHref: string;
   hideHref: string;
   printHref?: string;
+  t: TFunction;
 }) {
   const hasCo = !!(loan?.coFirstName || loan?.coLastName);
   const otherAddresses = [
@@ -216,7 +219,7 @@ export function ReviewerEntryView({
       )}
 
       <Group title="Financing / deal">
-        <Field label="Program" value={programLabel(app.programType, app.programCategory)} />
+        <Field label="Program" value={programDisplayLabel(t, app.programType, app.programCategory)} />
         <Field label="Requested amount" value={money(app.requestedAmount)} />
         {(() => {
           const total = Number(app.approvedAmount ?? app.requestedAmount) || 0;
@@ -231,7 +234,7 @@ export function ReviewerEntryView({
         <Field label="Date of sale" value={fmtDate(app.dateOfSale)} />
         <Field label="Installation date" value={fmtDate(app.installationDate)} />
         <Field label="Product(s) sold" value={app.productsSold.length ? app.productsSold.join(', ') : null} />
-        <Field label="SOAP included" value={soapLabel(app.soapType, app.soapIncluded)} />
+        <Field label="SOAP included" value={soapDisplayLabel(t, app.soapType, app.soapIncluded)} />
         <Field label="Salesperson" value={nonEmpty(app.salespersonName)} />
         <Field label="Installer" value={nonEmpty(app.installerName)} />
         <Field label="Financing deal number" value={nonEmpty(app.financeItNumber)} mono />

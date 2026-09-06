@@ -23,11 +23,12 @@ import { DealProgress } from '@/components/DealProgress';
 import { ProgramBadge } from '@/components/ProgramBadge';
 import {
   PROGRAM_CATEGORY_LABELS,
-  PAYMENT_METHOD_LABELS,
   dealIsFinanced,
   hdReferenceRequired,
   missingRequiredReferences,
 } from '@/lib/constants';
+import { programCategoryLabel, paymentMethodLabel } from '@/lib/enumLabels';
+import { getT } from '@/i18n/server';
 import { ConfirmationForm } from './ConfirmationForm';
 import { DealReferencesForm } from './DealReferencesForm';
 import { WriteToJournalButton } from './WriteToJournalButton';
@@ -94,6 +95,7 @@ export default async function StaffApplicationDetail({
   searchParams: { reveal?: string };
 }) {
   const user = await requireStaffSection('review-queue');
+  const t = getT();
   // The deal and the two independent lookups (finance companies, note
   // templates) run concurrently so their now-cross-region round trips overlap
   // instead of stacking one after another.
@@ -292,6 +294,7 @@ export default async function StaffApplicationDetail({
         splits={app.paymentSplits}
         total={Number(app.approvedAmount ?? app.requestedAmount)}
         financed={financedAmt}
+        t={t}
       />
     ) : null;
 
@@ -385,14 +388,14 @@ export default async function StaffApplicationDetail({
           storageKey={`entryview:${app.id}`}
           snapshot={
             <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3 [&>div]:min-w-0 [&_dd]:break-words">
-              <div><dt className="text-gray-500">Program</dt><dd><ProgramBadge type={app.programType} category={PROGRAM_CATEGORY_LABELS[app.programCategory]} /></dd></div>
+              <div><dt className="text-gray-500">Program</dt><dd><ProgramBadge type={app.programType} category={programCategoryLabel(t, app.programCategory)} /></dd></div>
               <div><dt className="text-gray-500">Customer</dt><dd className="font-medium">{app.applicantFirstName} {app.applicantLastName}</dd></div>
               <div><dt className="text-gray-500">Phone</dt><dd className="font-medium">{app.applicantPhone}</dd></div>
               <div className="sm:col-span-2"><dt className="text-gray-500">Address</dt><dd className="font-medium">{fullAddress || '—'}{!reveal && app.applicantAddressEnc && <a href={`/staff/applications/${app.id}?reveal=1`} className="ml-2 text-xs font-normal text-brand-600 hover:underline">reveal street</a>}</dd></div>
               <div><dt className="text-gray-500">Product(s)</dt><dd className="font-medium">{app.productsSold.length ? app.productsSold.join(', ') : '—'}</dd></div>
               <div><dt className="text-gray-500">Amount</dt><dd className="font-medium">{app.approvedAmount ? `$${app.approvedAmount.toString()}` : `$${app.requestedAmount.toString()}`}</dd></div>
               {app.isSplitPayment && <div><dt className="text-gray-500">Financed</dt><dd className="font-medium text-brand-700">${financedAmt.toLocaleString('en-CA', { minimumFractionDigits: 2 })} <span className="text-xs font-normal text-gray-400">(split)</span></dd></div>}
-              {app.paymentMethod && <div><dt className="text-gray-500">Payment</dt><dd className="font-medium">{PAYMENT_METHOD_LABELS[app.paymentMethod]}</dd></div>}
+              {app.paymentMethod && <div><dt className="text-gray-500">Payment</dt><dd className="font-medium">{paymentMethodLabel(t, app.paymentMethod)}</dd></div>}
               <div><dt className="text-gray-500">Finance company</dt><dd className="font-medium">{app.financeCompany?.name ?? '—'}</dd></div>
               <div><dt className="text-gray-500">Financing deal #</dt><dd className="font-medium">{app.financeItNumber ?? '—'}</dd></div>
               <div><dt className="text-gray-500">HD Customer #</dt><dd className="font-medium">{app.hdReference ?? '—'}</dd></div>
@@ -407,6 +410,7 @@ export default async function StaffApplicationDetail({
             revealHref={`/staff/applications/${app.id}?reveal=1`}
             hideHref={`/staff/applications/${app.id}`}
             printHref={`/staff/applications/${app.id}/print`}
+            t={t}
           />
         </CollapsibleEntry>
         <div className="border-t border-gray-100 pt-4">
@@ -720,7 +724,7 @@ export default async function StaffApplicationDetail({
         <Link href="/staff" className="text-sm text-gray-500 hover:underline">← Back to queue</Link>
           <div className="mt-2 flex items-center justify-between gap-3">
             <h1 className="flex flex-wrap items-center gap-2 text-xl font-semibold text-gray-900">
-              <ProgramBadge type={app.programType} category={PROGRAM_CATEGORY_LABELS[app.programCategory]} size="lg" />
+              <ProgramBadge type={app.programType} category={programCategoryLabel(t, app.programCategory)} size="lg" />
               {app.applicantFirstName} {app.applicantLastName}
             </h1>
             <StatusBadge status={app.status} />

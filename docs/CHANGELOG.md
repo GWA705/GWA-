@@ -28,6 +28,16 @@ source of truth; this file is the human-readable index.
 | Bell Total Connect voicemail | 📝 Documented, not built here | Guide delivered for the **booking site** (voicemail-to-email + IMAP). Not part of this portal. |
 
 ## 2026-09-06
+- **Deal enum labels — staff/reviewer display too (site-wide).** Extended the
+  display-only enum layer to the staff surfaces: the reviewer queue (program +
+  category columns), the staff deal-detail page (program badge, payment method),
+  the reviewer entry/print view (program, SOAP), the split-payment breakdown
+  (method labels), and the staff edit-deal form dropdowns. `t` is threaded into
+  the shared `PaymentBreakdown`/`ReviewerEntryView` components as a prop.
+  Careful exception: the edit page's *default product* value still comes from the
+  **English** category label (`PROGRAM_CATEGORY_LABELS`) because it's written to
+  the deal, not just shown. Enum labels are now localized everywhere they're
+  displayed, dealer- and staff-side.
 - **Bilingual coverage — deal enum labels (display-only layer).** Added a
   locale-aware **display** layer for the deal enums — program type/category,
   payment method, SOAP — as `enum.*` dictionary keys plus helpers in

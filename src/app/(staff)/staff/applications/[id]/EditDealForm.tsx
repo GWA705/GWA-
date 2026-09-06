@@ -5,6 +5,8 @@ import { useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { updateDealAction } from '@/app/(staff)/actions';
 import { PROVINCES, PROGRAM_TYPES, PROGRAM_CATEGORIES, PHOTO_ID_TYPES, SOAP_OPTIONS } from '@/lib/constants';
+import { useT } from '@/i18n/client';
+import { programTypeLabel, programCategoryLabel } from '@/lib/enumLabels';
 import { DateOfBirthInput } from '@/components/DateOfBirthInput';
 import { ProductPicker } from '@/components/ProductPicker';
 
@@ -82,6 +84,7 @@ export function EditDealForm({
   products: { id: string; name: string; journalName?: string | null; promoted?: boolean }[];
   dealers: { id: string; name: string }[];
 }) {
+  const t = useT();
   const [state, action] = useFormState(updateDealAction.bind(null, applicationId), {} as State);
   const v = initial;
   // Preserve any product already on this deal that isn't in the current list
@@ -117,14 +120,14 @@ export function EditDealForm({
           <div>
             <label className="label" htmlFor="programType">Program</label>
             <select id="programType" name="programType" defaultValue={v.programType} className="input">
-              {PROGRAM_TYPES.map((p) => (<option key={p.value} value={p.value}>{p.label}</option>))}
+              {PROGRAM_TYPES.map((p) => (<option key={p.value} value={p.value}>{programTypeLabel(t, p.value)}</option>))}
             </select>
             <Err state={state} name="programType" />
           </div>
           <div>
             <label className="label" htmlFor="programCategory">Category</label>
             <select id="programCategory" name="programCategory" defaultValue={v.programCategory} className="input">
-              {PROGRAM_CATEGORIES.map((p) => (<option key={p.value} value={p.value}>{p.label}</option>))}
+              {PROGRAM_CATEGORIES.map((p) => (<option key={p.value} value={p.value}>{programCategoryLabel(t, p.value)}</option>))}
             </select>
             <Err state={state} name="programCategory" />
           </div>
@@ -155,7 +158,7 @@ export function EditDealForm({
             <select id="soapIncluded" name="soapIncluded" defaultValue={v.soapIncluded} className="input">
               <option value="">—</option>
               {SOAP_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
+                <option key={o.value} value={o.value}>{t(`enum.soap.${o.value}`)}</option>
               ))}
             </select>
           </div>

@@ -6,7 +6,10 @@ import { SearchBox } from '@/components/SearchBox';
 import { QueueSortControl } from '@/components/QueueSortControl';
 import { QUEUE_SORTS } from '@/lib/sortOptions';
 import { searchWhere } from '@/lib/search';
-import { STATUS_LABELS_SHORT, PROGRAM_CATEGORY_LABELS, programLabel } from '@/lib/constants';
+import { STATUS_LABELS_SHORT } from '@/lib/constants';
+import { programDisplayLabel, programCategoryLabel } from '@/lib/enumLabels';
+import { getT } from '@/i18n/server';
+import type { TFunction } from '@/i18n/translator';
 import { ReviewerQueue, DealTable, type QueueRow, type Tone, type Lanes, type PriorityBands } from './ReviewerQueue';
 import type { Application, ApplicationStatus, Dealer } from '@prisma/client';
 
@@ -139,7 +142,7 @@ function actionFor(a: Deal): { label: string; tone: Tone } {
   }
 }
 
-function toRow(a: Deal): QueueRow {
+function toRow(a: Deal, t: TFunction): QueueRow {
   const attention = needsAttention(a);
   const since = waitingSince(a);
   const activity = activityFor(a);
@@ -148,9 +151,9 @@ function toRow(a: Deal): QueueRow {
     id: a.id,
     applicant: `${a.applicantFirstName} ${a.applicantLastName}`,
     dealer: a.dealer.name,
-    program: programLabel(a.programType, a.programCategory),
+    program: programDisplayLabel(t, a.programType, a.programCategory),
     programType: a.programType,
-    programCategory: PROGRAM_CATEGORY_LABELS[a.programCategory],
+    programCategory: programCategoryLabel(t, a.programCategory),
     amount: fmtAmount(a),
     statusLabel: isPaid(a) ? 'Paid' : STATUS_LABELS_SHORT[a.status] ?? a.status,
     tone: isPaid(a) ? 'paid' : toneFor(a.status),
@@ -181,6 +184,7 @@ const byRecentActivity = (a: Deal, b: Deal) => lastActivityAt(b) - lastActivityA
 
 export default async function StaffQueue({ searchParams }: { searchParams: { q?: string; sort?: string } }) {
   await requireStaffSection('review-queue');
+  const t = getT();
   const q = (searchParams.q ?? '').trim();
   const search = searchWhere(q);
   const sort = QUEUE_SORTS.some((s) => s.value === searchParams.sort) ? searchParams.sort! : 'newest';
@@ -193,7 +197,7 @@ export default async function StaffQueue({ searchParams }: { searchParams: { q?:
       orderBy: { createdAt: 'desc' },
       take: 300,
     })) as Deal[];
-    const rows = sortDeals(matches, sort).map(toRow);
+    const rows = sortDeals(matches, sort).map((a) => toRow(a, t));
     return (
       <div>
         <div className="mb-5 space-y-4">
@@ -224,10 +228,10 @@ export default async function StaffQueue({ searchParams }: { searchParams: { q?:
   })) as Deal[];
 
   const lanes: Lanes = {
-    needsApproval: apps.filter((a) => NEW_STATUSES.includes(a.status)).sort(byWaiting).map(toRow),
-    updates: apps.filter((a) => needsAttention(a) && !NEW_STATUSES.includes(a.status)).sort(byWaiting).map(toRow),
-    inFunding: apps.filter((a) => FUNDING_STATUSES.includes(a.status) && !isPaid(a)).sort(byWaiting).map(toRow),
-    all: sortDeals(apps, sort).map(toRow),
+    needsApproval: apps.filter((a) => NEW_STATUSES.includes(a.status)).sort(byWaiting).map((a) => toRow(a, t)),
+    updates: apps.filter((a) => needsAttention(a) && !NEW_STATUSES.includes(a.status)).sort(byWaiting).map((a) => toRow(a, t)),
+    inFunding: apps.filter((a) => FUNDING_STATUSES.includes(a.status) && !isPaid(a)).sort(byWaiting).map((a) => toRow(a, t)),
+    all: sortDeals(apps, sort).map((a) => toRow(a, t)),
   };
 
   // Priority view: the active pipeline grouped by urgency instead of status.
@@ -235,13 +239,13 @@ export default async function StaffQueue({ searchParams }: { searchParams: { q?:
   const active = apps.filter((a) => !INACTIVE.includes(a.status) && !isPaid(a));
   const priority: PriorityBands = {
     // Band 1 — waiting for an approve / decline decision (Submitted / Under review).
-    approval: active.filter((a) => NEW_STATUSES.includes(a.status)).sort(byWaiting).map(toRow),
+    approval: active.filter((a) => NEW_STATUSES.includes(a.status)).sort(byWaiting).map((a) => toRow(a, t)),
     // Band 2 — already approved but the reviewer must act: a new document was
     // uploaded, the dealer changed something, a reply is owed, or it's flagged a
     // Problem. Longest-waiting (incl. overdue) first.
-    attention: active.filter((a) => !NEW_STATUSES.includes(a.status) && needsAttention(a)).sort(byWaiting).map(toRow),
+    attention: active.filter((a) => !NEW_STATUSES.includes(a.status) && needsAttention(a)).sort(byWaiting).map((a) => toRow(a, t)),
     // Band 3 — moving along / waiting on the dealer: newest activity first.
-    prog: active.filter((a) => !NEW_STATUSES.includes(a.status) && !needsAttention(a)).sort(byRecentActivity).map(toRow),
+    prog: active.filter((a) => !NEW_STATUSES.includes(a.status) && !needsAttention(a)).sort(byRecentActivity).map((a) => toRow(a, t)),
   };
 
   return (

@@ -1,4 +1,6 @@
-import { PAYMENT_METHOD_LABELS, isFinancedMethod } from '@/lib/constants';
+import { isFinancedMethod } from '@/lib/constants';
+import { paymentMethodLabel } from '@/lib/enumLabels';
+import type { TFunction } from '@/i18n/translator';
 import type { PaymentMethod } from '@prisma/client';
 
 const money = (n: number) => `$${n.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -6,16 +8,19 @@ const money = (n: number) => `$${n.toLocaleString('en-CA', { minimumFractionDigi
 /**
  * Reviewer-facing payment breakdown for a split deal: each method + amount, the
  * deal total, and the financed portion called out (the number the finance
- * company funds and the loan/HD paperwork is written for).
+ * company funds and the loan/HD paperwork is written for). `t` localizes the
+ * method labels for display; the values stored on the deal are unaffected.
  */
 export function PaymentBreakdown({
   splits,
   total,
   financed,
+  t,
 }: {
   splits: { method: PaymentMethod; amount: { toString(): string } | number }[];
   total: number;
   financed: number;
+  t: TFunction;
 }) {
   return (
     <div className="rounded-lg border border-gray-200 p-4">
@@ -26,7 +31,7 @@ export function PaymentBreakdown({
           return (
             <li key={i} className="flex items-center justify-between border-b border-gray-100 py-2 last:border-0">
               <span className="flex items-center gap-2 text-gray-700">
-                {PAYMENT_METHOD_LABELS[s.method]}
+                {paymentMethodLabel(t, s.method)}
                 <span className={`badge ${fin ? 'bg-brand-50 text-brand-700' : 'bg-gray-100 text-gray-600'}`}>
                   {fin ? 'Financed' : 'Paid'}
                 </span>

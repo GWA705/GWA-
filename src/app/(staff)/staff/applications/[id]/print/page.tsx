@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db';
 import { decryptOptional } from '@/lib/crypto';
 import { audit } from '@/lib/audit';
 import { ReviewerEntryView } from '@/components/ReviewerEntryView';
+import { getT } from '@/i18n/server';
 import { PrintButton } from './PrintButton';
 
 export const dynamic = 'force-dynamic';
@@ -15,6 +16,7 @@ export const dynamic = 'force-dynamic';
 // (it's the reviewer's working copy) and the access is audited.
 export default async function ApplicationPrintView({ params }: { params: { id: string } }) {
   const user = await requireStaffSection('review-queue');
+  const t = getT();
   const app = await prisma.application.findUnique({
     where: { id: params.id },
     include: {
@@ -70,6 +72,7 @@ export default async function ApplicationPrintView({ params }: { params: { id: s
         pv={pv}
         revealHref={`/staff/applications/${app.id}/print`}
         hideHref={`/staff/applications/${app.id}`}
+        t={t}
       />
     </div>
   );
