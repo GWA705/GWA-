@@ -2155,6 +2155,18 @@ export const fr: Dictionary = {
       comingSoon: 'À venir',
     },
   },
+  fileDrop: {
+    hint: 'PDF, JPG, PNG, HEIC ou WEBP',
+    chooseFile: 'Choisir un fichier',
+    optimizing: 'Optimisation des photos…',
+    optimizingSub: 'Réduction des grandes images pour un téléversement plus rapide',
+    dragDropFiles: 'Glissez-déposez des fichiers ici',
+    dragDropFile: 'Glissez-déposez un fichier ici',
+    or: '— ou —',
+    filesReadyOne: '{n} fichier prêt',
+    filesReadyMany: '{n} fichiers prêts',
+    clickToChange: 'Cliquez pour changer',
+  },
   paymentBreakdown: {
     title: 'Répartition des paiements',
     financed: 'Financé',

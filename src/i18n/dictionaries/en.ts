@@ -2151,6 +2151,18 @@ export const en = {
       comingSoon: 'Coming soon',
     },
   },
+  fileDrop: {
+    hint: 'PDF, JPG, PNG, HEIC, or WEBP',
+    chooseFile: 'Choose file',
+    optimizing: 'Optimizing photos…',
+    optimizingSub: 'Shrinking large images so they upload faster',
+    dragDropFiles: 'Drag and drop files here',
+    dragDropFile: 'Drag and drop a file here',
+    or: '— or —',
+    filesReadyOne: '{n} file ready',
+    filesReadyMany: '{n} files ready',
+    clickToChange: 'Click to change',
+  },
   paymentBreakdown: {
     title: 'Payment breakdown',
     financed: 'Financed',

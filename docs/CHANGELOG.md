@@ -43,6 +43,15 @@ source of truth; this file is the human-readable index.
   auto-translates lead free-text via DeepL. (2026-09-06, Sean.)
 
 ## 2026-09-06
+- **Bilingual coverage — file drop-zone (shared upload control).** Translated
+  the drag-and-drop `FileDropInput` (drop prompt, Choose-file button, format
+  hint, photo-optimizing state, "N files ready", "Click to change") — the last
+  shared control on the dealer upload path still in English. New `fileDrop`
+  namespace; default `hint`/`buttonLabel` now fall back to localized copy while
+  still overridable per caller. This closes the dealer + reviewer toggle: the
+  only surfaces left in English are the admin console (`TopNav`/AppShell) and the
+  printable `PayoutReceipt` (paperwork, English on purpose), plus the on-hold
+  Tutorial and the verbatim consent legal text.
 - **Bilingual coverage — reviewer verification checklist, split-payment
   breakdown, conversation thread.** Final staff stragglers (fr-CA draft): the
   reviewer **funding verification checklist** (`VerificationChecklist` — the four

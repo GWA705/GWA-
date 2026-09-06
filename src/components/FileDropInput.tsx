@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { compressFiles, toFileList } from '@/lib/clientImageCompress';
+import { useT } from '@/i18n/client';
 
 // Staged files kept OUTSIDE the React tree, keyed by `persistKey`. When several
 // drop boxes sit on one page and submitting one causes the page to re-render or
@@ -32,8 +33,8 @@ export function FileDropInput({
   accept = '.pdf,.jpg,.jpeg,.png,.heic,.webp',
   multiple = true,
   variant = 'large',
-  hint = 'PDF, JPG, PNG, HEIC, or WEBP',
-  buttonLabel = 'Choose file',
+  hint,
+  buttonLabel,
   compressImages = true,
   persistKey,
   onFilesChange,
@@ -52,6 +53,9 @@ export function FileDropInput({
   persistKey?: string;
   onFilesChange?: (names: string[]) => void;
 }) {
+  const t = useT();
+  const displayHint = hint ?? t('fileDrop.hint');
+  const displayButton = buttonLabel ?? t('fileDrop.chooseFile');
   const inputRef = useRef<HTMLInputElement>(null);
   const [names, setNames] = useState<string[]>([]);
   const [dragging, setDragging] = useState(false);
@@ -166,25 +170,25 @@ export function FileDropInput({
       {optimizing ? (
         <div className="flex flex-col items-center gap-2 text-gray-600">
           <CloudIcon className={`${big ? 'h-10 w-10' : 'h-7 w-7'} text-brand-500`} />
-          <div className="text-sm font-semibold">Optimizing photos…</div>
-          <div className="text-xs text-gray-400">Shrinking large images so they upload faster</div>
+          <div className="text-sm font-semibold">{t('fileDrop.optimizing')}</div>
+          <div className="text-xs text-gray-400">{t('fileDrop.optimizingSub')}</div>
         </div>
       ) : names.length === 0 ? (
         <div className="flex flex-col items-center gap-3 text-gray-500">
           <CloudIcon className={`${big ? 'h-11 w-11' : 'h-8 w-8'} text-gray-400`} />
-          <div className={`${big ? 'text-base' : 'text-sm'} font-medium text-gray-700`}>Drag and drop {multiple ? 'files' : 'a file'} here</div>
-          <div className="text-xs text-gray-400">— or —</div>
+          <div className={`${big ? 'text-base' : 'text-sm'} font-medium text-gray-700`}>{multiple ? t('fileDrop.dragDropFiles') : t('fileDrop.dragDropFile')}</div>
+          <div className="text-xs text-gray-400">{t('fileDrop.or')}</div>
           <span className="inline-flex items-center gap-2 rounded-full border-2 border-brand-500 px-5 py-2 text-sm font-semibold text-brand-700">
-            <CloudIcon className="h-4 w-4" /> {buttonLabel}
+            <CloudIcon className="h-4 w-4" /> {displayButton}
           </span>
-          <div className="text-xs text-gray-400">{hint}</div>
+          <div className="text-xs text-gray-400">{displayHint}</div>
         </div>
       ) : (
         <div className="flex flex-col items-center gap-2 text-gray-700">
           <CloudIcon className={`${big ? 'h-10 w-10' : 'h-7 w-7'} text-brand-500`} />
-          <div className="text-sm font-semibold">{names.length} file{names.length > 1 ? 's' : ''} ready</div>
+          <div className="text-sm font-semibold">{names.length === 1 ? t('fileDrop.filesReadyOne', { n: names.length }) : t('fileDrop.filesReadyMany', { n: names.length })}</div>
           <div className="max-w-full break-words px-2 text-xs text-gray-500">{names.join(', ')}</div>
-          <span className="text-xs text-gray-400">Click to change</span>
+          <span className="text-xs text-gray-400">{t('fileDrop.clickToChange')}</span>
         </div>
       )}
     </div>
