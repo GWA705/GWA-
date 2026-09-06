@@ -107,7 +107,6 @@ export default async function DealerResourceLibraryPage({
             title="Product manuals & brochures"
             subtitle="Find product info, manuals, brochures and spec sheets. View online or download."
             bgImage="/resources-hero.png"
-            flourish={['Knowledge', 'Today.', 'Healthier', 'Tomorrow.']}
           />
         </div>
       </div>

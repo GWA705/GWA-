@@ -51,7 +51,7 @@ function EndingSoonTag({ label }: { label: string }) {
 
 function PdfCover() {
   return (
-    <div className="flex h-40 w-full items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="flex h-36 w-full items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
       <span className="rounded-lg bg-red-50 px-4 py-2 text-lg font-extrabold tracking-wide text-red-600">PDF</span>
     </div>
   );
@@ -59,7 +59,7 @@ function PdfCover() {
 
 function LinkCover() {
   return (
-    <div className="flex h-40 w-full items-center justify-center bg-gradient-to-br from-brand-50 to-brand-100">
+    <div className="flex h-36 w-full items-center justify-center bg-gradient-to-br from-brand-50 to-brand-100">
       <svg className="h-10 w-10 text-brand-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.5 1.5" />
         <path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7L12 19" />
@@ -74,26 +74,32 @@ export function ContentSectionView({
   emptyText,
   items,
   bgImage,
+  hideHero = false,
 }: {
   title: string;
   blurb: string;
   emptyText: string;
   items: ContentItem[];
   bgImage?: string;
+  /** Suppress the section hero (when this section is embedded under a page that
+      already shows its own hero — avoids stacked/double banners). */
+  hideHero?: boolean;
 }) {
   return (
     <div className="space-y-6">
-      <SectionHero
-        eyebrow="Resources"
-        title={standardizeTitle(title)}
-        subtitle={blurb}
-        bgImage={bgImage}
-      />
+      {!hideHero && (
+        <SectionHero
+          eyebrow="Resources"
+          title={standardizeTitle(title)}
+          subtitle={blurb}
+          bgImage={bgImage}
+        />
+      )}
 
       {items.length === 0 ? (
         <div className="card p-8 text-center text-sm text-gray-500">{emptyText}</div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {items.map((c) => {
             const isImage = (c.fileMime || '').startsWith('image/');
             const isPdf = (c.fileMime || '').includes('pdf');
@@ -106,10 +112,10 @@ export function ContentSectionView({
                     PDF cover, or a link cover. */}
                 {c.thumbStorageKey ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={`${fileUrl}?thumb=1`} alt={c.title} loading="lazy" className="h-40 w-full bg-gray-50 object-cover" />
+                  <img src={`${fileUrl}?thumb=1`} alt={c.title} loading="lazy" className="h-36 w-full bg-gray-50 object-contain p-2" />
                 ) : c.fileStorageKey && isImage ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={fileUrl} alt={c.title} loading="lazy" className="h-40 w-full bg-gray-50 object-cover" />
+                  <img src={fileUrl} alt={c.title} loading="lazy" className="h-36 w-full bg-gray-50 object-contain p-2" />
                 ) : c.fileStorageKey && isPdf ? (
                   <PdfCover />
                 ) : c.linkUrl ? (

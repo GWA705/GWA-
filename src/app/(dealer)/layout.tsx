@@ -105,6 +105,7 @@ export default async function DealerLayout({ children }: { children: React.React
             return tools.length > 0 ? [{ label: 'Tools', labelKey: 'nav.tools', children: tools }] : [];
           })(),
           // Ordering gear, HD leads, and water-test gift cards — top-level tabs.
+          { href: '/dealer/resources/library', label: 'Product library', labelKey: 'nav.productLibrary' },
           { href: '/dealer/marketplace', label: 'Marketplace', labelKey: 'nav.marketplace' },
           { href: '/dealer/leads', label: 'Leads', labelKey: 'nav.leads' },
           { href: '/dealer/gift-cards', label: 'Gift cards', labelKey: 'nav.giftCards', badge: giftCardUnread },
@@ -113,7 +114,6 @@ export default async function DealerLayout({ children }: { children: React.React
             labelKey: 'nav.resources',
             children: [
               { href: '/dealer/resources', label: 'Resources', labelKey: 'nav.resources', badge: freshSections.has('RESOURCE') },
-              { href: '/dealer/resources/library', label: 'Product library', labelKey: 'nav.productLibrary' },
               { href: '/dealer/hd-promotions', label: 'HD Promotions', labelKey: 'nav.hdPromotions', badge: freshSections.has('HD_PROMOTION') },
               { href: '/dealer/hd-credit-card', label: 'HD Credit Card', labelKey: 'nav.hdCreditCard', badge: freshSections.has('HD_CREDIT_CARD') },
               { href: '/dealer/tutorial', label: 'Tutorial', labelKey: 'nav.tutorial' },

@@ -52,7 +52,7 @@ export function DealerCalculator({ defaultProvince = 'ON' }: { defaultProvince?:
   function copyBreakdown() {
     if (!r?.ok) return;
     const lines = [
-      'GWA — Dealer Payout Breakdown',
+      'Georgian Water & Air — Dealer Payout Breakdown',
       customer ? `Customer: ${customer}` : null,
       reference ? `Reference: ${reference}` : null,
       `Province: ${r.province} (tax ${pct(r.taxRate)})`,
@@ -75,7 +75,10 @@ export function DealerCalculator({ defaultProvince = 'ON' }: { defaultProvince?:
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4">
+    <div className="space-y-4">
+      <div className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
+        {/* Left column: find a deal + inputs */}
+        <div className="space-y-4">
       {/* Portal deal lookup */}
       <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
         <label className="label" htmlFor="calc-lookup">Find a portal deal <span className="font-normal text-gray-400">(customer name or deal #)</span></label>
@@ -169,9 +172,11 @@ export function DealerCalculator({ defaultProvince = 'ON' }: { defaultProvince?:
           <input id="calc-ref" className="input" placeholder="e.g. customer name or deal number" value={reference} onChange={(e) => setReference(e.target.value)} autoComplete="off" />
         </div>
       </div>
+        </div>{/* end left column */}
 
-      {/* Result */}
-      {r?.ok && (
+        {/* Right column: result, or how-it-works until an amount is entered */}
+        <div className="space-y-4 lg:sticky lg:top-4">
+      {r?.ok ? (
         <div className="overflow-hidden rounded-2xl border border-gray-200 shadow-sm">
           {/* Hero total */}
           <div className="relative px-6 py-7 text-center text-white" style={{ background: 'linear-gradient(135deg,#0f7a4d,#1aa06a)' }}>
@@ -216,12 +221,51 @@ export function DealerCalculator({ defaultProvince = 'ON' }: { defaultProvince?:
             {r.warning && <p className="border-t border-gray-100 px-5 py-2 text-xs text-amber-700">{r.warning}</p>}
           </div>
         </div>
+      ) : (
+        <HowItWorks />
       )}
+        </div>{/* end right column */}
+      </div>{/* end grid */}
 
       <p className="text-center text-xs text-gray-400">
-        Estimate for your records. The amount paid is confirmed by GWA when the deal funds.
+        Estimate for your records. The amount paid is confirmed by Georgian Water &amp; Air when the deal funds.
       </p>
     </div>
+  );
+}
+
+/** Shown in the right column until an amount is entered — explains the payout
+ *  math so the page reads as substantial and the dealer knows what to expect. */
+function HowItWorks() {
+  return (
+    <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+      <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-600">How the payout works</div>
+      <h3 className="mt-1 text-lg font-bold text-[#0e2b5c] dark:text-slate-100">Your EFT payout, line by line</h3>
+      <p className="mt-1 text-sm text-gray-500">Enter an approved amount on the left to see the full breakdown here. Every deal is worked the same way:</p>
+      <ol className="mt-4 space-y-3">
+        <Step n="1" title="Start from the total sale" body="The approved amount, tax included." />
+        <Step n="2" title="Back out the tax" body="We work from the pre-tax subtotal using the province’s rate." />
+        <Step n="3" title="HD Discount — 13%" body="Deducted from the subtotal." />
+        <Step n="4" title="HD IBX Discount — 1.25%" body="Deducted from the running balance." />
+        <Step n="5" title="HD Program — 4%" body="Deducted to reach your net payout." />
+        <Step n="6" title="Add the tax back" body="Tax is added to the net for the final EFT payout." />
+      </ol>
+      <p className="mt-4 rounded-xl bg-sky-50 p-3 text-xs text-sky-800">
+        Tip: use <strong>Find a portal deal</strong> to pull the approved amount and province straight from an existing deal.
+      </p>
+    </div>
+  );
+}
+
+function Step({ n, title, body }: { n: string; title: string; body: string }) {
+  return (
+    <li className="flex gap-3">
+      <span className="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-sky-600 text-xs font-bold text-white">{n}</span>
+      <div>
+        <div className="text-sm font-semibold text-gray-900 dark:text-slate-100">{title}</div>
+        <div className="text-xs text-gray-500">{body}</div>
+      </div>
+    </li>
   );
 }
 

@@ -27,6 +27,20 @@ source of truth; this file is the human-readable index.
 | DeepL translation (user content) | ⏳ Parked | Awaiting `DEEPL_API_KEY` in Render (free keys end in `:fx`). Powers the on-demand Translate control for user-typed FR↔EN content. |
 | Bell Total Connect voicemail | 📝 Documented, not built here | Guide delivered for the **booking site** (voicemail-to-email + IMAP). Not part of this portal. |
 
+## 2026-09-06
+- **Resources & content-page cleanup.** Removed the white script flourish from
+  the Resources index, Product library and Support heroes; fixed the **double
+  banner** on the Resources page (the embedded section no longer renders its own
+  hero); promoted **Product library** to a top-level sidebar item (out of the
+  Resources submenu) and gave the resources index a proper prominent card for it.
+  Tightened the shared content-card grid to 3-up on wide screens with
+  full-preview (object-contain) thumbnails so document covers stop cropping oddly.
+- **HD Payout Calculator beefed up.** Two-column layout on desktop (inputs left,
+  results right) that fills the width, with a "How the payout works" panel shown
+  until an amount is entered; added a hero image slot (`/calculator-hero.png`).
+- **Brand fixes.** Replaced customer-facing "GWA" with "Georgian Water & Air" in
+  the Resources blurb, the calculator note and its copied breakdown.
+
 ## 2026-09-05
 - **Bilingual (EN/FR) foundation for the Québec launch.** Added a cookie-based
   i18n system (`src/i18n/`) — no route restructuring: `getLocale()`/`getT()` for

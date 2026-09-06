@@ -13,7 +13,7 @@ const HERO_IMAGE: Record<string, string> = {
 
 // Shared server component behind the dealer content tabs. Underscore
 // prefix keeps this file out of the router.
-export async function ContentPage({ slug }: { slug: string }) {
+export async function ContentPage({ slug, hideHero = false }: { slug: string; hideHero?: boolean }) {
   const session = await requireDealerAccess();
   const meta = CONTENT_SECTIONS.find((s) => s.slug === slug);
   if (!meta) notFound();
@@ -38,6 +38,7 @@ export async function ContentPage({ slug }: { slug: string }) {
       emptyText={meta.emptyText}
       items={items}
       bgImage={HERO_IMAGE[slug]}
+      hideHero={hideHero}
     />
   );
 }

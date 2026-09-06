@@ -23,11 +23,12 @@ export default async function DealerCalculatorPage() {
   const defaultProvince = latest?.province ?? 'ON';
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="mx-auto max-w-5xl space-y-6">
       <SectionHero
         eyebrow="Tools"
         title="HD Payout Calculator"
         subtitle="Enter the approved amount (total sale with tax) and province — or pull a deal from the portal."
+        bgImage="/calculator-hero.png"
       />
       <DealerCalculator defaultProvince={defaultProvince} />
     </div>

@@ -478,7 +478,7 @@ export const CONTENT_SECTIONS: {
     section: 'RESOURCE',
     slug: 'resources',
     label: 'Resources',
-    blurb: 'Guides, forms, and documents shared by GWA.',
+    blurb: 'Guides, forms, and documents shared by Georgian Water & Air.',
     emptyText: 'No resources have been posted yet. Check back soon.',
   },
   {

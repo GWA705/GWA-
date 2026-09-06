@@ -44,7 +44,6 @@ export default async function DealerSupportPage() {
         eyebrow="Help"
         title="Contact & Support"
         subtitle="Reach the right people at Georgian Water & Air. Tap a number to call or an email to write."
-        flourish={['Here', 'To', 'Help.']}
       />
 
       {contacts.length === 0 ? (
