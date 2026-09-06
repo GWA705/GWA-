@@ -4,6 +4,8 @@ import { useRef, useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { submitUserRequestAction } from '@/app/(dealer)/actions';
 import type { ActionState } from '@/app/(dealer)/actions';
+import { useT } from '@/i18n/client';
+import type { TFunction } from '@/i18n/translator';
 
 interface Row {
   id: number;
@@ -16,16 +18,17 @@ interface Row {
 
 const blank = (id: number): Row => ({ id, name: '', email: '', phone: '', jobTitle: '', isMainContact: false });
 
-function SubmitButton({ disabled }: { disabled: boolean }) {
+function SubmitButton({ disabled, t }: { disabled: boolean; t: TFunction }) {
   const { pending } = useFormStatus();
   return (
     <button type="submit" className="btn-primary" disabled={pending || disabled}>
-      {pending ? 'Sending…' : 'Send request to Georgian Water & Air'}
+      {pending ? t('userRequests.sending') : t('userRequests.sendRequest')}
     </button>
   );
 }
 
 export function UserRequestForm() {
+  const t = useT();
   const [state, action] = useFormState(submitUserRequestAction, {} as ActionState);
   const [rows, setRows] = useState<Row[]>([blank(1)]);
   const [note, setNote] = useState('');
@@ -58,10 +61,9 @@ export function UserRequestForm() {
   if (state.ok) {
     return (
       <div className="rounded-lg border border-green-300 bg-green-50 p-5">
-        <h3 className="text-sm font-semibold text-green-800">Request sent ✓</h3>
+        <h3 className="text-sm font-semibold text-green-800">{t('userRequests.requestSent')}</h3>
         <p className="mt-1 text-sm text-green-700">
-          Georgian Water & Air will review it and set up the logins. Each new user gets an email to set their password
-          and turn on two-factor authentication. You’ll see the status update below.
+          {t('userRequests.requestSentBody')}
         </p>
         <button
           type="button"
@@ -74,7 +76,7 @@ export function UserRequestForm() {
             window.location.reload();
           }}
         >
-          Request more users
+          {t('userRequests.requestMore')}
         </button>
       </div>
     );
@@ -88,48 +90,48 @@ export function UserRequestForm() {
         {rows.map((r, i) => (
           <div key={r.id} className="rounded-lg border border-gray-200 p-4">
             <div className="mb-3 flex items-center justify-between">
-              <span className="text-sm font-semibold text-gray-700">Person {i + 1}</span>
+              <span className="text-sm font-semibold text-gray-700">{t('userRequests.person', { n: i + 1 })}</span>
               {rows.length > 1 && (
                 <button type="button" onClick={() => removeRow(r.id)} className="text-xs text-gray-400 hover:text-red-600">
-                  Remove
+                  {t('userRequests.remove')}
                 </button>
               )}
             </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
-                <label className="label">Full name</label>
-                <input className="input" value={r.name} onChange={(e) => update(r.id, { name: e.target.value })} placeholder="Jane Doe" />
+                <label className="label">{t('userRequests.fullName')}</label>
+                <input className="input" value={r.name} onChange={(e) => update(r.id, { name: e.target.value })} placeholder={t('userRequests.namePlaceholder')} />
               </div>
               <div>
-                <label className="label">Email (this becomes their login)</label>
-                <input className="input" type="email" value={r.email} onChange={(e) => update(r.id, { email: e.target.value })} placeholder="jane@office.ca" autoComplete="off" />
+                <label className="label">{t('userRequests.emailLabel')}</label>
+                <input className="input" type="email" value={r.email} onChange={(e) => update(r.id, { email: e.target.value })} placeholder={t('userRequests.emailPlaceholder')} autoComplete="off" />
               </div>
               <div>
-                <label className="label">Mobile phone</label>
-                <input className="input" value={r.phone} onChange={(e) => update(r.id, { phone: e.target.value })} placeholder="(705) 555-0123" />
+                <label className="label">{t('userRequests.mobilePhone')}</label>
+                <input className="input" value={r.phone} onChange={(e) => update(r.id, { phone: e.target.value })} placeholder={t('userRequests.phonePlaceholder')} />
               </div>
               <div>
-                <label className="label">Job title / notes</label>
-                <input className="input" value={r.jobTitle} onChange={(e) => update(r.id, { jobTitle: e.target.value })} placeholder="Office manager" />
+                <label className="label">{t('userRequests.jobTitle')}</label>
+                <input className="input" value={r.jobTitle} onChange={(e) => update(r.id, { jobTitle: e.target.value })} placeholder={t('userRequests.jobPlaceholder')} />
               </div>
             </div>
             <label className="mt-3 flex items-center gap-2 text-sm text-gray-700">
               <input type="checkbox" checked={r.isMainContact} onChange={(e) => update(r.id, { isMainContact: e.target.checked })} className="h-4 w-4" />
-              Request distributor access — owner / main contact for the office
+              {t('userRequests.distributorAccess')}
             </label>
           </div>
         ))}
       </div>
 
-      <button type="button" onClick={addRow} className="btn-secondary text-sm">+ Add another person</button>
+      <button type="button" onClick={addRow} className="btn-secondary text-sm">{t('userRequests.addPerson')}</button>
 
       <div>
-        <label className="label">Anything else for Georgian Water & Air? (optional)</label>
+        <label className="label">{t('userRequests.anythingElse')}</label>
         <textarea className="input" rows={2} value={note} maxLength={500} onChange={(e) => setNote(e.target.value)} />
       </div>
 
       <div className="flex items-center gap-3">
-        <SubmitButton disabled={!anyFilled} />
+        <SubmitButton disabled={!anyFilled} t={t} />
         {state.error && <span className="text-sm text-red-600">{state.error}</span>}
       </div>
     </form>
