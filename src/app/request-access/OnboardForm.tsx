@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { submitOnboardRequestAction, type OnboardState } from './actions';
+import { useT } from '@/i18n/client';
 
 interface Row {
   id: number;
@@ -16,9 +17,10 @@ const blank = (id: number): Row => ({ id, name: '', email: '', phone: '', jobTit
 
 function SubmitButton({ disabled }: { disabled: boolean }) {
   const { pending } = useFormStatus();
+  const t = useT();
   return (
     <button type="submit" className="btn-primary" disabled={pending || disabled}>
-      {pending ? 'Sending…' : 'Send request'}
+      {pending ? t('onboard.sending') : t('onboard.sendRequest')}
     </button>
   );
 }
@@ -36,6 +38,7 @@ function Field({ label, value, onChange, type = 'text', placeholder, hint }: {
 }
 
 export function OnboardForm() {
+  const t = useT();
   const [state, action] = useFormState(submitOnboardRequestAction, {} as OnboardState);
   const [rows, setRows] = useState<Row[]>([blank(1)]);
   const [nextId, setNextId] = useState(2);
@@ -83,10 +86,9 @@ export function OnboardForm() {
   if (state.ok) {
     return (
       <div className="rounded-lg border border-green-300 bg-green-50 p-6 text-center">
-        <h2 className="text-base font-semibold text-green-800">Request sent ✓</h2>
+        <h2 className="text-base font-semibold text-green-800">{t('onboard.sentTitle')}</h2>
         <p className="mt-1 text-sm text-green-700">
-          Thanks — Georgian Water &amp; Air will review your request and set up the logins. Each new user
-          gets an email to choose a password and turn on two-factor sign-in. You can close this page.
+          {t('onboard.sentBody')}
         </p>
       </div>
     );
@@ -97,45 +99,45 @@ export function OnboardForm() {
       <input type="hidden" name="payload" value={payload} />
 
       <div>
-        <label className="label" htmlFor="accessCode">Access code</label>
-        <input id="accessCode" name="accessCode" required className="input sm:max-w-xs" placeholder="From your invitation" autoComplete="off" />
-        <p className="mt-1 text-xs text-gray-400">The code Georgian Water &amp; Air gave you in the invitation.</p>
+        <label className="label" htmlFor="accessCode">{t('onboard.accessCode')}</label>
+        <input id="accessCode" name="accessCode" required className="input sm:max-w-xs" placeholder={t('onboard.accessCodePlaceholder')} autoComplete="off" />
+        <p className="mt-1 text-xs text-gray-400">{t('onboard.accessCodeHint')}</p>
       </div>
 
       <div className="border-t border-gray-100 pt-4">
-        <h2 className="mb-3 text-sm font-semibold text-gray-800">Main contact</h2>
+        <h2 className="mb-3 text-sm font-semibold text-gray-800">{t('onboard.mainContact')}</h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Field label="Full name" value={contactName} onChange={setContactName} placeholder="Jane Doe" />
-          <Field label="Email" value={email} onChange={setEmail} type="email" placeholder="jane@office.ca" />
-          <Field label="Phone" value={phone} onChange={setPhone} placeholder="(705) 555-0123" />
+          <Field label={t('onboard.fullName')} value={contactName} onChange={setContactName} placeholder="Jane Doe" />
+          <Field label={t('onboard.email')} value={email} onChange={setEmail} type="email" placeholder="jane@office.ca" />
+          <Field label={t('onboard.phone')} value={phone} onChange={setPhone} placeholder="(705) 555-0123" />
         </div>
       </div>
 
       {showOffice && (
         <div className="border-t border-gray-100 pt-4">
-          <h2 className="mb-1 text-sm font-semibold text-gray-800">Office details</h2>
-          <p className="mb-3 text-xs text-gray-400">So we have everything on file for agreements, payments and future contact.</p>
+          <h2 className="mb-1 text-sm font-semibold text-gray-800">{t('onboard.officeDetails')}</h2>
+          <p className="mb-3 text-xs text-gray-400">{t('onboard.officeDetailsHint')}</p>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <Field label="Operating / office name" value={company} onChange={setCompany} placeholder="Barrie Water Co." />
-            <Field label="Legal company name" value={legalName} onChange={setLegalName} placeholder="1234567 Ontario Inc." hint="If different from the operating name" />
-            <Field label="Office phone" value={officePhone} onChange={setOfficePhone} placeholder="(705) 555-0100" />
-            <Field label="Office email" value={officeEmail} onChange={setOfficeEmail} type="email" placeholder="office@company.ca" />
-            <Field label="Website" value={website} onChange={setWebsite} placeholder="www.company.ca" hint="Optional — your public site" />
+            <Field label={t('onboard.operatingName')} value={company} onChange={setCompany} placeholder="Barrie Water Co." />
+            <Field label={t('onboard.legalName')} value={legalName} onChange={setLegalName} placeholder="1234567 Ontario Inc." hint={t('onboard.legalNameHint')} />
+            <Field label={t('onboard.officePhone')} value={officePhone} onChange={setOfficePhone} placeholder="(705) 555-0100" />
+            <Field label={t('onboard.officeEmail')} value={officeEmail} onChange={setOfficeEmail} type="email" placeholder="office@company.ca" />
+            <Field label={t('onboard.website')} value={website} onChange={setWebsite} placeholder="www.company.ca" hint={t('onboard.websiteHint')} />
           </div>
           <div className="mt-3">
-            <Field label="Street address" value={address} onChange={setAddress} placeholder="123 Main St, Unit 4" />
+            <Field label={t('onboard.streetAddress')} value={address} onChange={setAddress} placeholder="123 Main St, Unit 4" />
           </div>
           <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <Field label="City / town" value={city} onChange={setCity} placeholder="Barrie" />
-            <Field label="Province" value={province} onChange={setProvince} placeholder="ON" />
-            <Field label="Postal code" value={postal} onChange={setPostal} placeholder="L4M 1A1" />
+            <Field label={t('onboard.cityTown')} value={city} onChange={setCity} placeholder="Barrie" />
+            <Field label={t('onboard.province')} value={province} onChange={setProvince} placeholder="ON" />
+            <Field label={t('onboard.postalCode')} value={postal} onChange={setPostal} placeholder="L4M 1A1" />
           </div>
           <div className="mt-3">
-            <label className="label">Mailing address <span className="font-normal text-gray-400">(only if different from above)</span></label>
-            <textarea className="input" rows={2} value={mailingAddress} maxLength={300} onChange={(e) => setMailingAddress(e.target.value)} placeholder="PO Box 123, Barrie ON L4M 1A1" />
+            <label className="label">{t('onboard.mailingAddress')} <span className="font-normal text-gray-400">{t('onboard.mailingAddressOptional')}</span></label>
+            <textarea className="input" rows={2} value={mailingAddress} maxLength={300} onChange={(e) => setMailingAddress(e.target.value)} placeholder={t('onboard.mailingPlaceholder')} />
           </div>
           <div className="mt-3">
-            <label className="label">Company logo <span className="font-normal text-gray-400">(optional — PNG, JPG or WEBP, up to 4&nbsp;MB)</span></label>
+            <label className="label">{t('onboard.companyLogo')} <span className="font-normal text-gray-400">{t('onboard.companyLogoOptional')}</span></label>
             <input
               type="file"
               name="logo"
@@ -147,46 +149,46 @@ export function OnboardForm() {
       )}
 
       <div className="border-t border-gray-100 pt-4">
-        <h2 className="mb-3 text-sm font-semibold text-gray-800">People who need a login</h2>
+        <h2 className="mb-3 text-sm font-semibold text-gray-800">{t('onboard.peopleWhoNeedLogin')}</h2>
         <div className="space-y-4">
           {rows.map((r, i) => (
             <div key={r.id} className="rounded-lg border border-gray-200 p-4">
               <div className="mb-3 flex items-center justify-between">
-                <span className="text-sm font-semibold text-gray-700">Person {i + 1}</span>
+                <span className="text-sm font-semibold text-gray-700">{t('onboard.person', { n: i + 1 })}</span>
                 {rows.length > 1 && (
-                  <button type="button" onClick={() => removeRow(r.id)} className="text-xs text-gray-400 hover:text-red-600">Remove</button>
+                  <button type="button" onClick={() => removeRow(r.id)} className="text-xs text-gray-400 hover:text-red-600">{t('onboard.remove')}</button>
                 )}
               </div>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
-                  <label className="label">Full name</label>
+                  <label className="label">{t('onboard.fullName')}</label>
                   <input className="input" value={r.name} onChange={(e) => update(r.id, { name: e.target.value })} placeholder="Jane Doe" />
                 </div>
                 <div>
-                  <label className="label">Email (this becomes their login)</label>
+                  <label className="label">{t('onboard.emailLoginLabel')}</label>
                   <input className="input" type="email" value={r.email} onChange={(e) => update(r.id, { email: e.target.value })} placeholder="jane@office.ca" autoComplete="off" />
                 </div>
                 <div>
-                  <label className="label">Mobile phone</label>
+                  <label className="label">{t('onboard.mobilePhone')}</label>
                   <input className="input" value={r.phone} onChange={(e) => update(r.id, { phone: e.target.value })} placeholder="(705) 555-0123" />
                 </div>
                 <div>
-                  <label className="label">Job title / notes</label>
-                  <input className="input" value={r.jobTitle} onChange={(e) => update(r.id, { jobTitle: e.target.value })} placeholder="Office manager" />
+                  <label className="label">{t('onboard.jobTitleNotes')}</label>
+                  <input className="input" value={r.jobTitle} onChange={(e) => update(r.id, { jobTitle: e.target.value })} placeholder={t('onboard.jobTitlePlaceholder')} />
                 </div>
               </div>
               <label className="mt-3 flex items-center gap-2 text-sm text-gray-700">
                 <input type="checkbox" checked={r.isMainContact} onChange={(e) => update(r.id, { isMainContact: e.target.checked })} className="h-4 w-4" />
-                Owner / main contact for the office (distributor access)
+                {t('onboard.ownerMainContact')}
               </label>
             </div>
           ))}
         </div>
-        <button type="button" onClick={addRow} className="btn-secondary mt-3 text-sm">+ Add another person</button>
+        <button type="button" onClick={addRow} className="btn-secondary mt-3 text-sm">{t('onboard.addAnotherPerson')}</button>
       </div>
 
       <div className="border-t border-gray-100 pt-4">
-        <label className="label">Anything else for Georgian Water &amp; Air? (optional)</label>
+        <label className="label">{t('onboard.anythingElse')}</label>
         <textarea className="input" rows={2} value={note} maxLength={1000} onChange={(e) => setNote(e.target.value)} />
       </div>
 

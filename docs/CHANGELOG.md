@@ -28,6 +28,12 @@ source of truth; this file is the human-readable index.
 | Bell Total Connect voicemail | 📝 Documented, not built here | Guide delivered for the **booking site** (voicemail-to-email + IMAP). Not part of this portal. |
 
 ## 2026-09-06
+- **Bilingual coverage — public "Request portal access" onboarding.** Translated
+  the public `/request-access` page and its onboarding form to fr-CA (draft):
+  access code, main contact, office details, people-who-need-a-login rows, and
+  the confirmation state. New `onboard` dictionary namespace. Example data in
+  placeholders (names, sample phone/postal) left as-is; descriptive labels and
+  hints translated.
 - **Bilingual coverage — sign-in / account-security screens.** Translated the
   entire `(auth)` surface to fr-CA (draft): login, forgot-password,
   reset-password, forced password change, two-factor verification (MFA), and
