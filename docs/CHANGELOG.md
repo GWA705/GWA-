@@ -28,6 +28,19 @@ source of truth; this file is the human-readable index.
 | Bell Total Connect voicemail | 📝 Documented, not built here | Guide delivered for the **booking site** (voicemail-to-email + IMAP). Not part of this portal. |
 
 ## 2026-09-06
+- **Support card — agent photo centred.** Moved the customer-support agent photo
+  from the right edge to the centre of the support pill (symmetric two-sided
+  feather) so the right-hand "Chat" button no longer clips it; lightened the
+  colour wash so the centred photo reads clearly while the left text stays crisp.
+- **Bilingual coverage — Leads (dealer, full surface).** Translated the entire
+  Home Depot Leads surface to fr-CA (draft): the leads list (totals, search,
+  status/outcome/month filters, list/grouped/map toggle, group headers, lead
+  rows + all detail fields, no-good reason, pagination, empty states), the
+  per-lead **call tracker** (outcome buttons, status pills, next-step chips,
+  logged history), the **No-good** control (confirm flow + messages), the month
+  dropdown, and the **map view** (store/lead popups, legend, loading + placement
+  status). New keys live under the `leads` namespace; the shared
+  `leadCallStatus` helper now takes an optional `t` (English fallback preserved).
 - **Bilingual coverage — deal-detail page (dealer).** Translated the dealer
   deal-detail page to fr-CA (draft): header + "where your deal stands",
   customer snapshot, review decisions, confirmation, documents-for-approval,
