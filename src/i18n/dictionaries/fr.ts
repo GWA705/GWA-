@@ -339,4 +339,13 @@ export const fr: Dictionary = {
     close: 'Fermer',
     viewLarger: 'Voir {name} en grand',
   },
+  giftCards: {
+    heroTitle: 'Cartes-cadeaux test d’eau',
+    heroSubtitle: 'Saisissez et suivez vos cartes-cadeaux HD, et envoyez des reçus de confirmation.',
+    newRequest: 'Nouvelle demande',
+    yourRequests: 'Vos demandes',
+    awaitingSend: '{n} en attente d’envoi',
+    noMatch: 'Aucune demande ne correspond à votre recherche ou à vos filtres.',
+    noneYet: 'Aucune demande de carte-cadeau pour l’instant.',
+  },
 };

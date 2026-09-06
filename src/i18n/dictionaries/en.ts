@@ -335,6 +335,15 @@ export const en = {
     close: 'Close',
     viewLarger: 'View {name} larger',
   },
+  giftCards: {
+    heroTitle: 'Water-test gift cards',
+    heroSubtitle: 'Enter and track your HD gift cards, and send confirmation receipts.',
+    newRequest: 'New request',
+    yourRequests: 'Your requests',
+    awaitingSend: '{n} awaiting send',
+    noMatch: 'No requests match your search or filters.',
+    noneYet: 'No gift-card requests yet.',
+  },
 } as const;
 
 /** Recursively widen the literal `en` shape so translations only need to be

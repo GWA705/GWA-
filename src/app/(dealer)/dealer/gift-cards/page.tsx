@@ -7,6 +7,7 @@ import { SectionHero } from '@/components/SectionHero';
 import { DealerGiftCards, type DealerRequestVM } from './DealerGiftCards';
 import { GiftCardBrowseControls } from '@/components/GiftCardBrowseControls';
 import { GiftCardPager } from '@/components/GiftCardPager';
+import { getT } from '@/i18n/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,6 +24,7 @@ export default async function DealerGiftCardsPage({
   searchParams: { q?: string; status?: string; month?: string; sort?: string; perPage?: string; page?: string };
 }) {
   const session = await requireDealerAccess();
+  const t = getT();
   const dealerId = session.dealerId ?? null;
 
   const result = dealerId
@@ -63,21 +65,21 @@ export default async function DealerGiftCardsPage({
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <SectionHero
-        title="Water-test gift cards"
-        subtitle="Enter and track your HD gift cards, and send confirmation receipts."
+        title={t('giftCards.heroTitle')}
+        subtitle={t('giftCards.heroSubtitle')}
         bgImage="/gift-cards-hero.png"
       />
 
       <div className="card space-y-4 p-6">
-        <h2 className="text-base font-semibold text-gray-900">New request</h2>
+        <h2 className="text-base font-semibold text-gray-900">{t('giftCards.newRequest')}</h2>
         <GiftCardForm defaultAmount={25} />
         <GiftCardBulkImport />
       </div>
 
       <div className="card overflow-hidden">
         <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3">
-          <h2 className="text-base font-semibold text-gray-900">Your requests</h2>
-          {pendingCount > 0 && <span className="badge bg-amber-100 text-amber-800">{pendingCount} awaiting send</span>}
+          <h2 className="text-base font-semibold text-gray-900">{t('giftCards.yourRequests')}</h2>
+          {pendingCount > 0 && <span className="badge bg-amber-100 text-amber-800">{t('giftCards.awaitingSend', { n: pendingCount })}</span>}
         </div>
         <div className="border-b border-gray-100 px-4 py-3">
           <GiftCardBrowseControls
@@ -92,7 +94,7 @@ export default async function DealerGiftCardsPage({
         </div>
         {result.total === 0 ? (
           <div className="px-5 py-8 text-center text-sm text-gray-500">
-            {filtered ? 'No requests match your search or filters.' : 'No gift-card requests yet.'}
+            {filtered ? t('giftCards.noMatch') : t('giftCards.noneYet')}
           </div>
         ) : (
           <>
