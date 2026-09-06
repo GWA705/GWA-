@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { useT } from '@/i18n/client';
+import { AutoTranslate } from './AutoTranslate';
 
 export interface GiftCardNoteVM {
   id: string;
@@ -61,7 +62,7 @@ export function GiftCardThread({
                 key={n.id}
                 className={`max-w-[85%] rounded-lg px-3 py-1.5 text-xs ${mine ? 'ml-auto bg-brand-50 text-gray-800' : 'bg-gray-100 text-gray-700'}`}
               >
-                <div className="whitespace-pre-wrap">{n.body}</div>
+                <AutoTranslate text={n.body} />
                 <div className="mt-0.5 text-[10px] text-gray-400">
                   {n.fromDealer ? t('giftCards.fromDealer') : t('giftCards.fromTeam')} · {n.author} · {n.at}
                 </div>

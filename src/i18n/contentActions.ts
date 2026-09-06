@@ -11,9 +11,9 @@ import { translateText, type TranslateTarget } from '@/lib/translate';
 export async function translateContent(
   text: string,
   target: TranslateTarget,
-): Promise<{ ok: boolean; text: string; error?: string }> {
+): Promise<{ ok: boolean; text: string; detectedSource?: string; error?: string }> {
   await requireSession();
   const trimmed = (text ?? '').slice(0, 5000);
   const result = await translateText(trimmed, target);
-  return { ok: result.ok, text: result.text, error: result.error };
+  return { ok: result.ok, text: result.text, detectedSource: result.detectedSource, error: result.error };
 }

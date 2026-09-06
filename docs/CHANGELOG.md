@@ -28,6 +28,19 @@ source of truth; this file is the human-readable index.
 | Bell Total Connect voicemail | 📝 Documented, not built here | Guide delivered for the **booking site** (voicemail-to-email + IMAP). Not part of this portal. |
 
 ## 2026-09-06
+- **Auto-translate chat & messages for reviewers (FR→EN, near-instant).** New
+  `<AutoTranslate>` component converts each message to the viewer's interface
+  language automatically on load — so an English reviewer reads a French dealer's
+  message in English right away (and a French dealer reads English replies in
+  French), with a subtle "show original" toggle. Wired into all message threads:
+  the corner **chat widget**, the reviewer **deal conversation** thread, and the
+  **gift-card** message thread. Cost/latency-aware: a client-side French-signal
+  heuristic skips same-language text (no DeepL call), results are cached per
+  (target, text) for the session, and DeepL's detected source suppresses the
+  note when text was already in the viewer's language. Degrades silently with no
+  key set, so it **activates for reviewers the moment `DEEPL_API_KEY` lands in
+  Render — no redeploy needed**. Independent of the `NEXT_PUBLIC_I18N_ENABLED`
+  UI-language flag. (`translateContent` now also returns DeepL's detected source.)
 - **Support card — agent photo centred.** Moved the customer-support agent photo
   from the right edge to the centre of the support pill (symmetric two-sided
   feather) so the right-hand "Chat" button no longer clips it; lightened the

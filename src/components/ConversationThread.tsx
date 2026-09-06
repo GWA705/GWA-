@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { looksLikeCardNumber, CARD_REDACT_NOTICE } from '@/lib/cardGuard';
+import { AutoTranslate } from './AutoTranslate';
 
 interface Msg {
   id: string;
@@ -109,7 +110,7 @@ export function ConversationThread({
         {messages.map((m) => (
           <div key={m.id} className={`flex ${m.fromStaff ? 'justify-start' : 'justify-end'}`}>
             <div className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${m.fromStaff ? 'rounded-tl-sm bg-white text-gray-800 shadow-sm' : 'rounded-tr-sm bg-brand-600 text-white'}`}>
-              <p className="whitespace-pre-wrap break-words">{m.body}</p>
+              <AutoTranslate text={m.body} tone={m.fromStaff ? 'light' : 'dark'} />
               <p className={`mt-1 text-[10px] ${m.fromStaff ? 'text-gray-400' : 'text-white/70'}`}>{m.authorName} · {fmtTime(m.createdAt)}</p>
             </div>
           </div>

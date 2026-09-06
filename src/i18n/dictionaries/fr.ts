@@ -167,9 +167,14 @@ export const fr: Dictionary = {
   translate: {
     translate: 'Traduire',
     showOriginal: 'Afficher l’original',
+    showTranslation: 'Afficher la traduction',
     translating: 'Traduction…',
     translatedFrom: 'Traduit de {lang}',
+    autoTranslated: 'Traduit automatiquement de {lang}',
     unavailable: 'La traduction est indisponible pour le moment.',
+    langFR: 'français',
+    langEN: 'anglais',
+    langOther: 'une autre langue',
   },
   enum: {
     status: {

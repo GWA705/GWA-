@@ -163,9 +163,14 @@ export const en = {
   translate: {
     translate: 'Translate',
     showOriginal: 'Show original',
+    showTranslation: 'Show translation',
     translating: 'Translating…',
     translatedFrom: 'Translated from {lang}',
+    autoTranslated: 'Auto-translated from {lang}',
     unavailable: 'Translation is unavailable right now.',
+    langFR: 'French',
+    langEN: 'English',
+    langOther: 'another language',
   },
   enum: {
     status: {
