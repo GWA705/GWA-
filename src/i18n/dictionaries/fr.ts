@@ -27,6 +27,29 @@ export const fr: Dictionary = {
     no: 'Non',
     showMore: 'Afficher plus',
     showLess: 'Afficher moins',
+    download: 'Télécharger',
+  },
+  content: {
+    openLink: 'Ouvrir le lien →',
+    endsToday: 'Se termine aujourd’hui',
+    endsInDays: 'Se termine dans {n} jours',
+  },
+  contentSections: {
+    'resources': {
+      label: 'Ressources',
+      blurb: 'Guides, formulaires et documents partagés par Georgian Water & Air.',
+      empty: 'Aucune ressource publiée pour l’instant. Revenez bientôt.',
+    },
+    'hd-promotions': {
+      label: 'Promotions HD',
+      blurb: 'Promotions Home Depot en cours et détails des programmes.',
+      empty: 'Aucune promotion en cours pour le moment. Revenez bientôt.',
+    },
+    'hd-credit-card': {
+      label: 'Carte de crédit HD',
+      blurb: 'Comment traiter une carte de crédit Home Depot — aide étape par étape pour les concessionnaires.',
+      empty: 'Le guide de la carte de crédit HD est en préparation et apparaîtra ici bientôt.',
+    },
   },
   shell: {
     portalName: 'Portail concessionnaire',

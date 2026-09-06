@@ -2,6 +2,7 @@ import type { ContentItem } from '@prisma/client';
 import { SectionHero } from '@/components/SectionHero';
 import { DocViewer } from '@/components/DocViewer';
 import { DownloadButton } from '@/components/DownloadButton';
+import { getT } from '@/i18n/server';
 
 // Known acronyms that should stay uppercase when we standardize a title's case.
 const ACRONYMS = new Set(['HD', 'HDCC', 'GHS', 'GWA', 'FAQ', 'UV', 'PH', 'SIN', 'PDF', 'ON', 'US', 'CA', 'HDFINIT']);
@@ -29,12 +30,11 @@ function standardizeTitle(s: string): string {
 // expired items are already filtered out for dealers, so this only fires while
 // the promo is still live.
 const ENDING_SOON_DAYS = 3;
-function endingSoonLabel(endsAt: Date | null): string | null {
+function endingSoonDaysLeft(endsAt: Date | null): number | null {
   if (!endsAt) return null;
   const ms = endsAt.getTime() - Date.now();
   if (ms < 0 || ms > ENDING_SOON_DAYS * 86_400_000) return null;
-  const daysLeft = Math.ceil(ms / 86_400_000);
-  return daysLeft <= 1 ? 'Ends today' : `Ends in ${daysLeft} days`;
+  return Math.ceil(ms / 86_400_000);
 }
 
 function EndingSoonTag({ label }: { label: string }) {
@@ -85,12 +85,13 @@ export function ContentSectionView({
       already shows its own hero — avoids stacked/double banners). */
   hideHero?: boolean;
 }) {
+  const t = getT();
   return (
     <div className="space-y-6">
       {!hideHero && (
         <SectionHero
-          eyebrow="Resources"
-          title={standardizeTitle(title)}
+          eyebrow={t('nav.resources')}
+          title={title}
           subtitle={blurb}
           bgImage={bgImage}
         />
@@ -104,10 +105,10 @@ export function ContentSectionView({
             const isImage = (c.fileMime || '').startsWith('image/');
             const isPdf = (c.fileMime || '').includes('pdf');
             const fileUrl = `/api/content/${c.id}/file`;
-            const soon = endingSoonLabel(c.endsAt);
+            const soon = endingSoonDaysLeft(c.endsAt);
             return (
               <article key={c.id} className="card relative flex flex-col overflow-hidden">
-                {soon && <EndingSoonTag label={soon} />}
+                {soon != null && <EndingSoonTag label={soon <= 1 ? t('content.endsToday') : t('content.endsInDays', { n: soon })} />}
                 {/* Preview — a custom cover wins; otherwise the image itself, a
                     PDF cover, or a link cover. */}
                 {c.thumbStorageKey ? (
@@ -136,7 +137,7 @@ export function ContentSectionView({
                         rel="noopener noreferrer"
                         className="rounded-md border border-brand-500 px-3 py-1.5 text-xs font-semibold text-brand-700 transition hover:bg-brand-50"
                       >
-                        Open link →
+                        {t('content.openLink')}
                       </a>
                     )}
                     {c.fileStorageKey && (
@@ -151,14 +152,14 @@ export function ContentSectionView({
                           title={standardizeTitle(c.title)}
                           className="rounded-md border border-brand-500 px-3 py-1.5 text-xs font-semibold text-brand-700 transition hover:bg-brand-50"
                         >
-                          View
+                          {t('common.view')}
                         </DocViewer>
                         <DownloadButton
                           url={`${fileUrl}?download=1`}
                           fileName={c.fileName || c.title}
                           className="rounded-md bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-brand-700"
                         >
-                          Download
+                          {t('common.download')}
                         </DownloadButton>
                       </>
                     )}

@@ -157,6 +157,11 @@ export function ChatWidget() {
 
   const badge = summary.totalUnread;
 
+  // On the dashboard the Support card already offers a "Chat" button and sits in
+  // the bottom-right, so the floating launcher would land on the agent photo —
+  // hide it there (the card + the 'gwa:open-chat' event still open this widget).
+  const hideLauncher = pathname === '/dealer' && !open;
+
   return (
     <>
       {/* Launcher */}
@@ -164,7 +169,7 @@ export function ChatWidget() {
         type="button"
         onClick={() => { setOpen((o) => !o); setView('list'); }}
         aria-label={open ? 'Close chat' : 'Open chat with the Georgian Water & Air team'}
-        className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-brand-600 text-white shadow-lg transition hover:bg-brand-700"
+        className={`fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-brand-600 text-white shadow-lg transition hover:bg-brand-700 ${hideLauncher ? 'hidden' : ''}`}
       >
         {open ? (
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
@@ -188,9 +193,12 @@ export function ChatWidget() {
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
             )}
             <div className="min-w-0 flex-1">
-              <div className="truncate text-sm font-semibold">{view === 'thread' ? active?.title : 'GWA team chat'}</div>
+              <div className="truncate text-sm font-semibold">{view === 'thread' ? active?.title : 'Georgian Water & Air team chat'}</div>
               {view === 'list' && <div className="text-[11px] text-white/80">We usually reply the same day</div>}
             </div>
+            <button type="button" onClick={() => setOpen(false)} aria-label="Close chat" className="rounded p-1 hover:bg-white/10">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
+            </button>
           </div>
 
           {view === 'list' ? (

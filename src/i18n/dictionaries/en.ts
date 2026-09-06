@@ -22,6 +22,29 @@ export const en = {
     no: 'No',
     showMore: 'Show more',
     showLess: 'Show less',
+    download: 'Download',
+  },
+  content: {
+    openLink: 'Open link →',
+    endsToday: 'Ends today',
+    endsInDays: 'Ends in {n} days',
+  },
+  contentSections: {
+    'resources': {
+      label: 'Resources',
+      blurb: 'Guides, forms, and documents shared by Georgian Water & Air.',
+      empty: 'No resources have been posted yet. Check back soon.',
+    },
+    'hd-promotions': {
+      label: 'HD Promotions',
+      blurb: 'Current Home Depot promotions and program details.',
+      empty: 'No promotions are running right now. Check back soon.',
+    },
+    'hd-credit-card': {
+      label: 'HD Credit Card',
+      blurb: 'How to process a Home Depot credit card — step-by-step help for dealers.',
+      empty: 'The HD Credit Card guide is being prepared and will appear here soon.',
+    },
   },
   shell: {
     portalName: 'Dealer Portal',
