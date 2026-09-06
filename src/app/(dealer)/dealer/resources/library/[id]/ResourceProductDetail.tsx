@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { RESOURCE_FILE_KIND_LABELS } from '@/lib/constants';
 import { DocViewer } from '@/components/DocViewer';
 import { DownloadButton } from '@/components/DownloadButton';
+import { AutoTranslate } from '@/components/AutoTranslate';
+import { useT } from '@/i18n/client';
 import type { ResourceFileKind } from '@prisma/client';
 
 export interface ResourceFileView {
@@ -35,6 +36,7 @@ function fmtSize(bytes: number): string {
 
 // Full-screen image viewer, mirroring the marketplace lightbox.
 function Lightbox({ src, alt, onClose }: { src: string; alt: string; onClose: () => void }) {
+  const t = useT();
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -60,7 +62,7 @@ function Lightbox({ src, alt, onClose }: { src: string; alt: string; onClose: ()
         <button
           type="button"
           onClick={onClose}
-          aria-label="Close"
+          aria-label={t('resources.close')}
           className="absolute -right-3 -top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white text-lg text-gray-700 shadow-lg ring-1 ring-gray-200 hover:bg-gray-100"
         >
           ✕
@@ -101,6 +103,7 @@ export function ResourceProductDetail({
   product: ResourceProductView;
   files: ResourceFileView[];
 }) {
+  const t = useT();
   const [lightbox, setLightbox] = useState(false);
   const imgSrc = `/api/resource-products/${product.id}/image?v=${product.imageVersion}`;
   const fullSrc = `${imgSrc}&size=full`;
@@ -118,7 +121,7 @@ export function ResourceProductDetail({
               type="button"
               onClick={() => setLightbox(true)}
               className="flex aspect-[4/3] w-full cursor-zoom-in items-center justify-center p-4 sm:aspect-auto sm:border-r sm:border-gray-100"
-              aria-label={`View ${product.title} larger`}
+              aria-label={t('resources.viewLarger', { title: product.title })}
             >
               {/* Product photos ship on a white studio background, so we sit them
                   on an explicit white tile (forced white in both themes) — in dark
@@ -135,47 +138,52 @@ export function ResourceProductDetail({
           <div className="space-y-2 p-5">
             <h1 className="text-xl font-semibold text-gray-900">{product.title}</h1>
             <div className="text-sm text-gray-500">
-              {[product.brand, product.modelNumber && `Model ${product.modelNumber}`, product.category].filter(Boolean).join(' · ')}
+              {[product.brand, product.modelNumber && t('resources.model', { model: product.modelNumber }), product.category].filter(Boolean).join(' · ')}
             </div>
             {journalCodes.length > 0 && (
               <div className="flex flex-wrap items-center gap-1.5 text-sm text-gray-600">
-                <span>Enter on a deal as:</span>
+                <span>{t('resources.enterOnDealAs')}</span>
                 {journalCodes.map((c) => (
                   <span key={c} className="rounded bg-brand-50 px-1.5 py-0.5 font-semibold text-brand-700">{c}</span>
                 ))}
               </div>
             )}
-            {product.description && <p className="whitespace-pre-wrap text-sm text-gray-700">{product.description}</p>}
+            {product.description && (
+              <div className="whitespace-pre-wrap text-sm text-gray-700">
+                <AutoTranslate text={product.description} />
+              </div>
+            )}
           </div>
         </div>
       </div>
 
       <div>
-        <h2 className="mb-2 text-sm font-semibold text-gray-900">Documents</h2>
+        <h2 className="mb-2 text-sm font-semibold text-gray-900">{t('resources.documents')}</h2>
         {files.length === 0 ? (
           <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-500">
-            No files have been added for this product yet.
+            {t('resources.noFilesYet')}
           </div>
         ) : (
           <div className="divide-y divide-gray-100 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
             {files.map((f) => {
-              const title = f.label || RESOURCE_FILE_KIND_LABELS[f.kind];
+              const kindLabel = t(`resources.fileKind.${f.kind}`);
+              const title = f.label || kindLabel;
               return (
                 <div key={f.id} className="flex flex-wrap items-center gap-3 p-4">
                   {/* Open in the in-app viewer (has a Back button) — never a raw
                       file navigation, which strands you in the PDF in the app. */}
-                  <DocViewer id={f.id} fileName={title} mimeType={f.mime} src={`/api/resource-files/${f.id}`} className="flex-none" title={`Open ${title}`}>
+                  <DocViewer id={f.id} fileName={title} mimeType={f.mime} src={`/api/resource-files/${f.id}`} className="flex-none" title={t('resources.openFile', { title })}>
                     <DocThumb id={f.id} mime={f.mime} label={title} hasThumb={f.hasThumb} />
                   </DocViewer>
                   <div className="min-w-0 flex-1">
-                    <span className="badge bg-sky-100 text-sky-800">{RESOURCE_FILE_KIND_LABELS[f.kind]}</span>
+                    <span className="badge bg-sky-100 text-sky-800">{kindLabel}</span>
                     <div className="mt-1 truncate text-sm font-medium text-gray-900">{title}</div>
-                    <div className="text-xs text-gray-400">{f.mime === 'application/pdf' ? 'PDF' : 'Image'} · {fmtSize(f.sizeBytes)}</div>
+                    <div className="text-xs text-gray-400">{f.mime === 'application/pdf' ? 'PDF' : t('resources.imageLabel')} · {fmtSize(f.sizeBytes)}</div>
                   </div>
                   <DocViewer id={f.id} fileName={title} mimeType={f.mime} src={`/api/resource-files/${f.id}`} className="btn-secondary text-sm">
-                    View
+                    {t('resources.view')}
                   </DocViewer>
-                  <DownloadButton url={`/api/resource-files/${f.id}?download=1`} fileName={title} className="btn-primary text-sm">Download</DownloadButton>
+                  <DownloadButton url={`/api/resource-files/${f.id}?download=1`} fileName={title} className="btn-primary text-sm">{t('resources.download')}</DownloadButton>
                 </div>
               );
             })}

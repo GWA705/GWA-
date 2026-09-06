@@ -4,6 +4,8 @@ import { useEffect, useState, useTransition } from 'react';
 import { Search, Printer, Copy, Check, Clock, User, X, FileDown } from 'lucide-react';
 import { computeDealerPayout, PROVINCE_TAX_RATE, type PayoutBreakdown } from '@/lib/payoutCalc';
 import { searchDealerDeals, type DealMatch } from '@/app/(dealer)/dealer/calculator/actions';
+import { useT } from '@/i18n/client';
+import type { TFunction } from '@/i18n/translator';
 
 const PROVINCES = Object.keys(PROVINCE_TAX_RATE);
 const money = (x: number) => `$${x.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -31,6 +33,7 @@ function fmtDate(iso: string | null): string | null {
  * Recently pulled deals are remembered per browser for quick re-access.
  */
 export function DealerCalculator({ defaultProvince = 'ON' }: { defaultProvince?: string }) {
+  const t = useT();
   const [amount, setAmount] = useState('');
   const [province, setProvince] = useState(PROVINCES.includes(defaultProvince) ? defaultProvince : 'ON');
   const [reference, setReference] = useState('');
@@ -161,14 +164,14 @@ export function DealerCalculator({ defaultProvince = 'ON' }: { defaultProvince?:
         <div className="space-y-4">
           {/* Portal deal lookup */}
           <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-            <label className="label" htmlFor="calc-lookup">Find a portal deal <span className="font-normal text-gray-400">(customer name or deal #)</span></label>
+            <label className="label" htmlFor="calc-lookup">{t('calculator.findDeal')} <span className="font-normal text-gray-400">{t('calculator.findDealHint')}</span></label>
             <div className="flex gap-2">
               <div className="flex flex-1 items-center gap-2 rounded-xl border border-gray-300 bg-gray-50 px-3">
                 <Search size={16} className="flex-none text-gray-400" />
                 <input
                   id="calc-lookup"
                   className="w-full bg-transparent py-2.5 text-sm outline-none"
-                  placeholder="Start typing a name or reference…"
+                  placeholder={t('calculator.lookupPlaceholder')}
                   value={lookup}
                   onChange={(e) => setLookup(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); runSearch(); } }}
@@ -176,18 +179,18 @@ export function DealerCalculator({ defaultProvince = 'ON' }: { defaultProvince?:
                 />
               </div>
               <button type="button" onClick={runSearch} className="btn-secondary" disabled={searching}>
-                {searching ? 'Searching…' : 'Search'}
+                {searching ? t('calculator.searching') : t('calculator.search')}
               </button>
             </div>
-            <p className="mt-1 text-xs text-gray-400">Pulls the approved amount, province and sale details straight from your portal deals.</p>
+            <p className="mt-1 text-xs text-gray-400">{t('calculator.pullsFromDeals')}</p>
 
             {/* Search results — refined customer cards */}
             {results && (
               <div className="mt-3 space-y-2">
                 {results.length === 0 ? (
-                  <div className="rounded-lg border border-gray-200 px-3 py-3 text-sm text-gray-500">No matching deals found.</div>
+                  <div className="rounded-lg border border-gray-200 px-3 py-3 text-sm text-gray-500">{t('calculator.noMatches')}</div>
                 ) : (
-                  results.map((d) => <DealCard key={d.id} deal={d} onPick={pickDeal} />)
+                  results.map((d) => <DealCard key={d.id} deal={d} onPick={pickDeal} t={t} />)
                 )}
               </div>
             )}
@@ -197,9 +200,9 @@ export function DealerCalculator({ defaultProvince = 'ON' }: { defaultProvince?:
               <div className="mt-4">
                 <div className="mb-2 flex items-center justify-between">
                   <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
-                    <Clock size={12} /> Recent
+                    <Clock size={12} /> {t('calculator.recent')}
                   </span>
-                  <button type="button" onClick={clearRecent} className="text-xs text-gray-400 hover:text-red-600">Clear</button>
+                  <button type="button" onClick={clearRecent} className="text-xs text-gray-400 hover:text-red-600">{t('calculator.clear')}</button>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {recent.map((d) => (
@@ -222,16 +225,16 @@ export function DealerCalculator({ defaultProvince = 'ON' }: { defaultProvince?:
           {/* Inputs */}
           <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
             {deal ? (
-              <SelectedDealCard deal={deal} onClear={clearDeal} />
+              <SelectedDealCard deal={deal} onClear={clearDeal} t={t} />
             ) : customer ? (
               <div className="mb-4 flex items-center justify-between rounded-xl bg-sky-50 px-3 py-2 text-sm">
-                <span className="text-sky-800">Customer: <strong>{customer}</strong></span>
-                <button type="button" onClick={() => setCustomer('')} className="text-xs text-gray-500 hover:underline">clear</button>
+                <span className="text-sky-800">{t('calculator.customerLabel')} <strong>{customer}</strong></span>
+                <button type="button" onClick={() => setCustomer('')} className="text-xs text-gray-500 hover:underline">{t('calculator.clearLower')}</button>
               </div>
             ) : null}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_8rem]">
               <div>
-                <label className="label" htmlFor="calc-amount">Approved amount <span className="font-normal text-gray-400">(total sale with tax)</span></label>
+                <label className="label" htmlFor="calc-amount">{t('calculator.approvedAmount')} <span className="font-normal text-gray-400">{t('calculator.approvedAmountHint')}</span></label>
                 <div className="relative">
                   <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-2xl font-semibold text-gray-300">$</span>
                   <input
@@ -246,16 +249,16 @@ export function DealerCalculator({ defaultProvince = 'ON' }: { defaultProvince?:
                 </div>
               </div>
               <div>
-                <label className="label" htmlFor="calc-prov">Province</label>
+                <label className="label" htmlFor="calc-prov">{t('calculator.province')}</label>
                 <select id="calc-prov" className="w-full rounded-xl border border-gray-300 bg-gray-50 py-3 px-3 text-lg font-semibold text-gray-900 outline-none transition focus:border-sky-400 focus:bg-white focus:ring-2 focus:ring-sky-100" value={province} onChange={(e) => setProvince(e.target.value)}>
                   {PROVINCES.map((p) => <option key={p} value={p}>{p}</option>)}
                 </select>
               </div>
             </div>
-            <p className="mt-1.5 text-xs text-gray-400">Province sets the tax rate — change it for an out-of-province deal.</p>
+            <p className="mt-1.5 text-xs text-gray-400">{t('calculator.provinceHint')}</p>
             <div className="mt-4">
-              <label className="label" htmlFor="calc-ref">Reference / deal # <span className="font-normal text-gray-400">(optional, for your records)</span></label>
-              <input id="calc-ref" className="input" placeholder="e.g. customer name or deal number" value={reference} onChange={(e) => setReference(e.target.value)} autoComplete="off" />
+              <label className="label" htmlFor="calc-ref">{t('calculator.reference')} <span className="font-normal text-gray-400">{t('calculator.referenceHint')}</span></label>
+              <input id="calc-ref" className="input" placeholder={t('calculator.referencePlaceholder')} value={reference} onChange={(e) => setReference(e.target.value)} autoComplete="off" />
             </div>
           </div>
 
@@ -264,7 +267,7 @@ export function DealerCalculator({ defaultProvince = 'ON' }: { defaultProvince?:
             <div className="overflow-hidden rounded-2xl border border-gray-200 shadow-sm">
               <div className="relative px-6 py-7 text-center text-white" style={{ background: 'linear-gradient(135deg,#0f7a4d,#1aa06a)' }}>
                 <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70">
-                  Estimated EFT payout{customer ? ` · ${customer}` : ''}
+                  {t('calculator.estimatedPayout')}{customer ? ` · ${customer}` : ''}
                 </div>
                 <div className="mt-1 text-4xl font-extrabold tabular-nums sm:text-5xl">{money(r.payout)}</div>
                 <div className="mt-1 text-sm text-white/70">
@@ -273,20 +276,20 @@ export function DealerCalculator({ defaultProvince = 'ON' }: { defaultProvince?:
               </div>
               <div className="bg-white">
                 <div className="flex items-center justify-between px-5 pt-3">
-                  <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">How it&apos;s calculated</span>
+                  <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">{t('calculator.howCalculated')}</span>
                   <div className="flex gap-1.5">
                     <button type="button" onClick={copyBreakdown} className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-semibold text-gray-600 transition hover:bg-gray-50">
-                      {copied ? <><Check size={13} className="text-green-600" /> Copied</> : <><Copy size={13} /> Copy</>}
+                      {copied ? <><Check size={13} className="text-green-600" /> {t('calculator.copied')}</> : <><Copy size={13} /> {t('calculator.copy')}</>}
                     </button>
                     <button type="button" onClick={savePdf} disabled={savingPdf} className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-semibold text-gray-600 transition hover:bg-gray-50 disabled:opacity-60">
-                      <FileDown size={13} /> {savingPdf ? 'Saving…' : 'Save PDF'}
+                      <FileDown size={13} /> {savingPdf ? t('calculator.saving') : t('calculator.savePdf')}
                     </button>
                     <button type="button" onClick={() => window.print()} className="inline-flex items-center gap-1 rounded-lg bg-sky-600 px-2.5 py-1 text-xs font-semibold text-white transition hover:bg-sky-700">
-                      <Printer size={13} /> Print receipt
+                      <Printer size={13} /> {t('calculator.printReceipt')}
                     </button>
                   </div>
                 </div>
-                <BreakdownTable r={r} />
+                <BreakdownTable r={r} t={t} />
                 {r.warning && <p className="border-t border-gray-100 px-5 py-2 text-xs text-amber-700">{r.warning}</p>}
               </div>
             </div>
@@ -295,12 +298,12 @@ export function DealerCalculator({ defaultProvince = 'ON' }: { defaultProvince?:
 
         {/* Right column: the explanation — always shown, even with numbers in. */}
         <div className="space-y-4 lg:sticky lg:top-4">
-          <HowItWorks />
+          <HowItWorks t={t} />
         </div>
       </div>
 
       <p className="text-center text-xs text-gray-400">
-        Estimate for your records. The amount paid is confirmed by Georgian Water &amp; Air when the deal funds.
+        {t('calculator.disclaimer')}
       </p>
 
       {/* Printable receipt (hidden on screen) */}
@@ -312,20 +315,20 @@ export function DealerCalculator({ defaultProvince = 'ON' }: { defaultProvince?:
 }
 
 /* ---- Refined search-result "customer profile" card ---- */
-function DealCard({ deal, onPick }: { deal: DealMatch; onPick: (d: DealMatch) => void }) {
+function DealCard({ deal, onPick, t }: { deal: DealMatch; onPick: (d: DealMatch) => void; t: TFunction }) {
   const disabled = deal.amount == null;
   return (
     <button
       type="button"
       onClick={() => onPick(deal)}
       disabled={disabled}
-      title={disabled ? 'No approved amount recorded on this deal yet' : 'Use this deal'}
+      title={disabled ? t('calculator.noAmountYet') : t('calculator.useThisDeal')}
       className="flex w-full items-center gap-3 rounded-xl border border-gray-200 bg-white p-3 text-left shadow-sm transition hover:border-sky-300 hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-60"
     >
       <span className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-sky-100 text-sm font-bold text-sky-700">{initialsOf(deal.name)}</span>
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-2">
-          <span className="truncate text-sm font-semibold text-gray-900">{deal.name || '(no name)'}</span>
+          <span className="truncate text-sm font-semibold text-gray-900">{deal.name || t('calculator.noName')}</span>
           <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-600">{deal.statusLabel}</span>
         </span>
         <span className="mt-0.5 block truncate text-xs text-gray-400">
@@ -333,20 +336,20 @@ function DealCard({ deal, onPick }: { deal: DealMatch; onPick: (d: DealMatch) =>
         </span>
       </span>
       <span className="shrink-0 text-sm font-semibold tabular-nums text-gray-800">
-        {deal.amount != null ? money(deal.amount) : 'No amount'}
+        {deal.amount != null ? money(deal.amount) : t('calculator.noAmount')}
       </span>
     </button>
   );
 }
 
 /* ---- Selected deal summary (customer profile) shown above the inputs ---- */
-function SelectedDealCard({ deal, onClear }: { deal: DealMatch; onClear: () => void }) {
+function SelectedDealCard({ deal, onClear, t }: { deal: DealMatch; onClear: () => void; t: TFunction }) {
   const rows: [string, string | null][] = [
-    ['Sale date', fmtDate(deal.saleDate)],
-    ['Products', deal.products.length ? deal.products.join(', ') : null],
-    ['Sales rep', deal.salesperson],
-    ['Installer', deal.installer],
-    ['Payment', deal.paymentLabel],
+    [t('calculator.saleDate'), fmtDate(deal.saleDate)],
+    [t('calculator.productsRow'), deal.products.length ? deal.products.join(', ') : null],
+    [t('calculator.salesRep'), deal.salesperson],
+    [t('calculator.installer'), deal.installer],
+    [t('calculator.payment'), deal.paymentLabel],
   ];
   const shown = rows.filter(([, v]) => v);
   return (
@@ -360,7 +363,7 @@ function SelectedDealCard({ deal, onClear }: { deal: DealMatch; onClear: () => v
           </div>
           {deal.reference && <div className="text-xs text-sky-700">#{deal.reference}</div>}
         </div>
-        <button type="button" onClick={onClear} aria-label="Clear deal" className="flex-none rounded-md p-1 text-gray-400 hover:bg-white hover:text-red-600"><X size={15} /></button>
+        <button type="button" onClick={onClear} aria-label={t('calculator.clearDeal')} className="flex-none rounded-md p-1 text-gray-400 hover:bg-white hover:text-red-600"><X size={15} /></button>
       </div>
       {shown.length > 0 && (
         <dl className="mt-3 grid grid-cols-1 gap-x-4 gap-y-1 sm:grid-cols-2">
@@ -377,23 +380,23 @@ function SelectedDealCard({ deal, onClear }: { deal: DealMatch; onClear: () => v
 }
 
 /* ---- Shared breakdown table (screen + print) ---- */
-function BreakdownTable({ r }: { r: PayoutBreakdown }) {
+function BreakdownTable({ r, t }: { r: PayoutBreakdown; t: TFunction }) {
   return (
     <table className="w-full text-sm">
       <tbody className="tabular-nums">
-        <Line label="Total sale (with tax)" value={money(r.totalWithTax)} />
-        <Line label="Subtotal (pre-tax)" value={money(r.subtotal)} muted />
-        <Line label="HD Discount (13%)" value={`−${money(r.hdDiscount)}`} minus />
-        <Line label="Subtotal after HD Discount" value={money(r.afterHd)} muted />
-        <Line label="HD IBX Discount (1.25%)" value={`−${money(r.ibxDiscount)}`} minus />
-        <Line label="Subtotal after IBX Discount" value={money(r.afterIbx)} muted />
-        <Line label="HD Program (4%)" value={`−${money(r.hdProgram)}`} minus />
-        <Line label="Net payout (pre-tax)" value={money(r.netPreTax)} strong />
-        <Line label={`HST / Tax (${pct(r.taxRate)})`} value={`+${money(r.hst)}`} plus />
+        <Line label={t('calculator.totalSale')} value={money(r.totalWithTax)} />
+        <Line label={t('calculator.subtotalPreTax')} value={money(r.subtotal)} muted />
+        <Line label={t('calculator.hdDiscount')} value={`−${money(r.hdDiscount)}`} minus />
+        <Line label={t('calculator.afterHd')} value={money(r.afterHd)} muted />
+        <Line label={t('calculator.ibxDiscount')} value={`−${money(r.ibxDiscount)}`} minus />
+        <Line label={t('calculator.afterIbx')} value={money(r.afterIbx)} muted />
+        <Line label={t('calculator.hdProgram')} value={`−${money(r.hdProgram)}`} minus />
+        <Line label={t('calculator.netPreTax')} value={money(r.netPreTax)} strong />
+        <Line label={t('calculator.hstTax', { rate: pct(r.taxRate) })} value={`+${money(r.hst)}`} plus />
       </tbody>
       <tfoot>
         <tr className="border-t-2 border-emerald-100 bg-emerald-50">
-          <td className="px-5 py-3 text-sm font-semibold text-emerald-800">TOTAL EFT PAYOUT</td>
+          <td className="px-5 py-3 text-sm font-semibold text-emerald-800">{t('calculator.totalPayout')}</td>
           <td className="px-5 py-3 text-right text-lg font-bold tabular-nums text-emerald-800">{money(r.payout)}</td>
         </tr>
       </tfoot>
@@ -474,22 +477,22 @@ function Receipt({
 }
 
 /* ---- Persistent explanation ---- */
-function HowItWorks() {
+function HowItWorks({ t }: { t: TFunction }) {
   return (
     <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-      <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-600">How the payout works</div>
-      <h3 className="mt-1 text-lg font-bold text-[#0e2b5c] dark:text-slate-100">Your EFT payout, line by line</h3>
-      <p className="mt-1 text-sm text-gray-500">Every deal is worked the same way:</p>
+      <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-600">{t('calculator.howItWorksEyebrow')}</div>
+      <h3 className="mt-1 text-lg font-bold text-[#0e2b5c] dark:text-slate-100">{t('calculator.howItWorksTitle')}</h3>
+      <p className="mt-1 text-sm text-gray-500">{t('calculator.howItWorksIntro')}</p>
       <ol className="mt-4 space-y-3">
-        <Step n="1" title="Start from the total sale" body="The approved amount, tax included." />
-        <Step n="2" title="Back out the tax" body="We work from the pre-tax subtotal using the province’s rate." />
-        <Step n="3" title="HD Discount — 13%" body="Deducted from the subtotal." />
-        <Step n="4" title="HD IBX Discount — 1.25%" body="Deducted from the running balance." />
-        <Step n="5" title="HD Program — 4%" body="Deducted to reach your net payout." />
-        <Step n="6" title="Add the tax back" body="Tax is added to the net for the final EFT payout." />
+        <Step n="1" title={t('calculator.step1Title')} body={t('calculator.step1Body')} />
+        <Step n="2" title={t('calculator.step2Title')} body={t('calculator.step2Body')} />
+        <Step n="3" title={t('calculator.step3Title')} body={t('calculator.step3Body')} />
+        <Step n="4" title={t('calculator.step4Title')} body={t('calculator.step4Body')} />
+        <Step n="5" title={t('calculator.step5Title')} body={t('calculator.step5Body')} />
+        <Step n="6" title={t('calculator.step6Title')} body={t('calculator.step6Body')} />
       </ol>
       <p className="mt-4 rounded-xl bg-sky-50 p-3 text-xs text-sky-800">
-        Tip: use <strong>Find a portal deal</strong> to pull the amount, province and sale details — then <strong>Print receipt</strong> to attach to the sale or hand to accounting.
+        {t('calculator.tipPre')} <strong>{t('calculator.tipFindDeal')}</strong> {t('calculator.tipMid')} <strong>{t('calculator.tipPrint')}</strong> {t('calculator.tipPost')}
       </p>
     </div>
   );

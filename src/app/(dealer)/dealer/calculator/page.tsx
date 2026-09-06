@@ -4,10 +4,12 @@ import { hasCalculatorAccess } from '@/lib/calculatorAccess';
 import { prisma } from '@/lib/db';
 import { DealerCalculator } from '@/components/DealerCalculator';
 import { SectionHero } from '@/components/SectionHero';
+import { getT } from '@/i18n/server';
 
 export const dynamic = 'force-dynamic';
 
 export default async function DealerCalculatorPage() {
+  const t = getT();
   const user = await requireDealerAccess();
   if (!(await hasCalculatorAccess(user))) notFound();
 
@@ -25,9 +27,9 @@ export default async function DealerCalculatorPage() {
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       <SectionHero
-        eyebrow="Tools"
-        title="HD Payout Calculator"
-        subtitle="Enter the approved amount (total sale with tax) and province — or pull a deal from the portal."
+        eyebrow={t('calculator.heroEyebrow')}
+        title={t('calculator.heroTitle')}
+        subtitle={t('calculator.heroSubtitle')}
         bgImage="/calculator-hero.png"
       />
       <DealerCalculator defaultProvince={defaultProvince} />
