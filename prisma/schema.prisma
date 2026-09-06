@@ -1731,3 +1731,41 @@ model SavedReport {
   @@index([userId])
   @@index([dealerId])
 }
+
+// Archived rows from the closed sales journals (2024, 2025, …), imported once per
+// year via scripts/import-journals.ts. Permanent, searchable history — dealers
+// can look up their own office's past Home Depot customers. `dealerId` is the
+// office this row was attributed to (null when the location couldn't be matched).
+model JournalRecord {
+  id             String    @id @default(cuid())
+  year           Int
+  tab            String    // month tab it came from
+  rowNum         Int       // 1-based sheet row
+  dealerId       String?   // resolved office (null = unmatched)
+  location       String    @default("") // raw location / office label from the journal
+  customerName   String    @default("")
+  firstName      String    @default("")
+  lastName       String    @default("")
+  phone          String    @default("")
+  address        String    @default("")
+  hdRef          String    @default("")
+  hdStore        String    @default("")
+  storeNumber    String?
+  product        String    @default("")
+  result         String    @default("")
+  financeBucket  String    @default("")
+  sourceCategory String    @default("")
+  saleDate       DateTime?
+  datePaid       DateTime?
+  gross          Decimal?  @db.Decimal(12, 2)
+  net            Decimal?  @db.Decimal(12, 2)
+  isHD           Boolean   @default(false)
+  isMisc         Boolean   @default(false)
+  link           String    @default("")
+  importedAt     DateTime  @default(now())
+
+  @@unique([year, tab, rowNum])
+  @@index([dealerId, lastName])
+  @@index([dealerId, phone])
+  @@index([year])
+}
