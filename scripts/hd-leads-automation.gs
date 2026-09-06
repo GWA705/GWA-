@@ -8,12 +8,24 @@
 //  Next.js app. It is version-controlled here so we can evolve it
 //  (notably: add FRENCH HD lead parsing) with history.
 //
-//  KNOWN GAP (2026-09-06): French HD lead emails are missed because
-//    1) the Gmail search requires the ENGLISH subject line, so
-//       French-subject emails are never fetched, and
-//    2) parseLead() keys off English labels only.
-//  Fix pending ONE raw French sample email to lock the exact French
-//  subject + field labels. See docs/CHANGELOG.md "To do (parked)".
+//  FRENCH SUPPORT ADDED 2026-09-06 (from a real French sample, Réf 701780675):
+//    1) The Gmail search now matches the English subject OR the French subject
+//       fragment "Services à domicile" (same sender, info@homedepot.ca).
+//    2) parseLead() is now BILINGUAL — every label matches EN or FR:
+//         Booking ID  : "Booking ID No"        | "Identifiant du rendez-vous"
+//         Service     : "Service Name"         | "Nom du service"
+//         Store       : "Store"                | "Magasin"
+//         Contact pref: "Customer …Contact…"   | "Méthode de contact de préférence du client"
+//         Customer    : "Your Customer Information" | "Renseignements sur votre client"
+//         Address     : "Project Location"/"Service Address" | "Emplacement du projet"
+//         Emergency   : "Is this an emergency"  | "S'agit-il d'une urgence"
+//         Details     : "Service Details"       | "Détails du service"
+//         Additional  : "Additional Information/Notes" | "Renseignements supplémentaires"
+//         Financing   : "Financing"            | "Financement"
+//       French leads report formatDetected = "Format F (French)".
+//  TO DEPLOY: paste the updated processNewLeads() search line + the whole
+//  parseLead() into the LIVE Apps Script, then run testSingleLead() against a
+//  French lead to confirm, before the 15-min trigger picks them up.
 // ============================================================
 
 // ============================================================
@@ -104,10 +116,13 @@ function processNewLeads() {
       var cutoff  = new Date();
       cutoff.setDate(cutoff.getDate() - CONFIG.TEST_LOOKBACK_DAYS);
       var dateStr = Utilities.formatDate(cutoff, Session.getScriptTimeZone(), "yyyy/MM/dd");
-      query = 'from:info@homedepot.ca subject:"New Home Services Customer Lead" after:' + dateStr;
+      // Bilingual: English subject OR the French subject fragment
+      // "Services à domicile" (from "Nouveau prospect pour les Services à
+      // domicile créé. Réf: …"). Same sender for both (info@homedepot.ca).
+      query = 'from:info@homedepot.ca subject:("New Home Services Customer Lead" OR "Services à domicile") after:' + dateStr;
       Logger.log("TEST MODE — searching after " + dateStr + " — emails to " + CONFIG.TEST_EMAIL);
     } else {
-      query = 'from:info@homedepot.ca subject:"New Home Services Customer Lead" -label:' + CONFIG.GMAIL_LABEL;
+      query = 'from:info@homedepot.ca subject:("New Home Services Customer Lead" OR "Services à domicile") -label:' + CONFIG.GMAIL_LABEL;
       Logger.log("LIVE MODE — processing unprocessed leads.");
     }
 
@@ -184,6 +199,9 @@ function parseLead(text, message) {
   text = text.replace(/[ \t]{2,}/g, " ").replace(/\n{3,}/g, "\n\n").trim();
 
   var isFormatD = /REQUEST RECEIVED/i.test(text) || /Booking ID No:\d/i.test(text);
+  // French (Format F) is label-then-next-line like Format C, so it follows the
+  // !isFormatD path — only the labels differ. Detect it for logging/report.
+  var isFrench = /Identifiant du rendez-vous|Renseignements sur votre client|Nom du service|Emplacement du projet/i.test(text);
   var lines = text.split("\n").map(function(l) { return l.trim(); });
 
   function nextLineAfter(labelPattern) {
@@ -203,12 +221,21 @@ function parseLead(text, message) {
   }
 
   var bookingId = "";
-  var bidMatch  = text.match(/Booking ID No\s*:\s*(\d+)/i);
+  // EN: "Booking ID No : 701…"  |  FR: "Identifiant du rendez-vous : 701…"
+  var bidMatch  = text.match(/(?:Booking ID No|Identifiant du rendez-vous)\s*:\s*(\d+)/i);
   if (bidMatch) bookingId = bidMatch[1].trim();
+  // Fallback: French subject carries "Réf: 701…" (also handles inline label drift).
+  if (!bookingId && message) {
+    try {
+      var subj = message.getSubject() || "";
+      var sMatch = subj.match(/(?:R[ée]f|Ref|Booking)\s*:?\s*(\d{6,})/i);
+      if (sMatch) bookingId = sMatch[1].trim();
+    } catch (e) {}
+  }
 
   var serviceName = "";
   if (!isFormatD) {
-    serviceName = nextLineAfter(/^Service Name\s*$/i);
+    serviceName = nextLineAfter(/^(?:Service Name|Nom du service)\s*$/i);
   } else {
     var bidIdx = lineIndexOf(/Booking ID No/i);
     if (bidIdx > 0) {
@@ -224,7 +251,7 @@ function parseLead(text, message) {
 
   var storeNumber = "";
   if (!isFormatD) {
-    var storeIdx = lineIndexOf(/^Store\s*$/i);
+    var storeIdx = lineIndexOf(/^(?:Store|Magasin)\s*$/i);
     if (storeIdx >= 0) {
       for (var s = storeIdx + 1; s < lines.length; s++) {
         var sm = lines[s].match(/^(\d{4})\s*$/);
@@ -236,13 +263,13 @@ function parseLead(text, message) {
     if (storeMatch) storeNumber = storeMatch[1].trim();
   }
 
-  var contactPref = nextLineAfter(/Customer (Preferred Contact Method|Contact Preference)/i);
+  var contactPref = nextLineAfter(/(?:Customer (?:Preferred Contact Method|Contact Preference)|M[ée]thode de contact de pr[ée]f[ée]rence du client)/i);
 
   var customerName = "", customerPhone = "", customerEmail = "";
-  var custIdx = lineIndexOf(/Your Customer Information/i);
+  var custIdx = lineIndexOf(/(?:Your Customer Information|Renseignements sur votre client)/i);
   if (custIdx >= 0) {
     var custLines = [];
-    var stopAtCust = /Service Address|Project Location|Is this an emergency|Additional/i;
+    var stopAtCust = /Service Address|Project Location|Is this an emergency|Additional|Emplacement du projet|Adresse du service|S['’]agit-il|Renseignements suppl/i;
     for (var c = custIdx + 1; c < lines.length && custLines.length < 6; c++) {
       var cl = lines[c].trim();
       if (!cl || cl === ".") continue;
@@ -266,10 +293,10 @@ function parseLead(text, message) {
   }
 
   var projectAddress = "";
-  var addrIdx = lineIndexOf(/^(Project Location|Service Address)\s*$/i);
+  var addrIdx = lineIndexOf(/^(?:Project Location|Service Address|Emplacement du projet|Adresse du service)\s*$/i);
   if (addrIdx >= 0) {
     var addrParts = [];
-    var addrStop  = /^(Is this an emergency|Service Details|Additional Information|Additional Notes|Financing|The information)/i;
+    var addrStop  = /^(Is this an emergency|Service Details|Additional Information|Additional Notes|Financing|The information|S['’]agit-il|D[ée]tails du service|Renseignements suppl|Financement)/i;
     for (var a = addrIdx + 1; a < lines.length && addrParts.length < 4; a++) {
       var al = lines[a].trim();
       if (!al || al === ".") continue;
@@ -280,14 +307,14 @@ function parseLead(text, message) {
   }
 
   var isEmergency = "";
-  if (!isFormatD) isEmergency = nextLineAfter(/^Is this an emergency/i);
+  if (!isFormatD) isEmergency = nextLineAfter(/^(?:Is this an emergency|S['’]agit-il d['’]une urgence)/i);
 
   var serviceDetails = "";
   if (!isFormatD) {
-    var sdIdx = lineIndexOf(/^Service Details\s*$/i);
+    var sdIdx = lineIndexOf(/^(?:Service Details|D[ée]tails du service)\s*$/i);
     if (sdIdx >= 0) {
       var sdParts = [];
-      var sdStop  = /^(Additional Information|Financing|Is this an emergency|The information)/i;
+      var sdStop  = /^(Additional Information|Financing|Is this an emergency|The information|Renseignements suppl|Financement|S['’]agit-il)/i;
       for (var sd = sdIdx + 1; sd < lines.length; sd++) {
         var sdl = lines[sd].trim();
         if (!sdl || sdl === ".") continue;
@@ -299,10 +326,10 @@ function parseLead(text, message) {
   }
 
   var additionalInfo = "";
-  var aiIdx = lineIndexOf(/^(Additional Information|Additional Notes)\s*$/i);
+  var aiIdx = lineIndexOf(/^(?:Additional Information|Additional Notes|Renseignements suppl[ée]mentaires)\s*$/i);
   if (aiIdx >= 0) {
     var aiParts = [];
-    var aiStop  = /^(Financing|The information in this Internet|Service Details|--|-----)/i;
+    var aiStop  = /^(Financing|The information in this Internet|Service Details|Financement|Les renseignements|D[ée]tails du service|--|-----)/i;
     for (var ai = aiIdx + 1; ai < lines.length; ai++) {
       var ail = lines[ai].trim();
       if (!ail || ail === ".") continue;
@@ -313,7 +340,7 @@ function parseLead(text, message) {
   }
 
   var financing = "";
-  if (!isFormatD) financing = nextLineAfter(/^Financing\s*$/i);
+  if (!isFormatD) financing = nextLineAfter(/^(?:Financing|Financement)\s*$/i);
 
   var dateReceived = "";
   if (message) {
@@ -327,7 +354,8 @@ function parseLead(text, message) {
     contactPref: contactPref, customerName: customerName, customerPhone: customerPhone,
     customerEmail: customerEmail, projectAddress: projectAddress, isEmergency: isEmergency,
     serviceDetails: serviceDetails, additionalInfo: additionalInfo, financing: financing,
-    dateReceived: dateReceived, formatDetected: isFormatD ? "Format D" : "Format C"
+    dateReceived: dateReceived,
+    formatDetected: isFormatD ? "Format D" : (isFrench ? "Format F (French)" : "Format C")
   };
 }
 

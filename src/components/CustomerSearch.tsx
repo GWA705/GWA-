@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { customerSearchAction, updateCustomerInfoAction } from '@/app/(dealer)/dealer/find-customer/actions';
 import { StatusBadge } from '@/components/StatusBadge';
+import { useT } from '@/i18n/client';
 import type { CustomerSearchResult, JournalMatch } from '@/lib/customerSearch';
 
 function initials(name: string): string {
@@ -27,6 +28,7 @@ export function CustomerSearch({
   // re-trigger the same text.
   pushQuery?: { q: string; nonce: number };
 }) {
+  const t = useT();
   const live = mode === 'internal'; // GWA team gets live typeahead
   const [query, setQuery] = useState('');
   const [result, setResult] = useState<CustomerSearchResult | null>(null);
@@ -79,7 +81,7 @@ export function CustomerSearch({
       >
         <input
           className={`input flex-1 ${large ? 'h-12 text-base' : ''}`}
-          placeholder={placeholder ?? (mode === 'dealer' ? 'Customer name or phone number' : 'Start typing a name, phone, or reference #')}
+          placeholder={placeholder ?? (mode === 'dealer' ? t('findCustomer.placeholderDealer') : t('findCustomer.placeholderInternal'))}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           autoComplete="off"
@@ -87,34 +89,35 @@ export function CustomerSearch({
         />
         {!live && (
           <button type="submit" className={`btn-primary ${large ? 'h-12 px-6' : ''}`} disabled={pending}>
-            {pending ? 'Searching…' : 'Search'}
+            {pending ? t('findCustomer.searching') : t('findCustomer.search')}
           </button>
         )}
       </form>
 
-      {live && pending && <p className="text-xs text-gray-400">Searching…</p>}
+      {live && pending && <p className="text-xs text-gray-400">{t('findCustomer.searching')}</p>}
       {result && <Results result={result} />}
     </div>
   );
 }
 
 function Results({ result }: { result: CustomerSearchResult }) {
+  const t = useT();
   if (result.status === 'disabled')
-    return <Note>Customer search is turned off. An administrator can enable it.</Note>;
+    return <Note>{t('findCustomer.disabled')}</Note>;
   if (result.status === 'not_granted')
-    return <Note>You don&apos;t have access to the full customer search. Ask a Super Admin to grant it (Admin → Users).</Note>;
-  if (result.status === 'too_short') return <Note>Type at least 3 characters.</Note>;
+    return <Note>{t('findCustomer.notGranted')}</Note>;
+  if (result.status === 'too_short') return <Note>{t('findCustomer.tooShort')}</Note>;
   if (result.status === 'rate_limited')
-    return <Note>Too many searches — please wait {result.retryAfterSec}s and try again.</Note>;
+    return <Note>{t('findCustomer.rateLimited', { n: result.retryAfterSec })}</Note>;
 
   if (result.status === 'internal') {
     const nothing = result.matches.length === 0 && result.journalMatches.length === 0;
-    if (nothing) return <Note>No customers found.</Note>;
+    if (nothing) return <Note>{t('findCustomer.noCustomers')}</Note>;
     return (
       <div className="space-y-4">
         {result.matches.length > 0 && (
           <div>
-            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Portal deals</h3>
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">{t('findCustomer.portalDeals')}</h3>
             <div className="divide-y divide-gray-100 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
               {result.matches.map((m) => (
                 <Link key={m.applicationId} href={`/staff/find-customer/${m.applicationId}`} className="flex items-center justify-between gap-3 px-4 py-2.5 hover:bg-gray-50">
@@ -133,7 +136,7 @@ function Results({ result }: { result: CustomerSearchResult }) {
 
         {result.journalMatches.length > 0 && (
           <div>
-            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">From the sales journals</h3>
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">{t('findCustomer.fromSalesJournals')}</h3>
             <div className="space-y-3">
               {result.journalMatches.map((m, i) => (
                 <JournalCard key={i} m={m} />
@@ -147,12 +150,12 @@ function Results({ result }: { result: CustomerSearchResult }) {
 
   // Dealer mode.
   const nothing = result.own.length === 0 && result.other.length === 0 && result.journal.length === 0;
-  if (nothing) return <Note>No customers found.</Note>;
+  if (nothing) return <Note>{t('findCustomer.noCustomers')}</Note>;
   return (
     <div className="space-y-4">
       {result.own.length > 0 && (
         <div>
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Your customers</h3>
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">{t('findCustomer.yourCustomers')}</h3>
           <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
             {result.own.map((m) => (
               <Link
@@ -179,21 +182,21 @@ function Results({ result }: { result: CustomerSearchResult }) {
 
       {result.other.length > 0 && (
         <div>
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Registered with another office</h3>
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">{t('findCustomer.registeredOtherOffice')}</h3>
           <div className="space-y-2">
             {result.other.map((m, i) => (
               <div key={i} className="rounded-2xl border border-sky-200 bg-sky-50 p-4 shadow-sm">
                 <div className="font-semibold text-sky-900">{m.name}</div>
                 <p className="mt-1 text-sm text-sky-800">
-                  This customer is registered with <strong>{m.officeName}</strong>
-                  {m.officeLocation ? ` (${m.officeLocation})` : ''}. Please contact that office for more information.
+                  {t('findCustomer.registeredWithPre')} <strong>{m.officeName}</strong>
+                  {m.officeLocation ? ` (${m.officeLocation})` : ''}. {t('findCustomer.pleaseContactOffice')}
                 </p>
                 <div className="mt-2 text-sm text-sky-900">
-                  <span className="mr-3">Contact: <strong>Georgian Water &amp; Air office</strong></span>
+                  <span className="mr-3">{t('findCustomer.contactLabel')} <strong>{t('findCustomer.gwaOffice')}</strong></span>
                   {m.officePhone ? (
                     <span>📞 <a href={`tel:${m.officePhone.replace(/[^0-9+]/g, '')}`} className="font-semibold underline">{m.officePhone}</a></span>
                   ) : (
-                    <span className="text-sky-700">Contact Georgian Water &amp; Air for this office&apos;s phone number.</span>
+                    <span className="text-sky-700">{t('findCustomer.contactForPhone')}</span>
                   )}
                 </div>
               </div>
@@ -204,7 +207,7 @@ function Results({ result }: { result: CustomerSearchResult }) {
 
       {result.journal.length > 0 && (
         <div>
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">From your office&rsquo;s past sales journals</h3>
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">{t('findCustomer.fromYourPastJournals')}</h3>
           <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
             {result.journal.map((m) => (
               <div key={m.id} className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm">
@@ -243,6 +246,7 @@ const RESULT_STYLE: Record<string, string> = {
 
 // A detailed, GWA-team-facing card for one sales-journal deal.
 function JournalCard({ m }: { m: JournalMatch }) {
+  const t = useT();
   // Contact fields are editable in place; keep a live copy so the card reflects
   // a save without re-running the search.
   const [phone, setPhone] = useState(m.phone);
@@ -295,13 +299,13 @@ function JournalCard({ m }: { m: JournalMatch }) {
           </div>
           <div className="mt-0.5 text-xs text-gray-500">
             {m.dealerName && <span className="font-semibold text-gray-700">{m.dealerName} · </span>}
-            {m.source || 'Sales journal'} · {m.year} journal
+            {m.source || t('findCustomer.salesJournal')} · {t('findCustomer.journalYear', { year: m.year })}
           </div>
         </div>
         {m.amount && (
           <div className="shrink-0 text-right">
             <div className="text-lg font-semibold tabular-nums text-gray-900">{m.amount}</div>
-            <div className="text-[11px] uppercase tracking-wide text-gray-400">Sale</div>
+            <div className="text-[11px] uppercase tracking-wide text-gray-400">{t('findCustomer.sale')}</div>
           </div>
         )}
       </div>
@@ -320,12 +324,14 @@ function JournalCard({ m }: { m: JournalMatch }) {
           onClick={() => { setEditing((v) => !v); setMsg(null); }}
           className="ml-auto text-xs font-semibold text-gray-500 hover:text-gray-700 hover:underline"
         >
-          {editing ? 'Cancel' : '✎ Edit info'}
+          {editing ? t('findCustomer.cancel') : t('findCustomer.editInfo')}
         </button>
       </div>
       {updatedAt && (
         <div className="px-5 pt-1 text-[11px] text-gray-400">
-          ✎ Contact info updated {fmtWhen(updatedAt)}{updatedBy ? ` by ${updatedBy}` : ''} · original journal unchanged
+          {updatedBy
+            ? t('findCustomer.contactUpdatedBy', { when: fmtWhen(updatedAt), by: updatedBy })
+            : t('findCustomer.contactUpdated', { when: fmtWhen(updatedAt) })}
         </div>
       )}
 
@@ -346,7 +352,7 @@ function JournalCard({ m }: { m: JournalMatch }) {
       {/* Dealer / office to contact */}
       {m.dealerName && (
         <div className="mx-5 mt-3 rounded-lg bg-brand-50/60 px-3 py-2 text-sm">
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Dealer</span>
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">{t('findCustomer.dealer')}</span>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5">
             <span className="font-semibold text-gray-800">{m.dealerName}</span>
             {m.dealerPhone ? (
@@ -354,7 +360,7 @@ function JournalCard({ m }: { m: JournalMatch }) {
                 📞 {m.dealerPhone}
               </a>
             ) : (
-              <span className="text-xs text-gray-400">No contact number yet — the office adds it in their dealer profile.</span>
+              <span className="text-xs text-gray-400">{t('findCustomer.noDealerPhone')}</span>
             )}
           </div>
         </div>
@@ -363,7 +369,7 @@ function JournalCard({ m }: { m: JournalMatch }) {
       {/* Detail grid */}
       <dl className="grid grid-cols-2 gap-x-4 gap-y-3 px-5 py-4 sm:grid-cols-3">
         <div className="col-span-2 sm:col-span-3">
-          <dt className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">Product(s)</dt>
+          <dt className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">{t('findCustomer.products')}</dt>
           <dd className="mt-0.5 text-sm text-gray-900">
             {m.productItems.length === 0 ? (
               <span className="text-gray-300">—</span>
@@ -386,17 +392,17 @@ function JournalCard({ m }: { m: JournalMatch }) {
             )}
           </dd>
         </div>
-        <Field label="HD Ref #" value={m.hdRef ? `${m.hdRef}${m.hdOrigin ? ` · ${m.hdOrigin}` : ''}` : ''} />
-        <Field label="HD store" value={m.store} />
-        <Field label="Date of sale" value={m.saleDate} />
-        <Field label="Date paid" value={m.datePaid} />
-        <Field label="Paid by" value={m.finance} />
+        <Field label={t('findCustomer.hdRef')} value={m.hdRef ? `${m.hdRef}${m.hdOrigin ? ` · ${m.hdOrigin}` : ''}` : ''} />
+        <Field label={t('findCustomer.hdStore')} value={m.store} />
+        <Field label={t('findCustomer.dateOfSale')} value={m.saleDate} />
+        <Field label={t('findCustomer.datePaid')} value={m.datePaid} />
+        <Field label={t('findCustomer.paidBy')} value={m.finance} />
       </dl>
 
       {m.link && (
         <div className="border-t border-gray-100 px-5 py-2.5 text-right">
           <a href={m.link} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold text-sky-700 hover:underline">
-            Open in journal ↗
+            {t('findCustomer.openInJournal')}
           </a>
         </div>
       )}
@@ -423,6 +429,7 @@ function CustomerEditForm({
   pending: boolean;
   onSave: (v: { phone: string; address: string; email: string }) => void;
 }) {
+  const t = useT();
   const [phone, setPhone] = useState(initial.phone);
   const [address, setAddress] = useState(initial.address);
   const [email, setEmail] = useState(initial.email);
@@ -430,12 +437,12 @@ function CustomerEditForm({
     <div className="mx-5 mt-3 space-y-2 rounded-lg border border-gray-200 bg-gray-50 p-3">
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         <label className="block">
-          <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Phone</span>
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">{t('findCustomer.phone')}</span>
           <input className="input mt-0.5" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(416) 555-0123" />
         </label>
         <label className="block">
           <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
-            Email {!hasPortalRecord && <span className="font-normal normal-case text-gray-400">(portal deals only)</span>}
+            {t('findCustomer.email')} {!hasPortalRecord && <span className="font-normal normal-case text-gray-400">{t('findCustomer.portalDealsOnly')}</span>}
           </span>
           <input
             className="input mt-0.5"
@@ -443,11 +450,11 @@ function CustomerEditForm({
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             disabled={!hasPortalRecord}
-            placeholder={hasPortalRecord ? 'name@email.com' : 'No portal record for this deal'}
+            placeholder={hasPortalRecord ? t('findCustomer.emailPlaceholder') : t('findCustomer.noPortalRecord')}
           />
         </label>
         <label className="block sm:col-span-2">
-          <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Address</span>
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">{t('findCustomer.address')}</span>
           <input className="input mt-0.5" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="12 Main St, Barrie ON" />
         </label>
       </div>
@@ -458,9 +465,9 @@ function CustomerEditForm({
           disabled={pending}
           className="btn-primary text-sm"
         >
-          {pending ? 'Saving…' : 'Save changes'}
+          {pending ? t('findCustomer.saving') : t('findCustomer.saveChanges')}
         </button>
-        <span className="text-[11px] text-gray-400">Saves the corrected info{hasPortalRecord ? ' and updates the portal deal' : ''}. The sales journal is left unchanged. Changes are logged.</span>
+        <span className="text-[11px] text-gray-400">{hasPortalRecord ? t('findCustomer.savesInfoPortal') : t('findCustomer.savesInfo')}</span>
       </div>
     </div>
   );

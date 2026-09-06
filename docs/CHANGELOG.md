@@ -27,23 +27,30 @@ source of truth; this file is the human-readable index.
 | DeepL translation (user content) | ⏳ Parked — **set the key to enable reviewer auto-translate** | Awaiting `DEEPL_API_KEY` in Render (free keys end in `:fx`). Powers (a) the on-demand Translate control and (b) the **automatic** FR→EN conversion of chat messages, deal-conversation and gift-card threads, and dealer free-text notes on the reviewer side (`<AutoTranslate>`). Degrades silently until the key is set — no redeploy needed to turn it on. |
 | Bell Total Connect voicemail | 📝 Documented, not built here | Guide delivered for the **booking site** (voicemail-to-email + IMAP). Not part of this portal. |
 
-### To do (parked — waiting on ONE input)
-- **French Home Depot lead parsing (HIGH PRIORITY — Québec/French leads).** The
-  portal only *reads* the "HD Leads Log" Google Sheet; HD lead emails are parsed
-  into that sheet by Sean's **external Apps Script** (now saved for reference at
-  `scripts/hd-leads-automation.gs`). **Root cause identified:** the Gmail search
-  query hard-requires the English subject `subject:"New Home Services Customer
-  Lead"`, so French-subject HD emails are never even fetched — plus the body
-  parser keys off English labels (Booking ID No, Service Name, Store, Your
-  Customer Information, Project Location, etc.). Fix = broaden the search to be
-  sender-based (`from:info@homedepot.ca`) with in-code validation, and add French
-  label alternates to the parser. **Still needs from Sean: ONE raw French HD lead
-  email** (subject + full body) to lock the exact French labels before shipping
-  into the live pipeline (leads = revenue; don't guess). Portal display already
-  auto-translates lead free-text, so once French leads land in the sheet the rest
-  works. (Raised 2026-09-06, Sean; current script received.)
+### French lead parsing — BUILT, awaiting live paste + test
+- **French Home Depot lead parsing (Québec/French leads).** The portal only
+  *reads* the "HD Leads Log" Google Sheet; HD lead emails are parsed into it by
+  Sean's **external Apps Script** (`scripts/hd-leads-automation.gs`). Root cause
+  of missed French leads: the Gmail search required the English subject, and the
+  parser keyed off English labels only. **Fixed 2026-09-06 from a real French
+  sample (Réf 701780675):** the search now matches the EN subject OR the FR
+  fragment "Services à domicile" (same sender, info@homedepot.ca), and
+  `parseLead()` is bilingual (EN|FR for every field — see the script header for
+  the label map); French leads log as "Format F (French)". **Remaining step
+  (Sean, external):** paste the updated `processNewLeads()` search line +
+  `parseLead()` into the LIVE Apps Script and run `testSingleLead()` on a French
+  lead to confirm before the 15-min trigger runs. Portal display already
+  auto-translates lead free-text via DeepL. (2026-09-06, Sean.)
 
 ## 2026-09-06
+- **Bilingual coverage — Find a customer (dealer).** Translated the dealer
+  "Find a customer" surface to fr-CA (draft): the `FindCustomerPanel` hero
+  (title, subtitle with `{company}`, the My customers / Whose customer mode
+  toggle, mode-specific placeholders and hints, Recent lookups + Clear, footer)
+  and the shared `CustomerSearch` results (status/empty messages, result rows,
+  the "other office has this customer" block, the journal detail card, and the
+  inline customer-edit form). New `findCustomer` namespace. Office-scoped search
+  behaviour and any values written back stay as-is; only display strings change.
 - **HD Promotions hero slot.** Added a hero image slot for the HD Promotions
   content page — drop a file at `public/HD-Promotions.png` and it becomes the
   page banner; absent, it falls back to the gradient (same pattern as the HD
@@ -135,8 +142,10 @@ source of truth; this file is the human-readable index.
   cards + inline edit, the dealer↔team message thread, search/filter controls,
   the pager, and the bulk-CSV importer (preview table, per-row validation
   messages, plural "added/skipped" counts). Expanded the `giftCards` namespace
-  with ~70 keys. The downloadable CSV template stays English-headed on purpose
-  (its columns are machine-matched on import). Also fixed a brand slip in the
+  with ~70 keys. The downloadable CSV template now switches with the locale
+  (French headers + filename when FR), and the importer accepts both English and
+  French headers (accent-insensitive) so data-matching still works either way.
+  Also fixed a brand slip in the
   message thread ("GWA team" → "Georgian Water & Air team").
 - **Bilingual coverage — public "Request portal access" onboarding.** Translated
   the public `/request-access` page and its onboarding form to fr-CA (draft):

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { CustomerSearch } from './CustomerSearch';
+import { useT } from '@/i18n/client';
 
 const RECENT_KEY = 'gwa.recentCustomerSearches';
 
@@ -12,6 +13,7 @@ const RECENT_KEY = 'gwa.recentCustomerSearches';
  * the same office-scoped search — the toggle is guidance, not a different query.
  */
 export function FindCustomerPanel({ companyName }: { companyName: string }) {
+  const t = useT();
   const [mode, setMode] = useState<'mine' | 'whose'>('mine');
   const [recent, setRecent] = useState<string[]>([]);
   const [push, setPush] = useState<{ q: string; nonce: number } | undefined>();
@@ -45,7 +47,7 @@ export function FindCustomerPanel({ companyName }: { companyName: string }) {
     }
   };
 
-  const placeholder = mode === 'whose' ? 'Exact phone number…' : 'Name or phone number…';
+  const placeholder = mode === 'whose' ? t('findCustomer.placeholderWhose') : t('findCustomer.placeholderMine');
 
   return (
     <div className="space-y-5">
@@ -59,14 +61,14 @@ export function FindCustomerPanel({ companyName }: { companyName: string }) {
         </svg>
 
         <div className="relative">
-          <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">Find a customer</h1>
+          <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">{t('findCustomer.panelTitle')}</h1>
           <p className="mt-0.5 text-sm text-gray-600">
-            Pull up your {companyName} deals, or see which office already has a customer.
+            {t('findCustomer.panelSubtitle', { company: companyName })}
           </p>
 
           {/* Mode toggle */}
           <div className="mt-4 inline-flex w-full max-w-sm rounded-xl bg-brand-100/70 p-1">
-            {([['mine', 'My customers'], ['whose', 'Whose customer?']] as const).map(([m, label]) => (
+            {([['mine', t('findCustomer.tabMine')], ['whose', t('findCustomer.tabWhose')]] as const).map(([m, label]) => (
               <button
                 key={m}
                 type="button"
@@ -87,9 +89,9 @@ export function FindCustomerPanel({ companyName }: { companyName: string }) {
 
           <p className="mt-2.5 text-sm text-gray-500">
             {mode === 'whose' ? (
-              <>Enter a customer&apos;s <strong>exact phone number</strong> to see which office already has them, so you can reach out.</>
+              <>{t('findCustomer.hintWhosePre')} <strong>{t('findCustomer.hintWhoseBold')}</strong> {t('findCustomer.hintWhosePost')}</>
             ) : (
-              <>Search your own deals by <strong>name or phone number</strong>.</>
+              <>{t('findCustomer.hintMinePre')} <strong>{t('findCustomer.hintMineBold')}</strong>{t('findCustomer.hintMinePost')}</>
             )}
           </p>
         </div>
@@ -98,8 +100,8 @@ export function FindCustomerPanel({ companyName }: { companyName: string }) {
       {recent.length > 0 && (
         <div>
           <div className="mb-2 flex items-center justify-between px-1">
-            <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Recent lookups</span>
-            <button type="button" onClick={clearRecent} className="text-xs text-gray-400 hover:text-gray-600 hover:underline">Clear</button>
+            <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">{t('findCustomer.recentLookups')}</span>
+            <button type="button" onClick={clearRecent} className="text-xs text-gray-400 hover:text-gray-600 hover:underline">{t('findCustomer.clearRecent')}</button>
           </div>
           <div className="flex flex-wrap gap-2">
             {recent.map((q) => (
@@ -118,7 +120,7 @@ export function FindCustomerPanel({ companyName }: { companyName: string }) {
       )}
 
       <p className="text-xs text-gray-400">
-        Searches are logged. Only your own office&apos;s customers show full details — other offices show contact info only.
+        {t('findCustomer.panelFooter')}
       </p>
     </div>
   );
