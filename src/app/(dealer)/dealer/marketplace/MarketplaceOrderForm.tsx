@@ -8,6 +8,8 @@ import {
 } from 'lucide-react';
 import { createOrderAction, type OrderActionState } from './actions';
 import { MARKETPLACE_TAGS } from '@/lib/constants';
+import { useT } from '@/i18n/client';
+import type { TFunction } from '@/i18n/translator';
 
 interface Item {
   id: string;
@@ -70,6 +72,7 @@ function TagBadges({ tags }: { tags: string[] }) {
 
 // Full-size image shown over the marketplace; closes on ✕, backdrop click, or Esc.
 function Lightbox({ src, alt, onClose }: { src: string; alt: string; onClose: () => void }) {
+  const t = useT();
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -95,7 +98,7 @@ function Lightbox({ src, alt, onClose }: { src: string; alt: string; onClose: ()
         <button
           type="button"
           onClick={onClose}
-          aria-label="Close"
+          aria-label={t('marketplace.close')}
           className="absolute -right-3 -top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white text-lg text-gray-700 shadow-lg ring-1 ring-gray-200 hover:bg-gray-100"
         >
           ✕
@@ -108,13 +111,14 @@ function Lightbox({ src, alt, onClose }: { src: string; alt: string; onClose: ()
 }
 
 function ItemImage({ item, onImageClick, className }: { item: Item; onImageClick: (src: string, alt: string) => void; className?: string }) {
+  const t = useT();
   const imgSrc = `/api/marketplace/items/${item.id}/image?v=${item.imageVersion ?? 0}`;
   return item.hasImage ? (
     <button
       type="button"
       onClick={() => onImageClick(`${imgSrc}&size=full`, item.name)}
       className={`photo-mat relative block aspect-square w-full cursor-zoom-in border-b border-gray-200 ${className ?? ''}`}
-      aria-label={`View ${item.name} larger`}
+      aria-label={t('marketplace.viewLarger', { name: item.name })}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={imgSrc} alt={item.name} loading="lazy" className="h-full w-full object-contain p-3" />
@@ -131,6 +135,7 @@ function ItemImage({ item, onImageClick, className }: { item: Item; onImageClick
 // Order controls for one product: pick a size/option and quantity, then Add to
 // cart. Adding the same item in a different size creates a separate cart line.
 function OrderControls({ item, onAdd }: { item: Item; onAdd: (item: Item, option: string | null, qty: number) => void }) {
+  const t = useT();
   const [option, setOption] = useState(item.options[0] ?? '');
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
@@ -148,7 +153,7 @@ function OrderControls({ item, onAdd }: { item: Item; onAdd: (item: Item, option
       <div className="flex items-end gap-2">
         {item.options.length > 0 && (
           <div className="flex-1">
-            <label className="label" htmlFor={`opt_${item.id}`}>Size / option</label>
+            <label className="label" htmlFor={`opt_${item.id}`}>{t('marketplace.sizeOption')}</label>
             <select id={`opt_${item.id}`} value={option} onChange={(e) => setOption(e.target.value)} className="input">
               {item.options.map((o) => (
                 <option key={o} value={o}>{o}</option>
@@ -157,7 +162,7 @@ function OrderControls({ item, onAdd }: { item: Item; onAdd: (item: Item, option
           </div>
         )}
         <div className="w-20">
-          <label className="label" htmlFor={`qty_${item.id}`}>Qty</label>
+          <label className="label" htmlFor={`qty_${item.id}`}>{t('marketplace.qty')}</label>
           <input
             id={`qty_${item.id}`}
             type="number"
@@ -175,7 +180,7 @@ function OrderControls({ item, onAdd }: { item: Item; onAdd: (item: Item, option
           added ? 'bg-green-600 text-white' : 'bg-brand-600 text-white hover:bg-brand-700'
         }`}
       >
-        {added ? '✓ Added to cart' : <><ShoppingCart size={15} /> Add to cart</>}
+        {added ? t('marketplace.addedToCart') : <><ShoppingCart size={15} /> {t('marketplace.addToCart')}</>}
       </button>
     </div>
   );
@@ -190,6 +195,7 @@ function ItemCard({
   onImageClick: (src: string, alt: string) => void;
   onAdd: (item: Item, option: string | null, qty: number) => void;
 }) {
+  const t = useT();
   return (
     <div className="flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition hover:shadow-md">
       <ItemImage item={item} onImageClick={onImageClick} />
@@ -203,10 +209,10 @@ function ItemCard({
                 href={`/api/marketplace/items/${item.id}/file`}
                 className="btn-primary inline-flex w-full items-center justify-center gap-2"
               >
-                ⬇ Download{item.fileName ? '' : ' file'}
+                ⬇ {item.fileName ? t('marketplace.download') : t('marketplace.downloadFile')}
               </a>
             ) : (
-              <p className="text-sm text-gray-400">Coming soon</p>
+              <p className="text-sm text-gray-400">{t('marketplace.comingSoon')}</p>
             )}
           </div>
         ) : (
@@ -218,6 +224,7 @@ function ItemCard({
 }
 
 function NewArrivalsRail({ items, onImageClick }: { items: Item[]; onImageClick: (src: string, alt: string) => void }) {
+  const t = useT();
   const scroller = useRef<HTMLDivElement>(null);
   const paused = useRef(false);
 
@@ -245,12 +252,12 @@ function NewArrivalsRail({ items, onImageClick }: { items: Item[]; onImageClick:
     <section className="rounded-2xl border border-gray-200 bg-gray-50/70 p-4 sm:p-5">
       <div className="mb-3 flex items-center justify-between">
         <div>
-          <h2 className="flex items-center gap-2 text-lg font-semibold text-gray-900"><Sparkles size={18} className="text-blue-600" /> New Arrivals</h2>
-          <p className="text-xs text-gray-500">Just added to the marketplace</p>
+          <h2 className="flex items-center gap-2 text-lg font-semibold text-gray-900"><Sparkles size={18} className="text-blue-600" /> {t('marketplace.newArrivals')}</h2>
+          <p className="text-xs text-gray-500">{t('marketplace.newArrivalsSub')}</p>
         </div>
         <div className="hidden gap-2 sm:flex">
-          <button type="button" onClick={() => nudge(-1)} aria-label="Previous" className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 shadow-sm transition hover:bg-gray-50">‹</button>
-          <button type="button" onClick={() => nudge(1)} aria-label="Next" className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 shadow-sm transition hover:bg-gray-50">›</button>
+          <button type="button" onClick={() => nudge(-1)} aria-label={t('marketplace.prev')} className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 shadow-sm transition hover:bg-gray-50">‹</button>
+          <button type="button" onClick={() => nudge(1)} aria-label={t('marketplace.next')} className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 shadow-sm transition hover:bg-gray-50">›</button>
         </div>
       </div>
       <div
@@ -284,6 +291,7 @@ function CategoryCards({
   active: string;
   onSelect: (key: string) => void;
 }) {
+  const t = useT();
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
       {chips.map((c) => {
@@ -304,7 +312,7 @@ function CategoryCards({
             </span>
             <span className="min-w-0">
               <span className="block truncate text-sm font-bold text-[#0d2a63] dark:text-slate-100">{c.label.replace(/^✨\s*/, '')}</span>
-              <span className="block text-xs text-gray-500">{c.count} item{c.count === 1 ? '' : 's'}</span>
+              <span className="block text-xs text-gray-500">{c.count === 1 ? t('marketplace.itemCountOne') : t('marketplace.itemsCount', { n: c.count })}</span>
             </span>
           </button>
         );
@@ -348,13 +356,14 @@ function CartContents({
   error?: string;
   listClass?: string;
 }) {
+  const t = useT();
   const cartJson = JSON.stringify(lines.map((l) => ({ itemId: l.itemId, option: l.option, quantity: l.qty })));
   return (
     <>
       <div className={`min-h-0 overflow-y-auto ${listClass ?? ''}`}>
         {lines.length === 0 ? (
           <p className="px-1 py-6 text-center text-sm text-gray-500">
-            Your cart is empty. Add items — including several sizes of one product — then submit together.
+            {t('marketplace.cartEmpty')}
           </p>
         ) : (
           <ul className="divide-y divide-gray-100">
@@ -386,26 +395,27 @@ function CartContents({
       <form action={action} className="mt-3 border-t border-gray-200 pt-3">
         <input type="hidden" name="cart" value={cartJson} />
         {error && <div className="mb-3 rounded-md border border-red-200 bg-red-50 p-2.5 text-sm text-red-800" role="alert">{error}</div>}
-        <label className="label" htmlFor="note">Note <span className="font-normal text-gray-400">(optional)</span></label>
-        <textarea id="note" name="note" rows={2} className="input mb-3" placeholder="Anything the fulfillment team should know…" />
-        <SubmitButton disabled={lines.length === 0} />
-        <p className="mt-2 text-center text-[11px] text-gray-400">No payment now — we&apos;ll confirm and fulfill your order.</p>
+        <label className="label" htmlFor="note">{t('marketplace.noteLabel')} <span className="font-normal text-gray-400">{t('marketplace.optional')}</span></label>
+        <textarea id="note" name="note" rows={2} className="input mb-3" placeholder={t('marketplace.notePlaceholder')} />
+        <SubmitButton disabled={lines.length === 0} t={t} />
+        <p className="mt-2 text-center text-[11px] text-gray-400">{t('marketplace.noPaymentNote')}</p>
       </form>
     </>
   );
 }
 
-function SubmitButton({ disabled }: { disabled: boolean }) {
+function SubmitButton({ disabled, t }: { disabled: boolean; t: TFunction }) {
   const { pending } = useFormStatus();
   return (
     <button type="submit" className="btn-primary flex w-full items-center justify-center gap-2" disabled={pending || disabled}>
-      {pending ? 'Submitting…' : <>Submit order <ArrowRight size={16} /></>}
+      {pending ? t('marketplace.submitting') : <>{t('marketplace.submitOrder')} <ArrowRight size={16} /></>}
     </button>
   );
 }
 
 /** Support card in the rail — opens the corner chat (ChatWidget listens). */
 function SupportRailCard() {
+  const t = useT();
   return (
     <div className="relative overflow-hidden rounded-2xl bg-[#0e2b5c] p-5 text-white shadow-sm">
       <div
@@ -421,36 +431,37 @@ function SupportRailCard() {
       <LifeBuoy className="pointer-events-none absolute -right-3 bottom-2 text-white/5" size={120} aria-hidden />
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#0e2b5c] via-[#0e2b5c]/70 to-transparent" aria-hidden />
       <div className="relative z-10 max-w-[62%]">
-        <div className="text-lg font-bold">Need help with your order?</div>
-        <p className="mt-1 text-sm text-blue-100">Our support team is here to help.</p>
+        <div className="text-lg font-bold">{t('marketplace.needHelpTitle')}</div>
+        <p className="mt-1 text-sm text-blue-100">{t('marketplace.needHelpBody')}</p>
         <button
           type="button"
           onClick={() => window.dispatchEvent(new CustomEvent('gwa:open-chat', { detail: { support: true } }))}
           className="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#ffffff] px-3.5 py-1.5 text-[13px] font-semibold text-[#0e2b5c] transition hover:bg-blue-50"
         >
-          Contact Support <ArrowRight size={16} />
+          {t('marketplace.contactSupport')} <ArrowRight size={16} />
         </button>
       </div>
     </div>
   );
 }
 
-const INFO_TILES: { Icon: LucideIcon; title: string; body: string }[] = [
-  { Icon: Truck, title: 'Fast processing', body: 'Orders are picked up by our team promptly.' },
-  { Icon: BadgeCheck, title: 'Dealer exclusive', body: 'Branded products for your success.' },
-  { Icon: HelpCircle, title: 'Questions?', body: 'Contact your dealer support team.' },
+const INFO_TILES: { Icon: LucideIcon; titleKey: string; bodyKey: string }[] = [
+  { Icon: Truck, titleKey: 'marketplace.infoFastTitle', bodyKey: 'marketplace.infoFastBody' },
+  { Icon: BadgeCheck, titleKey: 'marketplace.infoExclusiveTitle', bodyKey: 'marketplace.infoExclusiveBody' },
+  { Icon: HelpCircle, titleKey: 'marketplace.infoQuestionsTitle', bodyKey: 'marketplace.infoQuestionsBody' },
 ];
 
 function InfoTiles() {
+  const t = useT();
   return (
     <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
       <ul className="space-y-3">
-        {INFO_TILES.map((t) => (
-          <li key={t.title} className="flex items-start gap-3">
-            <span className="flex h-9 w-9 flex-none items-center justify-center rounded-lg bg-blue-50 text-blue-600"><t.Icon size={18} /></span>
+        {INFO_TILES.map((tile) => (
+          <li key={tile.titleKey} className="flex items-start gap-3">
+            <span className="flex h-9 w-9 flex-none items-center justify-center rounded-lg bg-blue-50 text-blue-600"><tile.Icon size={18} /></span>
             <div className="leading-tight">
-              <div className="text-sm font-bold text-[#0d2a63] dark:text-slate-100">{t.title}</div>
-              <div className="text-xs text-gray-500">{t.body}</div>
+              <div className="text-sm font-bold text-[#0d2a63] dark:text-slate-100">{t(tile.titleKey)}</div>
+              <div className="text-xs text-gray-500">{t(tile.bodyKey)}</div>
             </div>
           </li>
         ))}
@@ -471,6 +482,7 @@ function CartDrawer({
   action: (formData: FormData) => void;
   error?: string;
 }) {
+  const t = useT();
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -487,11 +499,11 @@ function CartDrawer({
   const totalUnits = lines.reduce((s, l) => s + l.qty, 0);
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/50" onClick={onClose} role="dialog" aria-modal="true" aria-label="Your order">
+    <div className="fixed inset-0 z-50 flex justify-end bg-black/50" onClick={onClose} role="dialog" aria-modal="true" aria-label={t('marketplace.yourOrder')}>
       <aside className="flex h-full w-full max-w-md flex-col bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
-          <h2 className="text-base font-semibold text-gray-900">Your order {lines.length > 0 && <span className="text-gray-400">· {totalUnits} item{totalUnits === 1 ? '' : 's'}</span>}</h2>
-          <button type="button" onClick={onClose} aria-label="Close" className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100">✕</button>
+          <h2 className="text-base font-semibold text-gray-900">{t('marketplace.yourOrder')} {lines.length > 0 && <span className="text-gray-400">· {totalUnits === 1 ? t('marketplace.itemCountOne') : t('marketplace.itemsCount', { n: totalUnits })}</span>}</h2>
+          <button type="button" onClick={onClose} aria-label={t('marketplace.close')} className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100">✕</button>
         </div>
         <div className="flex min-h-0 flex-1 flex-col px-4 py-3">
           <CartContents lines={lines} onQty={onQty} onRemove={onRemove} action={action} error={error} listClass="flex-1" />
@@ -502,6 +514,7 @@ function CartDrawer({
 }
 
 export function MarketplaceOrderForm({ items, categories }: { items: Item[]; categories: Category[] }) {
+  const t = useT();
   const [state, action] = useFormState(createOrderAction, initial);
   const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(null);
   const [active, setActive] = useState<string>(ALL);
@@ -554,10 +567,10 @@ export function MarketplaceOrderForm({ items, categories }: { items: Item[]; cat
   const other = items.filter((it) => !it.categoryId || !activeIds.has(it.categoryId));
 
   const chips = [
-    { key: ALL, label: 'All', count: items.length },
-    ...(featured.length > 0 ? [{ key: NEW_ARRIVALS, label: '✨ New Arrivals', count: featured.length }] : []),
+    { key: ALL, label: t('marketplace.catAll'), count: items.length },
+    ...(featured.length > 0 ? [{ key: NEW_ARRIVALS, label: t('marketplace.catNewArrivals'), count: featured.length }] : []),
     ...sections.map((s) => ({ key: s.key, label: s.name, count: s.items.length })),
-    ...(other.length > 0 ? [{ key: OTHER, label: 'Other', count: other.length }] : []),
+    ...(other.length > 0 ? [{ key: OTHER, label: t('marketplace.catOther'), count: other.length }] : []),
   ];
 
   // Which items are visible given the active category, search and sort.
@@ -577,13 +590,13 @@ export function MarketplaceOrderForm({ items, categories }: { items: Item[]; cat
     return sorted;
   }, [items, featured, other, active, query, sortBy]);
 
-  const activeLabel = chips.find((c) => c.key === active)?.label.replace(/^✨\s*/, '') ?? 'All';
+  const activeLabel = chips.find((c) => c.key === active)?.label.replace(/^✨\s*/, '') ?? t('marketplace.catAll');
 
   return (
     <>
       {submitted && (
         <div className="rounded-md border border-green-200 bg-green-50 p-4 text-sm text-green-800">
-          ✓ Your order was submitted. Thanks — we&apos;ll be in touch.
+          {t('marketplace.orderSubmitted')}
         </div>
       )}
 
@@ -596,20 +609,20 @@ export function MarketplaceOrderForm({ items, categories }: { items: Item[]; cat
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search products…"
+            placeholder={t('marketplace.searchProducts')}
             className="w-full bg-transparent text-sm outline-none"
           />
         </div>
         <div className="flex items-center gap-2">
-          <label htmlFor="mp-sort" className="text-xs font-semibold text-gray-500">Sort by</label>
+          <label htmlFor="mp-sort" className="text-xs font-semibold text-gray-500">{t('marketplace.sortBy')}</label>
           <select
             id="mp-sort"
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as 'featured' | 'name')}
             className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm outline-none"
           >
-            <option value="featured">Featured first</option>
-            <option value="name">Name (A–Z)</option>
+            <option value="featured">{t('marketplace.sortFeatured')}</option>
+            <option value="name">{t('marketplace.sortName')}</option>
           </select>
         </div>
       </div>
@@ -621,12 +634,12 @@ export function MarketplaceOrderForm({ items, categories }: { items: Item[]; cat
             <NewArrivalsRail items={featured} onImageClick={openImage} />
           )}
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">{query.trim() ? 'Search results' : activeLabel}</h2>
-            <span className="text-xs text-gray-400">{visibleItems.length} item{visibleItems.length === 1 ? '' : 's'}</span>
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">{query.trim() ? t('marketplace.searchResults') : activeLabel}</h2>
+            <span className="text-xs text-gray-400">{visibleItems.length === 1 ? t('marketplace.itemCountOne') : t('marketplace.itemsCount', { n: visibleItems.length })}</span>
           </div>
           {visibleItems.length === 0 ? (
             <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center text-sm text-gray-500">
-              No products match{query.trim() ? ` “${query.trim()}”` : ' this category'}.
+              {query.trim() ? t('marketplace.noProductsQuery', { q: query.trim() }) : t('marketplace.noProductsCategory')}
             </div>
           ) : (
             <ItemGrid items={visibleItems} onImageClick={openImage} onAdd={addToCart} />
@@ -639,11 +652,11 @@ export function MarketplaceOrderForm({ items, categories }: { items: Item[]; cat
             <section className="flex max-h-[70vh] flex-col rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
               <div className="mb-2 flex items-center justify-between">
                 <h3 className="flex items-center gap-2 text-base font-bold text-[#0d2a63] dark:text-slate-100">
-                  <ShoppingCart size={18} className="text-blue-600" /> Your cart
+                  <ShoppingCart size={18} className="text-blue-600" /> {t('marketplace.yourCart')}
                   {totalUnits > 0 && <span className="rounded-full bg-blue-600 px-2 py-0.5 text-xs font-bold text-white">{totalUnits}</span>}
                 </h3>
                 {cart.length > 0 && (
-                  <button type="button" onClick={() => setCart([])} className="text-xs font-semibold text-gray-400 hover:text-red-600">Clear all</button>
+                  <button type="button" onClick={() => setCart([])} className="text-xs font-semibold text-gray-400 hover:text-red-600">{t('marketplace.clearAll')}</button>
                 )}
               </div>
               <CartContents lines={cart} onQty={setQty} onRemove={remove} action={action} error={state.error} listClass="max-h-[38vh]" />
@@ -660,7 +673,7 @@ export function MarketplaceOrderForm({ items, categories }: { items: Item[]; cat
         onClick={() => setCartOpen(true)}
         className="fixed bottom-24 right-5 z-40 inline-flex items-center gap-2 rounded-full bg-brand-600 px-5 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-brand-700 xl:hidden"
       >
-        <ShoppingCart size={16} /> Cart
+        <ShoppingCart size={16} /> {t('marketplace.cart')}
         {totalUnits > 0 && (
           <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-white px-1.5 text-xs font-bold text-brand-700 tabular-nums">{totalUnits}</span>
         )}
