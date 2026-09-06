@@ -2,6 +2,7 @@ import Link from 'next/link';
 import type { Application, LoanApplication, HomeDepotStore, FinanceCompany, User } from '@prisma/client';
 import { programDisplayLabel, soapDisplayLabel } from '@/lib/enumLabels';
 import type { TFunction } from '@/i18n/translator';
+import { AutoTranslate } from './AutoTranslate';
 import { readEnc } from '@/lib/crypto';
 import { netBeforeTax } from '@/lib/tax';
 
@@ -246,12 +247,12 @@ export function ReviewerEntryView({
       {(app.financingNote || app.notes) && (
         <Group title="Notes">
           {app.financingNote && (
-            <p className="rounded bg-gray-50 p-3 text-sm text-gray-600">
+            <div className="rounded bg-gray-50 p-3 text-sm text-gray-600">
               <span className="font-medium text-gray-700">Financing note: </span>
-              {app.financingNote}
-            </p>
+              <AutoTranslate text={app.financingNote} className="inline-block align-top" />
+            </div>
           )}
-          {app.notes && <p className="mt-2 rounded bg-gray-50 p-3 text-sm text-gray-600">{app.notes}</p>}
+          {app.notes && <div className="mt-2 rounded bg-gray-50 p-3 text-sm text-gray-600"><AutoTranslate text={app.notes} /></div>}
         </Group>
       )}
     </section>
