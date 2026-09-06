@@ -43,6 +43,19 @@ source of truth; this file is the human-readable index.
   auto-translates lead free-text via DeepL. (2026-09-06, Sean.)
 
 ## 2026-09-06
+- **Bilingual coverage — staff/reviewer surfaces, part 3 (shell, mail,
+  conversations, misc).** Finished the staff-side sweep (fr-CA draft): the
+  **staff shell/nav** (`StaffShell`, reusing the shared `nav.*`/`shell.*` keys,
+  plus a small `staffShell` namespace), the **Mail** list + thread + compose
+  (`staffMail`, `staffMailThread`, `mailCompose`), **Conversations** index
+  (`staffConversations`), the GWA-team **customer detail** page
+  (`staffCustomerDetail`), the **journal-connection** diagnostics report
+  (`connectionReport`), and the staff **leads** oversight page (reusing dealer
+  `leads.*` keys + a small `staffLeads` namespace). Staff-typed content (mail
+  subject/body), machine values, env-var names/URLs, and data values stay
+  English; fixed "GWA" brand slips (sender label, headers). With this the
+  EN/FR toggle has no remaining English islands on the dealer or staff surfaces
+  (admin console and the on-hold Tutorial excepted).
 - **Bilingual coverage — staff/reviewer surfaces, part 2 (reviewer forms).**
   Translated the reviewer action forms on the staff deal page (fr-CA draft):
   the **decision** form (`DecisionForm` — options via `decisionDisplayLabel`,

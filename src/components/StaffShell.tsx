@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { logoutAction } from '@/app/(auth)/actions';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { MobileNav } from '@/components/MobileNav';
+import { useT } from '@/i18n/client';
 import {
   FileText, Mail, MessageSquare, Gift, Building2, Users, BarChart3, UserCircle,
   ShieldCheck, Wrench, Search, Bell, LogOut, Droplets, ArrowLeftRight, type LucideIcon,
@@ -13,6 +14,8 @@ import {
 export interface NavItem {
   href?: string;
   label: string;
+  /** i18n key for the display label; falls back to `label` (also used for icons). */
+  labelKey?: string;
   badge?: boolean;
   children?: NavItem[];
 }
@@ -41,7 +44,7 @@ function isActive(pathname: string, href?: string): boolean {
   return pathname === href || pathname.startsWith(href + '/');
 }
 
-function SidebarLink({ item, pathname }: { item: NavItem; pathname: string }) {
+function SidebarLink({ item, pathname, label }: { item: NavItem; pathname: string; label: string }) {
   const Icon = iconFor(item.label);
   const active = isActive(pathname, item.href);
   return (
@@ -55,7 +58,7 @@ function SidebarLink({ item, pathname }: { item: NavItem; pathname: string }) {
     >
       {active && <span className="absolute inset-y-1.5 left-0 w-1 rounded-full bg-sky-300" aria-hidden />}
       <Icon size={18} className={`flex-none transition ${active ? 'text-white' : 'text-sky-300/80 group-hover:text-white'}`} />
-      <span className="flex-1 truncate">{item.label}</span>
+      <span className="flex-1 truncate">{label}</span>
       {item.badge && <span className="h-1.5 w-1.5 flex-none rounded-full bg-sky-300" />}
     </Link>
   );
@@ -73,6 +76,8 @@ export function StaffShell({
   children: React.ReactNode;
 }) {
   const pathname = usePathname() ?? '/staff';
+  const t = useT();
+  const navLabel = (item: NavItem) => (item.labelKey ? t(item.labelKey) : item.label);
 
   return (
     <div className="min-h-screen bg-[#f2f6fb] dark:bg-[#0a1120] text-gray-900">
@@ -85,7 +90,7 @@ export function StaffShell({
               <Droplets className="text-white" size={24} />
             </div>
             <div className="leading-tight">
-              <div className="text-base font-extrabold tracking-tight text-[#0e2756] dark:text-slate-100 sm:text-lg">Reviewer Portal</div>
+              <div className="text-base font-extrabold tracking-tight text-[#0e2756] dark:text-slate-100 sm:text-lg">{t('staffShell.portalName')}</div>
               <div className="text-[10px] font-semibold tracking-[0.18em] text-blue-500">GEORGIAN WATER &amp; AIR</div>
             </div>
           </Link>
@@ -94,21 +99,21 @@ export function StaffShell({
         <div className="flex items-center gap-3 sm:gap-4">
           <form action="/staff" method="get" className="hidden items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 xl:flex">
             <Search size={17} className="text-gray-400" />
-            <input name="q" className="w-52 bg-transparent text-sm outline-none" placeholder="Search deals…" />
+            <input name="q" className="w-52 bg-transparent text-sm outline-none" placeholder={t('staffShell.searchDealsPlaceholder')} />
           </form>
 
           {showSwitcher && (
             <Link
               href="/dealer"
               className="hidden items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-semibold text-[#0e2756] dark:text-slate-100 transition hover:bg-gray-100 sm:inline-flex"
-              title="Switch to Dealer view"
+              title={t('staffShell.switchToDealer')}
             >
               <ArrowLeftRight size={14} className="text-blue-600" />
-              <span className="hidden lg:inline">Dealer view</span>
+              <span className="hidden lg:inline">{t('staffShell.dealerView')}</span>
             </Link>
           )}
 
-          <Link href="/staff/mail" className="relative text-[#0e2756] dark:text-slate-100 hover:text-blue-700" aria-label="Mail">
+          <Link href="/staff/mail" className="relative text-[#0e2756] dark:text-slate-100 hover:text-blue-700" aria-label={t('shell.mail')}>
             <Bell size={22} />
             {mailUnread > 0 && (
               <span className="absolute -right-2 -top-2 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
@@ -124,8 +129,8 @@ export function StaffShell({
           <div className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-blue-700 text-sm font-bold text-white">{initials}</div>
           <ThemeToggle className="topbar-btn hidden sm:inline-flex" />
           <form action={logoutAction}>
-            <button type="submit" className="topbar-btn inline-flex items-center gap-1.5 text-sm" title="Sign out">
-              <LogOut size={16} /> <span className="hidden sm:inline">Sign out</span>
+            <button type="submit" className="topbar-btn inline-flex items-center gap-1.5 text-sm" title={t('shell.signOut')}>
+              <LogOut size={16} /> <span className="hidden sm:inline">{t('shell.signOut')}</span>
             </button>
           </form>
         </div>
@@ -138,13 +143,13 @@ export function StaffShell({
             {nav.map((item) =>
               item.children ? (
                 <div key={item.label} className="pt-3 first:pt-0">
-                  <div className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-300/60">{item.label}</div>
+                  <div className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-300/60">{navLabel(item)}</div>
                   <div className="space-y-0.5">
-                    {item.children.map((c) => <SidebarLink key={c.label} item={c} pathname={pathname} />)}
+                    {item.children.map((c) => <SidebarLink key={c.label} item={c} pathname={pathname} label={navLabel(c)} />)}
                   </div>
                 </div>
               ) : (
-                <SidebarLink key={item.label} item={item} pathname={pathname} />
+                <SidebarLink key={item.label} item={item} pathname={pathname} label={navLabel(item)} />
               ),
             )}
           </nav>
@@ -154,7 +159,7 @@ export function StaffShell({
             </div>
             <div className="leading-tight">
               <div className="text-[11px] font-semibold text-blue-50">Georgian Water &amp; Air</div>
-              <div className="text-[9px] font-medium tracking-wide text-blue-300/70">Cleaner water · Healthier air</div>
+              <div className="text-[9px] font-medium tracking-wide text-blue-300/70">{t('shell.tagline')}</div>
             </div>
           </div>
         </aside>

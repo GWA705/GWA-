@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { requireStaffSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { friendlyFileName } from '@/lib/filenames';
+import { getT } from '@/i18n/server';
 import { StaffReplyForm } from './StaffReplyForm';
 
 export const dynamic = 'force-dynamic';
@@ -12,6 +13,7 @@ const fmt = (d: Date | null | undefined) =>
 
 export default async function MailReceipts({ params }: { params: { id: string } }) {
   await requireStaffSection('mail');
+  const t = getT();
 
   const mail = await prisma.mail.findUnique({
     where: { id: params.id },
@@ -99,19 +101,19 @@ export default async function MailReceipts({ params }: { params: { id: string } 
   return (
     <div className="space-y-6">
       <div>
-        <Link href="/staff/mail" className="text-sm text-gray-500 hover:underline">← Back to Mail</Link>
+        <Link href="/staff/mail" className="text-sm text-gray-500 hover:underline">{t('staffMailThread.backToMail')}</Link>
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <h1 className="text-xl font-semibold text-gray-900">{mail.subject}</h1>
-          {mail.requireAck && <span className="badge bg-amber-100 text-amber-800">Acknowledgement required</span>}
+          {mail.requireAck && <span className="badge bg-amber-100 text-amber-800">{t('staffMailThread.ackRequired')}</span>}
         </div>
         <p className="mt-1 text-sm text-gray-500">
-          Sent by {mail.sender.name} · {mail.createdAt.toLocaleString('en-CA')} ·{' '}
+          {t('staffMailThread.sentBy', { name: mail.sender.name })} · {mail.createdAt.toLocaleString('en-CA')} ·{' '}
           {mail.allDealers
-            ? 'All dealers'
+            ? t('staffMailThread.allDealers')
             : [
-                mail.recipients.length ? `${mail.recipients.length} dealer(s)` : '',
-                explicitUserIds.length ? `${explicitUserIds.length} person(s)` : '',
-              ].filter(Boolean).join(' + ') || 'no recipients'}
+                mail.recipients.length ? t('staffMailThread.dealerCount', { n: mail.recipients.length }) : '',
+                explicitUserIds.length ? t('staffMailThread.personCount', { n: explicitUserIds.length }) : '',
+              ].filter(Boolean).join(' + ') || t('staffMailThread.noRecipients')}
         </p>
         {!mail.allDealers && mail.recipients.length > 0 && (
           <p className="mt-1 text-xs text-gray-400">{mail.recipients.map((r) => r.dealer.name).join(', ')}</p>
@@ -119,14 +121,14 @@ export default async function MailReceipts({ params }: { params: { id: string } 
       </div>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <div className="card p-4"><div className="text-2xl font-bold tabular-nums text-gray-900">{users.length}</div><div className="text-xs text-gray-500">Recipients</div></div>
-        <div className="card p-4"><div className="text-2xl font-bold tabular-nums text-gray-900">{openedCount}</div><div className="text-xs text-gray-500">Opened</div></div>
-        {mail.requireAck && <div className="card p-4"><div className="text-2xl font-bold tabular-nums text-gray-900">{ackCount}</div><div className="text-xs text-gray-500">Acknowledged</div></div>}
-        <div className="card p-4"><div className="text-2xl font-bold tabular-nums text-gray-900">{mail.attachments.length}</div><div className="text-xs text-gray-500">Attachments</div></div>
+        <div className="card p-4"><div className="text-2xl font-bold tabular-nums text-gray-900">{users.length}</div><div className="text-xs text-gray-500">{t('staffMailThread.statRecipients')}</div></div>
+        <div className="card p-4"><div className="text-2xl font-bold tabular-nums text-gray-900">{openedCount}</div><div className="text-xs text-gray-500">{t('staffMailThread.statOpened')}</div></div>
+        {mail.requireAck && <div className="card p-4"><div className="text-2xl font-bold tabular-nums text-gray-900">{ackCount}</div><div className="text-xs text-gray-500">{t('staffMailThread.statAcknowledged')}</div></div>}
+        <div className="card p-4"><div className="text-2xl font-bold tabular-nums text-gray-900">{mail.attachments.length}</div><div className="text-xs text-gray-500">{t('staffMailThread.statAttachments')}</div></div>
       </div>
 
       <section className="card p-6">
-        <h2 className="mb-1 text-base font-semibold text-gray-900">Message</h2>
+        <h2 className="mb-1 text-base font-semibold text-gray-900">{t('staffMailThread.messageHeading')}</h2>
         <div className="whitespace-pre-wrap text-sm leading-relaxed text-gray-700">{mail.body}</div>
         {mail.attachments.length > 0 && (
           <ul className="mt-4 divide-y divide-gray-100 border-t border-gray-100">
@@ -150,7 +152,7 @@ export default async function MailReceipts({ params }: { params: { id: string } 
                   <Link href={viewer} title={a.fileName} className="block min-w-0 flex-1 truncate font-medium text-brand-700 hover:underline">
                     {friendlyFileName(a.fileName, i)}
                   </Link>
-                  <span className="shrink-0 text-xs text-gray-500">{viewersByAttachment.get(a.id) ?? 0} viewer(s)</span>
+                  <span className="shrink-0 text-xs text-gray-500">{t('staffMailThread.viewerCount', { n: viewersByAttachment.get(a.id) ?? 0 })}</span>
                 </li>
               );
             })}
@@ -161,11 +163,11 @@ export default async function MailReceipts({ params }: { params: { id: string } 
       {mail.allowReplies && (
         <section className="card p-6">
           <div className="mb-3 flex items-center gap-2">
-            <h2 className="text-base font-semibold text-gray-900">Replies</h2>
-            <span className="badge bg-green-100 text-green-800">Replies on</span>
+            <h2 className="text-base font-semibold text-gray-900">{t('staffMailThread.repliesHeading')}</h2>
+            <span className="badge bg-green-100 text-green-800">{t('staffMailThread.repliesOn')}</span>
           </div>
           {replyGroups.length === 0 && (
-            <p className="text-sm text-gray-500">No replies yet. Dealers who received this can reply here.</p>
+            <p className="text-sm text-gray-500">{t('staffMailThread.noReplies')}</p>
           )}
           <div className="space-y-5">
             {replyGroups.map((g) => (
@@ -175,7 +177,7 @@ export default async function MailReceipts({ params }: { params: { id: string } 
                   {g.replies.map((r) => (
                     <li key={r.id} className={`rounded-md p-3 text-sm ${r.fromStaff ? 'bg-brand-50' : 'bg-gray-50'}`}>
                       <div className="mb-1 flex items-center justify-between gap-2 text-xs text-gray-500">
-                        <span className="font-medium text-gray-700">{r.fromStaff ? `GWA · ${r.author.name}` : r.author.name}</span>
+                        <span className="font-medium text-gray-700">{r.fromStaff ? `${t('staffMailThread.staffLabel')} · ${r.author.name}` : r.author.name}</span>
                         <span>{r.createdAt.toLocaleString('en-CA')}</span>
                       </div>
                       <div className="whitespace-pre-wrap text-gray-800">{r.body}</div>
@@ -193,11 +195,11 @@ export default async function MailReceipts({ params }: { params: { id: string } 
         <table className="min-w-full divide-y divide-gray-200 text-sm">
           <thead className="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500">
             <tr>
-              <th className="px-4 py-3">Person</th>
-              <th className="px-4 py-3">Dealer</th>
-              <th className="px-4 py-3">Opened</th>
-              {mail.requireAck && <th className="px-4 py-3">Acknowledged</th>}
-              {mail.attachments.length > 0 && <th className="px-4 py-3">Files viewed</th>}
+              <th className="px-4 py-3">{t('staffMailThread.colPerson')}</th>
+              <th className="px-4 py-3">{t('staffMailThread.colDealer')}</th>
+              <th className="px-4 py-3">{t('staffMailThread.colOpened')}</th>
+              {mail.requireAck && <th className="px-4 py-3">{t('staffMailThread.colAcknowledged')}</th>}
+              {mail.attachments.length > 0 && <th className="px-4 py-3">{t('staffMailThread.colFilesViewed')}</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -208,14 +210,14 @@ export default async function MailReceipts({ params }: { params: { id: string } 
                 <tr key={u.id} className={r?.openedAt ? '' : 'bg-amber-50/40'}>
                   <td className="px-4 py-3"><div className="font-medium text-gray-800">{u.name}</div><div className="text-xs text-gray-400">{u.email}</div></td>
                   <td className="px-4 py-3 text-gray-600">{u.dealer?.name ?? '—'}</td>
-                  <td className="px-4 py-3 text-gray-600">{r?.openedAt ? fmt(r.openedAt) : <span className="text-amber-700">Not yet</span>}</td>
+                  <td className="px-4 py-3 text-gray-600">{r?.openedAt ? fmt(r.openedAt) : <span className="text-amber-700">{t('staffMailThread.notYet')}</span>}</td>
                   {mail.requireAck && <td className="px-4 py-3 text-gray-600">{r?.acknowledgedAt ? <span className="text-green-700">{fmt(r.acknowledgedAt)}</span> : <span className="text-gray-400">—</span>}</td>}
                   {mail.attachments.length > 0 && <td className="px-4 py-3 tabular-nums text-gray-600">{viewed}/{mail.attachments.length}</td>}
                 </tr>
               );
             })}
             {users.length === 0 && (
-              <tr><td colSpan={5} className="px-4 py-6 text-center text-sm text-gray-400">No dealer users to show.</td></tr>
+              <tr><td colSpan={5} className="px-4 py-6 text-center text-sm text-gray-400">{t('staffMailThread.emptyUsers')}</td></tr>
             )}
           </tbody>
         </table>

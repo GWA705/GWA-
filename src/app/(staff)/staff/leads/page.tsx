@@ -9,6 +9,7 @@ import { leadsSheetId, reportingJournalEnabled } from '@/lib/reporting/journalRe
 import { listReportOffices } from '@/lib/reporting/monthly';
 import { LeadsView, filterLeads, leadMonthOptions, leadOutcomeKey } from '@/components/LeadsView';
 import { leadsGeoData, storeGeos, unplacedStoresForMap } from '@/lib/leadGeo';
+import { getT } from '@/i18n/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,6 +22,8 @@ export default async function StaffLeadsPage({
   // All-offices leads = leadership view: super admin or a granted 'leads' section.
   if (!isSuperAdmin(user) && !canAdminSection(user, 'leads')) notFound();
 
+  const t = getT();
+
   const q = (searchParams.q ?? '').trim();
   const status = (searchParams.status ?? '').trim();
   const officeId = (searchParams.office ?? '').trim();
@@ -32,10 +35,9 @@ export default async function StaffLeadsPage({
   if (!leadsSheetId() || !reportingJournalEnabled()) {
     return (
       <div className="space-y-4">
-        <h1 className="text-xl font-semibold text-gray-900">Leads</h1>
+        <h1 className="text-xl font-semibold text-gray-900">{t('leads.heroEyebrow')}</h1>
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-          The HD leads log isn&apos;t connected yet. Set <code className="rounded bg-amber-100 px-1">HD_LEADS_SHEET_ID</code> and
-          share the sheet with the service account (see Admin → System health).
+          {t('staffLeads.notConnectedBefore')}<code className="rounded bg-amber-100 px-1">HD_LEADS_SHEET_ID</code>{t('staffLeads.notConnectedAfter')}
         </div>
       </div>
     );
@@ -72,16 +74,16 @@ export default async function StaffLeadsPage({
   return (
     <div className="space-y-5">
       <SectionHero
-        eyebrow="Leads"
-        title="Home Depot Leads"
-        subtitle="Home Depot leads across all offices, from the leads log."
+        eyebrow={t('leads.heroEyebrow')}
+        title={t('leads.heroTitle')}
+        subtitle={t('staffLeads.heroSubtitle')}
       />
 
       <form method="GET" className="flex flex-wrap items-end gap-3">
         <div>
-          <label className="label" htmlFor="office">Office</label>
-          <select id="office" name="office" defaultValue={officeId} className="input min-w-[200px]">
-            <option value="">All offices</option>
+          <label className="label" htmlFor="office">{t('staffLeads.officeLabel')}</label>
+          <select id="office" name="office" defaultValue={officeId} className="input min-w-[200px]" aria-label={t('staffLeads.officeLabel')}>
+            <option value="">{t('staffLeads.allOffices')}</option>
             {offices.map((o) => (
               <option key={o.dealerId} value={o.dealerId}>{o.name}</option>
             ))}
@@ -92,12 +94,12 @@ export default async function StaffLeadsPage({
         {month && <input type="hidden" name="month" value={month} />}
         {outcome && <input type="hidden" name="outcome" value={outcome} />}
         {view === 'grouped' && <input type="hidden" name="view" value="grouped" />}
-        <button type="submit" className="btn-primary">View</button>
+        <button type="submit" className="btn-primary">{t('staffLeads.viewButton')}</button>
       </form>
 
       {read.error && (
         <div className="rounded-lg border-l-4 border-amber-500 bg-amber-50 p-3 text-sm text-amber-800">
-          Couldn&apos;t read the leads log right now: {read.error}
+          {t('leads.readError', { error: read.error })}
         </div>
       )}
 

@@ -5,6 +5,8 @@ import { canViewReportsArea } from '@/lib/reporting/access';
 import { journalDiagnostics, sheetIdFor, EARLIEST_JOURNAL_YEAR } from '@/lib/reporting/journalRead';
 import { journalWriteTarget } from '@/lib/journal';
 import { isAdmin } from '@/lib/rbac';
+import { getT } from '@/i18n/server';
+import type { TFunction } from '@/i18n/translator';
 import { CopyField } from './CopyField';
 import { WriteModeToggle } from './WriteModeToggle';
 
@@ -14,6 +16,7 @@ export default async function JournalConnectionPage() {
   const user = await requireRole('REVIEWER', 'ADMIN');
   if (!(await canViewReportsArea(user))) notFound();
 
+  const t = getT();
   const currentYear = new Date().getFullYear();
   const yearSet = new Set<number>([currentYear - 1, currentYear, currentYear + 1]);
   for (let y = EARLIEST_JOURNAL_YEAR; y < currentYear - 1; y += 1) {
@@ -29,25 +32,25 @@ export default async function JournalConnectionPage() {
   return (
     <div className="max-w-2xl space-y-5">
       <Link href="/staff/reports" className="text-sm text-gray-500 hover:underline">
-        ← All reports
+        ← {t('connectionReport.allReports')}
       </Link>
 
       <div>
-        <h1 className="text-xl font-semibold text-gray-900">Journal connection</h1>
-        <p className="mt-1 text-sm text-gray-600">
-          Confirms the portal can read each year&apos;s sales journal, and shows the service-account email to share
-          the sheets with.
-        </p>
+        <h1 className="text-xl font-semibold text-gray-900">{t('connectionReport.title')}</h1>
+        <p className="mt-1 text-sm text-gray-600">{t('connectionReport.intro')}</p>
       </div>
 
       {/* Service account */}
       <div className="rounded-2xl border border-gray-200 bg-white shadow-sm p-5">
-        <h2 className="text-sm font-semibold text-gray-900">Service account to share sheets with</h2>
+        <h2 className="text-sm font-semibold text-gray-900">{t('connectionReport.serviceAccountHeading')}</h2>
         {diag.serviceAccountEmail ? (
           <>
             <p className="mt-1 text-xs text-gray-500">
-              Open each journal in Google Sheets → <strong>Share</strong> → paste this address → set it to{' '}
-              <strong>Viewer</strong>.
+              {t('connectionReport.shareStep1')}
+              <strong>{t('connectionReport.shareStepShare')}</strong>
+              {t('connectionReport.shareStep2')}
+              <strong>{t('connectionReport.shareStepViewer')}</strong>
+              {t('connectionReport.shareStep3')}
             </p>
             <div className="mt-3">
               <CopyField value={diag.serviceAccountEmail} />
@@ -56,8 +59,8 @@ export default async function JournalConnectionPage() {
         ) : (
           <p className="mt-2 text-sm text-amber-700">
             {diag.hasCredentials
-              ? 'Credentials are set but the service-account email could not be read.'
-              : 'No Google credentials are configured on the server yet.'}
+              ? t('connectionReport.credsSetNoEmail')
+              : t('connectionReport.noCreds')}
           </p>
         )}
       </div>
@@ -67,22 +70,23 @@ export default async function JournalConnectionPage() {
         <div className="rounded-2xl border border-gray-200 bg-white shadow-sm p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <h2 className="text-sm font-semibold text-gray-900">Where new deals are written</h2>
+              <h2 className="text-sm font-semibold text-gray-900">{t('connectionReport.writeHeading')}</h2>
               <p className="mt-1 text-xs text-gray-500">
-                Reports always read the <strong>live</strong> journal. This only controls where the &ldquo;Write to
-                Journal&rdquo; button saves deals — keep it on Test until you&apos;re ready to write to the real sheet.
-                In <strong>Live</strong> mode each deal writes to its own sale-year journal automatically (a 2027 deal
-                → the 2027 journal), so nothing to change each January.
+                {t('connectionReport.writeDesc1')}
+                <strong>{t('connectionReport.writeLive1')}</strong>
+                {t('connectionReport.writeDesc2')}
+                <strong>{t('connectionReport.writeLive2')}</strong>
+                {t('connectionReport.writeDesc3')}
               </p>
             </div>
             <WriteModeToggle mode={writeTarget.mode} />
           </div>
           <div className="mt-3 rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-600">
             {writeTarget.error ? (
-              <span className="text-red-600">Couldn&apos;t open the write target: {writeTarget.error}</span>
+              <span className="text-red-600">{t('connectionReport.writeTargetError', { error: writeTarget.error })}</span>
             ) : (
               <>
-                Currently writing {writeTarget.year} deals to:{' '}
+                {t('connectionReport.currentlyWriting', { year: writeTarget.year })}{' '}
                 <strong className={writeTarget.mode === 'live' ? 'text-emerald-700' : 'text-slate-800'}>
                   {writeTarget.mode === 'live' ? 'LIVE' : 'TEST'}
                 </strong>{' '}
@@ -96,7 +100,7 @@ export default async function JournalConnectionPage() {
       {/* Per-year status */}
       <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
         <div className="border-b border-gray-100 px-5 py-3">
-          <h2 className="text-sm font-semibold text-gray-900">Year journals</h2>
+          <h2 className="text-sm font-semibold text-gray-900">{t('connectionReport.yearJournals')}</h2>
         </div>
         <div className="divide-y divide-gray-100">
           {diag.years.map((y) => (
@@ -104,31 +108,37 @@ export default async function JournalConnectionPage() {
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="font-semibold text-gray-900">{y.year}</span>
-                  <StatusBadge y={y} />
+                  <StatusBadge y={y} t={t} />
                 </div>
                 {y.ok ? (
                   <div className="mt-0.5 text-xs text-gray-500">
-                    {y.title} · {y.monthTabs} month tab{y.monthTabs === 1 ? '' : 's'} ({y.totalTabs} total)
+                    {y.title} ·{' '}
+                    {y.monthTabs === 1
+                      ? t('connectionReport.monthTabOne', { n: y.monthTabs ?? 0 })
+                      : t('connectionReport.monthTabsMany', { n: y.monthTabs ?? 0 })}{' '}
+                    {t('connectionReport.totalTabs', { n: y.totalTabs ?? 0 })}
                     {typeof y.deals === 'number' && (
                       <span className={y.deals > 0 ? ' font-semibold text-emerald-700' : ' font-semibold text-amber-700'}>
-                        {' '}· {y.deals.toLocaleString('en-CA')} deal{y.deals === 1 ? '' : 's'} read
-                        {y.deals === 0 ? ' (connected but nothing parsed — layout may differ)' : ''}
+                        {' '}·{' '}
+                        {y.deals === 1
+                          ? t('connectionReport.dealReadOne', { n: y.deals.toLocaleString('en-CA') })
+                          : t('connectionReport.dealsReadMany', { n: y.deals.toLocaleString('en-CA') })}
+                        {y.deals === 0 ? ' ' + t('connectionReport.nothingParsed') : ''}
                       </span>
                     )}
                   </div>
                 ) : y.configured ? (
                   <div className="mt-0.5 break-words text-xs text-red-600">
-                    {y.error ?? 'Could not open this sheet.'}
+                    {y.error ?? t('connectionReport.couldNotOpen')}
                     {y.error?.toLowerCase().includes('permission') || y.error?.includes('403') ? (
-                      <span className="block text-gray-500">
-                        → Share this year&apos;s sheet with the service-account email above.
-                      </span>
+                      <span className="block text-gray-500">{t('connectionReport.shareHint')}</span>
                     ) : null}
                   </div>
                 ) : (
                   <div className="mt-0.5 text-xs text-gray-400">
-                    No sheet ID set. Add <code className="rounded bg-gray-100 px-1">JOURNAL_SHEET_ID_{y.year}</code> on
-                    the server.
+                    {t('connectionReport.noSheetIdPrefix')}
+                    <code className="rounded bg-gray-100 px-1">JOURNAL_SHEET_ID_{y.year}</code>
+                    {t('connectionReport.noSheetIdSuffix')}
                   </div>
                 )}
               </div>
@@ -139,16 +149,16 @@ export default async function JournalConnectionPage() {
 
       <div className="flex items-center gap-3">
         <Link href="/staff/reports/connection" className="btn-secondary text-sm">
-          Recheck
+          {t('connectionReport.recheck')}
         </Link>
-        <span className="text-xs text-gray-400">Runs a fresh check each time this page loads.</span>
+        <span className="text-xs text-gray-400">{t('connectionReport.recheckHint')}</span>
       </div>
     </div>
   );
 }
 
-function StatusBadge({ y }: { y: { configured: boolean; ok: boolean } }) {
-  if (!y.configured) return <span className="badge bg-gray-100 text-gray-500">Not set</span>;
-  if (y.ok) return <span className="badge bg-green-100 text-green-800">Connected</span>;
-  return <span className="badge bg-red-100 text-red-700">Error</span>;
+function StatusBadge({ y, t }: { y: { configured: boolean; ok: boolean }; t: TFunction }) {
+  if (!y.configured) return <span className="badge bg-gray-100 text-gray-500">{t('connectionReport.statusNotSet')}</span>;
+  if (y.ok) return <span className="badge bg-green-100 text-green-800">{t('connectionReport.statusConnected')}</span>;
+  return <span className="badge bg-red-100 text-red-700">{t('connectionReport.statusError')}</span>;
 }
