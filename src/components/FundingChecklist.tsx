@@ -11,6 +11,8 @@ import { DocThumbnail } from '@/components/DocThumbnail';
 import { VerifyDocButton } from '@/components/VerifyDocButton';
 import { summarizeAnalysis, ocrEligible, type ChipTone } from '@/lib/docanalysis-format';
 import { OcrButton } from '@/components/OcrButton';
+import { getT } from '@/i18n/server';
+import { fundingDocTypeLabel } from '@/lib/enumLabels';
 
 const CHIP_CLASS: Record<ChipTone, string> = {
   good: 'bg-green-50 text-green-700 ring-green-200',
@@ -57,10 +59,11 @@ export function FundingChecklist({
   paymentMethod?: PaymentMethod | null;
   isSplitPayment?: boolean;
 }) {
+  const t = getT();
   const docTypes = fundingDocumentTypesFor(programType, { paymentMethod, isSplitPayment });
   const verifiedTypes = new Set(fundingDocs.filter((d) => d.verifiedAt).map((d) => d.type));
-  const allRequiredVerified = docTypes.filter((t) => t.required).every((t) =>
-    verifiedTypes.has(t.type),
+  const allRequiredVerified = docTypes.filter((dt) => dt.required).every((dt) =>
+    verifiedTypes.has(dt.type),
   );
   const hasDocs = fundingDocs.length > 0;
   const hasUnverified = fundingDocs.some((d) => !d.verifiedAt);
@@ -72,8 +75,8 @@ export function FundingChecklist({
   return (
     <div>
       <ul className="space-y-2">
-        {docTypes.map((t) => {
-          const files = fundingDocs.filter((d) => d.type === t.type);
+        {docTypes.map((docType) => {
+          const files = fundingDocs.filter((d) => d.type === docType.type);
           const verified = files.some((d) => d.verifiedAt);
           const state = verified ? 'verified' : files.length > 0 ? 'uploaded' : 'missing';
           const badge =
@@ -83,7 +86,11 @@ export function FundingChecklist({
                 ? 'bg-amber-100 text-amber-800'
                 : 'bg-red-100 text-red-700';
           const label =
-            state === 'verified' ? 'Completed' : state === 'uploaded' ? 'Needs review' : 'Missing';
+            state === 'verified'
+              ? t('fundingChecklist.completed')
+              : state === 'uploaded'
+                ? t('fundingChecklist.needsReview')
+                : t('fundingChecklist.missing');
           const icon =
             state === 'verified' ? '✓' : state === 'uploaded' ? '!' : '✕';
           const iconCls =
@@ -94,15 +101,15 @@ export function FundingChecklist({
                 : 'bg-red-100 text-red-600';
 
           return (
-            <li key={t.type} className="rounded border border-gray-100 p-3">
+            <li key={docType.type} className="rounded border border-gray-100 p-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-start gap-2.5">
                   <span className={`mt-0.5 flex h-5 w-5 flex-none items-center justify-center rounded-full text-xs font-bold ${iconCls}`} aria-hidden>
                     {icon}
                   </span>
                   <div className="text-sm font-medium text-gray-800">
-                    {t.label}
-                    {!t.required && <span className="ml-1 text-xs font-normal text-gray-400">(optional)</span>}
+                    {fundingDocTypeLabel(t, docType.type)}
+                    {!docType.required && <span className="ml-1 text-xs font-normal text-gray-400">{t('fundingChecklist.optional')}</span>}
                   </div>
                 </div>
                 <span className={`badge ${badge}`}>{label}</span>
@@ -115,11 +122,13 @@ export function FundingChecklist({
                     // consistent label (the file's own label if it has one, else
                     // "<type> — File N"). The real name is still used for the
                     // viewer header + download.
-                    const displayName = f.label?.trim() || `${t.label} — File ${i + 1}`;
+                    const displayName =
+                      f.label?.trim() ||
+                      t('fundingChecklist.fileN', { type: fundingDocTypeLabel(t, docType.type), n: i + 1 });
                     return (
                       <li key={f.id} className="flex gap-3 rounded-lg border border-gray-100 bg-gray-50/60 p-2">
                         {/* Thumbnail — click to open the file */}
-                        <DocViewer id={f.id} fileName={f.fileName} mimeType={f.mimeType} className="flex-none" title={`Open ${displayName}`}>
+                        <DocViewer id={f.id} fileName={f.fileName} mimeType={f.mimeType} className="flex-none" title={t('fundingChecklist.open', { name: displayName })}>
                           <DocThumbnail id={f.id} mimeType={f.mimeType} />
                         </DocViewer>
 
@@ -148,21 +157,21 @@ export function FundingChecklist({
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 pt-4">
         {hasUnverified ? (
           <form action={verifyAll}>
-            <button type="submit" className="btn-secondary text-sm">Mark all completed</button>
+            <button type="submit" className="btn-secondary text-sm">{t('fundingChecklist.markAllCompleted')}</button>
           </form>
         ) : hasDocs ? (
-          <span className="text-xs text-gray-400">All uploaded documents confirmed.</span>
+          <span className="text-xs text-gray-400">{t('fundingChecklist.allConfirmed')}</span>
         ) : (
-          <span className="text-xs text-gray-400">No documents uploaded yet.</span>
+          <span className="text-xs text-gray-400">{t('fundingChecklist.noneUploaded')}</span>
         )}
 
         {canMove && (
           <form action={moveToFunding} className="flex items-center gap-2">
             {!allRequiredVerified && (
-              <span className="text-xs text-amber-700">Confirm all required documents first</span>
+              <span className="text-xs text-amber-700">{t('fundingChecklist.confirmRequiredFirst')}</span>
             )}
             <button type="submit" className="btn-primary text-sm" disabled={!allRequiredVerified}>
-              Move to In for funding
+              {t('fundingChecklist.moveToInForFunding')}
             </button>
           </form>
         )}

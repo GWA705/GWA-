@@ -1,5 +1,7 @@
 import Link from 'next/link';
 import type { WeeklySnapshot, WorldStats, FinancingRow, AdminFinancing } from '@/lib/reporting/aggregate';
+import { getT } from '@/i18n/server';
+import type { TFunction } from '@/i18n/translator';
 
 // Portal-styled rendering of the weekly leadership snapshot. Server component —
 // no interactivity, just a well-composed dashboard.
@@ -8,13 +10,13 @@ function money(n: number): string {
   return '$' + Math.round(n).toLocaleString('en-US');
 }
 
-function Delta({ pct, className = '' }: { pct: number | null; className?: string }) {
+function Delta({ pct, className = '', t }: { pct: number | null; className?: string; t: TFunction }) {
   if (pct === null) return <span className={`text-gray-400 ${className}`}>—</span>;
   const up = pct >= 0;
   return (
     <span className={`font-semibold ${up ? 'text-emerald-600' : 'text-red-600'} ${className}`}>
       {up ? '▲ +' : '▼ '}
-      {pct}% <span className="font-normal text-gray-400">vs last week</span>
+      {pct}% <span className="font-normal text-gray-400">{t('weeklySnapshot.vsLastWeek')}</span>
     </span>
   );
 }
@@ -31,14 +33,14 @@ function StatTile({ value, label, accent }: { value: string; label: string; acce
   );
 }
 
-function FunnelBar({ funnel }: { funnel: WorldStats['funnel'] }) {
+function FunnelBar({ funnel, t }: { funnel: WorldStats['funnel']; t: TFunction }) {
   const seg = [
-    { pct: funnel.okPct, color: '#3E7BFA', label: 'Confirmed' },
-    { pct: funnel.pendingPct, color: '#F59E0B', label: 'Pending' },
-    { pct: funnel.agingPct, color: '#DC2626', label: 'Aging risk' },
+    { pct: funnel.okPct, color: '#3E7BFA', label: t('weeklySnapshot.funnelConfirmed') },
+    { pct: funnel.pendingPct, color: '#F59E0B', label: t('weeklySnapshot.funnelPending') },
+    { pct: funnel.agingPct, color: '#DC2626', label: t('weeklySnapshot.funnelAgingRisk') },
   ];
   if (funnel.okCount + funnel.pendingCount + funnel.agingCount === 0) {
-    return <p className="text-xs text-gray-400">No open deals this month.</p>;
+    return <p className="text-xs text-gray-400">{t('weeklySnapshot.noOpenDeals')}</p>;
   }
   return (
     <div>
@@ -59,17 +61,17 @@ function FunnelBar({ funnel }: { funnel: WorldStats['funnel'] }) {
   );
 }
 
-function FinancingTable({ rows }: { rows: FinancingRow[] }) {
-  if (!rows.length) return <p className="text-xs text-gray-400">No financing recorded.</p>;
+function FinancingTable({ rows, t }: { rows: FinancingRow[]; t: TFunction }) {
+  if (!rows.length) return <p className="text-xs text-gray-400">{t('weeklySnapshot.noFinancing')}</p>;
   return (
     <div className="overflow-x-auto">
       <table className="min-w-full text-xs">
         <thead>
           <tr className="text-left uppercase tracking-wide text-gray-400">
-            <th className="py-1.5 pr-2 font-medium">Company</th>
-            <th className="py-1.5 px-2 text-right font-medium">This week</th>
-            <th className="py-1.5 px-2 text-right font-medium">MTD</th>
-            <th className="py-1.5 pl-2 text-right font-medium">YTD</th>
+            <th className="py-1.5 pr-2 font-medium">{t('weeklySnapshot.company')}</th>
+            <th className="py-1.5 px-2 text-right font-medium">{t('weeklySnapshot.thisWeek')}</th>
+            <th className="py-1.5 px-2 text-right font-medium">{t('weeklySnapshot.mtd')}</th>
+            <th className="py-1.5 pl-2 text-right font-medium">{t('weeklySnapshot.ytd')}</th>
           </tr>
         </thead>
         <tbody>
@@ -89,8 +91,8 @@ function FinancingTable({ rows }: { rows: FinancingRow[] }) {
   );
 }
 
-function MiniBars({ items }: { items: { name: string; value: number }[] }) {
-  if (!items.length) return <p className="text-xs text-gray-400">None.</p>;
+function MiniBars({ items, t }: { items: { name: string; value: number }[]; t: TFunction }) {
+  if (!items.length) return <p className="text-xs text-gray-400">{t('weeklySnapshot.none')}</p>;
   const max = Math.max(...items.map((i) => i.value), 1);
   return (
     <div className="space-y-1.5">
@@ -112,7 +114,7 @@ function MiniBars({ items }: { items: { name: string; value: number }[] }) {
   );
 }
 
-function WorldSection({ w, accent }: { w: WorldStats; accent: string }) {
+function WorldSection({ w, accent, t }: { w: WorldStats; accent: string; t: TFunction }) {
   return (
     <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
       <div className="h-1.5" style={{ background: accent }} />
@@ -123,26 +125,26 @@ function WorldSection({ w, accent }: { w: WorldStats; accent: string }) {
           <div>
             <div className="text-lg font-bold text-gray-900 tabular-nums">{money(w.weekTotal)}</div>
             <div className="text-[10px] uppercase text-gray-500">
-              {w.okCount} OK / {w.peCount} pending
+              {t('weeklySnapshot.statusOkPending', { ok: w.okCount, pe: w.peCount })}
             </div>
           </div>
           <div>
             <div className="text-lg font-bold text-gray-900 tabular-nums">{money(w.mtdTotal)}</div>
-            <div className="text-[10px] uppercase text-gray-500">Month to date</div>
+            <div className="text-[10px] uppercase text-gray-500">{t('weeklySnapshot.monthToDate')}</div>
           </div>
           <div>
             <div className="text-lg font-bold text-gray-900 tabular-nums">{money(w.ytdTotal)}</div>
-            <div className="text-[10px] uppercase text-gray-500">Year to date</div>
+            <div className="text-[10px] uppercase text-gray-500">{t('weeklySnapshot.yearToDate')}</div>
           </div>
         </div>
 
         <div>
-          <div className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-gray-500">Deal status — this month</div>
-          <FunnelBar funnel={w.funnel} />
+          <div className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-gray-500">{t('weeklySnapshot.dealStatusThisMonth')}</div>
+          <FunnelBar funnel={w.funnel} t={t} />
         </div>
 
         <div>
-          <div className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-gray-500">Pending — by sale month</div>
+          <div className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-gray-500">{t('weeklySnapshot.pendingBySaleMonth')}</div>
           <div className="grid grid-cols-3 gap-3 text-xs">
             {[w.pending.thisMonth, w.pending.lastMonth, w.pending.older].map((b, i) => (
               <div key={i}>
@@ -156,33 +158,33 @@ function WorldSection({ w, accent }: { w: WorldStats; accent: string }) {
         </div>
 
         <div>
-          <div className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-gray-500">Financing</div>
-          <FinancingTable rows={w.financingTable} />
+          <div className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-gray-500">{t('weeklySnapshot.financing')}</div>
+          <FinancingTable rows={w.financingTable} t={t} />
         </div>
 
         {w.pendingByLocation.length > 0 && (
           <div>
-            <div className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-gray-500">Pending — by location</div>
-            <MiniBars items={w.pendingByLocation} />
+            <div className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-gray-500">{t('weeklySnapshot.pendingByLocation')}</div>
+            <MiniBars items={w.pendingByLocation} t={t} />
           </div>
         )}
 
         {w.agingFlags.length > 0 && (
           <div>
-            <div className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-gray-500">Aging flags</div>
+            <div className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-gray-500">{t('weeklySnapshot.agingFlags')}</div>
             <div className="space-y-1.5">
               {w.agingFlags.slice(0, 12).map((f, i) => (
                 <div key={i} className="flex items-center gap-2 text-xs">
                   <span
                     className={`rounded px-1.5 py-0.5 text-[10px] font-bold text-white ${f.alert ? 'bg-red-600' : 'bg-amber-600'}`}
                   >
-                    {f.weeks} WKS
+                    {t('weeklySnapshot.weeksBadge', { n: f.weeks })}
                   </span>
-                  <span className="font-semibold text-gray-800">{f.lastName || '(no name)'}</span>
+                  <span className="font-semibold text-gray-800">{f.lastName || t('weeklySnapshot.noName')}</span>
                   <span className="text-gray-400">({f.location})</span>
                   <span className="tabular-nums text-gray-600">{money(f.gross)}</span>
                   <a href={f.link} target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:underline">
-                    view →
+                    {t('weeklySnapshot.viewArrow')}
                   </a>
                 </div>
               ))}
@@ -195,6 +197,7 @@ function WorldSection({ w, accent }: { w: WorldStats; accent: string }) {
 }
 
 export function WeeklySnapshotView({ snap, weeksOffset }: { snap: WeeklySnapshot; weeksOffset: number }) {
+  const t = getT();
   const h = snap.headline;
   const prevHref = `/staff/reports/weekly?weeks=${weeksOffset - 1}`;
   const nextHref = `/staff/reports/weekly?weeks=${weeksOffset + 1}`;
@@ -205,17 +208,17 @@ export function WeeklySnapshotView({ snap, weeksOffset }: { snap: WeeklySnapshot
       <div className="overflow-hidden rounded-2xl shadow-sm" style={{ background: 'linear-gradient(135deg,#16233a,#26436a)' }}>
         <div className="flex flex-wrap items-center justify-between gap-3 p-6 text-white">
           <div>
-            <div className="text-[11px] font-semibold uppercase tracking-[0.15em] text-white/50">GWA · Leadership</div>
-            <h1 className="mt-1 text-2xl font-bold leading-tight">Weekly Snapshot</h1>
+            <div className="text-[11px] font-semibold uppercase tracking-[0.15em] text-white/50">{t('weeklySnapshot.eyebrow')}</div>
+            <h1 className="mt-1 text-2xl font-bold leading-tight">{t('weeklySnapshot.title')}</h1>
             <div className="mt-0.5 text-sm text-white/60">{snap.weekLabel}</div>
           </div>
           <div className="flex items-center gap-2 text-xs">
             <Link href={prevHref} className="rounded-lg bg-white/10 px-3 py-1.5 font-medium hover:bg-white/20">
-              ← Prev
+              {t('weeklySnapshot.prev')}
             </Link>
             {weeksOffset < 0 && (
               <Link href={nextHref} className="rounded-lg bg-white/10 px-3 py-1.5 font-medium hover:bg-white/20">
-                Next →
+                {t('weeklySnapshot.next')}
               </Link>
             )}
           </div>
@@ -224,13 +227,12 @@ export function WeeklySnapshotView({ snap, weeksOffset }: { snap: WeeklySnapshot
 
       {snap.dataHealth.error && (
         <div className="rounded-lg border-l-4 border-amber-500 bg-amber-50 p-3 text-sm text-amber-800">
-          Couldn&apos;t fully read the journals: {snap.dataHealth.error}. Numbers below may be incomplete.
+          {t('weeklySnapshot.journalReadError', { error: snap.dataHealth.error })}
         </div>
       )}
       {snap.zeroWeek && !snap.dataHealth.error && (
         <div className="rounded-lg border-l-4 border-red-500 bg-red-50 p-3 text-sm text-red-800">
-          Zero deals found for this week. If that seems wrong, it usually points to a journal-connection
-          problem rather than a real zero-sales week.
+          {t('weeklySnapshot.zeroWeek')}
         </div>
       )}
 
@@ -240,15 +242,15 @@ export function WeeklySnapshotView({ snap, weeksOffset }: { snap: WeeklySnapshot
           snap.adminFinancing.hasData ? 'lg:grid-cols-6' : 'lg:grid-cols-5'
         }`}
       >
-        <StatTile value={money(h.weekTotal)} label="Sold this week" accent="#F96302" />
-        <StatTile value={money(h.mtdTotal)} label="Month to date" accent="#1a5fa8" />
-        <StatTile value={money(h.ytdTotal)} label="Year to date" accent="#1a2e44" />
-        <StatTile value={money(h.pendingPaymentTotal)} label="Pending payment (unpaid)" accent="#F59E0B" />
-        <StatTile value={`${h.pacePct}%`} label="Of 3-mo pace" accent="#7c3aed" />
+        <StatTile value={money(h.weekTotal)} label={t('weeklySnapshot.soldThisWeek')} accent="#F96302" />
+        <StatTile value={money(h.mtdTotal)} label={t('weeklySnapshot.monthToDate')} accent="#1a5fa8" />
+        <StatTile value={money(h.ytdTotal)} label={t('weeklySnapshot.yearToDate')} accent="#1a2e44" />
+        <StatTile value={money(h.pendingPaymentTotal)} label={t('weeklySnapshot.pendingPaymentUnpaid')} accent="#F59E0B" />
+        <StatTile value={`${h.pacePct}%`} label={t('weeklySnapshot.ofPace')} accent="#7c3aed" />
         {snap.adminFinancing.hasData && (
           <StatTile
             value={money(snap.adminFinancing.ytd.profit)}
-            label="Admin fees YTD"
+            label={t('weeklySnapshot.adminFeesYtd')}
             accent="#059669"
           />
         )}
@@ -256,16 +258,16 @@ export function WeeklySnapshotView({ snap, weeksOffset }: { snap: WeeklySnapshot
 
       {/* Highlights */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg bg-gray-50 px-4 py-3 text-xs text-gray-600">
-        <Delta pct={h.trendPct} />
+        <Delta pct={h.trendPct} t={t} />
         <span className="text-gray-300">·</span>
         <span>
-          Same week last year: <span className="font-semibold text-gray-800 tabular-nums">{money(h.lastYearTotal)}</span>
+          {t('weeklySnapshot.sameWeekLastYear')} <span className="font-semibold text-gray-800 tabular-nums">{money(h.lastYearTotal)}</span>
         </span>
         {h.topLocation && (
           <>
             <span className="text-gray-300">·</span>
             <span>
-              ★ Top location: <span className="font-semibold text-gray-800">{h.topLocation.name}</span>{' '}
+              {t('weeklySnapshot.topLocation')} <span className="font-semibold text-gray-800">{h.topLocation.name}</span>{' '}
               <span className="tabular-nums">({money(h.topLocation.value)})</span>
             </span>
           </>
@@ -274,7 +276,7 @@ export function WeeklySnapshotView({ snap, weeksOffset }: { snap: WeeklySnapshot
           <>
             <span className="text-gray-300">·</span>
             <span>
-              ★ Top financing: <span className="font-semibold text-gray-800">{h.topCompany.name}</span>{' '}
+              {t('weeklySnapshot.topFinancing')} <span className="font-semibold text-gray-800">{h.topCompany.name}</span>{' '}
               <span className="tabular-nums">({money(h.topCompany.value)})</span>
             </span>
           </>
@@ -283,52 +285,51 @@ export function WeeklySnapshotView({ snap, weeksOffset }: { snap: WeeklySnapshot
 
       {/* Two worlds */}
       <div className="grid gap-4 lg:grid-cols-2">
-        <WorldSection w={snap.hd} accent="#F96302" />
-        <WorldSection w={snap.outside} accent="#1a5fa8" />
+        <WorldSection w={snap.hd} accent="#F96302" t={t} />
+        <WorldSection w={snap.outside} accent="#1a5fa8" t={t} />
       </div>
 
-      {/* GWA admin fees (outside-HD financing) */}
-      {snap.adminFinancing.hasData && <AdminFinancingPanel a={snap.adminFinancing} />}
+      {/* Georgian Water & Air admin fees (outside-HD financing) */}
+      {snap.adminFinancing.hasData && <AdminFinancingPanel a={snap.adminFinancing} t={t} />}
 
       {/* Data health */}
-      <DataHealthPanel snap={snap} />
+      <DataHealthPanel snap={snap} t={t} />
     </div>
   );
 }
 
-function AdminFinancingPanel({ a }: { a: AdminFinancing }) {
+function AdminFinancingPanel({ a, t }: { a: AdminFinancing; t: TFunction }) {
   return (
     <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
       <div className="h-1" style={{ background: '#059669' }} />
       <div className="p-5">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h3 className="text-sm font-bold text-gray-900">GWA financing — admin fees (outside HD)</h3>
+          <h3 className="text-sm font-bold text-gray-900">{t('weeklySnapshot.adminFeesTitle')}</h3>
           <span className="text-xs text-gray-500">
-            From <span className="font-medium text-gray-700">MISC. DEALS/INSTALLS</span> · {money(a.feePerDeal)}/financed deal
+            {t('weeklySnapshot.fromSource')} <span className="font-medium text-gray-700">MISC. DEALS/INSTALLS</span> · {money(a.feePerDeal)}{t('weeklySnapshot.perFinancedDeal')}
           </span>
         </div>
         <p className="mt-1 text-xs text-gray-500">
-          Dealers using GWA financing to fund deals outside the Home Depot program. The financed dollars count toward the
-          finance companies&apos; totals above — GWA&apos;s own take is the admin fee shown here.
+          {t('weeklySnapshot.adminExplainer')}
         </p>
 
         <div className="mt-4 grid grid-cols-3 gap-3">
           <div className="rounded-xl bg-emerald-50 p-3">
             <div className="text-lg font-bold tabular-nums text-emerald-800">{money(a.week.profit)}</div>
             <div className="text-[10px] font-medium uppercase tracking-wide text-emerald-700">
-              This week · {a.week.deals} deal{a.week.deals === 1 ? '' : 's'}
+              {t('weeklySnapshot.thisWeek')} · {t(a.week.deals === 1 ? 'weeklySnapshot.dealCountOne' : 'weeklySnapshot.dealCountMany', { n: a.week.deals })}
             </div>
           </div>
           <div className="rounded-xl bg-emerald-50 p-3">
             <div className="text-lg font-bold tabular-nums text-emerald-800">{money(a.mtd.profit)}</div>
             <div className="text-[10px] font-medium uppercase tracking-wide text-emerald-700">
-              Month to date · {a.mtd.deals} deal{a.mtd.deals === 1 ? '' : 's'}
+              {t('weeklySnapshot.monthToDate')} · {t(a.mtd.deals === 1 ? 'weeklySnapshot.dealCountOne' : 'weeklySnapshot.dealCountMany', { n: a.mtd.deals })}
             </div>
           </div>
           <div className="rounded-xl bg-emerald-50 p-3">
             <div className="text-lg font-bold tabular-nums text-emerald-800">{money(a.ytd.profit)}</div>
             <div className="text-[10px] font-medium uppercase tracking-wide text-emerald-700">
-              Year to date · {a.ytd.deals} deal{a.ytd.deals === 1 ? '' : 's'}
+              {t('weeklySnapshot.yearToDate')} · {t(a.ytd.deals === 1 ? 'weeklySnapshot.dealCountOne' : 'weeklySnapshot.dealCountMany', { n: a.ytd.deals })}
             </div>
           </div>
         </div>
@@ -336,15 +337,15 @@ function AdminFinancingPanel({ a }: { a: AdminFinancing }) {
         {a.byCompany.length > 0 && (
           <div className="mt-4">
             <div className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-gray-500">
-              Financed deals by company
+              {t('weeklySnapshot.financedDealsByCompany')}
             </div>
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-[10px] uppercase tracking-wide text-gray-400">
-                  <th className="pb-1 text-left font-medium">Company</th>
-                  <th className="pb-1 text-right font-medium">This week</th>
-                  <th className="pb-1 text-right font-medium">MTD</th>
-                  <th className="pb-1 text-right font-medium">YTD</th>
+                  <th className="pb-1 text-left font-medium">{t('weeklySnapshot.company')}</th>
+                  <th className="pb-1 text-right font-medium">{t('weeklySnapshot.thisWeek')}</th>
+                  <th className="pb-1 text-right font-medium">{t('weeklySnapshot.mtd')}</th>
+                  <th className="pb-1 text-right font-medium">{t('weeklySnapshot.ytd')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -365,24 +366,27 @@ function AdminFinancingPanel({ a }: { a: AdminFinancing }) {
   );
 }
 
-function DataHealthPanel({ snap }: { snap: WeeklySnapshot }) {
+function DataHealthPanel({ snap, t }: { snap: WeeklySnapshot; t: TFunction }) {
   const d = snap.dataHealth;
   return (
     <section className="rounded-2xl border border-gray-200 bg-gray-50 p-4 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-sm font-bold text-gray-900">Journal data health</h3>
+        <h3 className="text-sm font-bold text-gray-900">{t('weeklySnapshot.journalDataHealth')}</h3>
         <span className="text-xs text-gray-500">
-          {d.tabsProcessed} month tab{d.tabsProcessed === 1 ? '' : 's'} read
-          {d.derivedCount > 0 ? ` · ${d.derivedCount} value(s) auto-derived` : ''}
+          {t(d.tabsProcessed === 1 ? 'weeklySnapshot.monthTabOne' : 'weeklySnapshot.monthTabMany', { n: d.tabsProcessed })}
+          {d.derivedCount > 0
+            ? ` · ${t(d.derivedCount === 1 ? 'weeklySnapshot.derivedOne' : 'weeklySnapshot.derivedMany', { n: d.derivedCount })}`
+            : ''}
         </span>
       </div>
       {d.tabsSkipped.length > 0 && (
         <p className="mt-2 text-xs font-semibold text-red-600">
-          {d.tabsSkipped.length} tab(s) skipped: {d.tabsSkipped.map((t) => `${t.tab} (${t.reason})`).join(', ')}
+          {t(d.tabsSkipped.length === 1 ? 'weeklySnapshot.tabsSkippedOne' : 'weeklySnapshot.tabsSkippedMany', { n: d.tabsSkipped.length })}
+          {d.tabsSkipped.map((t2) => `${t2.tab} (${t2.reason})`).join(', ')}
         </p>
       )}
       {d.totalIssues === 0 ? (
-        <p className="mt-2 text-xs text-emerald-700">No data issues detected. ✓</p>
+        <p className="mt-2 text-xs text-emerald-700">{t('weeklySnapshot.noIssues')}</p>
       ) : (
         <ul className="mt-3 space-y-2">
           {d.issuesByType.map((it) => (
@@ -395,13 +399,13 @@ function DataHealthPanel({ snap }: { snap: WeeklySnapshot }) {
                 {it.samples.map((s, i) => (
                   <span key={i}>
                     {i > 0 && '; '}
-                    {s.customer || '(no name)'} [{s.tab} r{s.row}] &ldquo;{s.rawValue}&rdquo;{' '}
+                    {s.customer || t('weeklySnapshot.noName')} [{s.tab} r{s.row}] &ldquo;{s.rawValue}&rdquo;{' '}
                     <a href={s.link} target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:underline">
-                      view
+                      {t('weeklySnapshot.viewLink')}
                     </a>
                   </span>
                 ))}
-                {it.count > it.samples.length && `; +${it.count - it.samples.length} more`}
+                {it.count > it.samples.length && `; ${t('weeklySnapshot.moreCount', { n: it.count - it.samples.length })}`}
               </span>
             </li>
           ))}

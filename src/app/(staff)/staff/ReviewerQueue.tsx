@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import type { ProgramType } from '@prisma/client';
 import { ProgramBadge } from '@/components/ProgramBadge';
+import { useT } from '@/i18n/client';
 
 // A pre-formatted deal row (all display fields computed on the server).
 export type Tone = 'new' | 'review' | 'appr' | 'sent' | 'fund' | 'funded' | 'paid' | 'prob' | 'decl' | 'note';
@@ -65,6 +66,7 @@ type Kind = 'approve' | 'updates' | 'funding' | 'all';
 const PAGE_SIZES = [10, 25, 50, 100];
 
 export function DealTable({ rows, kind }: { rows: QueueRow[]; kind: Kind }) {
+  const t = useT();
   const showActivity = kind === 'updates';
   const showDate = kind === 'all';
   return (
@@ -73,16 +75,16 @@ export function DealTable({ rows, kind }: { rows: QueueRow[]; kind: Kind }) {
         <thead className="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500">
           <tr>
             <th className="w-1 p-0" />
-            <th className="px-3 py-3 sm:px-4">Applicant</th>
-            <th className="hidden px-3 py-3 sm:table-cell sm:px-4">Dealer</th>
+            <th className="px-3 py-3 sm:px-4">{t('reviewerQueue.col.applicant')}</th>
+            <th className="hidden px-3 py-3 sm:table-cell sm:px-4">{t('reviewerQueue.col.dealer')}</th>
             {showActivity ? (
-              <th className="px-3 py-3 sm:px-4">What changed</th>
+              <th className="px-3 py-3 sm:px-4">{t('reviewerQueue.col.whatChanged')}</th>
             ) : (
-              <th className="hidden px-3 py-3 sm:table-cell sm:px-4">Program</th>
+              <th className="hidden px-3 py-3 sm:table-cell sm:px-4">{t('reviewerQueue.col.program')}</th>
             )}
-            {!showActivity && !showDate && <th className="px-3 py-3 sm:px-4">Amount</th>}
-            <th className="px-3 py-3 sm:px-4">Status</th>
-            <th className="px-3 py-3 sm:px-4">{showDate ? 'Date' : 'Waiting'}</th>
+            {!showActivity && !showDate && <th className="px-3 py-3 sm:px-4">{t('reviewerQueue.col.amount')}</th>}
+            <th className="px-3 py-3 sm:px-4">{t('reviewerQueue.col.status')}</th>
+            <th className="px-3 py-3 sm:px-4">{showDate ? t('reviewerQueue.col.date') : t('reviewerQueue.col.waiting')}</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-100">
@@ -93,7 +95,7 @@ export function DealTable({ rows, kind }: { rows: QueueRow[]; kind: Kind }) {
                 <div className="flex flex-wrap items-center gap-2">
                   <ProgramBadge type={a.programType} />
                   <Link href={`/staff/applications/${a.id}`} className="font-medium text-brand-700 hover:underline">{a.applicant}</Link>
-                  {a.paid && <span className="badge bg-emerald-100 text-emerald-800">Paid</span>}
+                  {a.paid && <span className="badge bg-emerald-100 text-emerald-800">{t('reviewerQueue.badge.paid')}</span>}
                 </div>
                 {/* On mobile the Dealer + Program columns are hidden — surface both
                     here so the reviewer still knows who sent it and what it is. */}
@@ -122,12 +124,7 @@ export function DealTable({ rows, kind }: { rows: QueueRow[]; kind: Kind }) {
   );
 }
 
-const TABS: { key: Kind; label: string; hint: string }[] = [
-  { key: 'approve', label: 'Needs approval', hint: 'Brand-new deals waiting for a decision. Approving these is the priority.' },
-  { key: 'updates', label: 'Updates', hint: 'Deals you already handled where the dealer just sent something new.' },
-  { key: 'funding', label: 'In funding', hint: "Approved deals moving toward payment. They live here until they're paid." },
-  { key: 'all', label: 'All deals', hint: 'Everything, for search and history — paid, declined, and older deals included.' },
-];
+const TAB_KEYS: Kind[] = ['approve', 'updates', 'funding', 'all'];
 
 function rowsFor(lanes: Lanes, kind: Kind): QueueRow[] {
   if (kind === 'approve') return lanes.needsApproval;
@@ -140,6 +137,7 @@ function rowsFor(lanes: Lanes, kind: Kind): QueueRow[] {
 // action chip · wait time — so the action chips and wait times line up in
 // columns down the whole list instead of drifting with each row's content.
 function PriorityRow({ r }: { r: QueueRow }) {
+  const t = useT();
   const stripe = r.tone === 'prob' ? 'bg-red-500' : r.waitHot ? 'bg-red-500' : 'bg-transparent';
   return (
     <Link
@@ -151,7 +149,7 @@ function PriorityRow({ r }: { r: QueueRow }) {
         <div className="flex items-center gap-2">
           <ProgramBadge type={r.programType} />
           <span className="truncate font-medium text-brand-700">{r.applicant}</span>
-          {r.paid && <span className="badge bg-emerald-100 text-emerald-800">Paid</span>}
+          {r.paid && <span className="badge bg-emerald-100 text-emerald-800">{t('reviewerQueue.badge.paid')}</span>}
         </div>
         <div className="truncate text-xs text-gray-500">
           {r.dealer} · {r.program} · <span className="tabular-nums">{r.amount}</span>
@@ -190,20 +188,21 @@ function PriorityRow({ r }: { r: QueueRow }) {
   );
 }
 
-const PRIORITY_BANDS: { key: keyof PriorityBands; title: string; desc: string; accent: string; count: string }[] = [
-  { key: 'approval', title: 'Needs approval', desc: 'Waiting on an approve / decline decision — do these first', accent: 'text-emerald-700', count: 'bg-emerald-600 text-white' },
-  { key: 'attention', title: 'Needs attention', desc: 'Approved — a new document arrived or something changed', accent: 'text-red-700', count: 'bg-red-600 text-white' },
-  { key: 'prog', title: 'In progress', desc: 'Moving along or waiting on the dealer', accent: 'text-gray-600', count: 'bg-gray-200 text-gray-600' },
+const PRIORITY_BANDS: { key: keyof PriorityBands; accent: string; count: string }[] = [
+  { key: 'approval', accent: 'text-emerald-700', count: 'bg-emerald-600 text-white' },
+  { key: 'attention', accent: 'text-red-700', count: 'bg-red-600 text-white' },
+  { key: 'prog', accent: 'text-gray-600', count: 'bg-gray-200 text-gray-600' },
 ];
 
 function Band({ b, rows }: { b: (typeof PRIORITY_BANDS)[number]; rows: QueueRow[] }) {
+  const t = useT();
   if (rows.length === 0) return null;
   return (
     <section>
       <div className="mb-2 flex items-baseline gap-2.5">
-        <h2 className={`text-xs font-semibold uppercase tracking-wide ${b.accent}`}>{b.title}</h2>
+        <h2 className={`text-xs font-semibold uppercase tracking-wide ${b.accent}`}>{t(`reviewerQueue.band.${b.key}.title`)}</h2>
         <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${b.count}`}>{rows.length}</span>
-        <span className="ml-auto hidden text-xs text-gray-400 sm:block">{b.desc}</span>
+        <span className="ml-auto hidden text-xs text-gray-400 sm:block">{t(`reviewerQueue.band.${b.key}.desc`)}</span>
       </div>
       <div className="flex flex-col gap-2">
         {rows.map((r) => (
@@ -215,6 +214,7 @@ function Band({ b, rows }: { b: (typeof PRIORITY_BANDS)[number]; rows: QueueRow[
 }
 
 function PriorityView({ priority }: { priority: PriorityBands }) {
+  const t = useT();
   const overdue = priority.attention.filter((r) => r.waitHot).length;
   const oldest = priority.attention.find((r) => r.waitHot)?.waitLabel;
   const allEmpty = priority.approval.length === 0 && priority.attention.length === 0 && priority.prog.length === 0;
@@ -227,8 +227,8 @@ function PriorityView({ priority }: { priority: PriorityBands }) {
         <div className="flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 p-4">
           <span className="text-3xl font-extrabold leading-none text-red-600 tabular-nums">{overdue}</span>
           <div>
-            <div className="text-sm font-semibold text-red-700">overdue — past the 2-hour target</div>
-            {oldest && <div className="text-xs text-gray-500">Oldest waiting <span className="tabular-nums">{oldest}</span></div>}
+            <div className="text-sm font-semibold text-red-700">{t('reviewerQueue.overdue.label')}</div>
+            {oldest && <div className="text-xs text-gray-500">{t('reviewerQueue.overdue.oldestPrefix')} <span className="tabular-nums">{oldest}</span></div>}
           </div>
         </div>
       )}
@@ -236,7 +236,7 @@ function PriorityView({ priority }: { priority: PriorityBands }) {
       <Band b={PRIORITY_BANDS[1]} rows={priority.attention} />
       <Band b={PRIORITY_BANDS[2]} rows={priority.prog} />
       {allEmpty && (
-        <div className="card p-8 text-center text-sm text-gray-500">You&apos;re all caught up. 🎉</div>
+        <div className="card p-8 text-center text-sm text-gray-500">{t('reviewerQueue.caughtUp')}</div>
       )}
     </div>
   );
@@ -245,6 +245,7 @@ function PriorityView({ priority }: { priority: PriorityBands }) {
 type ViewMode = 'priority' | 'tabs' | 'stacked';
 
 export function ReviewerQueue({ lanes, priority }: { lanes: Lanes; priority: PriorityBands }) {
+  const t = useT();
   const [view, setView] = useState<ViewMode>('priority');
   const [tab, setTab] = useState<Kind>('approve');
   const [perPage, setPerPage] = useState(10);
@@ -281,12 +282,12 @@ export function ReviewerQueue({ lanes, priority }: { lanes: Lanes; priority: Pri
     <div>
       {/* Layout toggle */}
       <div className="mb-5 flex items-center gap-2 text-sm">
-        <span className="text-gray-400">View</span>
+        <span className="text-gray-400">{t('reviewerQueue.view.label')}</span>
         <div className="inline-flex rounded-full bg-white p-1 ring-1 ring-inset ring-gray-200">
           {([
-            ['priority', 'Priority'],
-            ['tabs', 'Tabs'],
-            ['stacked', 'Stacked'],
+            ['priority', t('reviewerQueue.view.priority')],
+            ['tabs', t('reviewerQueue.view.tabs')],
+            ['stacked', t('reviewerQueue.view.stacked')],
           ] as const).map(([v, label]) => (
             <button
               key={v}
@@ -305,43 +306,43 @@ export function ReviewerQueue({ lanes, priority }: { lanes: Lanes; priority: Pri
       ) : view === 'tabs' ? (
         <>
           <div className="mb-1 flex flex-wrap gap-1 border-b border-gray-200">
-            {TABS.map((t) => (
+            {TAB_KEYS.map((k) => (
               <button
-                key={t.key}
+                key={k}
                 type="button"
-                onClick={() => setTab(t.key)}
-                className={`relative inline-flex items-center gap-2 px-4 py-3 text-sm font-semibold ${tab === t.key ? 'text-brand-800' : 'text-gray-500 hover:text-gray-700'}`}
+                onClick={() => setTab(k)}
+                className={`relative inline-flex items-center gap-2 px-4 py-3 text-sm font-semibold ${tab === k ? 'text-brand-800' : 'text-gray-500 hover:text-gray-700'}`}
               >
-                {t.label}
-                <span className={`rounded-full px-1.5 text-xs font-bold ${tab === t.key ? (t.key === 'approve' ? 'bg-brand-600 text-white' : 'bg-brand-50 text-brand-800') : 'bg-gray-100 text-gray-500'}`}>{counts[t.key]}</span>
-                {tab === t.key && <span className="absolute inset-x-2 -bottom-px h-0.5 rounded bg-brand-600" />}
+                {t(`reviewerQueue.tab.${k}.label`)}
+                <span className={`rounded-full px-1.5 text-xs font-bold ${tab === k ? (k === 'approve' ? 'bg-brand-600 text-white' : 'bg-brand-50 text-brand-800') : 'bg-gray-100 text-gray-500'}`}>{counts[k]}</span>
+                {tab === k && <span className="absolute inset-x-2 -bottom-px h-0.5 rounded bg-brand-600" />}
               </button>
             ))}
           </div>
-          <p className="mb-3 mt-3 text-xs text-gray-400">{TABS.find((t) => t.key === tab)!.hint}</p>
+          <p className="mb-3 mt-3 text-xs text-gray-400">{t(`reviewerQueue.tab.${tab}.hint`)}</p>
 
           {activeRows.length === 0 ? (
             <div className="card p-8 text-center text-sm text-gray-500">
-              {tab === 'approve' ? 'No deals waiting for approval. 🎉' : 'Nothing here right now.'}
+              {tab === 'approve' ? t('reviewerQueue.empty.approve') : t('reviewerQueue.empty.generic')}
             </div>
           ) : (
             <>
               <DealTable rows={paged} kind={tab} />
               <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-gray-500">
                 <div className="flex items-center gap-2">
-                  <span>Show</span>
+                  <span>{t('reviewerQueue.pager.show')}</span>
                   {PAGE_SIZES.map((n) => (
                     <button key={n} type="button" onClick={() => setPerPage(n)} className={`rounded px-2 py-1 ${n === perPage ? 'bg-brand-100 font-semibold text-brand-800' : 'hover:bg-gray-100'}`}>{n}</button>
                   ))}
-                  <span>per page</span>
+                  <span>{t('reviewerQueue.pager.perPage')}</span>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span>{first}–{last} of {activeRows.length}</span>
+                  <span>{t('reviewerQueue.pager.range', { first, last, total: activeRows.length })}</span>
                   {pageCount > 1 && (
                     <div className="flex items-center gap-2">
-                      <button type="button" disabled={safePage <= 1} onClick={() => setPage(safePage - 1)} className="rounded border border-gray-200 px-2 py-1 enabled:hover:bg-gray-50 disabled:text-gray-300">← Prev</button>
-                      <span>Page {safePage} of {pageCount}</span>
-                      <button type="button" disabled={safePage >= pageCount} onClick={() => setPage(safePage + 1)} className="rounded border border-gray-200 px-2 py-1 enabled:hover:bg-gray-50 disabled:text-gray-300">Next →</button>
+                      <button type="button" disabled={safePage <= 1} onClick={() => setPage(safePage - 1)} className="rounded border border-gray-200 px-2 py-1 enabled:hover:bg-gray-50 disabled:text-gray-300">{t('reviewerQueue.pager.prev')}</button>
+                      <span>{t('reviewerQueue.pager.page', { n: safePage, total: pageCount })}</span>
+                      <button type="button" disabled={safePage >= pageCount} onClick={() => setPage(safePage + 1)} className="rounded border border-gray-200 px-2 py-1 enabled:hover:bg-gray-50 disabled:text-gray-300">{t('reviewerQueue.pager.next')}</button>
                     </div>
                   )}
                 </div>
@@ -351,25 +352,25 @@ export function ReviewerQueue({ lanes, priority }: { lanes: Lanes; priority: Pri
         </>
       ) : (
         <div className="space-y-8">
-          {TABS.map((t) => {
-            const rows = rowsFor(lanes, t.key);
+          {TAB_KEYS.map((k) => {
+            const rows = rowsFor(lanes, k);
             const capped = rows.slice(0, 10);
             return (
-              <section key={t.key}>
+              <section key={k}>
                 <div className="mb-2 flex items-baseline gap-2.5">
-                  <h2 className={`text-xs font-semibold uppercase tracking-wide ${t.key === 'approve' ? 'text-brand-800' : 'text-gray-700'}`}>{t.label}</h2>
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${t.key === 'approve' ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-600'}`}>{counts[t.key]}</span>
-                  <span className="ml-auto text-xs text-gray-400">{t.hint}</span>
+                  <h2 className={`text-xs font-semibold uppercase tracking-wide ${k === 'approve' ? 'text-brand-800' : 'text-gray-700'}`}>{t(`reviewerQueue.tab.${k}.label`)}</h2>
+                  <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${k === 'approve' ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-600'}`}>{counts[k]}</span>
+                  <span className="ml-auto text-xs text-gray-400">{t(`reviewerQueue.tab.${k}.hint`)}</span>
                 </div>
                 {rows.length === 0 ? (
-                  <div className="card p-6 text-center text-sm text-gray-500">Nothing here right now.</div>
+                  <div className="card p-6 text-center text-sm text-gray-500">{t('reviewerQueue.empty.generic')}</div>
                 ) : (
                   <>
-                    <DealTable rows={capped} kind={t.key} />
+                    <DealTable rows={capped} kind={k} />
                     {rows.length > capped.length && (
                       <div className="mt-2 text-right text-sm">
-                        <button type="button" onClick={() => { setView('tabs'); setTab(t.key); }} className="text-brand-700 hover:underline">
-                          See all {rows.length} →
+                        <button type="button" onClick={() => { setView('tabs'); setTab(k); }} className="text-brand-700 hover:underline">
+                          {t('reviewerQueue.stacked.seeAll', { n: rows.length })}
                         </button>
                       </div>
                     )}

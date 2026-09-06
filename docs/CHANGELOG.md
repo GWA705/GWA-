@@ -43,6 +43,17 @@ source of truth; this file is the human-readable index.
   auto-translates lead free-text via DeepL. (2026-09-06, Sean.)
 
 ## 2026-09-06
+- **Bilingual coverage — staff/reviewer surfaces, part 1.** Began the staff-side
+  sweep (fr-CA draft) for a fully bilingual toggle: the **reviewer queue**
+  (`ReviewerQueue` — view modes, columns, tabs, priority bands, pager, empty
+  states), the reviewer **funding checklist** (`FundingChecklist` — states,
+  buttons, localized funding-doc type names via the shared helper), and three
+  leadership reports — **weekly snapshot**, **dealer snapshot**, **cycle times**.
+  New namespaces `reviewerQueue`, `fundingChecklist`, `weeklySnapshot`,
+  `dealerSnapshot`, `cycleTimes`. Money/number/date formatting, journal data
+  values, and status codes stay English; fixed "GWA" brand slips in report
+  eyebrows/labels. (Staff are English-speaking; this is completeness work so the
+  site has no English islands when toggled to FR.)
 - **Bilingual coverage — deal-detail "what's needed" + funding-doc labels
   (dealer).** Closed the last dealer-facing gap: `dealerOutstanding()` now takes
   a translator and returns localized to-dos (fix-problem, add-serials,

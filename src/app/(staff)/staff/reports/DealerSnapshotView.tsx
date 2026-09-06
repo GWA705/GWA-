@@ -1,4 +1,6 @@
 import type { DealerSnapshot, HGSplit, SnapDeal, LocationMatch, StoreGap } from '@/lib/reporting/dealerSnapshot';
+import { getT } from '@/i18n/server';
+import type { TFunction } from '@/i18n/translator';
 
 // Admin quick-glance: one row per dealer with Sold / Paid / Pending (HD vs GWA),
 // each expandable to the full paid + pending deal lists.
@@ -45,7 +47,19 @@ function Stat({ label, split, tone }: { label: string; split: HGSplit; tone: 'so
   );
 }
 
-function DealList({ title, deals, empty, showPaid }: { title: string; deals: SnapDeal[]; empty: string; showPaid?: boolean }) {
+function DealList({
+  title,
+  deals,
+  empty,
+  showPaid,
+  t,
+}: {
+  title: string;
+  deals: SnapDeal[];
+  empty: string;
+  showPaid?: boolean;
+  t: TFunction;
+}) {
   return (
     <div>
       <div className="mb-2 text-sm font-bold uppercase tracking-wide text-gray-800">
@@ -68,7 +82,7 @@ function DealList({ title, deals, empty, showPaid }: { title: string; deals: Sna
                 </span>
                 {showPaid && (
                   <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-700">
-                    Paid
+                    {t('dealerSnapshot.paidBadge')}
                   </span>
                 )}
                 <span className="shrink-0 text-sm font-semibold tabular-nums text-gray-900">{money(d.amount)}</span>
@@ -91,10 +105,12 @@ function DealList({ title, deals, empty, showPaid }: { title: string; deals: Sna
 }
 
 export function DealerSnapshotView({ snap }: { snap: DealerSnapshot }) {
+  const t = getT();
+
   if (snap.error) {
     return (
       <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-        Couldn&apos;t read the sales journals: {snap.error}
+        {t('dealerSnapshot.readError', { error: snap.error })}
       </div>
     );
   }
@@ -108,19 +124,19 @@ export function DealerSnapshotView({ snap }: { snap: DealerSnapshot }) {
       {/* Company totals */}
       <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-800 text-white shadow-sm">
         <div className="border-b border-white/10 px-5 py-3 text-sm font-semibold">
-          All dealers · {snap.monthLabel}
+          {t('dealerSnapshot.allDealers')} · {snap.monthLabel}
         </div>
         <div className="grid grid-cols-2 gap-4 px-5 py-4 sm:grid-cols-4">
-          <TotalStat label="Sold this month" split={snap.totals.sold} />
-          <TotalStat label="Paid this month" split={snap.totals.paid} />
-          <TotalStat label="Pending · last 30d" split={snap.totals.pendingRecent} />
-          <TotalStat label="Pending · 30+ days" split={snap.totals.pendingAged} />
+          <TotalStat label={t('dealerSnapshot.soldThisMonth')} split={snap.totals.sold} />
+          <TotalStat label={t('dealerSnapshot.paidThisMonth')} split={snap.totals.paid} />
+          <TotalStat label={t('dealerSnapshot.pendingLast30')} split={snap.totals.pendingRecent} />
+          <TotalStat label={t('dealerSnapshot.pending30Plus')} split={snap.totals.pendingAged} />
         </div>
       </div>
 
       {snap.rows.length === 0 ? (
         <div className="rounded-lg border border-gray-200 bg-gray-50 p-6 text-sm text-gray-500">
-          No dealer activity for {snap.monthLabel}.
+          {t('dealerSnapshot.noActivity', { month: snap.monthLabel })}
         </div>
       ) : (
         <div className="space-y-3">
@@ -132,24 +148,36 @@ export function DealerSnapshotView({ snap }: { snap: DealerSnapshot }) {
                   <span className="truncate text-lg font-bold text-gray-900">{r.name}</span>
                 </div>
                 <div className="grid flex-1 grid-cols-2 gap-4 sm:grid-cols-4">
-                  <Stat label="Sold" split={r.sold} tone="sold" />
-                  <Stat label="Paid" split={r.paid} tone="paid" />
-                  <Stat label="Pending ≤30d" split={r.pendingRecent} tone="pending" />
-                  <Stat label="Pending 30+d" split={r.pendingAged} tone="aged" />
+                  <Stat label={t('dealerSnapshot.sold')} split={r.sold} tone="sold" />
+                  <Stat label={t('dealerSnapshot.paid')} split={r.paid} tone="paid" />
+                  <Stat label={t('dealerSnapshot.pendingRecent')} split={r.pendingRecent} tone="pending" />
+                  <Stat label={t('dealerSnapshot.pendingAged')} split={r.pendingAged} tone="aged" />
                 </div>
               </summary>
               <div className="grid gap-4 border-t border-gray-100 bg-gray-50/60 px-5 py-4 lg:grid-cols-2">
                 <div className="space-y-4">
                   <DealList
-                    title="Pending — last 30 days"
+                    title={t('dealerSnapshot.pendingLast30Days')}
                     deals={r.pendingDeals.filter((d) => !d.aged)}
-                    empty="Nothing pending in the last 30 days."
+                    empty={t('dealerSnapshot.emptyPendingRecent')}
+                    t={t}
                   />
                   {r.pendingDeals.some((d) => d.aged) && (
-                    <DealList title="Pending — older than 30 days" deals={r.pendingDeals.filter((d) => d.aged)} empty="" />
+                    <DealList
+                      title={t('dealerSnapshot.pendingOlder')}
+                      deals={r.pendingDeals.filter((d) => d.aged)}
+                      empty=""
+                      t={t}
+                    />
                   )}
                 </div>
-                <DealList title={`Paid in ${snap.monthLabel}`} deals={r.paidDeals} empty="Nothing paid this month." showPaid />
+                <DealList
+                  title={t('dealerSnapshot.paidIn', { month: snap.monthLabel })}
+                  deals={r.paidDeals}
+                  empty={t('dealerSnapshot.emptyPaid')}
+                  showPaid
+                  t={t}
+                />
               </div>
             </details>
           ))}
@@ -158,13 +186,16 @@ export function DealerSnapshotView({ snap }: { snap: DealerSnapshot }) {
 
       {hasUnmatched && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-xs text-amber-800">
-          <span className="font-semibold">Heads up —</span> some journal deals couldn&apos;t be tied to a dealer: Sold{' '}
-          {money(u.sold.total)}, Paid {money(u.paid.total)}, Pending {money(uPending)}. Open the matching plan below to
-          see which locations need mapping.
+          <span className="font-semibold">{t('dealerSnapshot.headsUp')}</span>{' '}
+          {t('dealerSnapshot.unmatchedNote', {
+            sold: money(u.sold.total),
+            paid: money(u.paid.total),
+            pending: money(uPending),
+          })}
         </div>
       )}
 
-      <MatchingPlan matches={snap.locationMatches} gaps={snap.storeGaps} unboundAliases={snap.unboundAliases} />
+      <MatchingPlan matches={snap.locationMatches} gaps={snap.storeGaps} unboundAliases={snap.unboundAliases} t={t} />
     </div>
   );
 }
@@ -172,38 +203,47 @@ export function DealerSnapshotView({ snap }: { snap: DealerSnapshot }) {
 // A verify-the-matching panel: shows how every outside-HD location label and
 // every unmapped HD store resolves, so an admin can confirm the right locations
 // are matched to the right dealers (or spot what needs fixing).
-function MatchingPlan({ matches, gaps, unboundAliases }: { matches: LocationMatch[]; gaps: StoreGap[]; unboundAliases: string[] }) {
+function MatchingPlan({
+  matches,
+  gaps,
+  unboundAliases,
+  t,
+}: {
+  matches: LocationMatch[];
+  gaps: StoreGap[];
+  unboundAliases: string[];
+  t: TFunction;
+}) {
   if (matches.length === 0 && gaps.length === 0 && unboundAliases.length === 0) return null;
   const unmatchedCount = matches.filter((m) => !m.dealerName).length;
   const openByDefault = unmatchedCount > 0 || gaps.length > 0 || unboundAliases.length > 0;
+  const attentionCount = unmatchedCount + gaps.length + unboundAliases.length;
 
   return (
     <details open={openByDefault} className="group overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
       <summary className="flex cursor-pointer list-none items-center gap-2 px-5 py-3.5 hover:bg-gray-50">
         <span className="text-gray-300 transition group-open:rotate-90">▸</span>
-        <span className="text-sm font-semibold text-gray-900">Matching plan</span>
-        <span className="text-xs text-gray-500">— how journal locations map to dealers</span>
-        {(unmatchedCount > 0 || gaps.length > 0 || unboundAliases.length > 0) && (
+        <span className="text-sm font-semibold text-gray-900">{t('dealerSnapshot.matchingPlanTitle')}</span>
+        <span className="text-xs text-gray-500">{t('dealerSnapshot.matchingPlanSubtitle')}</span>
+        {attentionCount > 0 && (
           <span className="ml-auto rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
-            {unmatchedCount + gaps.length + unboundAliases.length} need
-            {unmatchedCount + gaps.length + unboundAliases.length === 1 ? 's' : ''} attention
+            {attentionCount === 1
+              ? t('dealerSnapshot.needsAttentionOne', { n: attentionCount })
+              : t('dealerSnapshot.needsAttentionMany', { n: attentionCount })}
           </span>
         )}
       </summary>
       <div className="space-y-5 border-t border-gray-100 px-5 py-4">
         <p className="text-xs text-gray-500">
-          HD deals attach by store number automatically. Outside-HD (GWA) deals attach by matching the journal&apos;s
-          location label to a dealer name. Check the rows below — anything marked{' '}
-          <span className="font-semibold text-red-600">Not matched</span> isn&apos;t counted under a dealer yet.
+          {t('dealerSnapshot.introBefore')}
+          <span className="font-semibold text-red-600">{t('dealerSnapshot.notMatched')}</span>
+          {t('dealerSnapshot.introAfter')}
         </p>
 
         {unboundAliases.length > 0 && (
           <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-800">
-            <div className="font-semibold">Alias rules that couldn&apos;t find a dealer</div>
-            <p className="mt-0.5 text-red-700">
-              These mapping rules point at a dealer name that isn&apos;t in the system (likely a spelling difference or a
-              missing dealer). They aren&apos;t applying until the name matches:
-            </p>
+            <div className="font-semibold">{t('dealerSnapshot.aliasTitle')}</div>
+            <p className="mt-0.5 text-red-700">{t('dealerSnapshot.aliasNote')}</p>
             <ul className="mt-1.5 list-disc space-y-0.5 pl-4">
               {unboundAliases.map((a) => (
                 <li key={a}>{a}</li>
@@ -215,7 +255,7 @@ function MatchingPlan({ matches, gaps, unboundAliases }: { matches: LocationMatc
         {matches.length > 0 && (
           <div>
             <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
-              Outside-HD location labels
+              {t('dealerSnapshot.outsideHdLabels')}
             </div>
             <ul className="divide-y divide-gray-100 overflow-hidden rounded-lg border border-gray-200">
               {matches.map((m) => (
@@ -223,14 +263,15 @@ function MatchingPlan({ matches, gaps, unboundAliases }: { matches: LocationMatc
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-medium text-gray-900">{m.label}</span>
                     <span className="block text-[11px] text-gray-500">
-                      {m.count} deal{m.count === 1 ? '' : 's'} · {money(m.gross)}
+                      {m.count} {m.count === 1 ? t('dealerSnapshot.dealSingular') : t('dealerSnapshot.dealPlural')} ·{' '}
+                      {money(m.gross)}
                     </span>
                   </span>
                   {m.dealerName ? (
                     <span className="shrink-0 text-xs font-medium text-emerald-700">→ {m.dealerName}</span>
                   ) : (
                     <span className="shrink-0 rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-semibold text-red-700">
-                      Not matched
+                      {t('dealerSnapshot.notMatched')}
                     </span>
                   )}
                 </li>
@@ -242,24 +283,24 @@ function MatchingPlan({ matches, gaps, unboundAliases }: { matches: LocationMatc
         {gaps.length > 0 && (
           <div>
             <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
-              HD store numbers not assigned to any dealer
+              {t('dealerSnapshot.hdStoresUnassigned')}
             </div>
-            <p className="mb-1.5 text-[11px] text-gray-500">
-              Each store&apos;s deals are listed with the sale date and a journal link — handy for checking a store number
-              that may have been mistyped.
-            </p>
+            <p className="mb-1.5 text-[11px] text-gray-500">{t('dealerSnapshot.storesNote')}</p>
             <ul className="space-y-2">
               {gaps.map((g) => (
                 <li key={g.store} className="overflow-hidden rounded-lg border border-gray-200">
                   <div className="flex items-center gap-3 bg-gray-50 px-3 py-2">
                     <span className="min-w-0 flex-1">
-                      <span className="block text-sm font-semibold text-gray-900">Store {g.store}</span>
+                      <span className="block text-sm font-semibold text-gray-900">
+                        {t('dealerSnapshot.store', { n: g.store })}
+                      </span>
                       <span className="block text-[11px] text-gray-500">
-                        {g.count} deal{g.count === 1 ? '' : 's'} · {money(g.gross)}
+                        {g.count} {g.count === 1 ? t('dealerSnapshot.dealSingular') : t('dealerSnapshot.dealPlural')} ·{' '}
+                        {money(g.gross)}
                       </span>
                     </span>
                     <span className="shrink-0 rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-semibold text-red-700">
-                      Not assigned
+                      {t('dealerSnapshot.notAssigned')}
                     </span>
                   </div>
                   <ul className="divide-y divide-gray-100">
@@ -267,7 +308,7 @@ function MatchingPlan({ matches, gaps, unboundAliases }: { matches: LocationMatc
                       <li key={i} className="flex items-center gap-2 px-3 py-1.5">
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-sm text-gray-900">{d.name}</span>
-                          <span className="block text-[11px] text-gray-500">{d.dateLabel || 'no date'}</span>
+                          <span className="block text-[11px] text-gray-500">{d.dateLabel || t('dealerSnapshot.noDate')}</span>
                         </span>
                         <span className="shrink-0 text-sm font-semibold tabular-nums text-gray-900">{money(d.amount)}</span>
                         {d.link && (
@@ -277,7 +318,7 @@ function MatchingPlan({ matches, gaps, unboundAliases }: { matches: LocationMatc
                             rel="noopener noreferrer"
                             className="shrink-0 text-xs font-semibold text-sky-600 hover:underline"
                           >
-                            Journal ↗
+                            {t('dealerSnapshot.journalLink')}
                           </a>
                         )}
                       </li>
@@ -290,10 +331,13 @@ function MatchingPlan({ matches, gaps, unboundAliases }: { matches: LocationMatc
         )}
 
         <p className="text-xs text-gray-500">
-          To fix a mismatch: if a store number is <strong>correct</strong>, add it to the right dealer under{' '}
-          <strong>Admin → Dealers</strong>. If it looks <strong>wrong/mistyped</strong>, open the journal link and correct
-          it in the sheet. For an outside-HD location label that isn&apos;t matching (or is matching the wrong dealer),
-          tell us the label and the dealer it belongs to and we&apos;ll wire an explicit mapping.
+          {t('dealerSnapshot.fixIntro')}
+          <strong>{t('dealerSnapshot.fixCorrect')}</strong>
+          {t('dealerSnapshot.fixMid1')}
+          <strong>{t('dealerSnapshot.fixAdminPath')}</strong>
+          {t('dealerSnapshot.fixMid2')}
+          <strong>{t('dealerSnapshot.fixWrong')}</strong>
+          {t('dealerSnapshot.fixEnd')}
         </p>
       </div>
     </details>
