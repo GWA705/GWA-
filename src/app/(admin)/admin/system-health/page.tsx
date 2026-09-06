@@ -1,9 +1,68 @@
 import Link from 'next/link';
 import { requireAdminSection } from '@/lib/session';
 import { getSystemHealth, type HealthCheck } from '@/lib/health';
+import { deeplUsage } from '@/lib/translate';
 import { CopyField } from '@/app/(staff)/staff/reports/connection/CopyField';
 
 export const dynamic = 'force-dynamic';
+
+const nf = (n: number) => n.toLocaleString('en-CA');
+
+function TranslationUsageCard({
+  usage,
+}: {
+  usage: Awaited<ReturnType<typeof deeplUsage>>;
+}) {
+  // Not configured → the app is running on the free MyMemory fallback.
+  if (!usage.configured) {
+    return (
+      <div className="rounded-2xl border border-gray-200 bg-white shadow-sm p-5">
+        <h2 className="text-sm font-semibold text-gray-900">Translation usage</h2>
+        <p className="mt-1 text-xs text-gray-600">
+          No DeepL key set — reviewer translation is running on the free <strong>MyMemory</strong> fallback.
+          Add <code>DEEPL_API_KEY</code> in Render for higher quality and this usage meter.
+        </p>
+      </div>
+    );
+  }
+  if (!usage.ok) {
+    return (
+      <div className="rounded-2xl border border-gray-200 bg-white shadow-sm p-5">
+        <h2 className="text-sm font-semibold text-gray-900">Translation usage</h2>
+        <p className="mt-1 text-xs text-amber-700">Couldn’t read DeepL usage ({usage.error ?? 'unknown'}). The free MyMemory fallback still covers translation if DeepL is unavailable.</p>
+      </div>
+    );
+  }
+
+  const count = usage.count ?? 0;
+  const limit = usage.limit ?? 0;
+  const pct = limit > 0 ? Math.min(100, Math.round((count / limit) * 1000) / 10) : 0;
+  const remaining = Math.max(0, limit - count);
+  const near = pct >= 80;
+  const barCls = pct >= 95 ? 'bg-red-500' : near ? 'bg-amber-500' : 'bg-sky-600';
+
+  return (
+    <div className="rounded-2xl border border-gray-200 bg-white shadow-sm p-5">
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-sm font-semibold text-gray-900">Translation usage — DeepL</h2>
+        <span className="text-xs font-semibold tabular-nums text-gray-600">{pct}% used</span>
+      </div>
+      <div className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-gray-100">
+        <div className={`h-full ${barCls}`} style={{ width: `${pct}%` }} />
+      </div>
+      <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-xs text-gray-600 tabular-nums">
+        <span><strong>{nf(count)}</strong> used</span>
+        <span><strong>{nf(remaining)}</strong> remaining</span>
+        <span>of <strong>{nf(limit)}</strong> characters</span>
+      </div>
+      <p className="mt-2 text-xs text-gray-500">
+        {near
+          ? 'Running low — when this hits the limit, translation automatically switches to the free MyMemory fallback (no interruption, no charge).'
+          : 'If this ever runs out, translation automatically switches to the free MyMemory fallback — no interruption, no charge.'}
+      </p>
+    </div>
+  );
+}
 
 function StatusBadge({ status }: { status: HealthCheck['status'] }) {
   const map: Record<HealthCheck['status'], { label: string; cls: string }> = {
@@ -24,7 +83,7 @@ function Dot({ status }: { status: HealthCheck['status'] }) {
 
 export default async function SystemHealthPage() {
   await requireAdminSection('system-health');
-  const health = await getSystemHealth();
+  const [health, usage] = await Promise.all([getSystemHealth(), deeplUsage()]);
 
   const groups: HealthCheck['group'][] = ['Core', 'Google Workspace'];
 
@@ -53,6 +112,9 @@ export default async function SystemHealthPage() {
           <div className="text-[10px] uppercase text-gray-500">Errors</div>
         </div>
       </div>
+
+      {/* Translation usage + free fallback */}
+      <TranslationUsageCard usage={usage} />
 
       {/* Service account share address */}
       {health.serviceAccountEmail && (

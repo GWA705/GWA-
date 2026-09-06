@@ -24,7 +24,7 @@ source of truth; this file is the human-readable index.
 | Domain email auth (SPF / DKIM / DMARC) on `ghsbarrie.ca` | ✅ Set | SPF `include:_spf.google.com`; DKIM authenticating (Google Workspace); DMARC `p=quarantine`. Confirmed 2026-09-03 (Sean). |
 | Guusto gift-card API | ⏳ Parked | Awaiting `GUUSTO_API_TOKEN` in Render + exact field names (test at `/admin/guusto-test`) + office→reason mapping. |
 | Bilingual UI toggle (EN/FR) | ✅ **Live in production** (2026-09-06, Sean) | `NEXT_PUBLIC_I18N_ENABLED=1` set on the `gwa-portal` service so the whole team can review fr-CA. Visible to ALL dealers on portal.ghsbarrie.ca. fr-CA coverage is a draft — still English: dealer report views, staff/admin surfaces, the Tutorial (on hold), and a few lib-driven strings (deal "what's needed" items, funding-doc type labels). Set the var back to `0` (and redeploy) to hide the toggle again. |
-| DeepL translation (user content) | ⏳ Parked — **set the key to enable reviewer auto-translate** | Awaiting `DEEPL_API_KEY` in Render (free keys end in `:fx`). Powers (a) the on-demand Translate control and (b) the **automatic** FR→EN conversion of chat messages, deal-conversation and gift-card threads, and dealer free-text notes on the reviewer side (`<AutoTranslate>`). Degrades silently until the key is set — no redeploy needed to turn it on. |
+| DeepL translation (user content) | ✅ Live (2026-09-06) — `DEEPL_API_KEY` set in Render (free "API Developer" key) | Powers (a) the on-demand Translate control and (b) the **automatic** FR→EN conversion of chat, deal-conversation and gift-card threads, and dealer free-text notes on the reviewer side (`<AutoTranslate>`). **Free fallback:** if DeepL is missing or out of quota, translation auto-switches to MyMemory (free, no account; set `MYMEMORY_EMAIL` to lift its daily cap). **Usage meter:** Admin → System health shows DeepL characters used / limit. |
 | Bell Total Connect voicemail | 📝 Documented, not built here | Guide delivered for the **booking site** (voicemail-to-email + IMAP). Not part of this portal. |
 
 ### French lead parsing — BUILT, awaiting live paste + test
@@ -43,6 +43,15 @@ source of truth; this file is the human-readable index.
   auto-translates lead free-text via DeepL. (2026-09-06, Sean.)
 
 ## 2026-09-06
+- **Translation: usage meter + free fallback provider.** `src/lib/translate.ts`
+  now runs a provider chain — DeepL first, then **MyMemory** (free, no account)
+  automatically when DeepL is unconfigured, out of quota, or unreachable — so
+  reviewer translation keeps working without a paid plan (long text is chunked to
+  fit MyMemory's per-query limit; set `MYMEMORY_EMAIL` to raise its free daily
+  cap). Added `deeplUsage()` (characters used vs. plan limit) and a **Translation
+  usage** card on **Admin → System health** with a used/remaining bar that warns
+  as the DeepL credit runs low and notes the automatic free fallback. Every
+  translation caller goes through `translateText`, so the fallback is portal-wide.
 - **Brand logo assets added.** Committed the Georgian Water & Air logo lockups
   (supplied by Sean): `public/GWANewLogo.png` (primary horizontal, transparent) +
   organized copies in `public/brand/` (horizontal-with-divider, and a circular
