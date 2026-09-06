@@ -4,11 +4,13 @@ import { prisma } from '@/lib/db';
 import { DealerProfileForm } from '@/components/DealerProfileForm';
 import { readExtraContacts } from '@/lib/dealerProfile';
 import { saveDealerProfileAction } from '@/app/(dealer)/actions';
+import { getT } from '@/i18n/server';
 
 export const dynamic = 'force-dynamic';
 
 export default async function DealerProfilePage() {
   const user = await requireDealerAccess();
+  const t = getT();
   const [profile, dealer] = await Promise.all([
     user.dealerId ? prisma.dealerProfile.findUnique({ where: { dealerId: user.dealerId } }) : null,
     user.dealerId ? prisma.dealer.findUnique({ where: { id: user.dealerId }, select: { name: true } }) : null,
@@ -21,9 +23,9 @@ export default async function DealerProfilePage() {
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <SectionHero
-        eyebrow="My office"
-        title="Office profile"
-        subtitle="Keep your office details up to date so the Georgian Water & Air team always has the right contacts. Shared with Georgian Water & Air reviewers and admins only — never shown to other dealers."
+        eyebrow={t('nav.myOffice')}
+        title={t('profile.heroTitle')}
+        subtitle={t('profile.heroSubtitle')}
       />
       <section className="card p-6">
         <DealerProfileForm action={saveDealerProfileAction} values={values} logoUrl={logoUrl} />
