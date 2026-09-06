@@ -131,6 +131,13 @@ export const fr: Dictionary = {
     actions: 'Actions',
     actionNeeded: 'Action requise',
     sentBack: 'Retournée',
+    // Insight charts
+    byStatus: 'Demandes par statut',
+    total: 'Total',
+    declined: 'Refusées',
+    appsThisMonth: 'Demandes ce mois-ci',
+    programBreakdown: 'Répartition des programmes',
+    noProgramsYet: 'Aucun programme pour l’instant.',
   },
   quickActions: {
     title: 'Actions rapides',

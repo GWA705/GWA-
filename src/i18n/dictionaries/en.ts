@@ -127,6 +127,13 @@ export const en = {
     actions: 'Actions',
     actionNeeded: 'Action needed',
     sentBack: 'Sent back',
+    // Insight charts
+    byStatus: 'Applications by Status',
+    total: 'Total',
+    declined: 'Declined',
+    appsThisMonth: 'Applications This Month',
+    programBreakdown: 'Program Breakdown',
+    noProgramsYet: 'No programs yet.',
   },
   quickActions: {
     title: 'Quick Actions',

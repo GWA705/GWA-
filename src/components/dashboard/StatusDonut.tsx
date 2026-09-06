@@ -1,3 +1,5 @@
+import { getT } from '@/i18n/server';
+
 const COLORS = { approved: '#16a34a', pending: '#2196f3', declined: '#ef4444' };
 
 function Legend({ color, label, count, pct }: { color: string; label: string; count: number; pct: number }) {
@@ -21,20 +23,21 @@ export function StatusDonut({ approved, pending, declined }: { approved: number;
     ? `conic-gradient(${COLORS.approved} 0 ${a}deg, ${COLORS.pending} ${a}deg ${a + p}deg, ${COLORS.declined} ${a + p}deg 360deg)`
     : '#e5e7eb';
 
+  const t = getT();
   return (
     <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-      <h3 className="font-bold text-[#0d2a63] dark:text-slate-100">Applications by Status</h3>
+      <h3 className="font-bold text-[#0d2a63] dark:text-slate-100">{t('dashboard.byStatus')}</h3>
       <div className="flex items-center justify-around py-5">
         <div className="relative h-32 w-32 rounded-full" style={{ background: gradient }}>
           <div className="absolute inset-5 flex flex-col items-center justify-center rounded-full bg-white">
             <div className="text-2xl font-bold text-[#10265a]">{total}</div>
-            <div className="text-xs text-gray-500">Total</div>
+            <div className="text-xs text-gray-500">{t('dashboard.total')}</div>
           </div>
         </div>
         <div className="space-y-3">
-          <Legend color={COLORS.approved} label="Approved" count={approved} pct={pct(approved)} />
-          <Legend color={COLORS.pending} label="Pending" count={pending} pct={pct(pending)} />
-          <Legend color={COLORS.declined} label="Declined" count={declined} pct={pct(declined)} />
+          <Legend color={COLORS.approved} label={t('dashboard.approved')} count={approved} pct={pct(approved)} />
+          <Legend color={COLORS.pending} label={t('dashboard.pending')} count={pending} pct={pct(pending)} />
+          <Legend color={COLORS.declined} label={t('dashboard.declined')} count={declined} pct={pct(declined)} />
         </div>
       </div>
     </div>

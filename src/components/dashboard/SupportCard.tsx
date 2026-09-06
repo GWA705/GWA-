@@ -20,7 +20,7 @@ function openChat() {
 export function SupportCard() {
   const t = useT();
   return (
-    <div className="relative flex items-center justify-between gap-3 overflow-hidden rounded-2xl bg-[#0e2b5c] p-4 text-white shadow-sm">
+    <div className="relative flex aspect-[3/1] items-center justify-between gap-3 overflow-hidden rounded-2xl bg-[#0e2b5c] p-4 text-white shadow-sm">
       {/* Agent photo — centred in the pill so it clears the left text block and
           the right-hand chat button. Cropped to fill, with a mask that feathers
           BOTH edges so it bleeds into the card with no hard seam on either side. */}

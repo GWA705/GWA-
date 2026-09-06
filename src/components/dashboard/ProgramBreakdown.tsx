@@ -1,15 +1,17 @@
 import { Droplets } from 'lucide-react';
+import { getT } from '@/i18n/server';
 
 /** Program mix (e.g. HD · Water) as labelled progress bars. */
 export function ProgramBreakdown({ items }: { items: { label: string; count: number; pct: number }[] }) {
+  const t = getT();
   return (
     <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
       <div className="mb-3 flex items-center gap-2">
         <Droplets size={18} className="text-blue-600" />
-        <h3 className="font-bold text-[#0d2a63] dark:text-slate-100">Program Breakdown</h3>
+        <h3 className="font-bold text-[#0d2a63] dark:text-slate-100">{t('dashboard.programBreakdown')}</h3>
       </div>
       {items.length === 0 ? (
-        <p className="py-4 text-sm text-gray-500">No programs yet.</p>
+        <p className="py-4 text-sm text-gray-500">{t('dashboard.noProgramsYet')}</p>
       ) : (
         <div className="space-y-3 py-2">
           {items.map((p) => (

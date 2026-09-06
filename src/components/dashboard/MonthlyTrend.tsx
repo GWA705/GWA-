@@ -1,9 +1,12 @@
+import { getT } from '@/i18n/server';
+
 /** Monthly application volume — simple bars, real counts. */
 export function MonthlyTrend({ months }: { months: { label: string; value: number }[] }) {
+  const t = getT();
   const max = Math.max(1, ...months.map((m) => m.value));
   return (
     <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-      <h3 className="font-bold text-[#0d2a63] dark:text-slate-100">Applications This Month</h3>
+      <h3 className="font-bold text-[#0d2a63] dark:text-slate-100">{t('dashboard.appsThisMonth')}</h3>
       <div className="flex h-[180px] items-end justify-around px-6 pb-4">
         {months.map((m) => (
           <div key={m.label} className="flex h-full flex-col items-center justify-end">
