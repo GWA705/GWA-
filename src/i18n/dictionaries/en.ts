@@ -61,7 +61,7 @@ export const en = {
     myAccount: 'My account',
   },
   dashboard: {
-    welcome: 'Welcome to your Dealer Portal',
+    welcome: 'Welcome back to your Dealer Portal',
     everythingInOnePlace: 'Everything in one place.',
     goodMorning: 'Good morning',
     goodAfternoon: 'Good afternoon',

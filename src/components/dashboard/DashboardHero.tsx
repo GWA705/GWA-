@@ -1,4 +1,5 @@
 import { DashboardGreeting } from '@/components/DashboardGreeting';
+import { HeroBackdrop } from '@/components/dashboard/HeroBackdrop';
 import { getT } from '@/i18n/server';
 
 /**
@@ -11,18 +12,24 @@ import { getT } from '@/i18n/server';
  * photo. See the AI image prompt in `docs/BRAND-KIT.md` §14 for a
  * perfectly-formatted background.
  */
-export function DashboardHero({ firstName, bgImage = '/hero-banner.png' }: { firstName: string; companyName?: string | null; bgImage?: string }) {
+export function DashboardHero({
+  firstName,
+  bgImage = '/hero-banner.png',
+  bgImages = [],
+}: {
+  firstName: string;
+  companyName?: string | null;
+  bgImage?: string;
+  /** All hero images; HeroBackdrop picks the time-of-day one and crossfades. */
+  bgImages?: string[];
+}) {
   const t = getT();
   return (
     <section className="relative overflow-hidden rounded-2xl text-white shadow-sm">
       {/* Base gradient — shows through when no photo is present */}
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-[#04213f] via-[#0a3f82] to-[#0f68c9]" aria-hidden />
-      {/* Swappable / rotating photo */}
-      <div
-        className="pointer-events-none absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: `url('${bgImage}')` }}
-        aria-hidden
-      />
+      {/* Time-of-day photo with a seamless crossfade (falls back to the single image) */}
+      <HeroBackdrop images={bgImages} fallback={bgImage} />
       {/* Left-to-right legibility wash over the photo */}
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#03152f] via-[#062a56]/85 to-[#062a56]/10" aria-hidden />
       {/* Stronger scrim on phones, where the photo fills the whole width */}

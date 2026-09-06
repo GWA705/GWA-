@@ -66,7 +66,7 @@ export const fr: Dictionary = {
     myAccount: 'Mon compte',
   },
   dashboard: {
-    welcome: 'Bienvenue dans votre portail concessionnaire',
+    welcome: 'Bon retour dans votre portail concessionnaire',
     everythingInOnePlace: 'Tout au même endroit.',
     goodMorning: 'Bonjour',
     goodAfternoon: 'Bon après-midi',

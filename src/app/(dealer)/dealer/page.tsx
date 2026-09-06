@@ -2,7 +2,7 @@ import { requireDealerAccess } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { dealerPortalScopeWhere } from '@/lib/rbac';
 import { programLabel } from '@/lib/constants';
-import { pickHeroImage } from '@/lib/heroImage';
+import { listHeroImages } from '@/lib/heroImage';
 import { DashboardHero } from '@/components/dashboard/DashboardHero';
 import { KpiCard } from '@/components/dashboard/KpiCard';
 import { RecentApplications, type RecentApp } from '@/components/dashboard/RecentApplications';
@@ -100,12 +100,12 @@ export default async function DealerDashboard() {
     }));
 
   const firstName = user.name.split(' ')[0] || user.name;
-  const heroImage = await pickHeroImage();
+  const heroImages = await listHeroImages();
   const t = getT();
 
   return (
     <div className="space-y-4">
-      <DashboardHero firstName={firstName} companyName={profile?.businessName ?? null} bgImage={heroImage} />
+      <DashboardHero firstName={firstName} companyName={profile?.businessName ?? null} bgImage="/hero-banner.png" bgImages={heroImages} />
 
       {/* KPI row — compact 2-up on phones so it flows into the list below */}
       <div className="grid grid-cols-2 gap-2.5 sm:gap-3 md:grid-cols-2 xl:grid-cols-4">
