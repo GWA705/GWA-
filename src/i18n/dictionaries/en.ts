@@ -244,6 +244,26 @@ export const en = {
     addPerson: '+ Add another person',
     anythingElse: 'Anything else for Georgian Water & Air? (optional)',
   },
+  mail: {
+    heroEyebrow: 'Messages',
+    heroTitle: 'Mail',
+    heroSubtitle: 'Messages and files from the Georgian Water & Air team.',
+    noMail: 'No mail yet.',
+    ackRequired: 'Acknowledgement required',
+    fromOn: 'From {sender} · {date}',
+    backToMail: '← Back to Mail',
+    attachments: 'Attachments',
+    complianceNote: 'Opening or downloading a file is recorded for compliance.',
+    download: 'Download',
+    replyTitle: 'Reply to Georgian Water & Air',
+    acknowledged: '✓ You have acknowledged reading this message.',
+    confirmReadTitle: 'Please confirm you’ve read this',
+    confirmReadBody: 'Georgian Water & Air has asked for confirmation that you’ve read this message.',
+    iHaveRead: 'I have read this',
+    sending: 'Sending…',
+    sendReply: 'Send reply',
+    replyPlaceholder: 'Write a reply to Georgian Water & Air…',
+  },
 } as const;
 
 /** Recursively widen the literal `en` shape so translations only need to be

@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db';
 import { mailWhereForDealer } from '@/lib/inbox';
 import { friendlyFileName } from '@/lib/filenames';
 import { REVIEWER_DISPLAY } from '@/lib/constants';
+import { getT } from '@/i18n/server';
 import { acknowledgeMailAction } from '../actions';
 import { DealerReplyForm } from './DealerReplyForm';
 import { DownloadButton } from '@/components/DownloadButton';
@@ -20,6 +21,7 @@ function fmtSize(bytes: number): string {
 export default async function DealerMailItem({ params }: { params: { id: string } }) {
   const session = await requireDealerAccess();
   if (!session.dealerId) notFound();
+  const t = getT();
 
   const mail = await prisma.mail.findFirst({
     where: { id: params.id, ...mailWhereForDealer(session.userId, session.dealerId, session.isDistributor) },
@@ -49,10 +51,10 @@ export default async function DealerMailItem({ params }: { params: { id: string 
   return (
     <div className="space-y-6">
       <div>
-        <Link href="/dealer/mail" className="text-sm text-gray-500 hover:underline">← Back to Mail</Link>
+        <Link href="/dealer/mail" className="text-sm text-gray-500 hover:underline">{t('mail.backToMail')}</Link>
         <h1 className="mt-2 text-xl font-semibold text-gray-900">{mail.subject}</h1>
         <p className="mt-1 text-sm text-gray-500">
-          From {mail.senderLabel || REVIEWER_DISPLAY} · {mail.createdAt.toLocaleString('en-CA')}
+          {t('mail.fromOn', { sender: mail.senderLabel || REVIEWER_DISPLAY, date: mail.createdAt.toLocaleString('en-CA') })}
         </p>
       </div>
 
@@ -62,7 +64,7 @@ export default async function DealerMailItem({ params }: { params: { id: string 
 
       {mail.attachments.length > 0 && (
         <section className="card p-6">
-          <h2 className="mb-3 text-base font-semibold text-gray-900">Attachments</h2>
+          <h2 className="mb-3 text-base font-semibold text-gray-900">{t('mail.attachments')}</h2>
           <ul className="divide-y divide-gray-100">
             {mail.attachments.map((a, i) => {
               const viewer = `/dealer/mail/${mail.id}/attachment/${a.id}`;
@@ -87,18 +89,18 @@ export default async function DealerMailItem({ params }: { params: { id: string 
                     </Link>
                     <div className="text-xs text-gray-400">{fmtSize(a.sizeBytes)}</div>
                   </div>
-                  <DownloadButton url={`/api/mail/attachments/${a.id}?download=1`} fileName={friendlyFileName(a.fileName, i)} className="btn-secondary shrink-0 text-xs">Download</DownloadButton>
+                  <DownloadButton url={`/api/mail/attachments/${a.id}?download=1`} fileName={friendlyFileName(a.fileName, i)} className="btn-secondary shrink-0 text-xs">{t('mail.download')}</DownloadButton>
                 </li>
               );
             })}
           </ul>
-          <p className="mt-3 text-xs text-gray-400">Opening or downloading a file is recorded for compliance.</p>
+          <p className="mt-3 text-xs text-gray-400">{t('mail.complianceNote')}</p>
         </section>
       )}
 
       {mail.allowReplies && (
         <section className="card p-6">
-          <h2 className="mb-3 text-base font-semibold text-gray-900">Reply to Georgian Water & Air</h2>
+          <h2 className="mb-3 text-base font-semibold text-gray-900">{t('mail.replyTitle')}</h2>
           {replies.length > 0 && (
             <ul className="mb-4 space-y-3">
               {replies.map((r) => (
@@ -122,13 +124,13 @@ export default async function DealerMailItem({ params }: { params: { id: string 
       {mail.requireAck && (
         <section className={`card p-6 ${acknowledged ? '' : 'border-amber-200'}`}>
           {acknowledged ? (
-            <p className="text-sm font-medium text-green-700">✓ You have acknowledged reading this message.</p>
+            <p className="text-sm font-medium text-green-700">{t('mail.acknowledged')}</p>
           ) : (
             <>
-              <h2 className="mb-1 text-base font-semibold text-gray-900">Please confirm you&apos;ve read this</h2>
-              <p className="mb-3 text-sm text-gray-600">Georgian Water & Air has asked for confirmation that you&apos;ve read this message.</p>
+              <h2 className="mb-1 text-base font-semibold text-gray-900">{t('mail.confirmReadTitle')}</h2>
+              <p className="mb-3 text-sm text-gray-600">{t('mail.confirmReadBody')}</p>
               <form action={acknowledgeMailAction.bind(null, mail.id)}>
-                <button type="submit" className="btn-primary">I have read this</button>
+                <button type="submit" className="btn-primary">{t('mail.iHaveRead')}</button>
               </form>
             </>
           )}

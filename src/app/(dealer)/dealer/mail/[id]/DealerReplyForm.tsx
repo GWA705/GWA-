@@ -3,17 +3,20 @@
 import { useRef } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { postDealerMailReplyAction, type MailReplyState } from '../actions';
+import { useT } from '@/i18n/client';
+import type { TFunction } from '@/i18n/translator';
 
-function SendButton() {
+function SendButton({ t }: { t: TFunction }) {
   const { pending } = useFormStatus();
   return (
     <button type="submit" className="btn-primary" disabled={pending}>
-      {pending ? 'Sending…' : 'Send reply'}
+      {pending ? t('mail.sending') : t('mail.sendReply')}
     </button>
   );
 }
 
 export function DealerReplyForm({ mailId }: { mailId: string }) {
+  const t = useT();
   const [state, action] = useFormState<MailReplyState, FormData>(
     postDealerMailReplyAction.bind(null, mailId),
     {},
@@ -35,11 +38,11 @@ export function DealerReplyForm({ mailId }: { mailId: string }) {
         rows={3}
         maxLength={5000}
         required
-        placeholder="Write a reply to Georgian Water & Air…"
+        placeholder={t('mail.replyPlaceholder')}
         className="input"
       />
       <div className="flex justify-end">
-        <SendButton />
+        <SendButton t={t} />
       </div>
     </form>
   );
