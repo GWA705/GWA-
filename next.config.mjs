@@ -25,6 +25,17 @@ const nextConfig = {
           { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
         ],
       },
+      {
+        // Static images in /public (hero banners, page heroes, the leads pill,
+        // logos). Cache them so switching tabs paints the hero instantly instead
+        // of flashing the gradient/blank while the image re-loads. Short fresh
+        // window + stale-while-revalidate means a re-uploaded image still shows
+        // up (served instantly from cache, refreshed in the background).
+        source: '/:file*.(png|jpg|jpeg|webp|avif|svg|gif|ico)',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=600, stale-while-revalidate=86400' },
+        ],
+      },
     ];
   },
 };
