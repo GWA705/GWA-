@@ -26,6 +26,19 @@ function baseName(path: string): string {
   return path.slice(path.lastIndexOf('/') + 1);
 }
 
+/**
+ * The hour a hero image is for, read from its filename. Works for any naming
+ * that ends in the hour before the extension: `Hero-12.png`, `hero-05.png`,
+ * `12-noon.png`, `12.png` → 12/5/12/12. Returns null when there's no hour.
+ */
+function hourOf(path: string): number | null {
+  const stem = baseName(path).replace(/\.[^.]+$/, '');
+  const nums = stem.match(/\d{1,2}/g);
+  if (!nums) return null;
+  const h = parseInt(nums[nums.length - 1], 10);
+  return h >= 0 && h <= 23 ? h : null;
+}
+
 export function HeroBackdrop({ images, fallback = '/hero-banner.png' }: { images: string[]; fallback?: string }) {
   const [mounted, setMounted] = useState(false);
   const [slot, setSlot] = useState<number | null>(null);
@@ -42,12 +55,11 @@ export function HeroBackdrop({ images, fallback = '/hero-banner.png' }: { images
     return () => clearInterval(t);
   }, []);
 
-  // Images for the current slot (filename starts with the 2-digit start hour).
-  // No image for a slot → the regular hero (`fallback`) shows. That makes the
-  // regular /hero-banner.png the default for every slot until a time-specific
-  // image is dropped in (e.g. the 05 morning slot until an `05-*` file exists).
-  const pad = slot != null ? String(slot).padStart(2, '0') : '';
-  const slotImages = slot != null ? images.filter((p) => baseName(p).startsWith(pad)) : [];
+  // Images for the current slot (the hour in the filename equals the slot start,
+  // e.g. Hero-12.png for the 12:00 slot). No image for a slot → the regular hero
+  // (`fallback`) shows, so /hero-banner.png is the default for every slot until a
+  // time-specific image is added (e.g. the 5am slot until Hero-05.png exists).
+  const slotImages = slot != null ? images.filter((p) => hourOf(p) === slot) : [];
   const pool = slotImages.length > 0 ? slotImages : [fallback];
 
   // Cycle within a multi-image slot (seamless, slow). Reset when the slot changes.
