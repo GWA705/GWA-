@@ -24,7 +24,7 @@ source of truth; this file is the human-readable index.
 | Domain email auth (SPF / DKIM / DMARC) on `ghsbarrie.ca` | ✅ Set | SPF `include:_spf.google.com`; DKIM authenticating (Google Workspace); DMARC `p=quarantine`. Confirmed 2026-09-03 (Sean). |
 | Guusto gift-card API | ⏳ Parked | Awaiting `GUUSTO_API_TOKEN` in Render + exact field names (test at `/admin/guusto-test`) + office→reason mapping. |
 | Bilingual UI toggle (EN/FR) | ⏳ Built, flag off | Set `NEXT_PUBLIC_I18N_ENABLED=1` in Render to reveal the language toggle. Keep off until fr-CA coverage is complete across the whole site. |
-| DeepL translation (user content) | ⏳ Parked | Awaiting `DEEPL_API_KEY` in Render (free keys end in `:fx`). Powers the on-demand Translate control for user-typed FR↔EN content. |
+| DeepL translation (user content) | ⏳ Parked — **set the key to enable reviewer auto-translate** | Awaiting `DEEPL_API_KEY` in Render (free keys end in `:fx`). Powers (a) the on-demand Translate control and (b) the **automatic** FR→EN conversion of chat messages, deal-conversation and gift-card threads, and dealer free-text notes on the reviewer side (`<AutoTranslate>`). Degrades silently until the key is set — no redeploy needed to turn it on. |
 | Bell Total Connect voicemail | 📝 Documented, not built here | Guide delivered for the **booking site** (voicemail-to-email + IMAP). Not part of this portal. |
 
 ## 2026-09-06
