@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useTransition } from 'react';
-import { Search, Printer, Copy, Check, Clock, User, X } from 'lucide-react';
+import { Search, Printer, Copy, Check, Clock, User, X, FileDown } from 'lucide-react';
 import { computeDealerPayout, PROVINCE_TAX_RATE, type PayoutBreakdown } from '@/lib/payoutCalc';
 import { searchDealerDeals, type DealMatch } from '@/app/(dealer)/dealer/calculator/actions';
 
@@ -115,6 +115,43 @@ export function DealerCalculator({ defaultProvince = 'ON' }: { defaultProvince?:
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
+  }
+
+  const [savingPdf, setSavingPdf] = useState(false);
+  async function savePdf() {
+    if (!r?.ok || savingPdf) return;
+    setSavingPdf(true);
+    try {
+      const res = await fetch('/api/dealer/calculator/receipt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: n,
+          province,
+          customer,
+          reference,
+          saleDate: fmtDate(deal?.saleDate ?? null) ?? undefined,
+          products: deal?.products.length ? deal.products.join(', ') : undefined,
+          salesperson: deal?.salesperson ?? undefined,
+          installer: deal?.installer ?? undefined,
+          paymentLabel: deal?.paymentLabel ?? undefined,
+        }),
+      });
+      if (!res.ok) return;
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `gwa-payout-${(customer || reference || 'receipt').replace(/[^a-z0-9]+/gi, '-').toLowerCase().slice(0, 40)}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+    } catch {
+      /* ignore */
+    } finally {
+      setSavingPdf(false);
+    }
   }
 
   return (
@@ -240,6 +277,9 @@ export function DealerCalculator({ defaultProvince = 'ON' }: { defaultProvince?:
                   <div className="flex gap-1.5">
                     <button type="button" onClick={copyBreakdown} className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-semibold text-gray-600 transition hover:bg-gray-50">
                       {copied ? <><Check size={13} className="text-green-600" /> Copied</> : <><Copy size={13} /> Copy</>}
+                    </button>
+                    <button type="button" onClick={savePdf} disabled={savingPdf} className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-semibold text-gray-600 transition hover:bg-gray-50 disabled:opacity-60">
+                      <FileDown size={13} /> {savingPdf ? 'Saving…' : 'Save PDF'}
                     </button>
                     <button type="button" onClick={() => window.print()} className="inline-flex items-center gap-1 rounded-lg bg-sky-600 px-2.5 py-1 text-xs font-semibold text-white transition hover:bg-sky-700">
                       <Printer size={13} /> Print receipt
