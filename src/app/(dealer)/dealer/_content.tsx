@@ -10,6 +10,7 @@ import { getT } from '@/i18n/server';
 // content tab its own banner; slugs not listed here fall back to the gradient.
 const HERO_IMAGE: Record<string, string> = {
   'hd-credit-card': '/hd-credit-card-hero.png',
+  'hd-promotions': '/HD-Promotions.png',
 };
 
 // Shared server component behind the dealer content tabs. Underscore

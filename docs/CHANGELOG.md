@@ -28,6 +28,10 @@ source of truth; this file is the human-readable index.
 | Bell Total Connect voicemail | 📝 Documented, not built here | Guide delivered for the **booking site** (voicemail-to-email + IMAP). Not part of this portal. |
 
 ## 2026-09-06
+- **HD Promotions hero slot.** Added a hero image slot for the HD Promotions
+  content page — drop a file at `public/HD-Promotions.png` and it becomes the
+  page banner; absent, it falls back to the gradient (same pattern as the HD
+  Credit Card hero).
 - **Mobile/tablet nav fix — no stray collapse button, no dead nav gap.** The
   sidebar collapse/expand toggle now only appears at `lg`+ where the persistent
   sidebar actually lives (it was showing where it made no sense on smaller
