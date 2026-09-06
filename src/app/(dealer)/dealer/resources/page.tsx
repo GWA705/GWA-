@@ -2,16 +2,18 @@ import Link from 'next/link';
 import { BookOpen } from 'lucide-react';
 import { ContentPage } from '../_content';
 import { SectionHero } from '@/components/SectionHero';
+import { getT } from '@/i18n/server';
 
 export const dynamic = 'force-dynamic';
 
 export default function ResourcesPage() {
+  const t = getT();
   return (
     <div className="space-y-5">
       <SectionHero
-        eyebrow="Resources"
-        title="Resources & guides"
-        subtitle="Product info, promotions, and how-tos — everything you need to sell and support."
+        eyebrow={t('nav.resources')}
+        title={t('resources.indexTitle')}
+        subtitle={t('resources.indexSubtitle')}
         bgImage="/resources-hero.png"
       />
       <Link
@@ -23,8 +25,8 @@ export default function ResourcesPage() {
             <BookOpen size={28} />
           </div>
           <div>
-            <div className="text-lg font-bold text-sky-900">Product library</div>
-            <div className="text-sm text-sky-700">Product info, manuals, brochures and spec sheets — view or download.</div>
+            <div className="text-lg font-bold text-sky-900">{t('nav.productLibrary')}</div>
+            <div className="text-sm text-sky-700">{t('resources.libraryCardDesc')}</div>
           </div>
         </div>
         <span className="flex-none text-2xl text-sky-500 transition group-hover:translate-x-1">→</span>

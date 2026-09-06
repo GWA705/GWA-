@@ -3,6 +3,7 @@ import Link from 'next/link';
 import type { Prisma } from '@prisma/client';
 import { requireDealerAccess } from '@/lib/session';
 import { prisma } from '@/lib/db';
+import { getT } from '@/i18n/server';
 import { LibraryFilters } from './LibraryFilters';
 
 export const dynamic = 'force-dynamic';
@@ -13,6 +14,7 @@ export default async function DealerResourceLibraryPage({
   searchParams: { q?: string; cat?: string; brand?: string; sort?: string };
 }) {
   await requireDealerAccess();
+  const t = getT();
 
   const q = (searchParams.q ?? '').trim();
   const cat = (searchParams.cat ?? '').trim();
@@ -100,12 +102,12 @@ export default async function DealerResourceLibraryPage({
   return (
     <div className="space-y-5">
       <div>
-        <Link href="/dealer/resources" className="text-sm text-gray-500 hover:underline">← Resources</Link>
+        <Link href="/dealer/resources" className="text-sm text-gray-500 hover:underline">{t('resources.backToResources')}</Link>
         <div className="mt-2">
           <SectionHero
-            eyebrow="Resources"
-            title="Product manuals & brochures"
-            subtitle="Find product info, manuals, brochures and spec sheets. View online or download."
+            eyebrow={t('nav.resources')}
+            title={t('resources.libraryTitle')}
+            subtitle={t('resources.librarySubtitle')}
             bgImage="/resources-hero.png"
           />
         </div>
@@ -115,20 +117,20 @@ export default async function DealerResourceLibraryPage({
         <input
           name="q"
           defaultValue={q}
-          placeholder="Search products, brands, models…"
+          placeholder={t('resources.searchPlaceholder')}
           className="input flex-1"
         />
         {cat && <input type="hidden" name="cat" value={cat} />}
         {brand && <input type="hidden" name="brand" value={brand} />}
         {sort && <input type="hidden" name="sort" value={sort} />}
-        <button type="submit" className="btn-primary">Search</button>
+        <button type="submit" className="btn-primary">{t('common.search')}</button>
       </form>
 
       {/* Category chips on the left, brand + sort controls on the right. */}
       <div className="flex flex-col gap-3 border-b border-gray-100 pb-4 sm:flex-row sm:items-center sm:justify-between">
         {categories.length > 0 ? (
           <div className="flex flex-wrap gap-2">
-            {chip('All', '')}
+            {chip(t('resources.all'), '')}
             {categories.map((c) => chip(c, c))}
           </div>
         ) : (
@@ -139,14 +141,14 @@ export default async function DealerResourceLibraryPage({
 
       <div className="flex items-center justify-between">
         <p className="text-xs text-gray-400">
-          {products.length} product{products.length === 1 ? '' : 's'}
+          {products.length === 1 ? t('resources.productCountOne') : t('resources.productsCount', { n: products.length })}
           {brand && <> · <span className="font-medium text-gray-500">{brand}</span></>}
         </p>
       </div>
 
       {products.length === 0 ? (
         <div className="rounded-2xl border border-gray-200 bg-gray-50 p-8 text-center text-sm text-gray-500">
-          {hasFilters ? 'No products match your search.' : 'No products have been added yet. Check back soon.'}
+          {hasFilters ? t('resources.noProductsSearch') : t('resources.noProductsYet')}
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
@@ -177,9 +179,9 @@ export default async function DealerResourceLibraryPage({
                 {p.category && <p className="mt-0.5 text-xs text-gray-500">{p.category}</p>}
                 <div className="mt-auto flex items-center justify-between pt-3">
                   <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600">
-                    {p._count.files} file{p._count.files === 1 ? '' : 's'}
+                    {p._count.files === 1 ? t('resources.fileCountOne') : t('resources.filesCount', { n: p._count.files })}
                   </span>
-                  <span className="text-[12px] font-semibold text-brand-700 transition group-hover:translate-x-0.5">View →</span>
+                  <span className="text-[12px] font-semibold text-brand-700 transition group-hover:translate-x-0.5">{t('resources.viewArrow')}</span>
                 </div>
               </div>
             </Link>

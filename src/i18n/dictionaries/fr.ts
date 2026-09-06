@@ -34,6 +34,23 @@ export const fr: Dictionary = {
     endsToday: 'Se termine aujourd’hui',
     endsInDays: 'Se termine dans {n} jours',
   },
+  resources: {
+    indexTitle: 'Ressources et guides',
+    indexSubtitle: 'Infos produits, promotions et guides pratiques — tout ce qu’il vous faut pour vendre et soutenir.',
+    libraryCardDesc: 'Infos produits, manuels, brochures et fiches techniques — à consulter ou télécharger.',
+    libraryTitle: 'Manuels et brochures de produits',
+    librarySubtitle: 'Trouvez les infos produits, manuels, brochures et fiches techniques. Consultez en ligne ou téléchargez.',
+    backToResources: '← Ressources',
+    searchPlaceholder: 'Rechercher produits, marques, modèles…',
+    all: 'Tous',
+    productsCount: '{n} produits',
+    productCountOne: '1 produit',
+    noProductsSearch: 'Aucun produit ne correspond à votre recherche.',
+    noProductsYet: 'Aucun produit n’a encore été ajouté. Revenez bientôt.',
+    filesCount: '{n} fichiers',
+    fileCountOne: '1 fichier',
+    viewArrow: 'Voir →',
+  },
   contentSections: {
     'resources': {
       label: 'Ressources',

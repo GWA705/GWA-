@@ -29,6 +29,23 @@ export const en = {
     endsToday: 'Ends today',
     endsInDays: 'Ends in {n} days',
   },
+  resources: {
+    indexTitle: 'Resources & guides',
+    indexSubtitle: 'Product info, promotions, and how-tos — everything you need to sell and support.',
+    libraryCardDesc: 'Product info, manuals, brochures and spec sheets — view or download.',
+    libraryTitle: 'Product manuals & brochures',
+    librarySubtitle: 'Find product info, manuals, brochures and spec sheets. View online or download.',
+    backToResources: '← Resources',
+    searchPlaceholder: 'Search products, brands, models…',
+    all: 'All',
+    productsCount: '{n} products',
+    productCountOne: '1 product',
+    noProductsSearch: 'No products match your search.',
+    noProductsYet: 'No products have been added yet. Check back soon.',
+    filesCount: '{n} files',
+    fileCountOne: '1 file',
+    viewArrow: 'View →',
+  },
   contentSections: {
     'resources': {
       label: 'Resources',
