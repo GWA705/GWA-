@@ -3,13 +3,20 @@
 import { useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { bulkCreateGiftCardRequestsAction, type BulkRow } from './actions';
-import { useT } from '@/i18n/client';
+import { useI18n } from '@/i18n/client';
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
-const TEMPLATE =
+// English + French downloadable templates. Column ORDER is identical, so a sheet
+// filled from either template imports the same way; the header row is only used
+// to re-map columns if the office reorders them (see toRows).
+const TEMPLATE_EN =
   'Customer name,Customer email,Customer cell,Card amount\n' +
   'Jane Doe,jane@example.com,705-555-0123,25\n' +
   'John Smith,john@example.com,,25\n';
+const TEMPLATE_FR =
+  'Nom du client,Courriel du client,Cellulaire du client,Montant de la carte\n' +
+  'Jean Tremblay,jean@example.com,514-555-0123,25\n' +
+  'Marie Roy,marie@example.com,,25\n';
 
 interface ParsedRow extends BulkRow {
   _line: number;
@@ -37,22 +44,31 @@ function parseCsv(text: string): string[][] {
   return rows.filter((r) => r.some((c) => c.trim() !== ''));
 }
 
-const norm = (s: string) => s.toLowerCase().replace(/[^a-z]/g, '');
+// Lower-case, strip accents (é→e) and non-letters, so French headers like
+// "Téléphone" / "Montant" normalise to plain ascii for matching.
+const norm = (s: string) =>
+  s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z]/g, '');
+
+// Header matchers accept both English and French column names.
+const isName = (h: string) => h.includes('name') || h.includes('nom');
+const isEmail = (h: string) => h.includes('email') || h.includes('courriel');
+const isPhone = (h: string) => h.includes('cell') || h.includes('phone') || h.includes('telephone');
+const isAmount = (h: string) => h.includes('amount') || h.includes('card') || h.includes('montant');
 
 function toRows(text: string): ParsedRow[] {
   const grid = parseCsv(text);
   if (grid.length === 0) return [];
-  // Detect a header row (contains "name" and "email"); otherwise assume the
-  // template column order: name, email, cell, amount.
+  // Detect a header row (has a recognisable name + email column in EN or FR);
+  // otherwise assume the template column order: name, email, cell, amount.
   const head = grid[0].map(norm);
-  const hasHeader = head.some((h) => h.includes('name')) && head.some((h) => h.includes('email'));
+  const hasHeader = head.some(isName) && head.some(isEmail);
   const col = { name: 0, email: 1, phone: 2, amount: 3 };
   if (hasHeader) {
     head.forEach((h, i) => {
-      if (h.includes('name')) col.name = i;
-      else if (h.includes('email')) col.email = i;
-      else if (h.includes('cell') || h.includes('phone')) col.phone = i;
-      else if (h.includes('amount') || h.includes('card')) col.amount = i;
+      if (isName(h)) col.name = i;
+      else if (isEmail(h)) col.email = i;
+      else if (isPhone(h)) col.phone = i;
+      else if (isAmount(h)) col.amount = i;
     });
   }
   const body = hasHeader ? grid.slice(1) : grid;
@@ -86,7 +102,9 @@ function download(name: string, text: string) {
 }
 
 export function GiftCardBulkImport() {
-  const t = useT();
+  const { t, locale } = useI18n();
+  const template = locale === 'fr' ? TEMPLATE_FR : TEMPLATE_EN;
+  const templateName = locale === 'fr' ? 'modele-cartes-cadeaux.csv' : 'gift-card-template.csv';
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
@@ -140,7 +158,7 @@ export function GiftCardBulkImport() {
           </p>
 
           <div className="flex flex-wrap items-center gap-2">
-            <button type="button" onClick={() => download('gift-card-template.csv', TEMPLATE)} className="btn-secondary text-sm">
+            <button type="button" onClick={() => download(templateName, template)} className="btn-secondary text-sm">
               {t('giftCards.downloadTemplate')}
             </button>
             <label className="btn-secondary cursor-pointer text-sm">

@@ -4,6 +4,7 @@ import { leadKeyOf } from '@/lib/leads';
 import { leadCallStatus, type LeadCallRow } from '@/lib/leadCalls';
 import { getT } from '@/i18n/server';
 import type { TFunction } from '@/i18n/translator';
+import { AutoTranslate } from './AutoTranslate';
 import { LeadCallTracker } from './LeadCallTracker';
 import { LeadNoGoodControl } from './LeadNoGoodControl';
 import { LeadsMonthDropdown } from './LeadsMonthDropdown';
@@ -103,12 +104,18 @@ function fmtDate(d: Date | null, fallback: string): string {
   return d.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
 
-function Field({ label, value }: { label: string; value: string }) {
+function Field({ label, value, translate = false }: { label: string; value: string; translate?: boolean }) {
   if (!value) return null;
   return (
     <div>
       <span className="text-[10px] uppercase tracking-wide text-gray-400">{label}</span>
-      <div className="whitespace-pre-wrap break-words text-sm text-gray-700">{linkify(value)}</div>
+      {translate ? (
+        // Free-text lead notes: auto-translate to the viewer's language (FR
+        // dealers see French, EN reviewers see English) via DeepL when configured.
+        <AutoTranslate text={value} className="text-sm text-gray-700" />
+      ) : (
+        <div className="whitespace-pre-wrap break-words text-sm text-gray-700">{linkify(value)}</div>
+      )}
     </div>
   );
 }
@@ -176,8 +183,8 @@ function LeadRow({
           <Field label={t('leads.fieldEmergency')} value={l.emergency} />
           <Field label={t('leads.fieldFinancing')} value={l.financing} />
           <Field label={t('leads.fieldForwardedTo')} value={l.forwardedTo} />
-          <div className="col-span-2 sm:col-span-3"><Field label={t('leads.fieldServiceDetails')} value={l.serviceDetails} /></div>
-          <div className="col-span-2 sm:col-span-3"><Field label={t('leads.fieldAdditionalInfo')} value={l.additionalInfo} /></div>
+          <div className="col-span-2 sm:col-span-3"><Field label={t('leads.fieldServiceDetails')} value={l.serviceDetails} translate /></div>
+          <div className="col-span-2 sm:col-span-3"><Field label={t('leads.fieldAdditionalInfo')} value={l.additionalInfo} translate /></div>
         </div>
         {(() => {
           const photos = projectPhotosUrl(l.serviceDetails, l.additionalInfo);
