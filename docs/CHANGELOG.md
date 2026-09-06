@@ -43,6 +43,19 @@ source of truth; this file is the human-readable index.
   auto-translates lead free-text via DeepL. (2026-09-06, Sean.)
 
 ## 2026-09-06
+- **Bilingual coverage — reporting views (dealer + reviewer).** Translated the
+  shared report components to fr-CA (draft): the **monthly performance** report
+  (`MonthlyReportView`), **weekly store detail** (`StoreWeekView`), **by sales
+  rep** (`SalesRepReport`), **product & package pricing** (`ProductPricingReport`),
+  **sales forecast** (`SalesForecastView`) and the **custom report builder**
+  (`CustomReportBuilder`) — headers, stat tiles, table column headers, hints,
+  empty states, buttons and footnotes. New `reports.monthly`, `storeWeek`,
+  `salesRepReport`, `productPricing`, `salesForecast` and `customReport`
+  namespaces; the dealer weekly page also localizes its week-range dropdown.
+  Data-write paths stay English on purpose: money/number formatting, the CSV
+  export headers and filenames, and the custom builder's group-by dimension
+  labels (which double as CSV headers). Also fixed brand slips ("GWA HD" →
+  "Georgian Water & Air") in the monthly/weekly report eyebrows.
 - **Bilingual coverage — Find a customer (dealer).** Translated the dealer
   "Find a customer" surface to fr-CA (draft): the `FindCustomerPanel` hero
   (title, subtitle with `{company}`, the My customers / Whose customer mode

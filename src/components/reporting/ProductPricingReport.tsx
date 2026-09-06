@@ -1,5 +1,7 @@
 import type { ProductPricingResult, PriceStat } from '@/lib/reporting/productPricing';
 import { ManualPackageBuilder } from '@/components/reporting/ManualPackageBuilder';
+import { getT } from '@/i18n/server';
+import type { TFunction } from '@/i18n/translator';
 
 const money = (n: number) => `$${n.toLocaleString('en-CA', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
@@ -13,7 +15,7 @@ function Tile({ label, value, sub }: { label: string; value: string; sub?: strin
   );
 }
 
-function StatTable({ title, blurb, rows, unitLabel }: { title: string; blurb: string; rows: PriceStat[]; unitLabel: string }) {
+function StatTable({ title, blurb, rows, unitLabel, t }: { title: string; blurb: string; rows: PriceStat[]; unitLabel: string; t: TFunction }) {
   return (
     <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
       <div className="border-b border-gray-100 px-5 py-3">
@@ -21,18 +23,18 @@ function StatTable({ title, blurb, rows, unitLabel }: { title: string; blurb: st
         <p className="text-xs text-gray-500">{blurb}</p>
       </div>
       {rows.length === 0 ? (
-        <p className="px-5 py-8 text-center text-sm text-gray-500">No {unitLabel} sales in this range yet.</p>
+        <p className="px-5 py-8 text-center text-sm text-gray-500">{t('productPricing.emptyStat', { unit: unitLabel })}</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full min-w-[680px]">
             <thead>
               <tr className="bg-gray-50 text-[11px] uppercase text-gray-500">
                 <th className="px-4 py-3 text-left">{unitLabel}</th>
-                <th className="px-4 py-3 text-right">Sales</th>
-                <th className="px-4 py-3 text-right">Avg net</th>
-                <th className="px-4 py-3 text-right">Avg after-tax</th>
-                <th className="px-4 py-3 text-right">Low</th>
-                <th className="px-4 py-3 text-right">High</th>
+                <th className="px-4 py-3 text-right">{t('productPricing.colSales')}</th>
+                <th className="px-4 py-3 text-right">{t('productPricing.colAvgNet')}</th>
+                <th className="px-4 py-3 text-right">{t('productPricing.colAvgAfterTax')}</th>
+                <th className="px-4 py-3 text-right">{t('productPricing.colLow')}</th>
+                <th className="px-4 py-3 text-right">{t('productPricing.colHigh')}</th>
               </tr>
             </thead>
             <tbody>
@@ -56,30 +58,31 @@ function StatTable({ title, blurb, rows, unitLabel }: { title: string; blurb: st
 
 /** Presentational report: summary tiles + per-product and per-package averages. */
 export function ProductPricingReport({ data, scopeLabel }: { data: ProductPricingResult; scopeLabel: string }) {
+  const t = getT();
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <Tile label="Deals counted" value={String(data.dealsCounted)} sub={scopeLabel} />
-        <Tile label="Single-unit sales" value={String(data.singleUnitDeals)} sub={`${data.products.length} distinct products`} />
-        <Tile label="Package sales" value={String(data.packageDeals)} sub={`${data.packages.length} distinct packages`} />
+        <Tile label={t('productPricing.dealsCounted')} value={String(data.dealsCounted)} sub={scopeLabel} />
+        <Tile label={t('productPricing.singleUnitSales')} value={String(data.singleUnitDeals)} sub={t('productPricing.distinctProducts', { n: data.products.length })} />
+        <Tile label={t('productPricing.packageSales')} value={String(data.packageDeals)} sub={t('productPricing.distinctPackages', { n: data.packages.length })} />
       </div>
 
       <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
         <div className="border-b border-gray-100 px-5 py-3">
-          <h3 className="text-base font-bold text-gray-900">Products — sold, approved &amp; installed</h3>
-          <p className="text-xs text-gray-500">Units by product across all deals (one per product per deal). Installed = deals whose installation date has been reached.</p>
+          <h3 className="text-base font-bold text-gray-900">{t('productPricing.productsSectionTitle')}</h3>
+          <p className="text-xs text-gray-500">{t('productPricing.productsSectionBlurb')}</p>
         </div>
         {data.productCounts.length === 0 ? (
-          <p className="px-5 py-8 text-center text-sm text-gray-500">No products yet.</p>
+          <p className="px-5 py-8 text-center text-sm text-gray-500">{t('productPricing.noProducts')}</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[520px]">
               <thead>
                 <tr className="bg-gray-50 text-[11px] uppercase text-gray-500">
-                  <th className="px-4 py-3 text-left">Product</th>
-                  <th className="px-4 py-3 text-right">Sold</th>
-                  <th className="px-4 py-3 text-right">Approved</th>
-                  <th className="px-4 py-3 text-right">Installed</th>
+                  <th className="px-4 py-3 text-left">{t('productPricing.colProduct')}</th>
+                  <th className="px-4 py-3 text-right">{t('productPricing.colSold')}</th>
+                  <th className="px-4 py-3 text-right">{t('productPricing.colApproved')}</th>
+                  <th className="px-4 py-3 text-right">{t('productPricing.colInstalled')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -98,26 +101,30 @@ export function ProductPricingReport({ data, scopeLabel }: { data: ProductPricin
       </section>
 
       <StatTable
-        title="Average price by product"
-        blurb="Stand-alone sales — deals where a single product was sold."
+        title={t('productPricing.avgByProductTitle')}
+        blurb={t('productPricing.avgByProductBlurb')}
         rows={data.products}
-        unitLabel="Product"
+        unitLabel={t('productPricing.unitProduct')}
+        t={t}
       />
 
       <StatTable
-        title="Average price by package"
-        blurb="Deals where two or more products were sold together, grouped by the exact combination."
+        title={t('productPricing.avgByPackageTitle')}
+        blurb={t('productPricing.avgByPackageBlurb')}
         rows={data.packages}
-        unitLabel="Package"
+        unitLabel={t('productPricing.unitPackage')}
+        t={t}
       />
 
       <ManualPackageBuilder deals={data.deals} products={data.allProducts} />
 
 
       <p className="px-1 text-xs text-gray-400">
-        Averages use approved deals (approved amount, falling back to requested). <strong>After-tax</strong> is the full sale
-        total; <strong>net</strong> backs the tax out using the deal&rsquo;s province rate. A deal with one product counts
-        toward that product&rsquo;s average; two or more counts as a package.
+        {t('productPricing.footnotePart1')}
+        <strong>{t('productPricing.footnoteAfterTax')}</strong>
+        {t('productPricing.footnotePart2')}
+        <strong>{t('productPricing.footnoteNet')}</strong>
+        {t('productPricing.footnotePart3')}
       </p>
     </div>
   );

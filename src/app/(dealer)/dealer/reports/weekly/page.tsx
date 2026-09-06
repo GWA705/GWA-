@@ -6,10 +6,12 @@ import { reportingJournalEnabled } from '@/lib/reporting/journalRead';
 import { buildStoreWeekReport } from '@/lib/reporting/storeWeek';
 import { StoreWeekView } from '@/app/(staff)/staff/reports/StoreWeekView';
 import { DealerReportTabs } from '../DealerReportTabs';
+import { getT, getLocale } from '@/i18n/server';
+import type { TFunction } from '@/i18n/translator';
 
 export const dynamic = 'force-dynamic';
 
-function weekOptions(count: number): { value: string; label: string }[] {
+function weekOptions(count: number, t: TFunction, intlLocale: string): { value: string; label: string }[] {
   const now = new Date();
   const out: { value: string; label: string }[] = [];
   for (let i = 0; i < count; i += 1) {
@@ -20,8 +22,9 @@ function weekOptions(count: number): { value: string; label: string }[] {
     monday.setDate(d.getDate() + (day === 0 ? -6 : 1 - day));
     const sunday = new Date(monday);
     sunday.setDate(monday.getDate() + 6);
-    const fmt = (x: Date) => x.toLocaleString('en-US', { month: 'short', day: 'numeric' });
-    out.push({ value: String(-i), label: i === 0 ? `This week (${fmt(monday)}–${fmt(sunday)})` : `${fmt(monday)} – ${fmt(sunday)}` });
+    const fmt = (x: Date) => x.toLocaleString(intlLocale, { month: 'short', day: 'numeric' });
+    const range = `${fmt(monday)}–${fmt(sunday)}`;
+    out.push({ value: String(-i), label: i === 0 ? t('reports.thisWeek', { range }) : `${fmt(monday)} – ${fmt(sunday)}` });
   }
   return out;
 }
@@ -30,7 +33,9 @@ export default async function DealerWeeklyReportPage({ searchParams }: { searchP
   const user = await requireDealerAccess();
   if (!(await hasDealerReportAccess(user)) || !user.dealerId) notFound();
 
-  const weeks = weekOptions(12);
+  const t = getT();
+  const intlLocale = getLocale() === 'fr' ? 'fr-CA' : 'en-US';
+  const weeks = weekOptions(12, t, intlLocale);
   const weeksOffset = Math.min(0, parseInt(searchParams.weeks ?? '-1', 10) || -1);
   const asOf = new Date();
   asOf.setDate(asOf.getDate() + weeksOffset * 7);
@@ -43,7 +48,7 @@ export default async function DealerWeeklyReportPage({ searchParams }: { searchP
 
       <form method="GET" className="flex flex-wrap items-end gap-3">
         <div>
-          <label className="label" htmlFor="weeks">Week</label>
+          <label className="label" htmlFor="weeks">{t('reports.week')}</label>
           <select id="weeks" name="weeks" defaultValue={String(weeksOffset)} className="input min-w-[200px]">
             {weeks.map((w) => (
               <option key={w.value} value={w.value}>
@@ -53,17 +58,17 @@ export default async function DealerWeeklyReportPage({ searchParams }: { searchP
           </select>
         </div>
         <button type="submit" className="btn-primary">
-          View
+          {t('reports.view')}
         </button>
       </form>
 
       {!reportingJournalEnabled() ? (
         <div className="rounded-lg border border-gray-200 bg-gray-50 p-5 text-sm text-gray-600">
-          Your reports aren&apos;t available yet. Please check back soon or{' '}
+          {t('reports.notReady')}
           <Link href="/dealer/support" className="text-sky-600 hover:underline">
-            contact Georgian Water & Air
+            {t('reports.contactLink')}
           </Link>
-          .
+          {t('reports.notReadyAfter')}
         </div>
       ) : (
         <StoreWeekView report={await buildStoreWeekReport(user.dealerId, asOf)} showLinks={false} />

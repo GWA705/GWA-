@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from 'react';
 import type { ReportRow } from '@/lib/reporting/reportDataset';
 import { saveCustomReport, deleteCustomReport, type SavedReportVM } from '@/app/(dealer)/dealer/reports/customActions';
+import { useT } from '@/i18n/client';
 
 const money = (n: number) => `$${n.toLocaleString('en-CA', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
@@ -56,6 +57,7 @@ interface Agg { key: string; label: string; count: number; total: number; avg: n
  * the office's own deals — instant, tenant-isolated.
  */
 export function CustomReportBuilder({ rows, saved = [] }: { rows: ReportRow[]; saved?: SavedReportVM[] }) {
+  const t = useT();
   const [measure, setMeasure] = useState<Measure>('count');
   const [dimension, setDimension] = useState<Dimension>('ym');
   const [range, setRange] = useState<Range>('12m');
@@ -71,18 +73,18 @@ export function CustomReportBuilder({ rows, saved = [] }: { rows: ReportRow[]; s
     setDimension(s.config.dimension as Dimension);
     setRange(s.config.range as Range);
     setStatuses(new Set(s.config.statuses ?? []));
-    setNote(`Loaded “${s.name}”.`);
+    setNote(t('customReport.loadedNote', { name: s.name }));
   }
 
   function doSave() {
     const trimmed = name.trim();
-    if (!trimmed) { setNote('Give the report a name first.'); return; }
+    if (!trimmed) { setNote(t('customReport.nameRequired')); return; }
     start(async () => {
       const res = await saveCustomReport({ name: trimmed, config: { measure, dimension, range, statuses: [...statuses] } });
       if ('error' in res) { setNote(res.error); return; }
       setSavedList((prev) => [{ id: res.id, name: res.name, config: { measure, dimension, range, statuses: [...statuses] } }, ...prev]);
       setName('');
-      setNote(`Saved “${res.name}”.`);
+      setNote(t('customReport.savedNote', { name: res.name }));
     });
   }
 
@@ -171,19 +173,19 @@ export function CustomReportBuilder({ rows, saved = [] }: { rows: ReportRow[]; s
   return (
     <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
       <div className="border-b border-gray-100 px-5 py-3">
-        <h3 className="text-base font-bold text-gray-900">Custom report</h3>
-        <p className="text-xs text-gray-500">Pick what to measure, how to group it, and the range. Your office only.</p>
+        <h3 className="text-base font-bold text-gray-900">{t('customReport.title')}</h3>
+        <p className="text-xs text-gray-500">{t('customReport.subtitle')}</p>
       </div>
 
       {/* Saved reports + save current view */}
       <div className="space-y-3 border-b border-gray-100 bg-blue-50/50 px-5 py-3">
         {savedList.length > 0 && (
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Saved</span>
+            <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">{t('customReport.savedHeading')}</span>
             {savedList.map((s) => (
               <span key={s.id} className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white py-1 pl-3 pr-1 text-sm">
                 <button type="button" onClick={() => loadSaved(s)} className="font-medium text-blue-700 hover:underline">{s.name}</button>
-                <button type="button" onClick={() => doDelete(s.id)} disabled={pending} aria-label={`Delete ${s.name}`} className="flex h-5 w-5 items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-red-600">×</button>
+                <button type="button" onClick={() => doDelete(s.id)} disabled={pending} aria-label={t('customReport.deleteReport', { name: s.name })} className="flex h-5 w-5 items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-red-600">×</button>
               </span>
             ))}
           </div>
@@ -192,38 +194,38 @@ export function CustomReportBuilder({ rows, saved = [] }: { rows: ReportRow[]; s
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Name this report…"
+            placeholder={t('customReport.namePlaceholder')}
             maxLength={80}
             className="input h-9 w-56 text-sm"
           />
           <button type="button" onClick={doSave} disabled={pending} className="btn-primary text-sm disabled:opacity-50">
-            {pending ? 'Saving…' : 'Save current view'}
+            {pending ? t('customReport.saving') : t('customReport.saveView')}
           </button>
           {note && <span className="text-xs text-gray-500">{note}</span>}
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-3 border-b border-gray-100 bg-gray-50 p-4 sm:grid-cols-3">
-        <Field label="Measure">
+        <Field label={t('customReport.fieldMeasure')}>
           <select value={measure} onChange={(e) => setMeasure(e.target.value as Measure)} className="input">
-            {MEASURES.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
+            {MEASURES.map((m) => <option key={m.key} value={m.key}>{t(`customReport.measure_${m.key}`)}</option>)}
           </select>
         </Field>
-        <Field label="Group by">
+        <Field label={t('customReport.fieldGroupBy')}>
           <select value={dimension} onChange={(e) => setDimension(e.target.value as Dimension)} className="input">
             {DIMENSIONS.map((d) => <option key={d.key} value={d.key}>{d.label}</option>)}
           </select>
         </Field>
-        <Field label="Date range">
+        <Field label={t('customReport.fieldRange')}>
           <select value={range} onChange={(e) => setRange(e.target.value as Range)} className="input">
-            {RANGES.map((r) => <option key={r.key} value={r.key}>{r.label}</option>)}
+            {RANGES.map((r) => <option key={r.key} value={r.key}>{t(`customReport.range_${r.key}`)}</option>)}
           </select>
         </Field>
       </div>
 
       {allStatuses.length > 0 && (
         <div className="flex flex-wrap items-center gap-2 border-b border-gray-100 px-4 py-3">
-          <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Status</span>
+          <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">{t('customReport.statusHeading')}</span>
           {allStatuses.map((s) => {
             const on = statuses.has(s.raw);
             return (
@@ -237,34 +239,34 @@ export function CustomReportBuilder({ rows, saved = [] }: { rows: ReportRow[]; s
               </button>
             );
           })}
-          {statuses.size > 0 && <button type="button" onClick={() => setStatuses(new Set())} className="text-xs font-semibold text-gray-400 hover:text-red-600">Clear</button>}
+          {statuses.size > 0 && <button type="button" onClick={() => setStatuses(new Set())} className="text-xs font-semibold text-gray-400 hover:text-red-600">{t('customReport.clear')}</button>}
         </div>
       )}
 
       <div className="flex flex-wrap items-center justify-between gap-4 px-5 py-3 text-sm">
         <div className="flex flex-wrap gap-4">
-          <span className="text-gray-500">In range: <strong className="text-gray-900">{dealsInScope}</strong> deals</span>
-          <span className="text-gray-500">Total value: <strong className="text-gray-900">{money(valueInScope)}</strong></span>
+          <span className="text-gray-500">{t('customReport.inRangePrefix')} <strong className="text-gray-900">{dealsInScope}</strong> {t('customReport.dealsWord')}</span>
+          <span className="text-gray-500">{t('customReport.totalValue')} <strong className="text-gray-900">{money(valueInScope)}</strong></span>
         </div>
         {aggs.length > 0 && (
           <button type="button" onClick={exportCsv} className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50">
-            Export CSV
+            {t('customReport.exportCsv')}
           </button>
         )}
       </div>
 
       {aggs.length === 0 ? (
-        <p className="px-5 pb-8 text-center text-sm text-gray-500">No deals match this range/filter.</p>
+        <p className="px-5 pb-8 text-center text-sm text-gray-500">{t('customReport.noMatch')}</p>
       ) : (
         <div className="overflow-x-auto px-4 pb-4">
           <table className="w-full min-w-[560px]">
             <thead>
               <tr className="bg-gray-50 text-[11px] uppercase text-gray-500">
                 <th className="px-4 py-2 text-left">{DIMENSIONS.find((d) => d.key === dimension)?.label}</th>
-                <th className="px-4 py-2 text-left">{MEASURES.find((m) => m.key === measure)?.label}</th>
-                <th className="px-4 py-2 text-right">Deals</th>
-                <th className="px-4 py-2 text-right">Total</th>
-                <th className="px-4 py-2 text-right">Avg</th>
+                <th className="px-4 py-2 text-left">{t(`customReport.measure_${measure}`)}</th>
+                <th className="px-4 py-2 text-right">{t('customReport.colDeals')}</th>
+                <th className="px-4 py-2 text-right">{t('customReport.colTotal')}</th>
+                <th className="px-4 py-2 text-right">{t('customReport.colAvg')}</th>
               </tr>
             </thead>
             <tbody>
@@ -288,7 +290,7 @@ export function CustomReportBuilder({ rows, saved = [] }: { rows: ReportRow[]; s
           </table>
           {dimension === 'product' && (measure === 'total' || measure === 'avg') && (
             <p className="px-4 pt-2 text-xs text-gray-400">
-              Note: a deal has one total, so when grouping $ by product a multi-product deal&rsquo;s full amount is counted under each of its products.
+              {t('customReport.productNote')}
             </p>
           )}
         </div>

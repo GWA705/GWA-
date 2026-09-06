@@ -1,3 +1,5 @@
+import { getT } from '@/i18n/server';
+
 const money = (n: number) => `$${Math.round(n).toLocaleString('en-CA')}`;
 
 export interface RepStat {
@@ -9,6 +11,7 @@ export interface RepStat {
 }
 
 export function SalesRepReport({ reps, rangeLabel }: { reps: RepStat[]; rangeLabel: string }) {
+  const t = getT();
   const peak = Math.max(1, ...reps.map((r) => r.total));
   const totalDeals = reps.reduce((s, r) => s + r.count, 0);
   const totalValue = reps.reduce((s, r) => s + r.total, 0);
@@ -17,37 +20,37 @@ export function SalesRepReport({ reps, rangeLabel }: { reps: RepStat[]; rangeLab
     <div className="space-y-4">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-          <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Sales reps</div>
+          <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t('salesRepReport.statSalesReps')}</div>
           <div className="mt-1 text-2xl font-bold text-gray-900 tabular-nums">{reps.length}</div>
           <div className="text-xs text-gray-500">{rangeLabel}</div>
         </div>
         <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-          <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Deals</div>
+          <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t('salesRepReport.statDeals')}</div>
           <div className="mt-1 text-2xl font-bold text-gray-900 tabular-nums">{totalDeals}</div>
         </div>
         <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-          <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Total value</div>
+          <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t('salesRepReport.statTotalValue')}</div>
           <div className="mt-1 text-2xl font-bold text-gray-900 tabular-nums">{money(totalValue)}</div>
         </div>
       </div>
 
       <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
         <div className="border-b border-gray-100 px-5 py-3">
-          <h3 className="text-base font-bold text-gray-900">By sales rep</h3>
-          <p className="text-xs text-gray-500">Each rep&rsquo;s deals, total and average sale value — {rangeLabel.toLowerCase()}.</p>
+          <h3 className="text-base font-bold text-gray-900">{t('salesRepReport.sectionTitle')}</h3>
+          <p className="text-xs text-gray-500">{t('salesRepReport.sectionHint', { range: rangeLabel.toLowerCase() })}</p>
         </div>
         {reps.length === 0 ? (
-          <p className="px-5 py-8 text-center text-sm text-gray-500">No sales in this range yet.</p>
+          <p className="px-5 py-8 text-center text-sm text-gray-500">{t('salesRepReport.emptyState')}</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[640px]">
               <thead>
                 <tr className="bg-gray-50 text-[11px] uppercase text-gray-500">
-                  <th className="px-4 py-3 text-left">Sales rep</th>
-                  <th className="px-4 py-3 text-left">Total value</th>
-                  <th className="px-4 py-3 text-right">Deals</th>
-                  <th className="px-4 py-3 text-right">Avg</th>
-                  <th className="px-4 py-3 text-left">Top program</th>
+                  <th className="px-4 py-3 text-left">{t('salesRepReport.colSalesRep')}</th>
+                  <th className="px-4 py-3 text-left">{t('salesRepReport.colTotalValue')}</th>
+                  <th className="px-4 py-3 text-right">{t('salesRepReport.colDeals')}</th>
+                  <th className="px-4 py-3 text-right">{t('salesRepReport.colAvg')}</th>
+                  <th className="px-4 py-3 text-left">{t('salesRepReport.colTopProgram')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -72,7 +75,7 @@ export function SalesRepReport({ reps, rangeLabel }: { reps: RepStat[]; rangeLab
           </div>
         )}
       </section>
-      <p className="px-1 text-xs text-gray-400">Based on approved-or-beyond deals, using the approved amount (falling back to requested).</p>
+      <p className="px-1 text-xs text-gray-400">{t('salesRepReport.footnote')}</p>
     </div>
   );
 }
