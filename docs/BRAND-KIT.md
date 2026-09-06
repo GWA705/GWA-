@@ -97,6 +97,22 @@ introduce a third variant.
 | **Home Depot Installer badge** | Credibility placement, web/marketing | `HomeDepotInstaller.png` |
 | **Home Depot Home Services lockup** | Sales agreements and program documents | See below |
 
+**On file (raster, added 2026-09-06 by Sean).** Vector (SVG/EPS) is still
+outstanding, but these PNG/JPG lockups are now committed for use in the portal
+and deliverables:
+
+| File | What it is | Best use |
+|---|---|---|
+| `public/GWANewLogo.png` | Primary horizontal lockup, **transparent**, 3210×1311 | Default web / on-screen use, light backgrounds |
+| `public/brand/gwa-logo-horizontal.png` | Same as above (organized copy) | Reports, decks on light grounds |
+| `public/brand/gwa-logo-horizontal-divider.jpg` | Horizontal lockup with the `GWA │ Georgian / Water & Air` divider, white bg, 958×305 | Headers where a solid white field is acceptable |
+| `public/brand/gwa-logo-badge.png` | Circular badge in a blue ring, 1024×1024 | Social avatar, favicon, app icon |
+
+**Still missing:** a true **reverse (white-on-dark)** lockup and vector source
+files. Until the reverse logo is supplied, dark-band placements (e.g. a PDF cover
+per §9.1) fall back to the primary logo on a light field — do not recolour the
+primary logo to fake a reverse version (§3 rules).
+
 ### 3.1 Print lockup (letterhead / forms)
 
 The Sales Agreement letterhead uses a fuller lockup than the web logo:
@@ -355,7 +371,8 @@ These apply to every report, dashboard, and analysis produced under the GWA name
 |---|---|---|
 | Colour palette hex codes | Outstanding | Squarespace → Design → Site Styles |
 | Heading & body typefaces | Outstanding | Squarespace → Design → Site Styles |
-| Logo source files (SVG/EPS, transparent) | Outstanding | Designer or Squarespace assets |
+| Logo raster lockups (PNG/JPG) | **On file** (2026-09-06) | `public/brand/` — see §3 |
+| Logo source files (SVG/EPS, vector) | Outstanding | Designer or Squarespace assets |
 | Address format decision | **Needs your call** | `10 - 11 King Street` vs `11 King St #10` |
 | "GHS" entity clarification | **Needs your call** | Georgian Health and Safety vs Georgian Home Service |
 | Partner marks still current? | Outstanding | Flavour, Dockside, OurHomes, CFIB |

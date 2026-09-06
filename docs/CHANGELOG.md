@@ -43,6 +43,14 @@ source of truth; this file is the human-readable index.
   auto-translates lead free-text via DeepL. (2026-09-06, Sean.)
 
 ## 2026-09-06
+- **Brand logo assets added.** Committed the Georgian Water & Air logo lockups
+  (supplied by Sean): `public/GWANewLogo.png` (primary horizontal, transparent) +
+  organized copies in `public/brand/` (horizontal-with-divider, and a circular
+  badge for avatar/favicon use). Updated `docs/BRAND-KIT.md` §3/§12 to record the
+  on-file rasters; vector (SVG/EPS) and a true reverse (white-on-dark) lockup are
+  still outstanding. Used the primary logo on the greyscale Bilingual Launch
+  Readiness Review PDF (the logo is the only colour element, per the §4 interim
+  rule).
 - **Bilingual coverage — file drop-zone (shared upload control).** Translated
   the drag-and-drop `FileDropInput` (drop prompt, Choose-file button, format
   hint, photo-optimizing state, "N files ready", "Click to change") — the last
