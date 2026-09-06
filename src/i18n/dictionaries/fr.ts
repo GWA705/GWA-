@@ -272,6 +272,14 @@ export const fr: Dictionary = {
       DECLINE: 'Refusée',
       FUND: 'Financement approuvé',
     },
+    fundingDocType: {
+      SIGNED_CONTRACT: 'Documents de financement signés (dossier complet)',
+      VOID_CHEQUE_OR_PAP: 'Chèque annulé ou formulaire de PPA',
+      INSTALL_PHOTO: 'Photos des produits installés',
+      SIGNED_HD_DOCUMENT: 'Documents Home Depot signés',
+      HD_WAIVER: 'Renonciation Home Depot signée et remplie',
+      OTHER: 'Autres documents à l’appui',
+    },
   },
   dealerStatus: {
     declined: 'Refusé',
@@ -1597,5 +1605,12 @@ export const fr: Dictionary = {
     noCardsWarning: '⚠ Ne téléversez pas de cartes de paiement. Les cartes de crédit, les cartes HD Consumer et les cartes FinanceIT à usage unique sont automatiquement rejetées.',
     chooseFirst: 'Choisissez d’abord de quel document il s’agit.',
     clear: 'Effacer',
+  },
+  outstanding: {
+    fixProblem: 'Corrigez le problème signalé (voir les messages et les notes de révision ci-dessous).',
+    addSerialOne: 'Ajoutez le numéro de série pour : {list}.',
+    addSerialMany: 'Ajoutez les numéros de série pour : {list}.',
+    upload: 'Téléversez : {label}.',
+    submitReady: 'Tout est téléversé — soumettez le dossier de financement pour l’envoyer à Georgian Water & Air.',
   },
 };

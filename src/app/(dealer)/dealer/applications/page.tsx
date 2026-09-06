@@ -50,7 +50,7 @@ export default async function DealerApplications() {
       requiresSerials: !!a.financeCompany?.requiresSerialPerProduct && a.productsSold.length > 0,
       serialNumbers: a.serialNumbers,
       fundingDocs: a.documents,
-    });
+    }, t);
     const stage = dealStage(a.status, isPaid);
     const amount = Number(a.approvedAmount ?? a.requestedAmount);
     return {

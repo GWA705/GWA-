@@ -1,5 +1,5 @@
 import type { TFunction } from '@/i18n/translator';
-import type { ProgramType, ProgramCategory, PaymentMethod } from '@prisma/client';
+import type { ProgramType, ProgramCategory, PaymentMethod, DocumentType } from '@prisma/client';
 
 /**
  * Locale-aware, DISPLAY-ONLY labels for the deal enums (program type/category,
@@ -21,6 +21,11 @@ export const programDisplayLabel = (t: TFunction, type: ProgramType, category: P
   `${programTypeLabel(t, type)} · ${programCategoryLabel(t, category)}`;
 
 export const paymentMethodLabel = (t: TFunction, v: PaymentMethod): string => t(`enum.paymentMethod.${v}`);
+
+/** Localized funding-document type label (display only). Mirrors the English
+ *  labels in constants.FUNDING_DOCUMENT_TYPES, which stay the source of truth
+ *  for anything written to a record. */
+export const fundingDocTypeLabel = (t: TFunction, v: DocumentType): string => t(`enum.fundingDocType.${v}`);
 
 /** Localized recorded-decision label (APPROVE/CONDITIONAL/…). Display only. */
 export const decisionDisplayLabel = (t: TFunction, type: string): string =>

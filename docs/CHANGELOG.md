@@ -43,6 +43,16 @@ source of truth; this file is the human-readable index.
   auto-translates lead free-text via DeepL. (2026-09-06, Sean.)
 
 ## 2026-09-06
+- **Bilingual coverage — deal-detail "what's needed" + funding-doc labels
+  (dealer).** Closed the last dealer-facing gap: `dealerOutstanding()` now takes
+  a translator and returns localized to-dos (fix-problem, add-serials,
+  upload-{doc}, ready-to-submit) for the deal page "What's needed from you" card
+  and the applications-list "Action needed" chip. Added a display-only
+  `fundingDocTypeLabel` helper (`enum.fundingDocType.*`) + `outstanding`
+  namespace; the dealer deal-detail funding checklist now shows localized
+  document-type names. The English `constants.ts` labels stay the source of
+  truth for reviewer counts, exports and any record. Fixed a "GWA" brand slip in
+  the submit-package prompt.
 - **Bilingual coverage — shared dealer components (upload, product picker,
   doc viewer).** Translated the file **upload form** (`UploadForm` — category
   prompt, "describe it", the no-payment-cards warning, submit/clear states), the

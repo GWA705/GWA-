@@ -268,6 +268,14 @@ export const en = {
       DECLINE: 'Declined',
       FUND: 'Funding approved',
     },
+    fundingDocType: {
+      SIGNED_CONTRACT: 'Signed finance docs (full package)',
+      VOID_CHEQUE_OR_PAP: 'Void cheque or PAP form',
+      INSTALL_PHOTO: 'Pictures of installed products',
+      SIGNED_HD_DOCUMENT: 'Signed Home Depot documents',
+      HD_WAIVER: 'Signed & completed Home Depot waiver',
+      OTHER: 'Other supporting documents',
+    },
   },
   dealerStatus: {
     declined: 'Declined',
@@ -1593,6 +1601,13 @@ export const en = {
     noCardsWarning: '⚠ Do not upload payment cards. Credit Cards, HD Consumer Cards, and FinanceIT one-time-use cards are automatically rejected.',
     chooseFirst: 'Choose what the document is first.',
     clear: 'Clear',
+  },
+  outstanding: {
+    fixProblem: 'Fix the flagged problem (see the messages and review notes below).',
+    addSerialOne: 'Add serial number for: {list}.',
+    addSerialMany: 'Add serial numbers for: {list}.',
+    upload: 'Upload: {label}.',
+    submitReady: 'Everything is uploaded — submit the funding package to send it to Georgian Water & Air.',
   },
 } as const;
 

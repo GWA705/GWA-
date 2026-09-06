@@ -14,7 +14,7 @@ import { UploadForm } from '@/components/UploadForm';
 import { SerialNumberForm } from '@/components/SerialNumberForm';
 import { ProductSerialForm } from '@/components/ProductSerialForm';
 import { fundingDocumentTypesFor, REVIEWER_DISPLAY, decisionTone } from '@/lib/constants';
-import { programDisplayLabel, soapDisplayLabel, decisionDisplayLabel } from '@/lib/enumLabels';
+import { programDisplayLabel, soapDisplayLabel, decisionDisplayLabel, fundingDocTypeLabel } from '@/lib/enumLabels';
 import { getT } from '@/i18n/server';
 import { dealerFacingStatusLabel, hasDealerReturned } from '@/lib/reviewerFlow';
 import { dealerOutstanding } from '@/lib/outstanding';
@@ -96,7 +96,7 @@ export default async function DealerApplicationDetail({
     requiresSerials,
     serialNumbers: app.serialNumbers,
     fundingDocs,
-  });
+  }, t);
 
   const submitFunding = submitFundingAction.bind(null, app.id);
 
@@ -352,7 +352,7 @@ export default async function DealerApplicationDetail({
                       <span className={`flex h-6 w-6 flex-none items-center justify-center rounded-full text-xs font-bold ${dotCls}`} aria-hidden>
                         {dotIcon}
                       </span>
-                      {ft.label}
+                      {fundingDocTypeLabel(t, ft.type)}
                       {!ft.required && <span className="text-xs font-normal text-gray-400">{t('dealDetail.optional')}</span>}
                     </span>
                     <span className={`badge ${badgeCls}`}>{badgeLabel}</span>
