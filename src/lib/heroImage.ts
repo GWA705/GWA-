@@ -17,16 +17,25 @@ function dayOfYear(d = new Date()): number {
   return Math.floor((d.getTime() - start.getTime()) / 86_400_000);
 }
 
+// Time-of-day dashboard hero files live in `public/` named `hero-<hour>.png`
+// (e.g. Hero-12.png, hero-15.png). This deliberately matches `hero-<digit>` so
+// the page heroes (`marketplace-hero.png`, …) and the default `hero-banner.png`
+// are NOT treated as time-of-day images.
+const TIME_HERO = /^hero-\d/i;
+
 /**
- * All hero images in `public/hero/`, sorted, as web paths. The dashboard picks
- * the right one for the current time of day on the client (see HeroBackdrop):
- * name files by their start hour — 05, 12, 15, 17, 19, 21, 23 — e.g.
- * `05-sunrise.png`, `19-dusk.png`. Falls back to any/all when none match.
+ * Time-of-day dashboard hero images from `public/`, sorted, as web paths. The
+ * client (HeroBackdrop) picks the one whose hour matches the current slot
+ * (5, 12, 15, 17, 19, 21, 23) and crossfades; `hero-banner.png` is the default
+ * for any slot without its own image.
  */
 export async function listHeroImages(): Promise<string[]> {
   try {
-    const dir = path.join(process.cwd(), 'public', 'hero');
-    return (await readdir(dir)).filter((f) => IMG.test(f)).sort().map((f) => `/hero/${f}`);
+    const dir = path.join(process.cwd(), 'public');
+    return (await readdir(dir))
+      .filter((f) => IMG.test(f) && TIME_HERO.test(f))
+      .sort()
+      .map((f) => `/${f}`);
   } catch {
     return [];
   }
