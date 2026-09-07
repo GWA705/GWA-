@@ -38,8 +38,13 @@ function HStat({
 }) {
   return (
     <div className={`px-4 py-4 sm:px-5 ${className}`}>
-      <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-white/75">{label}</div>
-      <div className={`font-extrabold tabular-nums leading-none text-white ${emphasize ? 'text-3xl sm:text-4xl' : 'text-xl sm:text-2xl'}`}>
+      <div className="mb-1 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-white/80">
+        <span className="h-2 w-0.5 rounded-full bg-white/50" aria-hidden />
+        {label}
+      </div>
+      <div
+        className={`font-extrabold tabular-nums leading-none text-white [text-shadow:0_1px_2px_rgba(120,40,0,0.28)] ${emphasize ? 'text-3xl sm:text-4xl' : 'text-xl sm:text-2xl'}`}
+      >
         {node ?? value}
       </div>
     </div>
@@ -197,22 +202,38 @@ export function MonthlyReportView({ report }: { report: OfficeMonthlyReport }) {
             <div className="text-xs text-gray-500">{report.monthLabel}</div>
           </div>
         </div>
-        {/* Home Depot–orange KPI band: bold, high-contrast, adds depth under the
-            white header. Mobile: This month spans full width (large) with the two
-            comparison stats side-by-side beneath it; sm+: three across. */}
-        <div className="grid grid-cols-2 bg-gradient-to-br from-[#F96302] to-[#E1560B] shadow-[inset_0_1px_0_rgba(255,255,255,0.22)] sm:grid-cols-3">
-          <HStat
-            label={t('reports.monthly.thisMonth')}
-            value={money(report.total.curMonth)}
-            emphasize
-            className="col-span-2 border-b border-white/20 sm:col-span-1 sm:border-b-0 sm:border-r sm:border-white/20"
+        {/* Home Depot–orange KPI band — given depth so it reads as a crafted panel,
+            not a flat slab: a diagonal deep→bright→deep gradient, a lit top-left
+            corner sheen, a hairline top highlight, and a soft bottom vignette.
+            Mobile: This month spans full width (large) with the two comparison
+            stats side-by-side beneath it; sm+: three across. */}
+        <div className="relative overflow-hidden">
+          {/* base diagonal gradient (deep → bright → deep) */}
+          <div className="absolute inset-0 bg-gradient-to-br from-[#E0550A] via-[#F96302] to-[#D24E05]" aria-hidden />
+          {/* lit corner sheen for dimension */}
+          <div
+            className="absolute inset-0"
+            style={{ background: 'radial-gradient(130% 150% at 0% 0%, rgba(255,255,255,0.26), rgba(255,255,255,0) 55%)' }}
+            aria-hidden
           />
-          <HStat
-            label={t('reports.monthly.vsLastMonth')}
-            node={<HPct value={report.total.momPct} t={t} />}
-            className="border-r border-white/20"
-          />
-          <HStat label={t('reports.monthly.yearToDate')} value={money(report.total.ytdTy)} />
+          {/* hairline top highlight + soft bottom vignette */}
+          <div className="absolute inset-x-0 top-0 h-px bg-white/45" aria-hidden />
+          <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/20 to-transparent" aria-hidden />
+
+          <div className="relative grid grid-cols-2 sm:grid-cols-3">
+            <HStat
+              label={t('reports.monthly.thisMonth')}
+              value={money(report.total.curMonth)}
+              emphasize
+              className="col-span-2 border-b border-white/15 shadow-[inset_-1px_0_0_rgba(0,0,0,0.06)] sm:col-span-1 sm:border-b-0 sm:border-r"
+            />
+            <HStat
+              label={t('reports.monthly.vsLastMonth')}
+              node={<HPct value={report.total.momPct} t={t} />}
+              className="border-r border-white/15 shadow-[inset_-1px_0_0_rgba(0,0,0,0.06)]"
+            />
+            <HStat label={t('reports.monthly.yearToDate')} value={money(report.total.ytdTy)} />
+          </div>
         </div>
       </div>
 
