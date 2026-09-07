@@ -44,6 +44,13 @@ source of truth; this file is the human-readable index.
   auto-translates lead free-text via DeepL. (2026-09-06, Sean.)
 
 ## 2026-09-07
+- **Admin: "View as dealer" no longer lands at the bottom of the page.** The
+  server-action redirect kept the admin list's scroll position; a `ScrollTopOnMount`
+  in the dealer layout now resets to the top when entering the dealer area.
+- **Admin: Georgian Water & Air pinned to the top of the Dealers list.** The list
+  is newest-first, so the house office sat far down; any account named "Georgian
+  Water …" now floats to the top (most-used "View as" target). Stable sort keeps
+  newest-first within the rest.
 - **Chat assistant: reliable replies + "trainable" knowledge + cost estimator.**
   Three changes: (1) **Reliability** — the assistant reply now comes from a
   dedicated `POST /api/chat/assistant` the widget awaits, instead of a

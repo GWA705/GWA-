@@ -4,6 +4,7 @@ import { DealerShell } from '@/components/DealerShell';
 import { WelcomeTour } from '@/components/WelcomeTour';
 import { AlertModal } from '@/components/AlertModal';
 import { ChatWidget } from '@/components/ChatWidget';
+import { ScrollTopOnMount } from '@/components/ScrollTopOnMount';
 import { alertWhereForUser } from '@/lib/alerts';
 import { newContentSectionsForUser, unreadMailCountForUser } from '@/lib/inbox';
 import { hasCalculatorAccess } from '@/lib/calculatorAccess';
@@ -65,6 +66,7 @@ export default async function DealerLayout({ children }: { children: React.React
 
   return (
     <>
+      <ScrollTopOnMount />
       {impersonatingName && (
         <div className="bg-amber-500 text-amber-950">
           <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-4 py-2 text-sm">

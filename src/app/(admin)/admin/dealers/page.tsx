@@ -12,6 +12,10 @@ export default async function DealersPage() {
     orderBy: { createdAt: 'desc' },
     include: { _count: { select: { users: true, applications: true } } },
   });
+  // Pin the Georgian Water & Air house account(s) to the top — it's the
+  // most-used "View as" target. Stable sort keeps newest-first within each group.
+  const isHouse = (name: string) => /georgian\s+water/i.test(name);
+  dealers.sort((a, b) => Number(isHouse(b.name)) - Number(isHouse(a.name)));
 
   return (
     <div className="space-y-6">
