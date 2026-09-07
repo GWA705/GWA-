@@ -51,6 +51,19 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-07
+- **New application: driver's-licence scan → autofill.** On the Priority/typed
+  new-customer form (Borrower identification), a "Scan driver's licence" button.
+  Primary path is on-device: photograph the BACK, decode the PDF417 barcode in the
+  browser (`@zxing/library`) and parse AAMVA (`src/lib/aamva.ts`) — exact fields,
+  image never leaves the device. Fallback: if no barcode reads, the image POSTs to
+  `/api/scan-id` (AWS Textract AnalyzeID) which returns fields and **stores
+  nothing**. Autofills ID type/number/province/expiry, first/middle/last name,
+  DOB, address/city/province/postal; dealer reviews before submit. Email/phone/
+  SIN/income stay manual (not on a licence). `DateOfBirthInput` gained a
+  `gwa:setdate:<name>` custom-event hook so the scan can set the controlled DOB.
+  **Ops:** the Textract fallback needs `textract:AnalyzeID` on the app's IAM role
+  (and AnalyzeID available in the region); until then the route returns
+  `not_enabled` and the on-device barcode path works alone.
 - **Journal archive: 2024 store-name → store-number resolver + preview/guard.**
   The 2024 book records the HD store as a CITY name (column F "HD Store" =
   "BARRIE", "PARRY SOUND") instead of the 4-digit number 2025+ use, so archived

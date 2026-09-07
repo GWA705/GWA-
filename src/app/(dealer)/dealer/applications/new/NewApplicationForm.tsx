@@ -14,6 +14,8 @@ import {
 } from '@/lib/constants';
 import type { PaymentMethod } from '@prisma/client';
 import { formatPhone, formatPostal } from '@/lib/format';
+import { LicenseScan } from '@/components/LicenseScan';
+import type { LicenseFields } from '@/lib/aamva';
 import { AddressAutocompleteInput } from '@/components/AddressAutocompleteInput';
 import { DateOfBirthInput } from '@/components/DateOfBirthInput';
 import { SplitPaymentInput } from '@/components/SplitPaymentInput';
@@ -197,6 +199,28 @@ export function NewApplicationForm({
   // HD lead pre-fill: enter the lead's 701 number, pull the customer's details
   // from the HD Leads Log and drop them into the matching fields.
   const [leadLookup, setLeadLookup] = useState<{ state: 'idle' | 'loading' | 'found' | 'notfound' | 'error'; msg?: string }>({ state: 'idle' });
+
+  // Driver's-licence scan → autofill the identity + address fields. The dealer
+  // reviews everything before submitting.
+  function fillFromLicense(f: LicenseFields) {
+    const set = (id: string, v?: string) => {
+      const el = document.getElementById(id) as HTMLInputElement | HTMLSelectElement | null;
+      if (el && v) el.value = v;
+    };
+    set('idType', "Driver's Licence");
+    set('govIdNumber', f.idNumber);
+    set('idProvince', f.province);
+    set('idExpiry', f.expiry); // yyyy-mm-dd for the native date input
+    set('applicantFirstName', f.firstName);
+    set('middleName', f.middleName);
+    set('applicantLastName', f.lastName);
+    set('applicantAddress', f.address);
+    set('city', f.city);
+    set('province', f.province);
+    if (f.postal) set('postalCode', f.postal);
+    // DOB is a controlled component — set it via its custom event hook.
+    if (f.dob) window.dispatchEvent(new CustomEvent('gwa:setdate:applicantDob', { detail: f.dob }));
+  }
 
   async function fillFromLead() {
     const box = document.getElementById('hdReference') as HTMLInputElement | null;
@@ -673,7 +697,8 @@ export function NewApplicationForm({
         <>
           {/* Borrower identification */}
           <section className="card p-6">
-            <h2 className="mb-4 text-base font-semibold text-gray-900">{t('newApplication.borrowerId')}</h2>
+            <h2 className="mb-1 text-base font-semibold text-gray-900">{t('newApplication.borrowerId')}</h2>
+            <LicenseScan onFields={fillFromLicense} className="mb-4" />
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label className="label" htmlFor="idType">{t('newApplication.photoIdType')}</label>

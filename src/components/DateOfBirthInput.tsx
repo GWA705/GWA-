@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useT } from '@/i18n/client';
 
 const MONTH_KEYS = [
@@ -45,6 +45,19 @@ export function DateOfBirthInput({
   const [m, setM] = useState(init.m);
   const [d, setD] = useState(init.d);
   const yearRef = useRef<HTMLInputElement>(null);
+
+  // Allow external autofill (e.g. the driver's-licence scan) to set this DOB:
+  // dispatch `window` CustomEvent `gwa:setdate:<name>` with a "YYYY-MM-DD" detail.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const val = String((e as CustomEvent).detail || '');
+      const p = parse(val);
+      if (p.y && p.m && p.d) { setY(p.y); setM(p.m); setD(p.d); }
+    };
+    const evt = `gwa:setdate:${name}`;
+    window.addEventListener(evt, handler as EventListener);
+    return () => window.removeEventListener(evt, handler as EventListener);
+  }, [name]);
 
   // Only emit a value once it's a complete, real date; otherwise stay empty so an
   // optional DOB remains optional and a half-typed date never submits.
