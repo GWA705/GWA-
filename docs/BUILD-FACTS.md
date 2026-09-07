@@ -49,6 +49,32 @@ N/A).
 - **Admin → System health** verifies every connection (DB, S3, email, service
   account, journals, leads) live, and shows the service-account share address.
 
+## Journal archive & office customer search (DON'T rebuild — it exists)
+- **Goal:** every office searches its OWN historical Home Depot customers in the
+  portal, fast and reliably — without reading Google Sheets on every search.
+- **Storage:** `JournalRecord` table (Prisma) = closed-year journal rows imported
+  into Postgres. One row per deal, attributed to an office via `dealerId`
+  (resolved at import by `buildDealerMatcher`: store number, then location name).
+- **The current year is NEVER archived** — it stays a **live read** all year so it
+  can be adjusted. Only **closed years** (`EARLIEST_JOURNAL_YEAR`..lastYear) go to
+  the DB. `importJournalYear()` refuses `year >= currentYear`.
+- **Single importer:** `src/lib/reporting/journalImport.ts` → `importJournalYear(year)`
+  (force live Sheets read → match offices → **deleteMany+createMany** replace of
+  that year, so re-sync never duplicates) and `archiveStatus(years)`. Used by BOTH:
+  - **CLI:** `scripts/import-journals.ts` (`npx tsx … --year=2024,2025 [--dry]`), and
+  - **In-portal admin UI:** staff → reports → **Connection** page, "Customer search
+    archive" section — per closed year: rows/matched/last-uploaded + **Upload to DB**
+    / **Re-sync** buttons (`importJournalYearAction`, ADMIN-only, audited
+    `JOURNAL_ARCHIVE_IMPORT`).
+- **Search path (already built):** `searchOfficeJournalArchive(dealerId, q)`
+  (`src/lib/journalArchive.ts`, reads `JournalRecord` by office, name/phone) →
+  blended with live portal deals in `src/lib/customerSearch.ts` → shown on the
+  dealer **Find customer** page (`FindCustomerPanel`; GWA team gets all-office
+  `CustomerSearch`). Gated by the **`isGlobalSearchEnabled()`** master setting —
+  the page 404s when off.
+- **To make it live for offices:** (1) turn on the global-search setting, and
+  (2) Upload each closed year on the Connection page (or run the CLI in prod).
+
 ## Roles, access control & tenancy
 - **Roles:** `DEALER_USER`, `REVIEWER`, `ADMIN`. `isDistributor` flags a dealer's
   owner/main contact.

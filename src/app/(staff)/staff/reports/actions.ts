@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { requireRole } from '@/lib/session';
 import { audit } from '@/lib/audit';
 import { setSetting, JOURNAL_SETTING_KEYS, type JournalWriteMode } from '@/lib/settings';
+import { importJournalYear, type ImportYearResult } from '@/lib/reporting/journalImport';
 
 /**
  * Switch where the "Write to Journal" feature writes deals: the safe TEST
@@ -22,4 +23,29 @@ export async function setJournalWriteModeAction(mode: JournalWriteMode): Promise
     detail: `journal write mode = ${value}`,
   });
   revalidatePath('/staff/reports/connection');
+}
+
+/**
+ * Upload (or re-sync) one closed journal year from Google Sheets into the
+ * Postgres archive, so office customer search reads it straight from the DB.
+ * Admin-only. Replaces the year's rows atomically (delete + bulk insert).
+ */
+export async function importJournalYearAction(year: number): Promise<ImportYearResult> {
+  const session = await requireRole('ADMIN');
+  const yr = Number(year);
+  if (!Number.isInteger(yr) || yr < 2000 || yr > 2100) {
+    return { year: yr, ok: false, rows: 0, matched: 0, unmatched: 0, error: 'Invalid year.' };
+  }
+  const res = await importJournalYear(yr);
+  await audit({
+    actorId: session.userId,
+    action: 'JOURNAL_ARCHIVE_IMPORT',
+    entityType: 'JournalRecord',
+    entityId: String(yr),
+    detail: res.ok
+      ? `archived ${yr}: ${res.rows} rows (${res.matched} matched)`
+      : `archive ${yr} failed: ${res.error ?? 'unknown error'}`,
+  });
+  revalidatePath('/staff/reports/connection');
+  return res;
 }

@@ -51,6 +51,19 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-07
+- **Journal archive: in-portal Upload/Re-sync for fast office customer search.**
+  Office customer search already reads a Postgres archive (`JournalRecord`), not
+  live Sheets — but that archive could only be filled by a CLI script. Added a
+  shared importer (`src/lib/reporting/journalImport.ts` — `importJournalYear`,
+  delete+bulk-insert replace; `archiveStatus`) used by both the CLI
+  (`scripts/import-journals.ts`, refactored) and a new **admin UI** on staff →
+  reports → Connection ("Customer search archive": per closed year, rows/matched/
+  last-uploaded + Upload/Re-sync). Admin-only action `importJournalYearAction`
+  (audited `JOURNAL_ARCHIVE_IMPORT`). **The current year is never archived** — it
+  stays a live read so it can be adjusted all year (`importJournalYear` refuses
+  `year >= currentYear`). No new table/migration — reuses existing `JournalRecord`.
+  Search still gated by `isGlobalSearchEnabled()`. See BUILD-FACTS "Journal archive
+  & office customer search".
 - **Heroes: image slots for Applications & New customer.** Both `SectionHero`s now
   accept a background photo like the other tabs. Drop `public/applications-hero.webp`
   and `public/new-customer-hero.webp` (wide ~1920×640 WebP) and they fill each hero

@@ -3,12 +3,14 @@ import { notFound } from 'next/navigation';
 import { requireRole } from '@/lib/session';
 import { canViewReportsArea } from '@/lib/reporting/access';
 import { journalDiagnostics, sheetIdFor, EARLIEST_JOURNAL_YEAR } from '@/lib/reporting/journalRead';
+import { archiveStatus } from '@/lib/reporting/journalImport';
 import { journalWriteTarget } from '@/lib/journal';
 import { isAdmin } from '@/lib/rbac';
 import { getT } from '@/i18n/server';
 import type { TFunction } from '@/i18n/translator';
 import { CopyField } from './CopyField';
 import { WriteModeToggle } from './WriteModeToggle';
+import { ArchiveControls, type YearArchiveRow } from './ArchiveControls';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,10 +26,34 @@ export default async function JournalConnectionPage() {
   }
   const years = [...yearSet].sort((a, b) => a - b);
   const admin = isAdmin(user);
-  const [diag, writeTarget] = await Promise.all([
+
+  // Closed years eligible for the DB archive: EARLIEST_JOURNAL_YEAR .. last year,
+  // with a sheet configured. The CURRENT year is deliberately excluded — it stays
+  // a live read all year so it can be adjusted.
+  const closedYears: number[] = [];
+  for (let y = EARLIEST_JOURNAL_YEAR; y < currentYear; y += 1) {
+    if (sheetIdFor(y)) closedYears.push(y);
+  }
+
+  const [diag, writeTarget, archive] = await Promise.all([
     journalDiagnostics(years),
     admin ? journalWriteTarget() : Promise.resolve(null),
+    admin && closedYears.length > 0 ? archiveStatus(closedYears) : Promise.resolve([]),
   ]);
+
+  const archiveRows: YearArchiveRow[] = closedYears
+    .slice()
+    .sort((a, b) => b - a)
+    .map((y) => {
+      const s = archive.find((a) => a.year === y);
+      return {
+        year: y,
+        rows: s?.rows ?? 0,
+        matched: s?.matched ?? 0,
+        lastImportedAt: s?.lastImportedAt ? s.lastImportedAt.toISOString() : null,
+        configured: Boolean(sheetIdFor(y)),
+      };
+    });
 
   return (
     <div className="max-w-2xl space-y-5">
@@ -94,6 +120,23 @@ export default async function JournalConnectionPage() {
               </>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Archive closed years to the database (admins only) — powers fast, reliable
+          office customer search. The current year is intentionally not listed: it
+          stays a live read so it can be adjusted throughout the year. */}
+      {admin && (
+        <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
+          <div className="border-b border-gray-100 px-5 py-3">
+            <h2 className="text-sm font-semibold text-gray-900">Customer search archive (database)</h2>
+            <p className="mt-1 text-xs text-gray-500">
+              Upload each closed year’s journal into the database so office customer search is fast and reliable
+              (no live sheet read per search). Re-sync a year to pull in any later edits. The current year
+              ({currentYear}) always stays a live read and isn’t archived.
+            </p>
+          </div>
+          <ArchiveControls rows={archiveRows} />
         </div>
       )}
 

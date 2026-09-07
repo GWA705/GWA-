@@ -20,6 +20,7 @@
 import { prisma } from '../src/lib/db';
 import { readJournal, sheetIdFor, EARLIEST_JOURNAL_YEAR } from '../src/lib/reporting/journalRead';
 import { buildDealerMatcher } from '../src/lib/reporting/dealerMatch';
+import { importJournalYear } from '../src/lib/reporting/journalImport';
 
 function parseArgs() {
   const args = process.argv.slice(2);
@@ -64,57 +65,36 @@ async function main() {
       console.log(`  ${year}: ERROR — ${read.error}`);
       continue;
     }
-    let matched = 0;
-    const byDealer = new Map<string, number>();
-
-    for (const d of read.deals) {
-      const dealerId = matchDeal(d);
-      if (dealerId) {
-        matched += 1;
-        byDealer.set(dealerId, (byDealer.get(dealerId) ?? 0) + 1);
+    // DRY RUN: preview office attribution without writing anything.
+    if (dry) {
+      let matched = 0;
+      const byDealer = new Map<string, number>();
+      for (const d of read.deals) {
+        const dealerId = matchDeal(d);
+        if (dealerId) {
+          matched += 1;
+          byDealer.set(dealerId, (byDealer.get(dealerId) ?? 0) + 1);
+        }
       }
-      if (!dry) {
-        const data = {
-          year,
-          tab: d.tab,
-          rowNum: d.rowNum,
-          dealerId,
-          location: d.location || '',
-          customerName: `${d.firstName} ${d.lastName}`.trim(),
-          firstName: d.firstName || '',
-          lastName: d.lastName || '',
-          phone: d.phone || '',
-          address: d.address || '',
-          hdRef: d.hdRef || '',
-          hdStore: d.hdStore || '',
-          storeNumber: d.storeNumber,
-          product: d.product || '',
-          result: d.result || '',
-          financeBucket: d.financeBucket || '',
-          sourceCategory: d.sourceCategory || '',
-          saleDate: d.date,
-          datePaid: d.datePaid,
-          gross: d.gross || null,
-          net: d.netToGWA || null,
-          isHD: d.isHD,
-          isMisc: d.isMisc,
-          link: d.linkUrl || '',
-        };
-        await prisma.journalRecord.upsert({
-          where: { year_tab_rowNum: { year, tab: d.tab, rowNum: d.rowNum } },
-          create: data,
-          update: data,
-        });
-      }
+      grandTotal += read.deals.length;
+      grandMatched += matched;
+      console.log(
+        `  ${year}: ${read.deals.length} rows, ${matched} matched to an office, ${read.deals.length - matched} unmatched. (dry run — nothing written)`,
+      );
+      const top = [...byDealer.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8);
+      for (const [id, n] of top) console.log(`      ${nameById.get(id) ?? id}: ${n}`);
+      continue;
     }
 
-    grandTotal += read.deals.length;
-    grandMatched += matched;
-    console.log(
-      `  ${year}: ${read.deals.length} rows, ${matched} matched to an office, ${read.deals.length - matched} unmatched.`,
-    );
-    const top = [...byDealer.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8);
-    for (const [id, n] of top) console.log(`      ${nameById.get(id) ?? id}: ${n}`);
+    // WRITE: delegate to the single shared importer (delete + bulk insert).
+    const res = await importJournalYear(year);
+    if (!res.ok) {
+      console.log(`  ${year}: ERROR — ${res.error}`);
+      continue;
+    }
+    grandTotal += res.rows;
+    grandMatched += res.matched;
+    console.log(`  ${year}: ${res.rows} rows written, ${res.matched} matched to an office, ${res.unmatched} unmatched.`);
   }
 
   console.log(`Done. ${grandTotal} rows total, ${grandMatched} matched.${dry ? ' (dry run — nothing written)' : ''}`);
