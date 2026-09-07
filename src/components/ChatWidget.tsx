@@ -250,6 +250,13 @@ export function ChatWidget() {
   const curIsSupport =
     active?.kind === 'SUPPORT' || summary.conversations.some((c) => c.id === active?.conversationId && c.kind === 'SUPPORT');
 
+  // "Talk to a person" only appears once the dealer has actually asked something
+  // AND the assistant has replied — so the AI gets first crack at every question
+  // (it can usually answer instantly) instead of being skipped with a one-tap
+  // escalation. A dealer message = !fromStaff; the assistant/human reply = fromStaff.
+  const canRequestAgent =
+    messages.some((m) => !m.fromStaff) && messages.some((m) => m.fromStaff) && !assistantTyping;
+
   // On the dashboard the Support card already offers a "Chat" button and sits in
   // the bottom-right, so the floating launcher would land on the agent photo —
   // hide it there (the card + the 'gwa:open-chat' event still open this widget).
@@ -416,7 +423,7 @@ export function ChatWidget() {
                 )}
               </div>
               <div className="border-t border-gray-200 p-3">
-                {curIsSupport && (
+                {curIsSupport && canRequestAgent && (
                   <div className="mb-2 flex justify-center">
                     <button type="button" onClick={requestAgent} className="text-xs font-medium text-brand-700 hover:underline">
                       Talk to a person

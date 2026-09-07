@@ -44,6 +44,10 @@ source of truth; this file is the human-readable index.
   auto-translates lead free-text via DeepL. (2026-09-06, Sean.)
 
 ## 2026-09-07
+- **Chat: handoff gated behind an actual question.** The **Talk to a person**
+  button stays hidden until the dealer has sent a message *and* the assistant has
+  replied — so the AI always gets first crack (it can usually answer instantly)
+  instead of being skipped by a one-tap escalation.
 - **Chat: "Talk to a person" handoff + hide empty deal chats.** Dealers get a
   **Talk to a person** button in the support chat: it flags the thread for the
   team, posts a "we've told the team" note, and **pauses the AI assistant**
