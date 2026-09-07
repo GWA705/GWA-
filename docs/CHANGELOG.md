@@ -44,6 +44,15 @@ source of truth; this file is the human-readable index.
   auto-translates lead free-text via DeepL. (2026-09-06, Sean.)
 
 ## 2026-09-07
+- **Dashboard: visual upgrade of the three insight cards** (desktop + mobile).
+  *Applications by Status* is now a crisp SVG donut (rounded segments with a soft
+  gap, track ring, big centred total) with a cleaner legend (count + muted %).
+  *Applications This Month* becomes a proper chart — dashed gridlines, gradient
+  rounded bars with a soft shadow, a baseline, responsive bar widths.
+  *Program Breakdown* gets an icon-chip header, gradient bars on a track, and
+  count·% on the row. Shared card style (softer border, layered shadow, more
+  padding), theme-aware, with subtle grow-in intros (disabled under
+  reduced-motion). No data/logic changes — presentation only.
 - **Mobile: chat bubble no longer covers page buttons.** The floating chat
   launcher sat over primary actions at the bottom of long pages (e.g. "Submit
   app" on the New Application form). It now auto-hides (fades/slides out) once the
