@@ -133,6 +133,7 @@ export const en = {
     new: 'New',
     leads: 'Leads',
     mail: 'Mail',
+    help: 'Help',
     settingLabel: 'Quick bar',
     settingHint: 'Show a shortcut bar at the bottom on phones',
   },

@@ -44,6 +44,13 @@ source of truth; this file is the human-readable index.
   auto-translates lead free-text via DeepL. (2026-09-06, Sean.)
 
 ## 2026-09-07
+- **Mobile: support chat moved into the bottom quick bar (in place of Mail).**
+  The quick bar's last tab is now **Help** (chat icon) which opens the support
+  chat directly, so support is always one tap away without a floating bubble.
+  Mail stays reachable via the header bell and the hamburger menu. On phones/
+  tablets with the quick bar on, the floating chat bubble is now hidden (chat is
+  in the toolbar); it still shows on desktop (no quick bar there) and if a dealer
+  turns the quick bar off. New `quickBar.help` key (EN "Help" / FR "Aide").
 - **Chat bubble no longer interferes with the document viewer.** The in-app PDF/
   image viewer (`DocViewer`) is a full-screen overlay that shared the chat
   launcher's `z-50`, so the bubble floated over the PDF and could grab taps

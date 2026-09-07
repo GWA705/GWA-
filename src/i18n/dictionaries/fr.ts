@@ -138,6 +138,7 @@ export const fr: Dictionary = {
     new: 'Nouveau',
     leads: 'Prospects',
     mail: 'Messages',
+    help: 'Aide',
     settingLabel: 'Barre rapide',
     settingHint: 'Afficher une barre de raccourcis en bas sur téléphone',
   },

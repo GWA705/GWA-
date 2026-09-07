@@ -253,7 +253,7 @@ export function ChatWidget() {
         aria-label={open ? 'Close chat' : 'Open chat with the Georgian Water & Air team'}
         aria-hidden={hideLauncher}
         tabIndex={hideLauncher ? -1 : undefined}
-        className={`fixed right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-brand-600 text-white shadow-lg transition hover:bg-brand-700 ${quickBar ? 'bottom-20 lg:bottom-6' : 'bottom-6'} ${hideLauncher ? 'pointer-events-none translate-y-4 opacity-0' : 'opacity-100'}`}
+        className={`fixed right-6 bottom-6 z-50 h-14 w-14 items-center justify-center rounded-full bg-brand-600 text-white shadow-lg transition hover:bg-brand-700 ${quickBar ? 'hidden lg:flex' : 'flex'} ${hideLauncher ? 'pointer-events-none translate-y-4 opacity-0' : 'opacity-100'}`}
       >
         {open ? (
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
