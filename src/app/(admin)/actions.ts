@@ -18,7 +18,7 @@ import { createUserSchema, updateUserSchema, createDealerSchema, createFinanceCo
 import { redirect } from 'next/navigation';
 import { CONTENT_SECTIONS } from '@/lib/constants';
 import { sendEmail, emailEnabled } from '@/lib/email';
-import { renderEmail } from '@/lib/email-templates';
+import { buildInviteEmail } from '@/lib/email-templates';
 import { setSetting, EMAIL_SETTING_KEYS, BANNER_SETTING_KEYS, SECURITY_SETTING_KEYS, MFA_TRUST_DAY_OPTIONS, DEFAULT_MFA_TRUST_DAYS, type MfaRequirement } from '@/lib/settings';
 import { parseDealerProfileForm, readExtraContacts, type OfficeContact } from '@/lib/dealerProfile';
 import type { Prisma } from '@prisma/client';
@@ -251,46 +251,8 @@ export async function createUserAction(
   const portalUrl = process.env.APP_URL || 'https://portal.ghsbarrie.ca';
   // The person adding the user picks the invite language (English / French).
   const inviteLang = formData.get('inviteLang') === 'fr' ? 'fr' : 'en';
-  const L =
-    inviteLang === 'fr'
-      ? {
-          subject: 'Votre compte du portail des marchands Georgian Water & Air',
-          heading: 'Votre compte est prêt',
-          intro: `Bonjour ${d.name}, un compte a été créé pour vous dans le portail des marchands de Georgian Water & Air. Utilisez les renseignements ci-dessous pour vous connecter — on vous demandera de choisir votre propre mot de passe lors de la première connexion.`,
-          webAddr: 'Adresse Web',
-          username: "Nom d'utilisateur",
-          tempPw: 'Mot de passe temporaire',
-          cta: 'Se connecter au portail',
-          footer:
-            "Pour votre sécurité, vous devrez choisir un nouveau mot de passe lors de votre première connexion. Si vous n'attendiez pas ce compte, veuillez ignorer ce courriel.",
-        }
-      : {
-          subject: 'Your Georgian Water & Air Dealer Portal account',
-          heading: 'Your account is ready',
-          intro: `Hi ${d.name}, an account has been created for you on the Georgian Water & Air Dealer Portal. Use the details below to sign in — you'll be asked to set your own password the first time.`,
-          webAddr: 'Web address',
-          username: 'Username',
-          tempPw: 'Temporary password',
-          cta: 'Sign in to the portal',
-          footer:
-            'For your security, you will be required to choose a new password when you first sign in. If you did not expect this account, please ignore this email.',
-        };
-  const invite = await sendEmail({
-    to: email,
-    subject: L.subject,
-    html: renderEmail({
-      heading: L.heading,
-      intro: L.intro,
-      bodyHtml: `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:4px 0 8px;font-size:14px;color:#111827;">
-        <tr><td style="padding:3px 12px 3px 0;color:#6b7280;">${L.webAddr}</td><td style="padding:3px 0;"><a href="${portalUrl}" style="color:#1d4ed8;">${portalUrl}</a></td></tr>
-        <tr><td style="padding:3px 12px 3px 0;color:#6b7280;">${L.username}</td><td style="padding:3px 0;font-weight:600;">${email}</td></tr>
-        <tr><td style="padding:3px 12px 3px 0;color:#6b7280;">${L.tempPw}</td><td style="padding:3px 0;font-family:monospace;font-weight:600;">${escapeHtmlLite(d.password)}</td></tr>
-      </table>`,
-      ctaLabel: L.cta,
-      ctaUrl: portalUrl,
-      footerNote: L.footer,
-    }),
-  });
+  const built = buildInviteEmail(inviteLang, { name: d.name, email, portalUrl, password: d.password });
+  const invite = await sendEmail({ to: email, subject: built.subject, html: built.html });
 
   if (invite.sent) {
     return { ok: true, message: `User created and login details emailed to ${email}.` };
@@ -299,10 +261,6 @@ export async function createUserAction(
 }
 
 // Minimal HTML-escape for values interpolated into email bodyHtml.
-function escapeHtmlLite(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
-
 // Admin edits an existing user — name, email, role, dealer link, and optionally
 // a new temporary password (which forces a change at next login).
 export async function updateUserAction(
@@ -1466,7 +1424,7 @@ async function settleUserRequest(requestId: string, reviewerId: string): Promise
  * sign-in. Emails the invite when email is on; otherwise returns the temp
  * password so the admin can share it securely.
  */
-export async function approveUserRequestItemAction(itemId: string): Promise<ActionState> {
+export async function approveUserRequestItemAction(itemId: string, inviteLang: 'en' | 'fr' = 'en'): Promise<ActionState> {
   const session = await requireAdminSection('user-requests');
   const item = await prisma.userRequestItem.findUnique({ where: { id: itemId }, include: { request: true } });
   if (!item) return { error: 'Request item not found.' };
@@ -1511,22 +1469,8 @@ export async function approveUserRequestItemAction(itemId: string): Promise<Acti
   // Email the invite when email is on; otherwise hand back the temp password.
   if (emailEnabled()) {
     const portalUrl = process.env.APP_URL || 'https://portal.ghsbarrie.ca';
-    const invite = await sendEmail({
-      to: email,
-      subject: 'Your GWA Dealer Portal account',
-      html: renderEmail({
-        heading: 'Your account is ready',
-        intro: `Hi ${item.name}, an account has been created for you on the GWA Dealer Portal. Use the details below to sign in — you'll be asked to set your own password the first time.`,
-        bodyHtml: `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:4px 0 8px;font-size:14px;color:#111827;">
-          <tr><td style="padding:3px 12px 3px 0;color:#6b7280;">Web address</td><td style="padding:3px 0;"><a href="${portalUrl}" style="color:#1d4ed8;">${portalUrl}</a></td></tr>
-          <tr><td style="padding:3px 12px 3px 0;color:#6b7280;">Username</td><td style="padding:3px 0;font-weight:600;">${email}</td></tr>
-          <tr><td style="padding:3px 12px 3px 0;color:#6b7280;">Temporary password</td><td style="padding:3px 0;font-family:monospace;font-weight:600;">${tempPassword}</td></tr>
-        </table>`,
-        ctaLabel: 'Sign in to the portal',
-        ctaUrl: portalUrl,
-        footerNote: 'For your security, you will be required to choose a new password when you first sign in.',
-      }),
-    });
+    const built = buildInviteEmail(inviteLang, { name: item.name, email, portalUrl, password: tempPassword });
+    const invite = await sendEmail({ to: email, subject: built.subject, html: built.html });
     if (invite.sent) return { ok: true, message: `Login created and emailed to ${email}.` };
     return { ok: true, message: `Login created for ${email}, but the invite email failed. Temporary password: ${tempPassword}` };
   }

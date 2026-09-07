@@ -48,6 +48,53 @@ export function renderEmail(opts: {
 </div>`;
 }
 
+/**
+ * Bilingual new-user invite email (login details), shared by the admin add-user
+ * flow and the access-request approval flow so there's one source of truth.
+ */
+export function buildInviteEmail(
+  lang: 'en' | 'fr',
+  p: { name: string; email: string; portalUrl: string; password: string },
+): { subject: string; html: string } {
+  const t =
+    lang === 'fr'
+      ? {
+          subject: 'Votre compte du portail des marchands Georgian Water & Air',
+          heading: 'Votre compte est prêt',
+          intro: `Bonjour ${p.name}, un compte a été créé pour vous dans le portail des marchands de Georgian Water & Air. Utilisez les renseignements ci-dessous pour vous connecter — on vous demandera de choisir votre propre mot de passe lors de la première connexion.`,
+          webAddr: 'Adresse Web',
+          username: "Nom d'utilisateur",
+          tempPw: 'Mot de passe temporaire',
+          cta: 'Se connecter au portail',
+          footer:
+            "Pour votre sécurité, vous devrez choisir un nouveau mot de passe lors de votre première connexion. Si vous n'attendiez pas ce compte, veuillez ignorer ce courriel.",
+        }
+      : {
+          subject: 'Your Georgian Water & Air Dealer Portal account',
+          heading: 'Your account is ready',
+          intro: `Hi ${p.name}, an account has been created for you on the Georgian Water & Air Dealer Portal. Use the details below to sign in — you'll be asked to set your own password the first time.`,
+          webAddr: 'Web address',
+          username: 'Username',
+          tempPw: 'Temporary password',
+          cta: 'Sign in to the portal',
+          footer:
+            'For your security, you will be required to choose a new password when you first sign in. If you did not expect this account, please ignore this email.',
+        };
+  const html = renderEmail({
+    heading: t.heading,
+    intro: t.intro,
+    bodyHtml: `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:4px 0 8px;font-size:14px;color:#111827;">
+        <tr><td style="padding:3px 12px 3px 0;color:#6b7280;">${t.webAddr}</td><td style="padding:3px 0;"><a href="${p.portalUrl}" style="color:#1d4ed8;">${p.portalUrl}</a></td></tr>
+        <tr><td style="padding:3px 12px 3px 0;color:#6b7280;">${t.username}</td><td style="padding:3px 0;font-weight:600;">${escapeHtml(p.email)}</td></tr>
+        <tr><td style="padding:3px 12px 3px 0;color:#6b7280;">${t.tempPw}</td><td style="padding:3px 0;font-family:monospace;font-weight:600;">${escapeHtml(p.password)}</td></tr>
+      </table>`,
+    ctaLabel: t.cta,
+    ctaUrl: p.portalUrl,
+    footerNote: t.footer,
+  });
+  return { subject: t.subject, html };
+}
+
 function escapeHtml(s: string): string {
   return s
     .replace(/&/g, '&amp;')

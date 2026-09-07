@@ -7,11 +7,12 @@ export function ItemActions({ itemId, email }: { itemId: string; email: string }
   const [pending, start] = useTransition();
   const [rejecting, setRejecting] = useState(false);
   const [reason, setReason] = useState('');
+  const [lang, setLang] = useState<'en' | 'fr'>('en');
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   function approve() {
     start(async () => {
-      const res = await approveUserRequestItemAction(itemId);
+      const res = await approveUserRequestItemAction(itemId, lang);
       setMsg({ ok: !!res.ok, text: res.message || res.error || '' });
     });
   }
@@ -60,7 +61,17 @@ export function ItemActions({ itemId, email }: { itemId: string; email: string }
 
   return (
     <div className="flex flex-col items-end gap-1">
-      <div className="flex gap-2">
+      <div className="flex items-center gap-2">
+        <select
+          aria-label="Invite email language"
+          className="input h-8 w-28 text-xs"
+          value={lang}
+          onChange={(e) => setLang(e.target.value as 'en' | 'fr')}
+          title="Language of the welcome/login email"
+        >
+          <option value="en">English</option>
+          <option value="fr">Français</option>
+        </select>
         <button type="button" disabled={pending} className="btn-primary text-xs" onClick={approve}>
           {pending ? 'Creating…' : 'Approve & create'}
         </button>
