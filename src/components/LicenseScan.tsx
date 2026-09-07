@@ -6,6 +6,7 @@ import {
   PDF417Reader,
   RGBLuminanceSource,
   HybridBinarizer,
+  GlobalHistogramBinarizer,
   BinaryBitmap,
   DecodeHintType,
 } from '@zxing/library';
@@ -33,38 +34,83 @@ function loadImage(url: string): Promise<HTMLImageElement> {
   });
 }
 
-/** Decode a PDF417 barcode from an image file, entirely in the browser. */
+function luminanceOf(canvas: HTMLCanvasElement): { lum: Uint8ClampedArray; w: number; h: number } | null {
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return null;
+  const w = canvas.width;
+  const h = canvas.height;
+  const { data } = ctx.getImageData(0, 0, w, h);
+  const size = w * h;
+  const lum = new Uint8ClampedArray(size);
+  for (let i = 0; i < size; i++) {
+    const o = i * 4;
+    lum[i] = (data[o] * 0.299 + data[o + 1] * 0.587 + data[o + 2] * 0.114) | 0;
+  }
+  return { lum, w, h };
+}
+
+/** Rotate a canvas by 0/90/180/270 degrees, returning a new canvas. */
+function rotateCanvas(src: HTMLCanvasElement, deg: number): HTMLCanvasElement {
+  if (deg === 0) return src;
+  const swap = deg === 90 || deg === 270;
+  const out = document.createElement('canvas');
+  out.width = swap ? src.height : src.width;
+  out.height = swap ? src.width : src.height;
+  const ctx = out.getContext('2d');
+  if (!ctx) return src;
+  ctx.translate(out.width / 2, out.height / 2);
+  ctx.rotate((deg * Math.PI) / 180);
+  ctx.drawImage(src, -src.width / 2, -src.height / 2);
+  return out;
+}
+
+function tryDecode(source: RGBLuminanceSource): string | null {
+  const hints = new Map();
+  hints.set(DecodeHintType.TRY_HARDER, true);
+  for (const makeBin of [
+    () => new HybridBinarizer(source),
+    () => new GlobalHistogramBinarizer(source),
+  ]) {
+    try {
+      const result = new PDF417Reader().decode(new BinaryBitmap(makeBin()), hints);
+      const text = result?.getText();
+      if (text) return text;
+    } catch {
+      /* NotFound — try the next binarizer */
+    }
+  }
+  return null;
+}
+
+/**
+ * Decode a PDF417 barcode from a still photo, entirely in the browser. A phone
+ * photo of a licence back is dense and often rotated, so we try 4 orientations ×
+ * 2 binarizers, keeping enough resolution for the fine bars.
+ */
 async function decodeBarcode(file: File): Promise<string | null> {
   const url = URL.createObjectURL(file);
   try {
     const img = await loadImage(url);
-    const maxW = 2000; // keep enough resolution for the dense PDF417 bars
-    const scale = Math.min(1, maxW / img.width);
+    // Cap the LONGEST side (not just width) so a portrait photo keeps detail.
+    const maxSide = 2600;
+    const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
     const w = Math.max(1, Math.round(img.width * scale));
     const h = Math.max(1, Math.round(img.height * scale));
-    const canvas = document.createElement('canvas');
-    canvas.width = w;
-    canvas.height = h;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return null;
-    ctx.drawImage(img, 0, 0, w, h);
-    const { data } = ctx.getImageData(0, 0, w, h);
-    const size = w * h;
-    const lum = new Uint8ClampedArray(size);
-    for (let i = 0; i < size; i++) {
-      const o = i * 4;
-      lum[i] = (data[o] * 0.299 + data[o + 1] * 0.587 + data[o + 2] * 0.114) | 0;
+    const base = document.createElement('canvas');
+    base.width = w;
+    base.height = h;
+    const bctx = base.getContext('2d');
+    if (!bctx) return null;
+    bctx.drawImage(img, 0, 0, w, h);
+
+    for (const deg of [0, 90, 180, 270]) {
+      const rotated = rotateCanvas(base, deg);
+      const l = luminanceOf(rotated);
+      if (!l) continue;
+      const text = tryDecode(new RGBLuminanceSource(l.lum, l.w, l.h));
+      if (text) return text;
     }
-    const source = new RGBLuminanceSource(lum, w, h);
-    const bitmap = new BinaryBitmap(new HybridBinarizer(source));
-    const hints = new Map();
-    hints.set(DecodeHintType.TRY_HARDER, true);
-    try {
-      const result = new PDF417Reader().decode(bitmap, hints);
-      return result.getText();
-    } catch {
-      return null; // NotFound — no barcode in this image
-    }
+    return null;
   } catch {
     return null;
   } finally {
