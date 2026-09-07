@@ -15,6 +15,7 @@ import {
 import type { PaymentMethod } from '@prisma/client';
 import { formatPhone, formatPostal } from '@/lib/format';
 import { LicenseScan } from '@/components/LicenseScan';
+import { FinanceitPdfButton } from '@/components/FinanceitPdfButton';
 import type { LicenseFields } from '@/lib/aamva';
 import { AddressAutocompleteInput } from '@/components/AddressAutocompleteInput';
 import { DateOfBirthInput } from '@/components/DateOfBirthInput';
@@ -199,6 +200,35 @@ export function NewApplicationForm({
   // HD lead pre-fill: enter the lead's 701 number, pull the customer's details
   // from the HD Leads Log and drop them into the matching fields.
   const [leadLookup, setLeadLookup] = useState<{ state: 'idle' | 'loading' | 'found' | 'notfound' | 'error'; msg?: string }>({ state: 'idle' });
+
+  // Co-applicant scan: coFirstName is controlled (it opens the section), so set it
+  // via state, then apply the rest once the section has rendered.
+  const [pendingCo, setPendingCo] = useState<LicenseFields | null>(null);
+  useEffect(() => {
+    if (!pendingCo || !hasCoApplicant) return;
+    const f = pendingCo;
+    const set = (id: string, v?: string) => {
+      const el = document.getElementById(id) as HTMLInputElement | HTMLSelectElement | null;
+      if (el && v) el.value = v;
+    };
+    set('coLastName', f.lastName);
+    set('coMiddleName', f.middleName);
+    set('coIdType', "Driver's Licence");
+    set('coGovIdNumber', f.idNumber);
+    set('coIdProvince', f.province);
+    set('coIdExpiry', f.expiry);
+    set('coAddress', f.address);
+    set('coCity', f.city);
+    set('coProvince', f.province);
+    if (f.postal) set('coPostal', f.postal);
+    if (f.dob) window.dispatchEvent(new CustomEvent('gwa:setdate:coDob', { detail: f.dob }));
+    setPendingCo(null);
+  }, [pendingCo, hasCoApplicant]);
+
+  function fillFromCoLicense(f: LicenseFields) {
+    setCoFirstName(f.firstName || f.lastName); // opens the co-applicant section
+    setPendingCo(f);
+  }
 
   // Driver's-licence scan → autofill the identity + address fields. The dealer
   // reviews everything before submitting.
@@ -769,9 +799,10 @@ export function NewApplicationForm({
           {/* Co-applicant */}
           <section className="card p-6">
             <h2 className="mb-1 text-base font-semibold text-gray-900">{t('newApplication.coApplicant')}</h2>
-            <p className="mb-4 text-xs text-gray-400">
+            <p className="mb-3 text-xs text-gray-400">
               {t('newApplication.coApplicantHint')}
             </p>
+            <LicenseScan onFields={fillFromCoLicense} className="mb-4" />
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label className="label" htmlFor="coFirstName">{t('newApplication.coFirstName')}</label>
@@ -929,7 +960,8 @@ export function NewApplicationForm({
         <Err state={state} name="consent" />
       </section>
 
-      <div className="flex justify-end">
+      <div className="flex flex-wrap items-center justify-end gap-3">
+        {typed && <FinanceitPdfButton className="mr-auto" />}
         <SubmitButton />
       </div>
     </form>

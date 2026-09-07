@@ -51,6 +51,17 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-07
+- **New application: co-applicant licence scan + pre-filled Financeit PDF.**
+  The licence scan is now also on the Co-applicant section (fills the co-borrower's
+  name/DOB/ID/address; `DateOfBirthInput` `gwa:setdate:coDob` hook + a deferred
+  effect since `coFirstName` is controlled). Added a "Download Financeit PDF"
+  button (Priority flow, by Submit) that stamps the on-screen values (primary +
+  co-borrower) onto the real Financeit loan-application template
+  (`public/financeit-loan-application.pdf`) at coordinates derived from the
+  template's own label positions (`src/lib/financeit/fill.ts`) — a co-borrower
+  gets a second page with "applying with <primary>". Runs entirely in the browser
+  (no data leaves the page). SIN is left blank (not on the portal form). Alignment
+  may need per-field coordinate nudges after a real-device check.
 - **New application: driver's-licence scan → autofill.** On the Priority/typed
   new-customer form (Borrower identification), a "Scan driver's licence" button.
   Primary path is on-device: photograph the BACK, decode the PDF417 barcode in the
