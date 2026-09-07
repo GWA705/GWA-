@@ -44,6 +44,18 @@ source of truth; this file is the human-readable index.
   auto-translates lead free-text via DeepL. (2026-09-06, Sean.)
 
 ## 2026-09-07
+- **Chat assistant: reliable replies + "trainable" knowledge + cost estimator.**
+  Three changes: (1) **Reliability** — the assistant reply now comes from a
+  dedicated `POST /api/chat/assistant` the widget awaits, instead of a
+  fire-and-forget task that a redeploy could drop; the send route just saves the
+  message. (2) **Knowledge / "train it like me"** — richer built-in portal facts,
+  plus an **admin-editable "team knowledge"** textbox (Admin → System health,
+  saved to `AppSetting` `ai.assistantKnowledge`) injected into the system prompt
+  as authoritative, so staff can teach the assistant answers/policies in their own
+  words with no deploy. Prompt also re-tuned to give real steps and stay in the
+  team's voice. (3) **Cost estimator** — an interactive card on System health
+  estimating monthly Anthropic cost by model (Haiku 4.5 / Sonnet 5 / Opus 5) from
+  editable volume + token assumptions.
 - **Auth: EN/FR language toggle on the login (and all auth) pages.** Pre-login
   pages only followed the saved locale cookie, so a dealer landing in the "wrong"
   language had no way to switch until after signing in. Added a shared

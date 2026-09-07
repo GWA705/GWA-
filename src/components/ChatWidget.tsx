@@ -135,26 +135,23 @@ export function ChatWidget() {
     setAssistantTyping(false);
   }
 
-  // After a dealer sends in the support thread, show "Assistant is typing…" and
-  // poll quickly so the reply appears in ~1–2s instead of on the 6s cycle. Stops
-  // as soon as a new assistant (auto) message lands, or after a safety timeout.
-  function watchForAssistant(cid: string, baseAuto: number) {
+  // After a dealer sends in the support thread, ask the assistant for a reply and
+  // await it (a real request the browser waits on — reliable across redeploys),
+  // showing "Assistant is typing…" meanwhile, then load the reply.
+  async function triggerAssistant(cid: string) {
     stopTyping();
     setAssistantTyping(true);
-    const startedAt = Date.now();
-    typingTimer.current = setInterval(async () => {
-      try {
-        const r = await fetch(`/api/chat/messages?conversationId=${encodeURIComponent(cid)}`, { cache: 'no-store' });
-        if (r.ok) {
-          const data = await r.json();
-          setMessages(data.messages);
-          const autoCount = (data.messages as Msg[]).filter((m) => m.auto).length;
-          if (autoCount > baseAuto || Date.now() - startedAt > 25000) stopTyping();
-        }
-      } catch {
-        /* keep waiting; the safety timeout will end it */
-      }
-    }, 1500);
+    try {
+      await fetch('/api/chat/assistant', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversationId: cid }),
+      });
+    } catch {
+      /* fall through — the reply, if any, is loaded below */
+    }
+    await loadMessages(cid);
+    setAssistantTyping(false);
   }
 
   async function send() {
@@ -171,7 +168,6 @@ export function ChatWidget() {
       active.kind === 'SUPPORT' ||
       summary.conversations.some((c) => c.id === active.conversationId && c.kind === 'SUPPORT') ||
       (!active.conversationId && !active.applicationId);
-    const baseAuto = messages.filter((m) => m.auto).length;
     try {
       const r = await fetch('/api/chat/send', {
         method: 'POST',
@@ -190,7 +186,7 @@ export function ChatWidget() {
         if (!active.conversationId) setActive({ ...active, conversationId: cid });
         await loadMessages(cid);
         loadSummary();
-        if (isSupport) watchForAssistant(cid, baseAuto);
+        if (isSupport) triggerAssistant(cid);
       } else {
         // Surface the reason instead of failing silently (the message stays in
         // the box so nothing is lost).

@@ -48,6 +48,13 @@ export const MARKETPLACE_SETTING_KEYS = {
   orderEmail: 'marketplace.orderEmail',
 } as const;
 
+// Admin-editable knowledge the AI support assistant answers from (FAQ, process,
+// policies, tone — written in the team's own words). Injected into the system
+// prompt on every reply; edit it to "train" the assistant without a deploy.
+export const AI_SETTING_KEYS = {
+  assistantKnowledge: 'ai.assistantKnowledge',
+} as const;
+
 // Which 2026 journal the "Write to Journal" feature writes to: the safe TEST
 // journal (default, env JOURNAL_SHEET_ID) or the real LIVE journal
 // (env JOURNAL_SHEET_ID_2026). Reporting always reads the live journal — this

@@ -3,7 +3,10 @@ import { requireAdminSection } from '@/lib/session';
 import { getSystemHealth, type HealthCheck } from '@/lib/health';
 import { deeplUsage } from '@/lib/translate';
 import { CopyField } from '@/app/(staff)/staff/reports/connection/CopyField';
+import { getSetting, AI_SETTING_KEYS } from '@/lib/settings';
 import { TranslateHealthCheck } from './TranslateHealthCheck';
+import { AiCostCalculator } from './AiCostCalculator';
+import { AssistantKnowledge } from './AssistantKnowledge';
 
 export const dynamic = 'force-dynamic';
 
@@ -83,7 +86,11 @@ function Dot({ status }: { status: HealthCheck['status'] }) {
 
 export default async function SystemHealthPage() {
   await requireAdminSection('system-health');
-  const [health, usage] = await Promise.all([getSystemHealth(), deeplUsage()]);
+  const [health, usage, assistantKnowledge] = await Promise.all([
+    getSystemHealth(),
+    deeplUsage(),
+    getSetting(AI_SETTING_KEYS.assistantKnowledge),
+  ]);
 
   const groups: HealthCheck['group'][] = ['Core', 'Google Workspace'];
 
@@ -112,6 +119,10 @@ export default async function SystemHealthPage() {
           <div className="text-[10px] uppercase text-gray-500">Errors</div>
         </div>
       </div>
+
+      {/* AI assistant: knowledge editor + cost estimator */}
+      <AssistantKnowledge initial={assistantKnowledge ?? ''} />
+      <AiCostCalculator />
 
       {/* Translation usage, fallback + live test */}
       <TranslationCard usage={usage} />

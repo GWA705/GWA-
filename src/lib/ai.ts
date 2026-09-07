@@ -22,37 +22,44 @@ export interface AiTurn {
 
 // What the assistant knows about the portal, so answers are grounded rather than
 // guessed. Kept short and factual; capabilities mirror the dealer nav.
-const PORTAL_FACTS = `Georgian Water & Air runs a Dealer Portal where dealers:
-- start and track credit applications for customers ("New customer" / Applications; statuses: Pending, Approved, Declined);
-- manage Home Depot (HD) leads and see them on a map;
-- order gear and materials in the Marketplace;
-- request Water-test gift cards;
-- read the Product library, HD Promotions and HD Credit Card info, and Resources;
-- use the HD Payout calculator;
-- view Reports (monthly performance, weekly store detail; owners also get product pricing, sales reps, custom, forecast, accounting);
-- chat with the Georgian Water & Air team (this chat).`;
+const PORTAL_FACTS = `Georgian Water & Air is a Home Depot water-treatment provider (Barrie, Ontario). Dealers are Home Depot sales reps who sell water treatment and book installs. The Dealer Portal is where they:
+- Start and track customer CREDIT APPLICATIONS: "New customer" opens the application form; "Applications" (a.k.a. Deals) lists them with a status of Pending (submitted, under review), Approved, or Declined. The reviewer team processes submitted applications.
+- Manage HOME DEPOT (HD) LEADS: leads appear under "Leads" and on a map; the dealer works them (New → Working → Booked & sold, or No-good).
+- Order equipment and materials in the MARKETPLACE.
+- Request WATER-TEST GIFT CARDS (incentives for customers who take a water test).
+- Read reference material: PRODUCT LIBRARY, HD PROMOTIONS, HD CREDIT CARD info, and RESOURCES.
+- Use the HD PAYOUT CALCULATOR to estimate their payout on a deal.
+- View REPORTS: monthly performance and weekly store detail; office owners also see product pricing, sales reps, custom reports, a forecast, and accounting.
+- MAIL / deal conversations: message the reviewer team about a specific deal.
+- This CHAT is the general support line to the Georgian Water & Air team.
 
-function systemPrompt(locale: 'en' | 'fr'): string {
+Navigation: the main actions are in the left sidebar (desktop) or the bottom bar / ☰ menu (mobile): Home, Applications/Deals, New, Leads, Mail, and Help (this chat).`;
+
+function systemPrompt(locale: 'en' | 'fr', knowledge?: string | null): string {
   const lang = locale === 'fr' ? 'Canadian French (fr-CA)' : 'English';
-  return `You are the support assistant inside the Georgian Water & Air Dealer Portal, helping dealers (Home Depot water-treatment sales reps) use the portal and answer product/process questions.
+  const teamKnowledge = knowledge?.trim()
+    ? `\n\nTEAM KNOWLEDGE — written by the Georgian Water & Air team. Treat this as AUTHORITATIVE and prefer it over your general knowledge whenever relevant; answer in the team's voice using these facts, processes and policies:\n"""\n${knowledge.trim()}\n"""`
+    : '';
+  return `You are the support assistant inside the Georgian Water & Air Dealer Portal, helping dealers (Home Depot water-treatment sales reps) use the portal and answer product/process questions. Answer as a knowledgeable, friendly member of the Georgian Water & Air team would.
 
-${PORTAL_FACTS}
+${PORTAL_FACTS}${teamKnowledge}
 
 Rules:
-- Reply in ${lang}. Keep it short and friendly — usually 1-4 sentences.
+- Reply in ${lang}. Be warm, direct and genuinely useful — give real steps and specifics, not vague pointers. Usually 1-5 sentences; use a short numbered list for a process.
 - Always call the company "Georgian Water & Air" (never "GWA" alone or "Georgian Water").
-- Help with how-to, navigation, product and general process questions.
+- Ground answers in the portal facts and TEAM KNOWLEDGE above. The team knowledge wins over any general assumption.
 - You do NOT have access to any specific customer, application, deal, dollar figure, credit decision, approval status, or timeline. Never invent or guess these.
-- If you don't know the answer, aren't sure it's correct, or it needs a specific/binding answer you can't verify, do NOT guess. Say something like: "I'm not certain on that — let me find someone on the Georgian Water & Air team who can help." Keep it warm and brief. A real teammate can jump into this same chat anytime.
-- Never promise approvals, pricing, payouts, or anything binding, and don't state policy you're not sure of.
+- If you don't know the answer, it isn't covered above, or it needs a specific/binding answer you can't verify, do NOT guess. Say warmly that you're not certain and you'll find someone on the Georgian Water & Air team who can help — a real teammate can jump into this same chat anytime.
+- Never promise approvals, pricing, payouts, or anything binding, and don't state policy that isn't in the team knowledge.
 - Don't ask for or repeat full credit card numbers or SIN/SSN.`;
 }
 
 /**
- * Generate a support reply from recent conversation turns. Returns null on any
- * failure (missing key, API error, empty output) so the caller can fall back.
+ * Generate a support reply from recent conversation turns. `knowledge` is the
+ * admin-written team knowledge (authoritative). Returns null on any failure
+ * (missing key, API error, empty output) so the caller can fall back.
  */
-export async function generateSupportReply(turns: AiTurn[], locale: 'en' | 'fr'): Promise<string | null> {
+export async function generateSupportReply(turns: AiTurn[], locale: 'en' | 'fr', knowledge?: string | null): Promise<string | null> {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) return null;
   // Trim to the most recent turns and ensure the first is a user turn (the API
@@ -74,7 +81,7 @@ export async function generateSupportReply(turns: AiTurn[], locale: 'en' | 'fr')
       body: JSON.stringify({
         model: process.env.ANTHROPIC_MODEL || DEFAULT_MODEL,
         max_tokens: 500,
-        system: systemPrompt(locale),
+        system: systemPrompt(locale, knowledge),
         messages: msgs.map((m) => ({ role: m.role, content: m.content })),
       }),
       signal: controller.signal,

@@ -2,6 +2,24 @@
 
 import { requireAdminSection } from '@/lib/session';
 import { translateText, providerLabel, type TranslateProvider } from '@/lib/translate';
+import { getSetting, setSetting, AI_SETTING_KEYS } from '@/lib/settings';
+
+const KNOWLEDGE_MAX = 20000;
+
+/** Read the AI assistant's team knowledge (admin-editable). */
+export async function getAssistantKnowledge(): Promise<string> {
+  await requireAdminSection('system-health');
+  return (await getSetting(AI_SETTING_KEYS.assistantKnowledge)) ?? '';
+}
+
+/** Save the AI assistant's team knowledge. Empty string clears it. */
+export async function saveAssistantKnowledge(value: string): Promise<{ ok: boolean; error?: string }> {
+  await requireAdminSection('system-health');
+  if (typeof value !== 'string') return { ok: false, error: 'Invalid value.' };
+  if (value.length > KNOWLEDGE_MAX) return { ok: false, error: `Too long (max ${KNOWLEDGE_MAX} characters).` };
+  await setSetting(AI_SETTING_KEYS.assistantKnowledge, value);
+  return { ok: true };
+}
 
 export interface TranslateHealthResult {
   ok: boolean;
