@@ -60,9 +60,10 @@ export const AI_SETTING_KEYS = {
   knowledgeDeals: 'ai.knowledge.deals',
   knowledgeLeads: 'ai.knowledge.leads',
   knowledgeGiftCards: 'ai.knowledge.giftcards',
+  knowledgeProducts: 'ai.knowledge.products',
 } as const;
 
-export type AssistantArea = 'general' | 'marketplace' | 'deals' | 'leads' | 'giftcards';
+export type AssistantArea = 'general' | 'marketplace' | 'deals' | 'leads' | 'giftcards' | 'products';
 
 // Each support area: its setting key, a label for the admin UI, and a short
 // phrase for the "the dealer is currently in …" hint in the prompt.
@@ -72,6 +73,7 @@ export const ASSISTANT_AREAS: { area: AssistantArea; key: string; label: string;
   { area: 'deals', key: AI_SETTING_KEYS.knowledgeDeals, label: 'Deals / Applications', hint: 'a credit application / deal' },
   { area: 'leads', key: AI_SETTING_KEYS.knowledgeLeads, label: 'Leads', hint: 'Home Depot leads' },
   { area: 'giftcards', key: AI_SETTING_KEYS.knowledgeGiftCards, label: 'Gift cards', hint: 'water-test gift cards' },
+  { area: 'products', key: AI_SETTING_KEYS.knowledgeProducts, label: 'Products', hint: 'products (equipment, specs, the Product Library)' },
 ];
 
 /** Combined knowledge (General + the area) and a hint, for the assistant prompt. */

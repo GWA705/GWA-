@@ -16,6 +16,7 @@ const HINTS: Record<AssistantArea, string> = {
   deals: 'Credit applications / deals: how to submit, statuses, what reviewers need, consent, funding paperwork.',
   leads: 'Home Depot leads: working leads, the map, statuses (New / Working / Booked & sold / No-good).',
   giftcards: 'Water-test gift cards: who qualifies, how to request, timing, redemption.',
+  products: 'Products & equipment: models, specs, features, pricing notes, and what to link in the Product Library. Applied when a dealer is browsing products/resources.',
 };
 
 /**

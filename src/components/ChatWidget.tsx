@@ -33,6 +33,7 @@ function areaFromPath(p: string): string {
   if (p.startsWith('/dealer/applications')) return 'deals';
   if (p.startsWith('/dealer/leads')) return 'leads';
   if (p.startsWith('/dealer/gift-cards')) return 'giftcards';
+  if (p.startsWith('/dealer/resources')) return 'products'; // Product Library & reference material
   return 'general';
 }
 

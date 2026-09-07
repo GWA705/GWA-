@@ -44,6 +44,15 @@ source of truth; this file is the human-readable index.
   auto-translates lead free-text via DeepL. (2026-09-06, Sean.)
 
 ## 2026-09-07
+- **Assistant: new "Products" knowledge tab + no more "use Mail".** Added a
+  **Products** area to the AI assistant knowledge panel (models, specs, features,
+  pricing notes, links) — applied automatically when a dealer chats from the
+  Product Library / Resources (`/dealer/resources*`), and available for product
+  questions elsewhere. Also removed every "message the reviewer team via Mail"
+  cue from the assistant's guidance: deal/reviewer questions now route to this
+  chat (a teammate can jump in), and the assistant no longer mentions or links a
+  Mail page. (`src/lib/settings.ts`, `AssistantKnowledge.tsx`, `ai.ts`,
+  `ChatWidget.tsx`.)
 - **Chat: assistant links dealers straight to the right portal page.** The
   assistant now knows every dealer page URL (Product Library, Resources, HD
   Promotions, HD Credit Card, Marketplace, Leads, Calculator, etc.) and, when an
