@@ -4,7 +4,12 @@ import { revalidatePath } from 'next/cache';
 import { requireRole } from '@/lib/session';
 import { audit } from '@/lib/audit';
 import { setSetting, JOURNAL_SETTING_KEYS, type JournalWriteMode } from '@/lib/settings';
-import { importJournalYear, type ImportYearResult } from '@/lib/reporting/journalImport';
+import {
+  importJournalYear,
+  previewJournalYear,
+  type ImportYearResult,
+  type JournalPreview,
+} from '@/lib/reporting/journalImport';
 
 /**
  * Switch where the "Write to Journal" feature writes deals: the safe TEST
@@ -30,22 +35,32 @@ export async function setJournalWriteModeAction(mode: JournalWriteMode): Promise
  * Postgres archive, so office customer search reads it straight from the DB.
  * Admin-only. Replaces the year's rows atomically (delete + bulk insert).
  */
-export async function importJournalYearAction(year: number): Promise<ImportYearResult> {
+export async function importJournalYearAction(year: number, force = false): Promise<ImportYearResult> {
   const session = await requireRole('ADMIN');
   const yr = Number(year);
   if (!Number.isInteger(yr) || yr < 2000 || yr > 2100) {
-    return { year: yr, ok: false, rows: 0, matched: 0, unmatched: 0, error: 'Invalid year.' };
+    return { year: yr, ok: false, rows: 0, matched: 0, unmatched: 0, totalIssues: 0, error: 'Invalid year.' };
   }
-  const res = await importJournalYear(yr);
+  const res = await importJournalYear(yr, { force: Boolean(force) });
   await audit({
     actorId: session.userId,
     action: 'JOURNAL_ARCHIVE_IMPORT',
     entityType: 'JournalRecord',
     entityId: String(yr),
     detail: res.ok
-      ? `archived ${yr}: ${res.rows} rows (${res.matched} matched)`
-      : `archive ${yr} failed: ${res.error ?? 'unknown error'}`,
+      ? `archived ${yr}: ${res.rows} rows (${res.matched} matched, ${res.totalIssues} issues)${force ? ' [forced]' : ''}`
+      : `archive ${yr} ${res.blocked ? 'blocked' : 'failed'}: ${res.error ?? 'unknown error'}`,
   });
   revalidatePath('/staff/reports/connection');
   return res;
+}
+
+/**
+ * Dry read of a closed journal year — verify the parse looks correct BEFORE
+ * uploading. No database writes. Admin-only.
+ */
+export async function previewJournalYearAction(year: number): Promise<JournalPreview> {
+  await requireRole('ADMIN');
+  const yr = Number(year);
+  return previewJournalYear(yr);
 }

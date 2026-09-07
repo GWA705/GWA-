@@ -25,6 +25,7 @@ import { importJournalYear } from '../src/lib/reporting/journalImport';
 function parseArgs() {
   const args = process.argv.slice(2);
   const dry = args.includes('--dry');
+  const force = args.includes('--force');
   const yearArg = args.find((a) => a.startsWith('--year='));
   let years: number[] = [];
   if (yearArg) {
@@ -38,11 +39,11 @@ function parseArgs() {
     const lastClosed = new Date().getUTCFullYear() - 1;
     for (let y = EARLIEST_JOURNAL_YEAR; y <= lastClosed; y += 1) years.push(y);
   }
-  return { dry, years };
+  return { dry, force, years };
 }
 
 async function main() {
-  const { dry, years } = parseArgs();
+  const { dry, force, years } = parseArgs();
   console.log(`Journal import — years: ${years.join(', ') || '(none)'}${dry ? ' [DRY RUN]' : ''}`);
 
   const dealers = await prisma.dealer.findMany({
@@ -86,10 +87,12 @@ async function main() {
       continue;
     }
 
-    // WRITE: delegate to the single shared importer (delete + bulk insert).
-    const res = await importJournalYear(year);
+    // WRITE: delegate to the single shared importer (delete + bulk insert). The
+    // importer guards against overwriting a good archive with a bad/empty parse;
+    // pass --force to override once the read is verified.
+    const res = await importJournalYear(year, { force });
     if (!res.ok) {
-      console.log(`  ${year}: ERROR — ${res.error}`);
+      console.log(`  ${year}: ${res.blocked ? 'BLOCKED (safety check — re-run with --force if the read is correct)' : 'ERROR'} — ${res.error}`);
       continue;
     }
     grandTotal += res.rows;
