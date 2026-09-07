@@ -86,6 +86,18 @@ body {
   .gwa-grow-up, .gwa-grow-right, .gwa-donut-arc { animation: none; }
 }
 
+/* iOS Safari auto-zooms when a focused field's font is under 16px. Force 16px on
+   phones so tapping the chat box / any input doesn't zoom the page. !important so
+   it wins over text-sm/text-xs utilities; scoped to phone widths so desktop
+   keeps its compact fields. */
+@media (max-width: 640px) {
+  input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']),
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
 /* ==========================================================================
    Dark theme. The app is built with light Tailwind utilities; rather than add
    `dark:` variants to every element, we remap the handful of neutral + tint
