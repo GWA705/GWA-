@@ -154,9 +154,9 @@ export function DealerShell({
                 <Droplets className="text-white" size={22} />
               </div>
             )}
-            <div className="min-w-0 leading-tight">
+            <div className="hidden min-w-0 leading-tight sm:block">
               <div className="truncate whitespace-nowrap text-base font-extrabold tracking-tight text-[#0e2756] dark:text-slate-100 sm:text-lg">{t('shell.portalName')}</div>
-              <div className="hidden truncate whitespace-nowrap text-[10px] font-semibold tracking-[0.18em] text-blue-500 sm:block">GEORGIAN WATER &amp; AIR</div>
+              <div className="truncate whitespace-nowrap text-[10px] font-semibold tracking-[0.18em] text-blue-500">GEORGIAN WATER &amp; AIR</div>
             </div>
           </Link>
         </div>

@@ -256,12 +256,19 @@ body {
 
 /* Controls on the white bar (theme toggle, sign out, mobile hamburger): blue
    outline buttons that fill light-blue on hover. */
-.topbar-btn {
-  @apply inline-flex items-center justify-center rounded-lg text-xs font-medium transition;
-  padding: 7px 11px;
-  color: #1d4ed8;
-  background: #ffffff;
-  border: 1px solid #dbe8ff;
+/* In @layer components so display utilities (hidden, lg:hidden, sm:inline-flex,
+   lg:inline-flex) always override the base inline-flex. Without the layer this
+   rule sits after @tailwind utilities and its `display` wins, so every
+   .topbar-btn ignores its responsive show/hide classes — e.g. the sidebar
+   collapse button leaks onto mobile. */
+@layer components {
+  .topbar-btn {
+    @apply inline-flex items-center justify-center rounded-lg text-xs font-medium transition;
+    padding: 7px 11px;
+    color: #1d4ed8;
+    background: #ffffff;
+    border: 1px solid #dbe8ff;
+  }
 }
 .topbar-btn:hover { background: #eef5ff; border-color: #c7dbff; }
 .topbar-btn:focus-visible { outline: 2px solid #1d4ed8; outline-offset: 2px; }

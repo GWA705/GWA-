@@ -59,6 +59,33 @@ source of truth; this file is the human-readable index.
   `public/icon-maskable-512.png` now wired as the manifest's `maskable` icon so
   Android's circle/squircle mask never clips the wordmark. Source art saved at
   `public/brand/gwa-app-icon.png`; recorded in Brand Kit §3.
+- **PWA install splash + chrome now brand blue.** `manifest.ts`
+  `background_color` changed from white to `#1d4ed8` (brand-600, matching
+  `theme_color` and the new app icon), so the launch/splash screen and the
+  standalone window chrome match the icon instead of flashing white.
+- **Mobile: fixed the root cause behind top-bar buttons ignoring their
+  show/hide breakpoints.** The `.topbar-btn` class (`@apply inline-flex …`) was
+  defined as plain CSS *after* `@tailwind utilities` and outside `@layer
+  components`, so its `display:inline-flex` beat Tailwind's own `hidden` /
+  `lg:hidden` / `sm:inline-flex` utilities (equal specificity, later in source
+  wins). Every top-bar button therefore ignored its responsive display classes —
+  the **sidebar-collapse toggle leaked onto phones** (showing next to the
+  hamburger, which is desktop-only), the hamburger itself didn't hide at `lg`,
+  and the theme toggle's `hidden sm:inline-flex` showed on mobile. Wrapped
+  `.topbar-btn` in `@layer components` so the utilities win again; all three now
+  toggle correctly. (`.card`, `.badge`, `.label` were checked for the same
+  latent bug — `.card` sets no `display`, and `.badge`/`.label` are never paired
+  with a responsive display utility, so no other visible toggle was affected.)
+- **Mobile: header no longer truncates to "De…" on phones.** The dealer and
+  staff top bars crowded the portal-name text between the logo and the right-hand
+  controls, clipping it to "De…". The wordmark block (portal name + "GEORGIAN
+  WATER & AIR" eyebrow) is now hidden below `sm` — the logo tile already carries
+  brand identity on a phone — and given `min-w-0`/`truncate` so it ellipsizes
+  cleanly rather than overflowing at any width. Part of a whole-site mobile pass:
+  audited every dealer flow — all responsive grids start `grid-cols-1/2` on
+  phones and only widen at `sm`/`lg`, and every wide table already scrolls inside
+  its own `overflow-x-auto`, so the Pipeline kanban and this header were the only
+  structural mobile breaks.
 
 ## 2026-09-06
 - **Translation: live health check + Google Translate as a dormant provider.**

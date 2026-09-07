@@ -83,15 +83,15 @@ export function StaffShell({
     <div className="min-h-screen bg-[#f2f6fb] dark:bg-[#0a1120] text-gray-900">
       {/* TOP HEADER */}
       <header className="flex h-[72px] items-center justify-between gap-3 border-b border-gray-200 bg-white px-4 sm:px-6">
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 items-center gap-3">
           <MobileNav userName={userName} roleLabel={roleLabel} nav={nav} triggerClassName="topbar-btn px-2.5 lg:hidden" hideAt="lg" />
-          <Link href="/staff" className="flex items-center gap-3">
+          <Link href="/staff" className="flex min-w-0 items-center gap-3">
             <div className="flex h-11 w-11 flex-none items-center justify-center rounded-full bg-blue-600">
               <Droplets className="text-white" size={24} />
             </div>
-            <div className="leading-tight">
-              <div className="text-base font-extrabold tracking-tight text-[#0e2756] dark:text-slate-100 sm:text-lg">{t('staffShell.portalName')}</div>
-              <div className="text-[10px] font-semibold tracking-[0.18em] text-blue-500">GEORGIAN WATER &amp; AIR</div>
+            <div className="hidden min-w-0 leading-tight sm:block">
+              <div className="truncate whitespace-nowrap text-base font-extrabold tracking-tight text-[#0e2756] dark:text-slate-100 sm:text-lg">{t('staffShell.portalName')}</div>
+              <div className="truncate whitespace-nowrap text-[10px] font-semibold tracking-[0.18em] text-blue-500">GEORGIAN WATER &amp; AIR</div>
             </div>
           </Link>
         </div>
