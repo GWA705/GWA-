@@ -44,6 +44,14 @@ source of truth; this file is the human-readable index.
   auto-translates lead free-text via DeepL. (2026-09-06, Sean.)
 
 ## 2026-09-07
+- **Heroes: image slots for Applications & New customer.** Both `SectionHero`s now
+  accept a background photo like the other tabs. Drop `public/applications-hero.webp`
+  and `public/new-customer-hero.webp` (wide ~1920×640 WebP) and they fill each hero
+  with the standard feather/scrim treatment; until then the plain navy gradient
+  shows (no breakage).
+- **Dealer nav: collapse toggle moved into the sidebar** (ChatGPT-style), out of the
+  top header. The desktop sidebar already collapsed to an icon rail; only the
+  control's location changed.
 - **Reports: Home Depot–orange KPI band + mobile fix.** The Monthly performance
   summary strip (This month / vs last month / Year to date) is now a bold HD-orange
   (#F96302) band with white numbers and depth. Fixed the mobile clip where the big

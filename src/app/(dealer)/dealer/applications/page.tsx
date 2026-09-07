@@ -81,6 +81,7 @@ export default async function DealerApplications() {
         eyebrow={t('applications.heroEyebrow')}
         title={t('applications.heroTitle')}
         subtitle={t('applications.heroSubtitle')}
+        bgImage="/applications-hero.webp"
         actions={
           <Link href="/dealer/applications/new" className="inline-flex items-center gap-2 rounded-lg bg-[#ffffff] px-4 py-2 text-sm font-semibold text-[#0e2b5c] transition hover:bg-blue-50">
             {t('applications.newCustomerProcessing')}
