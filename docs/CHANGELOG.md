@@ -51,6 +51,14 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-07
+- **Admin: new-user invite email in English or French.** Adding a user (Admin →
+  Users) now has an **Invite email language** dropdown (English / Français); the
+  welcome/login email (subject, greeting, Web address / Username / Temporary
+  password labels, sign-in button, security footer) renders in the chosen
+  language. French uses fr-CA wording and the correct "Georgian Water & Air" name;
+  the English subject was corrected from "GWA" to "Georgian Water & Air".
+  (`src/app/(admin)/actions.ts`, `UserForm.tsx`.) The self-serve access-request
+  approval email is still English-only (follow-up).
 - **New application: sections stay minimized until an option is picked.** The form
   now opens with only the "Start here" 1/2/3 picker (no method pre-selected) plus a
   prompt; choosing Express/Priority/Standard reveals the sections that option needs

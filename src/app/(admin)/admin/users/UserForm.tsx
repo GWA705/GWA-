@@ -93,6 +93,14 @@ export function UserForm({ dealers }: { dealers: { id: string; name: string }[] 
             </span>
           </label>
         </div>
+        <div>
+          <label className="label" htmlFor="inviteLang">Invite email language</label>
+          <select id="inviteLang" name="inviteLang" className="input" defaultValue="en">
+            <option value="en">English</option>
+            <option value="fr">Français (French)</option>
+          </select>
+          <p className="mt-1 text-xs text-gray-400">The welcome/login email is written in this language.</p>
+        </div>
       </div>
       <SubmitButton />
     </form>
