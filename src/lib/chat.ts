@@ -123,6 +123,29 @@ export async function autoReplyOutstanding(conversationId: string): Promise<bool
   return !lastHuman || lastAuto.createdAt > lastHuman.createdAt;
 }
 
+/** Recent messages as AI turns (dealer = user; staff/auto = assistant), oldest first. */
+export async function recentTurnsForAi(conversationId: string): Promise<{ role: 'user' | 'assistant'; content: string }[]> {
+  const rows = await prisma.chatMessage.findMany({
+    where: { conversationId },
+    orderBy: { createdAt: 'asc' },
+    select: { body: true, fromStaff: true, auto: true },
+    take: 30,
+  });
+  return rows
+    .slice(-14)
+    .map((m) => ({ role: (!m.fromStaff && !m.auto ? 'user' : 'assistant') as 'user' | 'assistant', content: m.body }));
+}
+
+/** True if a real teammate (not the assistant) replied within the last `minutes`. */
+export async function humanRepliedRecently(conversationId: string, minutes = 30): Promise<boolean> {
+  const since = new Date(Date.now() - minutes * 60_000);
+  const row = await prisma.chatMessage.findFirst({
+    where: { conversationId, fromStaff: true, auto: false, createdAt: { gt: since } },
+    select: { id: true },
+  });
+  return !!row;
+}
+
 /** Mark a conversation read up to now for this user. */
 export async function markConversationRead(conversationId: string, userId: string): Promise<void> {
   const now = new Date();
@@ -147,9 +170,9 @@ export async function conversationMessages(conversationId: string, viewer: Sessi
     body: m.body,
     fromStaff: m.fromStaff,
     auto: m.auto,
-    // Automated notice → labelled as the portal; otherwise a dealer never sees a
-    // GWA staff member's name — just "Reviewer".
-    authorName: m.auto ? 'GWA Portal' : forDealer && m.fromStaff ? 'Reviewer' : m.author?.name ?? 'Unknown',
+    // Automated/assistant message → "Assistant"; otherwise a dealer never sees a
+    // staff member's name — just "Reviewer".
+    authorName: m.auto ? 'Assistant' : forDealer && m.fromStaff ? 'Reviewer' : m.author?.name ?? 'Unknown',
     createdAt: m.createdAt.toISOString(),
   }));
 }

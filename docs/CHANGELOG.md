@@ -24,6 +24,7 @@ source of truth; this file is the human-readable index.
 | Domain email auth (SPF / DKIM / DMARC) on `ghsbarrie.ca` | ✅ Set | SPF `include:_spf.google.com`; DKIM authenticating (Google Workspace); DMARC `p=quarantine`. Confirmed 2026-09-03 (Sean). |
 | Guusto gift-card API | ⏳ Parked | Awaiting `GUUSTO_API_TOKEN` in Render + exact field names (test at `/admin/guusto-test`) + office→reason mapping. |
 | Bilingual UI toggle (EN/FR) | ✅ **Live in production** (2026-09-06, Sean) | `NEXT_PUBLIC_I18N_ENABLED=1` set on the `gwa-portal` service. Visible to ALL dealers on portal.ghsbarrie.ca. fr-CA coverage (draft) now spans the **full dealer app AND the full staff/reviewer app** — including the report views, reviewer decision/funding forms, and the deal "what's needed" items + funding-doc type labels (all translated 2026-09-06). Still English **by design**: the internal admin console; the in-app Tutorial (on hold); the verbatim Consumer Protection Act consent text (Québec team supplies the FR); and a few low-traffic residual staff strings (staff gift-cards page, the mail-attachment viewer, one or two report-wrapper labels). Set the var back to `0` (and redeploy) to hide the toggle again. |
+| AI support assistant (chat) | ⏳ Needs `ANTHROPIC_API_KEY` in Render | Always-on Claude assistant on the General support thread (`src/lib/ai.ts`). Add the key (same Anthropic account as the booking site) to activate; optional `ANTHROPIC_MODEL` (default `claude-haiku-4-5-20251001`). Until set, dealers get only the static after-hours note. Assistant stays quiet for 30 min after a human reply. |
 | DeepL translation (user content) | ✅ Live (2026-09-06) — `DEEPL_API_KEY` set in Render (free "API Developer" key) | Powers (a) the on-demand Translate control and (b) the **automatic** FR→EN conversion of chat, deal-conversation and gift-card threads, and dealer free-text notes on the reviewer side (`<AutoTranslate>`). **Free fallback:** if DeepL is missing or out of quota, translation auto-switches to MyMemory (free, no account; set `MYMEMORY_EMAIL` to lift its daily cap). **Usage meter:** Admin → System health shows DeepL characters used / limit. |
 | Bell Total Connect voicemail | 📝 Documented, not built here | Guide delivered for the **booking site** (voicemail-to-email + IMAP). Not part of this portal. |
 
@@ -43,6 +44,21 @@ source of truth; this file is the human-readable index.
   auto-translates lead free-text via DeepL. (2026-09-06, Sean.)
 
 ## 2026-09-07
+- **Chat: AI support assistant (always-on, with human takeover).** The General
+  support thread now answers dealers automatically with Claude (Anthropic
+  Messages API, called from `src/lib/ai.ts` — no SDK dependency). It's grounded
+  in a portal-facts system prompt, replies in the dealer's language, and is
+  guard-railed: it never invents customer/deal/credit/dollar specifics or makes
+  binding promises, and defers those to the team. It stays silent for 30 min
+  after a real teammate replies, so a person can take over; a staff reply always
+  wins. Runs in the background after the dealer's message is saved (send stays
+  instant; the reply lands on the widget's ~6 s poll) and only on `SUPPORT`
+  threads (deal threads still go to the reviewer). Assistant/auto messages render
+  as a left "✨ Assistant" bubble. Falls back to the static after-hours note when
+  the AI is unavailable. **Requires `ANTHROPIC_API_KEY` in Render** (optional
+  `ANTHROPIC_MODEL`, default `claude-haiku-4-5-20251001`); without it, behaviour
+  is the after-hours note only. Also fixed the auto-message author label
+  (was "GWA Portal" → "Assistant") to respect the brand naming rule.
 - **iOS: branded launch splash for the installed app.** Added
   `apple-touch-startup-image` launch screens (blue tile + centred icon) for the
   common iPhone resolutions, wired via `appleWebApp.startupImage` in the root

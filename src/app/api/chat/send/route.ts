@@ -10,11 +10,41 @@ import {
   canAccessConversation,
   getOrCreateDealConversation,
   getOrCreateSupportConversation,
+  humanRepliedRecently,
   isAfterHours,
   postAutoReply,
   postChatMessage,
+  recentTurnsForAi,
 } from '@/lib/chat';
+import { aiConfigured, generateSupportReply } from '@/lib/ai';
 import { getLocale } from '@/i18n/server';
+
+/**
+ * Always-on support assistant for the General support thread. Runs in the
+ * background after the dealer's message is saved (so sending stays instant; the
+ * reply lands on the widget's next poll). Stays quiet when a teammate is actively
+ * in the thread, so a person can take over. Falls back to the static after-hours
+ * note when the AI is unavailable.
+ */
+async function runSupportAssistant(conversationId: string, locale: 'en' | 'fr'): Promise<void> {
+  try {
+    if (await humanRepliedRecently(conversationId)) return; // a person is handling it
+    if (aiConfigured()) {
+      const turns = await recentTurnsForAi(conversationId);
+      const reply = await generateSupportReply(turns, locale);
+      if (reply) {
+        await postAutoReply(conversationId, reply);
+        return;
+      }
+    }
+    // No AI (or it failed): outside business hours, leave the offline note — once.
+    if (isAfterHours() && !(await autoReplyOutstanding(conversationId))) {
+      await postAutoReply(conversationId, AFTER_HOURS_REPLY[locale]);
+    }
+  } catch {
+    /* assistant is best-effort — never affect the dealer's send */
+  }
+}
 
 export const dynamic = 'force-dynamic';
 
@@ -57,15 +87,13 @@ export async function POST(req: NextRequest) {
 
   await postChatMessage({ conversationId: conv.id, user: session, body });
 
-  // After-hours acknowledgement: when a dealer writes outside 9am–9pm, drop an
-  // automated note so they know it's been received and will be answered. Only
-  // once per burst (until a person replies), and never for staff messages.
-  if (!isInternalRole(session.role) && isAfterHours()) {
-    if (!(await autoReplyOutstanding(conv.id))) {
-      const locale = getLocale();
-      const replyBody = AFTER_HOURS_REPLY[locale === 'fr' ? 'fr' : 'en'];
-      await postAutoReply(conv.id, replyBody).catch(() => {});
-    }
+  // Support assistant: for a dealer's message in the General support thread, let
+  // the assistant reply. Locale is read now (in request scope); the work runs in
+  // the background so the dealer's send returns immediately.
+  const meta = await prisma.conversation.findUnique({ where: { id: conv.id }, select: { kind: true } });
+  if (!isInternalRole(session.role) && meta?.kind === 'SUPPORT') {
+    const locale = getLocale() === 'fr' ? 'fr' : 'en';
+    void runSupportAssistant(conv.id, locale);
   }
 
   // Notify the other party on a deal thread (same behaviour as the old deal

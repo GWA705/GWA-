@@ -253,12 +253,16 @@ export function ChatWidget() {
                 {messages.length === 0 && <p className="text-center text-sm text-gray-400">No messages yet — say hello.</p>}
                 {messages.map((m) =>
                   m.auto ? (
-                    // Automated after-hours notice — a centered system note, not a
-                    // person's reply, so it doesn't read as a live answer.
-                    <div key={m.id} className="flex justify-center">
-                      <div className="max-w-[85%] rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-center text-xs text-amber-800">
+                    // Assistant reply (AI or the after-hours fallback note): a
+                    // left bubble marked "Assistant" so it's clearly automated.
+                    <div key={m.id} className="flex justify-start">
+                      <div className="max-w-[85%] rounded-2xl rounded-tl-sm border border-sky-100 bg-sky-50 px-3 py-2 text-sm text-gray-800">
+                        <p className="mb-0.5 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-sky-600">
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M12 2l1.9 5.1L19 9l-5.1 1.9L12 16l-1.9-5.1L5 9l5.1-1.9z" /></svg>
+                          Assistant
+                        </p>
                         <AutoTranslate text={m.body} tone="light" />
-                        <p className="mt-1 text-[10px] text-amber-500">{fmtTime(m.createdAt)}</p>
+                        <p className="mt-1 text-[10px] text-gray-400">{fmtTime(m.createdAt)}</p>
                       </div>
                     </div>
                   ) : (
