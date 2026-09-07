@@ -63,6 +63,15 @@ export async function POST(req: NextRequest) {
     if (reply) {
       await postAutoReply(conv.id, reply);
       replied = true;
+      // Log the Q&A for the admin review/promote loop. `deferred` flags answers
+      // where the assistant punted to a human — those are the knowledge gaps.
+      const question = [...turns].reverse().find((t) => t.role === 'user')?.content ?? '';
+      const deferred = /find (someone|a teammate|a member)|not (sure|certain)|team (who|can)[^.]{0,20}help|get back to you|look into/i.test(reply);
+      if (question) {
+        await prisma.assistantQa
+          .create({ data: { dealerId: conv.dealerId, area, question: question.slice(0, 2000), answer: reply.slice(0, 4000), deferred } })
+          .catch(() => {});
+      }
     }
   }
   // No AI (or it failed): outside business hours, leave the offline note — once.

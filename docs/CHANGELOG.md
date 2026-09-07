@@ -44,6 +44,14 @@ source of truth; this file is the human-readable index.
   auto-translates lead free-text via DeepL. (2026-09-06, Sean.)
 
 ## 2026-09-07
+- **Chat assistant: Q&A memory + human-approved learning loop.** Every assistant
+  Q&A is now logged (`AssistantQa`, migration `20260907030000_assistant_qa`),
+  tagged by area, with answers where it deferred to a teammate flagged as gaps.
+  Admin → System health gets a **"What dealers are asking"** panel: review recent
+  questions, filter to gaps, and **one-click "Add to knowledge"** promotes a good
+  answer into that area's knowledge — so the assistant improves over time with
+  admin approval (not autonomous learning, which is risky for a bot touching
+  credit/money). Remove clears a logged item.
 - **Chat assistant: context-aware, per-area knowledge.** The assistant now knows
   which part of the portal a dealer is chatting from (Marketplace, a Deal, Leads,
   Gift cards, or General) and answers from that area's knowledge — so Marketplace

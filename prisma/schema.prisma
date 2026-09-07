@@ -1706,6 +1706,24 @@ model ConversationRead {
   @@unique([conversationId, userId])
 }
 
+// A logged AI support Q&A — the dealer's question and the assistant's answer,
+// tagged by area, so admins can review what dealers ask and promote good answers
+// into the knowledge base (the human-approved "learning" loop). `deferred` marks
+// answers where the assistant said it would find a teammate (a knowledge gap).
+model AssistantQa {
+  id        String   @id @default(cuid())
+  dealerId  String?
+  area      String   @default("general")
+  question  String   @db.Text
+  answer    String   @db.Text
+  deferred  Boolean  @default(false)
+  promoted  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([deferred])
+}
+
 // Which Applications view a dealer uses (Tracker / Pipeline / List / Progress).
 // One row per user+view, incremented on each switch — powers "remember my last
 // view" (most recently updated) and "which views are used most" analytics.

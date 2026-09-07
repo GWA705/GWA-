@@ -7,6 +7,8 @@ import { getSettings, ASSISTANT_AREAS } from '@/lib/settings';
 import { TranslateHealthCheck } from './TranslateHealthCheck';
 import { AiCostCalculator } from './AiCostCalculator';
 import { AssistantKnowledge } from './AssistantKnowledge';
+import { AssistantReview } from './AssistantReview';
+import { listAssistantQa } from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -86,10 +88,11 @@ function Dot({ status }: { status: HealthCheck['status'] }) {
 
 export default async function SystemHealthPage() {
   await requireAdminSection('system-health');
-  const [health, usage, knowledgeMap] = await Promise.all([
+  const [health, usage, knowledgeMap, qaRows] = await Promise.all([
     getSystemHealth(),
     deeplUsage(),
     getSettings(ASSISTANT_AREAS.map((a) => a.key)),
+    listAssistantQa(false),
   ]);
   const knowledgeAreas = ASSISTANT_AREAS.map((a) => ({ area: a.area, label: a.label, value: knowledgeMap[a.key] ?? '' }));
 
@@ -121,8 +124,9 @@ export default async function SystemHealthPage() {
         </div>
       </div>
 
-      {/* AI assistant: per-area knowledge editor + cost estimator */}
+      {/* AI assistant: per-area knowledge editor, review/promote loop, cost estimator */}
       <AssistantKnowledge areas={knowledgeAreas} />
+      <AssistantReview initial={qaRows} />
       <AiCostCalculator />
 
       {/* Translation usage, fallback + live test */}
