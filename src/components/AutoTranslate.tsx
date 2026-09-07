@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Languages } from 'lucide-react';
 import { useI18n } from '@/i18n/client';
 import { translateContent } from '@/i18n/contentActions';
@@ -32,6 +32,62 @@ type Target = 'EN' | 'FR';
 const CACHE = new Map<string, { text: string; detectedSource?: string } | null>();
 
 const FRENCH_SIGNAL = /[àâçéèêëîïôûùüœ]|\b(le|la|les|un|une|des|du|est|vous|nous|avec|pour|bonjour|merci|oui|non|je|ne|pas|s['’]il|d['’]|l['’])\b/i;
+
+// Markdown links [label](url), bare http(s) URLs, and internal /dealer/… paths.
+// Lets the assistant point dealers to a portal page with a tappable link.
+const RICH_RE = /\[([^\]]+)\]\((https?:\/\/[^\s)]+|\/[^\s)]+)\)|(https?:\/\/[^\s]+)|(\/dealer\/[^\s)]*)/g;
+
+/**
+ * Render `text` with clickable links. Internal portal links (/dealer/…) navigate
+ * in the same tab; external links open in a new tab. Everything else is plain
+ * text, so a message with no links renders exactly as before.
+ */
+function renderRich(text: string, linkCls: string): ReactNode {
+  const out: ReactNode[] = [];
+  const re = new RegExp(RICH_RE.source, 'g');
+  let last = 0;
+  let key = 0;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    if (m.index > last) out.push(text.slice(last, m.index));
+    let label: string;
+    let href: string;
+    let suffix = '';
+    if (m[1] !== undefined) {
+      label = m[1];
+      href = m[2];
+    } else {
+      href = (m[3] ?? m[4])!;
+      // A bare URL/path can swallow trailing sentence punctuation — peel it off
+      // so "see /dealer/leads." doesn't make the period part of the link.
+      const p = /[.,;:!?)\]]+$/.exec(href);
+      if (p) {
+        suffix = p[0];
+        href = href.slice(0, href.length - suffix.length);
+      }
+      label = href;
+    }
+    if (href) {
+      const external = /^https?:\/\//.test(href);
+      out.push(
+        <a
+          key={`lnk${key++}`}
+          href={href}
+          className={linkCls}
+          {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+        >
+          {label}
+        </a>,
+      );
+    } else {
+      out.push(m[0]);
+    }
+    if (suffix) out.push(suffix);
+    last = re.lastIndex;
+  }
+  if (last < text.length) out.push(text.slice(last));
+  return out;
+}
 
 /** Guess whether `text` is worth translating for a viewer wanting `target`. */
 function worthTranslating(text: string, target: Target): boolean {
@@ -103,10 +159,14 @@ export function AutoTranslate({
   const body = showTranslated ? result!.text : text;
   const footCls = tone === 'dark' ? 'text-white/70' : 'text-gray-400';
   const linkCls = tone === 'dark' ? 'font-semibold text-white underline hover:opacity-80' : 'font-semibold text-blue-600 hover:underline';
+  // Links inside the message body (portal pages the assistant points to).
+  const bodyLinkCls = tone === 'dark'
+    ? 'font-medium underline underline-offset-2 hover:opacity-80'
+    : 'font-medium text-blue-600 underline underline-offset-2 hover:text-blue-700';
 
   return (
     <div className={className}>
-      <p className="whitespace-pre-wrap break-words">{body}</p>
+      <p className="whitespace-pre-wrap break-words">{renderRich(body, bodyLinkCls)}</p>
       {hasTranslation && (
         <div className={`mt-0.5 flex flex-wrap items-center gap-1.5 text-[11px] ${footCls}`}>
           <Languages size={11} aria-hidden />

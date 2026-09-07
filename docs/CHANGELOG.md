@@ -44,6 +44,15 @@ source of truth; this file is the human-readable index.
   auto-translates lead free-text via DeepL. (2026-09-06, Sean.)
 
 ## 2026-09-07
+- **Chat: assistant links dealers straight to the right portal page.** The
+  assistant now knows every dealer page URL (Product Library, Resources, HD
+  Promotions, HD Credit Card, Marketplace, Leads, Calculator, etc.) and, when an
+  answer points somewhere in the portal, includes a clickable link to it. Chat
+  message text now renders markdown links, bare URLs, and internal `/dealer/…`
+  paths as tappable links (internal → same tab, external → new tab); plain
+  messages render exactly as before. (`src/lib/ai.ts`, `AutoTranslate.tsx`.)
+  Note: the assistant can *link* to the Product Library but doesn't yet read its
+  entries — for it to quote a specific product, put that in a knowledge box.
 - **Chat: no more iOS zoom on the message box.** The chat input is now 16px
   (`text-base`) — iOS Safari force-zooms the page whenever a focused input is under
   16px, which is what made the widget jump/clip on mobile. Keep chat inputs ≥16px.
