@@ -4,10 +4,13 @@ import Link from 'next/link';
 import { UserPlus, BookOpen, Gift, ShoppingCart, Zap } from 'lucide-react';
 import { useT } from '@/i18n/client';
 
+// Each tone carries a solid bottom "lip" (the 0 3px 0 shadow) + a soft drop
+// shadow so the tiles read as raised, pressable buttons. Hover/active handled on
+// the base class below.
 const TONE: Record<'dark' | 'blue' | 'soft', string> = {
-  dark: 'bg-[#073d8c] text-white',
-  blue: 'bg-blue-600 text-white',
-  soft: 'bg-[#f4f8fd] text-blue-700 border border-blue-100',
+  dark: 'bg-[#073d8c] text-white ring-1 ring-[#052a63] shadow-[0_3px_0_0_#052a63,0_8px_16px_-8px_rgba(7,61,140,0.55)] hover:bg-[#0a468f]',
+  blue: 'bg-blue-600 text-white ring-1 ring-blue-700 shadow-[0_3px_0_0_#1e40af,0_8px_16px_-8px_rgba(37,99,235,0.55)] hover:bg-blue-500',
+  soft: 'bg-white text-blue-700 ring-1 ring-blue-200 shadow-[0_3px_0_0_#dbeafe,0_6px_14px_-8px_rgba(37,99,235,0.3)] hover:bg-blue-50 hover:ring-blue-300',
 };
 
 /** The right-rail Quick Actions grid. Links to the real routes. */
@@ -30,7 +33,7 @@ export function QuickActions() {
           <Link
             key={a.title}
             href={a.href}
-            className={`flex min-h-[105px] flex-col items-center justify-center rounded-xl p-4 text-center transition hover:opacity-95 ${TONE[a.tone]}`}
+            className={`flex min-h-[112px] flex-col items-center justify-center rounded-xl p-4 text-center transition duration-150 hover:-translate-y-0.5 active:translate-y-[2px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${TONE[a.tone]}`}
           >
             <a.Icon size={26} />
             <div className="mt-2 text-sm font-bold">{a.title}</div>
