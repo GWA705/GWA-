@@ -28,20 +28,27 @@ source of truth; this file is the human-readable index.
 | DeepL translation (user content) | ✅ Live (2026-09-06) — `DEEPL_API_KEY` set in Render (free "API Developer" key) | Powers (a) the on-demand Translate control and (b) the **automatic** FR→EN conversion of chat, deal-conversation and gift-card threads, and dealer free-text notes on the reviewer side (`<AutoTranslate>`). **Free fallback:** if DeepL is missing or out of quota, translation auto-switches to MyMemory (free, no account; set `MYMEMORY_EMAIL` to lift its daily cap). **Usage meter:** Admin → System health shows DeepL characters used / limit. |
 | Bell Total Connect voicemail | 📝 Documented, not built here | Guide delivered for the **booking site** (voicemail-to-email + IMAP). Not part of this portal. |
 
-### French lead parsing — BUILT, awaiting live paste + test
+### French lead parsing — reference script synced (2026-09-07)
 - **French Home Depot lead parsing (Québec/French leads).** The portal only
   *reads* the "HD Leads Log" Google Sheet; HD lead emails are parsed into it by
-  Sean's **external Apps Script** (`scripts/hd-leads-automation.gs`). Root cause
-  of missed French leads: the Gmail search required the English subject, and the
-  parser keyed off English labels only. **Fixed 2026-09-06 from a real French
-  sample (Réf 701780675):** the search now matches the EN subject OR the FR
-  fragment "Services à domicile" (same sender, info@homedepot.ca), and
-  `parseLead()` is bilingual (EN|FR for every field — see the script header for
-  the label map); French leads log as "Format F (French)". **Remaining step
-  (Sean, external):** paste the updated `processNewLeads()` search line +
-  `parseLead()` into the LIVE Apps Script and run `testSingleLead()` on a French
-  lead to confirm before the 15-min trigger runs. Portal display already
-  auto-translates lead free-text via DeepL. (2026-09-06, Sean.)
+  Sean's **external Apps Script** (`scripts/hd-leads-automation.gs`, reference
+  copy kept in sync). Updated to Sean's running version: the Gmail search matches
+  the EN subject "New Home Services Customer Lead" OR the FR subject "Nouveau
+  prospect pour les Services" (sender info@homedepot.ca), `parseLead()` is
+  bilingual for every field (Identifiant du rendez-vous, Nom du service, Magasin,
+  Renseignements sur votre client, Emplacement du projet, S'agit-il d'une
+  urgence, Détails du service, Renseignements supplémentaires) with Emergency
+  Non/Oui → No/Yes; French leads report `formatDetected = "Format C (French)"`.
+- **Portal ↔ sheet contract verified (2026-09-07).** No portal code change was
+  needed for the French parser: the reader (`src/lib/leads.ts`) maps columns by
+  HEADER NAME, and the No-Good write-back (`src/lib/leadsWrite.ts`) targets fixed
+  columns O/P/Q by position — both match the unchanged 18-column layout, so
+  French leads flow through exactly like English ones. Same spreadsheet on both
+  sides (`HD_LEADS_SHEET_ID` == the script's `LEADS_LOG_ID`). **To go live:** set
+  the script's `TEST_MODE:false` so rows land in the "Leads Log" tab the portal
+  reads (not "TEST - Leads Log"), keep the 18 headers unrenamed, and run
+  `testSingleLead()` on a French lead first. Portal display auto-translates lead
+  free-text via DeepL.
 
 ## 2026-09-07
 - **Heroes: image slots for Applications & New customer.** Both `SectionHero`s now
