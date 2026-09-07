@@ -847,7 +847,10 @@ export function NewApplicationForm({
             <p className="mb-3 text-xs text-gray-400">
               {t('newApplication.coApplicantHint')}
             </p>
-            <LicenseScan onFields={fillFromCoLicense} className="mb-4" />
+            <div className="mb-4 flex flex-wrap items-start gap-3">
+              <LicenseScan onFields={fillFromCoLicense} />
+              <DocScan onFields={fillFromCoLicense} />
+            </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label className="label" htmlFor="coFirstName">{t('newApplication.coFirstName')}</label>
