@@ -179,7 +179,9 @@ export function NewApplicationForm({
 }) {
   const t = useT();
   const [state, action] = useFormState(createApplicationAction, initial);
-  const [method, setMethod] = useState<Method>('TYPED');
+  // No method chosen yet ('') — the rest of the form stays minimized until the
+  // dealer picks option 1/2/3, which then opens the sections that option needs.
+  const [method, setMethod] = useState<Method | ''>('');
   const [payment, setPayment] = useState<PaymentMethod>('FINANCEIT');
   const typed = method === 'TYPED';
   const express = method === 'FINANCEIT';
@@ -332,7 +334,7 @@ export function NewApplicationForm({
   // Outline an input: red (with a light fill) when it has an error, otherwise
   // the selected method's colour.
   const fieldCls = (name: string, base = 'input') =>
-    errorNames.has(name) ? `${base} bg-red-50 ring-2 ring-red-400` : `${base} ${METHOD_RING[method]}`;
+    errorNames.has(name) ? `${base} bg-red-50 ring-2 ring-red-400` : `${base} ${method ? METHOD_RING[method] : ''}`;
 
   // Fields required for the current entry method. Express requires full deal
   // details (and the FinanceIT number only when paid via FinanceIT).
@@ -413,21 +415,6 @@ export function NewApplicationForm({
           )}
         </div>
       )}
-
-      {/* Quick auto-fill — scan a licence or a filled credit app to populate the
-          form (works in every entry method; fills whatever fields are shown). */}
-      <section className="card border border-blue-200 bg-blue-50/40 p-5">
-        <div className="mb-3">
-          <h2 className="text-base font-semibold text-[#0e2756]">Auto-fill this application</h2>
-          <p className="mt-0.5 text-xs text-gray-500">
-            Scan the customer’s driver’s licence, or scan a filled credit app, to fill the fields below automatically. Review before submitting.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-start gap-3">
-          <LicenseScan onFields={fillBorrower} />
-          <DocScan onFields={fillBorrower} />
-        </div>
-      </section>
 
       {/* Entry method */}
       <section className="card p-6">
@@ -512,6 +499,31 @@ export function NewApplicationForm({
             </p>
           </div>
         )}
+      </section>
+
+      {/* Nothing chosen yet — keep the rest minimized and prompt for a choice. */}
+      {!method && (
+        <p className="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-4 text-center text-sm text-gray-500">
+          Choose option 1, 2, or 3 above to open the fields to complete.
+        </p>
+      )}
+
+      {/* Everything below opens only once an option (1/2/3) is selected. */}
+      {method && (
+        <>
+      {/* Quick auto-fill — scan a licence or a filled credit app to populate the
+          fields this option needs. */}
+      <section className="card border border-blue-200 bg-blue-50/40 p-5">
+        <div className="mb-3">
+          <h2 className="text-base font-semibold text-[#0e2756]">Auto-fill this application</h2>
+          <p className="mt-0.5 text-xs text-gray-500">
+            Scan the customer’s driver’s licence, or scan a filled credit app, to fill the fields below automatically. Review before submitting.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-start gap-3">
+          <LicenseScan onFields={fillBorrower} />
+          <DocScan onFields={fillBorrower} />
+        </div>
       </section>
 
       {/* Financing details */}
@@ -997,6 +1009,8 @@ export function NewApplicationForm({
         {typed && <FinanceitPdfButton className="mr-auto" />}
         <SubmitButton />
       </div>
+        </>
+      )}
     </form>
   );
 }

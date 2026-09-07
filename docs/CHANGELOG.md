@@ -51,6 +51,11 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-07
+- **New application: sections stay minimized until an option is picked.** The form
+  now opens with only the "Start here" 1/2/3 picker (no method pre-selected) plus a
+  prompt; choosing Express/Priority/Standard reveals the sections that option needs
+  (`{method && (…)}` wraps everything below the picker; `method` state is now
+  `Method | ''`). The Auto-fill bar sits at the top of the revealed sections.
 - **New application: top "Auto-fill" bar (all flows) + credit-app photo scanner.**
   Moved the licence scan out of Borrower identification into an "Auto-fill this
   application" bar at the TOP of the form, shown in every entry method (Express/
