@@ -43,6 +43,28 @@ source of truth; this file is the human-readable index.
   auto-translates lead free-text via DeepL. (2026-09-06, Sean.)
 
 ## 2026-09-07
+- **iOS: branded launch splash for the installed app.** Added
+  `apple-touch-startup-image` launch screens (blue tile + centred icon) for the
+  common iPhone resolutions, wired via `appleWebApp.startupImage` in the root
+  layout. Opening the installed app now shows the brand instead of a white flash,
+  matching Android (which already uses the manifest icon + `background_color`).
+  Assets in `public/splash/` (PNG, per Apple's requirement); portrait, one per
+  device size. Android/desktop unaffected.
+- **Perf: hero/banner images converted to WebP.** The dashboard hero, the
+  time-of-day rotation, and every page banner were ~2 MB PNGs each, so first
+  paint pulled megabytes on every dealer screen. Re-encoded to WebP at ≤1920px /
+  q80 — **92–97% smaller** (total hero payload ~34 MB → ~2 MB), references
+  updated, PNG originals removed, and the static-image cache window lengthened
+  (`max-age` 10 min → 1 h, SWR 1 day → 1 week). The runtime hero scanner already
+  accepts `.webp`, so the daily/hourly rotation is unchanged.
+- **Chat: after-hours auto-reply.** When a dealer sends a message outside
+  9am–9pm (America/Toronto), the thread gets an automated acknowledgement
+  ("Our team is offline right now (9 PM–9 AM) … we'll reply as soon as we're
+  back"), stored in the dealer's language and rendered as a centred **system
+  note** (amber, not a person's reply). Posted at most once per burst until a
+  human actually replies. Schema: `ChatMessage.auto` flag + nullable `authorId`
+  (migration `20260907010000_chat_auto_reply`, applied on deploy by
+  `scripts/start.sh`). Support hours are defined in `src/lib/chat.ts`.
 - **Mobile: support-chat button no longer hidden behind the Leads map.** The
   Leaflet map gives its own panes/controls a high `z-index` (up to ~1000), and
   the map wrapper created no stacking context, so those escaped into the page and
