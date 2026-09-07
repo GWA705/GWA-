@@ -44,6 +44,16 @@ source of truth; this file is the human-readable index.
   auto-translates lead free-text via DeepL. (2026-09-06, Sean.)
 
 ## 2026-09-07
+- **Mobile: chat bubble no longer covers page buttons.** The floating chat
+  launcher sat over primary actions at the bottom of long pages (e.g. "Submit
+  app" on the New Application form). It now auto-hides (fades/slides out) once the
+  reader scrolls to the bottom of any scrollable page — where Submit/Save buttons
+  live — and returns as they scroll back up; still hidden on the dashboard, which
+  has its own support card. Works site-wide, no per-page config.
+- **Chat: real-time assistant feel.** After a dealer sends in the support thread,
+  the widget shows a live "✨ Assistant is typing…" indicator and fast-polls
+  (~1.5 s) so the reply appears in about a second or two instead of on the 6 s
+  cycle; it stops the moment the reply lands (or after a 25 s safety timeout).
 - **Chat: AI support assistant (always-on, with human takeover).** The General
   support thread now answers dealers automatically with Claude (Anthropic
   Messages API, called from `src/lib/ai.ts` — no SDK dependency). It's grounded

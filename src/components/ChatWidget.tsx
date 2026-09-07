@@ -41,6 +41,8 @@ export function ChatWidget() {
   const [sending, setSending] = useState(false);
   const [cardWarn, setCardWarn] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
+  const [assistantTyping, setAssistantTyping] = useState(false);
+  const typingTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const stickRef = useRef(true);
   const onScroll = () => {
@@ -92,7 +94,10 @@ export function ChatWidget() {
   useEffect(() => {
     const el = listRef.current;
     if (el && stickRef.current) el.scrollTop = el.scrollHeight;
-  }, [messages, view]);
+  }, [messages, view, assistantTyping]);
+
+  // Stop the fast assistant poll if the widget unmounts mid-wait.
+  useEffect(() => () => { if (typingTimer.current) clearInterval(typingTimer.current); }, []);
 
   // Let other parts of the portal (e.g. the dashboard "Contact Support" card)
   // pop the chat open — straight into a support thread when asked.
@@ -115,10 +120,41 @@ export function ChatWidget() {
   }, [summary.conversations]);
 
   function openThread(a: Active) {
+    stopTyping();
     setActive(a);
     setMessages([]);
     setView('thread');
     if (a.conversationId) loadMessages(a.conversationId);
+  }
+
+  function stopTyping() {
+    if (typingTimer.current) {
+      clearInterval(typingTimer.current);
+      typingTimer.current = null;
+    }
+    setAssistantTyping(false);
+  }
+
+  // After a dealer sends in the support thread, show "Assistant is typing…" and
+  // poll quickly so the reply appears in ~1–2s instead of on the 6s cycle. Stops
+  // as soon as a new assistant (auto) message lands, or after a safety timeout.
+  function watchForAssistant(cid: string, baseAuto: number) {
+    stopTyping();
+    setAssistantTyping(true);
+    const startedAt = Date.now();
+    typingTimer.current = setInterval(async () => {
+      try {
+        const r = await fetch(`/api/chat/messages?conversationId=${encodeURIComponent(cid)}`, { cache: 'no-store' });
+        if (r.ok) {
+          const data = await r.json();
+          setMessages(data.messages);
+          const autoCount = (data.messages as Msg[]).filter((m) => m.auto).length;
+          if (autoCount > baseAuto || Date.now() - startedAt > 25000) stopTyping();
+        }
+      } catch {
+        /* keep waiting; the safety timeout will end it */
+      }
+    }, 1500);
   }
 
   async function send() {
@@ -128,6 +164,14 @@ export function ChatWidget() {
     setCardWarn(looksLikeCardNumber(body));
     setSendError(null);
     setSending(true);
+    // Is this the assistant-backed support thread? (kind on the active thread, or
+    // the matching conversation in the summary.) Capture the current assistant
+    // message count so the watcher can tell when a new reply arrives.
+    const isSupport =
+      active.kind === 'SUPPORT' ||
+      summary.conversations.some((c) => c.id === active.conversationId && c.kind === 'SUPPORT') ||
+      (!active.conversationId && !active.applicationId);
+    const baseAuto = messages.filter((m) => m.auto).length;
     try {
       const r = await fetch('/api/chat/send', {
         method: 'POST',
@@ -146,6 +190,7 @@ export function ChatWidget() {
         if (!active.conversationId) setActive({ ...active, conversationId: cid });
         await loadMessages(cid);
         loadSummary();
+        if (isSupport) watchForAssistant(cid, baseAuto);
       } else {
         // Surface the reason instead of failing silently (the message stays in
         // the box so nothing is lost).
@@ -164,7 +209,28 @@ export function ChatWidget() {
   // On the dashboard the Support card already offers a "Chat" button and sits in
   // the bottom-right, so the floating launcher would land on the agent photo —
   // hide it there (the card + the 'gwa:open-chat' event still open this widget).
-  const hideLauncher = pathname === '/dealer' && !open;
+  // Keep the floating bubble from covering primary actions: the dashboard has its
+  // own "Need support?" card, and on any scrollable page we tuck the bubble away
+  // once the reader reaches the bottom (where Submit/Save buttons live), bringing
+  // it back as they scroll up.
+  const [atPageBottom, setAtPageBottom] = useState(false);
+  useEffect(() => {
+    const check = () => {
+      const doc = document.documentElement;
+      const scrollable = doc.scrollHeight > window.innerHeight + 40;
+      const nearBottom = window.innerHeight + window.scrollY >= doc.scrollHeight - 150;
+      setAtPageBottom(scrollable && nearBottom);
+    };
+    check();
+    window.addEventListener('scroll', check, { passive: true });
+    window.addEventListener('resize', check);
+    return () => {
+      window.removeEventListener('scroll', check);
+      window.removeEventListener('resize', check);
+    };
+  }, [pathname]);
+
+  const hideLauncher = (pathname === '/dealer' || atPageBottom) && !open;
 
   return (
     <>
@@ -173,7 +239,9 @@ export function ChatWidget() {
         type="button"
         onClick={() => { setOpen((o) => !o); setView('list'); }}
         aria-label={open ? 'Close chat' : 'Open chat with the Georgian Water & Air team'}
-        className={`fixed right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-brand-600 text-white shadow-lg transition hover:bg-brand-700 ${quickBar ? 'bottom-20 lg:bottom-6' : 'bottom-6'} ${hideLauncher ? 'hidden' : ''}`}
+        aria-hidden={hideLauncher}
+        tabIndex={hideLauncher ? -1 : undefined}
+        className={`fixed right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-brand-600 text-white shadow-lg transition hover:bg-brand-700 ${quickBar ? 'bottom-20 lg:bottom-6' : 'bottom-6'} ${hideLauncher ? 'pointer-events-none translate-y-4 opacity-0' : 'opacity-100'}`}
       >
         {open ? (
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
@@ -273,6 +341,17 @@ export function ChatWidget() {
                       </div>
                     </div>
                   ),
+                )}
+                {assistantTyping && (
+                  <div className="flex justify-start">
+                    <div className="flex items-center gap-1.5 rounded-2xl rounded-tl-sm border border-sky-100 bg-sky-50 px-3 py-2.5">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden className="text-sky-600"><path d="M12 2l1.9 5.1L19 9l-5.1 1.9L12 16l-1.9-5.1L5 9l5.1-1.9z" /></svg>
+                      <span className="sr-only">Assistant is typing</span>
+                      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-sky-400 [animation-delay:-0.3s]" />
+                      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-sky-400 [animation-delay:-0.15s]" />
+                      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-sky-400" />
+                    </div>
+                  </div>
                 )}
               </div>
               <div className="border-t border-gray-200 p-3">
