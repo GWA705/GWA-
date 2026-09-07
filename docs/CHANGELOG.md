@@ -51,6 +51,17 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-07
+- **New application: top "Auto-fill" bar (all flows) + credit-app photo scanner.**
+  Moved the licence scan out of Borrower identification into an "Auto-fill this
+  application" bar at the TOP of the form, shown in every entry method (Express/
+  Priority/Standard); shared `fillBorrower` (BorrowerAutofill, `src/lib/autofill.ts`)
+  fills whatever fields the current method shows. Added a **"Scan a filled credit
+  app"** button (`DocScan` → `/api/scan-doc`, AWS Textract FORMS OCR) that reads a
+  photo/PDF of a completed application and fills the fields; image processed in
+  memory, not stored. **Needs AWS:** the credit-app scanner (and the licence
+  front-photo fallback) require `textract:AnalyzeDocument`/`textract:AnalyzeID` on
+  the app IAM role in ca-central-1; until enabled the button says so and the
+  on-device licence barcode scan still works with no AWS.
 - **New application: co-applicant licence scan + pre-filled Financeit PDF.**
   The licence scan is now also on the Co-applicant section (fills the co-borrower's
   name/DOB/ID/address; `DateOfBirthInput` `gwa:setdate:coDob` hook + a deferred

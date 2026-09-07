@@ -9,7 +9,8 @@ import {
   BinaryBitmap,
   DecodeHintType,
 } from '@zxing/library';
-import { parseAamva, type LicenseFields } from '@/lib/aamva';
+import { parseAamva } from '@/lib/aamva';
+import type { BorrowerAutofill } from '@/lib/autofill';
 import { useT } from '@/i18n/client';
 
 /**
@@ -71,7 +72,7 @@ async function decodeBarcode(file: File): Promise<string | null> {
   }
 }
 
-export function LicenseScan({ onFields, className = '' }: { onFields: (f: LicenseFields) => void; className?: string }) {
+export function LicenseScan({ onFields, className = '', label }: { onFields: (f: BorrowerAutofill) => void; className?: string; label?: string }) {
   const t = useT();
   const inputRef = useRef<HTMLInputElement>(null);
   const [status, setStatus] = useState<Status>('idle');
@@ -100,7 +101,7 @@ export function LicenseScan({ onFields, className = '' }: { onFields: (f: Licens
       const res = await fetch('/api/scan-id', { method: 'POST', body: fd });
       const data = await res.json().catch(() => null);
       if (res.ok && data?.ok && data.fields) {
-        onFields(data.fields as LicenseFields);
+        onFields(data.fields as BorrowerAutofill);
         setStatus('ok');
         setMsg('Filled from the licence photo. Please review each field.');
         return;
@@ -139,7 +140,7 @@ export function LicenseScan({ onFields, className = '' }: { onFields: (f: Licens
         className="inline-flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-100 disabled:opacity-60"
       >
         {status === 'reading' ? <Loader2 size={16} className="animate-spin" /> : <ScanLine size={16} />}
-        {status === 'reading' ? 'Reading licence…' : 'Scan driver’s licence'}
+        {status === 'reading' ? 'Reading licence…' : label || 'Scan driver’s licence'}
       </button>
       <p className="mt-1 text-xs text-gray-500">
         Photograph the <strong>back</strong> of the licence (the barcode) for the most accurate fill. The image isn’t stored.

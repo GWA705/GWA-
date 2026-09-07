@@ -15,8 +15,9 @@ import {
 import type { PaymentMethod } from '@prisma/client';
 import { formatPhone, formatPostal } from '@/lib/format';
 import { LicenseScan } from '@/components/LicenseScan';
+import { DocScan } from '@/components/DocScan';
 import { FinanceitPdfButton } from '@/components/FinanceitPdfButton';
-import type { LicenseFields } from '@/lib/aamva';
+import type { BorrowerAutofill } from '@/lib/autofill';
 import { AddressAutocompleteInput } from '@/components/AddressAutocompleteInput';
 import { DateOfBirthInput } from '@/components/DateOfBirthInput';
 import { SplitPaymentInput } from '@/components/SplitPaymentInput';
@@ -203,7 +204,7 @@ export function NewApplicationForm({
 
   // Co-applicant scan: coFirstName is controlled (it opens the section), so set it
   // via state, then apply the rest once the section has rendered.
-  const [pendingCo, setPendingCo] = useState<LicenseFields | null>(null);
+  const [pendingCo, setPendingCo] = useState<BorrowerAutofill | null>(null);
   useEffect(() => {
     if (!pendingCo || !hasCoApplicant) return;
     const f = pendingCo;
@@ -213,10 +214,12 @@ export function NewApplicationForm({
     };
     set('coLastName', f.lastName);
     set('coMiddleName', f.middleName);
-    set('coIdType', "Driver's Licence");
+    set('coEmail', f.email);
+    if (f.phone) set('coPhone', formatPhone(String(f.phone).replace(/\D/g, '').slice(-10)));
+    set('coIdType', f.idType || (f.idNumber ? "Driver's Licence" : undefined));
     set('coGovIdNumber', f.idNumber);
-    set('coIdProvince', f.province);
-    set('coIdExpiry', f.expiry);
+    set('coIdProvince', f.idProvince);
+    set('coIdExpiry', f.idExpiry);
     set('coAddress', f.address);
     set('coCity', f.city);
     set('coProvince', f.province);
@@ -225,30 +228,46 @@ export function NewApplicationForm({
     setPendingCo(null);
   }, [pendingCo, hasCoApplicant]);
 
-  function fillFromCoLicense(f: LicenseFields) {
-    setCoFirstName(f.firstName || f.lastName); // opens the co-applicant section
+  function fillFromCoLicense(f: BorrowerAutofill) {
+    setCoFirstName(f.firstName || f.lastName || ''); // opens the co-applicant section
     setPendingCo(f);
   }
 
-  // Driver's-licence scan → autofill the identity + address fields. The dealer
-  // reviews everything before submitting.
-  function fillFromLicense(f: LicenseFields) {
+  // Auto-fill the PRIMARY applicant from a scan (licence or uploaded credit app).
+  // Sets whatever fields the scan returned; fields not present in the current
+  // entry method are simply skipped. The dealer reviews before submitting.
+  function fillBorrower(f: BorrowerAutofill) {
     const set = (id: string, v?: string) => {
       const el = document.getElementById(id) as HTMLInputElement | HTMLSelectElement | null;
       if (el && v) el.value = v;
     };
-    set('idType', "Driver's Licence");
-    set('govIdNumber', f.idNumber);
-    set('idProvince', f.province);
-    set('idExpiry', f.expiry); // yyyy-mm-dd for the native date input
+    const phone = (id: string, v?: string) => {
+      if (v) set(id, formatPhone(String(v).replace(/\D/g, '').slice(-10)));
+    };
     set('applicantFirstName', f.firstName);
     set('middleName', f.middleName);
     set('applicantLastName', f.lastName);
+    set('applicantEmail', f.email);
+    phone('applicantPhone', f.phone);
+    phone('homePhone', f.homePhone);
+    set('maritalStatus', f.maritalStatus);
     set('applicantAddress', f.address);
     set('city', f.city);
     set('province', f.province);
     if (f.postal) set('postalCode', f.postal);
-    // DOB is a controlled component — set it via its custom event hook.
+    set('monthlyHousingCost', f.monthlyHousingCost);
+    set('yearsAtAddress', f.yearsAtAddress);
+    set('housingStatus', f.housingStatus);
+    set('idType', f.idType || (f.idNumber ? "Driver's Licence" : undefined));
+    set('govIdNumber', f.idNumber);
+    set('idProvince', f.idProvince);
+    set('idExpiry', f.idExpiry);
+    set('businessName', f.businessName);
+    set('positionTitle', f.positionTitle);
+    set('employerAddress', f.employerAddress);
+    phone('employerPhone', f.employerPhone);
+    set('grossMonthlyIncome', f.grossMonthlyIncome);
+    set('timeAtJobYears', f.timeAtJob);
     if (f.dob) window.dispatchEvent(new CustomEvent('gwa:setdate:applicantDob', { detail: f.dob }));
   }
 
@@ -394,6 +413,21 @@ export function NewApplicationForm({
           )}
         </div>
       )}
+
+      {/* Quick auto-fill — scan a licence or a filled credit app to populate the
+          form (works in every entry method; fills whatever fields are shown). */}
+      <section className="card border border-blue-200 bg-blue-50/40 p-5">
+        <div className="mb-3">
+          <h2 className="text-base font-semibold text-[#0e2756]">Auto-fill this application</h2>
+          <p className="mt-0.5 text-xs text-gray-500">
+            Scan the customer’s driver’s licence, or scan a filled credit app, to fill the fields below automatically. Review before submitting.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-start gap-3">
+          <LicenseScan onFields={fillBorrower} />
+          <DocScan onFields={fillBorrower} />
+        </div>
+      </section>
 
       {/* Entry method */}
       <section className="card p-6">
@@ -727,8 +761,7 @@ export function NewApplicationForm({
         <>
           {/* Borrower identification */}
           <section className="card p-6">
-            <h2 className="mb-1 text-base font-semibold text-gray-900">{t('newApplication.borrowerId')}</h2>
-            <LicenseScan onFields={fillFromLicense} className="mb-4" />
+            <h2 className="mb-4 text-base font-semibold text-gray-900">{t('newApplication.borrowerId')}</h2>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label className="label" htmlFor="idType">{t('newApplication.photoIdType')}</label>
