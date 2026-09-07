@@ -44,6 +44,9 @@ source of truth; this file is the human-readable index.
   auto-translates lead free-text via DeepL. (2026-09-06, Sean.)
 
 ## 2026-09-07
+- **Chat: no more iOS zoom on the message box.** The chat input is now 16px
+  (`text-base`) — iOS Safari force-zooms the page whenever a focused input is under
+  16px, which is what made the widget jump/clip on mobile. Keep chat inputs ≥16px.
 - **Chat: handoff gated behind an actual question.** The **Talk to a person**
   button stays hidden until the dealer has sent a message *and* the assistant has
   replied — so the AI always gets first crack (it can usually answer instantly)
