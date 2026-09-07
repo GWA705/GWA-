@@ -34,6 +34,33 @@ function toIso(raw: string): string {
   return iso ? iso[0] : '';
 }
 
+// A Textract value can pick up printed helper text next to the box (e.g. the
+// email line's "An email address is required…"). Trim each value to just the
+// data for that field.
+function cleanValue(key: keyof BorrowerAutofill, raw: string): string {
+  const v = (raw || '').replace(/\s+/g, ' ').trim();
+  if (!v) return '';
+  if (key === 'email') {
+    const m = v.match(/[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}/i);
+    return m ? m[0] : '';
+  }
+  if (key === 'phone' || key === 'homePhone' || key === 'employerPhone') {
+    const d = v.replace(/\D/g, '');
+    return d.length >= 10 ? d.slice(-10) : '';
+  }
+  if (key === 'postal') {
+    const m = v.toUpperCase().replace(/\s+/g, '').match(/[A-Z]\d[A-Z]\d[A-Z]\d/);
+    return m ? `${m[0].slice(0, 3)} ${m[0].slice(3)}` : v.slice(0, 7);
+  }
+  if (key === 'grossMonthlyIncome' || key === 'monthlyHousingCost') {
+    const n = v.replace(/[^0-9.]/g, '');
+    return n;
+  }
+  if (key === 'idNumber') return v.replace(/[^0-9A-Za-z\- ]/g, '').slice(0, 25).trim();
+  // Names/addresses/etc.: strip an obvious trailing helper sentence and cap length.
+  return v.split(/\s{2,}|(?: [–—-] )/)[0].slice(0, 60).trim();
+}
+
 // Label fragment → field. Order matters: specific rules before the generic
 // address/city/province/postal ones, so "Employer Address" isn't taken as the
 // home address. Generic rows take the FIRST (topmost) match = the Housing block.
@@ -122,7 +149,8 @@ export async function POST(req: NextRequest) {
         if (fields[key]) break; // keep the first (topmost) match
         let v = p.value;
         if (key === 'dob' || key === 'idExpiry') v = toIso(v);
-        else if (key === 'province' || key === 'idProvince') v = toProvinceCode(v);
+        else if (key === 'province' || key === 'idProvince') v = toProvinceCode(cleanValue(key, v));
+        else v = cleanValue(key, v);
         if (v) fields[key] = v;
         break;
       }
