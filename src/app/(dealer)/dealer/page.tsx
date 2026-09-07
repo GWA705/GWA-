@@ -106,7 +106,7 @@ export default async function DealerDashboard() {
 
   return (
     <div className="space-y-4">
-      <DashboardHero firstName={firstName} companyName={profile?.businessName ?? null} bgImage="/hero-banner.png" bgImages={heroImages} />
+      <DashboardHero firstName={firstName} companyName={profile?.businessName ?? null} bgImage="/hero-banner.webp" bgImages={heroImages} />
 
       {/* KPI row — compact 2-up on phones so it flows into the list below */}
       <div className="grid grid-cols-2 gap-2.5 sm:gap-3 md:grid-cols-2 xl:grid-cols-4">

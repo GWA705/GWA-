@@ -33,7 +33,7 @@ const nextConfig = {
         // up (served instantly from cache, refreshed in the background).
         source: '/:file*.(png|jpg|jpeg|webp|avif|svg|gif|ico)',
         headers: [
-          { key: 'Cache-Control', value: 'public, max-age=600, stale-while-revalidate=86400' },
+          { key: 'Cache-Control', value: 'public, max-age=3600, stale-while-revalidate=604800' },
         ],
       },
     ];

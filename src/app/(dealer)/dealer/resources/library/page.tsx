@@ -108,7 +108,7 @@ export default async function DealerResourceLibraryPage({
             eyebrow={t('nav.resources')}
             title={t('resources.libraryTitle')}
             subtitle={t('resources.librarySubtitle')}
-            bgImage="/resources-hero.png"
+            bgImage="/resources-hero.webp"
           />
         </div>
       </div>

@@ -9,8 +9,8 @@ import { getT } from '@/i18n/server';
 // Per-slug hero background photo. Drop a matching file in /public to give a
 // content tab its own banner; slugs not listed here fall back to the gradient.
 const HERO_IMAGE: Record<string, string> = {
-  'hd-credit-card': '/hd-credit-card-hero.png',
-  'hd-promotions': '/HD-Promotions.png',
+  'hd-credit-card': '/hd-credit-card-hero.webp',
+  'hd-promotions': '/HD-Promotions.webp',
 };
 
 // Shared server component behind the dealer content tabs. Underscore

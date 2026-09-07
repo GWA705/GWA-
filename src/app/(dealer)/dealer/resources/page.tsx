@@ -14,7 +14,7 @@ export default function ResourcesPage() {
         eyebrow={t('nav.resources')}
         title={t('resources.indexTitle')}
         subtitle={t('resources.indexSubtitle')}
-        bgImage="/resources-hero.png"
+        bgImage="/resources-hero.webp"
       />
       <Link
         href="/dealer/resources/library"

@@ -12,7 +12,7 @@ function openChat() {
  * Support / contact card. "Contact Support" opens the corner chat widget.
  *
  * The agent photo on the right is a swappable static asset: drop a file at
- * `public/support-agent.png` and it renders here, cropped to fill and blended
+ * `public/support-agent.webp` and it renders here, cropped to fill and blended
  * into the card. If the file is absent, a tasteful headset watermark shows
  * instead — so it never looks broken. See the AI image prompt in
  * `docs/BRAND-KIT.md` for generating a perfectly-formatted photo.
@@ -27,7 +27,7 @@ export function SupportCard() {
       <div
         className="pointer-events-none absolute inset-y-0 left-1/2 w-[46%] -translate-x-1/2 bg-cover bg-no-repeat"
         style={{
-          backgroundImage: "url('/support-agent.png')",
+          backgroundImage: "url('/support-agent.webp')",
           backgroundPosition: 'center 0%',
           maskImage: 'linear-gradient(to right, transparent 0%, #000 28%, #000 72%, transparent 100%)',
           WebkitMaskImage: 'linear-gradient(to right, transparent 0%, #000 28%, #000 72%, transparent 100%)',

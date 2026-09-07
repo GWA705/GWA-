@@ -16,6 +16,7 @@ export interface ChatMessageView {
   id: string;
   body: string;
   fromStaff: boolean;
+  auto: boolean; // automated system message (after-hours notice) — render distinctly
   authorName: string; // already display-safe for the audience (see forDealer)
   createdAt: string;
 }
@@ -78,6 +79,50 @@ export async function postChatMessage(args: { conversationId: string; user: Sess
   ]);
 }
 
+// GWA support hours are 9am–9pm; a dealer message outside that window gets an
+// automated acknowledgement. Bodies are stored in the dealer's language (no
+// company name, so no brand-name pitfalls).
+export const AFTER_HOURS_REPLY: Record<'en' | 'fr', string> = {
+  en: 'Thanks for your message! Our team is offline right now (9 PM–9 AM). Your note is logged and we’ll reply as soon as we’re back.',
+  fr: 'Merci pour votre message! Notre équipe est hors ligne en ce moment (21 h à 9 h). Votre note est enregistrée et nous vous répondrons dès notre retour.',
+};
+
+/** True when the given time is outside 9am–9pm in America/Toronto. */
+export function isAfterHours(date = new Date()): boolean {
+  const h =
+    Number(new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', hour: 'numeric', hour12: false }).format(date)) % 24;
+  return h >= 21 || h < 9;
+}
+
+/** Post an automated system message (no human author) and stamp the thread. */
+export async function postAutoReply(conversationId: string, body: string): Promise<void> {
+  const now = new Date();
+  await prisma.$transaction([
+    prisma.chatMessage.create({
+      data: { conversationId, authorId: null, fromStaff: true, auto: true, body: body.trim().slice(0, 1000) },
+    }),
+    prisma.conversation.update({ where: { id: conversationId }, data: { lastMessageAt: now } }),
+  ]);
+}
+
+/**
+ * True if an automated reply has already acknowledged the current dealer burst —
+ * the latest auto message is newer than the latest human staff reply. Prevents
+ * an after-hours notice on every message until a person actually replies.
+ */
+export async function autoReplyOutstanding(conversationId: string): Promise<boolean> {
+  const [lastAuto, lastHuman] = await Promise.all([
+    prisma.chatMessage.findFirst({ where: { conversationId, auto: true }, orderBy: { createdAt: 'desc' }, select: { createdAt: true } }),
+    prisma.chatMessage.findFirst({
+      where: { conversationId, fromStaff: true, auto: false },
+      orderBy: { createdAt: 'desc' },
+      select: { createdAt: true },
+    }),
+  ]);
+  if (!lastAuto) return false;
+  return !lastHuman || lastAuto.createdAt > lastHuman.createdAt;
+}
+
 /** Mark a conversation read up to now for this user. */
 export async function markConversationRead(conversationId: string, userId: string): Promise<void> {
   const now = new Date();
@@ -101,8 +146,10 @@ export async function conversationMessages(conversationId: string, viewer: Sessi
     id: m.id,
     body: m.body,
     fromStaff: m.fromStaff,
-    // A dealer never sees a GWA staff member's name — just "Reviewer".
-    authorName: forDealer && m.fromStaff ? 'Reviewer' : m.author?.name ?? 'Unknown',
+    auto: m.auto,
+    // Automated notice → labelled as the portal; otherwise a dealer never sees a
+    // GWA staff member's name — just "Reviewer".
+    authorName: m.auto ? 'GWA Portal' : forDealer && m.fromStaff ? 'Reviewer' : m.author?.name ?? 'Unknown',
     createdAt: m.createdAt.toISOString(),
   }));
 }

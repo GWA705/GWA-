@@ -20,6 +20,7 @@ interface Msg {
   id: string;
   body: string;
   fromStaff: boolean;
+  auto?: boolean;
   authorName: string;
   createdAt: string;
 }
@@ -250,14 +251,25 @@ export function ChatWidget() {
             <>
               <div ref={listRef} onScroll={onScroll} className="flex-1 space-y-3 overflow-y-auto bg-gray-50 p-4">
                 {messages.length === 0 && <p className="text-center text-sm text-gray-400">No messages yet — say hello.</p>}
-                {messages.map((m) => (
-                  <div key={m.id} className={`flex ${m.fromStaff ? 'justify-start' : 'justify-end'}`}>
-                    <div className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${m.fromStaff ? 'rounded-tl-sm bg-white text-gray-800 shadow-sm' : 'rounded-tr-sm bg-brand-600 text-white'}`}>
-                      <AutoTranslate text={m.body} tone={m.fromStaff ? 'light' : 'dark'} />
-                      <p className={`mt-1 text-[10px] ${m.fromStaff ? 'text-gray-400' : 'text-white/70'}`}>{m.authorName} · {fmtTime(m.createdAt)}</p>
+                {messages.map((m) =>
+                  m.auto ? (
+                    // Automated after-hours notice — a centered system note, not a
+                    // person's reply, so it doesn't read as a live answer.
+                    <div key={m.id} className="flex justify-center">
+                      <div className="max-w-[85%] rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-center text-xs text-amber-800">
+                        <AutoTranslate text={m.body} tone="light" />
+                        <p className="mt-1 text-[10px] text-amber-500">{fmtTime(m.createdAt)}</p>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ) : (
+                    <div key={m.id} className={`flex ${m.fromStaff ? 'justify-start' : 'justify-end'}`}>
+                      <div className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${m.fromStaff ? 'rounded-tl-sm bg-white text-gray-800 shadow-sm' : 'rounded-tr-sm bg-brand-600 text-white'}`}>
+                        <AutoTranslate text={m.body} tone={m.fromStaff ? 'light' : 'dark'} />
+                        <p className={`mt-1 text-[10px] ${m.fromStaff ? 'text-gray-400' : 'text-white/70'}`}>{m.authorName} · {fmtTime(m.createdAt)}</p>
+                      </div>
+                    </div>
+                  ),
+                )}
               </div>
               <div className="border-t border-gray-200 p-3">
                 {cardWarn && <p className="mb-2 rounded bg-amber-50 px-2 py-1.5 text-xs text-amber-800">{CARD_REDACT_NOTICE}</p>}

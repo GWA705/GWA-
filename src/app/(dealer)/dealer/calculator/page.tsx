@@ -30,7 +30,7 @@ export default async function DealerCalculatorPage() {
         eyebrow={t('calculator.heroEyebrow')}
         title={t('calculator.heroTitle')}
         subtitle={t('calculator.heroSubtitle')}
-        bgImage="/calculator-hero.png"
+        bgImage="/calculator-hero.webp"
       />
       <DealerCalculator defaultProvince={defaultProvince} />
     </div>

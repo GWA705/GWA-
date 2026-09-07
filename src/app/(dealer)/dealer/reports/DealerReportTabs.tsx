@@ -20,7 +20,7 @@ export function DealerReportTabs({ active, showOwner = false }: { active: Tab; s
   );
   return (
     <div className="space-y-3">
-      <SectionHero eyebrow={t('reports.heroEyebrow')} title={t('reports.heroTitle')} subtitle={t('reports.heroSubtitle')} bgImage="/reports-hero.png" />
+      <SectionHero eyebrow={t('reports.heroEyebrow')} title={t('reports.heroTitle')} subtitle={t('reports.heroSubtitle')} bgImage="/reports-hero.webp" />
       <div className="flex flex-wrap gap-2">
         {tab('/dealer/reports', t('reports.tabMonthly'), 'monthly')}
         {tab('/dealer/reports/weekly', t('reports.tabWeekly'), 'weekly')}

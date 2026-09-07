@@ -85,7 +85,7 @@ function Header() {
       eyebrow={t('leads.heroEyebrow')}
       title={t('leads.heroTitle')}
       subtitle={t('leads.heroSubtitle')}
-      bgImage="/leads-hero.png"
+      bgImage="/leads-hero.webp"
     />
   );
 }

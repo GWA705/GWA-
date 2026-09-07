@@ -67,7 +67,7 @@ export default async function DealerGiftCardsPage({
       <SectionHero
         title={t('giftCards.heroTitle')}
         subtitle={t('giftCards.heroSubtitle')}
-        bgImage="/gift-cards-hero.png"
+        bgImage="/gift-cards-hero.webp"
       />
 
       <div className="card space-y-4 p-6">

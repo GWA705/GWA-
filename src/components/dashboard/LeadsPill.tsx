@@ -7,7 +7,7 @@ import { useT } from '@/i18n/client';
 /**
  * "HD Leads" banner pill for the dashboard right rail (above the Support pill).
  *
- * Drop a banner image at `public/leads-pill.png` and it fills the pill (cover).
+ * Drop a banner image at `public/leads-pill.webp` and it fills the pill (cover).
  * The "HD Leads" label + lead icon + arrow always sit on top over a bottom
  * scrim, so it's clear the banner is clickable. With no image, a solid navy
  * background shows behind the same label.
@@ -25,7 +25,7 @@ export function LeadsPill() {
       {/* Banner image — fills the pill (cover) */}
       <div
         className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: "url('/leads-pill.png')" }}
+        style={{ backgroundImage: "url('/leads-pill.webp')" }}
         aria-hidden
       />
       {/* Scrim so the label stays legible over any image */}

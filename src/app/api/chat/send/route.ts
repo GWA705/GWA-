@@ -5,11 +5,16 @@ import { isInternalRole } from '@/lib/constants';
 import { redactCardNumbers } from '@/lib/cardGuard';
 import { notifyNewNote } from '@/lib/notify';
 import {
+  AFTER_HOURS_REPLY,
+  autoReplyOutstanding,
   canAccessConversation,
   getOrCreateDealConversation,
   getOrCreateSupportConversation,
+  isAfterHours,
+  postAutoReply,
   postChatMessage,
 } from '@/lib/chat';
+import { getLocale } from '@/i18n/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -51,6 +56,17 @@ export async function POST(req: NextRequest) {
   if (!canAccessConversation(session, conv)) return NextResponse.json({ error: 'You don’t have access to that conversation.' }, { status: 403 });
 
   await postChatMessage({ conversationId: conv.id, user: session, body });
+
+  // After-hours acknowledgement: when a dealer writes outside 9am–9pm, drop an
+  // automated note so they know it's been received and will be answered. Only
+  // once per burst (until a person replies), and never for staff messages.
+  if (!isInternalRole(session.role) && isAfterHours()) {
+    if (!(await autoReplyOutstanding(conv.id))) {
+      const locale = getLocale();
+      const replyBody = AFTER_HOURS_REPLY[locale === 'fr' ? 'fr' : 'en'];
+      await postAutoReply(conv.id, replyBody).catch(() => {});
+    }
+  }
 
   // Notify the other party on a deal thread (same behaviour as the old deal
   // notes), so an offline dealer/reviewer still hears about a new message.

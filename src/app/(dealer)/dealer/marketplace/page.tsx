@@ -42,7 +42,7 @@ export default async function DealerMarketplace({ searchParams }: { searchParams
       <SectionHero
         title={t('marketplace.heroTitle')}
         subtitle={t('marketplace.heroSubtitle')}
-        bgImage="/marketplace-hero.png"
+        bgImage="/marketplace-hero.webp"
         tiles={[
           { Icon: Shirt, title: t('marketplace.tileApparel') },
           { Icon: Presentation, title: t('marketplace.tileSignage') },

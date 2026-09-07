@@ -6,7 +6,7 @@ import { getT } from '@/i18n/server';
  * The dashboard hero banner — a wide photographic welcome.
  *
  * The background is a swappable static asset: drop a file at
- * `public/hero-banner.png` and it fills the banner (cropped to cover). Until one
+ * `public/hero-banner.webp` and it fills the banner (cropped to cover). Until one
  * is added, an on-brand blue gradient shows instead — so it always looks
  * finished. A left-to-right dark gradient keeps the greeting legible over any
  * photo. See the AI image prompt in `docs/BRAND-KIT.md` §14 for a
@@ -14,7 +14,7 @@ import { getT } from '@/i18n/server';
  */
 export function DashboardHero({
   firstName,
-  bgImage = '/hero-banner.png',
+  bgImage = '/hero-banner.webp',
   bgImages = [],
 }: {
   firstName: string;

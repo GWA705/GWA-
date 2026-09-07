@@ -39,7 +39,7 @@ function hourOf(path: string): number | null {
   return h >= 0 && h <= 23 ? h : null;
 }
 
-export function HeroBackdrop({ images, fallback = '/hero-banner.png' }: { images: string[]; fallback?: string }) {
+export function HeroBackdrop({ images, fallback = '/hero-banner.webp' }: { images: string[]; fallback?: string }) {
   const [mounted, setMounted] = useState(false);
   const [slot, setSlot] = useState<number | null>(null);
   const [idx, setIdx] = useState(0); // rotation within a slot (when >1 image shares the hour)
@@ -57,7 +57,7 @@ export function HeroBackdrop({ images, fallback = '/hero-banner.png' }: { images
 
   // Images for the current slot (the hour in the filename equals the slot start,
   // e.g. Hero-12.png for the 12:00 slot). No image for a slot → the regular hero
-  // (`fallback`) shows, so /hero-banner.png is the default for every slot until a
+  // (`fallback`) shows, so /hero-banner.webp is the default for every slot until a
   // time-specific image is added (e.g. the 5am slot until Hero-05.png exists).
   const slotImages = slot != null ? images.filter((p) => hourOf(p) === slot) : [];
   const pool = slotImages.length > 0 ? slotImages : [fallback];
