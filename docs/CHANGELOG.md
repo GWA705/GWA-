@@ -42,6 +42,16 @@ source of truth; this file is the human-readable index.
   lead to confirm before the 15-min trigger runs. Portal display already
   auto-translates lead free-text via DeepL. (2026-09-06, Sean.)
 
+## 2026-09-07
+- **New home-screen / PWA app icon.** Replaced the install / Add-to-Home-Screen
+  icon with the new GWA app tile (maple leaf + Canada map + GWA + wave, supplied
+  by Sean). Regenerated `public/icon-192.png`, `icon-512.png` and
+  `apple-touch-icon.png` (180) full-bleed — the source's black corners are
+  trimmed so phones apply their own rounding cleanly — plus a padded
+  `public/icon-maskable-512.png` now wired as the manifest's `maskable` icon so
+  Android's circle/squircle mask never clips the wordmark. Source art saved at
+  `public/brand/gwa-app-icon.png`; recorded in Brand Kit §3.
+
 ## 2026-09-06
 - **Translation: live health check + Google Translate as a dormant provider.**
   Added a one-click **Live translation test** on Admin → System health (translates

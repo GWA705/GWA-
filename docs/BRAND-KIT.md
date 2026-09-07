@@ -106,7 +106,8 @@ and deliverables:
 | `public/GWANewLogo.png` | Primary horizontal lockup, **transparent**, 3210×1311 | Default web / on-screen use, light backgrounds |
 | `public/brand/gwa-logo-horizontal.png` | Same as above (organized copy) | Reports, decks on light grounds |
 | `public/brand/gwa-logo-horizontal-divider.jpg` | Horizontal lockup with the `GWA │ Georgian / Water & Air` divider, white bg, 958×305 | Headers where a solid white field is acceptable |
-| `public/brand/gwa-logo-badge.png` | Circular badge in a blue ring, 1024×1024 | Social avatar, favicon, app icon |
+| `public/brand/gwa-logo-badge.png` | Circular badge in a blue ring, 1024×1024 | Social avatar, favicon |
+| `public/brand/gwa-app-icon.png` | Blue app-icon tile — maple leaf + Canada map + GWA + wave, 1254×1254 | Home-screen / PWA icon (source art) |
 
 **Still missing:** a true **reverse (white-on-dark)** lockup and vector source
 files. Until the reverse logo is supplied, dark-band placements (e.g. a PDF cover
