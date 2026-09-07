@@ -44,6 +44,13 @@ source of truth; this file is the human-readable index.
   auto-translates lead free-text via DeepL. (2026-09-06, Sean.)
 
 ## 2026-09-07
+- **Chat: "Clear chat" to reset a support thread.** A trash button in the support
+  chat header (dealer or staff) wipes that thread's messages so conversations
+  don't pile up — and clears the assistant's "a teammate is active" state. Only
+  General support threads can be cleared (deal threads keep their history).
+  `POST /api/chat/clear`. Also fixes the stuck test threads where messages
+  mis-stamped as staff (from the earlier impersonation bug) kept the assistant
+  silent.
 - **Fix: AI assistant gave no reply in "view as dealer" (real root cause).**
   Impersonation was only applied when `x-pathname` was a `/dealer/*` route, but the
   chat calls `/api/chat/*`, so on those requests the admin was treated as staff —

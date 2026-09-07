@@ -145,6 +145,25 @@ export function ChatWidget() {
     setAssistantTyping(false);
   }
 
+  // Clear the current support thread (start fresh) so chats don't pile up.
+  async function clearChat() {
+    const cid = active?.conversationId;
+    if (!cid) return;
+    if (!window.confirm('Clear this chat? All messages in it will be removed.')) return;
+    stopTyping();
+    try {
+      await fetch('/api/chat/clear', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversationId: cid }),
+      });
+    } catch {
+      /* ignore — reload reflects the result */
+    }
+    setMessages([]);
+    loadSummary();
+  }
+
   // After a dealer sends in the support thread, ask the assistant for a reply and
   // await it (a real request the browser waits on — reliable across redeploys),
   // showing "Assistant is typing…" meanwhile, then load the reply.
@@ -211,6 +230,8 @@ export function ChatWidget() {
   }
 
   const badge = summary.totalUnread;
+  const curIsSupport =
+    active?.kind === 'SUPPORT' || summary.conversations.some((c) => c.id === active?.conversationId && c.kind === 'SUPPORT');
 
   // On the dashboard the Support card already offers a "Chat" button and sits in
   // the bottom-right, so the floating launcher would land on the agent photo —
@@ -286,6 +307,11 @@ export function ChatWidget() {
               <div className="truncate text-sm font-semibold">{view === 'thread' ? active?.title : 'Georgian Water & Air team chat'}</div>
               {view === 'list' && <div className="text-[11px] text-white/80">We usually reply the same day</div>}
             </div>
+            {view === 'thread' && curIsSupport && (
+              <button type="button" onClick={clearChat} aria-label="Clear chat" title="Clear chat" className="rounded p-1 hover:bg-white/10">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /></svg>
+              </button>
+            )}
             <button type="button" onClick={() => setOpen(false)} aria-label="Close chat" className="rounded p-1 hover:bg-white/10">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
             </button>

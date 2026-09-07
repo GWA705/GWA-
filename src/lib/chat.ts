@@ -149,6 +149,15 @@ export async function humanRepliedRecently(conversationId: string, minutes = 30)
   return !!row;
 }
 
+/** Clear a General support thread: delete its messages + read markers, start fresh. */
+export async function clearSupportConversation(conversationId: string): Promise<void> {
+  await prisma.$transaction([
+    prisma.chatMessage.deleteMany({ where: { conversationId } }),
+    prisma.conversationRead.deleteMany({ where: { conversationId } }),
+    prisma.conversation.update({ where: { id: conversationId }, data: { lastMessageAt: new Date() } }),
+  ]);
+}
+
 /** Mark a conversation read up to now for this user. */
 export async function markConversationRead(conversationId: string, userId: string): Promise<void> {
   const now = new Date();
