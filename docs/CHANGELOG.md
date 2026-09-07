@@ -44,6 +44,11 @@ source of truth; this file is the human-readable index.
   auto-translates lead free-text via DeepL. (2026-09-06, Sean.)
 
 ## 2026-09-07
+- **Auth: EN/FR language toggle on the login (and all auth) pages.** Pre-login
+  pages only followed the saved locale cookie, so a dealer landing in the "wrong"
+  language had no way to switch until after signing in. Added a shared
+  `(auth)/layout.tsx` that shows the `LanguageToggle` (top-right, gated by
+  `I18N_UI_ENABLED`) on login, forgot/reset password, MFA and 2FA-setup.
 - **Reports: fixed two stacked navy blocks + new tab style.** The monthly
   summary card sat right under the navy "My reports" hero as a second big navy
   block, so the two read as one heavy mass. The summary is now a **light KPI
