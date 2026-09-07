@@ -51,6 +51,14 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-07
+- **New application: confirm-what-you-scanned gate before submit.** Because a
+  driver's-licence barcode or a photographed credit app can be misread, any
+  section a scan actually filled now raises a checkbox in a "Confirm the scanned
+  details" panel above Submit — Applicant name & ID, Home address, Employment &
+  income, and Co-applicant details. The deal can't be submitted until every
+  scanned section is ticked; trying shows an amber reminder and scrolls to the
+  panel. Re-scanning a section clears its earlier confirmation. Bilingual
+  (EN/FR). (`NewApplicationForm.tsx`, `en.ts`/`fr.ts` `newApplication.verifyScan*`.)
 - **Admin: new-user invite email in English or French.** Adding a user (Admin →
   Users) now has an **Invite email language** dropdown (English / Français); the
   welcome/login email (subject, greeting, Web address / Username / Temporary

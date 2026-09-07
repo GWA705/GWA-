@@ -170,6 +170,27 @@ const METHODS: {
   },
 ];
 
+// Scanned data can be misread, so each section a scan touched must be confirmed
+// before submit. Groups map autofill fields → a review checkbox.
+const SCAN_SECTIONS: { key: string; label: string; fields: (keyof BorrowerAutofill)[] }[] = [
+  { key: 'applicant', label: 'Applicant name & ID', fields: ['firstName', 'middleName', 'lastName', 'dob', 'idType', 'idNumber', 'idProvince', 'idExpiry', 'email', 'phone', 'homePhone', 'maritalStatus'] },
+  { key: 'address', label: 'Home address', fields: ['address', 'city', 'province', 'postal', 'monthlyHousingCost', 'yearsAtAddress', 'housingStatus'] },
+  { key: 'employment', label: 'Employment & income', fields: ['businessName', 'positionTitle', 'employerAddress', 'employerPhone', 'grossMonthlyIncome', 'timeAtJob'] },
+];
+const SCAN_LABELS: Record<string, string> = {
+  applicant: 'Applicant name & ID',
+  address: 'Home address',
+  employment: 'Employment & income',
+  coApplicant: 'Co-applicant details',
+};
+// Translation key for each scanned section's name, used in the confirm labels.
+const SCAN_LABEL_KEYS: Record<string, string> = {
+  applicant: 'newApplication.verifyScanSectionApplicant',
+  address: 'newApplication.verifyScanSectionAddress',
+  employment: 'newApplication.verifyScanSectionEmployment',
+  coApplicant: 'newApplication.verifyScanSectionCoApplicant',
+};
+
 export function NewApplicationForm({
   stores,
   products,
@@ -189,7 +210,15 @@ export function NewApplicationForm({
   // financed through FinanceIT.
   const needsFinanceNumber = express && payment === 'FINANCEIT';
   const summaryRef = useRef<HTMLDivElement>(null);
+  const reviewRef = useRef<HTMLDivElement>(null);
   const [clientErrors, setClientErrors] = useState<Record<string, string>>({});
+  // Scan verification: which sections a scan filled (need confirming) and which
+  // the dealer has confirmed as correct. A scanned deal can't be submitted until
+  // every touched section is ticked. showReviewError flags an attempt to submit
+  // with sections still unconfirmed.
+  const [scanReview, setScanReview] = useState<Set<string>>(new Set());
+  const [confirmed, setConfirmed] = useState<Set<string>>(new Set());
+  const [showReviewError, setShowReviewError] = useState(false);
   const [taxExempt, setTaxExempt] = useState(false);
   const [amount, setAmount] = useState('');
   // Entering a co-applicant first name opens the full co-applicant questionnaire.
@@ -233,6 +262,33 @@ export function NewApplicationForm({
   function fillFromCoLicense(f: BorrowerAutofill) {
     setCoFirstName(f.firstName || f.lastName || ''); // opens the co-applicant section
     setPendingCo(f);
+    // Co-applicant details came from a scan → must be confirmed before submit.
+    setScanReview((prev) => new Set(prev).add('coApplicant'));
+    setConfirmed((prev) => {
+      const next = new Set(prev);
+      next.delete('coApplicant');
+      return next;
+    });
+  }
+
+  // Flag every section a scan actually populated so it must be verified. Any
+  // fresh scan of a section clears a prior confirmation for that section.
+  function markScanned(f: BorrowerAutofill) {
+    const touched = SCAN_SECTIONS.filter((s) => s.fields.some((k) => {
+      const v = f[k];
+      return v != null && String(v).trim() !== '';
+    })).map((s) => s.key);
+    if (touched.length === 0) return;
+    setScanReview((prev) => {
+      const next = new Set(prev);
+      touched.forEach((k) => next.add(k));
+      return next;
+    });
+    setConfirmed((prev) => {
+      const next = new Set(prev);
+      touched.forEach((k) => next.delete(k));
+      return next;
+    });
   }
 
   // Auto-fill the PRIMARY applicant from a scan (licence or uploaded credit app).
@@ -271,6 +327,7 @@ export function NewApplicationForm({
     set('grossMonthlyIncome', f.grossMonthlyIncome);
     set('timeAtJobYears', f.timeAtJob);
     if (f.dob) window.dispatchEvent(new CustomEvent('gwa:setdate:applicantDob', { detail: f.dob }));
+    markScanned(f);
   }
 
   async function fillFromLead() {
@@ -366,13 +423,25 @@ export function NewApplicationForm({
     if (productBoxes.length > 0 && !anyChecked && !anyOther) {
       errs['productsSold'] = 'required';
     }
+    // Scan verification: any section a scan filled must be confirmed correct.
+    const unconfirmed = [...scanReview].filter((k) => !confirmed.has(k));
+
     if (Object.keys(errs).length > 0) {
       e.preventDefault();
       setClientErrors(errs);
+      if (unconfirmed.length > 0) setShowReviewError(true);
       summaryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    } else {
-      setClientErrors({});
+      return;
     }
+    setClientErrors({});
+
+    if (unconfirmed.length > 0) {
+      e.preventDefault();
+      setShowReviewError(true);
+      reviewRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    setShowReviewError(false);
   }
 
   // When the server returns errors, scroll the summary into view.
@@ -1007,6 +1076,66 @@ export function NewApplicationForm({
         </label>
         <Err state={state} name="consent" />
       </section>
+
+      {/* Scan verification — confirm each section a scan filled before submit. */}
+      {scanReview.size > 0 && (
+        <section
+          ref={reviewRef}
+          className={`card border-2 p-6 ${
+            showReviewError && [...scanReview].some((k) => !confirmed.has(k))
+              ? 'border-amber-400 bg-amber-50'
+              : 'border-amber-200 bg-amber-50/50'
+          }`}
+        >
+          <h2 className="mb-1 flex items-center gap-2 text-base font-semibold text-amber-900">
+            ✅ {t('newApplication.verifyScanTitle')}
+          </h2>
+          <p className="mb-4 text-xs text-amber-800">{t('newApplication.verifyScanHint')}</p>
+          <div className="space-y-2">
+            {SCAN_SECTIONS.concat([{ key: 'coApplicant', label: SCAN_LABELS.coApplicant, fields: [] }])
+              .filter((s) => scanReview.has(s.key))
+              .map((s) => {
+                const isOn = confirmed.has(s.key);
+                return (
+                  <label
+                    key={s.key}
+                    className={`flex cursor-pointer items-center gap-3 rounded-lg border px-4 py-3 text-sm transition ${
+                      isOn
+                        ? 'border-emerald-300 bg-emerald-50 text-emerald-900'
+                        : 'border-amber-300 bg-white text-gray-800 hover:bg-amber-50'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isOn}
+                      onChange={(e) => {
+                        setConfirmed((prev) => {
+                          const next = new Set(prev);
+                          if (e.target.checked) next.add(s.key);
+                          else next.delete(s.key);
+                          return next;
+                        });
+                        setShowReviewError(false);
+                      }}
+                      className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                    />
+                    <span className="font-medium">
+                      {t('newApplication.verifyScanConfirm', {
+                        section: SCAN_LABEL_KEYS[s.key] ? t(SCAN_LABEL_KEYS[s.key]) : (SCAN_LABELS[s.key] || s.label),
+                      })}
+                    </span>
+                    {isOn && <span className="ml-auto text-xs font-semibold text-emerald-700">✓</span>}
+                  </label>
+                );
+              })}
+          </div>
+          {showReviewError && [...scanReview].some((k) => !confirmed.has(k)) && (
+            <p className="mt-3 text-sm font-medium text-amber-800">
+              {t('newApplication.verifyScanRequired')}
+            </p>
+          )}
+        </section>
+      )}
 
       <div className="flex flex-wrap items-center justify-end gap-3">
         {typed && <FinanceitPdfButton className="mr-auto" />}
