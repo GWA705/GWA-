@@ -19,19 +19,41 @@ function Pct({ value, t }: { value: number | null; t: TFunction }) {
   return <span className={`font-semibold ${up ? 'text-emerald-600' : 'text-red-600'}`}>{up ? '+' : ''}{value}%</span>;
 }
 
-// Header summary stat (light card).
-function HStat({ label, value, node, emphasize }: { label: string; value?: string; node?: ReactNode; emphasize?: boolean }) {
+// Header summary stat, rendered on the Home Depot–orange KPI band (white text).
+// `emphasize` = the hero number (This month); it scales up and, on mobile, spans
+// the full width so a large figure (e.g. "$1,809,299") never clips in a narrow
+// grid column — the bug this replaces.
+function HStat({
+  label,
+  value,
+  node,
+  emphasize,
+  className = '',
+}: {
+  label: string;
+  value?: string;
+  node?: ReactNode;
+  emphasize?: boolean;
+  className?: string;
+}) {
   return (
-    <div className="px-4 py-4 sm:px-5">
-      <div className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-gray-400">{label}</div>
-      <div className={`font-extrabold tabular-nums text-[#0e2b5c] dark:text-slate-100 ${emphasize ? 'text-2xl' : 'text-lg'}`}>{node ?? value}</div>
+    <div className={`px-4 py-4 sm:px-5 ${className}`}>
+      <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-white/75">{label}</div>
+      <div className={`font-extrabold tabular-nums leading-none text-white ${emphasize ? 'text-3xl sm:text-4xl' : 'text-xl sm:text-2xl'}`}>
+        {node ?? value}
+      </div>
     </div>
   );
 }
 function HPct({ value, t }: { value: number | null; t: TFunction }) {
-  if (value === null) return <span className="text-emerald-600 dark:text-emerald-400">{t('reports.monthly.newBadge')}</span>;
+  if (value === null) return <span className="text-white">{t('reports.monthly.newBadge')}</span>;
   const up = value >= 0;
-  return <span className={up ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'}>{up ? '+' : ''}{value}%</span>;
+  return (
+    <span className="inline-flex items-center gap-1 text-white">
+      <span aria-hidden>{up ? '▲' : '▼'}</span>
+      {up ? '+' : ''}{value}%
+    </span>
+  );
 }
 
 // Split "7024 — Barrie" into a number chip + name.
@@ -85,7 +107,7 @@ function StoreCard({ r, bold, t }: { r: StoreRow; bold?: boolean; t: TFunction }
             <div className="font-bold text-white">{r.label}</div>
           ) : (
             <>
-              <span className="rounded-md bg-slate-800 px-2 py-0.5 font-mono text-xs font-bold text-white">{num}</span>
+              <span className="rounded-md bg-[#F96302] px-2 py-0.5 font-mono text-xs font-bold text-white">{num}</span>
               {name && <span className="font-semibold text-gray-900">{name}</span>}
             </>
           )}
@@ -175,9 +197,21 @@ export function MonthlyReportView({ report }: { report: OfficeMonthlyReport }) {
             <div className="text-xs text-gray-500">{report.monthLabel}</div>
           </div>
         </div>
-        <div className="grid grid-cols-3 divide-x divide-gray-100 border-t border-gray-100">
-          <HStat label={t('reports.monthly.thisMonth')} value={money(report.total.curMonth)} emphasize />
-          <HStat label={t('reports.monthly.vsLastMonth')} node={<HPct value={report.total.momPct} t={t} />} />
+        {/* Home Depot–orange KPI band: bold, high-contrast, adds depth under the
+            white header. Mobile: This month spans full width (large) with the two
+            comparison stats side-by-side beneath it; sm+: three across. */}
+        <div className="grid grid-cols-2 bg-gradient-to-br from-[#F96302] to-[#E1560B] shadow-[inset_0_1px_0_rgba(255,255,255,0.22)] sm:grid-cols-3">
+          <HStat
+            label={t('reports.monthly.thisMonth')}
+            value={money(report.total.curMonth)}
+            emphasize
+            className="col-span-2 border-b border-white/20 sm:col-span-1 sm:border-b-0 sm:border-r sm:border-white/20"
+          />
+          <HStat
+            label={t('reports.monthly.vsLastMonth')}
+            node={<HPct value={report.total.momPct} t={t} />}
+            className="border-r border-white/20"
+          />
           <HStat label={t('reports.monthly.yearToDate')} value={money(report.total.ytdTy)} />
         </div>
       </div>

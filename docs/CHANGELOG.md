@@ -44,6 +44,13 @@ source of truth; this file is the human-readable index.
   auto-translates lead free-text via DeepL. (2026-09-06, Sean.)
 
 ## 2026-09-07
+- **Reports: Home Depot–orange KPI band + mobile fix.** The Monthly performance
+  summary strip (This month / vs last month / Year to date) is now a bold HD-orange
+  (#F96302) band with white numbers and depth. Fixed the mobile clip where the big
+  "This month" figure overflowed its narrow column — on phones it now spans full
+  width with the two comparison stats side-by-side beneath it. Store-number chips
+  (7024, etc.) recoloured to the same HD orange so the accent ties together.
+  Shared `MonthlyReportView`, so staff reports get the same treatment.
 - **Assistant: new "Products" knowledge tab + no more "use Mail".** Added a
   **Products** area to the AI assistant knowledge panel (models, specs, features,
   pricing notes, links) — applied automatically when a dealer chats from the
