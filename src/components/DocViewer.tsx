@@ -47,9 +47,13 @@ export function DocViewer({
     document.addEventListener('keydown', onKey);
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
+    // Tell the floating chat bubble to get out of the way while a full-screen
+    // viewer is open (it otherwise floats over the PDF and can grab taps).
+    window.dispatchEvent(new CustomEvent('gwa:overlay', { detail: { open: true } }));
     return () => {
       document.removeEventListener('keydown', onKey);
       document.body.style.overflow = prev;
+      window.dispatchEvent(new CustomEvent('gwa:overlay', { detail: { open: false } }));
     };
   }, [open]);
 
@@ -59,7 +63,7 @@ export function DocViewer({
         {children}
       </button>
       {open && (
-        <div className="fixed inset-0 z-50 flex flex-col bg-black/80" role="dialog" aria-modal="true" aria-label={fileName}>
+        <div className="fixed inset-0 z-[60] flex flex-col bg-black/80" role="dialog" aria-modal="true" aria-label={fileName}>
           <div className="flex flex-none items-center gap-2 bg-white px-2 py-2 shadow">
             <button
               type="button"

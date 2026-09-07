@@ -44,6 +44,13 @@ source of truth; this file is the human-readable index.
   auto-translates lead free-text via DeepL. (2026-09-06, Sean.)
 
 ## 2026-09-07
+- **Chat bubble no longer interferes with the document viewer.** The in-app PDF/
+  image viewer (`DocViewer`) is a full-screen overlay that shared the chat
+  launcher's `z-50`, so the bubble floated over the PDF and could grab taps
+  (glitchy Back/scroll). The viewer now emits a `gwa:overlay` open/close signal
+  that the chat widget listens for (counter-based, nesting-safe) and hides the
+  bubble while any viewer is open; the viewer was also raised to `z-[60]` as a
+  backstop.
 - **Dashboard: visual upgrade of the three insight cards** (desktop + mobile).
   *Applications by Status* is now a crisp SVG donut (rounded segments with a soft
   gap, track ring, big centred total) with a cleaner legend (count + muted %).

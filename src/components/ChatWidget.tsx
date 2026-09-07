@@ -230,7 +230,19 @@ export function ChatWidget() {
     };
   }, [pathname]);
 
-  const hideLauncher = (pathname === '/dealer' || atPageBottom) && !open;
+  // Full-screen overlays (e.g. the document viewer) tell us to step aside so the
+  // bubble doesn't float over the PDF or intercept taps. Counter handles nesting.
+  const [overlayCount, setOverlayCount] = useState(0);
+  useEffect(() => {
+    const onOverlay = (e: Event) => {
+      const opening = (e as CustomEvent).detail?.open;
+      setOverlayCount((c) => Math.max(0, c + (opening ? 1 : -1)));
+    };
+    window.addEventListener('gwa:overlay', onOverlay);
+    return () => window.removeEventListener('gwa:overlay', onOverlay);
+  }, []);
+
+  const hideLauncher = (pathname === '/dealer' || atPageBottom || overlayCount > 0) && !open;
 
   return (
     <>
