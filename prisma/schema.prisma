@@ -1673,6 +1673,9 @@ model Conversation {
   reads         ConversationRead[]
   createdAt     DateTime           @default(now())
   lastMessageAt DateTime           @default(now())
+  // Dealer asked to talk to a real person: the AI assistant stands down and the
+  // thread is flagged for the team. Cleared when a human teammate replies.
+  awaitingHuman Boolean            @default(false)
 
   @@index([dealerId])
   @@index([lastMessageAt])

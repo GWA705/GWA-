@@ -8,6 +8,7 @@ import {
   canAccessConversation,
   humanRepliedRecently,
   isAfterHours,
+  isAwaitingHuman,
   postAutoReply,
   recentTurnsForAi,
 } from '@/lib/chat';
@@ -51,7 +52,8 @@ export async function POST(req: NextRequest) {
   // "viewing as" a dealer counts as the dealer here (so view-as is testable).
   const actingAsStaff = isInternalRole(session.role) && !session.impersonating;
   if (actingAsStaff || conv.kind !== 'SUPPORT') return NextResponse.json({ replied: false });
-  // Don't talk over a teammate who's actively in the thread.
+  // Stand down if the dealer asked for a person, or a teammate is actively in it.
+  if (await isAwaitingHuman(conv.id)) return NextResponse.json({ replied: false });
   if (await humanRepliedRecently(conv.id)) return NextResponse.json({ replied: false });
 
   const locale = getLocale() === 'fr' ? 'fr' : 'en';

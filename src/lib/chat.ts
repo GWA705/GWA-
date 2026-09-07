@@ -73,7 +73,8 @@ export async function postChatMessage(args: { conversationId: string; user: Sess
   const fromStaff = isInternalRole(args.user.role) && !args.user.impersonating;
   await prisma.$transaction([
     prisma.chatMessage.create({ data: { conversationId: args.conversationId, authorId: args.user.userId, fromStaff, body } }),
-    prisma.conversation.update({ where: { id: args.conversationId }, data: { lastMessageAt: now } }),
+    // A real teammate replying clears the "awaiting human" flag (they've got it).
+    prisma.conversation.update({ where: { id: args.conversationId }, data: { lastMessageAt: now, ...(fromStaff ? { awaitingHuman: false } : {}) } }),
     prisma.conversationRead.upsert({
       where: { conversationId_userId: { conversationId: args.conversationId, userId: args.user.userId } },
       create: { conversationId: args.conversationId, userId: args.user.userId, lastReadAt: now },
@@ -149,6 +150,24 @@ export async function humanRepliedRecently(conversationId: string, minutes = 30)
   return !!row;
 }
 
+// Bilingual notice posted when a dealer asks for a real person.
+export const HUMAN_REQUESTED_NOTE: Record<'en' | 'fr', string> = {
+  en: 'Thanks — I’ve let the Georgian Water & Air team know you’d like to speak with someone. A teammate will reply right here as soon as they can.',
+  fr: 'Merci — j’ai informé l’équipe de Georgian Water & Air que vous souhaitez parler à quelqu’un. Un membre de l’équipe vous répondra ici dès que possible.',
+};
+
+/** Dealer requested a human: pause the assistant, flag the thread, post a notice. */
+export async function requestHumanAgent(conversationId: string, locale: 'en' | 'fr'): Promise<void> {
+  await prisma.conversation.update({ where: { id: conversationId }, data: { awaitingHuman: true } });
+  await postAutoReply(conversationId, HUMAN_REQUESTED_NOTE[locale]);
+}
+
+/** Is the thread waiting on a human (assistant should stay quiet)? */
+export async function isAwaitingHuman(conversationId: string): Promise<boolean> {
+  const c = await prisma.conversation.findUnique({ where: { id: conversationId }, select: { awaitingHuman: true } });
+  return !!c?.awaitingHuman;
+}
+
 /** Clear a General support thread: delete its messages + read markers, start fresh. */
 export async function clearSupportConversation(conversationId: string): Promise<void> {
   await prisma.$transaction([
@@ -215,7 +234,7 @@ function dealTitle(app: { applicantFirstName: string; applicantLastName: string 
 /** Dealer-facing conversation list (their dealer only). Ensures General support exists. */
 export async function dealerConversationSummaries(dealerId: string, userId: string): Promise<ConversationSummary[]> {
   await getOrCreateSupportConversation(dealerId);
-  const convs = await prisma.conversation.findMany({
+  const all = await prisma.conversation.findMany({
     where: { dealerId },
     orderBy: { lastMessageAt: 'desc' },
     include: {
@@ -223,6 +242,9 @@ export async function dealerConversationSummaries(dealerId: string, userId: stri
       messages: { orderBy: { createdAt: 'desc' }, take: 1, select: { body: true } },
     },
   });
+  // Hide empty deal threads (auto-created placeholders that clutter the list);
+  // General support always shows.
+  const convs = all.filter((c) => c.kind === 'SUPPORT' || c.messages.length > 0);
   const unread = await unreadCounts(convs.map((c) => c.id), userId);
   return convs.map((c) => ({
     id: c.id,

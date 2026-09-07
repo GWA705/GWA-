@@ -44,6 +44,14 @@ source of truth; this file is the human-readable index.
   auto-translates lead free-text via DeepL. (2026-09-06, Sean.)
 
 ## 2026-09-07
+- **Chat: "Talk to a person" handoff + hide empty deal chats.** Dealers get a
+  **Talk to a person** button in the support chat: it flags the thread for the
+  team, posts a "we've told the team" note, and **pauses the AI assistant**
+  (`Conversation.awaitingHuman`, migration `20260907040000_conversation_awaiting_human`)
+  until a real teammate replies (which clears the flag). Also: empty deal threads
+  (auto-created placeholders like a new deal with no messages) no longer clutter
+  the dealer's chat list — they only appear once there's a message.
+  `POST /api/chat/request-agent`.
 - **Chat: "Clear chat" to reset a support thread.** A trash button in the support
   chat header (dealer or staff) wipes that thread's messages so conversations
   don't pile up — and clears the assistant's "a teammate is active" state. Only

@@ -145,6 +145,23 @@ export function ChatWidget() {
     setAssistantTyping(false);
   }
 
+  // Dealer asks for a real person: flags the thread + pauses the assistant.
+  async function requestAgent() {
+    const cid = active?.conversationId;
+    if (!cid) return;
+    stopTyping();
+    try {
+      await fetch('/api/chat/request-agent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversationId: cid }),
+      });
+    } catch {
+      /* ignore — reload reflects the result */
+    }
+    await loadMessages(cid);
+  }
+
   // Clear the current support thread (start fresh) so chats don't pile up.
   async function clearChat() {
     const cid = active?.conversationId;
@@ -399,6 +416,13 @@ export function ChatWidget() {
                 )}
               </div>
               <div className="border-t border-gray-200 p-3">
+                {curIsSupport && (
+                  <div className="mb-2 flex justify-center">
+                    <button type="button" onClick={requestAgent} className="text-xs font-medium text-brand-700 hover:underline">
+                      Talk to a person
+                    </button>
+                  </div>
+                )}
                 {cardWarn && <p className="mb-2 rounded bg-amber-50 px-2 py-1.5 text-xs text-amber-800">{CARD_REDACT_NOTICE}</p>}
                 {sendError && <p className="mb-2 rounded bg-red-50 px-2 py-1.5 text-xs text-red-700" role="alert">{sendError}</p>}
                 <form onSubmit={(e) => { e.preventDefault(); send(); }} className="flex items-end gap-2">
