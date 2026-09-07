@@ -67,7 +67,10 @@ export async function postChatMessage(args: { conversationId: string; user: Sess
   const body = args.body.trim().slice(0, 4000);
   if (!body) return;
   const now = new Date();
-  const fromStaff = isInternalRole(args.user.role);
+  // An admin "viewing as" a dealer is acting AS the dealer — their messages are
+  // dealer messages, not staff (so the assistant answers and doesn't treat them
+  // as a teammate taking over).
+  const fromStaff = isInternalRole(args.user.role) && !args.user.impersonating;
   await prisma.$transaction([
     prisma.chatMessage.create({ data: { conversationId: args.conversationId, authorId: args.user.userId, fromStaff, body } }),
     prisma.conversation.update({ where: { id: args.conversationId }, data: { lastMessageAt: now } }),

@@ -44,6 +44,15 @@ source of truth; this file is the human-readable index.
   auto-translates lead free-text via DeepL. (2026-09-06, Sean.)
 
 ## 2026-09-07
+- **Chat assistant: fix — no replies while "viewing as dealer".** An admin using
+  "View as dealer" keeps `role: ADMIN` with `impersonating: true`, so their chat
+  messages were stamped `fromStaff` — which made the assistant treat them as a
+  teammate handling the thread and stay silent (and mis-read their messages as its
+  own turns). Now an impersonating admin counts as the dealer for chat:
+  `postChatMessage` sets `fromStaff = internal && !impersonating`, and the
+  assistant endpoint only skips for genuine staff. Also added server-side logging
+  of Anthropic API failures (status/model) so silent failures are diagnosable in
+  Render logs.
 - **Chat assistant: default model → Sonnet 5.** Switched the assistant default
   from Haiku 4.5 to `claude-sonnet-5` for sharper, more impressive launch-quality
   answers (still inexpensive). Override anytime with `ANTHROPIC_MODEL` in Render.

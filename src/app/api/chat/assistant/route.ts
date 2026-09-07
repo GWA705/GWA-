@@ -42,8 +42,10 @@ export async function POST(req: NextRequest) {
   if (!conv) return new NextResponse('Not found', { status: 404 });
   if (!canAccessConversation(session, conv)) return new NextResponse('Forbidden', { status: 403 });
 
-  // Assistant only answers dealers on the General support thread.
-  if (isInternalRole(session.role) || conv.kind !== 'SUPPORT') return NextResponse.json({ replied: false });
+  // Assistant only answers dealers on the General support thread. An admin
+  // "viewing as" a dealer counts as the dealer here (so view-as is testable).
+  const actingAsStaff = isInternalRole(session.role) && !session.impersonating;
+  if (actingAsStaff || conv.kind !== 'SUPPORT') return NextResponse.json({ replied: false });
   // Don't talk over a teammate who's actively in the thread.
   if (await humanRepliedRecently(conv.id)) return NextResponse.json({ replied: false });
 

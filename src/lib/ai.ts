@@ -88,15 +88,23 @@ export async function generateSupportReply(turns: AiTurn[], locale: 'en' | 'fr',
       signal: controller.signal,
     });
     clearTimeout(timeout);
-    if (!res.ok) return null;
+    if (!res.ok) {
+      // Surface why (bad key, model access, rate limit) in the server logs — the
+      // caller only sees null. Body is small; log a snippet.
+      const detail = await res.text().catch(() => '');
+      console.error(`[ai] Anthropic ${res.status} (${process.env.ANTHROPIC_MODEL || DEFAULT_MODEL}): ${detail.slice(0, 300)}`);
+      return null;
+    }
     const data = (await res.json()) as { content?: Array<{ type: string; text?: string }> };
     const text = (data.content ?? [])
       .filter((b) => b.type === 'text' && b.text)
       .map((b) => b.text!.trim())
       .join('\n')
       .trim();
+    if (!text) console.error('[ai] Anthropic returned no text content');
     return text || null;
-  } catch {
+  } catch (e) {
+    console.error('[ai] Anthropic request failed:', e instanceof Error ? e.message : e);
     return null;
   }
 }
