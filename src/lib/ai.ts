@@ -36,14 +36,15 @@ const PORTAL_FACTS = `Georgian Water & Air is a Home Depot water-treatment provi
 
 Navigation: the main actions are in the left sidebar (desktop) or the bottom bar / ☰ menu (mobile): Home, Applications/Deals, New, Leads, Mail, and Help (this chat).`;
 
-function systemPrompt(locale: 'en' | 'fr', knowledge?: string | null): string {
+function systemPrompt(locale: 'en' | 'fr', knowledge?: string | null, areaHint?: string | null): string {
   const lang = locale === 'fr' ? 'Canadian French (fr-CA)' : 'English';
   const teamKnowledge = knowledge?.trim()
     ? `\n\nTEAM KNOWLEDGE — written by the Georgian Water & Air team. Treat this as AUTHORITATIVE and prefer it over your general knowledge whenever relevant; answer in the team's voice using these facts, processes and policies:\n"""\n${knowledge.trim()}\n"""`
     : '';
+  const where = areaHint?.trim() ? `\n\nThe dealer is currently in ${areaHint.trim()} — tailor your help to that context.` : '';
   return `You are the support assistant inside the Georgian Water & Air Dealer Portal, helping dealers (Home Depot water-treatment sales reps) use the portal and answer product/process questions. Answer as a knowledgeable, friendly member of the Georgian Water & Air team would.
 
-${PORTAL_FACTS}${teamKnowledge}
+${PORTAL_FACTS}${teamKnowledge}${where}
 
 Rules:
 - Reply in ${lang}. Be warm, direct and genuinely useful — give real steps and specifics, not vague pointers. Usually 1-5 sentences; use a short numbered list for a process.
@@ -60,7 +61,12 @@ Rules:
  * admin-written team knowledge (authoritative). Returns null on any failure
  * (missing key, API error, empty output) so the caller can fall back.
  */
-export async function generateSupportReply(turns: AiTurn[], locale: 'en' | 'fr', knowledge?: string | null): Promise<string | null> {
+export async function generateSupportReply(
+  turns: AiTurn[],
+  locale: 'en' | 'fr',
+  knowledge?: string | null,
+  areaHint?: string | null,
+): Promise<string | null> {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) return null;
   // Trim to the most recent turns and ensure the first is a user turn (the API
@@ -82,7 +88,7 @@ export async function generateSupportReply(turns: AiTurn[], locale: 'en' | 'fr',
       body: JSON.stringify({
         model: process.env.ANTHROPIC_MODEL || DEFAULT_MODEL,
         max_tokens: 500,
-        system: systemPrompt(locale, knowledge),
+        system: systemPrompt(locale, knowledge, areaHint),
         messages: msgs.map((m) => ({ role: m.role, content: m.content })),
       }),
       signal: controller.signal,

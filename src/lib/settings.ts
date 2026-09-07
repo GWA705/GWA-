@@ -51,9 +51,39 @@ export const MARKETPLACE_SETTING_KEYS = {
 // Admin-editable knowledge the AI support assistant answers from (FAQ, process,
 // policies, tone — written in the team's own words). Injected into the system
 // prompt on every reply; edit it to "train" the assistant without a deploy.
+// General always applies; the per-area knowledge is added on top based on where
+// the dealer is chatting from (Marketplace vs a Deal, etc.). The general key is
+// the original `ai.assistantKnowledge` so existing content carries over.
 export const AI_SETTING_KEYS = {
-  assistantKnowledge: 'ai.assistantKnowledge',
+  assistantKnowledge: 'ai.assistantKnowledge', // = General
+  knowledgeMarketplace: 'ai.knowledge.marketplace',
+  knowledgeDeals: 'ai.knowledge.deals',
+  knowledgeLeads: 'ai.knowledge.leads',
+  knowledgeGiftCards: 'ai.knowledge.giftcards',
 } as const;
+
+export type AssistantArea = 'general' | 'marketplace' | 'deals' | 'leads' | 'giftcards';
+
+// Each support area: its setting key, a label for the admin UI, and a short
+// phrase for the "the dealer is currently in …" hint in the prompt.
+export const ASSISTANT_AREAS: { area: AssistantArea; key: string; label: string; hint: string }[] = [
+  { area: 'general', key: AI_SETTING_KEYS.assistantKnowledge, label: 'General', hint: 'the portal' },
+  { area: 'marketplace', key: AI_SETTING_KEYS.knowledgeMarketplace, label: 'Marketplace', hint: 'the Marketplace (ordering gear & materials)' },
+  { area: 'deals', key: AI_SETTING_KEYS.knowledgeDeals, label: 'Deals / Applications', hint: 'a credit application / deal' },
+  { area: 'leads', key: AI_SETTING_KEYS.knowledgeLeads, label: 'Leads', hint: 'Home Depot leads' },
+  { area: 'giftcards', key: AI_SETTING_KEYS.knowledgeGiftCards, label: 'Gift cards', hint: 'water-test gift cards' },
+];
+
+/** Combined knowledge (General + the area) and a hint, for the assistant prompt. */
+export async function getAssistantKnowledgeFor(area: AssistantArea): Promise<{ knowledge: string; hint: string }> {
+  const general = ASSISTANT_AREAS.find((a) => a.area === 'general')!;
+  const target = ASSISTANT_AREAS.find((a) => a.area === area) ?? general;
+  const [g, s] = await getSettings([general.key, target.key]).then((m) => [m[general.key], m[target.key]] as const);
+  const parts: string[] = [];
+  if (g?.trim()) parts.push(g.trim());
+  if (target.area !== 'general' && s?.trim()) parts.push(`--- ${target.label} ---\n${s.trim()}`);
+  return { knowledge: parts.join('\n\n'), hint: target.hint };
+}
 
 // Which 2026 journal the "Write to Journal" feature writes to: the safe TEST
 // journal (default, env JOURNAL_SHEET_ID) or the real LIVE journal

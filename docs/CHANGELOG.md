@@ -44,6 +44,15 @@ source of truth; this file is the human-readable index.
   auto-translates lead free-text via DeepL. (2026-09-06, Sean.)
 
 ## 2026-09-07
+- **Chat assistant: context-aware, per-area knowledge.** The assistant now knows
+  which part of the portal a dealer is chatting from (Marketplace, a Deal, Leads,
+  Gift cards, or General) and answers from that area's knowledge — so Marketplace
+  support behaves differently from Deals support. Admin → System health → team
+  knowledge is now **tabbed by area**; General always applies and the area's text
+  stacks on top. The widget passes the current section; the prompt gets a "the
+  dealer is currently in …" hint. New settings keys `ai.knowledge.*`; the existing
+  general knowledge carries over. (Next: a Q&A memory + review/promote loop so the
+  assistant improves with your approval.)
 - **Chat assistant: fix — no replies while "viewing as dealer".** An admin using
   "View as dealer" keeps `role: ADMIN` with `impersonating: true`, so their chat
   messages were stamped `fromStaff` — which made the assistant treat them as a

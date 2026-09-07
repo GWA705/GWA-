@@ -12,7 +12,7 @@ import {
   recentTurnsForAi,
 } from '@/lib/chat';
 import { aiConfigured, generateSupportReply } from '@/lib/ai';
-import { getSetting, AI_SETTING_KEYS } from '@/lib/settings';
+import { getAssistantKnowledgeFor, ASSISTANT_AREAS, type AssistantArea } from '@/lib/settings';
 import { getLocale } from '@/i18n/server';
 
 export const dynamic = 'force-dynamic';
@@ -28,12 +28,17 @@ export async function POST(req: NextRequest) {
   if (!session) return new NextResponse('Unauthorized', { status: 401 });
 
   let conversationId: string | undefined;
+  let context: string | undefined;
   try {
-    ({ conversationId } = await req.json());
+    ({ conversationId, context } = await req.json());
   } catch {
     return new NextResponse('Bad request', { status: 400 });
   }
   if (!conversationId) return NextResponse.json({ replied: false });
+  // Which part of the portal the dealer is chatting from → area-specific knowledge.
+  const area: AssistantArea = ASSISTANT_AREAS.some((a) => a.area === context)
+    ? (context as AssistantArea)
+    : 'general';
 
   const conv = await prisma.conversation.findUnique({
     where: { id: conversationId },
@@ -53,11 +58,8 @@ export async function POST(req: NextRequest) {
   let replied = false;
 
   if (aiConfigured()) {
-    const [turns, knowledge] = await Promise.all([
-      recentTurnsForAi(conv.id),
-      getSetting(AI_SETTING_KEYS.assistantKnowledge),
-    ]);
-    const reply = await generateSupportReply(turns, locale, knowledge);
+    const [turns, kb] = await Promise.all([recentTurnsForAi(conv.id), getAssistantKnowledgeFor(area)]);
+    const reply = await generateSupportReply(turns, locale, kb.knowledge, kb.hint);
     if (reply) {
       await postAutoReply(conv.id, reply);
       replied = true;

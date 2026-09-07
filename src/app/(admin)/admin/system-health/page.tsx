@@ -3,7 +3,7 @@ import { requireAdminSection } from '@/lib/session';
 import { getSystemHealth, type HealthCheck } from '@/lib/health';
 import { deeplUsage } from '@/lib/translate';
 import { CopyField } from '@/app/(staff)/staff/reports/connection/CopyField';
-import { getSetting, AI_SETTING_KEYS } from '@/lib/settings';
+import { getSettings, ASSISTANT_AREAS } from '@/lib/settings';
 import { TranslateHealthCheck } from './TranslateHealthCheck';
 import { AiCostCalculator } from './AiCostCalculator';
 import { AssistantKnowledge } from './AssistantKnowledge';
@@ -86,11 +86,12 @@ function Dot({ status }: { status: HealthCheck['status'] }) {
 
 export default async function SystemHealthPage() {
   await requireAdminSection('system-health');
-  const [health, usage, assistantKnowledge] = await Promise.all([
+  const [health, usage, knowledgeMap] = await Promise.all([
     getSystemHealth(),
     deeplUsage(),
-    getSetting(AI_SETTING_KEYS.assistantKnowledge),
+    getSettings(ASSISTANT_AREAS.map((a) => a.key)),
   ]);
+  const knowledgeAreas = ASSISTANT_AREAS.map((a) => ({ area: a.area, label: a.label, value: knowledgeMap[a.key] ?? '' }));
 
   const groups: HealthCheck['group'][] = ['Core', 'Google Workspace'];
 
@@ -120,8 +121,8 @@ export default async function SystemHealthPage() {
         </div>
       </div>
 
-      {/* AI assistant: knowledge editor + cost estimator */}
-      <AssistantKnowledge initial={assistantKnowledge ?? ''} />
+      {/* AI assistant: per-area knowledge editor + cost estimator */}
+      <AssistantKnowledge areas={knowledgeAreas} />
       <AiCostCalculator />
 
       {/* Translation usage, fallback + live test */}

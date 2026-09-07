@@ -26,6 +26,16 @@ interface Msg {
 }
 type Active = { conversationId?: string; applicationId?: string; kind?: 'SUPPORT'; title: string };
 
+// Which support area the dealer is chatting from → the assistant uses that area's
+// knowledge (Marketplace answers differ from Deals answers, etc.).
+function areaFromPath(p: string): string {
+  if (p.startsWith('/dealer/marketplace')) return 'marketplace';
+  if (p.startsWith('/dealer/applications')) return 'deals';
+  if (p.startsWith('/dealer/leads')) return 'leads';
+  if (p.startsWith('/dealer/gift-cards')) return 'giftcards';
+  return 'general';
+}
+
 const fmtTime = (iso: string) =>
   new Date(iso).toLocaleString('en-CA', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 
@@ -145,7 +155,7 @@ export function ChatWidget() {
       await fetch('/api/chat/assistant', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ conversationId: cid }),
+        body: JSON.stringify({ conversationId: cid, context: areaFromPath(pathname ?? '') }),
       });
     } catch {
       /* fall through — the reply, if any, is loaded below */
