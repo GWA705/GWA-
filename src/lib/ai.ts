@@ -7,9 +7,10 @@ import 'server-only';
  */
 
 const API_URL = 'https://api.anthropic.com/v1/messages';
-// Fast + inexpensive, well-suited to a high-volume support chat. Override with
-// ANTHROPIC_MODEL if a more capable model is wanted.
-const DEFAULT_MODEL = 'claude-haiku-4-5-20251001';
+// Sonnet 5: sharp, high-quality answers for the support chat, still inexpensive.
+// Override with ANTHROPIC_MODEL (e.g. claude-haiku-4-5 to cut cost, or
+// claude-opus-5 for maximum capability).
+const DEFAULT_MODEL = 'claude-sonnet-5';
 
 export function aiConfigured(): boolean {
   return !!process.env.ANTHROPIC_API_KEY;

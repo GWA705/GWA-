@@ -8,8 +8,8 @@ import { useState } from 'react';
  * tokens) as of 2026-06; check the Anthropic Console → Usage for actuals.
  */
 const MODELS = [
-  { id: 'claude-haiku-4-5', name: 'Haiku 4.5', inPrice: 1, outPrice: 5, note: 'Current default — fast & inexpensive', current: true },
-  { id: 'claude-sonnet-5', name: 'Sonnet 5', inPrice: 2, outPrice: 10, note: 'Sharper answers', current: false },
+  { id: 'claude-haiku-4-5', name: 'Haiku 4.5', inPrice: 1, outPrice: 5, note: 'Cheapest — good for high volume', current: false },
+  { id: 'claude-sonnet-5', name: 'Sonnet 5', inPrice: 2, outPrice: 10, note: 'Current default — sharp answers', current: true },
   { id: 'claude-opus-5', name: 'Opus 5', inPrice: 5, outPrice: 25, note: 'Most capable', current: false },
 ];
 

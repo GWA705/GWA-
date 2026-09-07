@@ -24,7 +24,7 @@ source of truth; this file is the human-readable index.
 | Domain email auth (SPF / DKIM / DMARC) on `ghsbarrie.ca` | ✅ Set | SPF `include:_spf.google.com`; DKIM authenticating (Google Workspace); DMARC `p=quarantine`. Confirmed 2026-09-03 (Sean). |
 | Guusto gift-card API | ⏳ Parked | Awaiting `GUUSTO_API_TOKEN` in Render + exact field names (test at `/admin/guusto-test`) + office→reason mapping. |
 | Bilingual UI toggle (EN/FR) | ✅ **Live in production** (2026-09-06, Sean) | `NEXT_PUBLIC_I18N_ENABLED=1` set on the `gwa-portal` service. Visible to ALL dealers on portal.ghsbarrie.ca. fr-CA coverage (draft) now spans the **full dealer app AND the full staff/reviewer app** — including the report views, reviewer decision/funding forms, and the deal "what's needed" items + funding-doc type labels (all translated 2026-09-06). Still English **by design**: the internal admin console; the in-app Tutorial (on hold); the verbatim Consumer Protection Act consent text (Québec team supplies the FR); and a few low-traffic residual staff strings (staff gift-cards page, the mail-attachment viewer, one or two report-wrapper labels). Set the var back to `0` (and redeploy) to hide the toggle again. |
-| AI support assistant (chat) | ✅ **Live** (2026-09-07, Sean) — `ANTHROPIC_API_KEY` set in Render | Always-on Claude assistant on the General support thread (`src/lib/ai.ts`). Dedicated Anthropic key "Portal.ghsbarrie.ca" (Default workspace) so its cost tracks separately from the booking site's `gwa-booking` key. Model = default `claude-haiku-4-5-20251001` (override with `ANTHROPIC_MODEL`). Assistant stays quiet for 30 min after a human reply; falls back to the static after-hours note if the key is ever removed/out of quota. |
+| AI support assistant (chat) | ✅ **Live** (2026-09-07, Sean) — `ANTHROPIC_API_KEY` set in Render | Always-on Claude assistant on the General support thread (`src/lib/ai.ts`). Dedicated Anthropic key "Portal.ghsbarrie.ca" (Default workspace) so its cost tracks separately from the booking site's `gwa-booking` key. Model = default `claude-sonnet-5` (override with `ANTHROPIC_MODEL` — `claude-haiku-4-5` to cut cost, `claude-opus-5` for max capability). Assistant stays quiet for 30 min after a human reply; falls back to the static after-hours note if the key is ever removed/out of quota. |
 | DeepL translation (user content) | ✅ Live (2026-09-06) — `DEEPL_API_KEY` set in Render (free "API Developer" key) | Powers (a) the on-demand Translate control and (b) the **automatic** FR→EN conversion of chat, deal-conversation and gift-card threads, and dealer free-text notes on the reviewer side (`<AutoTranslate>`). **Free fallback:** if DeepL is missing or out of quota, translation auto-switches to MyMemory (free, no account; set `MYMEMORY_EMAIL` to lift its daily cap). **Usage meter:** Admin → System health shows DeepL characters used / limit. |
 | Bell Total Connect voicemail | 📝 Documented, not built here | Guide delivered for the **booking site** (voicemail-to-email + IMAP). Not part of this portal. |
 
@@ -44,6 +44,9 @@ source of truth; this file is the human-readable index.
   auto-translates lead free-text via DeepL. (2026-09-06, Sean.)
 
 ## 2026-09-07
+- **Chat assistant: default model → Sonnet 5.** Switched the assistant default
+  from Haiku 4.5 to `claude-sonnet-5` for sharper, more impressive launch-quality
+  answers (still inexpensive). Override anytime with `ANTHROPIC_MODEL` in Render.
 - **Admin: "View as dealer" no longer lands at the bottom of the page.** The
   server-action redirect kept the admin list's scroll position; a `ScrollTopOnMount`
   in the dealer layout now resets to the top when entering the dealer area.
