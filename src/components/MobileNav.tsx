@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { logoutAction } from '@/app/(auth)/actions';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { useQuickBar } from '@/components/useQuickBar';
 import { useT } from '@/i18n/client';
 
 interface NavItem {
@@ -45,6 +46,33 @@ function NavIcon({ label }: { label: string }) {
   );
 }
 
+// On/off switch for the dealer bottom quick bar. Lives in the drawer so dealers
+// can opt out of the shortcut bar without leaving the mobile menu.
+function QuickBarToggle() {
+  const t = useT();
+  const [enabled, setEnabled] = useQuickBar();
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={enabled}
+      onClick={() => setEnabled(!enabled)}
+      className="flex w-full items-center justify-between gap-3 rounded-md px-3 py-3 text-left hover:bg-gray-50"
+    >
+      <span className="min-w-0">
+        <span className="block text-sm font-medium text-gray-800">{t('quickBar.settingLabel')}</span>
+        <span className="block text-xs text-gray-500">{t('quickBar.settingHint')}</span>
+      </span>
+      <span
+        className={`relative inline-flex h-6 w-11 flex-none items-center rounded-full transition ${enabled ? 'bg-blue-600' : 'bg-gray-300'}`}
+        aria-hidden
+      >
+        <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${enabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
+      </span>
+    </button>
+  );
+}
+
 /**
  * Mobile navigation: a hamburger button (top-left) that opens a left slide-in
  * drawer with the nav links (each with an icon), the portal switcher, the theme
@@ -57,12 +85,15 @@ export function MobileNav({
   nav,
   triggerClassName = 'btn-secondary px-2.5',
   hideAt = 'sm',
+  quickBarToggle = false,
 }: {
   userName: string;
   roleLabel: string;
   nav: NavItem[];
   /** Class for the hamburger trigger (drawer internals keep their own styles). */
   triggerClassName?: string;
+  /** Show the dealer "quick bar" on/off switch in the drawer (dealer shell only). */
+  quickBarToggle?: boolean;
   /**
    * Breakpoint at/above which the whole drawer is hidden because a larger nav
    * takes over. Use 'sm' when an inline top nav appears at ≥sm (AppShell), and
@@ -165,6 +196,12 @@ export function MobileNav({
                 ),
               )}
             </div>
+
+            {quickBarToggle && (
+              <div className="border-t border-gray-200 p-2">
+                <QuickBarToggle />
+              </div>
+            )}
 
             <div className="flex items-center justify-between gap-3 border-t border-gray-200 p-4">
               <ThemeToggle />

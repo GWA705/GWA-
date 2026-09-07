@@ -43,6 +43,24 @@ source of truth; this file is the human-readable index.
   auto-translates lead free-text via DeepL. (2026-09-06, Sean.)
 
 ## 2026-09-07
+- **Mobile: support-chat button no longer hidden behind the Leads map.** The
+  Leaflet map gives its own panes/controls a high `z-index` (up to ~1000), and
+  the map wrapper created no stacking context, so those escaped into the page and
+  painted over the fixed chat launcher (`z-50`) and the quick bar. Added
+  `isolate` (isolation: isolate) to the map wrapper so Leaflet's z-index stays
+  contained to the map box; the chat button and quick bar sit above it again.
+- **Mobile: dealer "quick bar" (hybrid bottom navigation), toggleable per
+  device.** Added a fixed bottom shortcut bar for dealers on phones/tablets
+  (`DealerBottomNav`, hidden at `lg` where the sidebar takes over) with the five
+  everyday actions — Home, Deals (Applications), a raised **New** button in the
+  centre, Leads, Mail — with active-tab highlighting and unread dots pulled from
+  the same nav array the shell builds. The hamburger drawer is **kept** as the
+  full menu; the quick bar is an additive shortcut layer, not a replacement. It
+  can be switched **on/off from a toggle in the mobile menu** (default on);
+  preference is stored per device in `localStorage` (`gwa-quickbar`) and syncs
+  live between the toggle, the bar, the page's bottom padding, and the support
+  chat launcher (which lifts above the bar on phones). New `useQuickBar` hook +
+  `quickBar.*` dictionary keys (EN/FR). Staff/admin unchanged (desktop-primary).
 - **Mobile: dealer Applications "Pipeline" view no longer clips on phones.** The
   kanban was a fixed 880px 4-column grid inside a horizontal scroller, so on a
   phone the left column was cut off (stray amounts bleeding off-screen) and card

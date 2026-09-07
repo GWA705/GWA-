@@ -242,7 +242,10 @@ export function LeadsMap({ leads, stores, pendingStores = [] }: { leads: MapLead
 
   return (
     <div className="space-y-2">
-      <div className="relative overflow-hidden rounded-2xl border border-gray-200 shadow-sm" style={{ height: 520 }}>
+      {/* `isolate` keeps Leaflet's internal z-index (panes/controls up to ~1000)
+          contained to this box, so it can't paint over fixed app chrome like the
+          support-chat button or the mobile quick bar. */}
+      <div className="relative isolate overflow-hidden rounded-2xl border border-gray-200 shadow-sm" style={{ height: 520 }}>
         <div ref={elRef} style={{ position: 'absolute', inset: 0 }} aria-label={t('leads.mapAria')} />
         {pending && (
           <div className="absolute inset-0 z-[500] flex items-center justify-center bg-gray-50 text-sm text-gray-500">

@@ -127,6 +127,15 @@ export const en = {
     contactSupport: 'Contact / Support',
     myAccount: 'My account',
   },
+  quickBar: {
+    home: 'Home',
+    applications: 'Deals',
+    new: 'New',
+    leads: 'Leads',
+    mail: 'Mail',
+    settingLabel: 'Quick bar',
+    settingHint: 'Show a shortcut bar at the bottom on phones',
+  },
   dashboard: {
     welcome: 'Welcome back to your Dealer Portal',
     everythingInOnePlace: 'Everything in one place.',

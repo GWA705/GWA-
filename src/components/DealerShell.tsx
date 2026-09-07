@@ -6,6 +6,8 @@ import { usePathname } from 'next/navigation';
 import { logoutAction } from '@/app/(auth)/actions';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { MobileNav } from '@/components/MobileNav';
+import { DealerBottomNav } from '@/components/DealerBottomNav';
+import { useQuickBar } from '@/components/useQuickBar';
 import { LanguageToggle } from '@/components/LanguageToggle';
 import { useT } from '@/i18n/client';
 import { I18N_UI_ENABLED } from '@/i18n/config';
@@ -101,6 +103,7 @@ export function DealerShell({
   const t = useT();
   const navLabel = (item: NavItem) => (item.labelKey ? t(item.labelKey) : item.label);
   const [collapsed, setCollapsed] = useState(false);
+  const [quickBar] = useQuickBar();
 
   // Remember the collapsed state across visits (per browser). Read after mount
   // so the server-rendered markup and first client render agree.
@@ -129,7 +132,7 @@ export function DealerShell({
       {/* TOP HEADER */}
       <header className="flex h-[72px] items-center justify-between gap-2 border-b border-gray-200 bg-white px-3 sm:gap-3 sm:px-6">
         <div className="flex min-w-0 items-center gap-1.5 sm:gap-3">
-          <MobileNav userName={userName} roleLabel={roleLabel} nav={nav} triggerClassName="topbar-btn px-2.5 lg:hidden" hideAt="lg" />
+          <MobileNav userName={userName} roleLabel={roleLabel} nav={nav} triggerClassName="topbar-btn px-2.5 lg:hidden" hideAt="lg" quickBarToggle />
           {/* Collapse / expand the sidebar (desktop only) */}
           <button
             type="button"
@@ -252,8 +255,11 @@ export function DealerShell({
         </aside>
 
         {/* MAIN */}
-        <main className="min-w-0 flex-1 p-4 sm:p-5">{children}</main>
+        <main className={`min-w-0 flex-1 p-4 sm:p-5 ${quickBar ? 'pb-24 lg:pb-5' : ''}`}>{children}</main>
       </div>
+
+      {/* Mobile quick bar (dealer opt-out via the menu toggle). */}
+      <DealerBottomNav nav={nav} />
     </div>
   );
 }

@@ -132,6 +132,15 @@ export const fr: Dictionary = {
     contactSupport: 'Contact / Soutien',
     myAccount: 'Mon compte',
   },
+  quickBar: {
+    home: 'Accueil',
+    applications: 'Dossiers',
+    new: 'Nouveau',
+    leads: 'Prospects',
+    mail: 'Messages',
+    settingLabel: 'Barre rapide',
+    settingHint: 'Afficher une barre de raccourcis en bas sur téléphone',
+  },
   dashboard: {
     welcome: 'Bon retour dans votre portail concessionnaire',
     everythingInOnePlace: 'Tout au même endroit.',
