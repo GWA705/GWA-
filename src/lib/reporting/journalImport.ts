@@ -131,6 +131,30 @@ async function readAndMap(year: number): Promise<
   const matchDeal = buildDealerMatcher(dealers);
   const officeById = new Map(dealers.map((d) => [d.id, d.name]));
 
+  // Safe store-name → store-number resolver, for older books (2024) that record
+  // the HD store as a CITY name ("BARRIE") instead of the number ("7024"). Exact,
+  // normalized match against the portal's store list only — a name that isn't in
+  // the list, or is ambiguous (same name, two numbers), resolves to null and the
+  // raw value is kept. No guessing.
+  const stores = await prisma.homeDepotStore.findMany({ select: { number: true, name: true } });
+  const normStore = (s: string) => s.toUpperCase().replace(/[^A-Z0-9]+/g, ' ').trim();
+  const nameToNumber = new Map<string, string | null>(); // null = ambiguous
+  for (const s of stores) {
+    const key = normStore(s.name ?? '');
+    const num = (s.number ?? '').trim();
+    if (!key || !num) continue;
+    if (nameToNumber.has(key)) {
+      if (nameToNumber.get(key) !== num) nameToNumber.set(key, null); // same name, different number → ambiguous
+    } else {
+      nameToNumber.set(key, num);
+    }
+  }
+  const resolveStoreNumber = (hdStore: string): string | null => {
+    const key = normStore(hdStore || '');
+    if (!key) return null;
+    return nameToNumber.get(key) ?? null; // null when missing or ambiguous
+  };
+
   let matched = 0;
   const records: JournalRecordCreate[] = read.deals.map((d) => {
     const dealerId = matchDeal(d);
@@ -148,7 +172,8 @@ async function readAndMap(year: number): Promise<
       address: d.address || '',
       hdRef: d.hdRef || '',
       hdStore: d.hdStore || '',
-      storeNumber: d.storeNumber,
+      // Prefer the parsed 4-digit number; fall back to resolving a city-name store.
+      storeNumber: d.storeNumber || resolveStoreNumber(d.hdStore || ''),
       product: d.product || '',
       result: d.result || '',
       financeBucket: d.financeBucket || '',

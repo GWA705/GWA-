@@ -51,6 +51,18 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-07
+- **Journal archive: 2024 store-name → store-number resolver + preview/guard.**
+  The 2024 book records the HD store as a CITY name (column F "HD Store" =
+  "BARRIE", "PARRY SOUND") instead of the 4-digit number 2025+ use, so archived
+  2024 rows showed Store "—". On import, `journalImport` now resolves a city name
+  to its store number via an exact, normalized match against the portal's
+  `HomeDepotStore` list — cities not in the list (OTTAWA, SUDBURY, …) or ambiguous
+  names are left as-is, never guessed. Also added `previewJournalYear`
+  (dry read: rows/matched/skipped-tabs/grouped issues/sample) and an
+  overwrite guard (refuses to replace a good archive with a zero/<50% parse unless
+  forced) so DB uploads stay correct across the journals' year-to-year layouts.
+  Search already files 2024 customers under their office via the sheet's "Office:"
+  metadata, so they were searchable regardless; this fills in store numbers.
 - **Journal archive: in-portal Upload/Re-sync for fast office customer search.**
   Office customer search already reads a Postgres archive (`JournalRecord`), not
   live Sheets — but that archive could only be filled by a CLI script. Added a
