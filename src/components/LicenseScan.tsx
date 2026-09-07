@@ -1,7 +1,7 @@
 'use client';
 
-import { useRef, useState } from 'react';
-import { ScanLine, Loader2, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { ScanLine, Loader2, CheckCircle2, AlertTriangle, X, ImageUp } from 'lucide-react';
 import {
   PDF417Reader,
   RGBLuminanceSource,
@@ -12,18 +12,18 @@ import {
 } from '@zxing/library';
 import { parseAamva } from '@/lib/aamva';
 import type { BorrowerAutofill } from '@/lib/autofill';
-import { useT } from '@/i18n/client';
 
 /**
- * Driver's-licence scan → autofill. PRIMARY path is fully on-device: the dealer
- * photographs the BACK of the licence, we decode its PDF417 barcode (exact AAMVA
- * data) in the browser and fill the form — the image never leaves the device.
- * FALLBACK: if no barcode reads (front photo, damaged card), the image is sent to
- * /api/scan-id (AWS Textract AnalyzeID), which extracts fields and discards the
- * image. Either way, the dealer reviews the filled fields before submitting.
+ * Driver's-licence scan → autofill. PRIMARY path is a LIVE camera scan: we stream
+ * the camera and decode the PDF417 barcode (back of the licence) frame-by-frame
+ * until it locks on — far more reliable than a single still photo. Everything is
+ * on-device; nothing is uploaded. Fallbacks: upload a photo (still decode), and if
+ * no barcode reads, the image goes to /api/scan-id (Textract AnalyzeID, front of
+ * licence) which extracts fields and stores nothing. The dealer reviews before
+ * submitting.
  */
 
-type Status = 'idle' | 'reading' | 'ok' | 'partial' | 'fail';
+type Status = 'idle' | 'reading' | 'ok' | 'fail';
 
 function loadImage(url: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -49,7 +49,6 @@ function luminanceOf(canvas: HTMLCanvasElement): { lum: Uint8ClampedArray; w: nu
   return { lum, w, h };
 }
 
-/** Rotate a canvas by 0/90/180/270 degrees, returning a new canvas. */
 function rotateCanvas(src: HTMLCanvasElement, deg: number): HTMLCanvasElement {
   if (deg === 0) return src;
   const swap = deg === 90 || deg === 270;
@@ -67,10 +66,7 @@ function rotateCanvas(src: HTMLCanvasElement, deg: number): HTMLCanvasElement {
 function tryDecode(source: RGBLuminanceSource): string | null {
   const hints = new Map();
   hints.set(DecodeHintType.TRY_HARDER, true);
-  for (const makeBin of [
-    () => new HybridBinarizer(source),
-    () => new GlobalHistogramBinarizer(source),
-  ]) {
+  for (const makeBin of [() => new HybridBinarizer(source), () => new GlobalHistogramBinarizer(source)]) {
     try {
       const result = new PDF417Reader().decode(new BinaryBitmap(makeBin()), hints);
       const text = result?.getText();
@@ -82,35 +78,37 @@ function tryDecode(source: RGBLuminanceSource): string | null {
   return null;
 }
 
-/**
- * Decode a PDF417 barcode from a still photo, entirely in the browser. A phone
- * photo of a licence back is dense and often rotated, so we try 4 orientations ×
- * 2 binarizers, keeping enough resolution for the fine bars.
- */
+/** Try to decode a PDF417 from a canvas at the given rotations. */
+function decodeCanvas(canvas: HTMLCanvasElement, rotations: number[]): string | null {
+  for (const deg of rotations) {
+    const rot = rotateCanvas(canvas, deg);
+    const l = luminanceOf(rot);
+    if (!l) continue;
+    const text = tryDecode(new RGBLuminanceSource(l.lum, l.w, l.h));
+    if (text) return text;
+  }
+  return null;
+}
+
+/** Draw a video/image element to a canvas, capping the longest side. */
+function frameToCanvas(el: HTMLVideoElement | HTMLImageElement, srcW: number, srcH: number, maxSide: number): HTMLCanvasElement {
+  const scale = Math.min(1, maxSide / Math.max(srcW, srcH));
+  const w = Math.max(1, Math.round(srcW * scale));
+  const h = Math.max(1, Math.round(srcH * scale));
+  const c = document.createElement('canvas');
+  c.width = w;
+  c.height = h;
+  c.getContext('2d')?.drawImage(el, 0, 0, w, h);
+  return c;
+}
+
+/** Decode a PDF417 barcode from a still photo (4 rotations × 2 binarizers). */
 async function decodeBarcode(file: File): Promise<string | null> {
   const url = URL.createObjectURL(file);
   try {
     const img = await loadImage(url);
-    // Cap the LONGEST side (not just width) so a portrait photo keeps detail.
-    const maxSide = 2600;
-    const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
-    const w = Math.max(1, Math.round(img.width * scale));
-    const h = Math.max(1, Math.round(img.height * scale));
-    const base = document.createElement('canvas');
-    base.width = w;
-    base.height = h;
-    const bctx = base.getContext('2d');
-    if (!bctx) return null;
-    bctx.drawImage(img, 0, 0, w, h);
-
-    for (const deg of [0, 90, 180, 270]) {
-      const rotated = rotateCanvas(base, deg);
-      const l = luminanceOf(rotated);
-      if (!l) continue;
-      const text = tryDecode(new RGBLuminanceSource(l.lum, l.w, l.h));
-      if (text) return text;
-    }
-    return null;
+    const base = frameToCanvas(img, img.width, img.height, 2600);
+    return decodeCanvas(base, [0, 90, 180, 270]);
   } catch {
     return null;
   } finally {
@@ -119,50 +117,121 @@ async function decodeBarcode(file: File): Promise<string | null> {
 }
 
 export function LicenseScan({ onFields, className = '', label }: { onFields: (f: BorrowerAutofill) => void; className?: string; label?: string }) {
-  const t = useT();
   const inputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const scanningRef = useRef(false);
+  const timerRef = useRef<number | null>(null);
   const [status, setStatus] = useState<Status>('idle');
   const [msg, setMsg] = useState('');
+  const [camOpen, setCamOpen] = useState(false);
 
-  async function handleFile(file: File) {
+  function stopCamera() {
+    scanningRef.current = false;
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    streamRef.current?.getTracks().forEach((tk) => tk.stop());
+    streamRef.current = null;
+    const v = videoRef.current;
+    if (v) v.srcObject = null;
+  }
+
+  function succeed(fields: BorrowerAutofill, source: 'barcode' | 'photo') {
+    stopCamera();
+    setCamOpen(false);
+    onFields(fields);
+    setStatus('ok');
+    const name = `${fields.firstName ?? ''} ${fields.lastName ?? ''}`.replace(/\s+/g, ' ').trim();
+    setMsg(source === 'barcode' ? `Scanned ${name || 'the licence'}. Please review the filled fields.` : 'Filled from the licence photo. Please review each field.');
+  }
+
+  // Live camera loop: start when the overlay opens, tear down on close/unmount.
+  useEffect(() => {
+    if (!camOpen) return;
+    let cancelled = false;
     setStatus('reading');
     setMsg('');
 
-    // 1) On-device barcode (back of licence).
+    (async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: 'environment' } },
+          audio: false,
+        });
+        if (cancelled) {
+          stream.getTracks().forEach((tk) => tk.stop());
+          return;
+        }
+        streamRef.current = stream;
+        const v = videoRef.current;
+        if (v) {
+          v.srcObject = stream;
+          v.setAttribute('playsinline', 'true');
+          v.muted = true;
+          await v.play().catch(() => {});
+        }
+        scanningRef.current = true;
+
+        const loop = () => {
+          if (!scanningRef.current) return;
+          const vid = videoRef.current;
+          if (vid && vid.videoWidth > 0) {
+            const canvas = frameToCanvas(vid, vid.videoWidth, vid.videoHeight, 1600);
+            // Live: try upright + upside-down only (fast); the dealer holds it level.
+            const text = decodeCanvas(canvas, [0, 180]);
+            if (text) {
+              const fields = parseAamva(text);
+              if (fields) {
+                succeed(fields, 'barcode');
+                return;
+              }
+            }
+          }
+          timerRef.current = window.setTimeout(loop, 200);
+        };
+        loop();
+      } catch {
+        setCamOpen(false);
+        setStatus('fail');
+        setMsg('Couldn’t open the camera. Use “Upload a photo” of the back instead, or check camera permissions.');
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      stopCamera();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [camOpen]);
+
+  // Still-photo / cloud fallback path.
+  async function handleFile(file: File) {
+    setStatus('reading');
+    setMsg('');
     const payload = await decodeBarcode(file);
     if (payload) {
       const fields = parseAamva(payload);
       if (fields) {
-        onFields(fields);
-        setStatus('ok');
-        setMsg(`Filled from ${fields.firstName} ${fields.lastName}'s licence. Please review.`.replace(/\s+/g, ' '));
+        succeed(fields, 'barcode');
         return;
       }
     }
-
-    // 2) Cloud fallback (AWS Textract) — used only when no barcode read.
     try {
       const fd = new FormData();
       fd.append('image', file);
       const res = await fetch('/api/scan-id', { method: 'POST', body: fd });
       const data = await res.json().catch(() => null);
       if (res.ok && data?.ok && data.fields) {
-        onFields(data.fields as BorrowerAutofill);
-        setStatus('ok');
-        setMsg('Filled from the licence photo. Please review each field.');
-        return;
-      }
-      if (data?.reason === 'not_enabled') {
-        setStatus('fail');
-        setMsg("Couldn't read the barcode. Take a clear photo of the BACK of the licence, or enter the details manually.");
+        succeed(data.fields as BorrowerAutofill, 'photo');
         return;
       }
     } catch {
-      /* fall through to the generic failure */
+      /* fall through */
     }
-
     setStatus('fail');
-    setMsg("Couldn't read the licence. Try a sharper, well-lit photo of the BACK (the barcode side), or enter the details manually.");
+    setMsg("Couldn't read the licence. Try the live scanner on the BACK (barcode side) in good light, or enter the details manually.");
   }
 
   return (
@@ -176,20 +245,32 @@ export function LicenseScan({ onFields, className = '', label }: { onFields: (f:
         onChange={(e) => {
           const f = e.target.files?.[0];
           if (f) void handleFile(f);
-          e.target.value = ''; // allow re-picking the same file
+          e.target.value = '';
         }}
       />
-      <button
-        type="button"
-        onClick={() => inputRef.current?.click()}
-        disabled={status === 'reading'}
-        className="inline-flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-100 disabled:opacity-60"
-      >
-        {status === 'reading' ? <Loader2 size={16} className="animate-spin" /> : <ScanLine size={16} />}
-        {status === 'reading' ? 'Reading licence…' : label || 'Scan driver’s licence'}
-      </button>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={() => { setStatus('idle'); setMsg(''); setCamOpen(true); }}
+          disabled={status === 'reading' && !camOpen}
+          className="inline-flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-100 disabled:opacity-60"
+        >
+          <ScanLine size={16} /> {label || 'Scan driver’s licence'}
+        </button>
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          disabled={status === 'reading'}
+          className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50 disabled:opacity-60"
+        >
+          {status === 'reading' && !camOpen ? <Loader2 size={16} className="animate-spin" /> : <ImageUp size={16} />}
+          Upload a photo
+        </button>
+      </div>
+
       <p className="mt-1 text-xs text-gray-500">
-        Photograph the <strong>back</strong> of the licence (the barcode) for the most accurate fill. The image isn’t stored.
+        Point the camera at the <strong>barcode on the back</strong> of the licence — it scans automatically. Nothing is stored.
       </p>
       {status === 'ok' && (
         <p className="mt-1 flex items-center gap-1 text-xs font-medium text-emerald-700">
@@ -200,6 +281,38 @@ export function LicenseScan({ onFields, className = '', label }: { onFields: (f:
         <p className="mt-1 flex items-center gap-1 text-xs font-medium text-amber-700">
           <AlertTriangle size={13} /> {msg}
         </p>
+      )}
+
+      {/* Live camera overlay */}
+      {camOpen && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-black/90">
+          <div className="flex items-center justify-between px-4 py-3 text-white">
+            <span className="text-sm font-semibold">Scan the back of the licence</span>
+            <button type="button" onClick={() => setCamOpen(false)} aria-label="Close scanner" className="rounded-full p-1.5 hover:bg-white/10">
+              <X size={22} />
+            </button>
+          </div>
+          <div className="relative flex-1 overflow-hidden">
+            {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+            <video ref={videoRef} className="h-full w-full object-cover" playsInline muted />
+            {/* Guide frame */}
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+              <div className="h-40 w-[86%] max-w-md rounded-xl border-2 border-white/80 shadow-[0_0_0_9999px_rgba(0,0,0,0.35)]" />
+            </div>
+          </div>
+          <div className="flex items-center justify-center gap-2 px-4 py-4 text-center text-sm text-white/90">
+            <Loader2 size={16} className="animate-spin" /> Hold the barcode inside the box, well-lit and steady…
+          </div>
+          <div className="pb-6 text-center">
+            <button
+              type="button"
+              onClick={() => { setCamOpen(false); inputRef.current?.click(); }}
+              className="text-sm font-semibold text-white underline underline-offset-4"
+            >
+              Trouble scanning? Upload a photo instead
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
