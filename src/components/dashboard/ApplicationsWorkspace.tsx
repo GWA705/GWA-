@@ -234,46 +234,66 @@ function TrackerView({ deals, t }: { deals: DealVM[]; t: TFunction }) {
   );
 }
 
-/* ---- Pipeline: columns by stage ---- */
-function PipelineView({ deals, t }: { deals: DealVM[]; t: TFunction }) {
-  const active = deals.filter((d) => d.group !== 'closed');
+/* ---- Pipeline card (shared by the mobile stack + desktop kanban) ---- */
+function PipelineCard({ d, t }: { d: DealVM; t: TFunction }) {
   return (
-    <div className="overflow-x-auto pb-2">
-      <div className="grid min-w-[880px] grid-cols-4 gap-3">
-        {DEAL_COLUMNS.map((col) => {
-          const items = active.filter((d) => d.stageKey === col.key);
-          return (
-            <div key={col.key} className="flex flex-col rounded-2xl border border-gray-200 bg-gray-50 dark:bg-white/5">
-              <div className="flex items-center justify-between border-b border-gray-200 px-3 py-2.5">
-                <span className="text-xs font-bold uppercase tracking-wide text-[#0d2a63] dark:text-slate-100">{t(`deal.column.${col.key}`)}</span>
-                <span className="rounded-full bg-white px-2 py-0.5 text-xs font-bold text-gray-500 shadow-sm">{items.length}</span>
-              </div>
-              <div className="space-y-2 p-2">
-                {items.length === 0 && <p className="px-1 py-4 text-center text-xs text-gray-400">{t('applications.nothingHere')}</p>}
-                {items.map((d) => (
-                  <Link
-                    key={d.id}
-                    href={`/dealer/applications/${d.id}`}
-                    className={`block rounded-xl border bg-white p-3 shadow-sm transition hover:shadow-md ${d.problem ? 'border-red-200' : 'border-gray-200'}`}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <span className="truncate text-sm font-semibold text-blue-600">{d.name}</span>
-                      {d.pinned && <span className="text-[10px] font-bold text-blue-500">{t('applications.pinned')}</span>}
-                    </div>
-                    <div className="mt-1"><StatusBadge status={d.status} /></div>
-                    <div className="mt-2 flex items-center justify-between text-xs text-gray-500">
-                      <span>{d.program}</span>
-                      <span className="font-semibold text-gray-700">{d.amountLabel}</span>
-                    </div>
-                    <div className="mt-2"><ActionChip deal={d} t={t} /></div>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          );
-        })}
+    <Link
+      href={`/dealer/applications/${d.id}`}
+      className={`block rounded-xl border bg-white p-3 shadow-sm transition hover:shadow-md ${d.problem ? 'border-red-200' : 'border-gray-200'}`}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <span className="min-w-0 flex-1 truncate text-sm font-semibold text-blue-600">{d.name}</span>
+        {d.pinned && <span className="flex-none text-[10px] font-bold text-blue-500">{t('applications.pinned')}</span>}
+      </div>
+      <div className="mt-1"><StatusBadge status={d.status} /></div>
+      <div className="mt-2 flex items-center justify-between gap-2 text-xs text-gray-500">
+        <span className="min-w-0 truncate">{d.program}</span>
+        <span className="flex-none font-semibold tabular-nums text-gray-700">{d.amountLabel}</span>
+      </div>
+      <div className="mt-2"><ActionChip deal={d} t={t} /></div>
+    </Link>
+  );
+}
+
+/* ---- One stage column (bordered box: header + its cards). Fills its
+   container, so it works both as a grid cell (desktop) and a full-width
+   stacked section (mobile). ---- */
+function StageColumn({ col, items, t }: { col: (typeof DEAL_COLUMNS)[number]; items: DealVM[]; t: TFunction }) {
+  return (
+    <div className="flex flex-col rounded-2xl border border-gray-200 bg-gray-50 dark:bg-white/5">
+      <div className="flex items-center justify-between border-b border-gray-200 px-3 py-2.5">
+        <span className="text-xs font-bold uppercase tracking-wide text-[#0d2a63] dark:text-slate-100">{t(`deal.column.${col.key}`)}</span>
+        <span className="rounded-full bg-white px-2 py-0.5 text-xs font-bold text-gray-500 shadow-sm">{items.length}</span>
+      </div>
+      <div className="space-y-2 p-2">
+        {items.length === 0 && <p className="px-1 py-4 text-center text-xs text-gray-400">{t('applications.nothingHere')}</p>}
+        {items.map((d) => <PipelineCard key={d.id} d={d} t={t} />)}
       </div>
     </div>
+  );
+}
+
+/* ---- Pipeline: stacked stages on mobile, horizontal kanban on tablet+ ---- */
+function PipelineView({ deals, t }: { deals: DealVM[]; t: TFunction }) {
+  const active = deals.filter((d) => d.group !== 'closed');
+  const byStage = DEAL_COLUMNS.map((col) => ({ col, items: active.filter((d) => d.stageKey === col.key) }));
+  return (
+    <>
+      {/* Phone: full-width stacked stages — nothing clipped or truncated */}
+      <div className="space-y-3 md:hidden">
+        {byStage.map(({ col, items }) => (
+          <StageColumn key={col.key} col={col} items={items} t={t} />
+        ))}
+      </div>
+      {/* Tablet / desktop: horizontal kanban board */}
+      <div className="hidden overflow-x-auto pb-2 md:block">
+        <div className="grid min-w-[880px] grid-cols-4 gap-3">
+          {byStage.map(({ col, items }) => (
+            <StageColumn key={col.key} col={col} items={items} t={t} />
+          ))}
+        </div>
+      </div>
+    </>
   );
 }
 

@@ -43,6 +43,14 @@ source of truth; this file is the human-readable index.
   auto-translates lead free-text via DeepL. (2026-09-06, Sean.)
 
 ## 2026-09-07
+- **Mobile: dealer Applications "Pipeline" view no longer clips on phones.** The
+  kanban was a fixed 880px 4-column grid inside a horizontal scroller, so on a
+  phone the left column was cut off (stray amounts bleeding off-screen) and card
+  text truncated. Now the pipeline **stacks stages vertically on phones**
+  (full-width, nothing clipped) and keeps the horizontal kanban at `md`+. Also
+  tightened card truncation (name/program get `min-w-0` so they ellipsize cleanly
+  instead of overflowing). Extracted shared `PipelineCard` / `StageColumn` so both
+  layouts stay in sync.
 - **New home-screen / PWA app icon.** Replaced the install / Add-to-Home-Screen
   icon with the new GWA app tile (maple leaf + Canada map + GWA + wave, supplied
   by Sean). Regenerated `public/icon-192.png`, `icon-512.png` and
