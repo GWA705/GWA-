@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { BarChart3 } from 'lucide-react';
 import type { OfficeMonthlyReport, StoreRow } from '@/lib/reporting/monthly';
 import { getT } from '@/i18n/server';
 import type { TFunction } from '@/i18n/translator';
@@ -18,20 +19,19 @@ function Pct({ value, t }: { value: number | null; t: TFunction }) {
   return <span className={`font-semibold ${up ? 'text-emerald-600' : 'text-red-600'}`}>{up ? '+' : ''}{value}%</span>;
 }
 
-// Header summary tile (navy background).
+// Header summary stat (light card).
 function HStat({ label, value, node, emphasize }: { label: string; value?: string; node?: ReactNode; emphasize?: boolean }) {
   return (
-    <div className="px-5 py-4">
-      <div className={`font-bold tabular-nums text-white ${emphasize ? 'text-xl' : 'text-lg'}`}>{node ?? value}</div>
-      <div className="mt-0.5 text-[10px] font-medium uppercase tracking-wide text-white/50">{label}</div>
+    <div className="px-4 py-4 sm:px-5">
+      <div className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-gray-400">{label}</div>
+      <div className={`font-extrabold tabular-nums text-[#0e2b5c] dark:text-slate-100 ${emphasize ? 'text-2xl' : 'text-lg'}`}>{node ?? value}</div>
     </div>
   );
 }
-// Percent styled for the navy header (lighter greens/reds for contrast).
 function HPct({ value, t }: { value: number | null; t: TFunction }) {
-  if (value === null) return <span className="text-emerald-300">{t('reports.monthly.newBadge')}</span>;
+  if (value === null) return <span className="text-emerald-600 dark:text-emerald-400">{t('reports.monthly.newBadge')}</span>;
   const up = value >= 0;
-  return <span className={up ? 'text-emerald-300' : 'text-red-300'}>{up ? '+' : ''}{value}%</span>;
+  return <span className={up ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'}>{up ? '+' : ''}{value}%</span>;
 }
 
 // Split "7024 — Barrie" into a number chip + name.
@@ -162,13 +162,20 @@ export function MonthlyReportView({ report }: { report: OfficeMonthlyReport }) {
   const ytd = report.ytd;
   return (
     <div className="space-y-5">
-      <div className="overflow-hidden rounded-2xl shadow-sm" style={{ background: 'linear-gradient(135deg,#16233a,#26436a)' }}>
-        <div className="p-6 text-white">
-          <div className="text-[11px] font-semibold uppercase tracking-[0.15em] text-white/50">{t('reports.monthly.eyebrow')}</div>
-          <h1 className="mt-1 text-2xl font-bold leading-tight">{report.office?.name ?? t('reports.monthly.officeFallback')}</h1>
-          <div className="mt-0.5 text-sm text-white/60">{report.monthLabel}</div>
+      {/* Light KPI summary — deliberately distinct from the navy page hero above
+          it (avoids two stacked navy blocks). */}
+      <div className="overflow-hidden rounded-2xl border border-gray-200/80 bg-white shadow-[0_1px_2px_rgba(16,24,40,.04),0_14px_30px_-18px_rgba(16,24,40,.22)]">
+        <div className="flex items-center gap-3 p-5">
+          <span className="flex h-11 w-11 flex-none items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-500/15 dark:text-blue-300">
+            <BarChart3 size={20} />
+          </span>
+          <div className="min-w-0">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.15em] text-gray-400">{t('reports.monthly.eyebrow')}</div>
+            <h1 className="truncate text-lg font-bold leading-tight text-[#0e2b5c] dark:text-slate-100">{report.office?.name ?? t('reports.monthly.officeFallback')}</h1>
+            <div className="text-xs text-gray-500">{report.monthLabel}</div>
+          </div>
         </div>
-        <div className="grid grid-cols-3 divide-x divide-white/10 border-t border-white/10">
+        <div className="grid grid-cols-3 divide-x divide-gray-100 border-t border-gray-100">
           <HStat label={t('reports.monthly.thisMonth')} value={money(report.total.curMonth)} emphasize />
           <HStat label={t('reports.monthly.vsLastMonth')} node={<HPct value={report.total.momPct} t={t} />} />
           <HStat label={t('reports.monthly.yearToDate')} value={money(report.total.ytdTy)} />

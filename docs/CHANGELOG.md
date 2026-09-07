@@ -44,6 +44,19 @@ source of truth; this file is the human-readable index.
   auto-translates lead free-text via DeepL. (2026-09-06, Sean.)
 
 ## 2026-09-07
+- **Reports: fixed two stacked navy blocks + new tab style.** The monthly
+  summary card sat right under the navy "My reports" hero as a second big navy
+  block, so the two read as one heavy mass. The summary is now a **light KPI
+  card** (white, icon chip, big navy numbers, coloured MoM) — clearly distinct
+  from the hero. The report tabs became a **segmented control** (Option A): a
+  tinted track with the active tab as a raised white thumb, scrolls horizontally
+  for the owner's 7 tabs. Both theme-aware. (Summary card is shared with the staff
+  monthly report, which gets the same cleaner look.)
+- **Mobile: tapping a field no longer zooms the page (iOS).** iOS Safari
+  auto-zooms when a focused input's font is under 16px, which happened on the chat
+  box and other fields. Added a phone-scoped rule forcing form controls to 16px
+  (`max-width:640px`), so focusing the chat message box / any input no longer
+  jumps the zoom. Desktop keeps its compact fields.
 - **Mobile: support chat moved into the bottom quick bar (in place of Mail).**
   The quick bar's last tab is now **Help** (chat icon) which opens the support
   chat directly, so support is always one tap away without a floating bubble.
