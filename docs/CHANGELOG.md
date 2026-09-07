@@ -44,6 +44,15 @@ source of truth; this file is the human-readable index.
   auto-translates lead free-text via DeepL. (2026-09-06, Sean.)
 
 ## 2026-09-07
+- **Fix: AI assistant gave no reply in "view as dealer" (real root cause).**
+  Impersonation was only applied when `x-pathname` was a `/dealer/*` route, but the
+  chat calls `/api/chat/*`, so on those requests the admin was treated as staff —
+  the assistant endpoint bailed at its "acting as staff" guard before ever calling
+  the model (hence no error in logs), and messages were stamped `fromStaff`.
+  `requestIsDealerPortal()` now also honours the **Referer** for `/api/*` calls, so
+  a dealer-portal page hitting an API is correctly scoped to the impersonated
+  dealer. (This also correctly scopes other admin API calls made while viewing as
+  a dealer.)
 - **Chat assistant: Q&A memory + human-approved learning loop.** Every assistant
   Q&A is now logged (`AssistantQa`, migration `20260907030000_assistant_qa`),
   tagged by area, with answers where it deferred to a teammate flagged as gaps.

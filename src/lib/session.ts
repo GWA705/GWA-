@@ -219,10 +219,28 @@ export function stopViewAs(): void {
 // Is the current request within the dealer portal? Read from the x-pathname
 // header the middleware sets. Server actions POST to their page's URL, so this
 // also reflects the page an action was invoked from.
+function isDealerPath(p: string): boolean {
+  return p === '/dealer' || p.startsWith('/dealer/');
+}
+
 function requestIsDealerPortal(): boolean {
   try {
-    const p = headers().get('x-pathname') || '';
-    return p === '/dealer' || p.startsWith('/dealer/');
+    const h = headers();
+    const p = h.get('x-pathname') || '';
+    if (isDealerPath(p)) return true;
+    // Client fetches to API routes (e.g. the chat widget) carry the page they
+    // were called from in the Referer, not in x-pathname — so a dealer-portal
+    // page calling /api/... still counts as the dealer portal (needed for
+    // "view as dealer" to scope those calls to the impersonated dealer).
+    if (p.startsWith('/api/')) {
+      const ref = h.get('referer') || '';
+      try {
+        return isDealerPath(new URL(ref).pathname);
+      } catch {
+        return false;
+      }
+    }
+    return false;
   } catch {
     return false;
   }
