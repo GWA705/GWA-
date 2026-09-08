@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireRole } from '@/lib/session';
 import { canViewReportsArea } from '@/lib/reporting/access';
+import { reportingJournalEnabled } from '@/lib/reporting/journalRead';
 import { listReportOffices } from '@/lib/reporting/monthly';
 import { buildSalespersonLeaderboard } from '@/lib/reporting/salespersonLeaderboard';
 import { LeaderboardView } from './LeaderboardView';
@@ -62,7 +63,12 @@ export default async function LeaderboardPage({
         <button type="submit" className="btn-primary">{t('reports.view')}</button>
       </form>
 
-      {!officeId ? (
+      {!reportingJournalEnabled() ? (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+          {t('staffReports.journalNotConnected1')}<code className="rounded bg-amber-100 px-1">JOURNAL_SHEET_ID_2026</code>
+          {t('staffReports.journalNotConnected2')}<code className="rounded bg-amber-100 px-1">JOURNAL_SHEET_ID_2025</code>{t('staffReports.journalNotConnected3')}
+        </div>
+      ) : !officeId ? (
         <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
           {t('staffReports.noOfficeStoresAssigned')}
         </div>

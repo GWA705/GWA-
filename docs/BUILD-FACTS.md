@@ -100,6 +100,9 @@ N/A).
   UNDER_REVIEW, CONDITIONAL, APPROVED, DOCS_SENT (awaiting install),
   FUNDING_SUBMITTED (signed docs to review), FUNDING_REVIEW, FUNDED, PROBLEM,
   DECLINED, WITHDRAWN.
+- **Journal salesperson** = the **"Dealer's Name"** column. `journal.ts` writes the
+  portal salesperson there; `journalRead.ts` reads it back into `ReportDeal.salesperson`
+  (added 2026-09-08). The Salesperson leaderboard groups on it.
 - **PII** (SIN, DOB, address, bank, ID) is **envelope-encrypted** (`src/lib/crypto.ts`,
   AES-256-GCM); names/phone/email kept plaintext for staff triage. Reads of
   encrypted fields are audited.

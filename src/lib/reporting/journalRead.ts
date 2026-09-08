@@ -59,6 +59,10 @@ const FIELD_CANDIDATES: Record<string, string[]> = {
   hdRef: ['hd ref'],
   hdStore: ['hd store'],
   location: ['location'],
+  // The rep who made the sale — the journal column is headed "Dealer's Name"
+  // (this is what journal.ts writes salespersonName into). Cover apostrophe
+  // variants since the read side doesn't normalize punctuation.
+  salesperson: ["dealer's name", 'dealer’s name', 'dealers name', 'dealer s name'],
   phone: ['phone'],
   address: ['address'],
   city: ['city'],
@@ -298,6 +302,7 @@ export interface ReportDeal {
   hdStore: string; // raw HD store label (e.g. "BARRIE - 7024")
   storeNumber: string | null; // parsed 4-digit HD store number, if present
   location: string; // raw location / dealer label
+  salesperson: string; // rep who made the sale (journal "Dealer's Name" column)
   product: string;
   isHD: boolean;
   isMisc: boolean; // from the MISC. DEALS/INSTALLS tab (GWA financing outside HD)
@@ -528,6 +533,7 @@ async function readJournalUncached(year: number): Promise<JournalReadResult> {
         hdStore,
         storeNumber: extractStoreNumber(hdStore),
         location: colMap.location !== -1 ? String(row[colMap.location] || '') : officeMeta,
+        salesperson: colMap.salesperson !== -1 ? String(row[colMap.salesperson] || '').trim() : '',
         product: colMap.product !== -1 ? String(row[colMap.product] || '') : '',
         isHD: classification.isHD,
         isMisc,

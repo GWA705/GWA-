@@ -51,6 +51,15 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-08
+- **Salesperson leaderboard now runs on the full journal (not portal-only).** The
+  journal reader was never mapping the rep column, even though the journal *write*
+  code (`journal.ts`) already used it — the header is **"Dealer's Name"**. Added
+  that column to the reader (`journalRead.ts` `FIELD_CANDIDATES` + `ReportDeal.salesperson`)
+  and rebuilt `buildSalespersonLeaderboard` on `readJournal` (paid-OK deals per
+  office/year, grouped by rep). No migration needed — office reports read the sheets
+  live. Dropped the "portal deals only" label; the leaderboard now covers every year
+  the journals are connected. Columns: rank, rep, deals, avg deal, volume (+ a note
+  for deals with no rep named).
 - **Three new reports (separate pages on the Reports hub).**
   - **Product mix & attach rate** (`/staff/reports/product-mix`) — per office/year:
     total deals, average products per deal (attach signal), and each product's deal
