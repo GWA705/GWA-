@@ -51,6 +51,18 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-08
+- **Desktop sidebar runs the full page height.** The dark nav column was fixed at
+  one screen tall (`h-[calc(100vh-72px)]`, sticky), so on any page taller than the
+  viewport (e.g. the dashboard) it stopped partway down and the light page
+  background showed below it. The gradient now sits on a full-height wrapper that
+  matches the content height, while the nav itself stays sticky and one screen
+  tall — no more abrupt cut-off. Applied to both the dealer (`DealerShell`) and
+  reviewer (`StaffShell`) shells.
+- **Auto-fill: one clean "Scan driver's licence" action.** Dropped the standalone
+  "Upload a photo" button from the licence scanner (primary + co-applicant), so it
+  matches the single-button "Scan a filled credit app". Upload remains as a
+  fallback only if the camera can't open, and inside the scanner overlay.
+  (`LicenseScan.tsx`.)
 - **Mobile: stop iOS zoom on the message composers.** The "Write a message…"
   box in deal/support conversations (`ConversationThread`) and the gift-card
   thread composer (`GiftCardThread`) were 14px/12px, so iOS Safari force-zoomed

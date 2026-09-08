@@ -137,8 +137,11 @@ export function StaffShell({
       </header>
 
       <div className="flex">
-        {/* SIDEBAR (desktop) */}
-        <aside className="sticky top-0 hidden h-[calc(100vh-72px)] w-[240px] flex-none flex-col bg-gradient-to-b from-[#06285a] to-[#04173a] lg:flex">
+        {/* SIDEBAR (desktop). Dark column on a full-height wrapper so the menu
+            background runs the entire page height instead of ending one screen
+            down; the nav stays sticky and one screen tall. */}
+        <div className="hidden w-[240px] flex-none bg-[#04173a] lg:block">
+        <aside className="sticky top-0 flex h-[calc(100vh-72px)] w-full flex-col bg-gradient-to-b from-[#06285a] to-[#04173a]">
           <nav className="sidebar-scroll min-h-0 flex-1 space-y-0.5 overflow-y-auto px-3 py-4">
             {nav.map((item) =>
               item.children ? (
@@ -163,6 +166,7 @@ export function StaffShell({
             </div>
           </div>
         </aside>
+        </div>
 
         {/* MAIN */}
         <main className="min-w-0 flex-1 p-4 sm:p-6">

@@ -207,11 +207,18 @@ export function DealerShell({
       </header>
 
       <div className="flex">
-        {/* SIDEBAR (desktop) */}
-        <aside
-          className={`sidebar-collapsible sticky top-0 hidden h-[calc(100vh-72px)] flex-none flex-col bg-gradient-to-b from-[#06285a] to-[#04173a] lg:flex ${
+        {/* SIDEBAR (desktop). The dark column lives on a full-height wrapper so
+            the menu background runs the ENTIRE page height (matching the content),
+            instead of ending one screen down and leaving the page background
+            showing below it. The nav itself stays sticky and one screen tall; the
+            wrapper's solid colour matches the gradient's foot so it's seamless. */}
+        <div
+          className={`sidebar-collapsible hidden flex-none bg-[#04173a] lg:block ${
             collapsed ? 'w-[72px]' : 'w-[240px]'
           }`}
+        >
+        <aside
+          className="sticky top-0 flex h-[calc(100vh-72px)] w-full flex-col bg-gradient-to-b from-[#06285a] to-[#04173a]"
         >
           {/* Collapse / expand — lives inside the sidebar (ChatGPT-style). */}
           <div className={`flex flex-none items-center border-b border-white/10 py-2.5 ${collapsed ? 'justify-center px-2' : 'justify-end px-3'}`}>
@@ -255,6 +262,7 @@ export function DealerShell({
             )}
           </div>
         </aside>
+        </div>
 
         {/* MAIN */}
         <main className={`min-w-0 flex-1 p-4 sm:p-5 ${quickBar ? 'pb-24 lg:pb-5' : ''}`}>{children}</main>
