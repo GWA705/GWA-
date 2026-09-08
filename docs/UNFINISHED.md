@@ -27,10 +27,11 @@ _Last reviewed: 2026-09-08._
 
 - [x] **Store drill-down** — click a store row in the monthly report to expand the
   sales behind its number; each sale links to Find a customer (pre-filled). DONE.
-- [ ] **Salesperson leaderboard** — rank reps/installers by $ sold, # deals, avg
-  deal size, cancel rate (journal salesperson field).
-- [ ] **Product mix & attach rate** — units/$ by product, trend, add-on attach %.
-- [ ] **HD lead → sale funnel** — leads → sold, conversion % by store, open-lead aging.
+- [x] **Salesperson leaderboard** — DONE (portal-submitted deals only, labelled).
+  `/staff/reports/leaderboard`.
+- [x] **Product mix & attach rate** — DONE. `/staff/reports/product-mix`.
+- [x] **HD lead → sale funnel** — DONE (reuses leads call outcomes).
+  `/staff/reports/lead-funnel`.
 - [x] **Finance penetration** — DONE (per office/year: penetration %, method breakdown,
   per-store table). Page at `/staff/reports/finance`.
 - _Decision (Sean): each sale in a drill-down links to Find a customer (chosen over

@@ -51,6 +51,18 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-08
+- **Three new reports (separate pages on the Reports hub).**
+  - **Product mix & attach rate** (`/staff/reports/product-mix`) — per office/year:
+    total deals, average products per deal (attach signal), and each product's deal
+    count, share % and $. Journal-based.
+  - **Salesperson leaderboard** (`/staff/reports/leaderboard`) — reps ranked by
+    funded volume, deals, win rate, avg deal. **Portal-submitted deals only** (the
+    journal has no rep field) — clearly labelled in-page.
+  - **Lead → sale funnel** (`/staff/reports/lead-funnel`, leadership-gated) — HD
+    leads → contacted → booked → sold with conversion %, overall and per office;
+    reuses the leads call-outcome data.
+  All three bilingual (EN/FR). (`productMix.ts`, `salespersonLeaderboard.ts`,
+  `reports/product-mix|leaderboard|lead-funnel/`, hub cards.)
 - **Super Admin: full customer-data export (CSV).** Admin → Security now has a
   Super-Admin-only "Export all customer data" button: one row per deal with every
   stored field, and the encrypted PII (SIN, DOB, address, banking, gov ID, income,
