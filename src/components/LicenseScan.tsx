@@ -249,6 +249,10 @@ export function LicenseScan({ onFields, className = '', label }: { onFields: (f:
         }}
       />
 
+      {/* One clean action — the live scanner. There's no separate "upload a
+          photo" button by design; the scanner handles everything on-device. If
+          the camera can't open, an upload fallback appears below so it's never a
+          dead-end (and the overlay also offers "upload instead" while scanning). */}
       <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"
@@ -256,16 +260,8 @@ export function LicenseScan({ onFields, className = '', label }: { onFields: (f:
           disabled={status === 'reading' && !camOpen}
           className="inline-flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-100 disabled:opacity-60"
         >
-          <ScanLine size={16} /> {label || 'Scan driver’s licence'}
-        </button>
-        <button
-          type="button"
-          onClick={() => inputRef.current?.click()}
-          disabled={status === 'reading'}
-          className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50 disabled:opacity-60"
-        >
-          {status === 'reading' && !camOpen ? <Loader2 size={16} className="animate-spin" /> : <ImageUp size={16} />}
-          Upload a photo
+          {status === 'reading' && !camOpen ? <Loader2 size={16} className="animate-spin" /> : <ScanLine size={16} />}
+          {label || 'Scan driver’s licence'}
         </button>
       </div>
 
@@ -278,9 +274,18 @@ export function LicenseScan({ onFields, className = '', label }: { onFields: (f:
         </p>
       )}
       {status === 'fail' && (
-        <p className="mt-1 flex items-center gap-1 text-xs font-medium text-amber-700">
-          <AlertTriangle size={13} /> {msg}
-        </p>
+        <div className="mt-1">
+          <p className="flex items-center gap-1 text-xs font-medium text-amber-700">
+            <AlertTriangle size={13} /> {msg}
+          </p>
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            className="mt-1 inline-flex items-center gap-1.5 text-xs font-semibold text-blue-700 underline underline-offset-2 hover:text-blue-800"
+          >
+            <ImageUp size={13} /> Upload a photo instead
+          </button>
+        </div>
       )}
 
       {/* Live camera overlay */}
