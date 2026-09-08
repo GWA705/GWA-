@@ -13,7 +13,13 @@ import type { BorrowerAutofill } from '@/lib/autofill';
 
 type Status = 'idle' | 'reading' | 'ok' | 'fail';
 
-export function DocScan({ onFields, className = '' }: { onFields: (f: BorrowerAutofill) => void; className?: string }) {
+export function DocScan({
+  onFields,
+  className = '',
+}: {
+  onFields: (f: BorrowerAutofill, meta?: { uncertain?: string[] }) => void;
+  className?: string;
+}) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [status, setStatus] = useState<Status>('idle');
   const [msg, setMsg] = useState('');
@@ -27,9 +33,14 @@ export function DocScan({ onFields, className = '' }: { onFields: (f: BorrowerAu
       const res = await fetch('/api/scan-doc', { method: 'POST', body: fd });
       const data = await res.json().catch(() => null);
       if (res.ok && data?.ok && data.fields) {
-        onFields(data.fields as BorrowerAutofill);
+        const uncertain = Array.isArray(data.uncertain) ? (data.uncertain as string[]) : [];
+        onFields(data.fields as BorrowerAutofill, { uncertain });
         setStatus('ok');
-        setMsg('Filled from the uploaded application. Please review every field.');
+        setMsg(
+          uncertain.length > 0
+            ? 'Filled from the uploaded application. Please review every field — the highlighted ones may have been misread.'
+            : 'Filled from the uploaded application. Please review every field.',
+        );
         return;
       }
       if (data?.reason === 'not_enabled') {

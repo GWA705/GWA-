@@ -51,6 +51,17 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-08
+- **Finance-app scan: hardened date parsing + "double-check" flags on shaky reads.**
+  The credit-app scanner's date converter only understood `MM/DD/YYYY` (slash/dash)
+  and `YYYY-MM-DD` — so a Financeit form printing the date with **dots**, a **written
+  month**, a **2-digit year**, or **year-first with slashes** left Date of birth /
+  ID expiry **blank**. Replaced it with a shared, tolerant parser
+  (`src/lib/dateparse.ts`, unit-tested) that reads all those shapes. It also reports
+  when it had to **guess** the day/month order (e.g. `03/12` = Mar 12 vs Dec 3) or a
+  2-digit year, and `/api/scan-doc` now returns an `uncertain` list combining those
+  guesses with **low Textract OCR confidence** (< 88%). The new-customer form shows
+  a **"⚠️ Double-check: Date of birth, …"** note in each section's confirm banner so
+  the dealer knows exactly which scanned fields to verify.
 - **Dealer Business Documents — self-serve compliance vault with auto-scanned expiry + renewal reminders.**
   Dealers upload their WSIB / WCB clearance (and any other document with a renewal
   date) at **Dealer → My office → Business documents** (`/dealer/documents`). On

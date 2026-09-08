@@ -1104,6 +1104,7 @@ export const en = {
     verifyScanHint: 'Some fields were filled by a scan and can be misread. Please check each section against the customer’s documents, then tick to confirm. You can’t submit until every scanned section is confirmed.',
     verifyScanConfirm: 'I checked the {section} and it’s correct',
     verifyScanConfirmShort: 'Confirm scanned info',
+    verifyDoubleCheck: 'Double-check',
     verifyScanConfirmedShort: 'Scanned info confirmed',
     verifyScanRequired: 'Please review and confirm each scanned section above before submitting.',
     verifyScanSectionApplicant: 'applicant name & ID',

@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { TextractClient, AnalyzeDocumentCommand, type Block } from '@aws-sdk/client-textract';
 import { getSession } from '@/lib/session';
 import { rateLimit } from '@/lib/ratelimit';
+import { parseFlexibleDate } from '@/lib/dateparse';
 import type { BorrowerAutofill } from '@/lib/autofill';
 
 export const dynamic = 'force-dynamic';
@@ -26,14 +27,6 @@ function toProvinceCode(raw: string): string {
   if (/^[A-Za-z]{2}$/.test(s)) return s.toUpperCase();
   return PROVINCE_BY_NAME[s.toLowerCase()] || s;
 }
-function toIso(raw: string): string {
-  const s = (raw || '').trim();
-  const us = s.match(/(\d{1,2})[/-](\d{1,2})[/-](\d{4})/);
-  if (us) return `${us[3]}-${us[1].padStart(2, '0')}-${us[2].padStart(2, '0')}`;
-  const iso = s.match(/(\d{4})-(\d{2})-(\d{2})/);
-  return iso ? iso[0] : '';
-}
-
 // A Textract value can pick up printed helper text next to the box (e.g. the
 // email line's "An email address is required…"). Trim each value to just the
 // data for that field.
@@ -128,8 +121,9 @@ export async function POST(req: NextRequest) {
     const blocks = out.Blocks ?? [];
     const byId = new Map<string, Block>(blocks.filter((b) => b.Id).map((b) => [b.Id!, b]));
 
-    // Collect KEY blocks with their value text + vertical position (for "first").
-    const pairs: { label: string; value: string; top: number }[] = [];
+    // Collect KEY blocks with their value text, vertical position (for "first"),
+    // and the OCR confidence of the value (to flag shaky reads).
+    const pairs: { label: string; value: string; top: number; conf: number }[] = [];
     for (const b of blocks) {
       if (b.BlockType !== 'KEY_VALUE_SET' || !b.EntityTypes?.includes('KEY')) continue;
       const label = blockText(b, byId).toLowerCase().replace(/\s+/g, ' ').trim();
@@ -137,27 +131,43 @@ export async function POST(req: NextRequest) {
       const valueId = b.Relationships?.find((r) => r.Type === 'VALUE')?.Ids?.[0];
       const valueBlock = valueId ? byId.get(valueId) : undefined;
       const value = valueBlock ? blockText(valueBlock, byId) : '';
-      pairs.push({ label, value, top: b.Geometry?.BoundingBox?.Top ?? 0 });
+      pairs.push({ label, value, top: b.Geometry?.BoundingBox?.Top ?? 0, conf: valueBlock?.Confidence ?? 100 });
     }
     pairs.sort((a, b) => a.top - b.top); // top-to-bottom reading order
 
+    // Textract confidence below this (0–100) is flagged for the dealer to verify.
+    const CONF_MIN = 88;
+
     const fields: BorrowerAutofill = {};
+    // Fields the scan is unsure about — a guessed date order, or a low-confidence
+    // OCR read — so the UI can tell the dealer exactly what to double-check.
+    const uncertain = new Set<string>();
     for (const p of pairs) {
       if (!p.value) continue;
       for (const [re, key] of RULES) {
         if (!re.test(p.label)) continue;
         if (fields[key]) break; // keep the first (topmost) match
-        let v = p.value;
-        if (key === 'dob' || key === 'idExpiry') v = toIso(v);
-        else if (key === 'province' || key === 'idProvince') v = toProvinceCode(cleanValue(key, v));
-        else v = cleanValue(key, v);
-        if (v) fields[key] = v;
+        let v: string;
+        let ambiguous = false;
+        if (key === 'dob' || key === 'idExpiry') {
+          const parsed = parseFlexibleDate(p.value);
+          v = parsed.iso ?? '';
+          ambiguous = parsed.ambiguous;
+        } else if (key === 'province' || key === 'idProvince') {
+          v = toProvinceCode(cleanValue(key, p.value));
+        } else {
+          v = cleanValue(key, p.value);
+        }
+        if (v) {
+          fields[key] = v;
+          if (ambiguous || p.conf < CONF_MIN) uncertain.add(key);
+        }
         break;
       }
     }
 
     if (!fields.firstName && !fields.lastName) return NextResponse.json({ ok: false, reason: 'no_fields' });
-    return NextResponse.json({ ok: true, fields });
+    return NextResponse.json({ ok: true, fields, uncertain: Array.from(uncertain) });
   } catch (e) {
     console.error('[scan-doc] Textract AnalyzeDocument failed:', e instanceof Error ? e.message : e);
     return NextResponse.json({ ok: false, reason: 'not_enabled' });

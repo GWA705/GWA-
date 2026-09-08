@@ -177,6 +177,18 @@ const SCAN_SECTIONS: { key: string; label: string; fields: (keyof BorrowerAutofi
   { key: 'address', label: 'Home address', fields: ['address', 'city', 'province', 'postal', 'monthlyHousingCost', 'yearsAtAddress', 'housingStatus'] },
   { key: 'employment', label: 'Employment & income', fields: ['businessName', 'positionTitle', 'employerAddress', 'employerPhone', 'grossMonthlyIncome', 'timeAtJob'] },
 ];
+// Short labels for the autofill fields, used when the scan flags one as
+// possibly misread ("Double-check: Date of birth").
+const FIELD_LABELS: Partial<Record<keyof BorrowerAutofill, string>> = {
+  firstName: 'First name', middleName: 'Middle name', lastName: 'Last name', dob: 'Date of birth',
+  idType: 'ID type', idNumber: 'ID number', idProvince: 'ID province', idExpiry: 'ID expiry',
+  email: 'Email', phone: 'Mobile phone', homePhone: 'Home phone', maritalStatus: 'Marital status',
+  address: 'Address', city: 'City', province: 'Province', postal: 'Postal code',
+  monthlyHousingCost: 'Housing cost', yearsAtAddress: 'Years at address', housingStatus: 'Housing status',
+  businessName: 'Employer', positionTitle: 'Position', employerAddress: 'Employer address',
+  employerPhone: 'Employer phone', grossMonthlyIncome: 'Gross income', timeAtJob: 'Time at job',
+};
+
 // Top-to-bottom order of the scannable sections, so a failed submit scrolls to the
 // FIRST unconfirmed one.
 const SECTION_ORDER = ['applicant', 'address', 'employment', 'coApplicant'] as const;
@@ -206,6 +218,9 @@ export function NewApplicationForm({
   // with sections still unconfirmed.
   const [scanReview, setScanReview] = useState<Set<string>>(new Set());
   const [confirmed, setConfirmed] = useState<Set<string>>(new Set());
+  // Autofill keys the scan flagged as possibly misread (guessed date order or a
+  // low-confidence OCR read), surfaced in the section-confirm banner.
+  const [scanUncertain, setScanUncertain] = useState<Set<string>>(new Set());
   const [showReviewError, setShowReviewError] = useState(false);
   const [taxExempt, setTaxExempt] = useState(false);
   const [amount, setAmount] = useState('');
@@ -282,7 +297,7 @@ export function NewApplicationForm({
   // Auto-fill the PRIMARY applicant from a scan (licence or uploaded credit app).
   // Sets whatever fields the scan returned; fields not present in the current
   // entry method are simply skipped. The dealer reviews before submitting.
-  function fillBorrower(f: BorrowerAutofill) {
+  function fillBorrower(f: BorrowerAutofill, meta?: { uncertain?: string[] }) {
     const set = (id: string, v?: string) => {
       const el = document.getElementById(id) as HTMLInputElement | HTMLSelectElement | null;
       if (el && v) el.value = v;
@@ -316,6 +331,9 @@ export function NewApplicationForm({
     set('timeAtJobYears', f.timeAtJob);
     if (f.dob) window.dispatchEvent(new CustomEvent('gwa:setdate:applicantDob', { detail: f.dob }));
     markScanned(f);
+    // Record which fields the scan was unsure about, so the section-confirm
+    // banner can point the dealer straight at them.
+    setScanUncertain(new Set(meta?.uncertain ?? []));
   }
 
   async function fillFromLead() {
@@ -442,33 +460,44 @@ export function NewApplicationForm({
     if (!scanReview.has(sectionKey)) return null;
     const isOn = confirmed.has(sectionKey);
     const err = showReviewError && !isOn;
+    // Fields in this section the scan flagged as possibly misread.
+    const flagged = (SCAN_SECTIONS.find((s) => s.key === sectionKey)?.fields ?? [])
+      .filter((k) => scanUncertain.has(k))
+      .map((k) => FIELD_LABELS[k] ?? String(k));
     return (
-      <label
-        id={`scan-confirm-${sectionKey}`}
-        className={`inline-flex flex-none cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition ${
-          isOn
-            ? 'border-emerald-300 bg-emerald-50 text-emerald-800'
-            : err
-              ? 'border-amber-400 bg-amber-50 text-amber-900 ring-2 ring-amber-400'
-              : 'border-amber-300 bg-amber-50 text-amber-900'
-        }`}
-      >
-        <input
-          type="checkbox"
-          checked={isOn}
-          onChange={(e) => {
-            setConfirmed((prev) => {
-              const next = new Set(prev);
-              if (e.target.checked) next.add(sectionKey);
-              else next.delete(sectionKey);
-              return next;
-            });
-            setShowReviewError(false);
-          }}
-          className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
-        />
-        {isOn ? `✓ ${t('newApplication.verifyScanConfirmedShort')}` : t('newApplication.verifyScanConfirmShort')}
-      </label>
+      <div className="flex flex-none flex-col items-end gap-1">
+        <label
+          id={`scan-confirm-${sectionKey}`}
+          className={`inline-flex cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition ${
+            isOn
+              ? 'border-emerald-300 bg-emerald-50 text-emerald-800'
+              : err
+                ? 'border-amber-400 bg-amber-50 text-amber-900 ring-2 ring-amber-400'
+                : 'border-amber-300 bg-amber-50 text-amber-900'
+          }`}
+        >
+          <input
+            type="checkbox"
+            checked={isOn}
+            onChange={(e) => {
+              setConfirmed((prev) => {
+                const next = new Set(prev);
+                if (e.target.checked) next.add(sectionKey);
+                else next.delete(sectionKey);
+                return next;
+              });
+              setShowReviewError(false);
+            }}
+            className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+          />
+          {isOn ? `✓ ${t('newApplication.verifyScanConfirmedShort')}` : t('newApplication.verifyScanConfirmShort')}
+        </label>
+        {flagged.length > 0 && (
+          <span className="inline-flex items-center gap-1 rounded-md bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-900">
+            ⚠️ {t('newApplication.verifyDoubleCheck')}: {flagged.join(', ')}
+          </span>
+        )}
+      </div>
     );
   };
 
