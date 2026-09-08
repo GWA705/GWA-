@@ -51,6 +51,12 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-08
+- **Marketplace: uniform product tiles.** Product image tiles used `aspect-square`,
+  so their height tracked card width — and the New Arrivals rail gave cards variable
+  widths, making every image a different height. Images now use a fixed height
+  (`h-56`) so every tile is identical, and rail cards are a fixed width (`w-64`).
+  Combined with the grid/flex row stretch, all cards in a row are the same size.
+  (`MarketplaceOrderForm.tsx`.)
 - **Financeit PDF fill fixed — values now land on the right lines.** The generated
   "Loan Application" PDF was stamping every value at the left margin one row too
   low, so each value collided with the next label. Re-measured the template's label

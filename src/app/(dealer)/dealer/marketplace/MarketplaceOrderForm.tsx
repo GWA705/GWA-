@@ -117,7 +117,7 @@ function ItemImage({ item, onImageClick, className }: { item: Item; onImageClick
     <button
       type="button"
       onClick={() => onImageClick(`${imgSrc}&size=full`, item.name)}
-      className={`photo-mat relative block aspect-square w-full cursor-zoom-in border-b border-gray-200 ${className ?? ''}`}
+      className={`photo-mat relative block h-56 w-full cursor-zoom-in border-b border-gray-200 ${className ?? ''}`}
       aria-label={t('marketplace.viewLarger', { name: item.name })}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -125,7 +125,7 @@ function ItemImage({ item, onImageClick, className }: { item: Item; onImageClick
       <TagBadges tags={item.tags} />
     </button>
   ) : (
-    <div className={`photo-mat relative flex aspect-square w-full items-center justify-center border-b border-gray-200 text-4xl text-gray-300 ${className ?? ''}`} aria-hidden>
+    <div className={`photo-mat relative flex h-56 w-full items-center justify-center border-b border-gray-200 text-4xl text-gray-300 ${className ?? ''}`} aria-hidden>
       👕
       <TagBadges tags={item.tags} />
     </div>
@@ -268,7 +268,7 @@ function NewArrivalsRail({ items, onImageClick }: { items: Item[]; onImageClick:
         className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin]"
       >
         {items.map((item) => (
-          <article key={item.id} className="group flex min-w-[15rem] max-w-[22rem] flex-1 basis-64 snap-start flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+          <article key={item.id} className="group flex w-64 flex-none snap-start flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
             <ItemImage item={item} onImageClick={onImageClick} />
             <div className="p-4">
               <div className="font-semibold leading-snug text-gray-900">{item.name}</div>
