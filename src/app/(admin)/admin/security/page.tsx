@@ -1,13 +1,16 @@
 import { requireAdminSection } from '@/lib/session';
+import { isSuperAdmin } from '@/lib/rbac';
 import { prisma } from '@/lib/db';
 import { getMfaRequirement, isGlobalSearchEnabled, getMfaTrustDays } from '@/lib/settings';
 import { SecuritySettingsForm } from './SecuritySettingsForm';
 import { GlobalSearchToggle } from './GlobalSearchToggle';
+import { FullExportButton } from './FullExportButton';
 
 export const dynamic = 'force-dynamic';
 
 export default async function SecurityPage() {
-  await requireAdminSection('security');
+  const user = await requireAdminSection('security');
+  const superAdmin = isSuperAdmin(user);
   const [requirement, trustDays, totalActive, withMfa, staffWithout, searchEnabled] = await Promise.all([
     getMfaRequirement(),
     getMfaTrustDays(),
@@ -48,6 +51,18 @@ export default async function SecurityPage() {
         </p>
         <GlobalSearchToggle enabled={searchEnabled} />
       </div>
+
+      {superAdmin && (
+        <div className="card p-6">
+          <h2 className="mb-1 text-base font-semibold text-gray-900">Data export</h2>
+          <p className="mb-4 text-sm text-gray-500">
+            Download every customer record to a single CSV — one row per deal, with the sensitive fields
+            (SIN, date of birth, address, banking, ID numbers, co-applicant) decrypted. Super Admin only, and
+            every export is written to the audit log. Handy for moving data out or handing it to accounting.
+          </p>
+          <FullExportButton />
+        </div>
+      )}
     </div>
   );
 }

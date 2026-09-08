@@ -51,6 +51,12 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-08
+- **Super Admin: full customer-data export (CSV).** Admin → Security now has a
+  Super-Admin-only "Export all customer data" button: one row per deal with every
+  stored field, and the encrypted PII (SIN, DOB, address, banking, gov ID, income,
+  co-applicant) **decrypted** on the way out. Confirmation step before download;
+  the server route re-checks Super Admin and writes a `DATA_EXPORT` audit entry with
+  the record count. (`api/admin/full-export/route.ts`, `security/FullExportButton.tsx`.)
 - **New report: Finance penetration.** Per office / year, shows how paid deals were
   financed — a penetration % (financed ÷ total), financed vs cash counts and volume,
   a payment-method breakdown (Financeit/loans vs cash vs other, with bars), and a
