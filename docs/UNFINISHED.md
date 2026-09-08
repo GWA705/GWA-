@@ -23,6 +23,19 @@ _Last reviewed: 2026-09-08._
   redeploy. Data-residency tradeoff: a US region processes the licence image in
   the US (never stored). See `docs/ID-SCAN.md`. _Decision + env set needed._
 
+## Reports roadmap (Sean, 2026-09-08)
+
+- [x] **Store drill-down** — click a store row in the monthly report to expand the
+  sales behind its number; each sale links to Find a customer (pre-filled). DONE.
+- [ ] **Salesperson leaderboard** — rank reps/installers by $ sold, # deals, avg
+  deal size, cancel rate (journal salesperson field).
+- [ ] **Product mix & attach rate** — units/$ by product, trend, add-on attach %.
+- [ ] **HD lead → sale funnel** — leads → sold, conversion % by store, open-lead aging.
+- [ ] **Finance penetration** — Financeit vs cash vs HDCC mix and finance % by store/month.
+- _Decision (Sean): each sale in a drill-down links to Find a customer (chosen over
+  per-deal profile pages, since journal rows have no profile page)._
+- _Open: nav placement — one combined Insights page (tabs) vs separate report pages._
+
 ## Done recently
 
 - [x] **Office phone + address on the customer-search card** (item 2) — DONE
