@@ -51,6 +51,11 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-08
+- **New report: Finance penetration.** Per office / year, shows how paid deals were
+  financed — a penetration % (financed ÷ total), financed vs cash counts and volume,
+  a payment-method breakdown (Financeit/loans vs cash vs other, with bars), and a
+  per-store penetration table. Same money basis as the monthly report (OK by date
+  paid). New card on the Reports hub. (`financePenetration.ts`, `reports/finance/`.)
 - **Reports: click a store to see the sales behind it.** In the monthly report,
   clicking a store row (e.g. 7024 — Barrie) now expands the individual paid-OK
   sales that make up its "This month" number (customer, product, date, amount).
