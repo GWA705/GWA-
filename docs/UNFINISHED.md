@@ -29,13 +29,17 @@ _Last reviewed: 2026-09-08._
   sales behind its number; each sale links to Find a customer (pre-filled). DONE.
 - [x] **Salesperson leaderboard** — DONE, now journal-based (rep = the "Dealer's
   Name" column). `/staff/reports/leaderboard`.
-  - [ ] **WAITING ON SEAN (morning):** the rep column is under a DIFFERENT header
-    in older journal layouts — the layout changed **mid-2025** and again in **2024**.
-    "Dealer's Name" is mapped (late-2025/2026). Need the rep column header (or column
-    letter) for **(a) 2024** and **(b) first-half 2025**, then add them as alternate
-    candidates in `journalRead.ts` FIELD_CANDIDATES so the leaderboard reaches back
-    across all years. Until then, older-layout deals show under the "no rep named"
-    footnote — nothing breaks.
+  - [x] **RESOLVED (2026-09-08):** the rep header is **"Dealer's Name" in EVERY
+    layout** (2024 col N, Jan-2025 col Q, Jul-2025 col S) — see `docs/JOURNAL-LAYOUTS.md`.
+    The reader matches by header text, so the existing candidate already reaches all
+    years; column reshuffles don't matter.
+  - [ ] **Data organising (later, per Sean):** leaderboard numbers still look off —
+    likely rep-name variants splitting one person into rows (casing/spacing/nicknames),
+    and reconciling the mid-2025 layout. Needs name-normalization + a spot-check.
+  - [ ] **Make Salesperson leaderboard ADMIN-ONLY (Sean, 2026-09-08)** until the data
+    is cleaned up.
+  - [ ] **"All offices" (select-all) option on the per-office reports (Sean, 2026-09-08)**
+    — aggregate across every office, in addition to picking one.
 - [x] **Product mix & attach rate** — DONE. `/staff/reports/product-mix`.
 - [x] **HD lead → sale funnel** — DONE (reuses leads call outcomes).
   `/staff/reports/lead-funnel`.
