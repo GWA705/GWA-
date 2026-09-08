@@ -73,7 +73,8 @@ export function GiftCardThread({
       </div>
       <form ref={ref} action={action} className="flex items-start gap-2">
         <input type="hidden" name="requestId" value={requestId} />
-        <textarea name="body" rows={1} placeholder={t('giftCards.writeMessage')} className="input min-h-[2.25rem] flex-1 text-xs" />
+        {/* text-base (16px) on mobile stops iOS Safari from zooming the page on focus. */}
+        <textarea name="body" rows={1} placeholder={t('giftCards.writeMessage')} className="input min-h-[2.25rem] flex-1 text-base sm:text-xs" />
         <SendBtn />
       </form>
       {state.error && <p className="text-xs text-red-600">{state.error}</p>}

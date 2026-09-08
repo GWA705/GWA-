@@ -50,6 +50,17 @@ source of truth; this file is the human-readable index.
   `testSingleLead()` on a French lead first. Portal display auto-translates lead
   free-text via DeepL.
 
+## 2026-09-08
+- **Mobile: stop iOS zoom on the message composers.** The "Write a message…"
+  box in deal/support conversations (`ConversationThread`) and the gift-card
+  thread composer (`GiftCardThread`) were 14px/12px, so iOS Safari force-zoomed
+  the page on focus. Both now render at 16px on phones (unconditionally, not via
+  a media query, so it holds even if the global phone rule doesn't match), and
+  keep their compact desktop size (`sm:text-sm` / `sm:text-xs`). Complements the
+  existing global 16px-on-phones rule in `globals.css`. NOTE: if the page still
+  zooms after deploy, it's the cached stylesheet — hard-refresh / clear website
+  data (or reopen the installed app).
+
 ## 2026-09-07
 - **New application: confirm-what-you-scanned gate before submit.** Because a
   driver's-licence barcode or a photographed credit app can be misread, any

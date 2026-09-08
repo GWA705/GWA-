@@ -125,7 +125,9 @@ export function ConversationThread({
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
             rows={1}
             placeholder={placeholder}
-            className="max-h-28 min-h-[40px] flex-1 resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+            // text-base (16px) on mobile is deliberate: iOS Safari force-zooms the
+            // page when a focused field is under 16px. Desktop keeps the compact 14px.
+            className="max-h-28 min-h-[40px] flex-1 resize-none rounded-lg border border-gray-300 px-3 py-2 text-base focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 sm:text-sm"
           />
           <button type="submit" disabled={sending || !text.trim()} className="btn-primary flex-none px-4 py-2 text-sm disabled:opacity-50">Send</button>
         </form>
