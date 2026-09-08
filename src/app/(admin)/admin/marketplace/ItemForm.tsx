@@ -11,6 +11,7 @@ interface Item {
   partNumber?: string | null;
   description: string | null;
   options: string[];
+  optionSkus?: string[];
   sortOrder: number;
   active: boolean;
   featured?: boolean;
@@ -46,6 +47,19 @@ export function ItemForm({ item, categories }: { item?: Item; categories: Catego
   const [kind, setKind] = useState<string>(item?.kind === 'DOWNLOAD' ? 'DOWNLOAD' : 'ORDER');
   const isDownload = kind === 'DOWNLOAD';
 
+  // Per-size rows: each size carries its own part number (apparel part numbers
+  // change by size). Serialized to a hidden `optionsJson` field on submit.
+  const [sizeRows, setSizeRows] = useState<{ size: string; sku: string }[]>(
+    (item?.options ?? []).length > 0
+      ? item!.options.map((size, i) => ({ size, sku: item!.optionSkus?.[i] ?? '' }))
+      : [],
+  );
+  const setRow = (i: number, patch: Partial<{ size: string; sku: string }>) =>
+    setSizeRows((rows) => rows.map((r, j) => (j === i ? { ...r, ...patch } : r)));
+  const addRow = () => setSizeRows((rows) => [...rows, { size: '', sku: '' }]);
+  const removeRow = (i: number) => setSizeRows((rows) => rows.filter((_, j) => j !== i));
+  const optionsJson = JSON.stringify(sizeRows.filter((r) => r.size.trim()));
+
   // Clear the "Add an item" form (including the file input) after a successful
   // add so it's ready for the next one. Edit forms keep their values.
   useEffect(() => {
@@ -75,8 +89,8 @@ export function ItemForm({ item, categories }: { item?: Item; categories: Catego
         </div>
       </div>
       <div>
-        <label className="label">Part number <span className="font-normal text-gray-400">(internal — shown on the order email to fulfillment, never to dealers)</span></label>
-        <input name="partNumber" defaultValue={item?.partNumber ?? ''} className="input" placeholder="e.g. GWA-TS-GRY-M" autoComplete="off" />
+        <label className="label">Part number <span className="font-normal text-gray-400">(internal — for items with no sizes, or the fallback when a size has none. Shown on the order email, never to dealers)</span></label>
+        <input name="partNumber" defaultValue={item?.partNumber ?? ''} className="input" placeholder="e.g. GWA-TS-GRY" autoComplete="off" />
       </div>
       <div>
         <label className="label">Type</label>
@@ -103,8 +117,35 @@ export function ItemForm({ item, categories }: { item?: Item; categories: Catego
         </div>
       ) : (
         <div>
-          <label className="label">Options <span className="font-normal text-gray-400">(sizes, comma-separated — optional)</span></label>
-          <input name="options" defaultValue={item?.options.join(', ') ?? ''} className="input" placeholder="S, M, L, XL" />
+          <input type="hidden" name="optionsJson" value={optionsJson} />
+          <label className="label">Sizes &amp; part numbers <span className="font-normal text-gray-400">(optional — each size can have its own part number)</span></label>
+          {sizeRows.length === 0 ? (
+            <p className="mb-2 text-xs text-gray-500">No sizes — the item is ordered as one, using the part number above.</p>
+          ) : (
+            <div className="space-y-2">
+              {sizeRows.map((r, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <input
+                    value={r.size}
+                    onChange={(e) => setRow(i, { size: e.target.value })}
+                    className="input w-28"
+                    placeholder="Size (M)"
+                    aria-label={`Size ${i + 1}`}
+                  />
+                  <input
+                    value={r.sku}
+                    onChange={(e) => setRow(i, { sku: e.target.value })}
+                    className="input flex-1"
+                    placeholder="Part number for this size (6012)"
+                    autoComplete="off"
+                    aria-label={`Part number for size ${i + 1}`}
+                  />
+                  <button type="button" onClick={() => removeRow(i)} className="flex-none rounded-md border border-gray-200 px-2.5 py-2 text-sm text-gray-500 hover:bg-gray-50" aria-label="Remove size">✕</button>
+                </div>
+              ))}
+            </div>
+          )}
+          <button type="button" onClick={addRow} className="mt-2 text-sm font-medium text-brand-700 hover:underline">+ Add a size</button>
         </div>
       )}
       <div>

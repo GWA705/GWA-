@@ -588,6 +588,9 @@ model MarketplaceItem {
   partNumber     String?
   description    String?  @db.Text
   options        String[] @default([]) // e.g. sizes: S, M, L, XL — optional
+  // Per-option part number, index-aligned with `options` (options[i]'s SKU is
+  // optionSkus[i]). Empty entry → fall back to the item's base `partNumber`.
+  optionSkus     String[] @default([])
   imageStorageKey String? // product photo (normalized + resized on upload)
   imageMime       String?
   imageSizeBytes  Int?
@@ -627,6 +630,9 @@ model Order {
   createdById String
   createdBy   User     @relation("OrderCreatedBy", fields: [createdById], references: [id])
   note        String?  @db.Text
+  // How the dealer wants it shipped (e.g. Standard ground, Rush/express, Pickup).
+  // Shown to the shipper on the order email + packing slip so they know how to send it.
+  shippingMethod String?
   status      String   @default("SUBMITTED") // SUBMITTED | FULFILLED | CANCELLED
   createdAt   DateTime @default(now())
 

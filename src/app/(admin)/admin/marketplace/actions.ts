@@ -109,6 +109,34 @@ function parseOptions(raw: string): string[] {
     .slice(0, 30);
 }
 
+/**
+ * Sizes + their per-size part numbers from the form's hidden `optionsJson`
+ * ([{size, sku}]). Returns index-aligned `options` and `optionSkus`. Falls back to
+ * the legacy comma-separated `options` field (no per-size SKUs) if JSON is absent.
+ */
+function parseSizeRows(formData: FormData): { options: string[]; optionSkus: string[] } {
+  const json = (formData.get('optionsJson') ?? '').toString().trim();
+  if (json) {
+    try {
+      const rows = JSON.parse(json);
+      if (Array.isArray(rows)) {
+        const options: string[] = [];
+        const optionSkus: string[] = [];
+        for (const r of rows.slice(0, 30)) {
+          const size = String(r?.size ?? '').trim();
+          if (!size) continue;
+          options.push(size);
+          optionSkus.push(String(r?.sku ?? '').trim());
+        }
+        return { options, optionSkus };
+      }
+    } catch {
+      /* malformed — fall through to legacy */
+    }
+  }
+  return { options: parseOptions((formData.get('options') ?? '').toString()), optionSkus: [] };
+}
+
 /** Create or update a marketplace item. */
 export async function saveItemAction(_prev: ItemActionState, formData: FormData): Promise<ItemActionState> {
   const session = await requireAdminSection('marketplace');
@@ -116,7 +144,7 @@ export async function saveItemAction(_prev: ItemActionState, formData: FormData)
   const name = toTitleCase((formData.get('name') ?? '').toString().trim());
   const partNumber = (formData.get('partNumber') ?? '').toString().trim() || null;
   const description = sentenceOrNull((formData.get('description') ?? '').toString());
-  const options = parseOptions((formData.get('options') ?? '').toString());
+  const { options, optionSkus } = parseSizeRows(formData);
   const sortOrder = Number.parseInt((formData.get('sortOrder') ?? '0').toString(), 10) || 0;
   const active = formData.get('active') === 'on';
   const featured = formData.get('featured') === 'on';
@@ -143,7 +171,7 @@ export async function saveItemAction(_prev: ItemActionState, formData: FormData)
     if (id) {
       const existing = await prisma.marketplaceItem.findUnique({ where: { id }, select: { imageStorageKey: true, fileStorageKey: true } });
       if (!existing) return { error: 'That item no longer exists — reload the page and try again.' };
-      await prisma.marketplaceItem.update({ where: { id }, data: { name, partNumber, description, options, sortOrder, active, featured, tags, categoryId, kind } });
+      await prisma.marketplaceItem.update({ where: { id }, data: { name, partNumber, description, options, optionSkus, sortOrder, active, featured, tags, categoryId, kind } });
       if (hasNewImage) {
         const stored = await storeItemImage(id, image!);
         if ('error' in stored) return { error: stored.error };
@@ -164,7 +192,7 @@ export async function saveItemAction(_prev: ItemActionState, formData: FormData)
       }
     } else {
       const created = await prisma.marketplaceItem.create({
-        data: { name, partNumber, description, options, sortOrder, active, featured, tags, categoryId, kind, createdById: session.userId },
+        data: { name, partNumber, description, options, optionSkus, sortOrder, active, featured, tags, categoryId, kind, createdById: session.userId },
       });
       if (hasNewImage) {
         const stored = await storeItemImage(created.id, image!);

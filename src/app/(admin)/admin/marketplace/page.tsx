@@ -135,6 +135,7 @@ export default async function AdminMarketplace() {
                                 partNumber: item.partNumber,
                                 description: item.description,
                                 options: item.options,
+                                optionSkus: item.optionSkus,
                                 sortOrder: item.sortOrder,
                                 active: item.active,
                                 hasImage: !!item.imageStorageKey,
@@ -171,6 +172,9 @@ export default async function AdminMarketplace() {
                   <span className="font-medium text-gray-900">{o.dealer.name}</span>
                   <span className="text-xs text-gray-500">{o.createdBy.name} · {o.createdAt.toLocaleString('en-CA')}</span>
                 </div>
+                {o.shippingMethod && (
+                  <p className="mt-1 text-xs font-medium text-brand-700">🚚 {o.shippingMethod}</p>
+                )}
                 <ul className="mt-2 space-y-0.5 text-sm text-gray-700">
                   {o.items.map((li) => (
                     <li key={li.id}>

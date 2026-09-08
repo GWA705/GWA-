@@ -7,6 +7,8 @@ import { renderEmail } from '@/lib/email-templates';
 import { getDocument } from '@/lib/storage';
 import { getSetting, MARKETPLACE_SETTING_KEYS } from '@/lib/settings';
 import { audit } from '@/lib/audit';
+import { MARKETPLACE_SHIPPING_METHOD_VALUES } from '@/lib/constants';
+import { buildOrderPdf } from '@/lib/orderPdf';
 
 export interface OrderActionState {
   error?: string;
@@ -26,6 +28,11 @@ export async function createOrderAction(_prev: OrderActionState, formData: FormD
   // Only orderable items — DOWNLOAD items are files, never part of an order.
   const items = await prisma.marketplaceItem.findMany({ where: { active: true, kind: 'ORDER' } });
   const note = (formData.get('note') ?? '').toString().trim() || null;
+
+  // Shipping method the dealer chose (so the shipper knows how to send it). Only
+  // accept a value from the known list; otherwise leave it unset.
+  const rawMethod = (formData.get('shippingMethod') ?? '').toString().trim();
+  const shippingMethod = MARKETPLACE_SHIPPING_METHOD_VALUES.includes(rawMethod) ? rawMethod : null;
 
   // The cart arrives as a JSON array of { itemId, option, quantity } lines — one
   // per size, so the same item can appear more than once (e.g. 3×S and 3×L).
@@ -52,7 +59,10 @@ export async function createOrderAction(_prev: OrderActionState, formData: FormD
             ? c.option
             : item.options[0]
           : null;
-      lines.push({ itemId: item.id, itemName: item.name, partNumber: item.partNumber, option, quantity: Math.min(qty, 9999) });
+      // Part number for the chosen size (falls back to the item's base part number).
+      const idx = option ? item.options.indexOf(option) : -1;
+      const partNumber = (idx >= 0 ? (item.optionSkus?.[idx] || '').trim() : '') || item.partNumber;
+      lines.push({ itemId: item.id, itemName: item.name, partNumber, option, quantity: Math.min(qty, 9999) });
     }
   }
 
@@ -63,10 +73,30 @@ export async function createOrderAction(_prev: OrderActionState, formData: FormD
       dealerId: session.dealerId,
       createdById: session.userId,
       note,
+      shippingMethod,
       items: { create: lines.map((l) => ({ itemId: l.itemId, itemName: l.itemName, partNumber: l.partNumber, option: l.option, quantity: l.quantity })) },
     },
-    include: { dealer: { select: { name: true } }, createdBy: { select: { name: true } } },
+    include: {
+      dealer: {
+        select: {
+          name: true,
+          profile: {
+            select: { businessName: true, address: true, shippingAddress: true, phone: true, altPhone: true },
+          },
+        },
+      },
+      createdBy: { select: { name: true } },
+    },
   });
+
+  // Dealer ship-to details for the shipper (prefer the profile's shipping
+  // address, then the general address). Business name overrides the dealer name
+  // when set.
+  const profile = order.dealer.profile;
+  const shipToName = (profile?.businessName || order.dealer.name).trim();
+  const shipToAddress = (profile?.shippingAddress || profile?.address || '').trim() || null;
+  const dealerPhone = (profile?.phone || '').trim() || null;
+  const dealerAltPhone = (profile?.altPhone || '').trim() || null;
 
   await audit({ actorId: session.userId, action: 'ORDER_SUBMIT', entityType: 'Order', entityId: order.id, detail: `${lines.length} item(s)` });
 
@@ -108,6 +138,47 @@ export async function createOrderAction(_prev: OrderActionState, formData: FormD
       }
     }
 
+    // Attach a print-ready packing slip PDF so the shipper can print & pack
+    // straight from the email. A PDF failure must never block the email.
+    try {
+      const pdfBytes = await buildOrderPdf({
+        orderId: order.id,
+        createdAt: order.createdAt,
+        dealerName: shipToName,
+        shipTo: shipToAddress,
+        phone: dealerPhone,
+        altPhone: dealerAltPhone,
+        submittedBy: order.createdBy.name,
+        shippingMethod: order.shippingMethod,
+        note,
+        lines: lines.map((l) => ({ quantity: l.quantity, itemName: l.itemName, option: l.option, partNumber: l.partNumber })),
+      });
+      const slug = shipToName.replace(/[^a-z0-9]+/gi, '-').toLowerCase().slice(0, 40) || 'order';
+      attachments.push({
+        filename: `packing-slip-${slug}-${order.id.slice(-6)}.pdf`,
+        content: pdfBytes,
+        contentType: 'application/pdf',
+      });
+    } catch (e) {
+      console.error('[marketplace] order PDF build failed', e);
+    }
+
+    // Ship-to + shipping-method block for the shipper (escaped — dealer-entered).
+    const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] as string));
+    const addrLines = (shipToAddress ?? '').split('\n').map((s) => s.trim()).filter(Boolean);
+    const phones = [dealerPhone, dealerAltPhone].filter(Boolean) as string[];
+    const shipToHtml =
+      `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 14px;border-collapse:collapse;width:100%;">` +
+      `<tr><td style="padding:12px 14px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;">` +
+      `<div style="font-size:11px;font-weight:700;letter-spacing:.04em;color:#6b7280;text-transform:uppercase;margin-bottom:6px;">Ship to</div>` +
+      `<div style="font-size:15px;font-weight:700;color:#111827;">${esc(shipToName)}</div>` +
+      (addrLines.length
+        ? `<div style="font-size:13px;color:#374151;line-height:1.5;margin-top:2px;">${addrLines.map(esc).join('<br>')}</div>`
+        : `<div style="font-size:13px;color:#b45309;margin-top:2px;">No address on file — confirm with the dealer.</div>`) +
+      (phones.length ? `<div style="font-size:13px;color:#374151;margin-top:4px;"><strong>Phone:</strong> ${phones.map(esc).join(' / ')}</div>` : '') +
+      `<div style="font-size:13px;color:#374151;margin-top:8px;"><strong>Shipping method:</strong> ${esc(order.shippingMethod || 'Not specified')}</div>` +
+      `</td></tr></table>`;
+
     const rowsHtml = lines
       .map((l) => {
         const cid = cidByItem.get(l.itemId);
@@ -129,7 +200,11 @@ export async function createOrderAction(_prev: OrderActionState, formData: FormD
         html: renderEmail({
           heading: 'New marketplace order',
           intro: `${order.dealer.name} (submitted by ${order.createdBy.name}) ordered:`,
-          bodyHtml: listHtml + (note ? `<p style="margin:0 0 14px;font-size:14px;color:#374151;"><strong>Note:</strong> ${note}</p>` : ''),
+          bodyHtml:
+            shipToHtml +
+            listHtml +
+            (note ? `<p style="margin:0 0 14px;font-size:14px;color:#374151;"><strong>Note:</strong> ${note}</p>` : '') +
+            `<p style="margin:0 0 14px;font-size:13px;color:#6b7280;">📎 A print-ready packing slip is attached as a PDF.</p>`,
           ctaLabel: 'View orders',
           ctaUrl: `${appUrl()}/admin/marketplace`,
         }),

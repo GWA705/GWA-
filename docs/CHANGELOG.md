@@ -51,6 +51,20 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-08
+- **Marketplace: per-size part numbers, shipping method, and a shipper packing-slip PDF.**
+  - Apparel part numbers change by size, so each size now carries its own part
+    number. Admin item editor replaces the old comma "Options" box with **per-size
+    rows** (size + its part number); the base "Part number" is the fallback for
+    sizeless items. New `MarketplaceItem.optionSkus` (index-aligned with `options`;
+    migration `20260908150000`). The dealer order resolves the chosen size's part
+    number (falls back to the base) onto the order line.
+  - Dealers pick a **shipping method** at checkout (Standard ground / Rush-express
+    / Courier / Pickup). Stored on `Order.shippingMethod` (migration
+    `20260908160000`), shown in the admin orders list.
+  - The order email to the shipper now carries a **Ship-to block** — dealer/business
+    name, shipping address (from `DealerProfile.shippingAddress` → `address`), phone
+    + alt phone — plus the shipping method, and a **print-ready packing-slip PDF**
+    attachment (`src/lib/orderPdf.ts`) they can print and pack straight from.
 - **Reports: "All offices" (company-wide) option + leaderboard tidy-up.**
   - The office selector on Finance penetration, Product mix and the Salesperson
     leaderboard now has an **All offices** choice (aggregates every office), shown

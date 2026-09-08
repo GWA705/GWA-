@@ -7,7 +7,7 @@ import {
   Shirt, Presentation, Package, Sparkles, LayoutGrid, MoreHorizontal, type LucideIcon,
 } from 'lucide-react';
 import { createOrderAction, type OrderActionState } from './actions';
-import { MARKETPLACE_TAGS } from '@/lib/constants';
+import { MARKETPLACE_TAGS, MARKETPLACE_SHIPPING_METHODS } from '@/lib/constants';
 import { useT } from '@/i18n/client';
 import type { TFunction } from '@/i18n/translator';
 
@@ -395,6 +395,12 @@ function CartContents({
       <form action={action} className="mt-3 border-t border-gray-200 pt-3">
         <input type="hidden" name="cart" value={cartJson} />
         {error && <div className="mb-3 rounded-md border border-red-200 bg-red-50 p-2.5 text-sm text-red-800" role="alert">{error}</div>}
+        <label className="label" htmlFor="shippingMethod">{t('marketplace.shippingMethod')}</label>
+        <select id="shippingMethod" name="shippingMethod" defaultValue={MARKETPLACE_SHIPPING_METHODS[0]?.value} className="input mb-3">
+          {MARKETPLACE_SHIPPING_METHODS.map((m) => (
+            <option key={m.value} value={m.value}>{t(m.labelKey)}</option>
+          ))}
+        </select>
         <label className="label" htmlFor="note">{t('marketplace.noteLabel')} <span className="font-normal text-gray-400">{t('marketplace.optional')}</span></label>
         <textarea id="note" name="note" rows={2} className="input mb-3" placeholder={t('marketplace.notePlaceholder')} />
         <SubmitButton disabled={lines.length === 0} t={t} />

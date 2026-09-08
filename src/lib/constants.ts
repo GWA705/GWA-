@@ -629,3 +629,24 @@ export const MARKETPLACE_TAG_KEYS: string[] = MARKETPLACE_TAGS.map((t) => t.key)
 export function marketplaceTag(key: string): MarketplaceTag | undefined {
   return MARKETPLACE_TAGS.find((t) => t.key === key);
 }
+
+// ---------------------------------------------------------------------------
+// Marketplace order shipping methods
+// ---------------------------------------------------------------------------
+// The dealer picks one of these at checkout so the shipper knows how to send
+// the order. `value` is what we store, email, and print on the packing slip —
+// keep it stable/English so the shipper always reads a consistent term; the
+// UI label is translated via `labelKey`.
+export interface ShippingMethod {
+  value: string;
+  labelKey: string;
+}
+
+export const MARKETPLACE_SHIPPING_METHODS: ShippingMethod[] = [
+  { value: 'Standard ground', labelKey: 'marketplace.shipStandard' },
+  { value: 'Rush / express', labelKey: 'marketplace.shipRush' },
+  { value: 'Courier', labelKey: 'marketplace.shipCourier' },
+  { value: 'Pickup in person', labelKey: 'marketplace.shipPickup' },
+];
+
+export const MARKETPLACE_SHIPPING_METHOD_VALUES: string[] = MARKETPLACE_SHIPPING_METHODS.map((m) => m.value);
