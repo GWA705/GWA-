@@ -41,7 +41,6 @@ export function CustomerSearch({
   initialQuery?: string;
 }) {
   const t = useT();
-  const { locale } = useI18n();
   const live = mode === 'internal'; // GWA team gets live typeahead
   const [query, setQuery] = useState('');
   const [result, setResult] = useState<CustomerSearchResult | null>(null);
@@ -125,6 +124,7 @@ export function CustomerSearch({
 
 function Results({ result }: { result: CustomerSearchResult }) {
   const t = useT();
+  const { locale } = useI18n();
   if (result.status === 'disabled')
     return <Note>{t('findCustomer.disabled')}</Note>;
   if (result.status === 'not_granted')
