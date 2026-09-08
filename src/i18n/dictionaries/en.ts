@@ -2185,8 +2185,10 @@ export const en = {
     colDeals: 'Deals',
     colAvg: 'Avg deal',
     colVolume: 'Volume',
+    namesMerged: '{n} spellings',
+    mergedInto: 'Combined spellings — check these are the same person:',
     unspecifiedNote: '{n} paid deal(s) had no rep named in the journal and aren’t counted above.',
-    basisNote: 'From the journal’s “Dealer’s Name” column. Basis: OK deals counted by date paid.',
+    basisNote: 'From the journal’s “Dealer’s Name” column. Basis: OK deals counted by date paid. Near-duplicate names (e.g. “Nick F” / “Nick.f”, “Brynn/Alex” / “Alex/Brynn”) are grouped; expand a row to verify.',
   },
   leadFunnel: {
     eyebrow: 'Reports',

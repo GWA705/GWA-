@@ -1,9 +1,9 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireRole } from '@/lib/session';
-import { canViewReportsArea } from '@/lib/reporting/access';
+import { canViewReportsArea, canViewDealerSnapshot } from '@/lib/reporting/access';
 import { reportingJournalEnabled } from '@/lib/reporting/journalRead';
-import { listReportOffices } from '@/lib/reporting/monthly';
+import { listReportOffices, ALL_OFFICES } from '@/lib/reporting/monthly';
 import { buildSalespersonLeaderboard } from '@/lib/reporting/salespersonLeaderboard';
 import { LeaderboardView } from './LeaderboardView';
 import { SectionHero } from '@/components/SectionHero';
@@ -18,17 +18,23 @@ export default async function LeaderboardPage({
 }) {
   const user = await requireRole('REVIEWER', 'ADMIN');
   if (!(await canViewReportsArea(user))) notFound();
+  // Admin-only for now — the rep data still needs organising (name grouping).
+  if (user.role !== 'ADMIN') notFound();
 
   const t = getT();
   const offices = await listReportOffices();
+  const canAll = await canViewDealerSnapshot(user);
 
   const thisYear = new Date().getFullYear();
   const years = [thisYear, thisYear - 1, thisYear - 2];
   const year = years.some((y) => String(y) === searchParams.year) ? parseInt(searchParams.year as string, 10) : thisYear;
 
-  const officeId = offices.some((o) => o.dealerId === searchParams.office)
-    ? (searchParams.office as string)
-    : offices[0]?.dealerId;
+  const officeId =
+    searchParams.office === ALL_OFFICES && canAll
+      ? ALL_OFFICES
+      : offices.some((o) => o.dealerId === searchParams.office)
+        ? (searchParams.office as string)
+        : offices[0]?.dealerId;
 
   return (
     <div className="space-y-5">
@@ -47,6 +53,7 @@ export default async function LeaderboardPage({
           <label className="label" htmlFor="office">{t('staffReports.office')}</label>
           <select id="office" name="office" defaultValue={officeId} className="input min-w-[200px]">
             {offices.length === 0 && <option value="">{t('staffReports.noOfficesWithStores')}</option>}
+            {canAll && <option value={ALL_OFFICES}>{t('staffReports.allOffices')}</option>}
             {offices.map((o) => (
               <option key={o.dealerId} value={o.dealerId}>{o.name}</option>
             ))}

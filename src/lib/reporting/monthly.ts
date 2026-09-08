@@ -110,6 +110,43 @@ export async function getOffice(dealerId: string): Promise<Office | null> {
   return d ? toOffice(d) : null;
 }
 
+// Sentinel dealerId meaning "aggregate across every office".
+export const ALL_OFFICES = 'ALL';
+
+export interface ReportScope {
+  office: Office | null; // null for the all-offices aggregate
+  isAll: boolean;
+  label: string;
+  storeSet: Set<string>; // known store numbers (union of all offices when isAll)
+  storeNames: Record<string, string>;
+}
+
+/**
+ * Resolve a report's office scope. Pass a dealerId for one office, or ALL_OFFICES
+ * for a company-wide aggregate (every store, every office). A per-office report
+ * filters deals to that office's stores; the aggregate includes every deal.
+ */
+export async function reportStoreScope(dealerId: string): Promise<ReportScope> {
+  if (dealerId === ALL_OFFICES) {
+    const offices = await listReportOffices();
+    const storeSet = new Set<string>();
+    const storeNames: Record<string, string> = {};
+    for (const o of offices) {
+      for (const s of o.storeNumbers) storeSet.add(s);
+      Object.assign(storeNames, o.storeNames);
+    }
+    return { office: null, isAll: true, label: 'All offices', storeSet, storeNames };
+  }
+  const office = await getOffice(dealerId);
+  return {
+    office,
+    isAll: false,
+    label: office?.name ?? '',
+    storeSet: new Set(office?.storeNumbers ?? []),
+    storeNames: office?.storeNames ?? {},
+  };
+}
+
 /**
  * Derive a readable store name from the journal's "HD Store" label
  * (e.g. "BARRIE - 7024" → "Barrie"), used when a store has no name set in

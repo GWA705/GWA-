@@ -51,6 +51,19 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-08
+- **Reports: "All offices" (company-wide) option + leaderboard tidy-up.**
+  - The office selector on Finance penetration, Product mix and the Salesperson
+    leaderboard now has an **All offices** choice (aggregates every office), shown
+    to users with cross-office access (`canViewDealerSnapshot`). New `reportStoreScope`
+    helper in `monthly.ts`.
+  - **Salesperson leaderboard is now Admin-only** (per Sean — the rep data still
+    needs organising) and **groups near-duplicate rep names**: "Nick F" ≈ "Nick.f"
+    (case/punctuation-insensitive) and "Brynn/Alex" ≈ "Alex/Brynn" (order-insensitive).
+    Each row that combines spellings shows a badge and **expands to list the merged
+    spellings + their deal counts**, so an accidental merge is easy to catch.
+    (`salespersonLeaderboard.ts` `repKey`, `LeaderboardTable.tsx`.)
+- **New-customer hero image path** set to `/new-customer.webp` (drop the image at
+  `public/new-customer.webp`).
 - **Salesperson leaderboard now runs on the full journal (not portal-only).** The
   journal reader was never mapping the rep column, even though the journal *write*
   code (`journal.ts`) already used it — the header is **"Dealer's Name"**. Added

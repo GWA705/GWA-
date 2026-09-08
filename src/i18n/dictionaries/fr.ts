@@ -2189,8 +2189,10 @@ export const fr: Dictionary = {
     colDeals: 'Transactions',
     colAvg: 'Transaction moy.',
     colVolume: 'Volume',
+    namesMerged: '{n} graphies',
+    mergedInto: 'Graphies regroupées — vérifiez qu’il s’agit de la même personne :',
     unspecifiedNote: '{n} transaction(s) payée(s) sans vendeur nommé dans le journal ne sont pas comptées ci-dessus.',
-    basisNote: 'À partir de la colonne « Dealer’s Name » du journal. Base : transactions OK comptées par date de paiement.',
+    basisNote: 'À partir de la colonne « Dealer’s Name » du journal. Base : transactions OK comptées par date de paiement. Les noms quasi identiques (p. ex. « Nick F » / « Nick.f », « Brynn/Alex » / « Alex/Brynn ») sont regroupés; développez une ligne pour vérifier.',
   },
   leadFunnel: {
     eyebrow: 'Rapports',

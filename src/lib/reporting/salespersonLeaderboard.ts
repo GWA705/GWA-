@@ -1,6 +1,6 @@
 import 'server-only';
 import { readJournal, type ReportDeal } from './journalRead';
-import { getOffice, type Office } from './monthly';
+import { reportStoreScope, type Office } from './monthly';
 
 /**
  * Salesperson leaderboard — ranks reps by paid volume for one office in a year,
@@ -11,10 +11,31 @@ import { getOffice, type Office } from './monthly';
  */
 
 export interface LeaderboardRow {
-  name: string;
+  name: string; // display label (most common original spelling)
   deals: number; // paid-OK deals credited to this rep
   volume: number; // total $ of those deals
   avgDeal: number; // volume ÷ deals
+  variants: { name: string; deals: number }[]; // original spellings merged here
+}
+
+/**
+ * Canonical key for a rep name, so near-duplicates merge into one row:
+ *  - case/punctuation/space-insensitive ("Nick F" == "Nick.f" == "nick  f")
+ *  - order-insensitive for paired names ("Brynn/Alex" == "Alex/Brynn")
+ * Conservative: only collapses obvious variants; distinct names stay separate.
+ */
+export function repKey(raw: string): string {
+  const cleaned = raw
+    .toLowerCase()
+    .replace(/[._]+/g, ' ') // dots/underscores → space (Nick.f → nick f)
+    .replace(/[^a-z0-9/ ]/g, '') // drop other punctuation
+    .replace(/\s*\/\s*/g, '/') // tidy around slashes
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (cleaned.includes('/')) {
+    return cleaned.split('/').map((s) => s.trim()).filter(Boolean).sort().join('/');
+  }
+  return cleaned;
 }
 
 export interface SalespersonLeaderboard {
@@ -29,28 +50,43 @@ export interface SalespersonLeaderboard {
 }
 
 export async function buildSalespersonLeaderboard(dealerId: string, year: number): Promise<SalespersonLeaderboard> {
-  const office = await getOffice(dealerId);
+  const scope = await reportStoreScope(dealerId);
+  const office = scope.office;
   const cur = await readJournal(year);
 
-  const storeSet = new Set(office?.storeNumbers ?? []);
-  const belongs = (d: ReportDeal) => (d.storeNumber ? storeSet.has(d.storeNumber) : false);
+  const belongs = (d: ReportDeal) => scope.isAll || (d.storeNumber ? scope.storeSet.has(d.storeNumber) : false);
   const isPaidOk = (d: ReportDeal) => d.result === 'OK' && !!d.datePaid && (d.datePaid as Date).getFullYear() === year;
   const deals = cur.deals.filter((d) => belongs(d) && isPaidOk(d));
 
-  const map = new Map<string, LeaderboardRow>();
+  // Group deals under a canonical rep key, tracking each original spelling merged
+  // in (so the UI can expand a row and show what was combined).
+  const groups = new Map<string, { deals: number; volume: number; variants: Map<string, number> }>();
   let unspecified = 0;
   for (const d of deals) {
     const name = (d.salesperson || '').trim();
     if (!name) { unspecified += 1; continue; }
-    const key = name.toLowerCase();
-    const r = map.get(key) ?? { name, deals: 0, volume: 0, avgDeal: 0 };
-    r.deals += 1;
-    r.volume += d.gross;
-    map.set(key, r);
+    const key = repKey(name);
+    if (!key) { unspecified += 1; continue; }
+    const g = groups.get(key) ?? { deals: 0, volume: 0, variants: new Map<string, number>() };
+    g.deals += 1;
+    g.volume += d.gross;
+    g.variants.set(name, (g.variants.get(name) ?? 0) + 1);
+    groups.set(key, g);
   }
 
-  const rows = Array.from(map.values())
-    .map((r) => ({ ...r, avgDeal: r.deals > 0 ? Math.round(r.volume / r.deals) : 0 }))
+  const rows: LeaderboardRow[] = Array.from(groups.values())
+    .map((g) => {
+      const variants = Array.from(g.variants.entries())
+        .map(([name, deals]) => ({ name, deals }))
+        .sort((a, b) => b.deals - a.deals || a.name.localeCompare(b.name));
+      return {
+        name: variants[0]?.name ?? '(unknown)', // most common spelling
+        deals: g.deals,
+        volume: g.volume,
+        avgDeal: g.deals > 0 ? Math.round(g.volume / g.deals) : 0,
+        variants,
+      };
+    })
     .sort((a, b) => b.volume - a.volume || b.deals - a.deals);
 
   return {

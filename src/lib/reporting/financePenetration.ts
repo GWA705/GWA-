@@ -1,6 +1,6 @@
 import 'server-only';
 import { readJournal, type ReportDeal } from './journalRead';
-import { getOffice, type Office } from './monthly';
+import { reportStoreScope, type Office } from './monthly';
 
 /**
  * Finance penetration — for one office in a year, how deals were paid: financed
@@ -50,11 +50,11 @@ function groupOf(bucket: string): FinanceGroup {
 }
 
 export async function buildFinancePenetration(dealerId: string, year: number): Promise<FinancePenetrationReport> {
-  const office = await getOffice(dealerId);
+  const scope = await reportStoreScope(dealerId);
+  const office = scope.office;
   const cur = await readJournal(year);
 
-  const storeSet = new Set(office?.storeNumbers ?? []);
-  const belongs = (d: ReportDeal) => (d.storeNumber ? storeSet.has(d.storeNumber) : false);
+  const belongs = (d: ReportDeal) => scope.isAll || (d.storeNumber ? scope.storeSet.has(d.storeNumber) : false);
   const isPaidOk = (d: ReportDeal) => d.result === 'OK' && !!d.datePaid && (d.datePaid as Date).getFullYear() === year;
 
   const deals = cur.deals.filter((d) => belongs(d) && isPaidOk(d));
@@ -62,11 +62,12 @@ export async function buildFinancePenetration(dealerId: string, year: number): P
   const bucketMap = new Map<string, FinanceBucketStat>();
   const storeMap = new Map<string, FinanceStoreRow>();
   const labelFor = (num: string) => {
-    const nm = office?.storeNames[num] || '';
+    const nm = scope.storeNames[num] || '';
     return nm ? `${num} — ${nm}` : num;
   };
-  // Seed known stores so a store with 0 deals still shows.
-  for (const s of office?.storeNumbers ?? []) storeMap.set(s, { store: s, label: labelFor(s), total: 0, financed: 0, pct: null, gross: 0 });
+  // Seed known stores so a store with 0 deals still shows (skip for the
+  // all-offices aggregate — only stores with deals are meaningful there).
+  if (!scope.isAll) for (const s of scope.storeSet) storeMap.set(s, { store: s, label: labelFor(s), total: 0, financed: 0, pct: null, gross: 0 });
 
   let totalCount = 0;
   let totalGross = 0;

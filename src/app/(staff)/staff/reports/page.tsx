@@ -44,6 +44,7 @@ export default async function ReportsLandingPage() {
 
   const canLeadership = await canViewLeadershipSnapshot(user);
   const canDealerSnapshot = await canViewDealerSnapshot(user);
+  const isAdmin = user.role === 'ADMIN';
 
   const cards: ReportCard[] = [
     {
@@ -83,8 +84,8 @@ export default async function ReportsLandingPage() {
       title: t('staffReportsHub.leaderboard.title'),
       blurb: t('staffReportsHub.leaderboard.blurb'),
       accent: '#1a2e44',
-      badge: 'Per office',
-      available: true,
+      badge: 'Super Admin',
+      available: isAdmin,
     },
     {
       href: '/staff/reports/lead-funnel',

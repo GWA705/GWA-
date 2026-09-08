@@ -1,6 +1,6 @@
 import 'server-only';
 import { readJournal, type ReportDeal } from './journalRead';
-import { getOffice, type Office } from './monthly';
+import { reportStoreScope, type Office } from './monthly';
 
 /**
  * Product mix & attach rate — for one office in a year, which products were sold,
@@ -39,11 +39,11 @@ function codesOf(product: string): string[] {
 }
 
 export async function buildProductMix(dealerId: string, year: number): Promise<ProductMixReport> {
-  const office = await getOffice(dealerId);
+  const scope = await reportStoreScope(dealerId);
+  const office = scope.office;
   const cur = await readJournal(year);
 
-  const storeSet = new Set(office?.storeNumbers ?? []);
-  const belongs = (d: ReportDeal) => (d.storeNumber ? storeSet.has(d.storeNumber) : false);
+  const belongs = (d: ReportDeal) => scope.isAll || (d.storeNumber ? scope.storeSet.has(d.storeNumber) : false);
   const isPaidOk = (d: ReportDeal) => d.result === 'OK' && !!d.datePaid && (d.datePaid as Date).getFullYear() === year;
   const deals = cur.deals.filter((d) => belongs(d) && isPaidOk(d));
 
