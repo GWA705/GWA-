@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react';
 import { BarChart3 } from 'lucide-react';
-import type { OfficeMonthlyReport, StoreRow } from '@/lib/reporting/monthly';
+import type { OfficeMonthlyReport } from '@/lib/reporting/monthly';
 import { getT } from '@/i18n/server';
 import type { TFunction } from '@/i18n/translator';
+import { StoreTable } from './StoreTable';
 
 // Portal-styled per-office monthly performance report.
 
@@ -58,80 +59,6 @@ function HPct({ value, t }: { value: number | null; t: TFunction }) {
       <span aria-hidden>{up ? '▲' : '▼'}</span>
       {up ? '+' : ''}{value}%
     </span>
-  );
-}
-
-// Split "7024 — Barrie" into a number chip + name.
-function splitStore(store: string, label: string): { num: string; name: string | null } {
-  const m = label.match(/^(\S+)\s*[—-]\s*(.+)$/);
-  if (m) return { num: m[1], name: m[2] };
-  return { num: store, name: label !== store ? label : null };
-}
-
-function Row({ r, bold, t }: { r: StoreRow; bold?: boolean; t: TFunction }) {
-  const base = bold ? 'font-bold text-white' : 'text-gray-800';
-  const cell = 'px-2 py-2 text-right tabular-nums';
-  return (
-    <tr className={bold ? 'bg-slate-800' : 'border-t border-gray-100'}>
-      <td className={`px-3 py-2 text-left ${bold ? 'font-bold text-white' : 'font-semibold text-gray-900'}`}>{r.label}</td>
-      <td className={`${cell} ${base}`}>{money(r.prevMonth)}</td>
-      <td className={`${cell} ${bold ? 'text-white' : 'font-semibold text-gray-900'}`}>{money(r.curMonth)}</td>
-      <td className={cell}>
-        <Pct value={r.momPct} t={t} />
-      </td>
-      <td className={`${cell} ${base} hidden sm:table-cell`}>{money(r.lyMonth)}</td>
-      <td className={`${cell} hidden sm:table-cell`}>
-        <Pct value={r.yoyPct} t={t} />
-      </td>
-      <td className={`${cell} ${base}`}>{money(r.ytdTy)}</td>
-      <td className={`${cell} ${base} hidden md:table-cell`}>{money(r.ytdLy)}</td>
-      <td className={cell}>
-        <Pct value={r.ytdPct} t={t} />
-      </td>
-    </tr>
-  );
-}
-
-// Mobile: a stacked card per store, so phones never need to scroll a wide table.
-function StoreCard({ r, bold, t }: { r: StoreRow; bold?: boolean; t: TFunction }) {
-  const wrap = bold ? 'bg-slate-800 text-white' : 'bg-white border border-gray-200 shadow-sm';
-  const label = bold ? 'text-white/60' : 'text-gray-400';
-  const val = bold ? 'text-white' : 'text-gray-900';
-  const { num, name } = splitStore(r.store, r.label);
-  const cell = (lbl: string, node: ReactNode) => (
-    <div className="flex items-baseline justify-between gap-2">
-      <span className={`text-[10px] uppercase tracking-wide ${label}`}>{lbl}</span>
-      <span className={`tabular-nums ${val}`}>{node}</span>
-    </div>
-  );
-  return (
-    <div className={`rounded-2xl p-4 ${wrap}`}>
-      <div className="flex items-baseline justify-between gap-3">
-        <div className="flex items-center gap-2">
-          {bold ? (
-            <div className="font-bold text-white">{r.label}</div>
-          ) : (
-            <>
-              <span className="rounded-md bg-[#F96302] px-2 py-0.5 font-mono text-xs font-bold text-white">{num}</span>
-              {name && <span className="font-semibold text-gray-900">{name}</span>}
-            </>
-          )}
-        </div>
-        <div className="text-right">
-          <div className={`text-lg font-bold tabular-nums ${val}`}>{money(r.curMonth)}</div>
-          <div className={`text-[10px] uppercase ${label}`}>{t('reports.monthly.cardThisMonth')}</div>
-        </div>
-      </div>
-      <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
-        {cell(t('reports.monthly.colPrevMo'), money(r.prevMonth))}
-        {cell(t('reports.monthly.colMoM'), <Pct value={r.momPct} t={t} />)}
-        {cell(t('reports.monthly.colLyMo'), money(r.lyMonth))}
-        {cell(t('reports.monthly.colYoY'), <Pct value={r.yoyPct} t={t} />)}
-        {cell(t('reports.monthly.colYtd'), money(r.ytdTy))}
-        {cell(t('reports.monthly.colYtdPct'), <Pct value={r.ytdPct} t={t} />)}
-        {cell(t('reports.monthly.colYtdLy'), money(r.ytdLy))}
-      </div>
-    </div>
   );
 }
 
@@ -253,40 +180,9 @@ export function MonthlyReportView({ report }: { report: OfficeMonthlyReport }) {
         <span aria-hidden>↻</span> {t('reports.monthly.rotateHint')}
       </p>
 
-      {/* Mobile: stacked cards (no horizontal scrolling on a phone). */}
-      <div className="space-y-2 sm:hidden">
-        {report.stores.map((r) => (
-          <StoreCard key={r.store} r={r} t={t} />
-        ))}
-        <StoreCard r={report.total} bold t={t} />
-      </div>
-
-      {/* Tablet/desktop: the full comparison table. */}
-      <div className="hidden overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm sm:block">
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead>
-              <tr className="bg-gray-50 text-[10px] uppercase tracking-wide text-gray-500">
-                <th className="px-3 py-2 text-left font-medium">{t('reports.monthly.colStore')}</th>
-                <th className="px-2 py-2 text-right font-medium">{t('reports.monthly.colPrevMo')}</th>
-                <th className="px-2 py-2 text-right font-medium">{t('reports.monthly.colThisMo')}</th>
-                <th className="px-2 py-2 text-right font-medium">{t('reports.monthly.colMoM')}</th>
-                <th className="px-2 py-2 text-right font-medium hidden sm:table-cell">{t('reports.monthly.colLyMo')}</th>
-                <th className="px-2 py-2 text-right font-medium hidden sm:table-cell">{t('reports.monthly.colYoY')}</th>
-                <th className="px-2 py-2 text-right font-medium">{t('reports.monthly.colYtd')}</th>
-                <th className="px-2 py-2 text-right font-medium hidden md:table-cell">{t('reports.monthly.colYtdLy')}</th>
-                <th className="px-2 py-2 text-right font-medium">{t('reports.monthly.colYtdPct')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {report.stores.map((r) => (
-                <Row key={r.store} r={r} t={t} />
-              ))}
-              <Row r={report.total} bold t={t} />
-            </tbody>
-          </table>
-        </div>
-      </div>
+      {/* Store rows — click one to drill into the sales behind its number.
+          (Interactive, so it lives in a small client component.) */}
+      <StoreTable stores={report.stores} total={report.total} />
 
       {/* PE/OK pending — this month */}
       {report.pendingThisMonth.length > 0 && (

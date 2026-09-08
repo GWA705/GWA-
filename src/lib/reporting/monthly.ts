@@ -19,6 +19,17 @@ export interface Office {
   storeNames: Record<string, string>; // store number → name (from Admin → Dealers)
 }
 
+// One paid-OK sale that makes up a store's "this month" number — shown when a
+// store row is expanded (drill-down).
+export interface StoreSale {
+  customerName: string;
+  phone: string;
+  product: string;
+  amount: number;
+  saleDate: string; // yyyy-mm-dd or '' (sale date, else date paid)
+  result: string;
+}
+
 export interface StoreRow {
   store: string; // store number (stable key)
   label: string; // display label, e.g. "7024 — Barrie"
@@ -30,6 +41,9 @@ export interface StoreRow {
   ytdTy: number;
   ytdLy: number;
   ytdPct: number | null; // null = "New"
+  // The individual this-month paid-OK sales behind curMonth (drill-down). Omitted
+  // on the Location Total row.
+  sales?: StoreSale[];
 }
 
 export interface OfficeMonthlyReport {
@@ -183,12 +197,28 @@ export async function buildOfficeMonthlyReport(
   // Seed every known store so dead ones still show.
   for (const s of office?.storeNumbers ?? []) ensureRow(s);
 
+  // Per-store list of the individual this-month paid-OK sales (drill-down).
+  const salesByStore = new Map<string, StoreSale[]>();
+
   for (const d of officeDeals) {
     if (!isPaidOk(d)) continue;
     const store = d.storeNumber || d.hdStore || 'Unknown';
     const r = ensureRow(store);
     const paid = d.datePaid as Date;
-    if (inRange(paid, monthStart, monthEnd)) r.curMonth += d.gross;
+    if (inRange(paid, monthStart, monthEnd)) {
+      r.curMonth += d.gross;
+      const list = salesByStore.get(store) ?? [];
+      const when = d.date ?? d.datePaid;
+      list.push({
+        customerName: `${d.firstName} ${d.lastName}`.trim() || '(no name)',
+        phone: d.phone || '',
+        product: d.product || '',
+        amount: d.gross,
+        saleDate: when ? when.toISOString().slice(0, 10) : '',
+        result: d.result,
+      });
+      salesByStore.set(store, list);
+    }
     if (inRange(paid, prevStart, prevEnd)) r.prevMonth += d.gross;
     if (inRange(paid, lyStart, lyEnd)) r.lyMonth += d.gross;
     if (inRange(paid, ytdStart, monthEnd)) r.ytdTy += d.gross;
@@ -201,6 +231,7 @@ export async function buildOfficeMonthlyReport(
       momPct: pct(r.curMonth, r.prevMonth),
       yoyPct: pct(r.curMonth, r.lyMonth),
       ytdPct: pct(r.ytdTy, r.ytdLy),
+      sales: (salesByStore.get(r.store) ?? []).sort((a, b) => b.amount - a.amount),
     }))
     .sort((a, b) => b.curMonth - a.curMonth || b.ytdTy - a.ytdTy);
 

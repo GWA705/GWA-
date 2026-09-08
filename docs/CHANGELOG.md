@@ -51,6 +51,15 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-08
+- **Reports: click a store to see the sales behind it.** In the monthly report,
+  clicking a store row (e.g. 7024 — Barrie) now expands the individual paid-OK
+  sales that make up its "This month" number (customer, product, date, amount).
+  Each sale links to **Find a customer** pre-filled by phone/name so the reviewer
+  can open that customer. The store table moved into a client component
+  (`StoreTable.tsx`); `buildOfficeMonthlyReport` now attaches per-store `sales[]`,
+  and `find-customer` accepts `?q=` to run a search on load. (`monthly.ts`,
+  `MonthlyReportView.tsx`, `StoreTable.tsx`, `find-customer/page.tsx`,
+  `CustomerSearch.tsx`.)
 - **Marketplace: uniform product tiles.** Product image tiles used `aspect-square`,
   so their height tracked card width — and the New Arrivals rail gave cards variable
   widths, making every image a different height. Images now use a fixed height

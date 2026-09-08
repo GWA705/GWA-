@@ -27,6 +27,7 @@ export function CustomerSearch({
   large,
   onSearch,
   pushQuery,
+  initialQuery,
 }: {
   mode: 'internal' | 'dealer';
   placeholder?: string;
@@ -36,6 +37,8 @@ export function CustomerSearch({
   // Push a query in from outside (e.g. tapping a recent chip); bump `nonce` to
   // re-trigger the same text.
   pushQuery?: { q: string; nonce: number };
+  // Run this query once on mount (e.g. a report links here with ?q=<customer>).
+  initialQuery?: string;
 }) {
   const t = useT();
   const { locale } = useI18n();
@@ -66,6 +69,16 @@ export function CustomerSearch({
     run(pushQuery.q);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pushQuery?.nonce]);
+
+  // Run an initial query once on mount (a report deep-links here with ?q=…).
+  const didInit = useRef(false);
+  useEffect(() => {
+    if (didInit.current || !initialQuery) return;
+    didInit.current = true;
+    setQuery(initialQuery);
+    run(initialQuery);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialQuery]);
 
   // Live typeahead (internal): debounce keystrokes; fire at 3+ chars.
   useEffect(() => {
