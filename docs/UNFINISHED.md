@@ -27,8 +27,15 @@ _Last reviewed: 2026-09-08._
 
 - [x] **Store drill-down** — click a store row in the monthly report to expand the
   sales behind its number; each sale links to Find a customer (pre-filled). DONE.
-- [x] **Salesperson leaderboard** — DONE (portal-submitted deals only, labelled).
-  `/staff/reports/leaderboard`.
+- [x] **Salesperson leaderboard** — DONE, now journal-based (rep = the "Dealer's
+  Name" column). `/staff/reports/leaderboard`.
+  - [ ] **WAITING ON SEAN (morning):** the rep column is under a DIFFERENT header
+    in older journal layouts — the layout changed **mid-2025** and again in **2024**.
+    "Dealer's Name" is mapped (late-2025/2026). Need the rep column header (or column
+    letter) for **(a) 2024** and **(b) first-half 2025**, then add them as alternate
+    candidates in `journalRead.ts` FIELD_CANDIDATES so the leaderboard reaches back
+    across all years. Until then, older-layout deals show under the "no rep named"
+    footnote — nothing breaks.
 - [x] **Product mix & attach rate** — DONE. `/staff/reports/product-mix`.
 - [x] **HD lead → sale funnel** — DONE (reuses leads call outcomes).
   `/staff/reports/lead-funnel`.
