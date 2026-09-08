@@ -5,11 +5,20 @@ import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { customerSearchAction, updateCustomerInfoAction } from '@/app/(dealer)/dealer/find-customer/actions';
 import { StatusBadge } from '@/components/StatusBadge';
-import { useT } from '@/i18n/client';
+import { useT, useI18n } from '@/i18n/client';
 import type { CustomerSearchResult, JournalMatch } from '@/lib/customerSearch';
 
 function initials(name: string): string {
   return name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase()).join('') || '?';
+}
+
+// Format a yyyy-mm-dd sale date as a friendly, locale-aware date. Parses the parts
+// manually so the date never shifts a day across time zones.
+function fmtSold(iso: string, locale: string): string {
+  const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return iso;
+  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  return d.toLocaleDateString(locale === 'fr' ? 'fr-CA' : 'en-CA', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
 export function CustomerSearch({
@@ -29,6 +38,7 @@ export function CustomerSearch({
   pushQuery?: { q: string; nonce: number };
 }) {
   const t = useT();
+  const { locale } = useI18n();
   const live = mode === 'internal'; // GWA team gets live typeahead
   const [query, setQuery] = useState('');
   const [result, setResult] = useState<CustomerSearchResult | null>(null);
@@ -225,8 +235,13 @@ function Results({ result }: { result: CustomerSearchResult }) {
                       <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-500">{m.year}</span>
                     </div>
                     <div className="truncate text-xs text-gray-400">
-                      {[m.product, m.hdStore, m.finance, m.amount, m.saleDate].filter(Boolean).join(' · ')}
+                      {[m.product, m.hdStore, m.finance, m.amount].filter(Boolean).join(' · ')}
                     </div>
+                    {m.saleDate && (
+                      <div className="mt-0.5 text-xs font-medium text-gray-600">
+                        🗓 {t('findCustomer.sold')} {fmtSold(m.saleDate, locale)}
+                      </div>
+                    )}
                   </div>
                 </div>
                 {(m.phone || m.address) && (

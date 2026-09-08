@@ -1242,6 +1242,7 @@ export const en = {
     yourCustomers: 'Your customers',
     registeredOtherOffice: 'Registered with another office',
     fromYourPastJournals: 'From your office’s past sales journals',
+    sold: 'Sold',
     registeredWithPre: 'This customer is registered with',
     pleaseContactOffice: 'Please contact that office for more information.',
     contactLabel: 'Contact:',
