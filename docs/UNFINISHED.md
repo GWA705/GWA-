@@ -21,12 +21,12 @@ _Last reviewed: 2026-09-08._
   scan (on-device) and credit-app scan (Textract, ca-central-1) both work. If the
   front fallback is ever needed, set `TEXTRACT_REGION` to a supported region.
 
-## Being built now
+## Done recently
 
-- [ ] **Office phone + address on the customer-search card** (item 2). Decision
-  (Sean, 2026-09-08): show the **phone number and address of the office that sold
-  the equipment**, using that office's **saved address**, on the result card when
-  it comes up. In progress.
+- [x] **Office phone + address on the customer-search card** (item 2) — DONE
+  2026-09-08. The selling office's saved address now shows next to its phone on
+  the journal "office to contact" card and the dealer cross-office card. Address
+  comes from `DealerProfile.address` (Dealer → Profile → Business address).
 
 ## Backlog — planned, not built
 

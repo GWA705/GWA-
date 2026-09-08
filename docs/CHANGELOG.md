@@ -51,6 +51,14 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-08
+- **Customer search: selling office's address on the card.** The office that sold
+  the equipment now shows its **saved address** (📍) next to its phone — on the
+  journal "office to contact" block (staff/internal search) and the dealer
+  cross-office "registered with another office" card. Address is pulled from
+  `DealerProfile.address` (set at Dealer → Profile → Business address; blank
+  offices simply show no address line). Added `dealerAddress`/`officeAddress` to
+  the `JournalMatch`/`OtherOfficeMatch` result types and `address` to the dealer
+  contact lookup. (`customerSearch.ts`, `CustomerSearch.tsx`.)
 - **Gift-cards hero copy updated.** Dealer page (EN/FR) now reads "Enter your $25
   HD gift card customer information. All HD gift cards are sent out by Guusto — this
   allows for safe delivery and tracking of the customer's card." The staff/reviewer

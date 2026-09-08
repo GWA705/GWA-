@@ -199,6 +199,12 @@ function Results({ result }: { result: CustomerSearchResult }) {
                     <span className="text-sky-700">{t('findCustomer.contactForPhone')}</span>
                   )}
                 </div>
+                {m.officeAddress && (
+                  <div className="mt-1 flex items-start gap-1 text-sm text-sky-900">
+                    <span aria-hidden>📍</span>
+                    <span>{m.officeAddress}</span>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -363,6 +369,12 @@ function JournalCard({ m }: { m: JournalMatch }) {
               <span className="text-xs text-gray-400">{t('findCustomer.noDealerPhone')}</span>
             )}
           </div>
+          {m.dealerAddress && (
+            <div className="mt-0.5 flex items-start gap-1 text-xs text-gray-600">
+              <span aria-hidden>📍</span>
+              <span>{m.dealerAddress}</span>
+            </div>
+          )}
         </div>
       )}
 

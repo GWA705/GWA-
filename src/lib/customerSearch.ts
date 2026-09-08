@@ -14,7 +14,7 @@ import { nameTokens, DEALER_ALIASES } from './reporting/dealerSnapshot';
 import { searchOfficeJournalArchive, type ArchiveMatch } from './journalArchive';
 import { appOverrideKey, rowOverrideKey, getOverrides, overlay } from './customerOverride';
 
-interface DealerContact { name: string; phone: string }
+interface DealerContact { name: string; phone: string; address: string }
 
 /**
  * Map a sales-journal product short form (e.g. "CITY") to the resource-library
@@ -46,7 +46,7 @@ async function buildResourceLinkLookup(): Promise<Record<string, string>> {
 async function buildDealerContactLookup(): Promise<(storeNumber: string | null, location: string) => DealerContact | null> {
   const dealers = await prisma.dealer.findMany({
     where: { active: true },
-    select: { id: true, name: true, homeDepotStores: { select: { number: true } }, profile: { select: { phone: true, supportPhone: true } } },
+    select: { id: true, name: true, homeDepotStores: { select: { number: true } }, profile: { select: { phone: true, supportPhone: true, address: true } } },
   });
   const info = new Map<string, DealerContact>();
   const byStore = new Map<string, string>(); // store number → dealerId
@@ -58,7 +58,7 @@ async function buildDealerContactLookup(): Promise<(storeNumber: string | null, 
     else byToken.set(tok, id);
   };
   for (const d of dealers) {
-    info.set(d.id, { name: d.name, phone: (d.profile?.phone || d.profile?.supportPhone || '').trim() });
+    info.set(d.id, { name: d.name, phone: (d.profile?.phone || d.profile?.supportPhone || '').trim(), address: (d.profile?.address || '').trim() });
     for (const s of d.homeDepotStores) { const n = s.number.trim(); if (n) byStore.set(n, d.id); }
     for (const tok of nameTokens(d.name)) register(tok, d.id);
   }
@@ -160,6 +160,7 @@ export interface OtherOfficeMatch {
   officeContact: string | null;
   officePhone: string | null;
   officeLocation: string | null;
+  officeAddress: string | null; // the office's saved address (to route the customer)
 }
 
 export interface JournalMatch {
@@ -183,6 +184,7 @@ export interface JournalMatch {
   link: string;
   dealerName: string; // the office this deal belongs to (by store / location)
   dealerPhone: string; // their contact number — blank until they fill their profile
+  dealerAddress: string; // the selling office's saved address — blank until set
   // Row reference + linked portal record, for editing a customer's contact info.
   tab: string; // month tab title
   row: number; // 1-based sheet row
@@ -308,6 +310,7 @@ async function searchJournalDeals(query: string): Promise<JournalMatch[]> {
       link: d.linkUrl,
       dealerName: dealer?.name ?? '',
       dealerPhone: dealer?.phone ?? '',
+      dealerAddress: dealer?.address ?? '',
       tab: d.tab,
       row: d.rowNum,
       lastName: d.lastName,
@@ -485,6 +488,7 @@ export async function searchCustomers(user: SessionUser, rawQuery: string): Prom
         officeContact: null,
         officePhone: p?.phone || p?.supportPhone || null,
         officeLocation: officeLocation(p),
+        officeAddress: (p?.address || '').trim() || null,
       });
     }
   }
