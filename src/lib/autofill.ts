@@ -1,6 +1,6 @@
 /**
- * Shared shape for auto-filling the new-customer form from a scan — a driver's
- * licence (AAMVA barcode / Textract AnalyzeID) or an uploaded credit application
+ * Shared shape for auto-filling the new-customer form from a scan — a photo of a
+ * driver's licence (Textract AnalyzeID) or an uploaded credit application
  * (Textract forms OCR). Every field is optional; the form fills whatever is
  * present and leaves the rest for the dealer. Dates are yyyy-mm-dd.
  */

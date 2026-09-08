@@ -8,12 +8,19 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 /**
- * Fallback ID reader used only when the on-device PDF417 barcode scan fails
- * (front photo, damaged/absent barcode). Runs AWS Textract AnalyzeID on the
- * image and returns the fields. The image is processed in memory and NEVER
- * stored — this route persists nothing. Degrades gracefully: if Textract isn't
- * configured/permitted, it returns { ok:false, reason:'not_enabled' } so the UI
- * tells the dealer to enter details manually.
+ * Driver's-licence photo reader. Runs AWS Textract AnalyzeID on a photo of the
+ * FRONT of the licence and returns the fields. The image is processed in memory
+ * and NEVER stored — this route persists nothing. Degrades gracefully: if
+ * Textract isn't configured/permitted, it returns { ok:false, reason:'not_enabled' }
+ * so the UI tells the dealer to enter details manually.
+ *
+ * REGION NOTE: AnalyzeID is NOT offered in every region — in particular it may not
+ * be available in ca-central-1 (where the rest of our AWS lives). Set
+ * TEXTRACT_ID_REGION to an AnalyzeID-supported region (e.g. us-east-1) to turn the
+ * licence photo scan on. Doing so means the licence image is processed in that
+ * region — outside Canada if you pick a US region — though it is never stored.
+ * Default stays ca-central-1 to keep data in Canada; if AnalyzeID isn't offered
+ * there the scan simply reports "not switched on" until TEXTRACT_ID_REGION is set.
  */
 
 const PROVINCE_BY_NAME: Record<string, string> = {
@@ -58,7 +65,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const client = new TextractClient({ region: process.env.S3_REGION || 'ca-central-1' });
+    const client = new TextractClient({ region: process.env.TEXTRACT_ID_REGION || process.env.S3_REGION || 'ca-central-1' });
     const out = await client.send(new AnalyzeIDCommand({ DocumentPages: [{ Bytes: bytes }] }));
     const doc = out.IdentityDocuments?.[0];
     if (!doc) return NextResponse.json({ ok: false, reason: 'no_fields' });

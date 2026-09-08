@@ -16,10 +16,12 @@ _Last reviewed: 2026-09-08._
   search for a past-year customer._
 - [ ] **Guusto gift-card API** — parked. Awaiting `GUUSTO_API_TOKEN` in Render +
   exact field names (test at `/admin/guusto-test`) + office→reason mapping.
-- [ ] **Licence *front* scan region** (minor) — the front-of-licence photo
-  fallback uses Textract AnalyzeID, which may not exist in ca-central-1. Barcode
-  scan (on-device) and credit-app scan (Textract, ca-central-1) both work. If the
-  front fallback is ever needed, set `TEXTRACT_REGION` to a supported region.
+- [ ] **Turn on the licence photo scan** — the barcode scanner was removed
+  (2026-09-08), so "Scan driver's licence" is now photo→Textract **AnalyzeID**
+  only. AnalyzeID may not be offered in `ca-central-1`; if the scan says "isn't
+  switched on," set **`TEXTRACT_ID_REGION`** (e.g. `us-east-1`) in Render and
+  redeploy. Data-residency tradeoff: a US region processes the licence image in
+  the US (never stored). See `docs/ID-SCAN.md`. _Decision + env set needed._
 
 ## Done recently
 

@@ -51,6 +51,20 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-08
+- **Scan confirm moves into each section.** The "confirm the scanned info is
+  correct" checkbox now lives in the header of the very section a scan filled
+  (Applicant, Address, Employment, Co-applicant) instead of a single panel at the
+  bottom — so dealers verify in place. Submit is still blocked until every scanned
+  section is ticked; a failed submit turns the unconfirmed section's control amber
+  and scrolls to the first one. (`NewApplicationForm.tsx`,
+  `newApplication.verifyScanConfirmShort/…ConfirmedShort`.)
+- **Driver's-licence scan is now photo-only (barcode reader removed).** The
+  on-device PDF417 back-barcode scanner and live-camera flow were removed — reads
+  weren't reliable enough. "Scan driver's licence" now takes/uploads a photo of the
+  **front** and reads it via Textract AnalyzeID. NOTE: AnalyzeID may not be offered
+  in `ca-central-1`; set **`TEXTRACT_ID_REGION`** (e.g. `us-east-1`) in Render to
+  switch it on — that processes the licence image in that region (never stored). See
+  `docs/ID-SCAN.md`. (`LicenseScan.tsx`, `api/scan-id/route.ts`, `WelcomeTour.tsx`.)
 - **Customer search: selling office's address on the card.** The office that sold
   the equipment now shows its **saved address** (📍) next to its phone — on the
   journal "office to contact" block (staff/internal search) and the dealer

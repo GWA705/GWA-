@@ -1097,6 +1097,8 @@ export const fr: Dictionary = {
     verifyScanTitle: 'Confirmez les renseignements numérisés',
     verifyScanHint: 'Certains champs ont été remplis par numérisation et peuvent être mal lus. Vérifiez chaque section avec les documents du client, puis cochez pour confirmer. Vous ne pouvez pas soumettre tant que chaque section numérisée n’est pas confirmée.',
     verifyScanConfirm: 'J’ai vérifié la section {section} et c’est exact',
+    verifyScanConfirmShort: 'Confirmer les infos numérisées',
+    verifyScanConfirmedShort: 'Infos numérisées confirmées',
     verifyScanRequired: 'Veuillez vérifier et confirmer chaque section numérisée ci-dessus avant de soumettre.',
     verifyScanSectionApplicant: 'nom et pièce d’identité du demandeur',
     verifyScanSectionAddress: 'adresse du domicile',

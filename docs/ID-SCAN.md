@@ -7,14 +7,16 @@ This doc explains what each needs and the one AWS step to enable the OCR parts.
 
 | Button | What it reads | Needs AWS? |
 |---|---|---|
-| **Scan driver's licence** | The **PDF417 barcode** on the **back** of the licence, decoded **in the browser** (AAMVA). Exact fields, image never leaves the device. | **No** — works on its own. |
-| ↳ licence *front-photo* fallback | If no barcode reads, the licence **front** via Textract **AnalyzeID**. | Yes (Textract) |
+| **Scan driver's licence** | A **photo of the FRONT** of the licence via Textract **AnalyzeID** — name, address, DOB, licence #. Image processed in memory, **not stored**. | **Yes (Textract, AnalyzeID region)** |
 | **Scan a filled credit app** | A photo / single-page PDF of a completed Financeit application via Textract **AnalyzeDocument** (forms OCR). Image processed in memory, **not stored**. | **Yes (Textract)** |
 
-Until Textract is enabled, the two AWS-backed paths return
-`{ ok:false, reason:'not_enabled' }` and the UI says *"Reading uploaded documents
-isn't turned on yet — enter the details manually."* The **licence barcode scan
-still works** with no AWS.
+> The on-device **PDF417 barcode** scanner (back of the licence, AAMVA) was
+> **removed in 2026-09** — barcode reads weren't reliable enough. Licence scanning
+> is now photo/OCR only.
+
+Until Textract is enabled/available, the AWS-backed paths return
+`{ ok:false, reason:'not_enabled' }` and the UI says *"…isn't switched on yet —
+enter the details manually."*
 
 ## Turn on the OCR (one-time AWS step)
 
@@ -40,22 +42,28 @@ used for S3 — its key is `AWS_ACCESS_KEY_ID` in Render) and calls Textract in
 2. That's it — **no redeploy needed** (same credentials; the permission applies
    immediately). Re-test **Scan a filled credit app** on the form.
 
-### Region notes
+### Region notes — IMPORTANT for the licence scan
 - **AnalyzeDocument** (the *credit-app* scanner) **is available in
-  `ca-central-1`** — so the main feature works with the step above.
-- **AnalyzeID** (the licence *front-photo* fallback) is offered in fewer regions
-  and may **not** be in `ca-central-1`. If that call errors, the licence still
-  works via the on-device **back-barcode** scan. To make the front fallback work,
-  AnalyzeID must run in a supported region (e.g. `us-east-1`); ask a dev to add a
-  `TEXTRACT_REGION` override (not wired yet — small change) if you need it.
+  `ca-central-1`** — so that scanner works with the IAM step above, no region change.
+- **AnalyzeID** (the *licence photo* scanner) is offered in fewer regions and may
+  **not** be in `ca-central-1`. If so, the licence scan reports *"isn't switched on
+  yet"* until you point AnalyzeID at a supported region. Set **`TEXTRACT_ID_REGION`**
+  in Render (e.g. `us-east-1`) and redeploy.
+  - **Data residency:** picking a US region means the **licence image is processed
+    in the US** (never stored, discarded after reading). Everything else stays in
+    `ca-central-1`. If Canadian-only processing is required, leave the licence scan
+    off until AWS offers AnalyzeID in `ca-central-1`.
+  - The IAM policy already allows `textract:AnalyzeID` on `Resource: "*"`, so no
+    policy change is needed for a different region.
 
 ## Good to know
 - **Cost:** Textract AnalyzeDocument ≈ US$0.05 per page (Forms). AnalyzeID similar.
 - **Single page:** synchronous Textract reads one page. Upload a **photo** or a
   **single-page PDF** of the application; multi-page PDFs need the async flow
   (not built).
-- **Privacy:** neither route stores the image — it's read in memory and
-  discarded. The barcode path never uploads the image at all.
+- **Privacy:** neither route stores the image — it's read in memory and discarded.
 - **Code:** `src/app/api/scan-doc/route.ts` (AnalyzeDocument),
-  `src/app/api/scan-id/route.ts` (AnalyzeID), `src/components/DocScan.tsx`,
-  `src/components/LicenseScan.tsx`, `src/lib/aamva.ts`, `src/lib/autofill.ts`.
+  `src/app/api/scan-id/route.ts` (AnalyzeID + `TEXTRACT_ID_REGION`),
+  `src/components/DocScan.tsx`, `src/components/LicenseScan.tsx`,
+  `src/lib/autofill.ts`. (`src/lib/aamva.ts` still exports the `LicenseFields`
+  type; its AAMVA barcode parser is now unused after the barcode scanner removal.)

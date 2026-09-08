@@ -53,11 +53,11 @@ const STEPS: Step[] = [
     emoji: '🪪',
     en: {
       title: 'Auto-fill from a scan',
-      body: 'Save the typing: scan the customer’s driver’s licence (point the camera at the barcode on the back) or scan a filled credit application, and the applicant fields fill in automatically. Always review before submitting.',
+      body: 'Save the typing: take a photo of the front of the customer’s driver’s licence, or scan a filled credit application, and the applicant fields fill in automatically. Always review before submitting.',
     },
     fr: {
       title: 'Remplissage automatique par numérisation',
-      body: 'Gagnez du temps : numérisez le permis de conduire du client (dirigez la caméra vers le code-barres au dos) ou numérisez une demande de crédit remplie, et les champs du demandeur se remplissent automatiquement. Vérifiez toujours avant de soumettre.',
+      body: 'Gagnez du temps : prenez une photo du recto du permis de conduire du client, ou numérisez une demande de crédit remplie, et les champs du demandeur se remplissent automatiquement. Vérifiez toujours avant de soumettre.',
     },
   },
   {
