@@ -326,6 +326,48 @@ model Dealer {
   conversations    Conversation[]
   customProducts   DealerCustomProduct[]
   giftCardRequests GiftCardRequest[]
+  businessDocuments DealerDocument[]
+}
+
+// A dealer's business/compliance document (WSIB, WCB, CSST, RBQ, trade licence,
+// etc.). Dealers upload these once and keep them current, so GWA doesn't have to
+// chase expiring paperwork. On upload the portal scans the file and pre-fills the
+// expiry/renewal date (the dealer confirms). A scheduled job emails the dealer
+// ahead of expiry (default one week) and again once it lapses, until replaced.
+//
+// One "current" row per (dealer, type) for the fixed required types — a
+// re-upload replaces the file/expiry and resets reminder tracking. Custom
+// "OTHER" documents (with their own label) are kept as separate rows.
+model DealerDocument {
+  id            String    @id @default(cuid())
+  dealerId      String
+  dealer        Dealer    @relation(fields: [dealerId], references: [id], onDelete: Cascade)
+  // Document type key from BUSINESS_DOC_TYPES (e.g. "WSIB", "WCB"), or "OTHER".
+  type          String
+  // Free-text label for "OTHER" documents (null for the fixed types).
+  label         String?
+  storageKey    String    // encrypted file in object storage
+  fileName      String
+  mimeType      String
+  fileSize      Int       @default(0)
+  // Account / policy number the dealer enters (e.g. WSIB account #), if any.
+  accountNumber String?
+  // Renewal date after which a new document is needed.
+  expiryDate    DateTime?
+  // Dates the auto-scan found in the file (reference, so the dealer can pick).
+  scannedDates  String[]  @default([])
+  // The expiry above was auto-filled by the scan (vs typed by the dealer).
+  autoExtracted Boolean   @default(false)
+  uploadedById  String?
+  uploadedBy    User?     @relation("DealerDocUploader", fields: [uploadedById], references: [id])
+  // Expiry-reminder bookkeeping (reset to 0/null whenever the doc is replaced).
+  remindersSent  Int       @default(0)
+  lastRemindedAt DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([dealerId])
+  @@index([expiryDate])
 }
 
 // Water-test reward: a dealer requests a Home Depot gift card for a customer who
@@ -558,6 +600,7 @@ model User {
   giftCardsRequested    GiftCardRequest[] @relation("GiftCardRequestedBy")
   giftCardsSent         GiftCardRequest[] @relation("GiftCardSentBy")
   giftCardNotes         GiftCardNote[]    @relation("GiftCardNoteAuthor")
+  dealerDocsUploaded    DealerDocument[]  @relation("DealerDocUploader")
 
   @@index([dealerId])
 }

@@ -579,6 +579,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
   { key: 'customer-search', label: 'Find customer', href: '/staff/find-customer', hint: 'Search all customers + sales journals' },
   { key: 'resource-library', label: 'Resource library', href: '/admin/resource-library', hint: 'Product manuals & brochures' },
   { key: 'dealers', label: 'Dealers', href: '/admin/dealers' },
+  { key: 'dealer-documents', label: 'Dealer documents', href: '/admin/dealer-documents', hint: 'WSIB/WCB compliance & expiry' },
   { key: 'finance', label: 'Finance companies', href: '/admin/finance-companies' },
   { key: 'products', label: 'Products', href: '/admin/products' },
   { key: 'announcements', label: 'Dealer portal sign', href: '/admin/announcements' },
@@ -650,3 +651,52 @@ export const MARKETPLACE_SHIPPING_METHODS: ShippingMethod[] = [
 ];
 
 export const MARKETPLACE_SHIPPING_METHOD_VALUES: string[] = MARKETPLACE_SHIPPING_METHODS.map((m) => m.value);
+
+// ---------------------------------------------------------------------------
+// Dealer business / compliance documents
+// ---------------------------------------------------------------------------
+// The required document "slots" every dealer keeps current in the portal. Mostly
+// WSIB (Ontario) and WCB (elsewhere) clearance certificates, which expire and
+// otherwise have to be chased. Extend this list to add more required documents
+// (CSST, RBQ, trade licences, insurance, …) — the dealer + admin pages, the
+// scanner, and the expiry reminders all read from it.
+export const OTHER_DOC_TYPE = 'OTHER';
+
+export interface BusinessDocType {
+  key: string;
+  label: string;
+  /** Short helper line shown under the document's card. */
+  description?: string;
+  /** Whether this document carries an account/policy number field. */
+  hasAccountNumber?: boolean;
+  /** Label for that number field (e.g. "WSIB Account #"). */
+  accountLabel?: string;
+}
+
+export const BUSINESS_DOC_TYPES: BusinessDocType[] = [
+  {
+    key: 'WSIB',
+    label: 'WSIB Clearance Certificate',
+    description: 'Workplace Safety & Insurance Board (Ontario) certificate of clearance.',
+    hasAccountNumber: true,
+    accountLabel: 'WSIB Account #',
+  },
+  {
+    key: 'WCB',
+    label: 'WCB Clearance Certificate',
+    description: 'Workers’ Compensation Board clearance (provinces outside Ontario).',
+    hasAccountNumber: true,
+    accountLabel: 'WCB Account #',
+  },
+];
+
+export const BUSINESS_DOC_TYPE_KEYS: string[] = BUSINESS_DOC_TYPES.map((d) => d.key);
+
+export function businessDocType(key: string): BusinessDocType | undefined {
+  return BUSINESS_DOC_TYPES.find((d) => d.key === key);
+}
+
+/** How many days before expiry the first renewal reminder goes out (default 1 week). */
+export const DOC_EXPIRY_REMIND_DAYS_BEFORE = 7;
+/** Max file size for an uploaded business document (10 MB, matches the reference form). */
+export const DOC_MAX_BYTES = 10 * 1024 * 1024;

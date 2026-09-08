@@ -31,6 +31,83 @@ export function findDates(text: string): string[] {
   return out;
 }
 
+const MONTHS: Record<string, number> = {
+  jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, sept: 9, oct: 10, nov: 11, dec: 12,
+};
+
+/**
+ * Parse one of the loose date strings findDates() returns into an ISO
+ * YYYY-MM-DD string, or null if it can't be read. Numeric D/M vs M/D is
+ * ambiguous; we assume the North-American M/D/Y order (matching the ID scanner).
+ */
+export function parseLooseDate(raw: string): string | null {
+  const s = raw.trim();
+  // ISO: 2026-08-09
+  let m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+  // Month name: August 9, 2026 / Aug. 9 2026
+  m = s.match(/^([A-Za-z]{3,9})\.?\s+(\d{1,2}),?\s+(\d{4})$/);
+  if (m) {
+    const mo = MONTHS[m[1].slice(0, 3).toLowerCase()];
+    if (mo) return `${m[3]}-${String(mo).padStart(2, '0')}-${m[2].padStart(2, '0')}`;
+    return null;
+  }
+  // Numeric: 08/09/2026, 8-9-26 (assume M/D/Y)
+  m = s.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})$/);
+  if (m) {
+    const [, mo, d, yr] = m;
+    let year = Number(yr);
+    if (yr.length === 2) year += year < 70 ? 2000 : 1900;
+    const moN = Number(mo);
+    const dN = Number(d);
+    if (moN < 1 || moN > 12 || dN < 1 || dN > 31) return null;
+    return `${year}-${String(moN).padStart(2, '0')}-${String(dN).padStart(2, '0')}`;
+  }
+  return null;
+}
+
+const EXPIRY_KEYWORDS = /(expir|valid\s+(?:until|to|through)|valid\s+up\s+to|renewal|renew\s+by|good\s+(?:until|through)|effective\s+(?:until|to)|coverage\s+(?:until|to|end)|end\s+date|due\s+date|next\s+review|certificate\s+valid)/i;
+
+/**
+ * Pull the most likely expiry/renewal date out of a document's text. Prefers a
+ * date sitting next to an expiry-style keyword ("valid until", "expires",
+ * "renewal", …); otherwise falls back to the latest future date in the file.
+ * Returns the ISO date plus every date found (so the dealer can pick another).
+ * Best-effort only — the dealer always confirms it.
+ */
+export function extractExpiryDate(text: string, now: Date = new Date()): { iso: string | null; all: string[] } {
+  const flat = text.replace(/\s+/g, ' ');
+  const all = findDates(flat);
+  const isoAll = all.map(parseLooseDate).filter((d): d is string => !!d);
+
+  // 1) A date within ~40 chars after an expiry keyword.
+  for (const km of flat.matchAll(new RegExp(EXPIRY_KEYWORDS.source, 'gi'))) {
+    const window = flat.slice(km.index ?? 0, (km.index ?? 0) + 60);
+    for (const d of findDates(window)) {
+      const iso = parseLooseDate(d);
+      if (iso) return { iso, all: isoAll };
+    }
+  }
+
+  // 2) Fallback: the latest future date (a clearance letter's valid-through is
+  // usually the furthest-out date on the page).
+  const todayIso = now.toISOString().slice(0, 10);
+  const future = isoAll.filter((d) => d >= todayIso).sort();
+  if (future.length) return { iso: future[future.length - 1], all: isoAll };
+
+  // 3) Last resort: the latest date of any kind.
+  const sorted = [...isoAll].sort();
+  return { iso: sorted.length ? sorted[sorted.length - 1] : null, all: isoAll };
+}
+
+/** Best-effort account/policy number near a WSIB/WCB "account #" label. */
+export function extractAccountNumber(text: string): string | null {
+  const flat = text.replace(/\s+/g, ' ');
+  const m = flat.match(/(?:account|policy|firm|employer)\s*(?:number|no\.?|#)\s*[:#]?\s*([0-9][0-9\s-]{4,15}[0-9])/i);
+  if (!m) return null;
+  return m[1].replace(/[\s-]/g, '').slice(0, 20);
+}
+
 function signatureSignals(bytes: Buffer): { eSignatures: number; digitallySigned: boolean } {
   // Look only at the tail where signature dicts / xref live, to keep it cheap.
   const tail = bytes.subarray(Math.max(0, bytes.length - 2_000_000)).toString('latin1');

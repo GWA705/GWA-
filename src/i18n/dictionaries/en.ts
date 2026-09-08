@@ -123,6 +123,7 @@ export const en = {
     tutorial: 'Tutorial',
     myOffice: 'My office',
     officeProfile: 'Office profile',
+    businessDocuments: 'Business documents',
     requestLogins: 'Request logins',
     contactSupport: 'Contact / Support',
     myAccount: 'My account',

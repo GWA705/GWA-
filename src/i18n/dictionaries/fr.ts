@@ -128,6 +128,7 @@ export const fr: Dictionary = {
     tutorial: 'Tutoriel',
     myOffice: 'Mon bureau',
     officeProfile: 'Profil du bureau',
+    businessDocuments: 'Documents d’entreprise',
     requestLogins: 'Demander des accès',
     contactSupport: 'Contact / Soutien',
     myAccount: 'Mon compte',

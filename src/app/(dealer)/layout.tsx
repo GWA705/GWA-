@@ -126,6 +126,7 @@ export default async function DealerLayout({ children }: { children: React.React
             labelKey: 'nav.myOffice',
             children: [
               { href: '/dealer/profile', label: 'Office profile', labelKey: 'nav.officeProfile' },
+              { href: '/dealer/documents', label: 'Business documents', labelKey: 'nav.businessDocuments' },
               { href: '/dealer/user-requests', label: 'Request logins', labelKey: 'nav.requestLogins' },
               { href: '/dealer/support', label: 'Contact / Support', labelKey: 'nav.contactSupport' },
               { href: '/account', label: 'My account', labelKey: 'nav.myAccount' },

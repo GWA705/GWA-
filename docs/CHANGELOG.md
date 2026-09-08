@@ -51,6 +51,30 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-08
+- **Dealer Business Documents — self-serve compliance vault with auto-scanned expiry + renewal reminders.**
+  Dealers upload their WSIB / WCB clearance (and any other document with a renewal
+  date) at **Dealer → My office → Business documents** (`/dealer/documents`). On
+  file select the portal **scans the document and pre-fills the expiry/renewal
+  date** (and any account number) — on-prem via the PDF text layer with a tesseract
+  OCR fallback (`/api/scan-expiry`, `extractExpiryDate` in `docanalysis.ts`); the
+  dealer confirms it. A scheduled job then **emails + pushes the dealer one week
+  before expiry** (configurable) and again weekly through expiry/overdue until the
+  document is replaced, so GWA no longer has to chase paperwork
+  (`src/lib/docReminders.ts`, `/api/cron/doc-expiry-reminders`).
+  - New `DealerDocument` model + migration `20260908170000`. Required document
+    "slots" (WSIB, WCB) live in `BUSINESS_DOC_TYPES` (`constants.ts`) and are easy
+    to extend; dealers can also add free-form "Other" documents (insurance, CSST,
+    RBQ, trade licences).
+  - Admins get a **compliance dashboard** at **Admin → Dealers → Dealer documents**
+    (`/admin/dealer-documents`): every active office × required document with
+    Expired / Not-uploaded / Expiring-soon / Current status and a View link. New
+    admin section `dealer-documents`.
+  - Files are stored encrypted at rest like all uploads and streamed back only to
+    the owning dealer or staff (`/api/dealer/documents/[id]/file`).
+  - **⚠️ Go-live step:** add a Render Cron Job hitting
+    `POST /api/cron/doc-expiry-reminders` with `Authorization: Bearer $CRON_SECRET`
+    (once or twice daily) — see `docs/GO-LIVE-CHECKLIST.md`. Until then, reminders
+    won't fire (uploads + the dashboard work regardless).
 - **Marketplace: per-size part numbers, shipping method, and a shipper packing-slip PDF.**
   - Apparel part numbers change by size, so each size now carries its own part
     number. Admin item editor replaces the old comma "Options" box with **per-size
