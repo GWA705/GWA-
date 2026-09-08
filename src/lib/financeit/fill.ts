@@ -43,44 +43,47 @@ export interface BorrowerFields {
   employerCityProvince?: string;
 }
 
-// Value anchor (x, baseline y) for each field — placed on the blank under its
-// printed label. Coordinates read from the template's text positions.
+// Value anchor (x, baseline y) for each field — placed on the dotted line to the
+// RIGHT of its printed label, on the SAME baseline. Coordinates measured from the
+// template's own text positions (Letter, 612×792, origin bottom-left): x is just
+// past where each label ends, y is the label's baseline.
 const MAP: Record<keyof BorrowerFields, { x: number; y: number }> = {
-  firstName: { x: 35, y: 647 },
-  lastName: { x: 319, y: 647 },
-  middleName: { x: 35, y: 632 },
-  dob: { x: 319, y: 632 },
-  homePhone: { x: 35, y: 616 },
-  maritalStatus: { x: 319, y: 616 },
-  mobilePhone: { x: 35, y: 601 },
-  email: { x: 319, y: 601 },
-  sin: { x: 35, y: 586 },
-  address: { x: 35, y: 546 },
-  unitNo: { x: 253, y: 546 },
-  monthlyHousingCost: { x: 319, y: 546 },
-  city: { x: 35, y: 531 },
-  province: { x: 216, y: 531 },
-  postal: { x: 35, y: 516 },
-  yearsAtAddress: { x: 191, y: 516 },
-  housingStatus: { x: 0, y: 0 }, // handled specially (checkbox row)
-  idType: { x: 35, y: 289 },
-  idProvince: { x: 319, y: 289 },
-  idNumber: { x: 35, y: 273 },
-  idExpiry: { x: 319, y: 273 },
-  businessName: { x: 35, y: 234 },
-  employerPhone: { x: 319, y: 234 },
-  positionTitle: { x: 35, y: 219 },
-  grossMonthlyIncome: { x: 319, y: 219 },
-  employerAddress: { x: 35, y: 203 },
-  timeAtJob: { x: 319, y: 203 },
-  employerCityProvince: { x: 319, y: 188 },
+  firstName: { x: 116, y: 659 },
+  lastName: { x: 399, y: 659 },
+  middleName: { x: 125, y: 644 },
+  dob: { x: 360, y: 644 },
+  homePhone: { x: 122, y: 628 },
+  maritalStatus: { x: 376, y: 628 },
+  mobilePhone: { x: 130, y: 613 },
+  email: { x: 345, y: 613 },
+  sin: { x: 139, y: 598 },
+  address: { x: 71, y: 558 },
+  unitNo: { x: 289, y: 558 },
+  monthlyHousingCost: { x: 411, y: 558 },
+  city: { x: 55, y: 543 },
+  province: { x: 254, y: 543 },
+  postal: { x: 85, y: 528 },
+  yearsAtAddress: { x: 289, y: 528 },
+  housingStatus: { x: 0, y: 0 }, // handled specially (Own | Rent | Other row)
+  idType: { x: 113, y: 301 },
+  idProvince: { x: 391, y: 301 },
+  idNumber: { x: 106, y: 285 },
+  idExpiry: { x: 382, y: 285 },
+  businessName: { x: 98, y: 246 },
+  employerPhone: { x: 430, y: 246 },
+  positionTitle: { x: 88, y: 231 },
+  grossMonthlyIncome: { x: 409, y: 231 },
+  employerAddress: { x: 108, y: 215 },
+  timeAtJob: { x: 394, y: 215 },
+  employerCityProvince: { x: 374, y: 200 },
 };
 
-// "X" anchors for the Own | Rent | Other housing row (y≈543).
-const HOUSING_MARK: Record<string, { x: number; y: number }> = {
-  own: { x: 381, y: 543 },
-  rent: { x: 405, y: 543 },
-  other: { x: 434, y: 543 },
+// The chosen housing status is ringed with an ellipse over its word in the
+// "Housing Status: Own | Rent | Other" row (baseline y≈543). {cx, cy} is centre.
+const HOUSING_RING: Record<string, { cx: number; cy: number; rx: number }> = {
+  own: { cx: 396, cy: 546, rx: 13 },
+  rent: { cx: 427, cy: 546, rx: 13 },
+  other: { cx: 459, cy: 546, rx: 15 },
 };
 
 function isoToUs(v?: string): string {
@@ -111,10 +114,12 @@ function drawBorrower(page: PDFPage, font: PDFFont, b: BorrowerFields) {
     put(k);
   });
 
-  // Housing status → an X over the chosen option.
+  // Housing status → an ellipse ring around the chosen option word.
   const hs = (b.housingStatus || '').toLowerCase();
-  const mark = HOUSING_MARK[hs.includes('own') ? 'own' : hs.includes('rent') ? 'rent' : hs.includes('other') ? 'other' : ''];
-  if (mark) page.drawText('X', { x: mark.x, y: mark.y, size: 9, font, color: rgb(0.05, 0.05, 0.1) });
+  const ring = HOUSING_RING[hs.includes('own') ? 'own' : hs.includes('rent') ? 'rent' : hs.includes('other') ? 'other' : ''];
+  if (ring) {
+    page.drawEllipse({ x: ring.cx, y: ring.cy, xScale: ring.rx, yScale: 8, borderColor: rgb(0.05, 0.05, 0.1), borderWidth: 1.2 });
+  }
 }
 
 /**
@@ -129,15 +134,20 @@ export async function fillFinanceitPdf(
   const doc = await PDFDocument.load(templateBytes);
   const font = await doc.embedFont(StandardFonts.Helvetica);
   const page0 = doc.getPage(0);
+
+  // If there's a co-borrower, copy the BLANK template page BEFORE we stamp the
+  // primary onto page 0 — otherwise the copy carries the primary's text and the
+  // co-borrower's values land on top of it.
+  const hasCo = co && (co.firstName || co.lastName);
+  const copied = hasCo ? (await doc.copyPages(doc, [0]))[0] : null;
+
   drawBorrower(page0, font, primary);
 
-  const hasCo = co && (co.firstName || co.lastName);
-  if (hasCo) {
-    const [copied] = await doc.copyPages(doc, [0]);
+  if (hasCo && copied) {
     doc.addPage(copied);
-    // "Co-borrower application. I am applying with ____ for joint credit." (y≈701)
+    // "Co-borrower application. I am applying with ____ for joint credit." (baseline y≈701)
     const primaryName = `${primary.firstName ?? ''} ${primary.lastName ?? ''}`.trim();
-    if (primaryName) copied.drawText(primaryName, { x: 150, y: 703, size: 9, font, color: rgb(0.05, 0.05, 0.1) });
+    if (primaryName) copied.drawText(primaryName, { x: 213, y: 703, size: 9, font, color: rgb(0.05, 0.05, 0.1) });
     drawBorrower(copied, font, co as BorrowerFields);
   }
 

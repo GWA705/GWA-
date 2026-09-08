@@ -51,6 +51,14 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-08
+- **Financeit PDF fill fixed — values now land on the right lines.** The generated
+  "Loan Application" PDF was stamping every value at the left margin one row too
+  low, so each value collided with the next label. Re-measured the template's label
+  positions and now place each value on the dotted line to the right of its label,
+  on the same baseline. Housing status is ringed with an ellipse over Own/Rent/Other.
+  Also fixed a co-borrower bug: the second page was copied AFTER the primary was
+  stamped on it, so the co's fields overlapped the primary's — now the blank page is
+  copied first. Verified by rendering primary + co pages. (`src/lib/financeit/fill.ts`.)
 - **Scan confirm moves into each section.** The "confirm the scanned info is
   correct" checkbox now lives in the header of the very section a scan filled
   (Applicant, Address, Employment, Co-applicant) instead of a single panel at the
