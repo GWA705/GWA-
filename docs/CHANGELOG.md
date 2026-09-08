@@ -62,8 +62,7 @@ source of truth; this file is the human-readable index.
     Each row that combines spellings shows a badge and **expands to list the merged
     spellings + their deal counts**, so an accidental merge is easy to catch.
     (`salespersonLeaderboard.ts` `repKey`, `LeaderboardTable.tsx`.)
-- **New-customer hero image path** set to `/new-customer.webp` (drop the image at
-  `public/new-customer.webp`).
+- **New-customer hero image** wired to `public/new-customer-hero.webp` (uploaded).
 - **Salesperson leaderboard now runs on the full journal (not portal-only).** The
   journal reader was never mapping the rep column, even though the journal *write*
   code (`journal.ts`) already used it — the header is **"Dealer's Name"**. Added

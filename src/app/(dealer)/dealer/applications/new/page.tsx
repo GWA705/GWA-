@@ -23,7 +23,7 @@ export default async function NewApplicationPage() {
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-6">
-        <SectionHero eyebrow={t('newApplication.heroEyebrow')} title={t('newApplication.heroTitle')} subtitle={t('newApplication.heroSubtitle')} bgImage="/new-customer.webp" />
+        <SectionHero eyebrow={t('newApplication.heroEyebrow')} title={t('newApplication.heroTitle')} subtitle={t('newApplication.heroSubtitle')} bgImage="/new-customer-hero.webp" />
       </div>
       <NewApplicationForm stores={stores} products={products} />
     </div>
