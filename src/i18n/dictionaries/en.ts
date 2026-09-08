@@ -670,7 +670,7 @@ export const en = {
   },
   giftCards: {
     heroTitle: 'Water-test gift cards',
-    heroSubtitle: 'Enter and track your HD gift cards, and send confirmation receipts.',
+    heroSubtitle: 'Enter your $25 HD gift card customer information. All HD gift cards are sent out by Guusto — this allows for safe delivery and tracking of the customer’s card.',
     newRequest: 'New request',
     yourRequests: 'Your requests',
     awaitingSend: '{n} awaiting send',

@@ -674,7 +674,7 @@ export const fr: Dictionary = {
   },
   giftCards: {
     heroTitle: 'Cartes-cadeaux test d’eau',
-    heroSubtitle: 'Saisissez et suivez vos cartes-cadeaux HD, et envoyez des reçus de confirmation.',
+    heroSubtitle: 'Saisissez les renseignements du client pour votre carte-cadeau HD de 25 $. Toutes les cartes-cadeaux HD sont envoyées par Guusto — ce qui assure une livraison sécuritaire et le suivi de la carte du client.',
     newRequest: 'Nouvelle demande',
     yourRequests: 'Vos demandes',
     awaitingSend: '{n} en attente d’envoi',

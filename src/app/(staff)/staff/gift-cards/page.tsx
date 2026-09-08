@@ -39,7 +39,7 @@ export default async function StaffGiftCardsPage({
       <SectionHero
         eyebrow="Rewards"
         title="Water-test gift cards"
-        subtitle="Dealers submit a customer + card amount for each completed water test. Copy the selected emails (or CSV) into Guusto, send, then mark them sent — that stamps a dated receipt back to the dealer."
+        subtitle="Dealers submit a customer and $25 card amount for each completed water test. All HD gift cards go out through Guusto for safe, trackable delivery to the customer. Copy the selected emails (or CSV) into Guusto, send, then mark them sent — that stamps a dated receipt back to the dealer."
       />
 
       <StaffFlaggedGiftCards flagged={flagged} />

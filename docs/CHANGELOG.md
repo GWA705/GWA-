@@ -51,6 +51,11 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-08
+- **Gift-cards hero copy updated.** Dealer page (EN/FR) now reads "Enter your $25
+  HD gift card customer information. All HD gift cards are sent out by Guusto — this
+  allows for safe delivery and tracking of the customer's card." The staff/reviewer
+  page keeps its processing note but now leads with the same Guusto safe/trackable
+  framing. (`giftCards.heroSubtitle` in `en.ts`/`fr.ts`; `staff/gift-cards/page.tsx`.)
 - **Desktop sidebar runs the full page height.** The dark nav column was fixed at
   one screen tall (`h-[calc(100vh-72px)]`, sticky), so on any page taller than the
   viewport (e.g. the dashboard) it stopped partway down and the light page
