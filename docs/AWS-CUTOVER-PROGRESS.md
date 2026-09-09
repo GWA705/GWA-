@@ -21,7 +21,7 @@ _Last updated: 2026-09-09._
 | RDS instance | **gwa-portal-db** (AZ ca-central-1d) |
 | DB name / user / port | `gwa` / `gwa_admin` / `5432` |
 | RDS security group | **gwa-rds-sg** = **sg-0d627cbf716b45316** |
-| RDS SG inbound (today) | `74.220.56.0/24` + `74.220.48.0/24` (Render Oregon egress — how the US app reaches it now) |
+| RDS SG inbound (today) | `74.220.56.0/24` + `74.220.48.0/24` (Render Oregon egress — how the US app reaches it now) **+ `sg-0ce5aadbd7e12375a` (EB app SG) + `52.60.67.45/32` (EB EIP)** on 5432, added 2026-09-09 so the AWS app can reach the DB. Confirmed: EB app now boots + serves the login page (proves DB reachable). |
 | RDS IAM auth | Disabled |
 | S3 bucket | (already in ca-central-1 — confirm name from Render env `S3_BUCKET`) |
 | ECR image repo | **863478708936.dkr.ecr.ca-central-1.amazonaws.com/gwa-portal** |
@@ -37,8 +37,9 @@ _Last updated: 2026-09-09._
 | EB static IP (EIP) | 52.60.67.45 |
 | Temp test URL | http://Gwa-portal-env.eba-x7adqt2q.ca-central-1.elasticbeanstalk.com (HTTP; login needs HTTPS → add TLS before login test) |
 | Env vars loaded (core) | DATABASE_URL, MASTER_ENCRYPTION_KEY, SESSION_SECRET, STORAGE_DRIVER=s3, S3_BUCKET, S3_REGION, AWS keys, TZ. **Still to add:** SMTP_*, EMAIL_*, CRON_SECRET, FINANCEIT_*, ANTHROPIC_API_KEY, DEEPL_API_KEY, VAPID_*, JOURNAL_SHEET_ID*, HD_LEADS_SHEET_ID, APP_URL, and GOOGLE_SERVICE_ACCOUNT_JSON (big — via Secrets Manager/file, not EB env). |
-| ACM TLS cert | _tbd_ |
-| Domain / DNS host | _tbd_ (portal.ghsbarrie.ca — where is DNS managed?) |
+| ACM TLS cert | **Issued** for `portal.ghsbarrie.ca` in **us-east-1** (required for CloudFront). ARN `arn:aws:acm:us-east-1:863478708936:certificate/ca4f24d9-14d5-4fd7-acbc-3dc1fb5195c3`. DNS-validated via a GoDaddy CNAME. |
+| CloudFront distribution | **gwa-portal** (Free plan), ID **E163FPGPE2W8Z3**, domain **`d14c1520tin554.cloudfront.net`**. Origin = EB URL over **HTTP only** (port 80); viewer = **Redirect HTTP→HTTPS**; cache policy **CachingDisabled** + origin request policy **AllViewer** (dynamic app pass-through). Alternate domain **portal.ghsbarrie.ca** + the ACM cert attached. Created 2026-09-09. |
+| Domain / DNS host | **GoDaddy** (managed by Sean). `portal.ghsbarrie.ca` currently `CNAME → gwa-portal.onrender.com` (Render — untouched). Cutover = repoint that CNAME → `d14c1520tin554.cloudfront.net` after login test passes. |
 
 ## Env vars to carry into AWS (from the Render `gwa-portal` service)
 
@@ -61,9 +62,11 @@ VAPID_* , `SEED_ADMIN_*`, `TZ=America/Toronto`. Set fresh: `APP_URL`.
 - [x] Dockerfile + .dockerignore committed (Render unaffected).
 - [x] **Step 2a — ECR repo** `gwa-portal` created.
 - [x] **Step 2b — automated build** done. IAM user `github-ecr-push` (keys in GitHub secrets), workflow `.github/workflows/build-ecr.yml` builds & pushes on every branch push. First image live: `…/gwa-portal:latest`. `Dockerrun.aws.json` (root) points Elastic Beanstalk at that image.
-- [ ] **Step 3 — runtime service** (Elastic Beanstalk, Docker platform, deploy via `Dockerrun.aws.json`; default VPC + public subnet + public IP so it reaches RDS in-VPC AND the internet with no NAT; instance role needs `AmazonEC2ContainerRegistryReadOnly` to pull the image; load all env vars incl. the critical `MASTER_ENCRYPTION_KEY`/`SESSION_SECRET`).
+- [x] **Step 3 — runtime service** (Elastic Beanstalk, Docker platform, deploy via `Dockerrun.aws.json`; default VPC + public subnet + public IP so it reaches RDS in-VPC AND the internet with no NAT; instance role needs `AmazonEC2ContainerRegistryReadOnly` to pull the image; load all env vars incl. the critical `MASTER_ENCRYPTION_KEY`/`SESSION_SECRET`). **App boots + serves the login page.**
     - NEXT_PUBLIC build secrets not yet set → Maps/push disabled in the current image until `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` + `NEXT_PUBLIC_VAPID_PUBLIC_KEY` are added to GitHub and the image rebuilt.
-- [ ] Add EB app's security group to `sg-0d627cbf716b45316` inbound (5432).
-- [ ] **Step 4 — smoke test** on temp URL (login, open a deal, upload a doc, System health).
+- [x] Add EB app's security group + EIP to `sg-0d627cbf716b45316` inbound (5432). Done 2026-09-09 — fixed the P1001 DB-unreachable crash loop / 502.
+- [x] **HTTPS** — ACM cert (us-east-1) issued for `portal.ghsbarrie.ca`; **CloudFront** distribution `E163FPGPE2W8Z3` (`d14c1520tin554.cloudfront.net`) in front of EB, cert + alt-domain attached. Done 2026-09-09.
+- [ ] **Step 4 — smoke test** over CloudFront https (`https://d14c1520tin554.cloudfront.net`): login, open a deal, upload a doc, System health. (Login needs HTTPS — this is the first end-to-end login test.)
+- [ ] Load remaining EB env vars (SMTP_*, EMAIL_*, CRON_SECRET, FINANCEIT_*, ANTHROPIC_API_KEY, DEEPL_API_KEY, VAPID_*, JOURNAL_SHEET_ID*, HD_LEADS_SHEET_ID, APP_URL=https://portal.ghsbarrie.ca) + GOOGLE_SERVICE_ACCOUNT_JSON via Secrets Manager/file. Add NEXT_PUBLIC_* GitHub secrets + rebuild image (Maps/push).
 - [ ] Freeze scheduled jobs on one side; point cron/remittance webhook at the new host after cutover.
-- [ ] **Step 5 — flip DNS**, soak 24–48h with Render as rollback, then decommission Render (keep RDS + S3).
+- [ ] **Step 5 — flip DNS** at GoDaddy (`portal` CNAME → `d14c1520tin554.cloudfront.net`), soak 24–48h with Render as rollback, then decommission Render (keep RDS + S3).
