@@ -58,8 +58,9 @@ VAPID_* , `SEED_ADMIN_*`, `TZ=America/Toronto`. Set fresh: `APP_URL`.
 - [x] **Step 1 — gather facts** (account, region, VPC, RDS, security group). Done.
 - [x] Dockerfile + .dockerignore committed (Render unaffected).
 - [x] **Step 2a — ECR repo** `gwa-portal` created.
-- [ ] **Step 2b — automated build** (IAM push user → GitHub secrets → Actions workflow builds & pushes image).
-- [ ] **Step 3 — runtime service** (Elastic Beanstalk, same VPC, env vars, IAM task role for S3).
+- [x] **Step 2b — automated build** done. IAM user `github-ecr-push` (keys in GitHub secrets), workflow `.github/workflows/build-ecr.yml` builds & pushes on every branch push. First image live: `…/gwa-portal:latest`. `Dockerrun.aws.json` (root) points Elastic Beanstalk at that image.
+- [ ] **Step 3 — runtime service** (Elastic Beanstalk, Docker platform, deploy via `Dockerrun.aws.json`; default VPC + public subnet + public IP so it reaches RDS in-VPC AND the internet with no NAT; instance role needs `AmazonEC2ContainerRegistryReadOnly` to pull the image; load all env vars incl. the critical `MASTER_ENCRYPTION_KEY`/`SESSION_SECRET`).
+    - NEXT_PUBLIC build secrets not yet set → Maps/push disabled in the current image until `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` + `NEXT_PUBLIC_VAPID_PUBLIC_KEY` are added to GitHub and the image rebuilt.
 - [ ] Add EB app's security group to `sg-0d627cbf716b45316` inbound (5432).
 - [ ] **Step 4 — smoke test** on temp URL (login, open a deal, upload a doc, System health).
 - [ ] Freeze scheduled jobs on one side; point cron/remittance webhook at the new host after cutover.

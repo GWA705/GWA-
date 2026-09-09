@@ -1,0 +1,10 @@
+{
+  "AWSEBDockerrunVersion": "1",
+  "Image": {
+    "Name": "863478708936.dkr.ecr.ca-central-1.amazonaws.com/gwa-portal:latest",
+    "Update": "true"
+  },
+  "Ports": [
+    { "ContainerPort": 3000 }
+  ]
+}
