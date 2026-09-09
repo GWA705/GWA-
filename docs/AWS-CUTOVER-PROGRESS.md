@@ -66,7 +66,8 @@ VAPID_* , `SEED_ADMIN_*`, `TZ=America/Toronto`. Set fresh: `APP_URL`.
     - NEXT_PUBLIC build secrets not yet set → Maps/push disabled in the current image until `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` + `NEXT_PUBLIC_VAPID_PUBLIC_KEY` are added to GitHub and the image rebuilt.
 - [x] Add EB app's security group + EIP to `sg-0d627cbf716b45316` inbound (5432). Done 2026-09-09 — fixed the P1001 DB-unreachable crash loop / 502.
 - [x] **HTTPS** — ACM cert (us-east-1) issued for `portal.ghsbarrie.ca`; **CloudFront** distribution `E163FPGPE2W8Z3` (`d14c1520tin554.cloudfront.net`) in front of EB, cert + alt-domain attached. Done 2026-09-09.
-- [ ] **Step 4 — smoke test** over CloudFront https (`https://d14c1520tin554.cloudfront.net`): login, open a deal, upload a doc, System health. (Login needs HTTPS — this is the first end-to-end login test.)
+- [x] **Login works end-to-end** over CloudFront https (`https://d14c1520tin554.cloudfront.net`) 2026-09-09 — proves CloudFront → EB (Canada) → RDS. Note: email lowercased/trimmed at login, so email case is not a factor.
+- [ ] **Step 4 — full smoke test** over CloudFront https: open a deal, upload a doc, scan a finance app, System health, send a test email. (Some features degraded until the remaining env vars below are loaded.)
 - [ ] Load remaining EB env vars (SMTP_*, EMAIL_*, CRON_SECRET, FINANCEIT_*, ANTHROPIC_API_KEY, DEEPL_API_KEY, VAPID_*, JOURNAL_SHEET_ID*, HD_LEADS_SHEET_ID, APP_URL=https://portal.ghsbarrie.ca) + GOOGLE_SERVICE_ACCOUNT_JSON via Secrets Manager/file. Add NEXT_PUBLIC_* GitHub secrets + rebuild image (Maps/push).
 - [ ] Freeze scheduled jobs on one side; point cron/remittance webhook at the new host after cutover.
 - [ ] **Step 5 — flip DNS** at GoDaddy (`portal` CNAME → `d14c1520tin554.cloudfront.net`), soak 24–48h with Render as rollback, then decommission Render (keep RDS + S3).
