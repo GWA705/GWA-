@@ -2,12 +2,14 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireDealerAccess } from '@/lib/session';
 import { prisma } from '@/lib/db';
+import { getT } from '@/i18n/server';
 import { ResourceProductDetail } from './ResourceProductDetail';
 
 export const dynamic = 'force-dynamic';
 
 export default async function DealerResourceProductPage({ params }: { params: { id: string } }) {
   await requireDealerAccess();
+  const t = getT();
   const product = await prisma.resourceProduct.findFirst({
     where: { id: params.id, active: true },
     include: { files: { orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }] } },
@@ -16,7 +18,7 @@ export default async function DealerResourceProductPage({ params }: { params: { 
 
   return (
     <div className="max-w-3xl space-y-6">
-      <Link href="/dealer/resources/library" className="text-sm text-gray-500 hover:underline">← All products</Link>
+      <Link href="/dealer/resources/library" className="text-sm text-gray-500 hover:underline">← {t('resources.allProducts')}</Link>
 
       <ResourceProductDetail
         product={{

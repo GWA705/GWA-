@@ -51,6 +51,7 @@ export const fr: Dictionary = {
     fileCountOne: '1 fichier',
     viewArrow: 'Voir →',
     // Product detail
+    allProducts: 'Tous les produits',
     model: 'Modèle {model}',
     enterOnDealAs: 'À saisir sur une transaction comme :',
     documents: 'Documents',

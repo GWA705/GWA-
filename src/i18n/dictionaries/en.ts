@@ -46,6 +46,7 @@ export const en = {
     fileCountOne: '1 file',
     viewArrow: 'View →',
     // Product detail
+    allProducts: 'All products',
     model: 'Model {model}',
     enterOnDealAs: 'Enter on a deal as:',
     documents: 'Documents',
