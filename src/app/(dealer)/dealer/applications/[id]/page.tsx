@@ -26,6 +26,7 @@ import {
   deleteOwnDocumentAction,
 } from '@/app/(dealer)/actions';
 import { FundingItemUploader } from '@/components/FundingItemUploader';
+import { DealCancelPanel } from './DealCancelPanel';
 import { DeleteDocumentButton } from '@/components/DeleteDocumentButton';
 import { DocViewer } from '@/components/DocViewer';
 
@@ -51,9 +52,30 @@ export default async function DealerApplicationDetail({
       payouts: { orderBy: { paidOn: 'desc' } },
       dealNotes: { where: { internal: false }, orderBy: { createdAt: 'asc' }, include: { author: true } },
       confirmation: { include: { confirmedBy: true } },
+      cancellations: { orderBy: { createdAt: 'desc' }, take: 1 },
     },
   });
   if (!app || !canAccessAsDealer(user, app.dealerId)) notFound();
+
+  // Latest cancellation request (if any) + whether the dealer can start one now.
+  const latestCancellation = app.cancellations[0] ?? null;
+  const cancelBlocked = ['WITHDRAWN', 'DECLINED', 'DRAFT'].includes(app.status);
+  const cancelPanel = {
+    installed: app.status === 'FUNDED',
+    cancelable: !cancelBlocked && !(latestCancellation && latestCancellation.status === 'PENDING'),
+    cancellation: latestCancellation
+      ? {
+          status: latestCancellation.status as 'PENDING' | 'CONFIRMED' | 'REJECTED',
+          reason: latestCancellation.reason,
+          createdAt: latestCancellation.createdAt.toISOString(),
+          uninstallDate: latestCancellation.uninstallDate ? latestCancellation.uninstallDate.toISOString() : null,
+          wasFunded: latestCancellation.wasFunded,
+          hdRefundConfirmed: latestCancellation.hdRefundConfirmed,
+          handledAt: latestCancellation.handledAt ? latestCancellation.handledAt.toISOString() : null,
+          reviewerNote: latestCancellation.reviewerNote,
+        }
+      : null,
+  };
 
   const applicationDocs = app.documents.filter((d) => d.stage === 'APPLICATION');
   const fundingDocs = app.documents.filter((d) => d.stage === 'FUNDING');
@@ -218,6 +240,14 @@ export default async function DealerApplicationDetail({
       {/* The full loan-application details (employment, ID, income, housing,
           co-applicant) are intentionally NOT shown back to the dealer — the GWA
           review team has them. */}
+
+      {/* Cancel / withdraw this deal (a dealer request a reviewer confirms) */}
+      <DealCancelPanel
+        applicationId={app.id}
+        installed={cancelPanel.installed}
+        cancelable={cancelPanel.cancelable}
+        cancellation={cancelPanel.cancellation}
+      />
 
       {/* Confirmation */}
       <section className="card p-6">

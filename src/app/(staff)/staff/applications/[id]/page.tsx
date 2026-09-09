@@ -35,6 +35,7 @@ import { WriteToJournalButton } from './WriteToJournalButton';
 import { DecisionForm } from './DecisionForm';
 import { PayoutForm } from './PayoutForm';
 import { StatusChangeForm } from './StatusChangeForm';
+import { CancellationReviewCard, type CancellationReviewVM } from './CancellationReviewCard';
 import { ReviewerWorkspace } from './ReviewerWorkspace';
 import { reviewerPhaseStates, dealerFacingStatusLabel, currentPhaseIndex, hasDealerReturned, type PhaseState } from '@/lib/reviewerFlow';
 import { exemptionSummary } from '@/lib/tax';
@@ -121,6 +122,7 @@ export default async function StaffApplicationDetail({
       confirmation: { include: { confirmedBy: true } },
       verificationChecks: { include: { checkedBy: true } },
       paymentSplits: { orderBy: { sortOrder: 'asc' } },
+      cancellations: { orderBy: { createdAt: 'desc' }, take: 1, include: { requestedBy: true, handledBy: true } },
     },
     }),
     prisma.financeCompany.findMany({
@@ -719,6 +721,23 @@ export default async function StaffApplicationDetail({
     </div>
   );
 
+  const cx = app.cancellations[0] ?? null;
+  const cancellationVM: CancellationReviewVM | null = cx
+    ? {
+        id: cx.id,
+        status: cx.status as 'PENDING' | 'CONFIRMED' | 'REJECTED',
+        reason: cx.reason,
+        requestedBy: cx.requestedBy?.name ?? 'Dealer',
+        requestedAt: cx.createdAt.toLocaleString('en-CA'),
+        wasFunded: cx.wasFunded,
+        uninstallDate: cx.uninstallDate ? cx.uninstallDate.toLocaleDateString('en-CA') : null,
+        hdRefundConfirmed: cx.hdRefundConfirmed,
+        handledAt: cx.handledAt ? cx.handledAt.toLocaleString('en-CA') : null,
+        handledBy: cx.handledBy?.name ?? null,
+        reviewerNote: cx.reviewerNote,
+      }
+    : null;
+
   return (
     <div className="space-y-6">
       <div>
@@ -746,6 +765,9 @@ export default async function StaffApplicationDetail({
             </div>
           </div>
         </div>
+
+        {/* Dealer-requested cancellation — reviewer confirms (or rejects) it. */}
+        {cancellationVM && <CancellationReviewCard c={cancellationVM} />}
 
         {/* Progress tracker */}
         <DealProgress

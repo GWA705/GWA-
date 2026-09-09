@@ -50,6 +50,25 @@ source of truth; this file is the human-readable index.
   `testSingleLead()` on a French lead first. Portal display auto-translates lead
   free-text via DeepL.
 
+## 2026-09-09
+- **Deal cancellations — dealer requests, reviewer confirms.** Dealers can now
+  cancel a deal from its detail page (near the status). A cancellation is a
+  **request that a reviewer must confirm** before it finalizes — it is never
+  closed by the dealer alone.
+  - **Before install / funding:** dealer gives a reason → reviewer confirms → the
+    deal is set to **Withdrawn**.
+  - **After funding:** the dealer also records the **equipment uninstall date**;
+    because the deal was paid, it's flagged to reviewers as a **priority** and the
+    reviewer must tick **"Home Depot refund processed"** before confirming. On
+    confirm the deal is Withdrawn and the dealer is told the refund is confirmed.
+  - Every step (request + reason + uninstall date, reviewer confirm/reject + HD
+    refund) is written to the deal's **note trail**, so it lives on the customer
+    file and both sides see it. New `DealCancellation` model + migration; new
+    `notifyCancellationRequested`/`notifyCancellationResolved`. Reason required;
+    reopening is staff-only (a reviewer can reject a request). `WITHDRAWN` (already
+    a terminal status everywhere) is reused, so cancelled deals drop out of
+    reminders, SLA and paid-sync automatically.
+
 ## 2026-09-08
 - **Finance-app scan: hardened date parsing + "double-check" flags on shaky reads.**
   The credit-app scanner's date converter only understood `MM/DD/YYYY` (slash/dash)

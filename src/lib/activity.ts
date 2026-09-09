@@ -1,6 +1,6 @@
 import { prisma } from './db';
 
-export type DealerActionKind = 'SUBMITTED' | 'DOCUMENT' | 'NOTE' | 'FUNDING';
+export type DealerActionKind = 'SUBMITTED' | 'DOCUMENT' | 'NOTE' | 'FUNDING' | 'CANCELLATION';
 
 /**
  * Record that the dealer just did something on a deal (submit, upload, note,

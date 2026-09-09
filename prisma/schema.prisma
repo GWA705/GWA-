@@ -601,6 +601,8 @@ model User {
   giftCardsSent         GiftCardRequest[] @relation("GiftCardSentBy")
   giftCardNotes         GiftCardNote[]    @relation("GiftCardNoteAuthor")
   dealerDocsUploaded    DealerDocument[]  @relation("DealerDocUploader")
+  cancellationsRequested DealCancellation[] @relation("CancellationRequestedBy")
+  cancellationsHandled   DealCancellation[] @relation("CancellationHandledBy")
 
   @@index([dealerId])
 }
@@ -920,6 +922,47 @@ enum ConfirmationStatus {
   ISSUE // a problem was found during confirmation
 }
 
+// A dealer's request to cancel a deal. A deal that fell through — before install,
+// or (after it was funded) one that later cancels and needs a Home Depot refund.
+// It is NOT final until a reviewer confirms it: PENDING → CONFIRMED (deal
+// withdrawn; for a funded deal the reviewer confirms the HD refund first) or
+// REJECTED (deal stays active). One dealer request needs one reviewer sign-off.
+enum CancellationStatus {
+  PENDING
+  CONFIRMED
+  REJECTED
+}
+
+model DealCancellation {
+  id            String             @id @default(cuid())
+  applicationId String
+  application   Application        @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  requestedById String
+  requestedBy   User               @relation("CancellationRequestedBy", fields: [requestedById], references: [id])
+  reason        String             @db.Text
+  // The deal's status when cancellation was requested, and whether it had already
+  // been funded (→ a Home Depot refund is owed before it can be finalized).
+  priorStatus   ApplicationStatus
+  wasFunded     Boolean            @default(false)
+  // When a funded/installed deal is cancelled, the dealer records the date the
+  // equipment was uninstalled.
+  uninstallDate DateTime?
+  status        CancellationStatus @default(PENDING)
+  // Reviewer resolution.
+  handledById   String?
+  handledBy     User?              @relation("CancellationHandledBy", fields: [handledById], references: [id])
+  handledAt     DateTime?
+  reviewerNote  String?            @db.Text
+  // For a funded deal, the reviewer confirms the HD refund was processed (HD
+  // emailed + confirmation received) before finalizing the cancellation.
+  hdRefundConfirmed Boolean         @default(false)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  @@index([applicationId])
+  @@index([status])
+}
+
 enum ApplicationStatus {
   DRAFT
   SUBMITTED
@@ -1106,6 +1149,7 @@ model Application {
   confirmation    Confirmation?
   verificationChecks VerificationCheck[]
   dealerReminders DealerReminder[]
+  cancellations   DealCancellation[]
 
   @@index([dealerId])
   @@index([status])

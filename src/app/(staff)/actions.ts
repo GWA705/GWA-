@@ -13,7 +13,7 @@ import { mergeProductsSold, journalProductNames } from '@/lib/products';
 import { writeDealToJournal, journalEnabled, type JournalDeal } from '@/lib/journal';
 import { storeFiles } from '@/lib/upload';
 import { deleteDocument } from '@/lib/storage';
-import { notifyStatusChange, notifyNewNote } from '@/lib/notify';
+import { notifyStatusChange, notifyNewNote, notifyCancellationResolved } from '@/lib/notify';
 import {
   decisionSchema,
   payoutSchema,
@@ -342,6 +342,93 @@ export async function startFundingReviewAction(applicationId: string): Promise<v
   await markReviewerAction(applicationId);
   revalidatePath(`/staff/applications/${applicationId}`);
   revalidatePath('/staff');
+}
+
+export interface CancellationActionState {
+  error?: string;
+  ok?: boolean;
+}
+
+/**
+ * A reviewer confirms a dealer's cancellation request, finalizing it: the deal is
+ * set to WITHDRAWN. For a deal that was already funded, the reviewer must confirm
+ * the Home Depot refund was processed first (tick the box) — that's the whole
+ * reason a funded cancellation can't be finalized automatically.
+ */
+export async function confirmCancellationAction(
+  cancellationId: string,
+  _prev: CancellationActionState,
+  formData: FormData,
+): Promise<CancellationActionState> {
+  const session = await requireStaffSection('review-queue');
+  const c = await prisma.dealCancellation.findUnique({ where: { id: cancellationId }, include: { application: true } });
+  if (!c) return { error: 'Not found.' };
+  if (c.status !== 'PENDING') return { error: 'This request has already been resolved.' };
+
+  const hdRefundConfirmed = formData.get('hdRefundConfirmed') === 'on' || formData.get('hdRefundConfirmed') === '1';
+  if (c.wasFunded && !hdRefundConfirmed) {
+    return { error: 'This deal was funded — confirm the Home Depot refund was processed before finalizing.' };
+  }
+  const note = (formData.get('note') ?? '').toString().trim().slice(0, 2000) || null;
+
+  const trail = [
+    `✅ Cancellation confirmed by a reviewer. The deal is now closed.`,
+    c.wasFunded ? `Home Depot refund confirmed.` : null,
+    note ? `Note: ${note}` : null,
+  ].filter(Boolean).join(' ');
+
+  await prisma.$transaction([
+    prisma.dealCancellation.update({
+      where: { id: cancellationId },
+      data: { status: 'CONFIRMED', handledById: session.userId, handledAt: new Date(), reviewerNote: note, hdRefundConfirmed: c.wasFunded ? true : hdRefundConfirmed },
+    }),
+    prisma.application.update({ where: { id: c.applicationId }, data: { status: 'WITHDRAWN' } }),
+    prisma.statusEvent.create({
+      data: {
+        applicationId: c.applicationId,
+        from: c.application.status,
+        to: 'WITHDRAWN',
+        actorId: session.userId,
+        note: `Cancellation confirmed${c.wasFunded ? ' (Home Depot refund processed)' : ''}`,
+      },
+    }),
+    // Dealer-visible note so the confirmation (and HD refund) lives on the file.
+    prisma.note.create({ data: { applicationId: c.applicationId, authorId: session.userId, body: trail, internal: false } }),
+  ]);
+
+  await audit({ actorId: session.userId, action: 'STATUS_CHANGE', entityType: 'DealCancellation', entityId: cancellationId, detail: 'Cancellation confirmed → WITHDRAWN' });
+  await notifyCancellationResolved(c.applicationId, true, note);
+  revalidatePath(`/staff/applications/${c.applicationId}`);
+  revalidatePath('/staff');
+  return { ok: true };
+}
+
+/** A reviewer rejects a dealer's cancellation request; the deal stays active. */
+export async function rejectCancellationAction(
+  cancellationId: string,
+  _prev: CancellationActionState,
+  formData: FormData,
+): Promise<CancellationActionState> {
+  const session = await requireStaffSection('review-queue');
+  const c = await prisma.dealCancellation.findUnique({ where: { id: cancellationId } });
+  if (!c) return { error: 'Not found.' };
+  if (c.status !== 'PENDING') return { error: 'This request has already been resolved.' };
+
+  const note = (formData.get('note') ?? '').toString().trim().slice(0, 2000) || null;
+  const trail = [`↩️ Cancellation request declined by a reviewer. The deal remains active.`, note ? `Note: ${note}` : null].filter(Boolean).join(' ');
+  await prisma.$transaction([
+    prisma.dealCancellation.update({
+      where: { id: cancellationId },
+      data: { status: 'REJECTED', handledById: session.userId, handledAt: new Date(), reviewerNote: note },
+    }),
+    prisma.note.create({ data: { applicationId: c.applicationId, authorId: session.userId, body: trail, internal: false } }),
+  ]);
+
+  await audit({ actorId: session.userId, action: 'STATUS_CHANGE', entityType: 'DealCancellation', entityId: cancellationId, detail: 'Cancellation rejected' });
+  await notifyCancellationResolved(c.applicationId, false, note);
+  revalidatePath(`/staff/applications/${c.applicationId}`);
+  revalidatePath('/staff');
+  return { ok: true };
 }
 
 // Reviewer/admin uploads paperwork FOR the dealer. The category is chosen from

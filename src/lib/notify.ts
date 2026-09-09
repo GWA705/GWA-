@@ -169,6 +169,85 @@ export async function notifyFundingSubmitted(applicationId: string) {
   }
 }
 
+/**
+ * A dealer requested to cancel a deal — reviewers/admins are alerted (email +
+ * push) so they can confirm it. A funded deal is flagged as a priority because a
+ * Home Depot refund is owed before it can be finalized.
+ */
+export async function notifyCancellationRequested(applicationId: string, wasFunded: boolean) {
+  try {
+    const app = await prisma.application.findUnique({ where: { id: applicationId }, include: { dealer: true } });
+    if (!app) return;
+    const deal = dealLabel(app);
+    const priority = wasFunded ? '⚠️ Priority — ' : '';
+    const refundLine = wasFunded
+      ? 'This deal was already <strong>funded</strong>, so a Home Depot refund is owed. Process the refund with Home Depot and confirm it before finalizing the cancellation.'
+      : 'Review the request and confirm or reject the cancellation.';
+    const staff = await prisma.user.findMany({
+      where: { role: { in: STAFF_ROLES }, active: true },
+      select: { email: true, notificationEmail: true },
+    });
+    for (const u of staff) {
+      await sendEmail({
+        to: recipientEmail(u),
+        subject: `${priority}Cancellation requested (${deal})`,
+        html: renderEmail({
+          heading: 'A dealer requested to cancel a deal',
+          intro: `${app.dealer.name} asked to cancel the deal for ${deal}.`,
+          bodyHtml: `<p style="margin:0 0 14px;font-size:14px;line-height:1.6;color:#374151;">${refundLine}</p>`,
+          ctaLabel: 'Review the request',
+          ctaUrl: `${appUrl()}/staff/applications/${applicationId}`,
+        }),
+      });
+    }
+    await sendPushToRoles(STAFF_ROLES, {
+      title: wasFunded ? 'Cancellation — refund needed' : 'Cancellation requested',
+      body: `${deal} (${app.dealer.name}) — a dealer requested to cancel this deal.`,
+      url: `/staff/applications/${applicationId}`,
+      tag: `cancel-${applicationId}`,
+    });
+  } catch (e) {
+    console.error('[notify] cancellation requested failed', e);
+  }
+}
+
+/** A reviewer confirmed or rejected a dealer's cancellation — the dealer is told. */
+export async function notifyCancellationResolved(applicationId: string, confirmed: boolean, note?: string | null) {
+  try {
+    const app = await prisma.application.findUnique({ where: { id: applicationId } });
+    if (!app) return;
+    const deal = dealLabel(app);
+    const users = await prisma.user.findMany({
+      where: { dealerId: app.dealerId, role: 'DEALER_USER', active: true },
+      select: { id: true, email: true, notificationEmail: true },
+    });
+    const heading = confirmed ? 'Your cancellation was confirmed' : 'Your cancellation request was declined';
+    const intro = confirmed
+      ? `The cancellation of the deal for ${deal} has been confirmed by a reviewer. The deal is now closed.`
+      : `A reviewer declined the request to cancel the deal for ${deal}. It remains active.`;
+    const noteHtml = note && note.trim()
+      ? `<p style="margin:0 0 14px;font-size:14px;color:#374151;"><strong>Reviewer note:</strong> ${note.trim().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>`
+      : '';
+    for (const u of users) {
+      await sendEmail({
+        to: recipientEmail(u),
+        subject: `${confirmed ? 'Cancellation confirmed' : 'Cancellation declined'} (${deal})`,
+        html: renderEmail({ heading, intro, bodyHtml: noteHtml, ctaLabel: 'Open deal', ctaUrl: `${appUrl()}/dealer/applications/${applicationId}` }),
+      });
+    }
+    for (const u of users) {
+      await sendPushToUser(u.id, {
+        title: heading,
+        body: `${deal} — ${confirmed ? 'cancellation confirmed' : 'request declined'}.`,
+        url: `/dealer/applications/${applicationId}`,
+        tag: `cancel-res-${applicationId}`,
+      });
+    }
+  } catch (e) {
+    console.error('[notify] cancellation resolved failed', e);
+  }
+}
+
 /** A new note notifies the other side of the conversation. */
 export async function notifyNewNote(applicationId: string, authorRole: Role) {
   try {

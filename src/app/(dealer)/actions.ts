@@ -13,14 +13,14 @@ import { findCardData, CARD_BLOCK_MESSAGE } from '@/lib/cardscan';
 import { storeFiles } from '@/lib/upload';
 import { deleteDocument } from '@/lib/storage';
 import { markDealerAction } from '@/lib/activity';
-import { notifyNewDocuments, notifyNewNote, notifyNewSubmission, notifyFundingSubmitted, notifyAdminsUserRequest } from '@/lib/notify';
+import { notifyNewDocuments, notifyNewNote, notifyNewSubmission, notifyFundingSubmitted, notifyAdminsUserRequest, notifyCancellationRequested } from '@/lib/notify';
 import { applicationSchema, serialNumberSchema } from '@/lib/validation';
 import { mergeProductsSold, addDealerCustomProducts } from '@/lib/products';
 import { parseDealerProfileForm } from '@/lib/dealerProfile';
 import { applyDealerLogo } from '@/lib/dealerLogo';
 import { CONSENT_POLICY_VERSION, CONSENT_TEXT, PAYMENT_METHOD_LABELS, FUNDING_DOCUMENT_TYPES, SPLIT_PAYMENT_METHODS } from '@/lib/constants';
 import { validateSplits } from '@/lib/payments';
-import type { DocumentType, PaymentMethod, Prisma } from '@prisma/client';
+import type { ApplicationStatus, DocumentType, PaymentMethod, Prisma } from '@prisma/client';
 
 export interface ActionState {
   error?: string;
@@ -495,6 +495,75 @@ export async function submitFundingAction(applicationId: string): Promise<void> 
   await audit({ actorId: session.userId, action: 'FUNDING_SUBMIT', entityType: 'Application', entityId: applicationId });
   await notifyFundingSubmitted(applicationId);
   redirect(`/dealer/applications/${applicationId}`);
+}
+
+// Statuses where a dealer can no longer request a cancellation (already closed).
+const CANCEL_BLOCKED: ApplicationStatus[] = ['WITHDRAWN', 'DECLINED', 'DRAFT'];
+
+/**
+ * A dealer requests to cancel a deal — before install, or (after it was funded)
+ * one that later falls through and needs a Home Depot refund. This does NOT close
+ * the deal on its own: it creates a PENDING request that a reviewer must confirm
+ * before it finalizes. A reason is required.
+ */
+export async function requestCancellationAction(
+  applicationId: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await requireDealerAccess();
+  const app = await prisma.application.findUnique({
+    where: { id: applicationId },
+    include: { cancellations: { where: { status: 'PENDING' }, take: 1 } },
+  });
+  if (!app || !canAccessAsDealer(session, app.dealerId)) return { error: 'Not found.' };
+  if (CANCEL_BLOCKED.includes(app.status)) return { error: 'This deal is already closed and can’t be cancelled.' };
+  if (app.cancellations.length > 0) return { error: 'A cancellation request is already pending review for this deal.' };
+
+  const reason = (formData.get('reason') ?? '').toString().trim();
+  if (reason.length < 3) return { error: 'Please give a brief reason for the cancellation.' };
+
+  const wasFunded = app.status === 'FUNDED';
+
+  // A funded deal was installed, so the dealer records when the equipment was
+  // uninstalled. Required in that case; ignored otherwise.
+  let uninstallDate: Date | null = null;
+  if (wasFunded) {
+    const raw = (formData.get('uninstallDate') ?? '').toString().trim();
+    if (!raw) return { error: 'Enter the date the equipment was uninstalled.' };
+    const d = new Date(`${raw}T00:00:00`);
+    if (Number.isNaN(d.getTime())) return { error: 'That uninstall date is not valid.' };
+    uninstallDate = d;
+  }
+
+  const created = await prisma.dealCancellation.create({
+    data: {
+      applicationId,
+      requestedById: session.userId,
+      reason: reason.slice(0, 2000),
+      priorStatus: app.status,
+      wasFunded,
+      uninstallDate,
+    },
+  });
+
+  // Log the request to the deal's note trail so it lives with the customer file
+  // and both the dealer and staff can see it over time.
+  const trail = [
+    `🚫 Cancellation requested.`,
+    `Reason: ${reason.slice(0, 1000)}`,
+    uninstallDate ? `Equipment uninstalled: ${uninstallDate.toLocaleDateString('en-CA')}.` : null,
+    wasFunded ? `This deal was funded — a Home Depot refund is required before it can be finalized.` : null,
+    `Awaiting reviewer confirmation.`,
+  ].filter(Boolean).join(' ');
+  await prisma.note.create({ data: { applicationId, authorId: session.userId, body: trail, internal: false } });
+
+  await markDealerAction(applicationId, 'CANCELLATION');
+  await audit({ actorId: session.userId, action: 'STATUS_CHANGE', entityType: 'DealCancellation', entityId: created.id, detail: `Cancellation requested (${wasFunded ? 'funded — refund needed' : app.status})` });
+  await notifyCancellationRequested(applicationId, wasFunded);
+
+  revalidatePath(`/dealer/applications/${applicationId}`);
+  return { ok: true };
 }
 
 // Dealer adds a note to the dealer-visible thread on their own deal.
