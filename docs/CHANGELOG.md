@@ -51,6 +51,17 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-09
+- **Funding report + deal-status search (`/staff/reports/funding`).** A weekly view
+  of deals funded (including deals auto-funded from an HD remittance), grouped by
+  office with per-office totals, a funded-value figure, and an approved-but-not-yet-
+  funded pipeline count; week-by-week navigation. Below it, a **search deals by
+  status** filter — pick any status (Funded, Approved, Problem, Withdrawn, …) to
+  pull the current list with counts and approved-value totals. Internal (staff);
+  dollar figures never reach dealers. Reads portal data (FUNDED status events), so
+  it stays accurate as remittances auto-fund deals. New report card + `fundingReport.ts`.
+  - **Weekly email:** `sendWeeklyFundingReport()` + cron `/api/cron/weekly-funding-report`
+    email last week's funding summary to admins (schedule Monday ~9am — added to the
+    go-live checklist).
 - **Home Depot remittance → auto-fund (`/staff/remittances`).** When HD pays
   (Mon/Wed/Fri), the remittance's invoices are matched to deals by HD # and matched
   deals are marked **Funded** automatically. **All dollar figures stay internal —

@@ -64,6 +64,14 @@ export default async function ReportsLandingPage() {
       available: true,
     },
     {
+      href: '/staff/reports/funding',
+      title: t('staffReportsHub.funding.title'),
+      blurb: t('staffReportsHub.funding.blurb'),
+      accent: '#1a7a4a',
+      badge: 'Operations',
+      available: true,
+    },
+    {
       href: '/staff/reports/finance',
       title: t('staffReportsHub.finance.title'),
       blurb: t('staffReportsHub.finance.blurb'),

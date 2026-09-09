@@ -2272,6 +2272,10 @@ export const fr: Dictionary = {
       title: 'Taux de financement',
       blurb: 'Comment les transactions ont été payées — financées (Financeit / prêts) vs comptant — avec un taux de pénétration global et par magasin.',
     },
+    funding: {
+      title: 'Rapport de financement',
+      blurb: 'Transactions financées chaque semaine par bureau (y compris celles financées automatiquement à partir d’une remise Home Depot), plus une recherche par statut.',
+    },
     productMix: {
       title: 'Gamme de produits et taux d’ajout',
       blurb: 'Quels produits se vendent, à quelle fréquence, et le nombre moyen de produits par transaction — par bureau, par année.',

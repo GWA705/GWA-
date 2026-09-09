@@ -2268,6 +2268,10 @@ export const en = {
       title: 'Finance penetration',
       blurb: 'How deals were paid — financed (Financeit / loans) vs cash — with a penetration % overall and per store.',
     },
+    funding: {
+      title: 'Funding report',
+      blurb: 'Deals funded each week by office (including deals auto-funded from a Home Depot remittance), plus a search of deals by any status.',
+    },
     productMix: {
       title: 'Product mix & attach rate',
       blurb: 'Which products sell, how often, and the average number of products per deal — per office, per year.',

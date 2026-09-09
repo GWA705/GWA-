@@ -23,6 +23,8 @@ outside business hours, so running every ~15 min all day is fine.
      `curl -fsS -X POST https://portal.ghsbarrie.ca/api/cron/journal-paid-sync -H "Authorization: Bearer $CRON_SECRET"`
    - Business-document expiry reminders (`0 13 * * *` — ~9am Eastern, once daily):
      `curl -fsS -X POST https://portal.ghsbarrie.ca/api/cron/doc-expiry-reminders -H "Authorization: Bearer $CRON_SECRET"`
+   - Weekly funding report (`0 13 * * 1` — Monday ~9am Eastern, emails admins last week's funding):
+     `curl -fsS -X POST https://portal.ghsbarrie.ca/api/cron/weekly-funding-report -H "Authorization: Bearer $CRON_SECRET"`
 
    (Set `CRON_SECRET` on each cron job's env too, or inline the value.) The
    **first** new-leads run silently baselines existing leads and pushes nothing,
