@@ -51,6 +51,21 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-09
+- **Home Depot remittance → auto-fund (`/staff/remittances`).** When HD pays
+  (Mon/Wed/Fri), the remittance's invoices are matched to deals by HD # and matched
+  deals are marked **Funded** automatically. **All dollar figures stay internal —
+  a dealer never sees a remittance amount** (funding shows only as the "Funded"
+  status, with a money-free status event). **Chargebacks** flag the deal (internal
+  note) for the refund flow; **unmatched** lines surface an attention count.
+  - Two intake paths: an **idempotent webhook** `POST /api/hd-remittance/ingest`
+    (Bearer `CRON_SECRET`) the existing Google remittance script can POST to (see
+    `docs/HD-REMITTANCE.md` for the ~15-line addition), **and** a **manual paste**
+    form (HD ID, amount, name — negative = chargeback).
+  - New `HdRemittance` + `HdRemittanceLine` models + migration; matching/funding
+    engine `src/lib/hdRemittance.ts`; reviewer/admin list + per-remittance detail;
+    new admin section `remittances`. Reuses `CRON_SECRET` (no new env var).
+  - **Still to come (discussed):** a pullable weekly funding report + a broader
+    deal-status search/report.
 - **Cancellations queue (`/staff/cancellations`).** A sortable view of every deal
   a dealer asked to cancel, with tabs: **Refund pending** (funded deals awaiting
   the HD refund — the "what still needs refunding" list), **Awaiting review**,

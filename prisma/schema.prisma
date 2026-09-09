@@ -603,6 +603,7 @@ model User {
   dealerDocsUploaded    DealerDocument[]  @relation("DealerDocUploader")
   cancellationsRequested DealCancellation[] @relation("CancellationRequestedBy")
   cancellationsHandled   DealCancellation[] @relation("CancellationHandledBy")
+  remittancesProcessed   HdRemittance[]     @relation("RemittanceProcessedBy")
 
   @@index([dealerId])
 }
@@ -933,6 +934,59 @@ enum CancellationStatus {
   REJECTED
 }
 
+// How we get paid by Home Depot: a "remittance" arrives Mon/Wed/Fri listing the
+// invoices HD is paying (by HD ID #) plus any chargebacks. Ingesting one matches
+// each line to a deal by hdReference and marks matched deals FUNDED. All dollar
+// figures here are INTERNAL (reviewer/admin) — never shown to dealers.
+enum RemittanceSource {
+  WEBHOOK // pushed by the Google Apps Script that parses the HD email
+  MANUAL  // entered/pasted in the portal
+}
+
+enum RemittanceLineStatus {
+  MATCHED    // matched to a deal and funded
+  UNMATCHED  // no deal found for this HD ID (needs attention)
+  CHARGEBACK // HD clawed money back — flagged into the refund flow
+}
+
+model HdRemittance {
+  id             String             @id @default(cuid())
+  documentNumber String?            @unique // HD's remittance document number (dedupe key)
+  documentDate   DateTime?
+  paymentDate    DateTime?
+  totalNet       Decimal?           @db.Decimal(12, 2)
+  source         RemittanceSource   @default(WEBHOOK)
+  processedById  String?
+  processedBy    User?              @relation("RemittanceProcessedBy", fields: [processedById], references: [id])
+  lineCount      Int                @default(0)
+  matchedCount   Int                @default(0)
+  chargebackCount Int               @default(0)
+  createdAt      DateTime           @default(now())
+  lines          HdRemittanceLine[]
+
+  @@index([paymentDate])
+}
+
+model HdRemittanceLine {
+  id            String               @id @default(cuid())
+  remittanceId  String
+  remittance    HdRemittance         @relation(fields: [remittanceId], references: [id], onDelete: Cascade)
+  hdIdNumber    String
+  customerName  String? // as it appeared on the remittance / journal match (internal)
+  amount        Decimal              @db.Decimal(12, 2) // net; negative for a chargeback
+  invoiceDate   DateTime?
+  isChargeback  Boolean              @default(false)
+  status        RemittanceLineStatus @default(UNMATCHED)
+  applicationId String?
+  application   Application?         @relation(fields: [applicationId], references: [id])
+  fundedNow     Boolean              @default(false) // this line advanced the deal to FUNDED
+  createdAt     DateTime             @default(now())
+
+  @@index([remittanceId])
+  @@index([hdIdNumber])
+  @@index([applicationId])
+}
+
 model DealCancellation {
   id            String             @id @default(cuid())
   applicationId String
@@ -1150,6 +1204,7 @@ model Application {
   verificationChecks VerificationCheck[]
   dealerReminders DealerReminder[]
   cancellations   DealCancellation[]
+  remittanceLines HdRemittanceLine[]
 
   @@index([dealerId])
   @@index([status])

@@ -578,6 +578,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
   { key: 'leads', label: 'Leads', href: '/staff/leads', hint: 'HD leads (all offices)' },
   { key: 'customer-search', label: 'Find customer', href: '/staff/find-customer', hint: 'Search all customers + sales journals' },
   { key: 'cancellations', label: 'Cancellations', href: '/staff/cancellations', hint: 'Dealer cancellations + refunds due' },
+  { key: 'remittances', label: 'HD Remittances', href: '/staff/remittances', hint: 'Home Depot payments → auto-fund deals' },
   { key: 'resource-library', label: 'Resource library', href: '/admin/resource-library', hint: 'Product manuals & brochures' },
   { key: 'dealers', label: 'Dealers', href: '/admin/dealers' },
   { key: 'dealer-documents', label: 'Dealer documents', href: '/admin/dealer-documents', hint: 'WSIB/WCB compliance & expiry' },
