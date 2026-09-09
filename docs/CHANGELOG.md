@@ -51,6 +51,13 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-09
+- **Cancellations queue (`/staff/cancellations`).** A sortable view of every deal
+  a dealer asked to cancel, with tabs: **Refund pending** (funded deals awaiting
+  the HD refund — the "what still needs refunding" list), **Awaiting review**,
+  **Installed & cancelled** (funded then cancelled), **Before install**, and All.
+  Each row shows customer, dealer, reason, uninstall date, HD-refund status and a
+  link to the deal. New admin section `cancellations`; also linked from the staff
+  Deals dashboard. Reviewer + admin access.
 - **Deal cancellations — dealer requests, reviewer confirms.** Dealers can now
   cancel a deal from its detail page (near the status). A cancellation is a
   **request that a reviewer must confirm** before it finalizes — it is never

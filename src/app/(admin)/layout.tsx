@@ -21,7 +21,7 @@ interface NavItem {
 // key from ADMIN_SECTIONS; unauthorized keys are filtered out and empty groups
 // are dropped.
 const NAV_GROUPS: { label: string; keys: string[] }[] = [
-  { label: 'Deals', keys: ['review-queue', 'reports', 'leads', 'customer-search'] },
+  { label: 'Deals', keys: ['review-queue', 'reports', 'leads', 'customer-search', 'cancellations'] },
   { label: 'Dealers', keys: ['dealers', 'dealer-documents', 'directory', 'user-requests', 'support-contacts'] },
   { label: 'Content', keys: ['resource-library', 'content', 'marketplace', 'announcements', 'alerts', 'reminders', 'note-templates'] },
   { label: 'People', keys: ['users'] },
