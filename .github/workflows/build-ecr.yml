@@ -1,0 +1,65 @@
+name: Build & push image to ECR
+
+# Builds the app's Docker image and pushes it to Amazon ECR
+# (ca-central-1) so it can run on AWS. Render is unaffected by this workflow.
+#
+# Requires repo secrets: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY (IAM user
+# github-ecr-push, ECR PowerUser). Optionally NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+# and NEXT_PUBLIC_VAPID_PUBLIC_KEY — these are inlined into the client bundle at
+# build time (they're public values, safe as build args).
+
+on:
+  push:
+    branches: [claude/pci-credit-application-portal-vi7d6r]
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+env:
+  AWS_REGION: ca-central-1
+  ECR_REPOSITORY: gwa-portal
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Log in to Amazon ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64
+          tags: |
+            ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
+            ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+          build-args: |
+            NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=${{ secrets.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY }}
+            NEXT_PUBLIC_VAPID_PUBLIC_KEY=${{ secrets.NEXT_PUBLIC_VAPID_PUBLIC_KEY }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Summary
+        run: |
+          echo "Pushed to ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest" >> "$GITHUB_STEP_SUMMARY"
+          echo "Tag: ${{ github.sha }}" >> "$GITHUB_STEP_SUMMARY"
