@@ -51,6 +51,12 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-09
+- **AWS migration prep — container build files.** Added a root `Dockerfile`
+  (multi-stage, Node 20, exposes the `NEXT_PUBLIC_*` build args, runs
+  `scripts/start.sh`) and `.dockerignore` so the app can be built for ECS Fargate
+  in `ca-central-1` — co-locating compute with the RDS DB + S3 to kill the
+  US↔Canada round trip that makes pages slow. **Render is unaffected** (it uses
+  `runtime: node`, not this Dockerfile). Full cutover in `docs/AWS-MIGRATION.md`.
 - **Funding report + deal-status search (`/staff/reports/funding`).** A weekly view
   of deals funded (including deals auto-funded from an HD remittance), grouped by
   office with per-office totals, a funded-value figure, and an approved-but-not-yet-

@@ -1,0 +1,18 @@
+# Keep the build context small and never bake local secrets/artifacts into the image.
+.git
+.github
+node_modules
+.next
+out
+storage
+*.log
+npm-debug.log*
+.env
+.env.*
+!.env.example
+.vscode
+.idea
+coverage
+Dockerfile
+.dockerignore
+docs
