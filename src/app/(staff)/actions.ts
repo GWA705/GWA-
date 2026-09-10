@@ -247,6 +247,7 @@ export async function recordDecisionAction(
       financeItNumber: effFinanceItNumber,
       hdReference: effHdReference,
       programType: app.programType,
+      paymentMethod: app.paymentMethod,
     });
     if (gate) return { error: gate };
   }
@@ -898,6 +899,7 @@ export async function changeStatusAction(
       financeItNumber: app.financeItNumber,
       hdReference: app.hdReference,
       programType: app.programType,
+      paymentMethod: app.paymentMethod,
     });
     if (gate) return { error: `${gate} (Use the Approve form to add them.)` };
   }

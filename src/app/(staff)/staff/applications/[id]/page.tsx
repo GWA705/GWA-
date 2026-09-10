@@ -11,6 +11,7 @@ import { FundingChecklist } from '@/components/FundingChecklist';
 import { VerificationChecklist, type VerificationState } from '@/components/VerificationChecklist';
 import { ReviewerEntryView } from '@/components/ReviewerEntryView';
 import { CollapsibleEntry } from '@/components/CollapsibleEntry';
+import { CollapsibleSection } from '@/components/CollapsibleSection';
 import { PayoutReceipt } from '@/components/PayoutReceipt';
 import { ReviewerPaperworkBoxes } from './ReviewerPaperworkBoxes';
 import { ReviewerDoneButton } from './ReviewerDoneButton';
@@ -24,6 +25,7 @@ import { ProgramBadge } from '@/components/ProgramBadge';
 import {
   PROGRAM_CATEGORY_LABELS,
   dealIsFinanced,
+  financeCompanyDisplay,
   hdReferenceRequired,
   missingRequiredReferences,
 } from '@/lib/constants';
@@ -323,14 +325,6 @@ export default async function StaffApplicationDetail({
         financed={dealFinanced}
         hdRequired={hdReferenceRequired(app.programType)}
       />
-      {journalEnabled() && decided && (
-        <WriteToJournalButton
-          applicationId={app.id}
-          syncedAt={app.journalSyncedAt ? app.journalSyncedAt.toISOString() : null}
-          tab={app.journalTab}
-          row={app.journalRow}
-        />
-      )}
       {dealFinanced && (
         <VerifyFinanceNumberButton
           applicationId={app.id}
@@ -348,8 +342,7 @@ export default async function StaffApplicationDetail({
   // read as one flow — make the call here (approve / decline / request docs),
   // change it later, or jump the status by hand.
   const decisionSection = (
-    <div className="rounded-lg border border-gray-200 bg-white p-4">
-      <h3 className="mb-3 text-sm font-semibold text-gray-700">Decision</h3>
+    <div>
       {app.status === 'SUBMITTED' && (
         <form action={startReview} className="mb-4">
           <button type="submit" className="btn-secondary w-full sm:w-auto">Start review</button>
@@ -380,13 +373,38 @@ export default async function StaffApplicationDetail({
     </div>
   );
 
+  // Write-to-journal lives at the very top of "Review & decide" — it's the action
+  // a reviewer reaches for most once a deal is decided, so it shouldn't be buried.
+  const journalTopSection =
+    journalEnabled() && decided ? (
+      <div className="rounded-lg border border-gray-200 bg-white p-4">
+        <WriteToJournalButton
+          applicationId={app.id}
+          syncedAt={app.journalSyncedAt ? app.journalSyncedAt.toISOString() : null}
+          tab={app.journalTab}
+          row={app.journalRow}
+        />
+      </div>
+    ) : null;
+
+  // Edit button — anything the dealer submitted can be corrected here (e.g. a
+  // deal that came in without a finance company). Opens the full edit form.
+  const editButton = (
+    <div className="flex justify-end">
+      <Link href={`/staff/applications/${app.id}/edit`} className="btn-secondary text-sm">
+        Edit deal details
+      </Link>
+    </div>
+  );
+
   const phaseBody: Record<string, ReactNode> = {
-    // 1 · Review & decide
+    // 1 · Review & decide. Order (per reviewer request): write-to-journal at the
+    // top, then the customer information, an Edit button, the working numbers and
+    // documents, and finally the Decision area — folded away at the bottom since
+    // it's the least-touched part once a deal is moving.
     decide: (
       <div className="space-y-6">
-        {paymentBreakdownSection}
-        {decisionSection}
-        {dealNumbersSection}
+        {journalTopSection}
         <CollapsibleEntry
           storageKey={`entryview:${app.id}`}
           snapshot={
@@ -398,8 +416,8 @@ export default async function StaffApplicationDetail({
               <div><dt className="text-gray-500">Product(s)</dt><dd className="font-medium">{app.productsSold.length ? app.productsSold.join(', ') : '—'}</dd></div>
               <div><dt className="text-gray-500">Amount</dt><dd className="font-medium">{app.approvedAmount ? `$${app.approvedAmount.toString()}` : `$${app.requestedAmount.toString()}`}</dd></div>
               {app.isSplitPayment && <div><dt className="text-gray-500">Financed</dt><dd className="font-medium text-brand-700">${financedAmt.toLocaleString('en-CA', { minimumFractionDigits: 2 })} <span className="text-xs font-normal text-gray-400">(split)</span></dd></div>}
-              {app.paymentMethod && <div><dt className="text-gray-500">Payment</dt><dd className="font-medium">{paymentMethodLabel(t, app.paymentMethod)}</dd></div>}
-              <div><dt className="text-gray-500">Finance company</dt><dd className="font-medium">{app.financeCompany?.name ?? '—'}</dd></div>
+              <div><dt className="text-gray-500">Payment</dt><dd className="font-medium">{app.paymentMethod ? paymentMethodLabel(t, app.paymentMethod) : 'Not specified'}</dd></div>
+              <div><dt className="text-gray-500">Finance company</dt><dd className="font-medium">{financeCompanyDisplay(app)}</dd></div>
               <div><dt className="text-gray-500">Financing deal #</dt><dd className="font-medium">{app.financeItNumber ?? '—'}</dd></div>
               <div><dt className="text-gray-500">HD Customer #</dt><dd className="font-medium">{app.hdReference ?? '—'}</dd></div>
             </dl>
@@ -416,10 +434,16 @@ export default async function StaffApplicationDetail({
             t={t}
           />
         </CollapsibleEntry>
+        {editButton}
+        {paymentBreakdownSection}
+        {dealNumbersSection}
         <div className="border-t border-gray-100 pt-4">
           <h3 className="mb-3 text-sm font-medium text-gray-700">Application documents</h3>
           <DocumentList documents={applicationDocs} deleteAction={deleteDocumentAction} />
         </div>
+        <CollapsibleSection title="Decision" defaultOpen={false} summary={<span>{STATUS_LABELS[app.status]}</span>}>
+          {decisionSection}
+        </CollapsibleSection>
       </div>
     ),
     // 2 · Produce install documents

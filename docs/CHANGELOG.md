@@ -51,6 +51,28 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-10
+- **Reviewer "Review & decide" tab: reordered + finance-company fix.** Rebuilt the
+  order of the first reviewer tab (both Flow and Tabs views) to how the deal is
+  actually worked: **Write-to-journal button at the top**, then the customer
+  information, an **Edit deal details** button, the payment breakdown / deal
+  numbers / application documents, and finally the **Decision area folded away at
+  the bottom** (collapsed by default — it's the least-touched part once a deal is
+  moving; one tap to expand). Also fixes the reported bug where a deal submitted as
+  an Express FinanceIT deal showed a **blank "Finance company"**: an Express deal
+  records its financing source as a *payment method* (FinanceIT / HD card / cash),
+  which never populated `financeCompanyId`. New `financeCompanyDisplay()` helper
+  maps it through (FinanceIT → "FinanceIt", Home Depot card → "HDCC", cash-type →
+  "… — not financed"); applied on the reviewer snapshot and the detailed entry
+  view. The **payment method is now always listed** on the reviewer side. And the
+  approval gate no longer falsely flags an Express FinanceIT deal as "missing a
+  finance company" (the payment method now counts as the finance source; genuinely
+  non-financed deals need neither a finance company nor a loan number to approve).
+- **FinanceIT deals: signed finance contract no longer mandatory.** When a deal is
+  auto-approved on a FinanceIT loan number, the dealer submits the signed finance
+  package to FinanceIT directly — so the portal no longer *requires* a
+  "Signed finance docs" upload to move the deal forward. The upload box stays
+  available (marked *optional*) in case they want a copy on file, but it no longer
+  blocks funding submission or the reviewer's verification gate.
 - **Support chat: clearing a thread re-engages the AI.** A support thread that was
   ever handed off to a person ("Talk to a person") sets `awaitingHuman`, which
   correctly makes the assistant stand down — but the "clear/trash" button deleted

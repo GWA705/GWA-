@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { Application, LoanApplication, HomeDepotStore, FinanceCompany, User } from '@prisma/client';
-import { programDisplayLabel, soapDisplayLabel } from '@/lib/enumLabels';
+import { programDisplayLabel, soapDisplayLabel, paymentMethodLabel } from '@/lib/enumLabels';
+import { financeCompanyDisplay } from '@/lib/constants';
 import type { TFunction } from '@/i18n/translator';
 import { AutoTranslate } from './AutoTranslate';
 import { readEnc } from '@/lib/crypto';
@@ -230,7 +231,8 @@ export function ReviewerEntryView({
           return <Field label={label} value={net} />;
         })()}
         <Field label="Approved amount" value={money(app.approvedAmount)} />
-        <Field label="Finance company" value={app.financeCompany?.name ?? null} />
+        <Field label="Payment method" value={app.paymentMethod ? paymentMethodLabel(t, app.paymentMethod) : 'Not specified'} />
+        <Field label="Finance company" value={financeCompanyDisplay(app)} />
         <Field label="Home Depot store" value={storeLabel} />
         <Field label="Date of sale" value={fmtDate(app.dateOfSale)} />
         <Field label="Installation date" value={fmtDate(app.installationDate)} />

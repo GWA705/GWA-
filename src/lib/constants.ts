@@ -85,6 +85,39 @@ export function dealIsFinanced(paymentMethod: PaymentMethod | null | undefined):
   return !paymentMethod || !NON_FINANCE_PAYMENT_METHODS.includes(paymentMethod);
 }
 
+/**
+ * What to show in the reviewer's "Finance company" field. An Express deal records
+ * the financing source as a *payment method* (FinanceIT / HD card / cash…), which
+ * never populated financeCompanyId — so the field read blank even for an obvious
+ * FinanceIT deal. This maps it through: an explicit finance company wins;
+ * otherwise the payment method supplies the label (FinanceIT → "FinanceIt",
+ * HD card → "HDCC"); cash-type methods read as not financed.
+ */
+export function financeCompanyDisplay(app: {
+  financeCompany?: { name: string } | null;
+  paymentMethod?: PaymentMethod | null;
+}): string {
+  if (app.financeCompany?.name) return app.financeCompany.name;
+  switch (app.paymentMethod) {
+    case 'FINANCEIT':
+      return 'FinanceIt';
+    case 'HD_CREDIT_CARD':
+      return 'HDCC';
+    case 'FINANCE_COMPANY':
+      return 'Financed';
+    case 'CASH':
+      return 'Cash — not financed';
+    case 'CHEQUE':
+      return 'Cheque — not financed';
+    case 'E_TRANSFER':
+      return 'E-Transfer — not financed';
+    case 'CREDIT_CARD':
+      return 'Credit card — not financed';
+    default:
+      return '—';
+  }
+}
+
 // Whether the HD Customer # applies to a deal. Only HD-program deals carry one.
 export function hdReferenceRequired(programType: ProgramType): boolean {
   return programType === 'HD';
@@ -149,9 +182,21 @@ export function approvalGateError(app: {
   financeItNumber: string | null; // the loan / approval number
   hdReference: string | null; // accepted for call-site compatibility; not gated here
   programType: ProgramType;
+  paymentMethod?: PaymentMethod | null;
 }): string | null {
+  // A non-financed deal (cash / cheque / personal or HD credit card) needs
+  // neither a finance company nor a loan number to be approved.
+  if (app.paymentMethod && NON_FINANCE_PAYMENT_METHODS.includes(app.paymentMethod)) {
+    return null;
+  }
   const missing: string[] = [];
-  if (!app.financeCompanyId) missing.push('a finance company');
+  // The finance source can be an explicit finance company (a regular finance-
+  // company application) OR the payment method itself: an Express FinanceIT deal
+  // records FinanceIT as the payment method and never populates financeCompanyId,
+  // so it must not be flagged as "missing a finance company".
+  const hasFinanceSource =
+    !!app.financeCompanyId || app.paymentMethod === 'FINANCEIT' || app.paymentMethod === 'FINANCE_COMPANY';
+  if (!hasFinanceSource) missing.push('a finance company');
   if (!app.financeItNumber || !app.financeItNumber.trim()) missing.push('the loan / approval number');
   if (missing.length === 0) return null;
   const list =
@@ -355,6 +400,12 @@ export function fundingDocumentTypesFor(
     pm != null && NON_FINANCE_PAYMENT_METHODS.includes(pm) && !opts.isSplitPayment;
   if (alreadyPaidExpress) {
     types = types.filter((t) => !FINANCED_ONLY_FUNDING_TYPES.includes(t.type));
+  }
+  // FinanceIT deals: the dealer submits the signed finance package to FinanceIT
+  // directly, so we don't force it here — the upload stays available (in case they
+  // want a copy on file) but it's no longer required to move the deal forward.
+  if (pm === 'FINANCEIT') {
+    types = types.map((t) => (t.type === 'SIGNED_CONTRACT' ? { ...t, required: false } : t));
   }
   return types;
 }
