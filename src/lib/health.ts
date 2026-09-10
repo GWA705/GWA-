@@ -4,6 +4,7 @@ import { prisma } from './db';
 import { putDocument, getDocument, deleteDocument } from './storage';
 import { emailEnabled, getEmailIdentityInfo } from './email';
 import { journalDiagnostics, pingSheet, leadsSheetId, sheetIdFor, EARLIEST_JOURNAL_YEAR } from './reporting/journalRead';
+import { aiConfigured, pingAi } from './ai';
 
 /**
  * System health — a live status check of every external connection feeding the
@@ -87,6 +88,49 @@ async function checkEmail(): Promise<HealthCheck> {
   };
 }
 
+async function checkAi(): Promise<HealthCheck> {
+  if (!aiConfigured()) {
+    return {
+      key: 'ai',
+      label: 'AI assistant (Anthropic)',
+      status: 'notset',
+      detail: 'No ANTHROPIC_API_KEY — the support chat falls back to a static after-hours notice instead of live AI replies.',
+      hint: 'Set ANTHROPIC_API_KEY to enable AI answers in the support chat.',
+      group: 'Core',
+    };
+  }
+  const ping = await pingAi();
+  if (ping?.ok) {
+    return {
+      key: 'ai',
+      label: 'AI assistant (Anthropic)',
+      status: 'ok',
+      detail: `Connected — support chat AI is live (model ${ping.model}).`,
+      group: 'Core',
+    };
+  }
+  if (ping && (ping.status === 401 || ping.status === 403)) {
+    return {
+      key: 'ai',
+      label: 'AI assistant (Anthropic)',
+      status: 'error',
+      detail: `Anthropic rejected the API key (HTTP ${ping.status}).`,
+      hint: 'Check ANTHROPIC_API_KEY — it may be wrong, revoked, or lack access.',
+      group: 'Core',
+    };
+  }
+  return {
+    key: 'ai',
+    label: 'AI assistant (Anthropic)',
+    status: 'warn',
+    detail: ping
+      ? `Key is set but couldn't be verified (${ping.status ? `HTTP ${ping.status}` : 'no network / timeout'}${ping.error ? ` — ${ping.error}` : ''}).`
+      : 'Key is set but could not be verified.',
+    hint: 'The chat may still work; this check could not reach Anthropic from the server.',
+    group: 'Core',
+  };
+}
+
 export async function getSystemHealth(): Promise<SystemHealth> {
   const currentYear = new Date().getFullYear();
   // The active window (last / this / next year) plus any older journal that is
@@ -97,14 +141,15 @@ export async function getSystemHealth(): Promise<SystemHealth> {
   }
   const yearList = [...years].sort((a, b) => a - b);
 
-  const [db, storage, email, diag] = await Promise.all([
+  const [db, storage, email, ai, diag] = await Promise.all([
     checkDatabase(),
     checkStorage(),
     checkEmail(),
+    checkAi(),
     journalDiagnostics(yearList),
   ]);
 
-  const checks: HealthCheck[] = [db, storage, email];
+  const checks: HealthCheck[] = [db, storage, email, ai];
 
   // Google service account itself.
   checks.push({

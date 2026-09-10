@@ -50,6 +50,20 @@ source of truth; this file is the human-readable index.
   `testSingleLead()` on a French lead first. Portal display auto-translates lead
   free-text via DeepL.
 
+## 2026-09-10
+- **System health: live AI-assistant (Anthropic) check.** Added an "AI assistant
+  (Anthropic)" row to Admin → System health that verifies `ANTHROPIC_API_KEY` by
+  pinging Anthropic's free `/v1/models` endpoint (no token cost): green when the
+  key is valid + reachable, red on a rejected key (401/403), amber when set but
+  unverifiable, "not set" when absent. Shows the active model. New `pingAi()` in
+  `src/lib/ai.ts`, `checkAi()` wired into `src/lib/health.ts`.
+- **AWS cutover progress.** App is live on AWS (Elastic Beanstalk, ca-central-1)
+  behind CloudFront (HTTPS) with the RDS DB, S3, and SMTP all green; login works
+  end-to-end. Fixed a CDN login bounce by having `createSession` emit a single
+  Set-Cookie. Google Workspace (leads/journals) + AI/DeepL/cron env loaded onto
+  EB. Still to do: `NEXT_PUBLIC_*` rebuild (maps/push/i18n baked at build) and the
+  GoDaddy DNS flip. See `docs/AWS-CUTOVER-PROGRESS.md`.
+
 ## 2026-09-09
 - **AWS migration prep — container build files.** Added a root `Dockerfile`
   (multi-stage, Node 20, exposes the `NEXT_PUBLIC_*` build args, runs

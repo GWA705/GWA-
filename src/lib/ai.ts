@@ -7,6 +7,9 @@ import 'server-only';
  */
 
 const API_URL = 'https://api.anthropic.com/v1/messages';
+// Free, token-free endpoint used only to verify the API key is valid + reachable
+// (for the System health dashboard). Listing models costs nothing.
+const MODELS_URL = 'https://api.anthropic.com/v1/models';
 // Sonnet 5: sharp, high-quality answers for the support chat, still inexpensive.
 // Override with ANTHROPIC_MODEL (e.g. claude-haiku-4-5 to cut cost, or
 // claude-opus-5 for maximum capability).
@@ -128,5 +131,39 @@ export async function generateSupportReply(
   } catch (e) {
     console.error('[ai] Anthropic request failed:', e instanceof Error ? e.message : e);
     return null;
+  }
+}
+
+export interface AiPing {
+  ok: boolean;
+  /** HTTP status (0 = network/timeout, never reached Anthropic). */
+  status: number;
+  error?: string;
+  model: string;
+}
+
+/**
+ * Verify the Anthropic API key is valid and reachable, for the System health
+ * dashboard. Uses the free "list models" endpoint so it costs no tokens. Returns
+ * null when no key is configured (caller shows "not set").
+ */
+export async function pingAi(): Promise<AiPing | null> {
+  const key = process.env.ANTHROPIC_API_KEY;
+  const model = process.env.ANTHROPIC_MODEL || DEFAULT_MODEL;
+  if (!key) return null;
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8_000);
+    const res = await fetch(MODELS_URL, {
+      method: 'GET',
+      headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01' },
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    if (res.ok) return { ok: true, status: res.status, model };
+    const detail = await res.text().catch(() => '');
+    return { ok: false, status: res.status, error: detail.slice(0, 200), model };
+  } catch (e) {
+    return { ok: false, status: 0, error: e instanceof Error ? e.message : 'network error', model };
   }
 }
