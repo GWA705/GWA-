@@ -277,6 +277,17 @@ export const editDealSchema = z.object({
   financingNote: z.string().max(2000).optional(),
   notes: z.string().max(4000).optional(),
 
+  // Financing — the reviewer can correct any of these (e.g. a deal that came in
+  // without a finance company, or on the wrong payment method). All optional:
+  // a cash deal has no finance company or loan number.
+  paymentMethod: z.preprocess(
+    blankToUndef,
+    z.enum(['FINANCEIT', 'FINANCE_COMPANY', 'CASH', 'CHEQUE', 'E_TRANSFER', 'CREDIT_CARD', 'HD_CREDIT_CARD']).optional(),
+  ),
+  financeCompanyId: z.preprocess(blankToUndef, z.string().max(60).optional()),
+  financeItNumber: z.string().trim().max(80).optional(),
+  hdReference: z.string().trim().max(80).optional(),
+
   // Sales-journal detail fields (editable by reviewers). productsSold is
   // multi-value and read via formData.getAll(), not through this object schema.
   salespersonName: optName(120),

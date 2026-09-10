@@ -51,6 +51,15 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-10
+- **Reviewer edit form now covers financing — "edit everything".** The reviewer's
+  Edit deal form (reached from the new **Edit deal details** button on Review &
+  decide) already covered the applicant, address, ID, employment/income, sales
+  details and products; it now also has a **Financing** section: **payment method,
+  finance company, loan / approval number, and HD Customer #**. So a deal that came
+  in on the wrong payment method or with no finance company can be corrected in one
+  place. Saving an edit now also **re-syncs the sales journal** for any deal that's
+  already been written there (amounts, products, finance company and numbers all
+  appear in the journal), so a correction doesn't leave the sheet stale.
 - **Reviewer "Review & decide" tab: reordered + finance-company fix.** Rebuilt the
   order of the first reviewer tab (both Flow and Tabs views) to how the deal is
   actually worked: **Write-to-journal button at the top**, then the customer

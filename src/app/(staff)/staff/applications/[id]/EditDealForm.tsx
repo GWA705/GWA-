@@ -4,9 +4,9 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { updateDealAction } from '@/app/(staff)/actions';
-import { PROVINCES, PROGRAM_TYPES, PROGRAM_CATEGORIES, PHOTO_ID_TYPES, SOAP_OPTIONS } from '@/lib/constants';
+import { PROVINCES, PROGRAM_TYPES, PROGRAM_CATEGORIES, PHOTO_ID_TYPES, SOAP_OPTIONS, PAYMENT_METHODS } from '@/lib/constants';
 import { useT } from '@/i18n/client';
-import { programTypeLabel, programCategoryLabel } from '@/lib/enumLabels';
+import { programTypeLabel, programCategoryLabel, paymentMethodLabel } from '@/lib/enumLabels';
 import { DateOfBirthInput } from '@/components/DateOfBirthInput';
 import { ProductPicker } from '@/components/ProductPicker';
 
@@ -57,6 +57,10 @@ export interface EditInitial {
   grossMonthlyIncome: string;
   timeAtJobYears: string;
   employmentStatus: string;
+  paymentMethod: string;
+  financeCompanyId: string;
+  financeItNumber: string;
+  hdReference: string;
 }
 
 function Err({ state, name }: { state: State; name: string }) {
@@ -78,11 +82,13 @@ export function EditDealForm({
   initial,
   products,
   dealers,
+  financeCompanies,
 }: {
   applicationId: string;
   initial: EditInitial;
   products: { id: string; name: string; journalName?: string | null; promoted?: boolean }[];
   dealers: { id: string; name: string }[];
+  financeCompanies: { id: string; name: string }[];
 }) {
   const t = useT();
   const [state, action] = useFormState(updateDealAction.bind(null, applicationId), {} as State);
@@ -145,6 +151,35 @@ export function EditDealForm({
         </div>
         <div className="mt-4"><label className="label" htmlFor="financingNote">Financing note</label><textarea id="financingNote" name="financingNote" rows={2} defaultValue={v.financingNote} className="input" /></div>
         <div className="mt-4"><label className="label" htmlFor="notes">Notes</label><textarea id="notes" name="notes" rows={2} defaultValue={v.notes} className="input" /></div>
+      </section>
+
+      <section className="card p-6">
+        <h2 className="mb-1 text-base font-semibold text-gray-900">Financing</h2>
+        <p className="mb-4 text-xs text-gray-500">
+          How the deal is financed. An Express deal records the source as a payment method (e.g. FinanceIT); a
+          regular finance-company application uses the finance company. Leave the finance company blank for cash-type
+          deals. The loan / approval number is the FinanceIT (or finance company) number; the HD Customer # applies to
+          Home Depot deals.
+        </p>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label className="label" htmlFor="paymentMethod">Payment method</label>
+            <select id="paymentMethod" name="paymentMethod" defaultValue={v.paymentMethod} className="input">
+              <option value="">Not specified</option>
+              {PAYMENT_METHODS.map((p) => (<option key={p.value} value={p.value}>{paymentMethodLabel(t, p.value)}</option>))}
+            </select>
+          </div>
+          <div>
+            <label className="label" htmlFor="financeCompanyId">Finance company</label>
+            <select id="financeCompanyId" name="financeCompanyId" defaultValue={v.financeCompanyId} className="input">
+              <option value="">— none —</option>
+              {financeCompanies.map((fc) => (<option key={fc.id} value={fc.id}>{fc.name}</option>))}
+            </select>
+            <Err state={state} name="financeCompanyId" />
+          </div>
+          <div><label className="label" htmlFor="financeItNumber">Loan / approval number</label><input id="financeItNumber" name="financeItNumber" defaultValue={v.financeItNumber} className="input" /></div>
+          <div><label className="label" htmlFor="hdReference">HD Customer #</label><input id="hdReference" name="hdReference" defaultValue={v.hdReference} className="input" /></div>
+        </div>
       </section>
 
       {/* Sales details — fill the sales journal. */}

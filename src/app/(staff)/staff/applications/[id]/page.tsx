@@ -441,7 +441,7 @@ export default async function StaffApplicationDetail({
           <h3 className="mb-3 text-sm font-medium text-gray-700">Application documents</h3>
           <DocumentList documents={applicationDocs} deleteAction={deleteDocumentAction} />
         </div>
-        <CollapsibleSection title="Decision" defaultOpen={false} summary={<span>{STATUS_LABELS[app.status]}</span>}>
+        <CollapsibleSection title="Decision" defaultOpen={!decided} summary={<span>{STATUS_LABELS[app.status]}</span>}>
           {decisionSection}
         </CollapsibleSection>
       </div>

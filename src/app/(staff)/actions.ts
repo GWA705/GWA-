@@ -560,6 +560,14 @@ export async function updateDealAction(
     if (!target) return { error: 'That dealer no longer exists.', fieldErrors: { dealerId: 'Unknown dealer' } };
   }
 
+  // Finance company (optional) — if one was chosen, make sure it still exists
+  // before we point the deal at it.
+  const financeCompanyId = d.financeCompanyId || null;
+  if (financeCompanyId) {
+    const fc = await prisma.financeCompany.findUnique({ where: { id: financeCompanyId }, select: { id: true } });
+    if (!fc) return { error: 'That finance company no longer exists.', fieldErrors: { financeCompanyId: 'Unknown finance company' } };
+  }
+
   const loanData = {
     middleName: d.middleName || null,
     homePhone: d.homePhone || null,
@@ -605,6 +613,13 @@ export async function updateDealAction(
       govIdNumberEnc: encryptOptional(d.govIdNumber),
       dateOfSale: d.dateOfSale ? new Date(d.dateOfSale) : null,
       installationDate: d.installationDate ? new Date(d.installationDate) : null,
+      // Financing — reviewer-editable. A blank finance company / loan number /
+      // HD # clears it; the payment method drives the finance-company display and
+      // the funding-doc requirements for Express deals.
+      paymentMethod: d.paymentMethod ?? null,
+      financeCompanyId,
+      financeItNumber: d.financeItNumber || null,
+      hdReference: d.hdReference || null,
       taxExempt: d.taxExempt,
       deliveredToReserve: d.taxExempt ? d.deliveredToReserve : false,
       statusCardNumberEnc: d.taxExempt
@@ -646,6 +661,13 @@ export async function updateDealAction(
       ? `Deal edited by reviewer; reassigned dealer ${app.dealerId} → ${d.dealerId}`
       : 'Deal edited by reviewer',
   });
+  // An edit can change anything the sales journal shows (amounts, products,
+  // finance company, loan / HD numbers) — keep the journal in step for a deal
+  // that's already been written there. Best-effort: an unconfigured journal or a
+  // still-missing required number is a silent no-op.
+  if (JOURNAL_SYNC_STATUSES.includes(app.status)) {
+    await syncApplicationToJournal(applicationId, session.userId);
+  }
   if (dealerChanged) {
     // The old dealer's cache and the new dealer's list both need refreshing.
     revalidatePath('/dealer');
