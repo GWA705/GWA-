@@ -51,6 +51,12 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-10
+- **PDF paperwork cards show a real first-page thumbnail.** The "Paperwork for
+  Customer" cards rendered a generic red "PDF" ribbon; they now use the existing
+  server-rendered thumbnail (`/api/documents/[id]/thumb` — image downscale / PDF
+  first page) so each file previews as its actual page, matching the deal-document
+  tiles. Falls back to the stylized ribbon if a preview can't be produced. New
+  `src/components/PaperworkThumb.tsx`; `PaperworkCards` swapped to it.
 - **System health: live AI-assistant (Anthropic) check.** Added an "AI assistant
   (Anthropic)" row to Admin → System health. It exercises the **real chat path** —
   a 1-token Messages API call with the *configured* model — so it catches
