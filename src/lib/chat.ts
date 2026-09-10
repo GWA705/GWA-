@@ -173,7 +173,11 @@ export async function clearSupportConversation(conversationId: string): Promise<
   await prisma.$transaction([
     prisma.chatMessage.deleteMany({ where: { conversationId } }),
     prisma.conversationRead.deleteMany({ where: { conversationId } }),
-    prisma.conversation.update({ where: { id: conversationId }, data: { lastMessageAt: new Date() } }),
+    // Reset the awaiting-human flag too — clearing is an explicit "start fresh", so
+    // the assistant must re-engage. Without this, a thread that was ever handed off
+    // to a person stays permanently silent (the AI stands down on awaitingHuman)
+    // even after the dealer clears it.
+    prisma.conversation.update({ where: { id: conversationId }, data: { lastMessageAt: new Date(), awaitingHuman: false } }),
   ]);
 }
 

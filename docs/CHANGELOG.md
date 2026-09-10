@@ -51,6 +51,12 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-10
+- **Support chat: clearing a thread re-engages the AI.** A support thread that was
+  ever handed off to a person ("Talk to a person") sets `awaitingHuman`, which
+  correctly makes the assistant stand down — but the "clear/trash" button deleted
+  the messages without resetting the flag, so the AI went **permanently silent**
+  in that thread even after clearing. `clearSupportConversation` now resets
+  `awaitingHuman`, so clearing truly starts fresh and the assistant answers again.
 - **Deal page: "Documents for approval" collapses once it's done.** After a deal
   is approved (or further) and the approval docs are uploaded, that uploader now
   folds to a one-line summary ("N submitted ✓") instead of showing a full
