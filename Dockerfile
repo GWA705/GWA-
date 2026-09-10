@@ -24,8 +24,12 @@ COPY . .
 # --build-arg and expose them to the build.
 ARG NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=""
 ARG NEXT_PUBLIC_VAPID_PUBLIC_KEY=""
+# The EN/FR language toggle is revealed only when this equals "1". Not secret —
+# defaults on for this image; the CI workflow also passes it explicitly.
+ARG NEXT_PUBLIC_I18N_ENABLED="1"
 ENV NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=$NEXT_PUBLIC_GOOGLE_MAPS_API_KEY \
-    NEXT_PUBLIC_VAPID_PUBLIC_KEY=$NEXT_PUBLIC_VAPID_PUBLIC_KEY
+    NEXT_PUBLIC_VAPID_PUBLIC_KEY=$NEXT_PUBLIC_VAPID_PUBLIC_KEY \
+    NEXT_PUBLIC_I18N_ENABLED=$NEXT_PUBLIC_I18N_ENABLED
 
 # `npm run build` = `prisma generate && next build`.
 RUN npm run build
