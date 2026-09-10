@@ -140,29 +140,48 @@ export interface AiPing {
   status: number;
   error?: string;
   model: string;
+  /** Models this key CAN use — filled in when the real call fails, to guide a fix. */
+  availableModels?: string[];
 }
 
 /**
- * Verify the Anthropic API key is valid and reachable, for the System health
- * dashboard. Uses the free "list models" endpoint so it costs no tokens. Returns
- * null when no key is configured (caller shows "not set").
+ * Verify the support chat can ACTUALLY generate, for the System health dashboard.
+ * Exercises the real path — the Messages API with the *configured* model — using a
+ * 1-token request (costs effectively nothing), so it catches model-access errors
+ * that a key-only check would miss. On failure it also lists the models this key
+ * can use, so the fix (set ANTHROPIC_MODEL) is obvious. Returns null when no key
+ * is configured (caller shows "not set").
  */
 export async function pingAi(): Promise<AiPing | null> {
   const key = process.env.ANTHROPIC_API_KEY;
   const model = process.env.ANTHROPIC_MODEL || DEFAULT_MODEL;
   if (!key) return null;
+  const headers = { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' };
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8_000);
-    const res = await fetch(MODELS_URL, {
-      method: 'GET',
-      headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01' },
+    const timeout = setTimeout(() => controller.abort(), 10_000);
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ model, max_tokens: 1, messages: [{ role: 'user', content: 'ping' }] }),
       signal: controller.signal,
     });
     clearTimeout(timeout);
     if (res.ok) return { ok: true, status: res.status, model };
     const detail = await res.text().catch(() => '');
-    return { ok: false, status: res.status, error: detail.slice(0, 200), model };
+    // The call failed — list which models this key actually has, so we know what
+    // to switch ANTHROPIC_MODEL to.
+    let availableModels: string[] | undefined;
+    try {
+      const m = await fetch(MODELS_URL, { method: 'GET', headers, signal: AbortSignal.timeout(6_000) });
+      if (m.ok) {
+        const data = (await m.json().catch(() => null)) as { data?: Array<{ id?: string }> } | null;
+        availableModels = data?.data?.map((x) => x.id).filter((x): x is string => !!x).slice(0, 12);
+      }
+    } catch {
+      /* best-effort */
+    }
+    return { ok: false, status: res.status, error: detail.slice(0, 300), model, availableModels };
   } catch (e) {
     return { ok: false, status: 0, error: e instanceof Error ? e.message : 'network error', model };
   }

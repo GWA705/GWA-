@@ -119,14 +119,27 @@ async function checkAi(): Promise<HealthCheck> {
       group: 'Core',
     };
   }
+  const available = ping?.availableModels?.length ? ` Models this key can use: ${ping.availableModels.join(', ')}.` : '';
+  if (ping && ping.status === 404) {
+    return {
+      key: 'ai',
+      label: 'AI assistant (Anthropic)',
+      status: 'error',
+      detail: `The chat model "${ping.model}" isn't available to this API key (HTTP 404).${available}`,
+      hint: `Set ANTHROPIC_MODEL to one of the available models above (e.g. a Sonnet or Haiku id), then redeploy.`,
+      group: 'Core',
+    };
+  }
   return {
     key: 'ai',
     label: 'AI assistant (Anthropic)',
-    status: 'warn',
+    status: ping && ping.status ? 'error' : 'warn',
     detail: ping
-      ? `Key is set but couldn't be verified (${ping.status ? `HTTP ${ping.status}` : 'no network / timeout'}${ping.error ? ` — ${ping.error}` : ''}).`
+      ? `Chat generation failed for model "${ping.model}" (${ping.status ? `HTTP ${ping.status}` : 'no network / timeout'}${ping.error ? ` — ${ping.error}` : ''}).${available}`
       : 'Key is set but could not be verified.',
-    hint: 'The chat may still work; this check could not reach Anthropic from the server.',
+    hint: ping?.status
+      ? 'If it names a model problem, set ANTHROPIC_MODEL to an available model and redeploy; otherwise check the key.'
+      : 'This check could not reach Anthropic from the server.',
     group: 'Core',
   };
 }

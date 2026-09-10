@@ -52,11 +52,14 @@ source of truth; this file is the human-readable index.
 
 ## 2026-09-10
 - **System health: live AI-assistant (Anthropic) check.** Added an "AI assistant
-  (Anthropic)" row to Admin → System health that verifies `ANTHROPIC_API_KEY` by
-  pinging Anthropic's free `/v1/models` endpoint (no token cost): green when the
-  key is valid + reachable, red on a rejected key (401/403), amber when set but
-  unverifiable, "not set" when absent. Shows the active model. New `pingAi()` in
-  `src/lib/ai.ts`, `checkAi()` wired into `src/lib/health.ts`.
+  (Anthropic)" row to Admin → System health. It exercises the **real chat path** —
+  a 1-token Messages API call with the *configured* model — so it catches
+  model-access problems a key-only check misses (a valid key can still lack access
+  to the configured model, which makes the chat silently return nothing). Green
+  when the model actually generates; red with the exact HTTP status/error on
+  failure; on a model 404 it lists the models the key CAN use and points at
+  `ANTHROPIC_MODEL`; "not set" when no key. New `pingAi()` in `src/lib/ai.ts`,
+  `checkAi()` wired into `src/lib/health.ts`.
 - **AWS cutover progress.** App is live on AWS (Elastic Beanstalk, ca-central-1)
   behind CloudFront (HTTPS) with the RDS DB, S3, and SMTP all green; login works
   end-to-end. Fixed a CDN login bounce by having `createSession` emit a single
