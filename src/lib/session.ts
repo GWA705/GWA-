@@ -68,9 +68,14 @@ const cookieOptions = {
 export async function createSession(user: SessionUser & { tokenVersion?: number }): Promise<void> {
   const { tokenVersion = 0, impersonating: _imp, ...claims } = user;
   const token = await sign({ ...claims, tv: tokenVersion }, SESSION_TTL_SECONDS);
+  // Set ONLY the session cookie here — a single Set-Cookie header. When the app
+  // runs behind a CDN (CloudFront), a server-action *redirect* response that
+  // carries several Set-Cookie headers at once can lose all but one on the way
+  // back to the browser, which silently drops the session and bounces the user
+  // to /login. The intermediate markers (mfa-pending, pwchange-pending) are
+  // short-lived (5 / 10 min) and expire on their own, so we no longer clear them
+  // here; keeping this response to one cookie is what makes login stick.
   cookies().set(COOKIE_NAME, token, { ...cookieOptions, maxAge: SESSION_TTL_SECONDS });
-  cookies().delete(MFA_COOKIE_NAME);
-  cookies().delete(PWCHANGE_COOKIE_NAME);
 }
 
 /** Intermediate state: password verified, awaiting a TOTP code. */
