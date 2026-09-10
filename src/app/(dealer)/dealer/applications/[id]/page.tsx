@@ -11,6 +11,7 @@ import { ConfirmationBadge } from '@/components/ConfirmationBadge';
 import { ConfirmationView } from '@/components/ConfirmationView';
 import { DealProgress } from '@/components/DealProgress';
 import { UploadForm } from '@/components/UploadForm';
+import { CollapsibleSection } from '@/components/CollapsibleSection';
 import { SerialNumberForm } from '@/components/SerialNumberForm';
 import { ProductSerialForm } from '@/components/ProductSerialForm';
 import { fundingDocumentTypesFor, REVIEWER_DISPLAY, decisionTone } from '@/lib/constants';
@@ -78,6 +79,11 @@ export default async function DealerApplicationDetail({
   };
 
   const applicationDocs = app.documents.filter((d) => d.stage === 'APPLICATION');
+  // Once the deal is approved (or further along) and the approval docs are in,
+  // fold the uploader away — it has done its job. Still one tap to reopen.
+  const approvalDocsDone =
+    applicationDocs.length > 0 &&
+    ['APPROVED', 'CONDITIONAL', 'DOCS_SENT', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW', 'FUNDED'].includes(app.status);
   const fundingDocs = app.documents.filter((d) => d.stage === 'FUNDING');
   const gwaDocs = app.documents.filter((d) => d.stage === 'REVIEWER');
   const uploadedFundingTypes = new Set(fundingDocs.map((d) => d.type));
@@ -262,9 +268,18 @@ export default async function DealerApplicationDetail({
         )}
       </section>
 
-      {/* Documents for approval */}
-      <section className="card p-6">
-        <h2 className="mb-3 border-l-4 border-brand-500 pl-2.5 text-lg font-bold text-gray-900">{t('dealDetail.documentsForApproval')}</h2>
+      {/* Documents for approval — collapses to a summary once approved + docs in. */}
+      <CollapsibleSection
+        title={t('dealDetail.documentsForApproval')}
+        defaultOpen={!approvalDocsDone}
+        summary={
+          approvalDocsDone ? (
+            <span className="inline-flex items-center gap-1 font-medium text-green-700">
+              {applicationDocs.length} {t('dealDetail.docsSubmitted')} ✓
+            </span>
+          ) : undefined
+        }
+      >
         <DocumentList documents={applicationDocs} deleteAction={deleteOwnDocumentAction} />
         <div className="mt-4 border-t border-gray-100 pt-4">
           <UploadForm
@@ -277,7 +292,7 @@ export default async function DealerApplicationDetail({
             ]}
           />
         </div>
-      </section>
+      </CollapsibleSection>
 
       {/* Paperwork for your Customer */}
       {gwaDocs.length > 0 && (

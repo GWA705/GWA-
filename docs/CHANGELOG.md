@@ -51,6 +51,11 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-10
+- **Deal page: "Documents for approval" collapses once it's done.** After a deal
+  is approved (or further) and the approval docs are uploaded, that uploader now
+  folds to a one-line summary ("N submitted ✓") instead of showing a full
+  dropzone — one tap to reopen. New reusable `CollapsibleSection` component; wired
+  on the dealer application page via an `approvalDocsDone` check.
 - **PDF paperwork cards show a real first-page thumbnail.** The "Paperwork for
   Customer" cards rendered a generic red "PDF" ribbon; they now use the existing
   server-rendered thumbnail (`/api/documents/[id]/thumb` — image downscale / PDF

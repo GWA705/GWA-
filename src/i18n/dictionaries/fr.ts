@@ -423,6 +423,7 @@ export const fr: Dictionary = {
     confirmation: 'Confirmation',
     notConfirmedYet: 'Ce dossier n’a pas encore été confirmé.',
     documentsForApproval: 'Documents pour approbation',
+    docsSubmitted: 'soumis',
     uploadDocument: 'Téléverser un document',
     catBillOfSale: 'Contrat de vente',
     catApplicationInfo: 'Renseignements sur la demande',

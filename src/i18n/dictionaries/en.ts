@@ -419,6 +419,7 @@ export const en = {
     confirmation: 'Confirmation',
     notConfirmedYet: 'This deal has not been confirmed yet.',
     documentsForApproval: 'Documents for approval',
+    docsSubmitted: 'submitted',
     uploadDocument: 'Upload document',
     catBillOfSale: 'Bill of Sale',
     catApplicationInfo: 'Application info',
