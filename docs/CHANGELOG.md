@@ -51,6 +51,20 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-10
+- **PDF preview restored on AWS (docker image was missing node-canvas libs).**
+  In-app PDF preview — the tap-to-open scrollable page view **and** the little
+  first-page thumbnails on document tiles — is rendered server-side by `pdf-to-img`,
+  which depends on **node-canvas**. The AWS runtime image (`node:20-bookworm-slim`)
+  only had `openssl / ca-certificates / curl`, so node-canvas couldn't load: every
+  PDF render threw, thumbnails fell back to a plain "PDF" glyph, and the page
+  preview errored out to **download-only** (reported on the reviewer's "Review
+  signed documents" step — files wouldn't open without downloading). Added the
+  node-canvas runtime libraries + a base font to the Dockerfile runtime stage
+  (`libcairo2 libpango-1.0-0 libpangocairo-1.0-0 libjpeg62-turbo libgif7 librsvg2-2
+  libpixman-1-0 libfontconfig1 fontconfig fonts-dejavu-core`). Verified node-canvas
+  renders once these are present. **Needs the image rebuilt + redeployed** (the
+  packages are baked at build time). This did not affect Render, which runs the
+  Node runtime, not this Dockerfile.
 - **Reviewer edit form now covers financing — "edit everything".** The reviewer's
   Edit deal form (reached from the new **Edit deal details** button on Review &
   decide) already covered the applicant, address, ID, employment/income, sales
