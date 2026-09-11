@@ -10,7 +10,7 @@ import { markReviewerAction } from '@/lib/activity';
 import { encryptOptional, decryptOptional } from '@/lib/crypto';
 import { toTitleCase, titleOrNull } from '@/lib/textcase';
 import { mergeProductsSold, journalProductNames } from '@/lib/products';
-import { writeDealToJournal, journalEnabled, type JournalDeal } from '@/lib/journal';
+import { writeDealToJournal, writeCancellationToJournal, journalEnabled, type JournalDeal } from '@/lib/journal';
 import { storeFiles } from '@/lib/upload';
 import { deleteDocument } from '@/lib/storage';
 import { notifyStatusChange, notifyNewNote, notifyCancellationResolved } from '@/lib/notify';
@@ -362,7 +362,7 @@ export async function confirmCancellationAction(
   formData: FormData,
 ): Promise<CancellationActionState> {
   const session = await requireStaffSection('review-queue');
-  const c = await prisma.dealCancellation.findUnique({ where: { id: cancellationId }, include: { application: true } });
+  const c = await prisma.dealCancellation.findUnique({ where: { id: cancellationId }, include: { application: true, requestedBy: true } });
   if (!c) return { error: 'Not found.' };
   if (c.status !== 'PENDING') return { error: 'This request has already been resolved.' };
 
@@ -398,6 +398,39 @@ export async function confirmCancellationAction(
   ]);
 
   await audit({ actorId: session.userId, action: 'STATUS_CHANGE', entityType: 'DealCancellation', entityId: cancellationId, detail: 'Cancellation confirmed → WITHDRAWN' });
+
+  // Mark the deal RB in the sales journal, with a cell note explaining why —
+  // reason, who confirmed it, and which dealer user requested it, dated. Best-
+  // effort: a journal hiccup never blocks the cancellation.
+  if (journalEnabled() && c.application.journalTab && c.application.journalRow) {
+    try {
+      const confirmer = await prisma.user.findUnique({ where: { id: session.userId }, select: { name: true } });
+      const today = new Date().toLocaleDateString('en-CA');
+      const noteLines = [
+        `RB — deal cancelled (${today}).`,
+        `Reason: ${c.reason}`,
+        `Confirmed in the portal by: ${confirmer?.name ?? 'a reviewer'}.`,
+        `Requested by dealer: ${c.requestedBy?.name ?? 'unknown'}.`,
+        c.wasFunded ? 'Was funded — Home Depot refund confirmed.' : null,
+        note ? `Reviewer note: ${note}` : null,
+      ].filter(Boolean).join('\n');
+      const saleYear = (c.application.dateOfSale ?? c.application.createdAt).getFullYear();
+      const rb = await writeCancellationToJournal(
+        { knownTab: c.application.journalTab, knownRow: c.application.journalRow, lastName: c.application.applicantLastName, saleYear },
+        noteLines,
+      );
+      await audit({
+        actorId: session.userId,
+        action: 'STATUS_CHANGE',
+        entityType: 'Application',
+        entityId: c.applicationId,
+        detail: rb.ok ? 'Journal marked RB with cancellation note' : `Journal RB write skipped: ${rb.error}`,
+      });
+    } catch (e) {
+      console.error('[cancellation] journal RB write failed', e);
+    }
+  }
+
   await notifyCancellationResolved(c.applicationId, true, note);
   revalidatePath(`/staff/applications/${c.applicationId}`);
   revalidatePath('/staff');

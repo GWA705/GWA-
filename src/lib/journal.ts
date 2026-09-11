@@ -442,6 +442,10 @@ export interface JournalStatusRead {
   result: string | null; // raw Result cell (e.g. "OK", "PE/OK", "RB")
   isOk: boolean; // Result reads as confirmed/paid-eligible "OK"
   datePaid: Date | null; // the journal's Date Paid, if present
+  // The ACTUAL amount paid to the dealer, read from the "Pay to dealer" column
+  // (net of admin fee / tax / reserve — can be less than the HD calculator's
+  // estimate). null when the journal has no such column (older tabs).
+  payToDealer: number | null;
   error?: string;
 }
 
@@ -459,7 +463,7 @@ export async function readDealJournalStatus(deal: {
   lastName: string;
   saleYear: number;
 }): Promise<JournalStatusRead> {
-  const miss = (error?: string): JournalStatusRead => ({ found: false, lastNameMatches: false, result: null, isOk: false, datePaid: null, error });
+  const miss = (error?: string): JournalStatusRead => ({ found: false, lastNameMatches: false, result: null, isOk: false, datePaid: null, payToDealer: null, error });
   if (!deal.knownTab || !deal.knownRow) return miss('not written to the journal');
   try {
     const sheets = await sheetsClient();
@@ -499,7 +503,21 @@ export async function readDealJournalStatus(deal: {
     const parsed = paidRaw ? parseFlexibleDate(paidRaw, deal.saleYear) : null;
     const datePaid = parsed && !isNaN(parsed.getTime()) ? parsed : null;
 
-    return { found: true, lastNameMatches, result: resultRaw || null, isOk, datePaid };
+    // Actual amount paid to the dealer — the "Pay to dealer" column (header-based,
+    // so it just works once the column is added; null on tabs that don't have it).
+    let payToDealer: number | null = null;
+    let payCol = -1;
+    for (let c = 0; c < Math.max(top.length, bottom.length); c += 1) {
+      const combined = norm(`${top[c] ?? ''} ${bottom[c] ?? ''}`);
+      if (combined.includes('pay to dealer')) { payCol = c; break; }
+    }
+    if (payCol >= 0) {
+      const raw = cell(payCol).replace(/[$,\s]/g, '');
+      const n = raw ? Number(raw) : NaN;
+      if (Number.isFinite(n) && n > 0) payToDealer = n;
+    }
+
+    return { found: true, lastNameMatches, result: resultRaw || null, isOk, datePaid, payToDealer };
   } catch (e) {
     return miss((e as Error).message);
   }
@@ -572,6 +590,88 @@ export async function updateJournalRowCells(
     wrote,
     error: missing.length ? `This journal has no ${missing.join(' / ')} column, so that field wasn’t saved to the sheet.` : undefined,
   };
+}
+
+// --- Cancellation → journal "RB" writeback ---------------------------------
+
+export interface JournalRbResult {
+  ok: boolean;
+  error?: string;
+}
+
+/**
+ * On a confirmed cancellation, mark the deal's journal row Result = "RB" and
+ * attach a cell NOTE on that same cell explaining why (reason, who confirmed it,
+ * who at the dealer requested it, dated). Best-effort and safety-gated: writes
+ * nothing unless the row's Last Name still matches the deal. Never throws.
+ */
+export async function writeCancellationToJournal(
+  deal: { knownTab: string | null; knownRow: number | null; lastName: string; saleYear: number },
+  noteText: string,
+): Promise<JournalRbResult> {
+  if (!deal.knownTab || !deal.knownRow) return { ok: false, error: 'not written to the journal' };
+  try {
+    const sheets = await sheetsClient();
+    const ssId = await resolveWriteSheetId(deal.saleYear);
+    const layout = await readLayout(sheets, deal.knownTab, ssId);
+
+    // Safety: only write if the target row still belongs to this customer.
+    const target = layout.rows[deal.knownRow - 1] || [];
+    const lastNameCol = layout.columns['lastName'];
+    const rowLastName = lastNameCol != null ? norm(target[lastNameCol]) : '';
+    if (!rowLastName || rowLastName !== norm(deal.lastName)) {
+      return { ok: false, error: 'journal row no longer matches this customer' };
+    }
+
+    // Find the Result column (header-based), and the tab's numeric sheetId (gid).
+    const top = layout.rows[layout.headerBottomRow - 2] || [];
+    const bottom = layout.rows[layout.headerBottomRow - 1] || [];
+    let resultCol = -1;
+    for (let c = 0; c < Math.max(top.length, bottom.length); c += 1) {
+      const b = norm(bottom[c]);
+      const combined = norm(`${top[c] ?? ''} ${bottom[c] ?? ''}`);
+      if (b === 'result' || combined.includes('result')) { resultCol = c; break; }
+    }
+    if (resultCol < 0) return { ok: false, error: 'no Result column found' };
+
+    const meta = await sheets.spreadsheets.get({ spreadsheetId: ssId, fields: 'sheets(properties(sheetId,title))' });
+    const sheetId = (meta.data.sheets || []).find((s) => s.properties?.title === deal.knownTab)?.properties?.sheetId;
+    if (sheetId == null) return { ok: false, error: 'sheet tab not found' };
+
+    // 1) Write "RB" into the Result cell.
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: ssId,
+      range: `'${deal.knownTab}'!${colLetter(resultCol)}${deal.knownRow}`,
+      valueInputOption: 'USER_ENTERED',
+      requestBody: { values: [['RB']] },
+    });
+
+    // 2) Attach the explanation as a cell NOTE on that same cell.
+    await sheets.spreadsheets.batchUpdate({
+      spreadsheetId: ssId,
+      requestBody: {
+        requests: [
+          {
+            repeatCell: {
+              range: {
+                sheetId,
+                startRowIndex: deal.knownRow - 1,
+                endRowIndex: deal.knownRow,
+                startColumnIndex: resultCol,
+                endColumnIndex: resultCol + 1,
+              },
+              cell: { note: noteText.slice(0, 2000) },
+              fields: 'note',
+            },
+          },
+        ],
+      },
+    });
+
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: (e as Error).message };
+  }
 }
 
 /**

@@ -34,6 +34,16 @@ export interface JournalSyncOutcome {
 
 const TERMINAL: ApplicationStatus[] = ['DECLINED', 'WITHDRAWN', 'DRAFT'];
 
+// A fallback actor for the scheduled sweep (no logged-in user): the first active
+// admin. A Payout needs a non-null createdById.
+let _cachedSystemActor: string | null = null;
+async function systemActorId(): Promise<string> {
+  if (_cachedSystemActor) return _cachedSystemActor;
+  const admin = await prisma.user.findFirst({ where: { role: 'ADMIN', active: true }, orderBy: { createdAt: 'asc' }, select: { id: true } });
+  _cachedSystemActor = admin?.id ?? '';
+  return _cachedSystemActor;
+}
+
 export async function syncApplicationFromJournal(applicationId: string, actorId: string | null = null): Promise<JournalSyncOutcome> {
   const app = await prisma.application.findUnique({
     where: { id: applicationId },
@@ -105,6 +115,31 @@ export async function syncApplicationFromJournal(applicationId: string, actorId:
     await audit({ actorId, action: 'STATUS_CHANGE', entityType: 'Application', entityId: app.id, detail: `Auto-funded from journal (paid ${paidLabel})` });
     await notifyStatusChange(app.id, 'FUNDED');
     funded = true;
+  }
+
+  // Auto-fill the dealer payment receipt from the journal's "Pay to dealer"
+  // column — the ACTUAL amount paid (net of admin fee / tax / reserve), which can
+  // differ from the HD calculator estimate. Only when the journal shows paid, an
+  // actual amount is present, and no payout has been recorded yet (so we never
+  // duplicate or overwrite a manually entered receipt).
+  if (paid && read.payToDealer != null && read.payToDealer > 0) {
+    const existingPayouts = await prisma.payout.count({ where: { applicationId: app.id } });
+    if (existingPayouts === 0) {
+      const createdById = actorId ?? (await systemActorId());
+      if (createdById) {
+        await prisma.payout.create({
+          data: {
+            applicationId: app.id,
+            amount: read.payToDealer,
+            paidOn: read.datePaid!,
+            method: 'EFT',
+            note: 'Auto-filled from the sales journal (Pay to dealer)',
+            createdById,
+          },
+        });
+        await audit({ actorId, action: 'FUNDING_DECISION', entityType: 'Application', entityId: app.id, detail: `Payout auto-filled from journal: $${read.payToDealer.toFixed(2)}` });
+      }
+    }
   }
 
   return { applicationId, ok: true, paid, funded, reason };

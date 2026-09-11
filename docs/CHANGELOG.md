@@ -51,6 +51,34 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-11
+- **Journal audit: appending columns at the far right is confirmed SAFE.** Full
+  sweep of every sales-journal reader/writer (reporting reader, `journal.ts`
+  read+write, paid-sync, journal importer, customer search, all report
+  aggregators). All resolve columns by **header name**; the writer writes only
+  single header-resolved cells (no whole-row/range writes, no fixed indexes); no
+  fixed-index journal parser exists in the repo. The four new columns (Admin. Fee,
+  Tax On Admin Fee, Reserve, **Pay To Dealer**) don't collide with any header
+  keyword. Safe to roll out to all monthly tabs. (Read window is A1:BZ = 78 cols —
+  ample.)
+- **Payment receipt auto-fills from the journal (actual "Pay to dealer" amount).**
+  When the journal row shows **Result = OK + a Date Paid**, the paid-sync
+  (`journalPaidSync`) now also reads the new **"Pay to dealer"** column (the actual
+  net amount paid — after admin fee / tax / reserve, which can differ from the HD
+  calculator) and **auto-creates the dealer payout receipt** with that amount and
+  the paid date, moving the deal from funding to **paid** (it already auto-advances
+  to FUNDED). Guarded: only when an actual amount is present and **no payout exists
+  yet** (never duplicates or overwrites a manually entered receipt). Older journals
+  without the column are unaffected. `readDealJournalStatus` now returns
+  `payToDealer`.
+- **Confirmed cancellation writes "RB" to the journal with an explanation note.**
+  When a reviewer confirms a dealer cancellation, the deal's journal row Result is
+  set to **"RB"** and a **cell note** is attached on that cell explaining why:
+  the reason, who confirmed it in the portal, which dealer user requested it, and
+  the date (plus HD-refund/reviewer note if any). Best-effort + safety-gated (only
+  writes if the row's Last Name still matches); the cancellation, requester,
+  confirmer and reason are already recorded in the portal (DealCancellation +
+  status event + audit), and the RB writeback is audited too. New
+  `writeCancellationToJournal()` in `journal.ts`.
 - **Reviewer entry view: values render in UPPERCASE for copy-into-finance-systems.**
   The reviewer's "Application — reviewer entry view" (and the pop-out full
   application / print view, which reuse the same component) now render the dealer-
