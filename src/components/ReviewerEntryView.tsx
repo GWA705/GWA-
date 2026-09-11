@@ -56,12 +56,17 @@ function addressLine(...parts: (string | null | undefined)[]): string | null {
   return s || null;
 }
 
-function Field({ label, value, mono }: { label: string; value: React.ReactNode; mono?: boolean }) {
+// Reviewer-side values render in UPPERCASE so they copy straight into HD /
+// finance systems (which use caps). This uppercases the actual string — not just
+// CSS text-transform, which would copy back as the original case. `raw` opts a
+// field out (e.g. email, where caps can break the address).
+function Field({ label, value, mono, raw }: { label: string; value: React.ReactNode; mono?: boolean; raw?: boolean }) {
+  const display = !raw && typeof value === 'string' ? value.toUpperCase() : value;
   return (
     <div className="flex flex-col gap-0.5 border-b border-gray-100 py-2 last:border-0 sm:flex-row sm:items-baseline sm:gap-4">
       <dt className="text-xs uppercase tracking-wide text-gray-400 sm:w-56 sm:flex-none">{label}</dt>
       <dd className={`min-w-0 break-words text-sm font-medium text-gray-900 sm:flex-1 ${mono ? 'font-mono' : ''}`}>
-        {value === null || value === undefined || value === '' ? <span className="text-gray-300">—</span> : value}
+        {display === null || display === undefined || display === '' ? <span className="text-gray-300">—</span> : display}
       </dd>
     </div>
   );
@@ -145,7 +150,7 @@ export function ReviewerEntryView({
         <Field label="Marital status" value={nonEmpty(loan?.maritalStatus)} />
         <Field label="Home phone" value={nonEmpty(loan?.homePhone)} />
         <Field label="Mobile phone" value={app.applicantPhone} />
-        <Field label="Email" value={app.applicantEmail} />
+        <Field label="Email" value={app.applicantEmail} raw />
       </Group>
 
       <Group title="Housing">
@@ -194,7 +199,7 @@ export function ReviewerEntryView({
             <Field label="Marital status" value={nonEmpty(loan.coMaritalStatus)} />
             <Field label="Home phone" value={nonEmpty(loan.coHomePhone)} />
             <Field label="Mobile phone" value={nonEmpty(loan.coPhone)} />
-            <Field label="Email" value={nonEmpty(loan.coEmail)} />
+            <Field label="Email" value={nonEmpty(loan.coEmail)} raw />
           </Group>
           <Group title="Housing">
             <Field label="Address" value={pv.coAddress} />

@@ -51,6 +51,17 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-11
+- **Reviewer entry view: values render in UPPERCASE for copy-into-finance-systems.**
+  The reviewer's "Application — reviewer entry view" (and the pop-out full
+  application / print view, which reuse the same component) now render the dealer-
+  entered values in **UPPERCASE**, so when a reviewer copies a name/address/etc.
+  into HD or a finance company's portal it comes out in caps (their convention).
+  This uppercases the **actual string** (not CSS `text-transform`, which would copy
+  back as original case). Done once in the shared `Field` component in
+  `ReviewerEntryView.tsx` with a `raw` opt-out applied to **email** (applicant + co-
+  applicant), where all-caps can break the address. Numbers/dates/amounts are
+  unaffected; free-text notes stay as written. Display-only — stored data is
+  untouched.
 - **Remittance: split-payment deals only fund once fully paid (no more funding on a deposit).**
   A split-payment deal can be paid by Home Depot in more than one remittance (e.g.
   a $500 deposit, then the $9,500 balance). Previously the first matching line
