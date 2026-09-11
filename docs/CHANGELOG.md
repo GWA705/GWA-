@@ -51,6 +51,18 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-11
+- **HD remittances: upload the PDF straight in the portal.** New "Upload the HD
+  remittance PDF" box on Deals → HD Remittances. The portal extracts the text from
+  Home Depot's "Remittance Advice" PDF, parses the invoice rows (HD #, invoice
+  date, net amount — a negative net is a chargeback) and the document number /
+  payment date, and processes it exactly like a pasted or webhook remittance
+  (idempotent by document #). No Google dependency; works from a phone. The raw HD
+  PDF carries no customer names, so lines show HD # + amount (matching to a deal is
+  by HD # regardless). New `parseHdRemittanceText()` in `src/lib/hdRemittance.ts`
+  (verified against a real advice: 10 rows, $49,605.53, doc# 2000133384),
+  `ingestRemittancePdfAction`, and `UploadRemittanceForm`. Note: auto-funding still
+  only matches lines whose **HD Customer # is on the deal** — a remittance whose
+  deals lack their HD # will show those lines as "unmatched" for a reviewer to fix.
 - **Push notifications now read the VAPID public key at runtime (no rebuild trap).**
   Desktop/phone push (Account → Desktop & phone notifications) was showing
   "Notifications are not configured on the server yet" because the browser read the

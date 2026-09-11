@@ -21,7 +21,15 @@ Reviewers/admins see it at **Deals → HD Remittances** (`/staff/remittances`):
 enter one by hand, or view what the webhook posted, drill into each line, and see
 the running "unmatched" attention count.
 
-## Two ways in (both supported)
+## Three ways in (all supported)
+
+0. **Upload the HD PDF in the portal** (Deals → HD Remittances → *Upload the HD
+   remittance PDF*). The portal extracts the invoice rows and document number
+   from Home Depot's "Remittance Advice" PDF and processes it — no Google
+   dependency, works from a phone. The raw HD PDF has no customer names, so lines
+   show HD # + amount only (matching to a deal is by HD # regardless). Parser:
+   `parseHdRemittanceText()` in `src/lib/hdRemittance.ts`.
+
 
 ### 1. Automatic — webhook from the Google Apps Script
 

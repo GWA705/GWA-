@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { requireStaffSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { ManualRemittanceForm } from './ManualRemittanceForm';
+import { UploadRemittanceForm } from './UploadRemittanceForm';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,6 +39,11 @@ export default async function RemittancesPage() {
           with <code className="rounded bg-gray-100 px-1.5 py-0.5 text-xs">Authorization: Bearer $CRON_SECRET</code>. See the
           go-live checklist for the exact payload.
         </p>
+      </section>
+
+      <section className="card p-5">
+        <h2 className="mb-3 text-base font-semibold text-gray-900">Upload the HD remittance PDF</h2>
+        <UploadRemittanceForm />
       </section>
 
       <section className="card p-5">

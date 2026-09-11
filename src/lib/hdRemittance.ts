@@ -59,6 +59,51 @@ function toDate(raw?: string | null): Date | null {
   return iso ? new Date(`${iso}T00:00:00`) : null;
 }
 
+/**
+ * Parse the text of a Home Depot "Remittance Advice" PDF into a RemittanceInput.
+ *
+ * The advice lists one row per invoice as:
+ *   <HD ID> <MM/DD/YYYY inv date> <gross> <adjmt> <net>
+ * e.g. `800251872 09/09/2026 1,803.26 0.00 1,803.26`. The **net** (last number on
+ * the row) is the amount we record; a negative net is a chargeback. The document
+ * number / dates come from the header block. HD's advice carries no customer
+ * names (those come from the Google matcher), so names are left blank here — the
+ * portal still matches each line to a deal by HD #.
+ */
+export function parseHdRemittanceText(text: string): {
+  documentNumber: string | null;
+  documentDate: string | null;
+  paymentDate: string | null;
+  lines: RemittanceLineInput[];
+} {
+  const grab = (re: RegExp): string | null => {
+    const m = text.match(re);
+    return m ? m[1].trim() : null;
+  };
+  const documentNumber = grab(/Document Number\/Num[eèé]ro de Document:\s*([0-9]+)/i);
+  const documentDate = grab(/Document Date\/Date de Document:\s*(\d{1,2}\/\d{1,2}\/\d{4})/i);
+  const paymentDate = grab(/Payment Date\/Date de Paiement:\s*(\d{1,2}\/\d{1,2}\/\d{4})/i);
+
+  const lines: RemittanceLineInput[] = [];
+  for (const raw of text.split(/\r?\n/)) {
+    // A data row starts with an 8+ digit HD ID and an invoice date, followed by
+    // the money columns. Anything else (headers, totals, the address block) is
+    // skipped because it doesn't start with an HD ID + date.
+    const m = raw.match(/^\s*(\d{8,})\s+(\d{1,2}\/\d{1,2}\/\d{4})\s+(.+)$/);
+    if (!m) continue;
+    const hdIdNumber = m[1];
+    const invoiceDate = m[2];
+    // The net amount is the last money token on the row (gross, adjmt, NET).
+    const nums = m[3].match(/-?\$?[\d,]+\.\d{2}/g);
+    if (!nums || nums.length === 0) continue;
+    const net = Number(nums[nums.length - 1].replace(/[^0-9.\-]/g, ''));
+    if (!Number.isFinite(net) || net === 0) continue;
+    lines.push({ hdIdNumber, amount: net, invoiceDate, isChargeback: net < 0 });
+  }
+
+  return { documentNumber, documentDate, paymentDate, lines };
+}
+
 export async function ingestRemittance(input: RemittanceInput): Promise<RemittanceResult> {
   const docNumber = (input.documentNumber || '').trim() || null;
 
