@@ -27,6 +27,9 @@ source of truth; this file is the human-readable index.
 | AI support assistant (chat) | ✅ **Live** (2026-09-07, Sean) — `ANTHROPIC_API_KEY` set in Render | Always-on Claude assistant on the General support thread (`src/lib/ai.ts`). Dedicated Anthropic key "Portal.ghsbarrie.ca" (Default workspace) so its cost tracks separately from the booking site's `gwa-booking` key. Model = default `claude-sonnet-5` (override with `ANTHROPIC_MODEL` — `claude-haiku-4-5` to cut cost, `claude-opus-5` for max capability). Assistant stays quiet for 30 min after a human reply; falls back to the static after-hours note if the key is ever removed/out of quota. |
 | DeepL translation (user content) | ✅ Live (2026-09-06) — `DEEPL_API_KEY` set in Render (free "API Developer" key) | Powers (a) the on-demand Translate control and (b) the **automatic** FR→EN conversion of chat, deal-conversation and gift-card threads, and dealer free-text notes on the reviewer side (`<AutoTranslate>`). **Free fallback:** if DeepL is missing or out of quota, translation auto-switches to MyMemory (free, no account; set `MYMEMORY_EMAIL` to lift its daily cap). **Usage meter:** Admin → System health shows DeepL characters used / limit. |
 | Bell Total Connect voicemail | 📝 Documented, not built here | Guide delivered for the **booking site** (voicemail-to-email + IMAP). Not part of this portal. |
+| Hosting / runtime (AWS) | ✅ **Live on AWS** (cutover 2026-09-06) | App runs on **Elastic Beanstalk** (`Gwa-portal-env`, Docker on AL2023, single t3.small) behind **CloudFront + WAF**; RDS Postgres + S3 in `ca-central-1`; DNS `portal.ghsbarrie.ca` → CloudFront. Render web service retained but being decommissioned. |
+| Auto-deploy (GitHub → EB) | ✅ **Live** (2026-09-11, Sean) | Every push to the branch builds the image to ECR **and auto-deploys to Elastic Beanstalk** (deploy step in `.github/workflows/build-ecr.yml`, bundles `Dockerrun.aws.json` + `.platform/` nginx fix). IAM user `github-ecr-push` has `AdministratorAccess-AWSElasticBeanstalk`. `wait_for_deployment: false` (the single-instance env flaps Yellow on low traffic, which false-failed the step). No more manual ZIP uploads. |
+| Desktop/phone push notifications | ✅ Keys set (2026-09-11, Sean) — confirm with a test | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` set on EB. The client fetches the public key at **runtime** (`GET /api/push/key`) so it survives rebuilds. Reviewers get push on new dealer docs / activity. iOS needs the app installed to the Home Screen. **To confirm:** Account → Enable desktop notifications → Send a test. |
 
 ### French lead parsing — reference script synced (2026-09-07)
 - **French Home Depot lead parsing (Québec/French leads).** The portal only
@@ -51,6 +54,13 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-11
+- **Auto-deploy pipeline live (GitHub → ECR → Elastic Beanstalk).** Added a deploy
+  step to `.github/workflows/build-ecr.yml` (`einaregilsson/beanstalk-deploy`,
+  bundling `Dockerrun.aws.json` + `.platform/`), and granted the `github-ecr-push`
+  IAM user `AdministratorAccess-AWSElasticBeanstalk`. Every push now builds **and
+  ships** — no more manual ZIP uploads. `wait_for_deployment: false` because the
+  single-instance env intermittently reports Yellow on low traffic (EB "insufficient
+  request rate"), which was false-failing the step even though the deploy succeeded.
 - **Journal audit: appending columns at the far right is confirmed SAFE.** Full
   sweep of every sales-journal reader/writer (reporting reader, `journal.ts`
   read+write, paid-sync, journal importer, customer search, all report
