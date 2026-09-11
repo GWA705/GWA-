@@ -64,3 +64,18 @@ jobs:
         run: |
           echo "Pushed to ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest" >> "$GITHUB_STEP_SUMMARY"
           echo "Tag: ${{ github.sha }}" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Package deploy bundle (Dockerrun + .platform)
+        run: zip -r deploy.zip Dockerrun.aws.json .platform
+
+      - name: Deploy to Elastic Beanstalk
+        uses: einaregilsson/beanstalk-deploy@v22
+        with:
+          aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          region: ca-central-1
+          application_name: gwa-portal
+          environment_name: Gwa-portal-env
+          version_label: build-${{ github.sha }}
+          deployment_package: deploy.zip
+          wait_for_deployment: true
