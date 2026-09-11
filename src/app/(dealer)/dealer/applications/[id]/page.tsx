@@ -90,7 +90,7 @@ export default async function DealerApplicationDetail({
 
   // The dealer can upload funding documents throughout the funding window —
   // before AND after submitting — right up until the deal is funded.
-  const canUploadFunding = ['APPROVED', 'CONDITIONAL', 'DOCS_SENT', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW'].includes(app.status);
+  const canUploadFunding = ['APPROVED', 'CONDITIONAL', 'DOCS_SENT', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW', 'FUNDED'].includes(app.status);
   const fundingVisible = canUploadFunding || app.status === 'FUNDED';
   const canSubmitFunding = ['APPROVED', 'CONDITIONAL', 'DOCS_SENT'].includes(app.status);
 
@@ -282,6 +282,7 @@ export default async function DealerApplicationDetail({
       >
         <DocumentList documents={applicationDocs} deleteAction={deleteOwnDocumentAction} />
         <div className="mt-4 border-t border-gray-100 pt-4">
+          <p className="mb-2 text-xs text-gray-500">{t('dealDetail.sendUpdatedDocsHint')}</p>
           <UploadForm
             action={uploadSupportingDocAction.bind(null, app.id)}
             label={t('dealDetail.uploadDocument')}

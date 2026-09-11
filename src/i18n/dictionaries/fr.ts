@@ -425,6 +425,7 @@ export const fr: Dictionary = {
     documentsForApproval: 'Documents pour approbation',
     docsSubmitted: 'soumis',
     uploadDocument: 'Téléverser un document',
+    sendUpdatedDocsHint: 'Besoin d’envoyer des documents mis à jour ou additionnels — même une fois la transaction financée? Téléversez-les ici en tout temps (choisissez « Autre » et nommez-le si les documents ont changé).',
     catBillOfSale: 'Contrat de vente',
     catApplicationInfo: 'Renseignements sur la demande',
     catOther: 'Autre (à préciser)',

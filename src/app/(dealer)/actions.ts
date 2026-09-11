@@ -327,7 +327,7 @@ export async function uploadFundingDocAction(
   const session = await requireDealerAccess();
   const app = await prisma.application.findUnique({ where: { id: applicationId } });
   if (!app || !canAccessAsDealer(session, app.dealerId)) return { error: 'Not found.' };
-  if (!['APPROVED', 'CONDITIONAL', 'DOCS_SENT', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW'].includes(app.status)) {
+  if (!['APPROVED', 'CONDITIONAL', 'DOCS_SENT', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW', 'FUNDED'].includes(app.status)) {
     return { error: 'Funding documents can only be uploaded after approval.' };
   }
 
@@ -355,7 +355,7 @@ export async function uploadFundingBatchAction(
   const session = await requireDealerAccess();
   const app = await prisma.application.findUnique({ where: { id: applicationId } });
   if (!app || !canAccessAsDealer(session, app.dealerId)) return { error: 'Not found.' };
-  if (!['APPROVED', 'CONDITIONAL', 'DOCS_SENT', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW'].includes(app.status)) {
+  if (!['APPROVED', 'CONDITIONAL', 'DOCS_SENT', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW', 'FUNDED'].includes(app.status)) {
     return { error: 'Funding documents can only be uploaded after approval.' };
   }
 

@@ -421,6 +421,7 @@ export const en = {
     documentsForApproval: 'Documents for approval',
     docsSubmitted: 'submitted',
     uploadDocument: 'Upload document',
+    sendUpdatedDocsHint: 'Need to send updated or additional documents — even after the deal is funded? Upload them here anytime (choose "Other" and name it if paperwork changed).',
     catBillOfSale: 'Bill of Sale',
     catApplicationInfo: 'Application info',
     catOther: 'Other (type it)',

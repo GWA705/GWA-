@@ -51,6 +51,16 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-11
+- **Dealer uploads: void cheque optional + re-upload anytime (incl. after funding).**
+  Two dealer-side fixes: (1) the **Void cheque / PAP form** funding doc is now
+  **optional** (`required: false` in `FUNDING_DOCUMENT_TYPES`) so a missing one no
+  longer blocks submitting the funding package. (2) Dealers can now upload funding
+  documents through **FUNDED** (added `FUNDED` to `canUploadFunding` and to the
+  `uploadFundingDocAction` / `uploadFundingBatchAction` status gates) — so a
+  changed document can be re-sent after the deal is funded. The always-open
+  "Documents for approval" section now carries a hint that updated/additional
+  documents can be sent there anytime (via "Other"), which pairs with the new
+  reviewer banner that surfaces post-completion uploads.
 - **Reviewer deal page: banner for documents uploaded after a deal is completed.**
   A dealer can upload a file (e.g. a missing Bill of Sale) to a deal that's already
   funded/completed — it lands on the customer's file, but every phase read "Done"

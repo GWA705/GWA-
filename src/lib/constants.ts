@@ -364,7 +364,7 @@ export const FUNDING_DOCUMENT_TYPES: {
   required: boolean;
 }[] = [
   { type: 'SIGNED_CONTRACT', label: 'Signed finance docs (full package)', required: true },
-  { type: 'VOID_CHEQUE_OR_PAP', label: 'Void cheque or PAP form', required: true },
+  { type: 'VOID_CHEQUE_OR_PAP', label: 'Void cheque or PAP form', required: false },
   { type: 'INSTALL_PHOTO', label: 'Pictures of installed products', required: true },
   { type: 'SIGNED_HD_DOCUMENT', label: 'Signed Home Depot documents', required: true },
   { type: 'HD_WAIVER', label: 'Signed & completed Home Depot waiver', required: true },
