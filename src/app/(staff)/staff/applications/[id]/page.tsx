@@ -256,6 +256,21 @@ export default async function StaffApplicationDetail({
     paid: fmtStage(latestPayout),
   };
 
+  // Dealer documents that landed AFTER this deal was finished with the dealer
+  // (past review — in funding, funded, or the reviewer marked their step done).
+  // A dealer can upload to a completed/funded deal (e.g. a missing Bill of Sale),
+  // and because every phase reads "Done" there was no signal it arrived. Surface
+  // those late uploads in a banner at the very top of the deal so they can't be
+  // missed, no matter the deal's status.
+  const completedAt = [app.reviewerDoneAt, firstEventTo(['FUNDING_SUBMITTED', 'FUNDING_REVIEW', 'FUNDED'])]
+    .filter((d): d is Date => !!d)
+    .reduce<Date | null>((min, d) => (min === null || d < min ? d : min), null);
+  const lateDealerDocs = completedAt
+    ? app.documents.filter(
+        (d) => (d.stage === 'APPLICATION' || d.stage === 'FUNDING') && d.createdAt > (completedAt as Date),
+      )
+    : [];
+
   const options = decisionOptions(app.status);
   const startReview = startReviewAction.bind(null, app.id);
 
@@ -823,6 +838,20 @@ export default async function StaffApplicationDetail({
             </section>
           );
         })()}
+
+      {lateDealerDocs.length > 0 && (
+        <section className="card border-2 border-amber-400 bg-amber-50 p-4">
+          <h2 className="text-sm font-semibold text-amber-900">
+            📎 New {lateDealerDocs.length === 1 ? 'document' : `${lateDealerDocs.length} documents`} from the dealer — added after this deal was completed
+          </h2>
+          <p className="mb-3 mt-1 text-xs text-amber-800">
+            The dealer uploaded {lateDealerDocs.length === 1 ? 'this file' : 'these files'} after the deal reached{' '}
+            <strong>{STATUS_LABELS[app.status]}</strong>. {lateDealerDocs.length === 1 ? "It's" : "They're"} saved on the
+            customer&apos;s file — review and action as needed.
+          </p>
+          <DocumentList documents={lateDealerDocs} deleteAction={deleteDocumentAction} />
+        </section>
+      )}
 
       <ReviewerWorkspace
         phases={phases}

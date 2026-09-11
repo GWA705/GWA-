@@ -51,6 +51,17 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-11
+- **Reviewer deal page: banner for documents uploaded after a deal is completed.**
+  A dealer can upload a file (e.g. a missing Bill of Sale) to a deal that's already
+  funded/completed — it lands on the customer's file, but every phase read "Done"
+  so nothing flagged it for the reviewer. The reviewer deal page now shows a
+  prominent amber banner at the very top listing any dealer-uploaded document
+  (APPLICATION/FUNDING stage) that arrived **after** the deal was finished with the
+  dealer (past review — reviewerDone, or in/through funding), with view links,
+  regardless of status. (Dealer uploads also already fire an email + push to
+  reviewers via `notifyNewDocuments` — now that web-push is configured, that
+  reaches phones too.) No schema change; computed from document timestamps vs the
+  deal's completion time in `src/app/(staff)/staff/applications/[id]/page.tsx`.
 - **New report: Office range (custom month span).** Deals → Reports → *Office
   range report*. Pick an office (or **All offices**) and a **From→To month span**
   (e.g. January → now, or the last two months) and get how much money that office
