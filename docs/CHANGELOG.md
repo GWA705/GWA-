@@ -51,6 +51,23 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-11
+- **Remittance: split-payment deals only fund once fully paid (no more funding on a deposit).**
+  A split-payment deal can be paid by Home Depot in more than one remittance (e.g.
+  a $500 deposit, then the $9,500 balance). Previously the first matching line
+  marked the whole deal FUNDED. Now `ingestRemittance` tracks the **cumulative HD
+  dollars received per deal** (summed from the deal's remittance lines — same HD #,
+  as confirmed) and, for a `isSplitPayment` deal, only marks it FUNDED once the
+  total reaches the **expected HD payout** (`computeDealerPayout(...).payout`, i.e.
+  the HD payout calculator) within a small tolerance (max of $2 / 1% — the
+  calculator is an estimate; HD's actual cents can differ). An earlier partial
+  payment instead nudges the deal to **In for funding**, adds an internal note
+  ("PARTIAL payment $X of ~$Y expected"), and the reviewer deal page shows a
+  **"Partially funded — awaiting the rest"** banner with received-vs-expected; the
+  reviewer can still mark it funded manually. Non-split deals fund exactly as
+  before. Implemented **without a schema migration** (no new enum value) — the
+  "partially funded" state is derived from existing remittance-line data — to avoid
+  a risky enum-on-boot migration on the live server; can be promoted to a true
+  filterable status later if wanted. Remittance summaries now show a `partial` count.
 - **Dealer uploads: void cheque optional + re-upload anytime (incl. after funding).**
   Two dealer-side fixes: (1) the **Void cheque / PAP form** funding doc is now
   **optional** (`required: false` in `FUNDING_DOCUMENT_TYPES`) so a missing one no

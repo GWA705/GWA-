@@ -59,7 +59,7 @@ export async function ingestRemittancePdfAction(_prev: RemittanceActionState, fo
   revalidatePath('/staff/remittances');
   return {
     ok: true,
-    summary: `${result.lineCount} lines · ${result.funded} funded · ${result.chargebacks} chargebacks · ${result.unmatched.length} unmatched`,
+    summary: `${result.lineCount} lines · ${result.funded} funded · ${result.partial ?? 0} partial · ${result.chargebacks} chargebacks · ${result.unmatched.length} unmatched`,
   };
 }
 
@@ -104,6 +104,6 @@ export async function ingestManualRemittanceAction(_prev: RemittanceActionState,
   revalidatePath('/staff/remittances');
   return {
     ok: true,
-    summary: `${result.lineCount} lines · ${result.funded} funded · ${result.chargebacks} chargebacks · ${result.unmatched.length} unmatched`,
+    summary: `${result.lineCount} lines · ${result.funded} funded · ${result.partial ?? 0} partial · ${result.chargebacks} chargebacks · ${result.unmatched.length} unmatched`,
   };
 }

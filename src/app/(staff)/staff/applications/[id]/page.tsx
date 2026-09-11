@@ -52,6 +52,7 @@ import {
 } from '@/app/(staff)/actions';
 import { VerifyFinanceNumberButton } from '@/components/VerifyFinanceNumberButton';
 import { STATUS_LABELS, REVIEWER_PAPERWORK_TYPES, applicableVerificationChecks, decisionTone } from '@/lib/constants';
+import { computeDealerPayout } from '@/lib/payoutCalc';
 import { decisionDisplayLabel } from '@/lib/enumLabels';
 import type { ApplicationStatus } from '@prisma/client';
 
@@ -270,6 +271,23 @@ export default async function StaffApplicationDetail({
         (d) => (d.stage === 'APPLICATION' || d.stage === 'FUNDING') && d.createdAt > (completedAt as Date),
       )
     : [];
+
+  // Split-payment funding progress. HD may pay a split deal in more than one
+  // remittance (e.g. a deposit, then the balance). The deal is NOT marked Funded
+  // until the total received reaches the expected HD payout — show the reviewer
+  // how much has arrived vs expected so a partial payment is obvious.
+  let partialFunding: { received: number; expected: number } | null = null;
+  if (app.isSplitPayment && app.status !== 'FUNDED') {
+    const agg = await prisma.hdRemittanceLine.aggregate({
+      where: { applicationId: app.id, isChargeback: false },
+      _sum: { amount: true },
+    });
+    const received = Number(agg._sum.amount ?? 0);
+    if (received > 0) {
+      const expected = computeDealerPayout(Number(app.approvedAmount ?? app.requestedAmount) || 0, app.province).payout;
+      partialFunding = { received, expected };
+    }
+  }
 
   const options = decisionOptions(app.status);
   const startReview = startReviewAction.bind(null, app.id);
@@ -838,6 +856,21 @@ export default async function StaffApplicationDetail({
             </section>
           );
         })()}
+
+      {partialFunding && (
+        <section className="card border-2 border-amber-400 bg-amber-50 p-4">
+          <h2 className="text-sm font-semibold text-amber-900">
+            💵 Partially funded — awaiting the rest of Home Depot&apos;s payment
+          </h2>
+          <p className="mt-1 text-xs text-amber-800">
+            This is a <strong>split-payment</strong> deal. Home Depot has paid{' '}
+            <strong>${partialFunding.received.toLocaleString('en-CA', { minimumFractionDigits: 2 })}</strong> so far, of
+            an expected <strong>~${partialFunding.expected.toLocaleString('en-CA', { minimumFractionDigits: 2 })}</strong>.
+            It won&apos;t be marked <strong>Funded</strong> until the remaining HD payment arrives — or you can mark it
+            funded manually below once you&apos;ve confirmed it. (Expected is an estimate from the HD payout calculator.)
+          </p>
+        </section>
+      )}
 
       {lateDealerDocs.length > 0 && (
         <section className="card border-2 border-amber-400 bg-amber-50 p-4">
