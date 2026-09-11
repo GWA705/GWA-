@@ -64,6 +64,14 @@ export default async function ReportsLandingPage() {
       available: true,
     },
     {
+      href: '/staff/reports/office-range',
+      title: t('staffReportsHub.officeRange.title'),
+      blurb: t('staffReportsHub.officeRange.blurb'),
+      accent: '#1a5fa8',
+      badge: 'Per office',
+      available: true,
+    },
+    {
       href: '/staff/reports/funding',
       title: t('staffReportsHub.funding.title'),
       blurb: t('staffReportsHub.funding.blurb'),

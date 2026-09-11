@@ -2261,6 +2261,10 @@ export const en = {
       title: 'Monthly Performance (per office)',
       blurb: 'Each office broken down by HD store — month-over-month, vs last year, and year-to-date, with a pending-installation block.',
     },
+    officeRange: {
+      title: 'Office range report',
+      blurb: 'Pick an office and any span of months (e.g. January to now, or the last two) — money put through, broken down by month and store, ready to print.',
+    },
     storeWeek: {
       title: 'Weekly Store Detail',
       blurb: 'Per-store customer-level detail for a single week — each deal and its amount, with a store total.',

@@ -2265,6 +2265,10 @@ export const fr: Dictionary = {
       title: 'Rendement mensuel (par bureau)',
       blurb: 'Chaque bureau ventilé par magasin HD — d’un mois à l’autre, par rapport à l’an dernier et cumul annuel, avec un bloc des installations en attente.',
     },
+    officeRange: {
+      title: 'Rapport par période (bureau)',
+      blurb: 'Choisissez un bureau et une période de mois (p. ex. janvier à aujourd’hui, ou les deux derniers) — argent traité, ventilé par mois et par magasin, prêt à imprimer.',
+    },
     storeWeek: {
       title: 'Détail hebdomadaire par magasin',
       blurb: 'Détail par client et par magasin pour une seule semaine — chaque transaction et son montant, avec un total par magasin.',

@@ -51,6 +51,16 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-11
+- **New report: Office range (custom month span).** Deals → Reports → *Office
+  range report*. Pick an office (or **All offices**) and a **From→To month span**
+  (e.g. January → now, or the last two months) and get how much money that office
+  put through, broken down **by month × store** (by office for the all-offices
+  aggregate) with month totals and a grand total, print-ready per office. Money
+  basis = **paid & received** (OK money dated by date paid), the same basis as the
+  Monthly report, so the two reconcile. Reuses the journal reader + office/store
+  scoping (`src/lib/reporting/officeRange.ts`, `OfficeRangeView`, page at
+  `/staff/reports/office-range`). Standalone for now; a combined finance-penetration
+  view can ride along later.
 - **HD remittances: upload the PDF straight in the portal.** New "Upload the HD
   remittance PDF" box on Deals → HD Remittances. The portal extracts the text from
   Home Depot's "Remittance Advice" PDF, parses the invoice rows (HD #, invoice
