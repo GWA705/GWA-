@@ -11,7 +11,19 @@ import { useT } from '@/i18n/client';
  * running in the background per the OS).
  */
 
-const PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+// The VAPID public key is fetched at runtime from /api/push/key (not read from a
+// build-time NEXT_PUBLIC_* env var), so it takes effect the moment the key is set
+// in the server environment and can't vanish on a later image rebuild.
+async function fetchPublicKey(): Promise<string | null> {
+  try {
+    const res = await fetch('/api/push/key');
+    if (!res.ok) return null;
+    const data = (await res.json()) as { key?: string | null };
+    return data.key || null;
+  } catch {
+    return null;
+  }
+}
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -82,7 +94,8 @@ export function DesktopNotifications() {
     setBusy(true);
     setMsg(null);
     try {
-      if (!PUBLIC_KEY) {
+      const publicKey = await fetchPublicKey();
+      if (!publicKey) {
         setMsg(t('desktopNotifications.notConfigured'));
         setBusy(false);
         return;
@@ -97,7 +110,7 @@ export function DesktopNotifications() {
       await navigator.serviceWorker.ready;
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(PUBLIC_KEY) as BufferSource,
+        applicationServerKey: urlBase64ToUint8Array(publicKey) as BufferSource,
       });
       const res = await fetch('/api/push/subscribe', {
         method: 'POST',

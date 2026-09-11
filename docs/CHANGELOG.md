@@ -50,6 +50,25 @@ source of truth; this file is the human-readable index.
   `testSingleLead()` on a French lead first. Portal display auto-translates lead
   free-text via DeepL.
 
+## 2026-09-11
+- **Push notifications now read the VAPID public key at runtime (no rebuild trap).**
+  Desktop/phone push (Account → Desktop & phone notifications) was showing
+  "Notifications are not configured on the server yet" because the browser read the
+  public key from a **build-time** `NEXT_PUBLIC_VAPID_PUBLIC_KEY` — the same
+  inlining trap that made the EN/FR toggle vanish after a rebuild. The client now
+  fetches the key at runtime from a new endpoint (`GET /api/push/key`, session-
+  gated; returns `{ key }` from `VAPID_PUBLIC_KEY`), so setting the key in the
+  server env takes effect immediately and survives every future image rebuild.
+  **To go live it needs a VAPID keypair set on Elastic Beanstalk** (runtime env,
+  no rebuild required once this image is deployed):
+  `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, and optionally
+  `VAPID_SUBJECT=mailto:portal@ghsbarrie.ca`. Generate a pair with
+  `npx web-push generate-vapid-keys`. The public key is not secret; the private
+  key must never be committed. iOS requires the portal be installed to the Home
+  Screen (iOS 16.4+) before it can receive push. `pushEnabled()` and the send
+  paths already read `VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY`, so no other change is
+  needed. **Operational status: ⏳ pending — keypair not yet set on EB.**
+
 ## 2026-09-10
 - **PDF preview restored on AWS (docker image was missing node-canvas libs).**
   In-app PDF preview — the tap-to-open scrollable page view **and** the little
