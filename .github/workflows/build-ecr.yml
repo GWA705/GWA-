@@ -78,4 +78,5 @@ jobs:
           environment_name: Gwa-portal-env
           version_label: build-${{ github.sha }}
           deployment_package: deploy.zip
-          wait_for_deployment: true
+          wait_for_deployment: false
+      
