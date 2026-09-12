@@ -1,5 +1,6 @@
 import type { FinancePenetrationReport, FinanceGroup } from '@/lib/reporting/financePenetration';
 import { getT } from '@/i18n/server';
+import { reportTheadRow } from '@/components/reporting/kit';
 
 function money(n: number): string {
   return '$' + Math.round(n).toLocaleString('en-US');
@@ -78,7 +79,7 @@ export function FinanceReportView({ report }: { report: FinancePenetrationReport
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead>
-                <tr className="bg-gray-50 text-[10px] uppercase tracking-wide text-gray-500">
+                <tr className={reportTheadRow}>
                   <th className="px-3 py-2 text-left font-medium">{t('financeReport.colStore')}</th>
                   <th className="px-2 py-2 text-right font-medium">{t('financeReport.colDeals')}</th>
                   <th className="px-2 py-2 text-right font-medium">{t('financeReport.colFinanced')}</th>

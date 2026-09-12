@@ -4,6 +4,7 @@ import type { OfficeMonthlyReport, PendingStore } from '@/lib/reporting/monthly'
 import { getT } from '@/i18n/server';
 import type { TFunction } from '@/i18n/translator';
 import { StoreTable } from './StoreTable';
+import { ReportTile, ReportTiles } from '@/components/reporting/kit';
 
 // Portal-styled per-office monthly performance report.
 
@@ -248,29 +249,20 @@ export function MonthlyReportView({ report }: { report: OfficeMonthlyReport }) {
       )}
 
       {/* YTD summary tiles */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-          <div className="text-lg font-bold text-gray-900 tabular-nums">{money(ytd.ty)}</div>
-          <div className="text-[10px] uppercase text-gray-500">{t('reports.monthly.ytdThisYear')}</div>
-        </div>
-        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-          <div className="text-lg font-bold text-gray-900 tabular-nums">{money(ytd.ly)}</div>
-          <div className="text-[10px] uppercase text-gray-500">{t('reports.monthly.ytdLastYear')}</div>
-        </div>
-        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-          <div className="text-lg font-bold tabular-nums">
-            <Pct value={ytd.pct} t={t} />
-          </div>
-          <div className="text-[10px] uppercase text-gray-500">{t('reports.monthly.ytdVsLastYear')}</div>
-        </div>
-        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-          <div className={`text-lg font-bold tabular-nums ${ytd.gap >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-            {ytd.gap >= 0 ? '+' : '−'}
-            {money(Math.abs(ytd.gap))}
-          </div>
-          <div className="text-[10px] uppercase text-gray-500">{t('reports.monthly.dollarGap')}</div>
-        </div>
-      </div>
+      <ReportTiles cols={4}>
+        <ReportTile label={t('reports.monthly.ytdThisYear')} value={money(ytd.ty)} />
+        <ReportTile label={t('reports.monthly.ytdLastYear')} value={money(ytd.ly)} />
+        <ReportTile label={t('reports.monthly.ytdVsLastYear')} value={<Pct value={ytd.pct} t={t} />} />
+        <ReportTile
+          label={t('reports.monthly.dollarGap')}
+          value={
+            <span className={ytd.gap >= 0 ? 'text-emerald-600' : 'text-red-600'}>
+              {ytd.gap >= 0 ? '+' : '−'}
+              {money(Math.abs(ytd.gap))}
+            </span>
+          }
+        />
+      </ReportTiles>
 
       {report.deadStores.length > 0 && (
         <p className="text-xs text-gray-400">

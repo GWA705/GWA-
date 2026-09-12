@@ -1,6 +1,7 @@
 import type { LeadsReport } from '@/lib/reporting/leadsReport';
 import { getT } from '@/i18n/server';
 import type { TFunction } from '@/i18n/translator';
+import { reportTheadRow } from '@/components/reporting/kit';
 
 const pct = (n: number, d: number): number => (d > 0 ? Math.round((n / d) * 100) : 0);
 
@@ -74,7 +75,7 @@ export function LeadFunnelView({ report }: { report: LeadsReport }) {
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead>
-                <tr className="bg-gray-50 text-[10px] uppercase tracking-wide text-gray-500">
+                <tr className={reportTheadRow}>
                   <th className="px-3 py-2 text-left font-medium">{t('leadFunnel.colOffice')}</th>
                   <th className="px-2 py-2 text-right font-medium">{t('leadFunnel.colLeads')}</th>
                   <th className="px-2 py-2 text-right font-medium">{t('leadFunnel.colContacted')}</th>

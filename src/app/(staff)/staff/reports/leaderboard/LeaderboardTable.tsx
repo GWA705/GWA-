@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { ChevronRight } from 'lucide-react';
 import type { LeaderboardRow } from '@/lib/reporting/salespersonLeaderboard';
 import { useT } from '@/i18n/client';
+import { reportTheadRow } from '@/components/reporting/kit';
 
 function money(n: number): string {
   return '$' + Math.round(n).toLocaleString('en-US');
@@ -31,7 +32,7 @@ export function LeaderboardTable({ rows }: { rows: LeaderboardRow[] }) {
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm">
           <thead>
-            <tr className="bg-gray-50 text-[10px] uppercase tracking-wide text-gray-500">
+            <tr className={reportTheadRow}>
               <th className="px-3 py-2 text-left font-medium">#</th>
               <th className="px-3 py-2 text-left font-medium">{t('leaderboard.colRep')}</th>
               <th className="px-2 py-2 text-right font-medium">{t('leaderboard.colDeals')}</th>

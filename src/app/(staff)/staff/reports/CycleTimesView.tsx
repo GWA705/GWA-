@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { getT } from '@/i18n/server';
 import { formatDuration, type CycleTimesResult, type TaskStat } from '@/lib/reporting/cycleTimes';
+import { reportTheadRow } from '@/components/reporting/kit';
 
 export type RangeKey = '30' | '90' | '365' | 'all';
 export const RANGE_OPTIONS: { key: RangeKey }[] = [
@@ -69,7 +70,7 @@ export function CycleTimesView({ result, range }: { result: CycleTimesResult; ra
       <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
         <table className="w-full min-w-[640px] text-sm">
           <thead>
-            <tr className="border-b border-gray-200 bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500">
+            <tr className={reportTheadRow}>
               <th className="px-4 py-3 font-semibold">{t('cycleTimes.colTask')}</th>
               <th className="px-4 py-3 font-semibold">{t('cycleTimes.colOwner')}</th>
               <th className="px-4 py-3 text-right font-semibold">{t('cycleTimes.colDeals')}</th>

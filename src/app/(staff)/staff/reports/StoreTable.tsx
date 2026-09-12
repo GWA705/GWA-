@@ -6,6 +6,7 @@ import { ChevronRight } from 'lucide-react';
 import type { StoreRow, StoreSale } from '@/lib/reporting/monthly';
 import { useT } from '@/i18n/client';
 import type { TFunction } from '@/i18n/translator';
+import { reportTheadRow } from '@/components/reporting/kit';
 
 // Interactive store table + mobile cards for the monthly report. Clicking a store
 // expands the individual paid-OK sales behind its "This month" number; each sale
@@ -139,7 +140,7 @@ export function StoreTable({ stores, total }: { stores: StoreRow[]; total: Store
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
             <thead>
-              <tr className="bg-gray-50 text-[10px] uppercase tracking-wide text-gray-500">
+              <tr className={reportTheadRow}>
                 <th className="px-3 py-2 text-left font-medium">{t('reports.monthly.colStore')}</th>
                 <th className="px-2 py-2 text-right font-medium">{t('reports.monthly.colPrevMo')}</th>
                 <th className="px-2 py-2 text-right font-medium">{t('reports.monthly.colThisMo')}</th>
