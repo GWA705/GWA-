@@ -54,6 +54,12 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-12
+- **Mobile: dealer report navigation is now a dropdown (was a sideways-scrolling
+  tab strip).** On phones the report tabs ran off-screen — half the reports (incl.
+  Monthly) were hidden until you scrolled the strip sideways. `DealerReportTabs` now
+  shows a single "Choose a report" dropdown on phones (jumps straight to the report)
+  and keeps the segmented tab strip on wider screens. New `ReportTabSelect` client
+  component; owner-only tabs still gated.
 - **Fix: reports now print/PDF fully — wide tables no longer clipped.** Printing a
   report (e.g. the month × store "Money put through" matrix) ran off the page and got
   cut off, because the on-screen `overflow-x-auto` table kept its full width on paper.

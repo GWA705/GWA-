@@ -1,43 +1,58 @@
 import Link from 'next/link';
 import { SectionHero } from '@/components/SectionHero';
 import { getT } from '@/i18n/server';
+import { ReportTabSelect } from './ReportTabSelect';
 
 type Tab = 'monthly' | 'weekly' | 'overall' | 'funding' | 'products' | 'leaderboard' | 'pricing' | 'custom' | 'forecast' | 'reps' | 'accounting';
 
-// Tab header for the dealer reports area. Owner-only tabs (pricing, custom) are
-// shown only when the page passes `showOwner`.
+// Tab header for the dealer reports area. On phones this is a single dropdown
+// (the strip used to scroll sideways and hide tabs); on wider screens it's a
+// segmented tab strip. Owner-only tabs (pricing, reps, custom, forecast,
+// accounting) are shown only when the page passes `showOwner`.
 export function DealerReportTabs({ active, showOwner = false }: { active: Tab; showOwner?: boolean }) {
   const t = getT();
-  // Segmented control: a tinted track with the active tab as a raised "thumb".
-  const tab = (href: string, label: string, key: Tab) => (
-    <Link
-      href={href}
-      aria-current={active === key ? 'page' : undefined}
-      className={`whitespace-nowrap rounded-lg px-3.5 py-1.5 text-sm font-semibold transition ${
-        active === key
-          ? 'bg-white text-blue-700 shadow-sm dark:bg-slate-700 dark:text-white'
-          : 'text-gray-500 hover:text-blue-700 dark:text-slate-300 dark:hover:text-white'
-      }`}
-    >
-      {label}
-    </Link>
-  );
+
+  const items: { href: string; label: string; key: Tab; show: boolean }[] = [
+    { href: '/dealer/reports', label: t('reports.tabMonthly'), key: 'monthly', show: true },
+    { href: '/dealer/reports/weekly', label: t('reports.tabWeekly'), key: 'weekly', show: true },
+    { href: '/dealer/reports/overall-sales', label: t('reports.tabOverall'), key: 'overall', show: true },
+    { href: '/dealer/reports/funding', label: t('reports.tabFunding'), key: 'funding', show: true },
+    { href: '/dealer/reports/product-mix', label: t('reports.tabProducts'), key: 'products', show: true },
+    { href: '/dealer/reports/leaderboard', label: t('reports.tabLeaderboard'), key: 'leaderboard', show: true },
+    { href: '/dealer/reports/product-pricing', label: t('reports.tabPricing'), key: 'pricing', show: showOwner },
+    { href: '/dealer/reports/sales-reps', label: t('reports.tabReps'), key: 'reps', show: showOwner },
+    { href: '/dealer/reports/custom', label: t('reports.tabCustom'), key: 'custom', show: showOwner },
+    { href: '/dealer/reports/forecast', label: t('reports.tabForecast'), key: 'forecast', show: showOwner },
+    { href: '/dealer/reports/accounting', label: t('reports.tabAccounting'), key: 'accounting', show: showOwner },
+  ];
+  const visible = items.filter((i) => i.show);
+
   return (
     <div className="space-y-3">
       <SectionHero eyebrow={t('reports.heroEyebrow')} title={t('reports.heroTitle')} subtitle={t('reports.heroSubtitle')} bgImage="/reports-hero.webp" />
-      <div className="overflow-x-auto pb-1">
+
+      {/* Phone: one dropdown that jumps to the report. */}
+      <div className="sm:hidden">
+        <ReportTabSelect items={visible.map(({ href, label, key }) => ({ href, label, key }))} active={active} />
+      </div>
+
+      {/* Wider screens: the segmented tab strip. */}
+      <div className="hidden overflow-x-auto pb-1 sm:block">
         <div className="inline-flex gap-1 rounded-xl border border-gray-200 bg-[#eef5ff] p-1 dark:border-white/10 dark:bg-white/5">
-          {tab('/dealer/reports', t('reports.tabMonthly'), 'monthly')}
-          {tab('/dealer/reports/weekly', t('reports.tabWeekly'), 'weekly')}
-          {tab('/dealer/reports/overall-sales', t('reports.tabOverall'), 'overall')}
-          {tab('/dealer/reports/funding', t('reports.tabFunding'), 'funding')}
-          {tab('/dealer/reports/product-mix', t('reports.tabProducts'), 'products')}
-          {tab('/dealer/reports/leaderboard', t('reports.tabLeaderboard'), 'leaderboard')}
-          {showOwner && tab('/dealer/reports/product-pricing', t('reports.tabPricing'), 'pricing')}
-          {showOwner && tab('/dealer/reports/sales-reps', t('reports.tabReps'), 'reps')}
-          {showOwner && tab('/dealer/reports/custom', t('reports.tabCustom'), 'custom')}
-          {showOwner && tab('/dealer/reports/forecast', t('reports.tabForecast'), 'forecast')}
-          {showOwner && tab('/dealer/reports/accounting', t('reports.tabAccounting'), 'accounting')}
+          {visible.map((i) => (
+            <Link
+              key={i.key}
+              href={i.href}
+              aria-current={active === i.key ? 'page' : undefined}
+              className={`whitespace-nowrap rounded-lg px-3.5 py-1.5 text-sm font-semibold transition ${
+                active === i.key
+                  ? 'bg-white text-blue-700 shadow-sm dark:bg-slate-700 dark:text-white'
+                  : 'text-gray-500 hover:text-blue-700 dark:text-slate-300 dark:hover:text-white'
+              }`}
+            >
+              {i.label}
+            </Link>
+          ))}
         </div>
       </div>
     </div>
