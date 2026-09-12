@@ -1,4 +1,5 @@
 import { getT } from '@/i18n/server';
+import { ReportTile, ReportTiles, reportTheadRow } from './kit';
 
 const money = (n: number) => `$${Math.round(n).toLocaleString('en-CA')}`;
 
@@ -20,25 +21,12 @@ export function SalesRepReport({ reps, rangeLabel }: { reps: RepStat[]; rangeLab
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-          <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t('salesRepReport.statSalesReps')}</div>
-          <div className="mt-1 text-2xl font-bold text-gray-900 tabular-nums">{reps.length}</div>
-          <div className="text-xs text-gray-500">{rangeLabel}</div>
-        </div>
-        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-          <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t('salesRepReport.statDeals')}</div>
-          <div className="mt-1 text-2xl font-bold text-gray-900 tabular-nums">{totalDeals}</div>
-        </div>
-        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-          <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t('salesRepReport.statUnits')}</div>
-          <div className="mt-1 text-2xl font-bold text-gray-900 tabular-nums">{totalUnits > 0 ? totalUnits : '—'}</div>
-        </div>
-        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-          <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t('salesRepReport.statTotalValue')}</div>
-          <div className="mt-1 text-2xl font-bold text-gray-900 tabular-nums">{money(totalValue)}</div>
-        </div>
-      </div>
+      <ReportTiles cols={4}>
+        <ReportTile label={t('salesRepReport.statSalesReps')} value={reps.length} sub={rangeLabel} />
+        <ReportTile label={t('salesRepReport.statDeals')} value={totalDeals} />
+        <ReportTile label={t('salesRepReport.statUnits')} value={totalUnits > 0 ? totalUnits : '—'} />
+        <ReportTile label={t('salesRepReport.statTotalValue')} value={money(totalValue)} />
+      </ReportTiles>
 
       <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
         <div className="border-b border-gray-100 px-5 py-3">
@@ -51,7 +39,7 @@ export function SalesRepReport({ reps, rangeLabel }: { reps: RepStat[]; rangeLab
           <div className="overflow-x-auto">
             <table className="w-full min-w-[640px]">
               <thead>
-                <tr className="bg-gray-50 text-[11px] uppercase text-gray-500">
+                <tr className={reportTheadRow}>
                   <th className="px-4 py-3 text-left">{t('salesRepReport.colSalesRep')}</th>
                   <th className="px-4 py-3 text-left">{t('salesRepReport.colTotalValue')}</th>
                   <th className="px-4 py-3 text-right">{t('salesRepReport.colDeals')}</th>

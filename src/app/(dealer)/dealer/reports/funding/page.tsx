@@ -6,6 +6,7 @@ import { prisma } from '@/lib/db';
 import { buildFundingReport, weekWindow, monthWindow } from '@/lib/reporting/fundingReport';
 import { DealerReportTabs } from '../DealerReportTabs';
 import { ReportActions } from '../ReportActions';
+import { ReportTile } from '@/components/reporting/kit';
 import { getT } from '@/i18n/server';
 
 export const dynamic = 'force-dynamic';
@@ -37,13 +38,7 @@ export default async function DealerFundingPage({ searchParams }: { searchParams
   const qp = (o: number) => `/dealer/reports/funding?p=${period}&o=${o}`;
   const generated = new Date().toLocaleDateString('en-CA', { year: 'numeric', month: 'long', day: 'numeric' });
 
-  const tile = (label: string, value: string, sub?: string) => (
-    <div className="rounded-xl border border-gray-200 bg-white px-4 py-3">
-      <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">{label}</div>
-      <div className="mt-0.5 text-xl font-bold text-gray-900">{value}</div>
-      {sub && <div className="text-xs text-gray-400">{sub}</div>}
-    </div>
-  );
+  const tile = (label: string, value: string, sub?: string) => <ReportTile label={label} value={value} sub={sub} />;
 
   return (
     <div className="space-y-5">
