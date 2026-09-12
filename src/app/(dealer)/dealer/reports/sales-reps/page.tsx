@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import { requireDealerAccess } from '@/lib/session';
 import { canViewOwnerPricingReport } from '@/lib/reporting/access';
 import { reportDataset } from '@/lib/reporting/reportDataset';
+import { journalUnitsByRep, repKey } from '@/lib/reporting/salespersonLeaderboard';
 import { SalesRepReport, type RepStat } from '@/components/reporting/SalesRepReport';
 import { DealerReportTabs } from '../DealerReportTabs';
 import { getT } from '@/i18n/server';
@@ -47,10 +48,17 @@ export default async function DealerSalesRepReport({ searchParams }: { searchPar
     b.programs.set(r.program, (b.programs.get(r.program) ?? 0) + 1);
     map.set(r.salesperson, b);
   }
+  // Units sold come from the sales journal ("# of units" column) — portal
+  // applications carry no unit count. Scoped to this office and the same range,
+  // matched to each rep by name (the journal's "Dealer's Name" column, which is
+  // where the portal writes the salesperson).
+  const unitsByRep = await journalUnitsByRep(user.dealerId, cut);
+
   const reps: RepStat[] = [...map.entries()]
     .map(([name, v]) => ({
       name,
       count: v.count,
+      units: unitsByRep.get(repKey(name)) ?? 0,
       total: v.total,
       avg: v.count ? v.total / v.count : 0,
       topProgram: [...v.programs.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? '—',

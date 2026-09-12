@@ -304,6 +304,7 @@ export interface ReportDeal {
   location: string; // raw location / dealer label
   salesperson: string; // rep who made the sale (journal "Dealer's Name" column)
   product: string;
+  units: number; // # of units sold on this deal (journal "# of units" column; 0 if blank/absent)
   isHD: boolean;
   isMisc: boolean; // from the MISC. DEALS/INSTALLS tab (GWA financing outside HD)
   sourceCategory: string;
@@ -535,6 +536,7 @@ async function readJournalUncached(year: number): Promise<JournalReadResult> {
         location: colMap.location !== -1 ? String(row[colMap.location] || '') : officeMeta,
         salesperson: colMap.salesperson !== -1 ? String(row[colMap.salesperson] || '').trim() : '',
         product: colMap.product !== -1 ? String(row[colMap.product] || '') : '',
+        units: colMap.units !== -1 ? Math.max(0, Math.round(parseMoney(row[colMap.units]))) : 0,
         isHD: classification.isHD,
         isMisc,
         sourceCategory: classification.bucket,

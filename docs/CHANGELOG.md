@@ -54,6 +54,19 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-12
+- **Rep reports now show UNITS SOLD, not just customers/deals.** Both per-rep
+  reports previously counted one per deal (customer) and summed dollars — a rep who
+  sold one customer 4 products showed as 1 deal, same as a 1-product sale. Now they
+  also show **units sold**, read from the journal's **“# of units”** column (wired
+  into `ReportDeal.units`; the column mapping existed but was never read). Deals and
+  dollars are unchanged — units are **added alongside**.
+  - **Staff → Reports → Leaderboard (Salesperson):** new Units KPI tile + Units
+    column per rep (units on that rep’s paid-OK deals, matching the report’s basis).
+  - **Dealer → Reports → Sales Reps:** new Units KPI tile + Units column. Portal
+    applications carry no unit count, so units are sourced from the sales journal
+    (`journalUnitsByRep()`), scoped to the office and range, matched to each rep by
+    name (the journal “Dealer’s Name” column the portal writes into); returns (RB)
+    excluded. Footnote explains the source.
 - **Fix: Office range report showed a blank page on screen.** The executive
   rewrite wrapped the whole report in `.print-only`, which is `display:none` on
   screen (it's meant for print-only receipts like the payout slip) — so the report

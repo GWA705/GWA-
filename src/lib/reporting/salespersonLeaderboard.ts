@@ -1,5 +1,5 @@
 import 'server-only';
-import { readJournal, type ReportDeal } from './journalRead';
+import { readJournal, sheetIdFor, EARLIEST_JOURNAL_YEAR, type ReportDeal } from './journalRead';
 import { reportStoreScope, type Office } from './monthly';
 
 /**
@@ -13,6 +13,7 @@ import { reportStoreScope, type Office } from './monthly';
 export interface LeaderboardRow {
   name: string; // display label (most common original spelling)
   deals: number; // paid-OK deals credited to this rep
+  units: number; // total units sold on those deals (journal "# of units" column)
   volume: number; // total $ of those deals
   avgDeal: number; // volume ÷ deals
   variants: { name: string; deals: number }[]; // original spellings merged here
@@ -45,8 +46,47 @@ export interface SalespersonLeaderboard {
   error?: string;
   rows: LeaderboardRow[];
   totalDeals: number;
+  totalUnits: number;
   totalVolume: number;
   unspecified: number; // deals with no rep named in the journal
+}
+
+/**
+ * Units sold per rep from the sales journal ("# of units" column), scoped to one
+ * office, for deals on or after `cutYm` (YYYY-MM; null = all history). Keyed by
+ * repKey so it can be merged into a rep report built from another source — e.g.
+ * the dealer Sales Reps report, which reads portal applications and has no units
+ * of its own. "Sold" excludes returned deals (result RB).
+ */
+export async function journalUnitsByRep(dealerId: string, cutYm: string | null): Promise<Map<string, number>> {
+  const scope = await reportStoreScope(dealerId);
+  const now = new Date().getFullYear();
+  const startYear = cutYm ? parseInt(cutYm.slice(0, 4), 10) : EARLIEST_JOURNAL_YEAR;
+  const years: number[] = [];
+  for (let y = startYear; y <= now; y += 1) if (sheetIdFor(y)) years.push(y);
+  if (years.length === 0) return new Map();
+
+  const reads = await Promise.all(years.map((y) => readJournal(y)));
+  const belongs = (d: ReportDeal) => scope.isAll || (d.storeNumber ? scope.storeSet.has(d.storeNumber) : false);
+  const ymOf = (dt: Date) => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`;
+
+  const byRep = new Map<string, number>();
+  for (const r of reads) {
+    for (const d of r.deals) {
+      if (d.result === 'RB') continue;
+      if (!belongs(d)) continue;
+      if (cutYm) {
+        const when = d.date ?? d.datePaid;
+        if (!when || ymOf(when) < cutYm) continue;
+      }
+      const name = (d.salesperson || '').trim();
+      if (!name) continue;
+      const key = repKey(name);
+      if (!key) continue;
+      byRep.set(key, (byRep.get(key) ?? 0) + d.units);
+    }
+  }
+  return byRep;
 }
 
 export async function buildSalespersonLeaderboard(dealerId: string, year: number): Promise<SalespersonLeaderboard> {
@@ -60,15 +100,16 @@ export async function buildSalespersonLeaderboard(dealerId: string, year: number
 
   // Group deals under a canonical rep key, tracking each original spelling merged
   // in (so the UI can expand a row and show what was combined).
-  const groups = new Map<string, { deals: number; volume: number; variants: Map<string, number> }>();
+  const groups = new Map<string, { deals: number; units: number; volume: number; variants: Map<string, number> }>();
   let unspecified = 0;
   for (const d of deals) {
     const name = (d.salesperson || '').trim();
     if (!name) { unspecified += 1; continue; }
     const key = repKey(name);
     if (!key) { unspecified += 1; continue; }
-    const g = groups.get(key) ?? { deals: 0, volume: 0, variants: new Map<string, number>() };
+    const g = groups.get(key) ?? { deals: 0, units: 0, volume: 0, variants: new Map<string, number>() };
     g.deals += 1;
+    g.units += d.units;
     g.volume += d.gross;
     g.variants.set(name, (g.variants.get(name) ?? 0) + 1);
     groups.set(key, g);
@@ -82,6 +123,7 @@ export async function buildSalespersonLeaderboard(dealerId: string, year: number
       return {
         name: variants[0]?.name ?? '(unknown)', // most common spelling
         deals: g.deals,
+        units: g.units,
         volume: g.volume,
         avgDeal: g.deals > 0 ? Math.round(g.volume / g.deals) : 0,
         variants,
@@ -96,6 +138,7 @@ export async function buildSalespersonLeaderboard(dealerId: string, year: number
     error: cur.error,
     rows,
     totalDeals: rows.reduce((s, r) => s + r.deals, 0),
+    totalUnits: rows.reduce((s, r) => s + r.units, 0),
     totalVolume: rows.reduce((s, r) => s + r.volume, 0),
     unspecified,
   };

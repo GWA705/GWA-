@@ -35,6 +35,7 @@ export function LeaderboardTable({ rows }: { rows: LeaderboardRow[] }) {
               <th className="px-3 py-2 text-left font-medium">#</th>
               <th className="px-3 py-2 text-left font-medium">{t('leaderboard.colRep')}</th>
               <th className="px-2 py-2 text-right font-medium">{t('leaderboard.colDeals')}</th>
+              <th className="px-2 py-2 text-right font-medium">{t('leaderboard.colUnits')}</th>
               <th className="px-2 py-2 text-right font-medium">{t('leaderboard.colAvg')}</th>
               <th className="px-2 py-2 text-right font-medium">{t('leaderboard.colVolume')}</th>
             </tr>
@@ -98,12 +99,13 @@ function ExpandRow({
           </span>
         </td>
         <td className="px-2 py-2 text-right tabular-nums text-gray-800">{r.deals}</td>
+        <td className="px-2 py-2 text-right tabular-nums text-gray-800">{r.units > 0 ? r.units : '—'}</td>
         <td className="px-2 py-2 text-right tabular-nums text-gray-800">{r.avgDeal > 0 ? money(r.avgDeal) : '—'}</td>
         <td className="px-2 py-2 text-right tabular-nums font-semibold text-gray-900">{money(r.volume)}</td>
       </tr>
       {merged && isOpen && (
         <tr className="border-t border-gray-100">
-          <td colSpan={5} className="bg-gray-50/60 px-4 py-2">
+          <td colSpan={6} className="bg-gray-50/60 px-4 py-2">
             <div className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
               {t('leaderboard.mergedInto')}
             </div>

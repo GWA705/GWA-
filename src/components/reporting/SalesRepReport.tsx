@@ -5,6 +5,7 @@ const money = (n: number) => `$${Math.round(n).toLocaleString('en-CA')}`;
 export interface RepStat {
   name: string;
   count: number;
+  units: number;
   total: number;
   avg: number;
   topProgram: string;
@@ -14,11 +15,12 @@ export function SalesRepReport({ reps, rangeLabel }: { reps: RepStat[]; rangeLab
   const t = getT();
   const peak = Math.max(1, ...reps.map((r) => r.total));
   const totalDeals = reps.reduce((s, r) => s + r.count, 0);
+  const totalUnits = reps.reduce((s, r) => s + r.units, 0);
   const totalValue = reps.reduce((s, r) => s + r.total, 0);
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
           <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t('salesRepReport.statSalesReps')}</div>
           <div className="mt-1 text-2xl font-bold text-gray-900 tabular-nums">{reps.length}</div>
@@ -27,6 +29,10 @@ export function SalesRepReport({ reps, rangeLabel }: { reps: RepStat[]; rangeLab
         <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
           <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t('salesRepReport.statDeals')}</div>
           <div className="mt-1 text-2xl font-bold text-gray-900 tabular-nums">{totalDeals}</div>
+        </div>
+        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+          <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t('salesRepReport.statUnits')}</div>
+          <div className="mt-1 text-2xl font-bold text-gray-900 tabular-nums">{totalUnits > 0 ? totalUnits : '—'}</div>
         </div>
         <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
           <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t('salesRepReport.statTotalValue')}</div>
@@ -49,6 +55,7 @@ export function SalesRepReport({ reps, rangeLabel }: { reps: RepStat[]; rangeLab
                   <th className="px-4 py-3 text-left">{t('salesRepReport.colSalesRep')}</th>
                   <th className="px-4 py-3 text-left">{t('salesRepReport.colTotalValue')}</th>
                   <th className="px-4 py-3 text-right">{t('salesRepReport.colDeals')}</th>
+                  <th className="px-4 py-3 text-right">{t('salesRepReport.colUnits')}</th>
                   <th className="px-4 py-3 text-right">{t('salesRepReport.colAvg')}</th>
                   <th className="px-4 py-3 text-left">{t('salesRepReport.colTopProgram')}</th>
                 </tr>
@@ -66,6 +73,7 @@ export function SalesRepReport({ reps, rangeLabel }: { reps: RepStat[]; rangeLab
                       </div>
                     </td>
                     <td className="px-4 py-3 text-right text-sm tabular-nums text-gray-600">{r.count}</td>
+                    <td className="px-4 py-3 text-right text-sm tabular-nums text-gray-700">{r.units > 0 ? r.units : '—'}</td>
                     <td className="px-4 py-3 text-right text-sm tabular-nums text-gray-500">{money(r.avg)}</td>
                     <td className="px-4 py-3 text-sm text-gray-500">{r.topProgram}</td>
                   </tr>
