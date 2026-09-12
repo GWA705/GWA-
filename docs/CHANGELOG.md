@@ -54,6 +54,16 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-12
+- **Remittances: duplicate fail-safe + delete button.** Auto-capture went live and
+  produced a duplicate — a manual entry (placeholder doc # `20260911`) plus the
+  webhook's real doc # (`2000133384`) for the same payment, which the doc-#-only
+  dedupe couldn't catch. Added: (1) a **content-based dedupe** in `ingestRemittance`
+  — before creating, it compares the sorted line signature (HD # + amount) and net
+  total against recent remittances (45 days) and skips creating a repeat even when
+  the document number differs or is absent; (2) a **Delete remittance** button on
+  the remittance detail page (cascade-removes its lines) for clearing a duplicate
+  or mistaken entry — it does **not** un-fund deals (money already recorded stays;
+  it only clears the remittance bookkeeping), and is audited.
 - **Office range report: executive styling + Print / Save as PDF.** The custom-range
   office report now reads as a one-pager — titled header (Georgian Water & Air,
   scope, date range, generated date), a row of KPI tiles (total put through, paid

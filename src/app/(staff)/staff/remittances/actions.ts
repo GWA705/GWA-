@@ -1,8 +1,32 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 import { requireStaffSection } from '@/lib/session';
+import { prisma } from '@/lib/db';
+import { audit } from '@/lib/audit';
 import { ingestRemittance, parseHdRemittanceText, type RemittanceLineInput } from '@/lib/hdRemittance';
+
+/**
+ * Delete a remittance record (and its lines, via cascade). For clearing a
+ * duplicate or a mistaken entry. Does NOT un-fund any deals — money already
+ * recorded on a deal stays as-is; this only removes the remittance bookkeeping.
+ */
+export async function deleteRemittanceAction(id: string, _formData?: FormData): Promise<void> {
+  const session = await requireStaffSection('remittances');
+  const r = await prisma.hdRemittance.findUnique({ where: { id }, select: { documentNumber: true, source: true } });
+  if (!r) redirect('/staff/remittances');
+  await prisma.hdRemittance.delete({ where: { id } });
+  await audit({
+    actorId: session.userId,
+    action: 'STATUS_CHANGE',
+    entityType: 'HdRemittance',
+    entityId: id,
+    detail: `Remittance deleted (${r?.documentNumber ?? 'manual'}, ${r?.source ?? '—'})`,
+  });
+  revalidatePath('/staff/remittances');
+  redirect('/staff/remittances');
+}
 
 export interface RemittanceActionState {
   error?: string;

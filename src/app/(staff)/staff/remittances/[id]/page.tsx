@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireStaffSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
+import { DeleteRemittanceButton } from '../DeleteRemittanceButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,13 +31,16 @@ export default async function RemittanceDetailPage({ params }: { params: { id: s
 
   return (
     <div className="max-w-5xl space-y-5">
-      <div>
-        <Link href="/staff/remittances" className="text-sm text-gray-500 hover:underline">← All remittances</Link>
-        <h1 className="mt-2 text-xl font-semibold text-gray-900">Remittance {r.documentNumber ?? '(manual)'}</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          {r.source === 'MANUAL' ? 'Entered manually' : 'Received automatically'}
-          {r.processedBy?.name ? ` by ${r.processedBy.name}` : ''} · {fmt(r.createdAt)} · Payment date {fmt(r.paymentDate)}
-        </p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <Link href="/staff/remittances" className="text-sm text-gray-500 hover:underline">← All remittances</Link>
+          <h1 className="mt-2 text-xl font-semibold text-gray-900">Remittance {r.documentNumber ?? '(manual)'}</h1>
+          <p className="mt-1 text-sm text-gray-500">
+            {r.source === 'MANUAL' ? 'Entered manually' : 'Received automatically'}
+            {r.processedBy?.name ? ` by ${r.processedBy.name}` : ''} · {fmt(r.createdAt)} · Payment date {fmt(r.paymentDate)}
+          </p>
+        </div>
+        <DeleteRemittanceButton id={r.id} docNumber={r.documentNumber} />
       </div>
 
       <div className="flex flex-wrap gap-3 text-sm">

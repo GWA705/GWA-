@@ -121,6 +121,29 @@ export async function ingestRemittance(input: RemittanceInput): Promise<Remittan
   const lines = (input.lines || []).filter((l) => l && digits(l.hdIdNumber).length >= 8);
   if (lines.length === 0) return { ok: false, error: 'No valid lines.', lineCount: 0, matched: 0, funded: 0, chargebacks: 0, unmatched: [] };
 
+  // Content-based dedupe fail-safe: catch a re-entry that used a DIFFERENT (or no)
+  // document number — the same set of HD #s + amounts is almost certainly the same
+  // remittance (e.g. a manual entry, then the webhook with HD's real doc #). Match
+  // against recent remittances with the same line count + net total, then compare
+  // the sorted line signature. Skips creating a second record if it's a repeat.
+  const sigOf = (ls: { hdIdNumber: string; amount: number | { toString(): string } }[]) =>
+    ls
+      .map((l) => `${digits(String(l.hdIdNumber))}:${(Number(l.amount) || 0).toFixed(2)}`)
+      .sort()
+      .join('|');
+  const thisSig = sigOf(lines);
+  const total = lines.reduce((s, l) => s + (Number(l.amount) || 0), 0);
+  const since = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000);
+  const candidates = await prisma.hdRemittance.findMany({
+    where: { createdAt: { gte: since }, lineCount: lines.length, totalNet: new Prisma.Decimal(total.toFixed(2)) },
+    select: { id: true, lines: { select: { hdIdNumber: true, amount: true } } },
+  });
+  for (const c of candidates) {
+    if (sigOf(c.lines) === thisSig) {
+      return { ok: true, duplicate: true, remittanceId: c.id, lineCount: 0, matched: 0, funded: 0, partial: 0, chargebacks: 0, unmatched: [] };
+    }
+  }
+
   // Look up all referenced deals in one query, newest first so a re-used HD number
   // maps to the most recent deal.
   const refs = Array.from(new Set(lines.map((l) => digits(l.hdIdNumber))));
