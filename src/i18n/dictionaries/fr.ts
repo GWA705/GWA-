@@ -1426,6 +1426,10 @@ export const fr: Dictionary = {
     email: 'M’envoyer par courriel',
     emailing: 'Envoi…',
   },
+  reportStamp: {
+    brand: 'Portail concessionnaire · Georgian Water & Air',
+    generated: 'Généré le {date}',
+  },
   funding: {
     title: 'Rapport de financement',
     week: 'Semaine',

@@ -6,6 +6,7 @@ import { buildSalespersonLeaderboard } from '@/lib/reporting/salespersonLeaderbo
 import { LeaderboardView } from '@/app/(staff)/staff/reports/leaderboard/LeaderboardView';
 import { DealerReportTabs } from '../DealerReportTabs';
 import { ReportActions } from '../ReportActions';
+import { ReportStamp, reportGeneratedLabel } from '@/components/reporting/kit';
 import { getT } from '@/i18n/server';
 
 export const dynamic = 'force-dynamic';
@@ -42,8 +43,9 @@ export default async function DealerLeaderboardPage({ searchParams }: { searchPa
       {!reportingJournalEnabled() ? (
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">{t('reports.notReady')}</div>
       ) : (
-        <div className="print-sheet">
+        <div className="print-sheet space-y-5">
           <LeaderboardView report={await buildSalespersonLeaderboard(user.dealerId, year)} />
+          <ReportStamp brand={t('reportStamp.brand')} generated={t('reportStamp.generated', { date: reportGeneratedLabel() })} />
         </div>
       )}
     </div>

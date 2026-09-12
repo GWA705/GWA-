@@ -6,7 +6,7 @@ import { prisma } from '@/lib/db';
 import { buildFundingReport, weekWindow, monthWindow } from '@/lib/reporting/fundingReport';
 import { DealerReportTabs } from '../DealerReportTabs';
 import { ReportActions } from '../ReportActions';
-import { ReportTile } from '@/components/reporting/kit';
+import { ReportTile, ReportStamp, reportTheadRow } from '@/components/reporting/kit';
 import { getT } from '@/i18n/server';
 
 export const dynamic = 'force-dynamic';
@@ -59,10 +59,13 @@ export default async function DealerFundingPage({ searchParams }: { searchParams
 
       {/* The printable one-pager */}
       <div className="print-sheet space-y-5">
-        <div className="flex flex-wrap items-start justify-between gap-4 border-b-2 border-gray-800 pb-3">
+        <div className="flex flex-wrap items-start justify-between gap-4 border-b-[3px] border-[#123448] pb-3">
           <div className="min-w-0">
-            <div className="text-sm font-bold uppercase tracking-wide text-gray-500">Georgian Water &amp; Air</div>
-            <h1 className="text-2xl font-bold text-gray-900">{t('funding.title')}</h1>
+            <div className="flex items-center gap-2.5">
+              <img src="/brand/gwa-icon.png" alt="" className="h-9 w-9 flex-none" />
+              <div className="text-sm font-bold uppercase tracking-wide text-gray-700">Georgian Water &amp; Air</div>
+            </div>
+            <h1 className="mt-2.5 text-2xl font-bold text-gray-900">{t('funding.title')}</h1>
             <p className="mt-0.5 text-sm text-gray-600">{officeName} · <span className="font-medium">{periodLabel}</span></p>
           </div>
           <div className="text-right text-xs text-gray-400">{t('funding.generated')} {generated}</div>
@@ -80,7 +83,7 @@ export default async function DealerFundingPage({ searchParams }: { searchParams
           <div className="overflow-x-auto rounded-lg border border-gray-200">
             <table className="min-w-full text-sm">
               <thead>
-                <tr className="border-b-2 border-gray-300 bg-gray-100 text-left text-[11px] uppercase tracking-wide text-gray-600">
+                <tr className={reportTheadRow}>
                   <th className="px-4 py-3">{t('funding.colCustomer')}</th>
                   <th className="px-4 py-3">{t('funding.colHd')}</th>
                   <th className="px-4 py-3">{t('funding.colPaidOn')}</th>
@@ -110,6 +113,8 @@ export default async function DealerFundingPage({ searchParams }: { searchParams
         )}
 
         <p className="text-xs text-gray-400">{t('funding.basis')}</p>
+
+        <ReportStamp brand={t('reportStamp.brand')} generated={t('reportStamp.generated', { date: generated })} />
       </div>
     </div>
   );

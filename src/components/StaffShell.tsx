@@ -157,8 +157,8 @@ export function StaffShell({
             )}
           </nav>
           <div className="flex flex-none items-center gap-2.5 border-t border-white/10 px-4 py-3">
-            <div className="flex h-8 w-8 flex-none items-center justify-center rounded-lg bg-white/10">
-              <Droplets size={17} className="text-sky-300" />
+            <div className="flex h-8 w-8 flex-none items-center justify-center rounded-lg bg-white">
+              <img src="/brand/gwa-icon.png" alt="" className="h-5 w-5" />
             </div>
             <div className="leading-tight">
               <div className="text-[11px] font-semibold text-blue-50">Georgian Water &amp; Air</div>

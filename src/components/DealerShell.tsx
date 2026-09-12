@@ -251,8 +251,8 @@ export function DealerShell({
             )}
           </nav>
           <div className={`flex flex-none items-center border-t border-white/10 py-3 ${collapsed ? 'justify-center px-2' : 'gap-2.5 px-4'}`}>
-            <div className="flex h-8 w-8 flex-none items-center justify-center rounded-lg bg-white/10">
-              <Droplets size={17} className="text-sky-300" />
+            <div className="flex h-8 w-8 flex-none items-center justify-center rounded-lg bg-white">
+              <img src="/brand/gwa-icon.png" alt="" className="h-5 w-5" />
             </div>
             {!collapsed && (
               <div className="leading-tight">

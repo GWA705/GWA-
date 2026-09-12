@@ -1422,6 +1422,10 @@ export const en = {
     email: 'Email to me',
     emailing: 'Sending…',
   },
+  reportStamp: {
+    brand: 'GWA Portal · Georgian Water & Air',
+    generated: 'Generated {date}',
+  },
   funding: {
     title: 'Funding report',
     week: 'Week',

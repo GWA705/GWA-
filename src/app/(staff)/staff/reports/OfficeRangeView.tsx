@@ -1,6 +1,7 @@
 import type { OfficeRangeReport } from '@/lib/reporting/officeRange';
 import { ReportPrintButton } from './ReportPrintButton';
-import { ReportTile } from '@/components/reporting/kit';
+import { ReportTile, ReportStamp, reportTheadRow } from '@/components/reporting/kit';
+import { getT } from '@/i18n/server';
 
 const money = (n: number) =>
   `$${n.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -29,19 +30,23 @@ export function OfficeRangeView({ report }: { report: OfficeRangeReport }) {
   }
 
   const tile = (label: string, value: string, sub?: string) => <ReportTile label={label} value={value} sub={sub} />;
+  const t = getT();
 
   return (
     <div className="print-sheet space-y-5">
       {/* Landscape print — the matrix is wide. */}
       <style>{`@media print { @page { size: landscape; margin: 12mm; } }`}</style>
 
-      {/* Executive header */}
-      <div className="flex flex-wrap items-start justify-between gap-4 border-b-2 border-gray-800 pb-3">
+      {/* Executive header — GWA icon lockup + petrol-navy rule */}
+      <div className="flex flex-wrap items-start justify-between gap-4 border-b-[3px] border-[#123448] pb-3">
         <div className="min-w-0">
-          <div className="text-sm font-bold uppercase tracking-wide text-gray-500">Georgian Water &amp; Air</div>
-          <h1 className="text-2xl font-bold text-gray-900">Total Sales</h1>
+          <div className="flex items-center gap-2.5">
+            <img src="/brand/gwa-icon.png" alt="" className="h-9 w-9 flex-none" />
+            <div className="text-sm font-bold uppercase tracking-wide text-gray-700">Georgian Water &amp; Air</div>
+          </div>
+          <h1 className="mt-2.5 text-2xl font-bold text-gray-900">Total Sales</h1>
           <p className="mt-0.5 text-sm text-gray-600">
-            {scopeLabel || 'All offices'} · Paid &amp; received · <span className="font-medium">{rangeLabel}</span>
+            {scopeLabel || 'All offices'} · Paid on funded deals · <span className="font-medium">{rangeLabel}</span>
           </p>
         </div>
         <div className="flex flex-col items-end gap-2">
@@ -52,7 +57,7 @@ export function OfficeRangeView({ report }: { report: OfficeRangeReport }) {
 
       {/* KPI tiles */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {tile('Total put through', money(grandTotal), rangeLabel)}
+        {tile('Total sales', money(grandTotal), rangeLabel)}
         {tile('Paid deals', grandCount.toLocaleString('en-CA'), `${activeRows} active ${unitLabel}`)}
         {tile('Average / month', money0(avgPerMonth), `over ${months.length} month${months.length === 1 ? '' : 's'}`)}
         {tile('Best month', bestMonth && bestMonth.total > 0 ? money0(bestMonth.total) : '—', bestMonth?.label ?? '')}
@@ -67,12 +72,12 @@ export function OfficeRangeView({ report }: { report: OfficeRangeReport }) {
         <div className="overflow-x-auto rounded-lg border border-gray-200">
           <table className="min-w-full text-sm">
             <thead>
-              <tr className="border-b-2 border-gray-300 bg-gray-100 text-left text-[11px] uppercase tracking-wide text-gray-600">
-                <th className="sticky left-0 bg-gray-100 px-4 py-3">{firstColHeader}</th>
+              <tr className={reportTheadRow}>
+                <th className="sticky left-0 bg-[#eef3f6] px-4 py-3">{firstColHeader}</th>
                 {months.map((m) => (
                   <th key={m.ym} className="px-4 py-3 text-right">{m.label}</th>
                 ))}
-                <th className="px-4 py-3 text-right font-bold text-gray-800">Total</th>
+                <th className="px-4 py-3 text-right font-bold">Total</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -92,8 +97,8 @@ export function OfficeRangeView({ report }: { report: OfficeRangeReport }) {
               ))}
             </tbody>
             <tfoot>
-              <tr className="border-t-2 border-gray-300 bg-gray-100">
-                <td className="sticky left-0 bg-gray-100 px-4 py-3 font-bold text-gray-800">Total</td>
+              <tr className="border-t-2 border-[#123448]/30 bg-[#eef3f6]">
+                <td className="sticky left-0 bg-[#eef3f6] px-4 py-3 font-bold text-gray-800">Total</td>
                 {months.map((m) => (
                   <td key={m.ym} className="px-4 py-3 text-right font-semibold tabular-nums text-gray-700">
                     {monthTotals[m.ym] ? money(monthTotals[m.ym]) : '—'}
@@ -107,8 +112,10 @@ export function OfficeRangeView({ report }: { report: OfficeRangeReport }) {
       )}
 
       <p className="text-xs text-gray-400">
-        Total sales = paid &amp; received (OK money dated by date paid) — reconciles with the Monthly office report.
+        Total sales = paid on funded deals (OK money dated by date paid) — reconciles with the Monthly office report.
       </p>
+
+      <ReportStamp brand={t('reportStamp.brand')} generated={t('reportStamp.generated', { date: generated })} />
     </div>
   );
 }
