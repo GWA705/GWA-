@@ -96,6 +96,14 @@ export default async function ReportsLandingPage() {
       available: true,
     },
     {
+      href: '/staff/reports/gift-cards',
+      title: 'Gift cards by office',
+      blurb: 'Cards sent and dollar value per dealer, plus what is still pending. Sortable and downloadable.',
+      accent: '#7a3fa8',
+      badge: 'Super Admin',
+      available: isAdmin,
+    },
+    {
       href: '/staff/reports/leaderboard',
       title: t('staffReportsHub.leaderboard.title'),
       blurb: t('staffReportsHub.leaderboard.blurb'),

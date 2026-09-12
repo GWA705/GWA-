@@ -54,6 +54,17 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-12
+- **New report — Gift cards by office (admin-only).** A per-dealer summary of how
+  many gift cards were **sent** and the **dollar value**, plus what's still
+  **pending** and how many were **cancelled**, with the date of the most recent
+  card sent per office. The table is **sortable** (click any column header — sort
+  drives the export too) and **downloadable as CSV**. Admin-only; shows in the
+  Reports hub with the "Super Admin" badge. New `src/lib/reporting/giftCardReport.ts`
+  (`buildGiftCardReport()`), `GiftCardReportView.tsx` (client, sort + CSV), and
+  page at `/staff/reports/gift-cards`. Dollar figures are the requested/sent card
+  values; "$ each dealer has" is read as **total $ sent** (there is no
+  budget/balance field on the office — say the word if a remaining-budget column
+  is wanted instead).
 - **Monthly report: richer PE/OK pending snapshot + click-through to the deal.** The
   two pending-installation blocks (this month / earlier months) now expand each
   store to the individual pending deals **on desktop** — sale date, customer name,
