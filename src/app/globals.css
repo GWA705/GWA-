@@ -370,6 +370,11 @@ body {
   body * { visibility: hidden !important; }
   .print-only, .print-only * { visibility: visible !important; }
   .print-only { display: block !important; position: absolute; left: 0; top: 0; width: 100%; }
+  /* .print-sheet is VISIBLE on screen (unlike .print-only) but prints clean:
+     on print everything else is hidden and only this block shows. Use it for a
+     report you both read on screen and Save-as-PDF (e.g. the office range report). */
+  .print-sheet, .print-sheet * { visibility: visible !important; }
+  .print-sheet { display: block !important; position: absolute; left: 0; top: 0; width: 100%; }
   .no-print { display: none !important; }
 }
 

@@ -8,8 +8,9 @@ const money0 = (n: number) => `$${Math.round(n).toLocaleString('en-CA')}`;
 /**
  * Custom-range office report, styled as an executive one-pager: a titled header,
  * KPI tiles, and a month × store/office matrix. Print-friendly — the whole
- * report sits in a `.print-only` wrapper so "Print / Save as PDF" produces a
- * clean sheet with none of the app chrome (see the global @media print rules).
+ * report sits in a `.print-sheet` wrapper: visible on screen, and on "Print /
+ * Save as PDF" it isolates to a clean sheet with none of the app chrome (see the
+ * global @media print rules).
  */
 export function OfficeRangeView({ report }: { report: OfficeRangeReport }) {
   const { months, rows, monthTotals, grandTotal, grandCount, rangeLabel, scopeLabel, groupBy } = report;
@@ -35,7 +36,7 @@ export function OfficeRangeView({ report }: { report: OfficeRangeReport }) {
   );
 
   return (
-    <div className="print-only space-y-5">
+    <div className="print-sheet space-y-5">
       {/* Landscape print — the matrix is wide. */}
       <style>{`@media print { @page { size: landscape; margin: 12mm; } }`}</style>
 

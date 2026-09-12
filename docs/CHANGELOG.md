@@ -54,6 +54,12 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-12
+- **Fix: Office range report showed a blank page on screen.** The executive
+  rewrite wrapped the whole report in `.print-only`, which is `display:none` on
+  screen (it's meant for print-only receipts like the payout slip) — so the report
+  rendered but was invisible, leaving just the filter bar. Added a `.print-sheet`
+  utility: visible on screen **and** isolates to a clean sheet when printing
+  (Print / Save as PDF), and switched `OfficeRangeView` to it. No data/logic change.
 - **Dealer Find-customer now searches the LIVE current-year journal (in-progress book).**
   Dealers could already find their own office's *closed*-year journal customers (the
   DB archive) and their portal deals — but a **current-year** deal that lives only in
