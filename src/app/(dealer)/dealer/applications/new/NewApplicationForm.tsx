@@ -14,7 +14,6 @@ import {
 } from '@/lib/constants';
 import type { PaymentMethod } from '@prisma/client';
 import { formatPhone, formatPostal } from '@/lib/format';
-import { LicenseScan } from '@/components/LicenseScan';
 import { DocScan } from '@/components/DocScan';
 import { FinanceitPdfButton } from '@/components/FinanceitPdfButton';
 import type { BorrowerAutofill } from '@/lib/autofill';
@@ -637,17 +636,16 @@ export function NewApplicationForm({
       {/* Everything below opens only once an option (1/2/3) is selected. */}
       {method && (
         <>
-      {/* Quick auto-fill — scan a licence or a filled credit app to populate the
-          fields this option needs. */}
+      {/* Quick auto-fill — scan a filled credit app to populate the fields this
+          option needs. */}
       <section className="card border border-blue-200 bg-blue-50/40 p-5">
         <div className="mb-3">
           <h2 className="text-base font-semibold text-[#0e2756]">Auto-fill this application</h2>
           <p className="mt-0.5 text-xs text-gray-500">
-            Scan the customer’s driver’s licence, or scan a filled credit app, to fill the fields below automatically. Review before submitting.
+            Scan a filled credit app to fill the fields below automatically. Review before submitting.
           </p>
         </div>
         <div className="flex flex-wrap items-start gap-3">
-          <LicenseScan onFields={fillBorrower} />
           <DocScan onFields={fillBorrower} />
         </div>
       </section>
@@ -986,7 +984,6 @@ export function NewApplicationForm({
               {t('newApplication.coApplicantHint')}
             </p>
             <div className="mb-4 flex flex-wrap items-start gap-3">
-              <LicenseScan onFields={fillFromCoLicense} />
               <DocScan onFields={fillFromCoLicense} />
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

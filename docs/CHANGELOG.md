@@ -54,6 +54,15 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-12
+- **Removed the driver's-licence scan; kept the credit-app scan.** The "Scan
+  driver's licence" option didn't work reliably, so it's gone from the new-
+  application form for both the main applicant and the co-applicant. The
+  credit-app document scan (`DocScan`) stays everywhere it was. Deleted the
+  `LicenseScan` component and its `/api/scan-id` (Textract AnalyzeID) endpoint,
+  updated the auto-fill helper copy, and reworded the WelcomeTour step to
+  describe only the credit-app scan. (`NewApplicationForm.tsx`,
+  `WelcomeTour.tsx`; removed `src/components/LicenseScan.tsx`,
+  `src/app/api/scan-id/route.ts`.)
 - **Full-site security audit + two fixes; findings saved for follow-up.** Reviewed
   auth/session, authorization/IDOR, and injection/data exposure. Fixed a **CRITICAL
   MFA-bypass** (intermediate cookies could be replayed as a full session — session
