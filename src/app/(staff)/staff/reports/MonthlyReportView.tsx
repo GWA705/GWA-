@@ -4,7 +4,7 @@ import type { OfficeMonthlyReport, PendingStore } from '@/lib/reporting/monthly'
 import { getT } from '@/i18n/server';
 import type { TFunction } from '@/i18n/translator';
 import { StoreTable } from './StoreTable';
-import { ReportTile, ReportTiles } from '@/components/reporting/kit';
+import { ReportHeader, ReportTile, ReportTiles, ReportStamp, reportGeneratedLabel } from '@/components/reporting/kit';
 
 // Portal-styled per-office monthly performance report.
 
@@ -157,53 +157,17 @@ export function MonthlyReportView({ report }: { report: OfficeMonthlyReport }) {
   const ytd = report.ytd;
   return (
     <div className="space-y-5">
-      {/* Light KPI summary — deliberately distinct from the navy page hero above
-          it (avoids two stacked navy blocks). */}
-      <div className="overflow-hidden rounded-2xl border border-gray-200/80 bg-white shadow-[0_1px_2px_rgba(16,24,40,.04),0_14px_30px_-18px_rgba(16,24,40,.22)]">
-        <div className="flex items-center gap-3 p-5">
-          <span className="flex h-11 w-11 flex-none items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-500/15 dark:text-blue-300">
-            <BarChart3 size={20} />
-          </span>
-          <div className="min-w-0">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.15em] text-gray-400">{t('reports.monthly.eyebrow')}</div>
-            <h1 className="truncate text-lg font-bold leading-tight text-[#0e2b5c] dark:text-slate-100">{report.office?.name ?? t('reports.monthly.officeFallback')}</h1>
-            <div className="text-xs text-gray-500">{report.monthLabel}</div>
-          </div>
-        </div>
-        {/* Home Depot–orange KPI band — given depth so it reads as a crafted panel,
-            not a flat slab: a diagonal deep→bright→deep gradient, a lit top-left
-            corner sheen, a hairline top highlight, and a soft bottom vignette.
-            Mobile: This month spans full width (large) with the two comparison
-            stats side-by-side beneath it; sm+: three across. */}
-        <div className="relative overflow-hidden">
-          {/* base diagonal gradient (deep → bright → deep) */}
-          <div className="absolute inset-0 bg-gradient-to-br from-[#E0550A] via-[#F96302] to-[#D24E05]" aria-hidden />
-          {/* lit corner sheen for dimension */}
-          <div
-            className="absolute inset-0"
-            style={{ background: 'radial-gradient(130% 150% at 0% 0%, rgba(255,255,255,0.26), rgba(255,255,255,0) 55%)' }}
-            aria-hidden
-          />
-          {/* hairline top highlight + soft bottom vignette */}
-          <div className="absolute inset-x-0 top-0 h-px bg-white/45" aria-hidden />
-          <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/20 to-transparent" aria-hidden />
+      <ReportHeader
+        title={t('reports.tabMonthly')}
+        scope={`${report.office?.name ?? t('reports.monthly.officeFallback')} · ${report.monthLabel}`}
+        generated={t('reportStamp.generated', { date: reportGeneratedLabel() })}
+      />
 
-          <div className="relative grid grid-cols-2 sm:grid-cols-3">
-            <HStat
-              label={t('reports.monthly.thisMonth')}
-              value={money(report.total.curMonth)}
-              emphasize
-              className="col-span-2 border-b border-white/15 shadow-[inset_-1px_0_0_rgba(0,0,0,0.06)] sm:col-span-1 sm:border-b-0 sm:border-r"
-            />
-            <HStat
-              label={t('reports.monthly.vsLastMonth')}
-              node={<HPct value={report.total.momPct} t={t} />}
-              className="border-r border-white/15 shadow-[inset_-1px_0_0_rgba(0,0,0,0.06)]"
-            />
-            <HStat label={t('reports.monthly.yearToDate')} value={money(report.total.ytdTy)} />
-          </div>
-        </div>
-      </div>
+      <ReportTiles cols={3}>
+        <ReportTile label={t('reports.monthly.thisMonth')} value={money(report.total.curMonth)} />
+        <ReportTile label={t('reports.monthly.vsLastMonth')} value={<Pct value={report.total.momPct} t={t} />} />
+        <ReportTile label={t('reports.monthly.yearToDate')} value={money(report.total.ytdTy)} />
+      </ReportTiles>
 
       {report.error && (
         <div className="rounded-lg border-l-4 border-amber-500 bg-amber-50 p-3 text-sm text-amber-800">
@@ -269,6 +233,8 @@ export function MonthlyReportView({ report }: { report: OfficeMonthlyReport }) {
           {t('reports.monthly.noSalesThisMonth', { stores: report.deadStores.join(', ') })}
         </p>
       )}
+
+      <ReportStamp brand={t('reportStamp.brand')} generated={t('reportStamp.generated', { date: reportGeneratedLabel() })} />
     </div>
   );
 }

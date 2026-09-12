@@ -394,7 +394,24 @@ body {
   .print-sheet img, .print-only img { break-inside: avoid; }
   /* Sticky first columns must not float during print. */
   .print-sheet .sticky, .print-only .sticky { position: static !important; }
-  @page { margin: 12mm; }
+
+  /* No browser header/footer (page title, web address, date, page number):
+     zero the @page margin so browsers have no margin band to print them in, and
+     give the sheet its own padding so content still has a clean margin. */
+  @page { margin: 0; }
+  .print-sheet, .print-only { padding: 12mm !important; }
+
+  /* Compact the report so it fits on one page: tighter section spacing, a
+     smaller header, and slim KPI tiles laid out in a single row (they otherwise
+     stack 2-up in print and waste vertical space, pushing the table to page 2). */
+  .print-sheet > * + * { margin-top: 9px !important; }
+  .print-sheet h1 { font-size: 18px !important; line-height: 1.1 !important; }
+  .print-sheet .report-tiles { display: flex !important; gap: 7px !important; }
+  .print-sheet .report-tiles > * { flex: 1 1 0 !important; }
+  .print-sheet .report-tile { padding: 5px 9px !important; border-top-width: 2px !important; }
+  .print-sheet .report-tile .rt-label { font-size: 7.5px !important; }
+  .print-sheet .report-tile .rt-value { font-size: 13px !important; margin-top: 1px !important; }
+  .print-sheet .report-tile .rt-sub { font-size: 7.5px !important; }
 }
 
 /* Sidebar collapse/expand — smooth width change. */

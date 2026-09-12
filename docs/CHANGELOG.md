@@ -54,6 +54,20 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-12
+- **Reports print as a clean one-pager — no browser header/footer, compact tiles.**
+  Printouts no longer carry the browser's auto header/footer (page title, the
+  portal web address, date, page number): `@page { margin: 0 }` removes the band
+  they print in, and the sheet gets its own 12 mm padding so margins stay clean.
+  KPI tiles are slimmed for print and forced into a single row (they were stacking
+  2-up and pushing the table onto page 2), so a report now fits on one page.
+- **Reports: Slate theme rolled across the dealer-visible set (banners replaced).**
+  Monthly, Weekly store detail, Products & packages, and Salesperson leaderboard now
+  use the same look as Total Sales — GWA icon header + petrol-navy rule, slate KPI
+  tiles, slate table headers, and the bilingual brand stamp — replacing their old
+  coloured banners (orange / navy / blue). Monthly & Weekly dealer pages are now
+  wrapped in the print sheet with Print / Email actions like the other tabs. Stamps
+  live inside the shared views (one per report, dealer + staff), so page-level stamp
+  duplicates were removed.
 - **New grant: "Leads oversight" — all-office leads for a dealer user.** A per-user
   grant (`User.canViewAllLeads`, additive migration) that exposes the cross-office
   **Leads** and **Lead-funnel** reports on the dealer side — every dealer's HD leads,

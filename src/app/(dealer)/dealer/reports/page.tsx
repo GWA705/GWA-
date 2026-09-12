@@ -6,6 +6,7 @@ import { reportingJournalEnabled } from '@/lib/reporting/journalRead';
 import { buildOfficeMonthlyReport } from '@/lib/reporting/monthly';
 import { MonthlyReportView } from '@/app/(staff)/staff/reports/MonthlyReportView';
 import { DealerReportTabs } from './DealerReportTabs';
+import { ReportActions } from './ReportActions';
 import { getT } from '@/i18n/server';
 
 export const dynamic = 'force-dynamic';
@@ -42,26 +43,31 @@ export default async function DealerReportsPage({ searchParams }: { searchParams
     <div className="space-y-5">
       <DealerReportTabs active="monthly" showOwner={showOwner} />
 
-      <form method="GET" className="flex flex-wrap items-end gap-3">
-        <div>
-          <label className="label" htmlFor="ym">{t('reports.month')}</label>
-          <select id="ym" name="ym" defaultValue={ym} className="input min-w-[180px]">
-            {months.map((m) => (
-              <option key={m.value} value={m.value}>
-                {m.label}
-              </option>
-            ))}
-          </select>
-        </div>
-        <button type="submit" className="btn-primary">
-          {t('reports.view')}
-        </button>
-      </form>
+      <div className="no-print flex flex-wrap items-end justify-between gap-3">
+        <form method="GET" className="flex flex-wrap items-end gap-3">
+          <div>
+            <label className="label" htmlFor="ym">{t('reports.month')}</label>
+            <select id="ym" name="ym" defaultValue={ym} className="input min-w-[180px]">
+              {months.map((m) => (
+                <option key={m.value} value={m.value}>
+                  {m.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button type="submit" className="btn-primary">
+            {t('reports.view')}
+          </button>
+        </form>
+        <ReportActions title={t('reports.tabMonthly')} />
+      </div>
 
       {!reportingJournalEnabled() ? (
         <NotReady />
       ) : (
-        <MonthlyReportView report={await buildOfficeMonthlyReport(user.dealerId, year, monthIndex)} />
+        <div className="print-sheet space-y-5">
+          <MonthlyReportView report={await buildOfficeMonthlyReport(user.dealerId, year, monthIndex)} />
+        </div>
       )}
     </div>
   );

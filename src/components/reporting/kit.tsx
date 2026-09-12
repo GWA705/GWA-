@@ -17,10 +17,10 @@ export const reportSpacing = 'space-y-5';
 /** One KPI / summary tile — Slate-accented (navy top rule). Use in <ReportTiles>. */
 export function ReportTile({ label, value, sub }: { label: ReactNode; value: ReactNode; sub?: ReactNode }) {
   return (
-    <div className="rounded-xl border border-gray-200 border-t-[3px] border-t-[#123448] bg-white px-4 py-3">
-      <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">{label}</div>
-      <div className="mt-0.5 text-xl font-bold text-gray-900">{value}</div>
-      {sub ? <div className="text-xs text-gray-400">{sub}</div> : null}
+    <div className="report-tile rounded-xl border border-gray-200 border-t-[3px] border-t-[#123448] bg-white px-4 py-3">
+      <div className="rt-label text-[11px] font-semibold uppercase tracking-wide text-gray-400">{label}</div>
+      <div className="rt-value mt-0.5 text-xl font-bold text-gray-900">{value}</div>
+      {sub ? <div className="rt-sub text-xs text-gray-400">{sub}</div> : null}
     </div>
   );
 }
@@ -78,7 +78,7 @@ export function ReportStamp({ brand, generated }: { brand: string; generated: st
 /** Responsive grid for a row of <ReportTile>s (2 up on phones). */
 export function ReportTiles({ children, cols = 4 }: { children: ReactNode; cols?: 2 | 3 | 4 }) {
   const c = cols === 2 ? 'sm:grid-cols-2' : cols === 3 ? 'sm:grid-cols-3' : 'sm:grid-cols-2 lg:grid-cols-4';
-  return <div className={`grid grid-cols-2 gap-3 ${c}`}>{children}</div>;
+  return <div className={`report-tiles grid grid-cols-2 gap-3 ${c}`}>{children}</div>;
 }
 
 /** Horizontally-scrolling, bordered shell for a report table. Put a

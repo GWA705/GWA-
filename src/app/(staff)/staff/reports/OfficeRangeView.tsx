@@ -35,7 +35,7 @@ export function OfficeRangeView({ report }: { report: OfficeRangeReport }) {
   return (
     <div className="print-sheet space-y-5">
       {/* Landscape print — the matrix is wide. */}
-      <style>{`@media print { @page { size: landscape; margin: 12mm; } }`}</style>
+      <style>{`@media print { @page { size: landscape; margin: 0; } }`}</style>
 
       {/* Executive header — GWA icon lockup + petrol-navy rule */}
       <div className="flex flex-wrap items-start justify-between gap-4 border-b-[3px] border-[#123448] pb-3">

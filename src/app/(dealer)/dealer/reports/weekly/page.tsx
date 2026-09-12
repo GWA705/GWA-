@@ -6,6 +6,7 @@ import { reportingJournalEnabled } from '@/lib/reporting/journalRead';
 import { buildStoreWeekReport } from '@/lib/reporting/storeWeek';
 import { StoreWeekView } from '@/app/(staff)/staff/reports/StoreWeekView';
 import { DealerReportTabs } from '../DealerReportTabs';
+import { ReportActions } from '../ReportActions';
 import { getT, getLocale } from '@/i18n/server';
 import type { TFunction } from '@/i18n/translator';
 
@@ -46,21 +47,24 @@ export default async function DealerWeeklyReportPage({ searchParams }: { searchP
     <div className="space-y-5">
       <DealerReportTabs active="weekly" showOwner={showOwner} />
 
-      <form method="GET" className="flex flex-wrap items-end gap-3">
-        <div>
-          <label className="label" htmlFor="weeks">{t('reports.week')}</label>
-          <select id="weeks" name="weeks" defaultValue={String(weeksOffset)} className="input min-w-[200px]">
-            {weeks.map((w) => (
-              <option key={w.value} value={w.value}>
-                {w.label}
-              </option>
-            ))}
-          </select>
-        </div>
-        <button type="submit" className="btn-primary">
-          {t('reports.view')}
-        </button>
-      </form>
+      <div className="no-print flex flex-wrap items-end justify-between gap-3">
+        <form method="GET" className="flex flex-wrap items-end gap-3">
+          <div>
+            <label className="label" htmlFor="weeks">{t('reports.week')}</label>
+            <select id="weeks" name="weeks" defaultValue={String(weeksOffset)} className="input min-w-[200px]">
+              {weeks.map((w) => (
+                <option key={w.value} value={w.value}>
+                  {w.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button type="submit" className="btn-primary">
+            {t('reports.view')}
+          </button>
+        </form>
+        <ReportActions title={t('reports.tabWeekly')} />
+      </div>
 
       {!reportingJournalEnabled() ? (
         <div className="rounded-lg border border-gray-200 bg-gray-50 p-5 text-sm text-gray-600">
@@ -71,7 +75,9 @@ export default async function DealerWeeklyReportPage({ searchParams }: { searchP
           {t('reports.notReadyAfter')}
         </div>
       ) : (
-        <StoreWeekView report={await buildStoreWeekReport(user.dealerId, asOf)} showLinks={false} />
+        <div className="print-sheet space-y-5">
+          <StoreWeekView report={await buildStoreWeekReport(user.dealerId, asOf)} showLinks={false} />
+        </div>
       )}
     </div>
   );

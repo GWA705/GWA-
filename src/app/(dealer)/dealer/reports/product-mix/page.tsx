@@ -6,7 +6,6 @@ import { buildProductMix } from '@/lib/reporting/productMix';
 import { ProductMixView } from '@/app/(staff)/staff/reports/product-mix/ProductMixView';
 import { DealerReportTabs } from '../DealerReportTabs';
 import { ReportActions } from '../ReportActions';
-import { ReportStamp, reportGeneratedLabel } from '@/components/reporting/kit';
 import { getT } from '@/i18n/server';
 
 export const dynamic = 'force-dynamic';
@@ -44,7 +43,6 @@ export default async function DealerProductMixPage({ searchParams }: { searchPar
       ) : (
         <div className="print-sheet space-y-5">
           <ProductMixView report={await buildProductMix(user.dealerId, year)} />
-          <ReportStamp brand={t('reportStamp.brand')} generated={t('reportStamp.generated', { date: reportGeneratedLabel() })} />
         </div>
       )}
     </div>

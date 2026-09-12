@@ -1,6 +1,7 @@
 import type { StoreWeekReport, StoreBlock } from '@/lib/reporting/storeWeek';
 import { getT } from '@/i18n/server';
 import type { TFunction } from '@/i18n/translator';
+import { ReportHeader, ReportTile, ReportTiles, ReportStamp, reportGeneratedLabel } from '@/components/reporting/kit';
 
 function money2(n: number): string {
   return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -26,19 +27,17 @@ export function StoreWeekView({ report, showLinks = true }: { report: StoreWeekR
   const t = getT();
   return (
     <div className="space-y-5">
-      {/* Header */}
-      <div className="overflow-hidden rounded-2xl shadow-sm" style={{ background: 'linear-gradient(135deg,#16233a,#26436a)' }}>
-        <div className="p-6 text-white">
-          <div className="text-[11px] font-semibold uppercase tracking-[0.15em] text-white/50">{t('storeWeek.eyebrow')}</div>
-          <h1 className="mt-1 text-2xl font-bold leading-tight">{report.office?.name ?? t('storeWeek.officeFallback')}</h1>
-          <div className="mt-0.5 text-sm text-white/60">{report.weekLabel}</div>
-        </div>
-        <div className="grid grid-cols-3 divide-x divide-white/10 border-t border-white/10">
-          <Stat label={t('storeWeek.totalSold')} value={money2(report.grandTotal)} emphasize />
-          <Stat label={t('storeWeek.deals')} value={String(report.grandCount)} />
-          <Stat label={t('storeWeek.stores')} value={String(report.stores.length)} />
-        </div>
-      </div>
+      <ReportHeader
+        title={t('reports.tabWeekly')}
+        scope={`${report.office?.name ?? t('storeWeek.officeFallback')} · ${report.weekLabel}`}
+        generated={t('reportStamp.generated', { date: reportGeneratedLabel() })}
+      />
+
+      <ReportTiles cols={3}>
+        <ReportTile label={t('storeWeek.totalSold')} value={money2(report.grandTotal)} />
+        <ReportTile label={t('storeWeek.deals')} value={String(report.grandCount)} />
+        <ReportTile label={t('storeWeek.stores')} value={String(report.stores.length)} />
+      </ReportTiles>
 
       {report.error && (
         <div className="rounded-lg border-l-4 border-amber-500 bg-amber-50 p-3 text-sm text-amber-800">
@@ -57,15 +56,8 @@ export function StoreWeekView({ report, showLinks = true }: { report: StoreWeekR
           ))}
         </div>
       )}
-    </div>
-  );
-}
 
-function Stat({ label, value, emphasize }: { label: string; value: string; emphasize?: boolean }) {
-  return (
-    <div className="px-5 py-4">
-      <div className={`font-bold tabular-nums text-white ${emphasize ? 'text-xl' : 'text-lg'}`}>{value}</div>
-      <div className="mt-0.5 text-[10px] font-medium uppercase tracking-wide text-white/50">{label}</div>
+      <ReportStamp brand={t('reportStamp.brand')} generated={t('reportStamp.generated', { date: reportGeneratedLabel() })} />
     </div>
   );
 }
