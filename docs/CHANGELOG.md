@@ -53,6 +53,15 @@ source of truth; this file is the human-readable index.
   `testSingleLead()` on a French lead first. Portal display auto-translates lead
   free-text via DeepL.
 
+## 2026-09-12
+- **Office range report: executive styling + Print / Save as PDF.** The custom-range
+  office report now reads as a one-pager — titled header (Georgian Water & Air,
+  scope, date range, generated date), a row of KPI tiles (total put through, paid
+  deals, average/month, best month), and a cleaner month × store/office matrix
+  (zebra rows, tabular-aligned money, bold totals). Added a **Print / Save as PDF**
+  button using the app's `.print-only` convention (prints just the report, no app
+  chrome; landscape). `OfficeRangeView` + new `ReportPrintButton`.
+
 ## 2026-09-11
 - **Auto-deploy pipeline live (GitHub → ECR → Elastic Beanstalk).** Added a deploy
   step to `.github/workflows/build-ecr.yml` (`einaregilsson/beanstalk-deploy`,
