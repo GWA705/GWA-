@@ -54,6 +54,16 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-12
+- **New grant: "Leads oversight" — all-office leads for a dealer user.** A per-user
+  grant (`User.canViewAllLeads`, additive migration) that exposes the cross-office
+  **Leads** and **Lead-funnel** reports on the dealer side — every dealer's HD leads,
+  not just one office — for a lead/relationship manager who works across all offices.
+  It does **not** grant the reviewer deal workspace or other reports (least privilege),
+  and unlike the other report grants it **can be given to a DEALER_USER**. New dealer
+  pages `/dealer/reports/{all-leads,lead-funnel}` (reuse the staff leads builders +
+  views, printable/emailable with the brand stamp), two dealer report tabs shown only
+  with the grant, `canViewAllLeads()` helper, and an admin toggle in **Admin → Users →
+  (person) → "leads oversight (all offices)"**.
 - **Mobile: dealer report navigation is now a dropdown (was a sideways-scrolling
   tab strip).** On phones the report tabs ran off-screen — half the reports (incl.
   Monthly) were hidden until you scrolled the strip sideways. `DealerReportTabs` now

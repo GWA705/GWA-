@@ -537,6 +537,12 @@ model User {
   // cross-dealer). Super Admins have it implicitly; this lets a specific
   // internal user see it without full Super Admin. Internal staff only.
   canViewDealerSnapshot Boolean @default(false)
+  // "Leads oversight" grant: cross-office visibility of all dealers' leads and
+  // the Leads + Lead-funnel reports. Unlike the internal report grants, this one
+  // CAN be given to a DEALER_USER (e.g. a lead/relationship manager who works
+  // across every office), exposing the all-office leads reports on the dealer
+  // side without the reviewer deal workspace.
+  canViewAllLeads Boolean @default(false)
 
   // Per-user grant to fulfill water-test gift cards (the staff Gift cards
   // queue). Super Admins and admins with the 'gift-cards' section have it

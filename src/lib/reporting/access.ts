@@ -70,6 +70,21 @@ export async function canViewOwnerPricingReport(user: SessionUser): Promise<bool
   return !!me?.dealer?.reportsEnabled; // admin-enabled per office
 }
 
+/**
+ * "Leads oversight" — cross-office visibility of all dealers' leads and the
+ * Leads + Lead-funnel reports. Super Admins have it implicitly; otherwise the
+ * per-user `canViewAllLeads` grant. Unlike the other report grants this one may
+ * be held by a DEALER_USER (a lead/relationship manager across every office).
+ */
+export async function canViewAllLeads(user: SessionUser): Promise<boolean> {
+  if (isSuperAdmin(user)) return true;
+  const me = await prisma.user.findUnique({
+    where: { id: user.userId },
+    select: { canViewAllLeads: true },
+  });
+  return !!me?.canViewAllLeads;
+}
+
 /** Dealer-facing reports (own office only). Internal staff always qualify. */
 export async function hasDealerReportAccess(user: SessionUser): Promise<boolean> {
   if (isInternal(user)) return true;

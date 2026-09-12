@@ -869,6 +869,8 @@ export const fr: Dictionary = {
     tabFunding: 'Financement',
     tabProducts: 'Produits et forfaits',
     tabLeaderboard: 'Classement des vendeurs',
+    tabAllLeads: 'Tous les prospects',
+    tabLeadFunnel: 'Entonnoir des prospects',
     tabPricing: 'Prix par produit et forfait',
     tabReps: 'Par représentant',
     tabCustom: 'Rapport personnalisé',

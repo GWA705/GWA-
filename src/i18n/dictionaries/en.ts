@@ -865,6 +865,8 @@ export const en = {
     tabFunding: 'Funding',
     tabProducts: 'Products & packages',
     tabLeaderboard: 'Salesperson leaderboard',
+    tabAllLeads: 'All leads',
+    tabLeadFunnel: 'Lead funnel',
     tabPricing: 'Product & package pricing',
     tabReps: 'By sales rep',
     tabCustom: 'Custom report',

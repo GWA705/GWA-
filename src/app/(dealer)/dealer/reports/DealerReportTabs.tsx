@@ -1,16 +1,21 @@
 import Link from 'next/link';
 import { SectionHero } from '@/components/SectionHero';
 import { getT } from '@/i18n/server';
+import { getSession } from '@/lib/session';
+import { canViewAllLeads } from '@/lib/reporting/access';
 import { ReportTabSelect } from './ReportTabSelect';
 
-type Tab = 'monthly' | 'weekly' | 'overall' | 'funding' | 'products' | 'leaderboard' | 'pricing' | 'custom' | 'forecast' | 'reps' | 'accounting';
+type Tab = 'monthly' | 'weekly' | 'overall' | 'funding' | 'products' | 'leaderboard' | 'allLeads' | 'leadFunnel' | 'pricing' | 'custom' | 'forecast' | 'reps' | 'accounting';
 
 // Tab header for the dealer reports area. On phones this is a single dropdown
 // (the strip used to scroll sideways and hide tabs); on wider screens it's a
 // segmented tab strip. Owner-only tabs (pricing, reps, custom, forecast,
-// accounting) are shown only when the page passes `showOwner`.
-export function DealerReportTabs({ active, showOwner = false }: { active: Tab; showOwner?: boolean }) {
+// accounting) are shown only when the page passes `showOwner`; the all-office
+// leads tabs only for users with the "Leads oversight" grant.
+export async function DealerReportTabs({ active, showOwner = false }: { active: Tab; showOwner?: boolean }) {
   const t = getT();
+  const user = await getSession();
+  const showLeads = user ? await canViewAllLeads(user) : false;
 
   const items: { href: string; label: string; key: Tab; show: boolean }[] = [
     { href: '/dealer/reports', label: t('reports.tabMonthly'), key: 'monthly', show: true },
@@ -19,6 +24,8 @@ export function DealerReportTabs({ active, showOwner = false }: { active: Tab; s
     { href: '/dealer/reports/funding', label: t('reports.tabFunding'), key: 'funding', show: true },
     { href: '/dealer/reports/product-mix', label: t('reports.tabProducts'), key: 'products', show: true },
     { href: '/dealer/reports/leaderboard', label: t('reports.tabLeaderboard'), key: 'leaderboard', show: true },
+    { href: '/dealer/reports/all-leads', label: t('reports.tabAllLeads'), key: 'allLeads', show: showLeads },
+    { href: '/dealer/reports/lead-funnel', label: t('reports.tabLeadFunnel'), key: 'leadFunnel', show: showLeads },
     { href: '/dealer/reports/product-pricing', label: t('reports.tabPricing'), key: 'pricing', show: showOwner },
     { href: '/dealer/reports/sales-reps', label: t('reports.tabReps'), key: 'reps', show: showOwner },
     { href: '/dealer/reports/custom', label: t('reports.tabCustom'), key: 'custom', show: showOwner },

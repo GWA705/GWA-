@@ -30,6 +30,7 @@ export function EditUserForm({
     canViewLeadershipReport: boolean;
     canSearchCustomers: boolean;
     canViewDealerSnapshot: boolean;
+    canViewAllLeads: boolean;
     canManageGiftCards: boolean;
   };
   dealers: { id: string; name: string }[];
@@ -142,6 +143,18 @@ export function EditUserForm({
             </label>
           </div>
         )}
+        <div className="sm:col-span-2">
+          <label className="flex items-start gap-2 text-sm text-gray-700">
+            <input type="checkbox" name="canViewAllLeads" defaultChecked={user.canViewAllLeads} className="mt-0.5 rounded border-gray-300" />
+            <span>
+              Give this person <strong>leads oversight</strong> (all offices)
+              <span className="block text-xs text-gray-400">
+                The all-office Leads and Lead-funnel reports across every dealer — for a lead / relationship
+                manager. Can be given to a dealer user; it does not grant the reviewer workspace or other reports.
+              </span>
+            </span>
+          </label>
+        </div>
         {role !== 'DEALER_USER' && (
           <div className="sm:col-span-2">
             <label className="flex items-start gap-2 text-sm text-gray-700">
