@@ -2294,7 +2294,7 @@ export const en = {
     },
     officeRange: {
       title: 'Office range report',
-      blurb: 'Pick an office and any span of months (e.g. January to now, or the last two) — money put through, broken down by month and store, ready to print.',
+      blurb: 'Pick an office and any span of months (e.g. January to now, or the last two) — total sales (paid & received), broken down by month and store, ready to print.',
     },
     storeWeek: {
       title: 'Weekly Store Detail',

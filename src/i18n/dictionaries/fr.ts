@@ -2298,7 +2298,7 @@ export const fr: Dictionary = {
     },
     officeRange: {
       title: 'Rapport par période (bureau)',
-      blurb: 'Choisissez un bureau et une période de mois (p. ex. janvier à aujourd’hui, ou les deux derniers) — argent traité, ventilé par mois et par magasin, prêt à imprimer.',
+      blurb: 'Choisissez un bureau et une période de mois (p. ex. janvier à aujourd’hui, ou les deux derniers) — ventes totales (payées et reçues), ventilées par mois et par magasin, prêt à imprimer.',
     },
     storeWeek: {
       title: 'Détail hebdomadaire par magasin',

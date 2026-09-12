@@ -39,7 +39,7 @@ export function OfficeRangeView({ report }: { report: OfficeRangeReport }) {
       <div className="flex flex-wrap items-start justify-between gap-4 border-b-2 border-gray-800 pb-3">
         <div className="min-w-0">
           <div className="text-sm font-bold uppercase tracking-wide text-gray-500">Georgian Water &amp; Air</div>
-          <h1 className="text-2xl font-bold text-gray-900">Money Put Through</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Total Sales</h1>
           <p className="mt-0.5 text-sm text-gray-600">
             {scopeLabel || 'All offices'} · Paid &amp; received · <span className="font-medium">{rangeLabel}</span>
           </p>
@@ -107,7 +107,7 @@ export function OfficeRangeView({ report }: { report: OfficeRangeReport }) {
       )}
 
       <p className="text-xs text-gray-400">
-        Money put through = paid &amp; received (OK money dated by date paid) — reconciles with the Monthly office report.
+        Total sales = paid &amp; received (OK money dated by date paid) — reconciles with the Monthly office report.
       </p>
     </div>
   );

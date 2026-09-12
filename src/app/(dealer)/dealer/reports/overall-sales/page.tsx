@@ -23,7 +23,7 @@ function monthOptions(count: number): { value: string; label: string }[] {
   return out;
 }
 
-/** Dealer "Overall sales" — the office-range "money put through" one-pager,
+/** Dealer "Overall sales" — the office-range "Total Sales" one-pager,
  * fixed to the dealer's own office. High-level, printable (OfficeRangeView) and
  * emailable. */
 export default async function DealerOverallSalesPage({ searchParams }: { searchParams: { from?: string; to?: string } }) {
