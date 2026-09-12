@@ -5,19 +5,26 @@ import { sendEmail } from '../email';
 import { renderEmail } from '../email-templates';
 
 /**
- * Funding report (portal data). "Funded this week" = deals whose status became
- * FUNDED within a date window — including the ones auto-funded from a Home Depot
- * remittance. Grouped by office (dealer), with a pipeline figure for what's
- * approved but not yet funded. All internal (staff) — dealers never see this.
+ * Funding report (portal data) — PAID deals only.
+ *
+ * A deal counts when it has actually been PAID: a Payout record (the dealer
+ * payout receipt, incl. the ones auto-filled from a Home Depot remittance /
+ * journal "Pay to dealer") whose `paidOn` falls in the window. The dollar figure
+ * is the ACTUAL amount paid to the dealer, not the approved amount. Split
+ * payments are summed per deal within the window.
+ *
+ * Windowed by WEEK or MONTH. Grouped by office (dealer), with a pipeline figure
+ * for deals funded/approved but not yet paid. Can be scoped to one office
+ * (`opts.dealerId`) for the dealer-facing version; unscoped is the admin view.
  */
 
 export interface FundingReportRow {
   applicationId: string;
   customer: string;
   dealerName: string;
-  fundedAt: string; // ISO datetime
-  amount: number; // approvedAmount ?? requestedAmount
-  currentStatus: ApplicationStatus; // flags a deal funded then later withdrawn
+  paidOn: string; // ISO datetime of the latest payout in the window
+  amount: number; // actual $ paid to the dealer in the window (summed for splits)
+  currentStatus: ApplicationStatus;
   hdReference: string | null;
 }
 
@@ -36,7 +43,7 @@ export interface FundingReport {
   count: number;
   total: number;
   offices: FundingReportOffice[];
-  pipeline: { count: number; total: number }; // approved, not yet funded
+  pipeline: { count: number; total: number }; // funded/approved, not yet paid
 }
 
 function addDays(date: Date, n: number): Date {
@@ -56,58 +63,81 @@ export function weekWindow(offsetWeeks = 0, now: Date = new Date()): { start: Da
   return { start, end };
 }
 
-const PIPELINE: ApplicationStatus[] = ['APPROVED', 'CONDITIONAL', 'DOCS_SENT', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW'];
+/** 1st 00:00 → next 1st 00:00 for the month `offsetMonths` from the current one. */
+export function monthWindow(offsetMonths = 0, now: Date = new Date()): { start: Date; end: Date } {
+  const start = new Date(now.getFullYear(), now.getMonth() + offsetMonths, 1);
+  const end = new Date(start.getFullYear(), start.getMonth() + 1, 1);
+  return { start, end };
+}
+
+// Funded/approved but not yet paid — the "awaiting payment" pipeline.
+const PIPELINE: ApplicationStatus[] = ['APPROVED', 'CONDITIONAL', 'DOCS_SENT', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW', 'FUNDED'];
 
 const monthDay = (d: Date) => d.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' });
 
-export async function buildFundingReport(win: { start: Date; end: Date }): Promise<FundingReport> {
-  const events = await prisma.statusEvent.findMany({
-    where: { to: 'FUNDED', createdAt: { gte: win.start, lt: win.end } },
-    orderBy: { createdAt: 'desc' },
+export async function buildFundingReport(
+  win: { start: Date; end: Date },
+  opts: { dealerId?: string } = {},
+): Promise<FundingReport> {
+  const payouts = await prisma.payout.findMany({
+    where: {
+      paidOn: { gte: win.start, lt: win.end },
+      ...(opts.dealerId ? { application: { dealerId: opts.dealerId } } : {}),
+    },
+    orderBy: { paidOn: 'desc' },
     include: {
       application: {
         select: {
           id: true, applicantFirstName: true, applicantLastName: true, status: true,
-          approvedAmount: true, requestedAmount: true, hdReference: true,
-          dealer: { select: { id: true, name: true } },
+          hdReference: true, dealer: { select: { id: true, name: true } },
         },
       },
     },
   });
 
-  // One row per deal (latest FUNDED event in the window).
-  const seen = new Set<string>();
-  const rows: FundingReportRow[] = [];
-  for (const e of events) {
-    const a = e.application;
-    if (!a || seen.has(a.id)) continue;
-    seen.add(a.id);
-    const amount = Number(a.approvedAmount ?? a.requestedAmount ?? 0);
-    rows.push({
-      applicationId: a.id,
-      customer: `${a.applicantFirstName} ${a.applicantLastName}`.trim(),
-      dealerName: a.dealer.name,
-      fundedAt: e.createdAt.toISOString(),
-      amount,
-      currentStatus: a.status,
-      hdReference: a.hdReference,
-    });
+  // One row per deal in the window: sum the payout amounts (splits), keep the
+  // latest paid date.
+  const byDeal = new Map<string, FundingReportRow>();
+  for (const p of payouts) {
+    const a = p.application;
+    if (!a) continue;
+    const amt = Number(p.amount) || 0;
+    const existing = byDeal.get(a.id);
+    if (existing) {
+      existing.amount += amt;
+      if (p.paidOn.toISOString() > existing.paidOn) existing.paidOn = p.paidOn.toISOString();
+    } else {
+      byDeal.set(a.id, {
+        applicationId: a.id,
+        customer: `${a.applicantFirstName} ${a.applicantLastName}`.trim(),
+        dealerName: a.dealer.name,
+        paidOn: p.paidOn.toISOString(),
+        amount: amt,
+        currentStatus: a.status,
+        hdReference: a.hdReference,
+      });
+    }
   }
+  const rows = Array.from(byDeal.values());
 
   const byDealer = new Map<string, FundingReportOffice>();
   for (const r of rows) {
-    const key = r.dealerName;
-    const office = byDealer.get(key) ?? { dealerId: key, dealerName: r.dealerName, count: 0, total: 0, deals: [] };
+    const office = byDealer.get(r.dealerName) ?? { dealerId: r.dealerName, dealerName: r.dealerName, count: 0, total: 0, deals: [] };
     office.count += 1;
     office.total += r.amount;
     office.deals.push(r);
-    byDealer.set(key, office);
+    byDealer.set(r.dealerName, office);
   }
+  for (const o of byDealer.values()) o.deals.sort((a, b) => b.paidOn.localeCompare(a.paidOn));
   const offices = Array.from(byDealer.values()).sort((a, b) => b.total - a.total);
 
-  // Pipeline: currently approved-but-not-funded.
+  // Pipeline: funded/approved but not yet paid (no payout on record).
   const pipeline = await prisma.application.aggregate({
-    where: { status: { in: PIPELINE } },
+    where: {
+      status: { in: PIPELINE },
+      payouts: { none: {} },
+      ...(opts.dealerId ? { dealerId: opts.dealerId } : {}),
+    },
     _count: { _all: true },
     _sum: { approvedAmount: true },
   });
@@ -135,8 +165,8 @@ export interface WeeklyFundingResult {
 }
 
 /**
- * Build LAST week's funding report and email it to active admins. Internal —
- * carries dollar figures, so it goes to admins only, never dealers. Best-effort.
+ * Build LAST week's funding report (paid deals) and email it to active admins.
+ * Internal — carries dollar figures, so admins only, never dealers. Best-effort.
  */
 export async function sendWeeklyFundingReport(now: Date = new Date()): Promise<WeeklyFundingResult> {
   const win = weekWindow(-1, now);
@@ -151,22 +181,22 @@ export async function sendWeeklyFundingReport(now: Date = new Date()): Promise<W
     .map((o) => `<tr><td style="padding:4px 10px;border-bottom:1px solid #eee">${o.dealerName}</td><td style="padding:4px 10px;border-bottom:1px solid #eee;text-align:right">${o.count}</td><td style="padding:4px 10px;border-bottom:1px solid #eee;text-align:right">${money(o.total)}</td></tr>`)
     .join('');
   const bodyHtml =
-    `<p style="margin:0 0 12px;font-size:14px;color:#374151;"><strong>${report.count}</strong> deals funded last week (${report.label}), totalling <strong>${money(report.total)}</strong> in approved value. ${report.pipeline.count} deals are approved and awaiting funding.</p>` +
+    `<p style="margin:0 0 12px;font-size:14px;color:#374151;"><strong>${report.count}</strong> deals paid last week (${report.label}), totalling <strong>${money(report.total)}</strong> paid to dealers. ${report.pipeline.count} deals are funded/approved and awaiting payment.</p>` +
     (officeRows
-      ? `<table style="border-collapse:collapse;font-size:13px;margin:0 0 12px"><thead><tr><th style="padding:4px 10px;text-align:left;color:#6b7280">Office</th><th style="padding:4px 10px;text-align:right;color:#6b7280">Deals</th><th style="padding:4px 10px;text-align:right;color:#6b7280">Value</th></tr></thead><tbody>${officeRows}</tbody></table>`
-      : '<p style="font-size:13px;color:#6b7280">No deals were funded last week.</p>');
+      ? `<table style="border-collapse:collapse;font-size:13px;margin:0 0 12px"><thead><tr><th style="padding:4px 10px;text-align:left;color:#6b7280">Office</th><th style="padding:4px 10px;text-align:right;color:#6b7280">Deals</th><th style="padding:4px 10px;text-align:right;color:#6b7280">Paid</th></tr></thead><tbody>${officeRows}</tbody></table>`
+      : '<p style="font-size:13px;color:#6b7280">No deals were paid last week.</p>');
 
   let emailed = 0;
   for (const u of admins) {
     const res = await sendEmail({
       to: u.notificationEmail || u.email,
-      subject: `Weekly funding report — ${report.label} — ${money(report.total)}`,
+      subject: `Weekly funding report — ${report.label} — ${money(report.total)} paid`,
       html: renderEmail({
         heading: 'Weekly funding report',
-        intro: `Deals funded last week (${report.label}).`,
+        intro: `Deals paid last week (${report.label}).`,
         bodyHtml,
         ctaLabel: 'Open the funding report',
-        ctaUrl: `${appUrl()}/staff/reports/funding?w=-1`,
+        ctaUrl: `${appUrl()}/staff/reports/funding?p=week&o=-1`,
       }),
     });
     if (res.sent) emailed += 1;

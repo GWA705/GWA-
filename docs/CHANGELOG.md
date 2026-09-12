@@ -54,6 +54,29 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-12
+- **Dealer reports: four new high-level, printable/emailable tabs (own office).** The
+  dealer "My reports" area gains, for **every dealer user** with report access (scoped
+  strictly to their own office):
+  - **Overall sales** — the office-range "Money put through" one-pager (month range).
+  - **Funding** — deals **paid** to their office (see paid-basis below), **week or
+    month** toggle, executive one-pager.
+  - **Products & packages** — the product-mix report for their office.
+  - **Salesperson leaderboard** — ranks **their own team** (reps for their office) by
+    paid volume, deals and units.
+  Each reuses the staff report builders scoped to `user.dealerId` (no cross-office
+  leakage) and adds **Print / Save as PDF** and **Email to me** (new `ReportActions`
+  + `emailDealerReport` server action — sends a link to the signed-in dealer's own
+  account email only, rate-limited, audited; never a free-text recipient). New
+  `.print-sheet` pages under `/dealer/reports/{overall-sales,funding,product-mix,leaderboard}`.
+- **Funding report is now PAID-based (admin + dealer).** Both the admin funding
+  report and the new dealer one count **paid deals only** — a **Payout** whose
+  `paidOn` falls in the window (the actual dealer payout, incl. deals auto-paid from
+  a Home Depot remittance / journal "Pay to dealer"), showing the **actual amount
+  paid**, not the approved amount, and split payments summed per deal. Both gained a
+  **week / month** toggle. "Awaiting payment" = funded/approved deals with no payout
+  yet. Previously the report keyed off the FUNDED status event and used the approved
+  amount. `fundingReport.ts` rewritten (payout-based, `monthWindow()`, optional
+  `dealerId` scope); the weekly admin email now reports paid deals.
 - **Rep reports now show UNITS SOLD, not just customers/deals.** Both per-rep
   reports previously counted one per deal (customer) and summed dollars — a rep who
   sold one customer 4 products showed as 1 deal, same as a 1-product sale. Now they
