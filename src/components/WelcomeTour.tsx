@@ -23,7 +23,7 @@ const STEPS: Step[] = [
       body: 'This quick tour shows you where everything is. It takes under a minute — you can replay it any time from “My account.”',
     },
     fr: {
-      title: 'Bienvenue dans votre portail des marchands',
+      title: 'Bienvenue dans votre portail concessionnaire',
       body: 'Cette visite rapide vous montre où se trouve chaque chose. Moins d’une minute — vous pouvez la revoir en tout temps depuis « Mon compte ».',
     },
   },

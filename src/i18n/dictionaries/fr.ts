@@ -972,7 +972,7 @@ export const fr: Dictionary = {
     saved: 'Enregistré ✓',
   },
   auth: {
-    portalTitle: 'Portail des concessionnaires GWA',
+    portalTitle: 'Portail concessionnaire GWA',
     signInToContinue: 'Connectez-vous pour continuer',
     authorizedNotice: 'Utilisateurs autorisés seulement. Tous les accès sont journalisés. Les renseignements personnels sont traités conformément à la LPRPDE et aux lois provinciales sur la protection de la vie privée applicables.',
     email: 'Courriel',
@@ -1036,7 +1036,7 @@ export const fr: Dictionary = {
     cantScan: 'Impossible de numériser? Saisissez cette clé :',
   },
   onboard: {
-    subtitle: 'Portail des concessionnaires — demandez des accès pour votre bureau',
+    subtitle: 'Portail concessionnaire — demandez des accès pour votre bureau',
     closed: 'Ce formulaire n’accepte pas de soumissions pour le moment. Veuillez communiquer avec Georgian Water & Air pour vous inscrire.',
     privacyNote: 'Traite les renseignements personnels conformément à la LPRPDE et aux lois provinciales sur la protection de la vie privée.',
     sending: 'Envoi en cours…',
@@ -2095,11 +2095,11 @@ export const fr: Dictionary = {
     hero: {
       eyebrow: 'Réviseur',
       title: 'Conversations',
-      subtitle: 'Clavardage en direct avec les marchands — fils de discussion sur les transactions et soutien général.',
+      subtitle: 'Clavardage en direct avec les concessionnaires — fils de discussion sur les transactions et soutien général.',
       unread: '{n} non lus.',
     },
-    searchPlaceholder: 'Rechercher un marchand ou un client…',
-    searchLabel: 'Rechercher un marchand ou un client',
+    searchPlaceholder: 'Rechercher un concessionnaire ou un client…',
+    searchLabel: 'Rechercher un concessionnaire ou un client',
     searchButton: 'Rechercher',
     empty: 'Aucune conversation pour le moment.',
     noMessages: 'Aucun message',
@@ -2200,8 +2200,8 @@ export const fr: Dictionary = {
     journalNotConnected3: ' sur le serveur pour activer les rapports.',
     noOfficeStoresAssigned: 'Aucun bureau n’a de numéros de magasin Home Depot attribués. Ajoutez-les sous Administration → Concessionnaires.',
     journalNotConnectedShort: 'Les journaux des ventes ne sont pas encore connectés.',
-    dsTitle: 'Aperçu du marchand',
-    dsDesc: 'Une ligne par marchand — vendu et payé ce mois-ci, et ce qui est en attente maintenant. Ouvrez un marchand pour voir chaque transaction payée et en attente, chacune étiquetée HD ou GWA. Conçu pour un coup d’œil rapide avant un appel avec un marchand.',
+    dsTitle: 'Aperçu du concessionnaire',
+    dsDesc: 'Une ligne par concessionnaire — vendu et payé ce mois-ci, et ce qui est en attente maintenant. Ouvrez un concessionnaire pour voir chaque transaction payée et en attente, chacune étiquetée HD ou GWA. Conçu pour un coup d’œil rapide avant un appel avec un concessionnaire.',
     searchesLogged: 'Les recherches sont journalisées.',
   },
   financeReport: {
@@ -2326,11 +2326,11 @@ export const fr: Dictionary = {
     },
     leads: {
       title: 'Rapport des pistes',
-      blurb: 'Chaque piste HD par marchand — combien, de quel type, No-Good, et où chaque appel a abouti (NA, LM, Spoke, Booked, Sold, NI). Cherchez un marchand ou consultez les totaux du groupe.',
+      blurb: 'Chaque piste HD par concessionnaire — combien, de quel type, No-Good, et où chaque appel a abouti (NA, LM, Spoke, Booked, Sold, NI). Cherchez un concessionnaire ou consultez les totaux du groupe.',
     },
     dealerSnapshot: {
-      title: 'Aperçu du marchand',
-      blurb: 'Une ligne par marchand — vendu et payé ce mois-ci, et ce qui est en attente maintenant, réparti HD c. GWA. Ouvrez un marchand pour voir chaque transaction payée et en attente. Un coup d’œil rapide avant un appel avec un marchand.',
+      title: 'Aperçu du concessionnaire',
+      blurb: 'Une ligne par concessionnaire — vendu et payé ce mois-ci, et ce qui est en attente maintenant, réparti HD c. GWA. Ouvrez un concessionnaire pour voir chaque transaction payée et en attente. Un coup d’œil rapide avant un appel avec un concessionnaire.',
     },
     productPricing: {
       title: 'Prix des produits et des forfaits',

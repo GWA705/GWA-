@@ -59,9 +59,9 @@ export function buildInviteEmail(
   const t =
     lang === 'fr'
       ? {
-          subject: 'Votre compte du portail des marchands Georgian Water & Air',
+          subject: 'Votre compte du portail concessionnaire Georgian Water & Air',
           heading: 'Votre compte est prêt',
-          intro: `Bonjour ${p.name}, un compte a été créé pour vous dans le portail des marchands de Georgian Water & Air. Utilisez les renseignements ci-dessous pour vous connecter — on vous demandera de choisir votre propre mot de passe lors de la première connexion.`,
+          intro: `Bonjour ${p.name}, un compte a été créé pour vous dans le portail concessionnaire de Georgian Water & Air. Utilisez les renseignements ci-dessous pour vous connecter — on vous demandera de choisir votre propre mot de passe lors de la première connexion.`,
           webAddr: 'Adresse Web',
           username: "Nom d'utilisateur",
           tempPw: 'Mot de passe temporaire',
