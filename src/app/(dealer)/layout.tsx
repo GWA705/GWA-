@@ -8,7 +8,7 @@ import { ScrollTopOnMount } from '@/components/ScrollTopOnMount';
 import { alertWhereForUser } from '@/lib/alerts';
 import { newContentSectionsForUser, unreadMailCountForUser } from '@/lib/inbox';
 import { hasCalculatorAccess } from '@/lib/calculatorAccess';
-import { hasDealerReportAccess } from '@/lib/reporting/access';
+import { hasDealerReportAccess, canViewAllLeads } from '@/lib/reporting/access';
 import { isGlobalSearchEnabled } from '@/lib/settings';
 import { dealerHasGiftCardUnread } from '@/lib/giftCardAccess';
 import { prisma } from '@/lib/db';
@@ -43,11 +43,12 @@ export default async function DealerLayout({ children }: { children: React.React
   }
 
   // Attention dots: content sections with something new, and unread mail.
-  const [freshSections, unreadMail, calcAccess, reportAccess, searchEnabled, giftCardUnread, dealerProfile] = await Promise.all([
+  const [freshSections, unreadMail, calcAccess, reportAccess, leadsAccess, searchEnabled, giftCardUnread, dealerProfile] = await Promise.all([
     newContentSectionsForUser(user.userId),
     user.dealerId ? unreadMailCountForUser(user.userId, user.dealerId, user.isDistributor) : Promise.resolve(0),
     hasCalculatorAccess(user),
     hasDealerReportAccess(user),
+    canViewAllLeads(user),
     isGlobalSearchEnabled(),
     user.dealerId ? dealerHasGiftCardUnread(user.dealerId) : Promise.resolve(false),
     user.dealerId
@@ -102,7 +103,7 @@ export default async function DealerLayout({ children }: { children: React.React
             const tools = [
               ...(searchEnabled ? [{ href: '/dealer/find-customer', label: 'Find customer', labelKey: 'nav.findCustomer' }] : []),
               ...(calcAccess ? [{ href: '/dealer/calculator', label: 'HD Payout', labelKey: 'nav.hdPayout' }] : []),
-              ...(reportAccess ? [{ href: '/dealer/reports', label: 'Reports', labelKey: 'nav.reports' }] : []),
+              ...((reportAccess || leadsAccess) ? [{ href: reportAccess ? '/dealer/reports' : '/dealer/reports/all-leads', label: 'Reports', labelKey: 'nav.reports' }] : []),
             ];
             return tools.length > 0 ? [{ label: 'Tools', labelKey: 'nav.tools', children: tools }] : [];
           })(),

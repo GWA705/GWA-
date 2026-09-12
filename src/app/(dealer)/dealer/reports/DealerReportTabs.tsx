@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { SectionHero } from '@/components/SectionHero';
 import { getT } from '@/i18n/server';
 import { getSession } from '@/lib/session';
-import { canViewAllLeads, canViewOwnerPricingReport } from '@/lib/reporting/access';
+import { canViewAllLeads, canViewOwnerPricingReport, hasDealerReportAccess } from '@/lib/reporting/access';
 import { ReportTabSelect } from './ReportTabSelect';
 
 type Tab = 'monthly' | 'weekly' | 'overall' | 'funding' | 'products' | 'leaderboard' | 'allLeads' | 'leadFunnel' | 'pricing' | 'custom' | 'forecast' | 'reps' | 'accounting';
@@ -18,16 +18,17 @@ export async function DealerReportTabs({ active }: { active: Tab; showOwner?: bo
   // Compute tab visibility here (not from each page's props) so the tab set is
   // identical on every report page — otherwise tabs appeared/disappeared as you
   // navigated between reports.
+  const showBase = user ? await hasDealerReportAccess(user) : false;
   const showLeads = user ? await canViewAllLeads(user) : false;
   const showOwner = user ? await canViewOwnerPricingReport(user) : false;
 
   const items: { href: string; label: string; key: Tab; show: boolean }[] = [
-    { href: '/dealer/reports', label: t('reports.tabMonthly'), key: 'monthly', show: true },
-    { href: '/dealer/reports/weekly', label: t('reports.tabWeekly'), key: 'weekly', show: true },
-    { href: '/dealer/reports/overall-sales', label: t('reports.tabOverall'), key: 'overall', show: true },
-    { href: '/dealer/reports/funding', label: t('reports.tabFunding'), key: 'funding', show: true },
-    { href: '/dealer/reports/product-mix', label: t('reports.tabProducts'), key: 'products', show: true },
-    { href: '/dealer/reports/leaderboard', label: t('reports.tabLeaderboard'), key: 'leaderboard', show: true },
+    { href: '/dealer/reports', label: t('reports.tabMonthly'), key: 'monthly', show: showBase },
+    { href: '/dealer/reports/weekly', label: t('reports.tabWeekly'), key: 'weekly', show: showBase },
+    { href: '/dealer/reports/overall-sales', label: t('reports.tabOverall'), key: 'overall', show: showBase },
+    { href: '/dealer/reports/funding', label: t('reports.tabFunding'), key: 'funding', show: showBase },
+    { href: '/dealer/reports/product-mix', label: t('reports.tabProducts'), key: 'products', show: showBase },
+    { href: '/dealer/reports/leaderboard', label: t('reports.tabLeaderboard'), key: 'leaderboard', show: showBase },
     { href: '/dealer/reports/all-leads', label: t('reports.tabAllLeads'), key: 'allLeads', show: showLeads },
     { href: '/dealer/reports/lead-funnel', label: t('reports.tabLeadFunnel'), key: 'leadFunnel', show: showLeads },
     { href: '/dealer/reports/product-pricing', label: t('reports.tabPricing'), key: 'pricing', show: showOwner },

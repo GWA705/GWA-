@@ -101,7 +101,7 @@ export default async function ReportsLandingPage() {
       blurb: 'Cards sent and dollar value per dealer, plus what is still pending. Sortable and downloadable.',
       accent: '#7a3fa8',
       badge: 'Super Admin',
-      available: isAdmin,
+      available: canDealerSnapshot,
     },
     {
       href: '/staff/reports/leaderboard',
