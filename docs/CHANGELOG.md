@@ -54,6 +54,14 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-12
+- **Monthly report: richer PE/OK pending snapshot + click-through to the deal.** The
+  two pending-installation blocks (this month / earlier months) now expand each
+  store to the individual pending deals **on desktop** — sale date, customer name,
+  and product(s) sold — with the amount. Each deal **links to the customer's profile
+  in the system** (`/staff/applications/<id>`) when its HD # matches a portal deal
+  (resolved in one query; unmatched deals show without a link). Mobile keeps the
+  compact store+total snapshot. `monthly.ts` now returns a `sales[]` drill-down
+  (with resolved `appId`) on each `PendingStore`.
 - **Remittances: duplicate fail-safe + delete button.** Auto-capture went live and
   produced a duplicate — a manual entry (placeholder doc # `20260911`) plus the
   webhook's real doc # (`2000133384`) for the same payment, which the doc-#-only

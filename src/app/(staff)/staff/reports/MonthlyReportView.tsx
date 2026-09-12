@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { BarChart3 } from 'lucide-react';
-import type { OfficeMonthlyReport } from '@/lib/reporting/monthly';
+import type { OfficeMonthlyReport, PendingStore } from '@/lib/reporting/monthly';
 import { getT } from '@/i18n/server';
 import type { TFunction } from '@/i18n/translator';
 import { StoreTable } from './StoreTable';
@@ -12,6 +12,12 @@ function money(n: number): string {
 }
 function money2(n: number): string {
   return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+// yyyy-mm-dd → "Sep 2" (parsed as local midnight to avoid a TZ off-by-one).
+function fmtSaleDate(ymd: string): string {
+  if (!ymd) return '—';
+  const d = new Date(`${ymd}T00:00:00`);
+  return isNaN(d.getTime()) ? ymd : d.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' });
 }
 
 function Pct({ value, t }: { value: number | null; t: TFunction }) {
@@ -72,7 +78,7 @@ function PendingBlock({
 }: {
   title: string;
   subtitle: string;
-  rows: { store: string; label: string; amount: number; count: number }[];
+  rows: PendingStore[];
   total: number;
   byMonth?: { label: string; total: number; count: number }[];
   t: TFunction;
@@ -95,11 +101,45 @@ function PendingBlock({
       )}
       <div className="divide-y divide-amber-100">
         {rows.map((p) => (
-          <div key={p.store} className="flex items-center justify-between px-4 py-2 text-sm">
-            <span className="font-semibold text-amber-900">{p.label}</span>
-            <span className="tabular-nums text-amber-800">
-              {money2(p.amount)} <span className="text-amber-500">({p.count})</span>
-            </span>
+          <div key={p.store} className="px-4 py-2 text-sm">
+            <div className="flex items-center justify-between">
+              <span className="font-semibold text-amber-900">{p.label}</span>
+              <span className="tabular-nums text-amber-800">
+                {money2(p.amount)} <span className="text-amber-500">({p.count})</span>
+              </span>
+            </div>
+            {/* Per-deal detail — desktop only, keeps the mobile snapshot compact.
+                Each links to the customer's deal in the system when matched. */}
+            {p.sales && p.sales.length > 0 && (
+              <ul className="mt-1.5 hidden space-y-0.5 md:block">
+                {p.sales.map((s, i) => {
+                  const inner = (
+                    <span className="flex items-center justify-between gap-3">
+                      <span className="min-w-0 truncate">
+                        <span className="text-amber-500">{fmtSaleDate(s.saleDate)}</span>
+                        {' · '}
+                        <span className="font-medium text-amber-900">{s.customerName}</span>
+                        {s.product ? <span className="text-amber-700"> — {s.product}</span> : null}
+                      </span>
+                      <span className="flex-none tabular-nums text-amber-800">{money2(s.amount)}</span>
+                    </span>
+                  );
+                  return (
+                    <li key={`${s.hdRef}-${i}`} className="text-xs">
+                      {s.appId ? (
+                        <a href={`/staff/applications/${s.appId}`} className="block rounded px-2 py-1 hover:bg-amber-100">
+                          {inner}
+                        </a>
+                      ) : (
+                        <span className="block px-2 py-1 text-amber-800/80" title="No matching deal in the portal">
+                          {inner}
+                        </span>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </div>
         ))}
         <div className="flex items-center justify-between bg-amber-100 px-4 py-2 text-sm font-bold text-amber-900">

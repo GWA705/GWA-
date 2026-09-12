@@ -67,11 +67,23 @@ export interface OfficeMonthlyReport {
   error?: string;
 }
 
+export interface PendingSale {
+  customerName: string;
+  saleDate: string; // yyyy-mm-dd or ''
+  product: string;
+  amount: number;
+  hdRef: string;
+  appId: string | null; // portal deal id, when the HD # matches a deal in the system
+}
+
 export interface PendingStore {
   store: string;
   label: string;
   amount: number;
   count: number;
+  // The individual pending deals behind this store (drill-down). Present on the
+  // per-store pending rows; each links to the customer's deal in the portal.
+  sales?: PendingSale[];
 }
 
 function pct(cur: number, base: number): number | null {
@@ -297,11 +309,25 @@ export async function buildOfficeMonthlyReport(
   const pendThis = new Map<string, { amount: number; count: number }>();
   const pendEarlier = new Map<string, { amount: number; count: number }>();
   const pendEarlierMonth = new Map<string, { total: number; count: number; sort: number }>();
+  const salesThis = new Map<string, PendingSale[]>();
+  const salesEarlier = new Map<string, PendingSale[]>();
   const bump = (m: Map<string, { amount: number; count: number }>, store: string, amt: number) => {
     const e = m.get(store) || { amount: 0, count: 0 };
     e.amount += amt;
     e.count += 1;
     m.set(store, e);
+  };
+  const addSale = (m: Map<string, PendingSale[]>, store: string, d: ReportDeal) => {
+    const list = m.get(store) ?? [];
+    list.push({
+      customerName: `${d.firstName} ${d.lastName}`.trim() || '(no name)',
+      saleDate: d.date ? d.date.toISOString().slice(0, 10) : '',
+      product: d.product || '',
+      amount: d.gross,
+      hdRef: (d.hdRef || '').trim(),
+      appId: null, // resolved below
+    });
+    m.set(store, list);
   };
   for (const d of officeDeals) {
     if (d.result !== 'PE/OK') continue;
@@ -310,8 +336,10 @@ export async function buildOfficeMonthlyReport(
     const store = d.storeNumber || d.hdStore || 'Unknown';
     if (d.date >= monthStart) {
       bump(pendThis, store, d.gross);
+      addSale(salesThis, store, d);
     } else {
       bump(pendEarlier, store, d.gross);
+      addSale(salesEarlier, store, d);
       const label = d.date.toLocaleString('en-US', { month: 'short', year: 'numeric' });
       const em = pendEarlierMonth.get(label) || { total: 0, count: 0, sort: d.date.getFullYear() * 12 + d.date.getMonth() };
       em.total += d.gross;
@@ -319,13 +347,45 @@ export async function buildOfficeMonthlyReport(
       pendEarlierMonth.set(label, em);
     }
   }
-  const toPendingArr = (m: Map<string, { amount: number; count: number }>): PendingStore[] =>
+
+  // Resolve each pending deal's HD # to a portal deal id so the report can link
+  // to the customer's profile in the system. One query for all pending refs.
+  const digitsOnly = (s: string) => s.replace(/\D/g, '');
+  const allPendingSales = [...salesThis.values(), ...salesEarlier.values()].flat();
+  const pendRefs = Array.from(new Set(allPendingSales.map((s) => digitsOnly(s.hdRef)).filter((r) => r.length >= 6)));
+  if (pendRefs.length) {
+    const apps = await prisma.application.findMany({
+      where: { hdReference: { in: pendRefs } },
+      select: { id: true, hdReference: true },
+      orderBy: { createdAt: 'desc' },
+    });
+    const refToId = new Map<string, string>();
+    for (const a of apps) {
+      const k = digitsOnly(a.hdReference ?? '');
+      if (k && !refToId.has(k)) refToId.set(k, a.id);
+    }
+    for (const s of allPendingSales) {
+      const id = refToId.get(digitsOnly(s.hdRef));
+      if (id) s.appId = id;
+    }
+  }
+
+  const toPendingArr = (
+    m: Map<string, { amount: number; count: number }>,
+    salesMap: Map<string, PendingSale[]>,
+  ): PendingStore[] =>
     Array.from(m.entries())
-      .map(([store, v]) => ({ store, label: labelFor(store), amount: v.amount, count: v.count }))
+      .map(([store, v]) => ({
+        store,
+        label: labelFor(store),
+        amount: v.amount,
+        count: v.count,
+        sales: (salesMap.get(store) ?? []).sort((a, b) => b.amount - a.amount),
+      }))
       .sort((a, b) => b.amount - a.amount);
 
-  const pendingThisMonth = toPendingArr(pendThis);
-  const pendingEarlier = toPendingArr(pendEarlier);
+  const pendingThisMonth = toPendingArr(pendThis, salesThis);
+  const pendingEarlier = toPendingArr(pendEarlier, salesEarlier);
   const pendingThisMonthTotal = pendingThisMonth.reduce((acc, p) => acc + p.amount, 0);
   const pendingEarlierTotal = pendingEarlier.reduce((acc, p) => acc + p.amount, 0);
   const pendingEarlierByMonth = Array.from(pendEarlierMonth.entries())
