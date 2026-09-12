@@ -54,6 +54,14 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-12
+- **Fix: reports now print/PDF fully — wide tables no longer clipped.** Printing a
+  report (e.g. the month × store "Money put through" matrix) ran off the page and got
+  cut off, because the on-screen `overflow-x-auto` table kept its full width on paper.
+  Global `@media print` rules now make every report (`.print-sheet` / `.print-only`)
+  fit the page: table wrappers stop clipping, tables shrink to 100% width and wrap,
+  cell font/padding tighten to ~10px, `thead` repeats on each page, rows avoid
+  breaking mid-row, and sticky columns are unstuck. One site-wide fix, so all reports
+  (and the payout receipt) print fully in portrait or landscape.
 - **Reports: one shared visual language (kit) across dealer + staff.** Added
   `src/components/reporting/kit.tsx` (ReportTile/ReportTiles, ReportTableWrap,
   shared thead/row/tfoot/footnote class constants). Each report **keeps its coloured
