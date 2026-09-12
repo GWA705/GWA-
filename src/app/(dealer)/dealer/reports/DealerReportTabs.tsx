@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { SectionHero } from '@/components/SectionHero';
 import { getT } from '@/i18n/server';
 import { getSession } from '@/lib/session';
-import { canViewAllLeads } from '@/lib/reporting/access';
+import { canViewAllLeads, canViewOwnerPricingReport } from '@/lib/reporting/access';
 import { ReportTabSelect } from './ReportTabSelect';
 
 type Tab = 'monthly' | 'weekly' | 'overall' | 'funding' | 'products' | 'leaderboard' | 'allLeads' | 'leadFunnel' | 'pricing' | 'custom' | 'forecast' | 'reps' | 'accounting';
@@ -12,10 +12,14 @@ type Tab = 'monthly' | 'weekly' | 'overall' | 'funding' | 'products' | 'leaderbo
 // segmented tab strip. Owner-only tabs (pricing, reps, custom, forecast,
 // accounting) are shown only when the page passes `showOwner`; the all-office
 // leads tabs only for users with the "Leads oversight" grant.
-export async function DealerReportTabs({ active, showOwner = false }: { active: Tab; showOwner?: boolean }) {
+export async function DealerReportTabs({ active }: { active: Tab; showOwner?: boolean }) {
   const t = getT();
   const user = await getSession();
+  // Compute tab visibility here (not from each page's props) so the tab set is
+  // identical on every report page — otherwise tabs appeared/disappeared as you
+  // navigated between reports.
   const showLeads = user ? await canViewAllLeads(user) : false;
+  const showOwner = user ? await canViewOwnerPricingReport(user) : false;
 
   const items: { href: string; label: string; key: Tab; show: boolean }[] = [
     { href: '/dealer/reports', label: t('reports.tabMonthly'), key: 'monthly', show: true },
