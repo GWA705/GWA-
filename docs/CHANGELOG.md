@@ -54,6 +54,16 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-12
+- **Reports: one shared visual language (kit) across dealer + staff.** Added
+  `src/components/reporting/kit.tsx` (ReportTile/ReportTiles, ReportTableWrap,
+  shared thead/row/tfoot/footnote class constants). Each report **keeps its coloured
+  header banner**; everything below (KPI tiles, table headers, spacing, footnotes) now
+  comes from the kit so the reports read as one family. Deduped three copy-pasted
+  `tile()` helpers (office-range, gift-cards, dealer funding); converted the dealer
+  Sales Reps tiles + header; converted the Monthly report YTD tiles; standardized the
+  table header row of StoreTable, LeaderboardTable, Finance, Lead funnel and Cycle
+  times. Card/bar reports (store week, dealer snapshot, leads, product mix) keep their
+  layouts; intentionally colour/tone-coded stats were preserved.
 - **Dealer reports: four new high-level, printable/emailable tabs (own office).** The
   dealer "My reports" area gains, for **every dealer user** with report access (scoped
   strictly to their own office):
