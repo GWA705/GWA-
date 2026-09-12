@@ -34,10 +34,12 @@ export async function GET(req: NextRequest) {
   if (!lead) return NextResponse.json({ found: false });
 
   // Dealer scope: only their own store's leads (mirrors the Leads page). Staff
-  // (no dealerId) can look up any lead.
+  // (no dealerId) can look up any lead. A dealer with no stores linked has no
+  // leads — fail CLOSED (don't skip the check), otherwise they could read any
+  // office's lead PII by enumerating booking numbers.
   if (session.dealerId) {
     const stores = await dealerStoreNumbers(session.dealerId);
-    if (stores.length > 0 && !stores.includes(lead.storeNumber)) {
+    if (!stores.includes(lead.storeNumber)) {
       return NextResponse.json({ found: false, reason: 'not-your-store' });
     }
   }

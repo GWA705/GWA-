@@ -67,7 +67,11 @@ const cookieOptions = {
 
 export async function createSession(user: SessionUser & { tokenVersion?: number }): Promise<void> {
   const { tokenVersion = 0, impersonating: _imp, ...claims } = user;
-  const token = await sign({ ...claims, tv: tokenVersion }, SESSION_TTL_SECONDS);
+  // `typ: 'session'` binds this token to its purpose. getSession requires it, so
+  // an intermediate cookie (mfa-pending / pwchange / enroll / mfa-trust) — signed
+  // with the same key but WITHOUT this claim — can never be replayed as a full
+  // session to bypass MFA / forced-rotation / enrollment.
+  const token = await sign({ ...claims, tv: tokenVersion, typ: 'session' }, SESSION_TTL_SECONDS);
   // Set ONLY the session cookie here — a single Set-Cookie header. When the app
   // runs behind a CDN (CloudFront), a server-action *redirect* response that
   // carries several Set-Cookie headers at once can lose all but one on the way
@@ -166,7 +170,10 @@ export const getSession = cache(async function getSession(): Promise<SessionUser
   const token = cookies().get(COOKIE_NAME)?.value;
   if (!token) return null;
   const payload = await verify(token);
-  if (!payload || !payload.userId) return null;
+  // Require the session purpose claim: an intermediate cookie (mfa-pending,
+  // pwchange, enroll, mfa-trust) is signed with the same key and carries a userId
+  // but not typ:'session', so it can never be replayed here to skip MFA/rotation.
+  if (!payload || payload.typ !== 'session' || !payload.userId) return null;
 
   // Authoritative check against the DB so deactivation, role/dealer changes, and
   // password changes revoke existing sessions immediately (rather than trusting
