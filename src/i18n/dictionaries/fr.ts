@@ -1286,6 +1286,7 @@ export const fr: Dictionary = {
     yourCustomers: 'Vos clients',
     registeredOtherOffice: 'Inscrit auprès d’un autre bureau',
     fromYourPastJournals: 'Depuis les anciens journaux des ventes de votre bureau',
+    thisYearJournal: 'Journal des ventes de cette année (en cours)',
     sold: 'Vendu le',
     registeredWithPre: 'Ce client est inscrit auprès de',
     pleaseContactOffice: 'Veuillez communiquer avec ce bureau pour plus de renseignements.',

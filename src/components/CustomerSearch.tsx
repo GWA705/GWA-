@@ -172,7 +172,7 @@ function Results({ result }: { result: CustomerSearchResult }) {
   }
 
   // Dealer mode.
-  const nothing = result.own.length === 0 && result.other.length === 0 && result.journal.length === 0;
+  const nothing = result.own.length === 0 && result.other.length === 0 && result.journal.length === 0 && result.liveJournal.length === 0;
   if (nothing) return <Note>{t('findCustomer.noCustomers')}</Note>;
   return (
     <div className="space-y-4">
@@ -226,6 +226,43 @@ function Results({ result }: { result: CustomerSearchResult }) {
                   <div className="mt-1 flex items-start gap-1 text-sm text-sky-900">
                     <span aria-hidden>📍</span>
                     <span>{m.officeAddress}</span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {result.liveJournal.length > 0 && (
+        <div>
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">{t('findCustomer.thisYearJournal')}</h3>
+          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+            {result.liveJournal.map((m) => (
+              <div key={m.id} className="rounded-2xl border border-sky-200 bg-sky-50/50 p-3 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-11 w-11 flex-none items-center justify-center rounded-full bg-sky-100 text-sm font-bold text-sky-700">{initials(m.customerName)}</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="truncate text-sm font-semibold text-gray-900">{m.customerName}</span>
+                      {m.result && (
+                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${RESULT_STYLE[m.result] ?? 'bg-gray-100 text-gray-600'}`}>{m.result}</span>
+                      )}
+                    </div>
+                    <div className="truncate text-xs text-gray-400">
+                      {[m.product, m.hdStore, m.finance, m.amount].filter(Boolean).join(' · ')}
+                    </div>
+                    {m.saleDate && (
+                      <div className="mt-0.5 text-xs font-medium text-gray-600">
+                        🗓 {t('findCustomer.sold')} {fmtSold(m.saleDate, locale)}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                {(m.phone || m.address) && (
+                  <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-0.5 border-t border-sky-100 pt-2 text-xs">
+                    {m.phone && <a href={`tel:${m.phone.replace(/[^0-9+]/g, '')}`} className="font-medium text-sky-700 hover:underline">📞 {m.phone}</a>}
+                    {m.address && <span className="text-gray-500">{m.address}</span>}
                   </div>
                 )}
               </div>

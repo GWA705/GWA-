@@ -54,6 +54,22 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-12
+- **Dealer Find-customer now searches the LIVE current-year journal (in-progress book).**
+  Dealers could already find their own office's *closed*-year journal customers (the
+  DB archive) and their portal deals — but a **current-year** deal that lives only in
+  the live Google Sheet (e.g. a PENDING sale entered straight into the journal) was
+  invisible in Find customer, even though it shows in the weekly store report. Root
+  cause: the current year is deliberately never archived (it stays editable all year),
+  and the dealer search never read the live sheet. Added `searchOfficeLiveJournal()`
+  (`src/lib/journalArchive.ts`): reads the current (and any future) year live, attributes
+  each row to an office with the **same matcher the import/weekly report use**
+  (`buildDealerMatcher`: store number → alias → name token), and returns **only this
+  dealer's own rows** (no cross-office leakage). Results show in a new
+  "This year's sales journal (in progress)" section with the deal's result badge
+  (OK / PE/OK / RB), **deduped** against portal deals already listed under "Your
+  customers." Read-only; still gated by `isGlobalSearchEnabled()`; rate-limited and
+  audited (the audit line now records the live-hit count). Staff/reviewer search
+  already read the live sheet — unchanged.
 - **New report — Gift cards by office (admin-only).** A per-dealer summary of how
   many gift cards were **sent** and the **dollar value**, plus what's still
   **pending** and how many were **cancelled**, with the date of the most recent

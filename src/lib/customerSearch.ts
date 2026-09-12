@@ -11,7 +11,7 @@ import type { ApplicationStatus } from '@prisma/client';
 import { isInternal, isSuperAdmin, canAdminSection } from './rbac';
 import { readJournal, sheetIdFor, EARLIEST_JOURNAL_YEAR } from './reporting/journalRead';
 import { nameTokens, DEALER_ALIASES } from './reporting/dealerSnapshot';
-import { searchOfficeJournalArchive, type ArchiveMatch } from './journalArchive';
+import { searchOfficeJournalArchive, searchOfficeLiveJournal, type ArchiveMatch } from './journalArchive';
 import { appOverrideKey, rowOverrideKey, getOverrides, overlay } from './customerOverride';
 
 interface DealerContact { name: string; phone: string; address: string }
@@ -202,7 +202,7 @@ export type CustomerSearchResult =
   | { status: 'too_short' }
   | { status: 'rate_limited'; retryAfterSec: number }
   | { status: 'internal'; matches: InternalMatch[]; journalMatches: JournalMatch[] }
-  | { status: 'dealer'; own: OwnMatch[]; other: OtherOfficeMatch[]; journal: ArchiveMatch[] };
+  | { status: 'dealer'; own: OwnMatch[]; other: OtherOfficeMatch[]; journal: ArchiveMatch[]; liveJournal: ArchiveMatch[] };
 
 function digits(s: string): string {
   return s.replace(/\D/g, '');
@@ -493,16 +493,21 @@ export async function searchCustomers(user: SessionUser, rawQuery: string): Prom
     }
   }
 
-  // The office's own archived past-journal customers (2024+), name/phone scoped
-  // strictly to this dealer. Read-only history.
+  // The office's own archived past-journal customers (closed years), name/phone
+  // scoped strictly to this dealer. Read-only history.
   const journal = await searchOfficeJournalArchive(dealerId, q);
+
+  // The office's own CURRENT-year (live) journal — the in-progress book that is
+  // never archived. This is what makes a live pending deal (visible in the weekly
+  // report) findable here too. Deduped against the portal deals already in `own`.
+  const liveJournal = await searchOfficeLiveJournal(dealerId, q, new Set(own.map((o) => o.applicationId)));
 
   await audit({
     actorId: user.userId,
     action: 'CUSTOMER_SEARCH',
     entityType: 'Application',
-    detail: `dealer q="${q}" own=${own.length} other=${other.length} journal=${journal.length}`,
+    detail: `dealer q="${q}" own=${own.length} other=${other.length} journal=${journal.length} live=${liveJournal.length}`,
   });
 
-  return { status: 'dealer', own, other, journal };
+  return { status: 'dealer', own, other, journal, liveJournal };
 }
