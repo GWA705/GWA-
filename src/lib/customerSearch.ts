@@ -132,7 +132,7 @@ export async function canSearchAllCustomers(user: SessionUser): Promise<boolean>
  * hits) so cross-office lookups are throttled and traceable.
  */
 
-const MIN_QUERY = 3;
+const MIN_QUERY = 2; // 2 so short surnames search (e.g. "Ng", "Li", "Vo")
 
 export interface InternalMatch {
   applicationId: string;
@@ -254,7 +254,7 @@ function nameWhere(terms: string[]) {
  */
 async function searchJournalDeals(query: string): Promise<JournalMatch[]> {
   const q = query.trim();
-  if (q.length < 3) return [];
+  if (q.length < MIN_QUERY) return [];
   const qNorm = q.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
   const qDigits = digits(q);
   const terms = qNorm.split(' ').filter((t) => t.length >= 2);

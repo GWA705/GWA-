@@ -1274,7 +1274,7 @@ export const en = {
     search: 'Search',
     disabled: 'Customer search is turned off. An administrator can enable it.',
     notGranted: 'You don’t have access to the full customer search. Ask a Super Admin to grant it (Admin → Users).',
-    tooShort: 'Type at least 3 characters.',
+    tooShort: 'Type at least 2 characters.',
     rateLimited: 'Too many searches — please wait {n}s and try again.',
     noCustomers: 'No customers found.',
     portalDeals: 'Portal deals',

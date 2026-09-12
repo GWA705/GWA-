@@ -1278,7 +1278,7 @@ export const fr: Dictionary = {
     search: 'Rechercher',
     disabled: 'La recherche de clients est désactivée. Un administrateur peut l’activer.',
     notGranted: 'Vous n’avez pas accès à la recherche complète de clients. Demandez à un super administrateur de l’accorder (Admin → Utilisateurs).',
-    tooShort: 'Saisissez au moins 3 caractères.',
+    tooShort: 'Saisissez au moins 2 caractères.',
     rateLimited: 'Trop de recherches — veuillez patienter {n} s et réessayer.',
     noCustomers: 'Aucun client trouvé.',
     portalDeals: 'Dossiers du portail',

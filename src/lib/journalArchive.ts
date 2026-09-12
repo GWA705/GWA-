@@ -29,7 +29,7 @@ const money = (n: number) => `$${Math.round(n).toLocaleString('en-CA')}`;
 export async function searchOfficeJournalArchive(dealerId: string | null | undefined, query: string): Promise<ArchiveMatch[]> {
   if (!dealerId) return [];
   const q = query.trim();
-  if (q.length < 3) return [];
+  if (q.length < 2) return []; // 2 so short surnames search (e.g. "Ng")
 
   const digits = q.replace(/\D/g, '');
   const isPhone = digits.length >= 7;
@@ -83,7 +83,7 @@ export async function searchOfficeLiveJournal(
 ): Promise<ArchiveMatch[]> {
   if (!dealerId) return [];
   const q = query.trim();
-  if (q.length < 3) return [];
+  if (q.length < 2) return []; // 2 so short surnames search (e.g. "Ng")
 
   // Live years = current year and any future year with a configured sheet. Closed
   // years are covered by the DB archive (searchOfficeJournalArchive above).

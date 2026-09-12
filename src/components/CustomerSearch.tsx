@@ -48,7 +48,7 @@ export function CustomerSearch({
   const seq = useRef(0);
 
   function run(q: string) {
-    if (q.trim().length < 3) {
+    if (q.trim().length < 2) {
       setResult(null);
       return;
     }
@@ -79,11 +79,11 @@ export function CustomerSearch({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialQuery]);
 
-  // Live typeahead (internal): debounce keystrokes; fire at 3+ chars.
+  // Live typeahead (internal): debounce keystrokes; fire at 2+ chars.
   useEffect(() => {
     if (!live) return;
     const q = query.trim();
-    if (q.length < 3) {
+    if (q.length < 2) {
       setResult(null);
       return;
     }
