@@ -54,6 +54,17 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-12
+- **Full-site security audit + two fixes; findings saved for follow-up.** Reviewed
+  auth/session, authorization/IDOR, and injection/data exposure. Fixed a **CRITICAL
+  MFA-bypass** (intermediate cookies could be replayed as a full session — session
+  tokens now carry a `typ:'session'` claim required by `getSession`; one-time
+  re-login on deploy) and a **cross-office lead PII leak** (`/api/leads/lookup`
+  failed open for a dealer with no stores — now fails closed). Remaining findings
+  (encryption-key/KMS, card-scan fail-open, rate-limiter fail-open, lockout DoS,
+  temp-password email, and low items) are documented with file references and a
+  suggested order in **`docs/SECURITY-AUDIT-2026-09-12.md`**. Overall posture is
+  strong (envelope-encrypted PII, parameterized SQL, IDOR-protected document APIs,
+  strong CSP, no privilege escalation).
 - **Reports print as a clean one-pager — no browser header/footer, compact tiles.**
   Printouts no longer carry the browser's auto header/footer (page title, the
   portal web address, date, page number): `@page { margin: 0 }` removes the band
