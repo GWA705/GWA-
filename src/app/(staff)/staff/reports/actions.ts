@@ -83,10 +83,17 @@ export async function importVocAction(
   const res = await importVocBuffer(buf, session.userId);
   if (res.error) return { error: res.error };
 
-  await audit({ actorId: session.userId, action: 'SETTING_UPDATE', entityType: 'VocEntry', detail: `Imported ${res.imported} VOC rows` });
+  await audit({
+    actorId: session.userId,
+    action: 'SETTING_UPDATE',
+    entityType: 'VocEntry',
+    detail: `Imported ${res.imported} VOC rows (${res.created} new, ${res.updated} updated, ${res.duplicatesInFile} dup in file)`,
+  });
   revalidatePath('/staff/reports/voc');
   revalidatePath('/dealer/reports/voc');
-  return { ok: true, message: `Imported ${res.imported} VOC ${res.imported === 1 ? 'review' : 'reviews'}.` };
+  const parts = [`${res.created} new`, `${res.updated} updated (no duplicates created)`];
+  if (res.duplicatesInFile > 0) parts.push(`${res.duplicatesInFile} duplicate row${res.duplicatesInFile === 1 ? '' : 's'} in the file merged`);
+  return { ok: true, message: `Imported ${res.imported} VOC review${res.imported === 1 ? '' : 's'}: ${parts.join(', ')}.` };
 }
 
 /**

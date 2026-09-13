@@ -54,6 +54,7 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-13
+- **VOC import de-dupes numbers.** VOCs are keyed by a normalized (digits-only) HD Lead #, which is UNIQUE — re-uploading a file or overlapping months updates rows instead of creating duplicates. Import now also collapses duplicates within one file and reports "X new, Y updated, Z merged".
 - **VOC contest standings.** Added a flat **sales-rep leaderboard** to the VOC
   report (dealer + staff): reps ranked by completed VOCs in the selected date
   range (top 3 get medals), for scoring VOC contests. One-click **"VOC contest

@@ -18,13 +18,33 @@ import { listReportOffices } from './monthly';
 export async function importVocBuffer(
   buf: Buffer | Uint8Array,
   userId: string | null,
-): Promise<{ imported: number; total: number; error?: string }> {
+): Promise<{ imported: number; total: number; created: number; updated: number; duplicatesInFile: number; error?: string }> {
+  const zero = { imported: 0, total: 0, created: 0, updated: 0, duplicatesInFile: 0 };
   const { rows, error } = await parseVocBuffer(buf);
-  if (error) return { imported: 0, total: 0, error };
-  if (rows.length === 0) return { imported: 0, total: 0, error: 'No VOC rows found in the file.' };
+  if (error) return { ...zero, error };
+  if (rows.length === 0) return { ...zero, error: 'No VOC rows found in the file.' };
 
-  let imported = 0;
+  // De-dupe WITHIN the file by the normalized (digits-only) Lead #, so the same
+  // number written twice — or written in two formats (800237993 vs 800-237-993) —
+  // collapses to one row (last occurrence wins).
+  const byKey = new Map<string, (typeof rows)[number]>();
+  let duplicatesInFile = 0;
   for (const r of rows) {
+    const key = normalizeRef(r.leadRef);
+    if (key.length < 6) continue; // ignore junk / non-reference values
+    if (byKey.has(key)) duplicatesInFile += 1;
+    byKey.set(key, r);
+  }
+
+  const keys = [...byKey.keys()];
+  // Which of these already exist → so we can report new vs. updated.
+  const existing = new Set(
+    (await prisma.vocEntry.findMany({ where: { leadRef: { in: keys } }, select: { leadRef: true } })).map((e) => e.leadRef),
+  );
+
+  let created = 0;
+  let updated = 0;
+  for (const [key, r] of byKey) {
     const data = {
       storeName: r.storeName,
       storeNumber: r.storeNumber,
@@ -41,14 +61,17 @@ export async function importVocBuffer(
       installerCare: r.installerCare,
       installerFriendliness: r.installerFriendliness,
     };
+    // leadRef is stored normalized (digits only) and is UNIQUE, so re-imports can
+    // never create a duplicate row — they update the existing one.
     await prisma.vocEntry.upsert({
-      where: { leadRef: r.leadRef },
-      create: { leadRef: r.leadRef, importedById: userId, ...data },
+      where: { leadRef: key },
+      create: { leadRef: key, importedById: userId, ...data },
       update: { importedById: userId, importedAt: new Date(), ...data },
     });
-    imported += 1;
+    if (existing.has(key)) updated += 1;
+    else created += 1;
   }
-  return { imported, total: rows.length };
+  return { imported: byKey.size, total: rows.length, created, updated, duplicatesInFile };
 }
 
 // --- shared journal read (deals for rep attribution) -----------------------
