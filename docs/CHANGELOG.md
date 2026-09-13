@@ -54,6 +54,18 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-13
+- **Dealer reports now carry the dealer's own name + logo at the top; the GWA
+  stamp stays at the foot.** On a dealer's own-office reports (Monthly, Weekly,
+  Overall sales, Funding, Products & packages, Salesperson leaderboard) the top
+  header lockup shows the office's business name and the logo they uploaded
+  (from their profile), falling back to the GWA icon + "Georgian Water & Air"
+  when no logo/name is set. The bottom brand **stamp is unchanged** — every
+  printout still reads "Georgian Water & Air" at the foot. Staff-side copies of
+  the same reports, and the cross-office leads reports (All leads, Lead funnel),
+  keep GWA branding. New helper `getDealerReportBrand()`; `ReportHeader` (and the
+  inline headers in `OfficeRangeView`/the Funding page) take an optional office
+  logo. (`lib/reporting/dealerBrand.ts`, `components/reporting/kit.tsx`, the five
+  shared report views, and the six dealer report pages.)
 - **Option 3 (Standard): attach the credit app + bill of sale right on the
   form.** Added an "Attach the paperwork" upload area at the bottom of the
   new-application form when the dealer picks option 3, with two clearly labelled

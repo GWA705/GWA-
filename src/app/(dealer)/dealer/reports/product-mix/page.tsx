@@ -4,6 +4,7 @@ import { hasDealerReportAccess } from '@/lib/reporting/access';
 import { reportingJournalEnabled } from '@/lib/reporting/journalRead';
 import { buildProductMix } from '@/lib/reporting/productMix';
 import { ProductMixView } from '@/app/(staff)/staff/reports/product-mix/ProductMixView';
+import { getDealerReportBrand } from '@/lib/reporting/dealerBrand';
 import { DealerReportTabs } from '../DealerReportTabs';
 import { ReportActions } from '../ReportActions';
 import { getT } from '@/i18n/server';
@@ -17,6 +18,7 @@ export default async function DealerProductMixPage({ searchParams }: { searchPar
   if (!(await hasDealerReportAccess(user)) || !user.dealerId) notFound();
 
   const t = getT();
+  const brand = await getDealerReportBrand(user.dealerId);
   const thisYear = new Date().getFullYear();
   const years = [thisYear, thisYear - 1, thisYear - 2];
   const year = years.some((y) => String(y) === searchParams.year) ? parseInt(searchParams.year as string, 10) : thisYear;
@@ -42,7 +44,7 @@ export default async function DealerProductMixPage({ searchParams }: { searchPar
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">{t('reports.notReady')}</div>
       ) : (
         <div className="print-sheet space-y-5">
-          <ProductMixView report={await buildProductMix(user.dealerId, year)} />
+          <ProductMixView report={await buildProductMix(user.dealerId, year)} org={brand.name} orgLogoUrl={brand.logoUrl} />
         </div>
       )}
     </div>

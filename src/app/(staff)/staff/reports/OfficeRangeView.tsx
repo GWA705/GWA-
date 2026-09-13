@@ -14,7 +14,7 @@ const money0 = (n: number) => `$${Math.round(n).toLocaleString('en-CA')}`;
  * Save as PDF" it isolates to a clean sheet with none of the app chrome (see the
  * global @media print rules).
  */
-export function OfficeRangeView({ report }: { report: OfficeRangeReport }) {
+export function OfficeRangeView({ report, org, orgLogoUrl }: { report: OfficeRangeReport; org?: string; orgLogoUrl?: string | null }) {
   const { months, rows, monthTotals, grandTotal, grandCount, rangeLabel, scopeLabel, groupBy } = report;
   const firstColHeader = groupBy === 'office' ? 'Office' : 'Store';
   const unitLabel = groupBy === 'office' ? 'offices' : 'stores';
@@ -37,12 +37,17 @@ export function OfficeRangeView({ report }: { report: OfficeRangeReport }) {
       {/* Landscape print — the matrix is wide. */}
       <style>{`@media print { @page { size: landscape; margin: 0; } }`}</style>
 
-      {/* Executive header — GWA icon lockup + petrol-navy rule */}
+      {/* Executive header — dealer-branded on the dealer side (their name + uploaded
+          logo), the GWA icon lockup otherwise — over a petrol-navy rule. */}
       <div className="flex flex-wrap items-start justify-between gap-4 border-b-[3px] border-[#123448] pb-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2.5">
-            <img src="/brand/gwa-icon.png" alt="" className="h-9 w-9 flex-none" />
-            <div className="text-sm font-bold uppercase tracking-wide text-gray-700">Georgian Water &amp; Air</div>
+            {orgLogoUrl ? (
+              <img src={orgLogoUrl} alt="" className="h-9 w-9 flex-none rounded object-contain" />
+            ) : (
+              <img src="/brand/gwa-icon.png" alt="" className="h-9 w-9 flex-none" />
+            )}
+            <div className="text-sm font-bold uppercase tracking-wide text-gray-700">{org || 'Georgian Water & Air'}</div>
           </div>
           <h1 className="mt-2.5 text-2xl font-bold text-gray-900">Total Sales</h1>
           <p className="mt-0.5 text-sm text-gray-600">

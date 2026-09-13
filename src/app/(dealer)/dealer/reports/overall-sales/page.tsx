@@ -4,6 +4,7 @@ import { hasDealerReportAccess } from '@/lib/reporting/access';
 import { reportingJournalEnabled } from '@/lib/reporting/journalRead';
 import { buildOfficeRangeReport } from '@/lib/reporting/officeRange';
 import { OfficeRangeView } from '@/app/(staff)/staff/reports/OfficeRangeView';
+import { getDealerReportBrand } from '@/lib/reporting/dealerBrand';
 import { DealerReportTabs } from '../DealerReportTabs';
 import { ReportActions } from '../ReportActions';
 import { getT } from '@/i18n/server';
@@ -31,6 +32,7 @@ export default async function DealerOverallSalesPage({ searchParams }: { searchP
   if (!(await hasDealerReportAccess(user)) || !user.dealerId) notFound();
 
   const t = getT();
+  const brand = await getDealerReportBrand(user.dealerId);
   const months = monthOptions(24);
   const valid = new Set(months.map((m) => m.value));
   const now = new Date();
@@ -65,7 +67,7 @@ export default async function DealerOverallSalesPage({ searchParams }: { searchP
       {!reportingJournalEnabled() ? (
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">{t('reports.notReady')}</div>
       ) : (
-        <OfficeRangeView report={await buildOfficeRangeReport(user.dealerId, from, to)} />
+        <OfficeRangeView report={await buildOfficeRangeReport(user.dealerId, from, to)} org={brand.name} orgLogoUrl={brand.logoUrl} />
       )}
     </div>
   );

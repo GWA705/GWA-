@@ -152,12 +152,14 @@ function PendingBlock({
   );
 }
 
-export function MonthlyReportView({ report }: { report: OfficeMonthlyReport }) {
+export function MonthlyReportView({ report, org, orgLogoUrl }: { report: OfficeMonthlyReport; org?: string; orgLogoUrl?: string | null }) {
   const t = getT();
   const ytd = report.ytd;
   return (
     <div className="space-y-5">
       <ReportHeader
+        org={org}
+        logoUrl={orgLogoUrl}
         title={t('reports.tabMonthly')}
         scope={`${report.office?.name ?? t('reports.monthly.officeFallback')} · ${report.monthLabel}`}
         generated={t('reportStamp.generated', { date: reportGeneratedLabel() })}

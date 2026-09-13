@@ -6,7 +6,7 @@ function money(n: number): string {
   return '$' + Math.round(n).toLocaleString('en-US');
 }
 
-export function ProductMixView({ report }: { report: ProductMixReport }) {
+export function ProductMixView({ report, org, orgLogoUrl }: { report: ProductMixReport; org?: string; orgLogoUrl?: string | null }) {
   const t = getT();
 
   if (report.totalDeals === 0) {
@@ -22,6 +22,8 @@ export function ProductMixView({ report }: { report: ProductMixReport }) {
   return (
     <div className="space-y-5">
       <ReportHeader
+        org={org}
+        logoUrl={orgLogoUrl}
         title={t('productMix.title')}
         scope={t('productMix.subtitle')}
         generated={t('reportStamp.generated', { date: reportGeneratedLabel() })}

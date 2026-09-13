@@ -7,7 +7,7 @@ function money(n: number): string {
   return '$' + Math.round(n).toLocaleString('en-US');
 }
 
-export function LeaderboardView({ report }: { report: SalespersonLeaderboard }) {
+export function LeaderboardView({ report, org, orgLogoUrl }: { report: SalespersonLeaderboard; org?: string; orgLogoUrl?: string | null }) {
   const t = getT();
   const scope = `${report.office?.name ?? t('staffReports.allOffices')} · ${report.year}`;
 
@@ -22,6 +22,8 @@ export function LeaderboardView({ report }: { report: SalespersonLeaderboard }) 
   return (
     <div className="space-y-5">
       <ReportHeader
+        org={org}
+        logoUrl={orgLogoUrl}
         title={t('reports.tabLeaderboard')}
         scope={scope}
         generated={t('reportStamp.generated', { date: reportGeneratedLabel() })}

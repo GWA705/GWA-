@@ -4,6 +4,7 @@ import { hasDealerReportAccess } from '@/lib/reporting/access';
 import { reportingJournalEnabled } from '@/lib/reporting/journalRead';
 import { buildSalespersonLeaderboard } from '@/lib/reporting/salespersonLeaderboard';
 import { LeaderboardView } from '@/app/(staff)/staff/reports/leaderboard/LeaderboardView';
+import { getDealerReportBrand } from '@/lib/reporting/dealerBrand';
 import { DealerReportTabs } from '../DealerReportTabs';
 import { ReportActions } from '../ReportActions';
 import { getT } from '@/i18n/server';
@@ -18,6 +19,7 @@ export default async function DealerLeaderboardPage({ searchParams }: { searchPa
   if (!(await hasDealerReportAccess(user)) || !user.dealerId) notFound();
 
   const t = getT();
+  const brand = await getDealerReportBrand(user.dealerId);
   const thisYear = new Date().getFullYear();
   const years = [thisYear, thisYear - 1, thisYear - 2];
   const year = years.some((y) => String(y) === searchParams.year) ? parseInt(searchParams.year as string, 10) : thisYear;
@@ -43,7 +45,7 @@ export default async function DealerLeaderboardPage({ searchParams }: { searchPa
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">{t('reports.notReady')}</div>
       ) : (
         <div className="print-sheet space-y-5">
-          <LeaderboardView report={await buildSalespersonLeaderboard(user.dealerId, year)} />
+          <LeaderboardView report={await buildSalespersonLeaderboard(user.dealerId, year)} org={brand.name} orgLogoUrl={brand.logoUrl} />
         </div>
       )}
     </div>

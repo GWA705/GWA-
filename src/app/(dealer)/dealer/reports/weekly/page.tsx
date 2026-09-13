@@ -5,6 +5,7 @@ import { hasDealerReportAccess, canViewOwnerPricingReport } from '@/lib/reportin
 import { reportingJournalEnabled } from '@/lib/reporting/journalRead';
 import { buildStoreWeekReport } from '@/lib/reporting/storeWeek';
 import { StoreWeekView } from '@/app/(staff)/staff/reports/StoreWeekView';
+import { getDealerReportBrand } from '@/lib/reporting/dealerBrand';
 import { DealerReportTabs } from '../DealerReportTabs';
 import { ReportActions } from '../ReportActions';
 import { getT, getLocale } from '@/i18n/server';
@@ -42,6 +43,7 @@ export default async function DealerWeeklyReportPage({ searchParams }: { searchP
   asOf.setDate(asOf.getDate() + weeksOffset * 7);
 
   const showOwner = await canViewOwnerPricingReport(user);
+  const brand = await getDealerReportBrand(user.dealerId);
 
   return (
     <div className="space-y-5">
@@ -76,7 +78,7 @@ export default async function DealerWeeklyReportPage({ searchParams }: { searchP
         </div>
       ) : (
         <div className="print-sheet space-y-5">
-          <StoreWeekView report={await buildStoreWeekReport(user.dealerId, asOf)} showLinks={false} />
+          <StoreWeekView report={await buildStoreWeekReport(user.dealerId, asOf)} showLinks={false} org={brand.name} orgLogoUrl={brand.logoUrl} />
         </div>
       )}
     </div>

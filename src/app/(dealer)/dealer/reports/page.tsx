@@ -5,6 +5,7 @@ import { hasDealerReportAccess, canViewOwnerPricingReport } from '@/lib/reportin
 import { reportingJournalEnabled } from '@/lib/reporting/journalRead';
 import { buildOfficeMonthlyReport } from '@/lib/reporting/monthly';
 import { MonthlyReportView } from '@/app/(staff)/staff/reports/MonthlyReportView';
+import { getDealerReportBrand } from '@/lib/reporting/dealerBrand';
 import { DealerReportTabs } from './DealerReportTabs';
 import { ReportActions } from './ReportActions';
 import { getT } from '@/i18n/server';
@@ -37,6 +38,7 @@ export default async function DealerReportsPage({ searchParams }: { searchParams
   const year = parseInt(yStr, 10);
   const monthIndex = parseInt(mStr, 10) - 1;
   const showOwner = await canViewOwnerPricingReport(user);
+  const brand = await getDealerReportBrand(user.dealerId);
   const t = getT();
 
   return (
@@ -66,7 +68,11 @@ export default async function DealerReportsPage({ searchParams }: { searchParams
         <NotReady />
       ) : (
         <div className="print-sheet space-y-5">
-          <MonthlyReportView report={await buildOfficeMonthlyReport(user.dealerId, year, monthIndex)} />
+          <MonthlyReportView
+            report={await buildOfficeMonthlyReport(user.dealerId, year, monthIndex)}
+            org={brand.name}
+            orgLogoUrl={brand.logoUrl}
+          />
         </div>
       )}
     </div>

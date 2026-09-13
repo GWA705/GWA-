@@ -31,15 +31,20 @@ export function ReportTile({ label, value, sub }: { label: ReactNode; value: Rea
  * text is passed in (already translated) by the caller.
  */
 export function ReportHeader({
-  org = 'Georgian Water & Air', sub, title, scope, generated, actions,
+  org = 'Georgian Water & Air', logoUrl, sub, title, scope, generated, actions,
 }: {
-  org?: string; sub?: ReactNode; title: ReactNode; scope?: ReactNode; generated?: ReactNode; actions?: ReactNode;
+  org?: string; logoUrl?: string | null; sub?: ReactNode; title: ReactNode; scope?: ReactNode; generated?: ReactNode; actions?: ReactNode;
 }) {
   return (
     <div className="flex flex-wrap items-start justify-between gap-4 border-b-[3px] border-[#123448] pb-3">
       <div className="min-w-0">
         <div className="flex items-center gap-2.5">
-          <img src="/brand/gwa-icon.png" alt="" width="34" height="34" className="h-[34px] w-[34px] flex-none" />
+          {/* Dealer-branded reports pass the office's uploaded logo; otherwise the GWA mark. */}
+          {logoUrl ? (
+            <img src={logoUrl} alt="" width="34" height="34" className="h-[34px] w-[34px] flex-none rounded object-contain" />
+          ) : (
+            <img src="/brand/gwa-icon.png" alt="" width="34" height="34" className="h-[34px] w-[34px] flex-none" />
+          )}
           <div>
             <div className="text-[12.5px] font-bold uppercase tracking-wide text-gray-800">{org}</div>
             {sub ? <div className="text-[11px] text-gray-500">{sub}</div> : null}

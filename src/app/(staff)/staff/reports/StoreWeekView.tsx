@@ -23,11 +23,13 @@ function productChips(product: string): string[] {
     .slice(0, 6);
 }
 
-export function StoreWeekView({ report, showLinks = true }: { report: StoreWeekReport; showLinks?: boolean }) {
+export function StoreWeekView({ report, showLinks = true, org, orgLogoUrl }: { report: StoreWeekReport; showLinks?: boolean; org?: string; orgLogoUrl?: string | null }) {
   const t = getT();
   return (
     <div className="space-y-5">
       <ReportHeader
+        org={org}
+        logoUrl={orgLogoUrl}
         title={t('reports.tabWeekly')}
         scope={`${report.office?.name ?? t('storeWeek.officeFallback')} · ${report.weekLabel}`}
         generated={t('reportStamp.generated', { date: reportGeneratedLabel() })}

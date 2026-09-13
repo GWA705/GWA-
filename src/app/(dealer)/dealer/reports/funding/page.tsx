@@ -7,6 +7,7 @@ import { buildFundingReport, weekWindow, monthWindow } from '@/lib/reporting/fun
 import { DealerReportTabs } from '../DealerReportTabs';
 import { ReportActions } from '../ReportActions';
 import { ReportTile, ReportStamp, reportTheadRow } from '@/components/reporting/kit';
+import { getDealerReportBrand } from '@/lib/reporting/dealerBrand';
 import { getT } from '@/i18n/server';
 
 export const dynamic = 'force-dynamic';
@@ -29,6 +30,7 @@ export default async function DealerFundingPage({ searchParams }: { searchParams
 
   const dealer = await prisma.dealer.findUnique({ where: { id: user.dealerId }, select: { name: true } });
   const officeName = report.offices[0]?.dealerName || dealer?.name || 'Your office';
+  const brand = await getDealerReportBrand(user.dealerId);
   const deals = report.offices[0]?.deals ?? [];
 
   const periodLabel =
@@ -62,8 +64,12 @@ export default async function DealerFundingPage({ searchParams }: { searchParams
         <div className="flex flex-wrap items-start justify-between gap-4 border-b-[3px] border-[#123448] pb-3">
           <div className="min-w-0">
             <div className="flex items-center gap-2.5">
-              <img src="/brand/gwa-icon.png" alt="" className="h-9 w-9 flex-none" />
-              <div className="text-sm font-bold uppercase tracking-wide text-gray-700">Georgian Water &amp; Air</div>
+              {brand.logoUrl ? (
+                <img src={brand.logoUrl} alt="" className="h-9 w-9 flex-none rounded object-contain" />
+              ) : (
+                <img src="/brand/gwa-icon.png" alt="" className="h-9 w-9 flex-none" />
+              )}
+              <div className="text-sm font-bold uppercase tracking-wide text-gray-700">{brand.name}</div>
             </div>
             <h1 className="mt-2.5 text-2xl font-bold text-gray-900">{t('funding.title')}</h1>
             <p className="mt-0.5 text-sm text-gray-600">{officeName} · <span className="font-medium">{periodLabel}</span></p>
