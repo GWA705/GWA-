@@ -54,6 +54,14 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-13
+- **New app launch (splash) screen.** Replaced the lone-icon-on-blue launch
+  screen with the full official GWA logo ("Georgian Water & Air") on a white
+  rounded card, centred on the brand blue (`#1d4ed8`), across all 11 iPhone
+  sizes under `public/splash/`. Logo used unaltered (no invented colours/fonts).
+  Added `scripts/gen-splash-card.mjs` to rebuild the set, plus a generic
+  `scripts/gen-splash.mjs` for future custom art. No code change — layout.tsx
+  already serves these files by name. (iOS caches the splash: remove the app from
+  the Home Screen and re-add it to see the change.)
 - **Dropped the grey "basis / methodology" footnote from the reports.** The small
   grey explanatory paragraph at the foot of each report (e.g. leaderboard's "From
   the journal's 'Dealer's Name' column… near-duplicate names are grouped…") is
