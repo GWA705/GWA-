@@ -38,6 +38,7 @@ export default async function DealerVocPage({ searchParams }: { searchParams: { 
             <input type="date" id="to" name="to" defaultValue={to} className="input" />
           </div>
           <button type="submit" className="btn-primary">{t('reports.view')}</button>
+          <Link href="/dealer/reports/voc?from=2026-01-01&to=2026-06-30" className="btn-secondary text-sm">{t('voc.contestPreset')}</Link>
           {(from || to) && <Link href="/dealer/reports/voc" className="btn-secondary text-sm">{t('voc.clearDates')}</Link>}
         </form>
         <ReportActions title={t('voc.title')} />

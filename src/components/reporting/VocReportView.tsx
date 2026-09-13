@@ -32,6 +32,44 @@ export function VocReportView({ report, singleOffice = false }: { report: VocRep
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">{t('voc.journalOff')}</div>
       )}
 
+      {(() => {
+        const leaders = report.offices
+          .flatMap((o) => o.reps.filter((r) => r.matched).map((r) => ({ rep: r.rep, office: o.office, count: r.count })))
+          .sort((a, b) => b.count - a.count || a.rep.localeCompare(b.rep));
+        if (leaders.length === 0) return null;
+        const medal = ['🥇', '🥈', '🥉'];
+        return (
+          <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+            <div className="border-b border-gray-100 px-5 py-3">
+              <h3 className="text-base font-bold text-gray-900">{t('voc.leaderboardTitle')}</h3>
+              <p className="text-xs text-gray-500">{t('voc.leaderboardHint')}</p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead>
+                  <tr className={reportTheadRow}>
+                    <th className="px-4 py-3 w-12">#</th>
+                    <th className="px-4 py-3">{t('voc.colRep')}</th>
+                    {!singleOffice && <th className="px-4 py-3">{t('voc.colOffice')}</th>}
+                    <th className="px-4 py-3 text-right">{t('voc.colCount')}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {leaders.map((l, i) => (
+                    <tr key={i} className={i % 2 ? 'bg-gray-50/40' : ''}>
+                      <td className="px-4 py-2.5 tabular-nums text-gray-500">{medal[i] ?? i + 1}</td>
+                      <td className="px-4 py-2.5 font-medium text-gray-800">{l.rep}</td>
+                      {!singleOffice && <td className="px-4 py-2.5 text-gray-600">{l.office}</td>}
+                      <td className="px-4 py-2.5 text-right font-semibold tabular-nums text-gray-900">{l.count}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        );
+      })()}
+
       {report.offices.map((office) => (
         <section key={office.dealerId ?? office.office} className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
           <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-gray-100 px-5 py-3">

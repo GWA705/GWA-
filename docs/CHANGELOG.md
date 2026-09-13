@@ -54,6 +54,11 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-13
+- **VOC contest standings.** Added a flat **sales-rep leaderboard** to the VOC
+  report (dealer + staff): reps ranked by completed VOCs in the selected date
+  range (top 3 get medals), for scoring VOC contests. One-click **"VOC contest
+  (Jan 1 – Jun 30, 2026)"** date preset on both pages. (VocReportView + both voc
+  pages + `en.ts`/`fr.ts`.)
 - **VOC report — date range filter + a "has it been done?" lookup.** The VOC
   report (dealer + staff) now takes a **From/To submission-date filter**. The
   staff page adds a **completion lookup**: paste one or many HD Lead #s (or upload
