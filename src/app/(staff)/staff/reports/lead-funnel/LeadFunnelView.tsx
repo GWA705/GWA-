@@ -106,8 +106,6 @@ export function LeadFunnelView({ report }: { report: LeadsReport }) {
           </div>
         </div>
       )}
-
-      <p className="text-xs text-gray-400">{t('leadFunnel.basisNote')}</p>
     </div>
   );
 }

@@ -54,8 +54,6 @@ export function ProductMixView({ report, org, orgLogoUrl }: { report: ProductMix
         </div>
       </div>
 
-      <p className="text-xs text-gray-400">{t('productMix.basisNote')}</p>
-
       <ReportStamp brand={t('reportStamp.brand')} generated={t('reportStamp.generated', { date: reportGeneratedLabel() })} />
     </div>
   );

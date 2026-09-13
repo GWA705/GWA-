@@ -93,10 +93,6 @@ export function SalesForecastView({ data }: { data: ForecastResult }) {
           </table>
         </div>
       </section>
-
-      <p className="px-1 text-xs text-gray-400">
-        {t('salesForecast.footerNote')}
-      </p>
     </div>
   );
 }

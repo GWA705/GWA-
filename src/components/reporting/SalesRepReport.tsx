@@ -71,7 +71,6 @@ export function SalesRepReport({ reps, rangeLabel }: { reps: RepStat[]; rangeLab
           </div>
         )}
       </section>
-      <p className="px-1 text-xs text-gray-400">{t('salesRepReport.footnote')}</p>
     </div>
   );
 }

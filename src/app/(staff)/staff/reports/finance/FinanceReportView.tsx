@@ -102,8 +102,6 @@ export function FinanceReportView({ report }: { report: FinancePenetrationReport
           </div>
         </div>
       )}
-
-      <p className="text-xs text-gray-400">{t('financeReport.basisNote')}</p>
     </div>
   );
 }

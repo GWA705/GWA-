@@ -15,11 +15,6 @@ const OUTCOME_COLS: { key: keyof OutcomeCounts; label: string; short: string; co
   { key: 'ni', label: 'Not interested', short: 'NI', color: '#ef4444' },
 ];
 
-function fmtWhen(iso: string): string {
-  const d = new Date(iso);
-  return isNaN(d.getTime()) ? '' : d.toLocaleString('en-CA', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
-}
-
 // A thin stacked bar showing the outcome distribution.
 function DistBar({ o }: { o: OutcomeCounts }) {
   const total = OUTCOME_COLS.reduce((s, c) => s + o[c.key], 0);
@@ -189,9 +184,6 @@ export function LeadsReportView({ report }: { report: LeadsReport }) {
         </div>
       )}
 
-      <p className="text-center text-xs text-gray-400">
-        Drawn from the HD Leads Log and the portal call tracker · generated {fmtWhen(report.generatedAt)}
-      </p>
     </div>
   );
 }

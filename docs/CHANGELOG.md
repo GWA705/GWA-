@@ -54,6 +54,16 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-13
+- **Dropped the grey "basis / methodology" footnote from the reports.** The small
+  grey explanatory paragraph at the foot of each report (e.g. leaderboard's "From
+  the journal's 'Dealer's Name' column… near-duplicate names are grouped…") is
+  gone across the board: Salesperson leaderboard, Sales reps, Products & packages,
+  Funding, Overall sales, Sales forecast, Lead funnel, All leads, and the staff
+  Finance report. **Kept** the genuine data caveats — the leaderboard's "N paid
+  deal(s) had no rep named… aren't counted" line, the monthly "no sales this
+  month for …" note, the custom builder's per-selection note, and the product-
+  pricing column legend (what "after-tax" vs "net" mean). (Render sites removed in
+  the report views/pages; the now-unused i18n keys were left in place.)
 - **Owner-only reports branded to match.** The five owner/distributor reports
   (Product pricing, Sales reps, Custom builder, Sales forecast, Accounting
   export) previously had no header or footer at all. They now carry the same

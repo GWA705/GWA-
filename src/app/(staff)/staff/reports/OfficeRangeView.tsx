@@ -116,10 +116,6 @@ export function OfficeRangeView({ report, org, orgLogoUrl }: { report: OfficeRan
         </div>
       )}
 
-      <p className="text-xs text-gray-400">
-        Total sales = paid on funded deals (OK money dated by date paid) — reconciles with the Monthly office report.
-      </p>
-
       <ReportStamp brand={t('reportStamp.brand')} generated={t('reportStamp.generated', { date: generated })} />
     </div>
   );

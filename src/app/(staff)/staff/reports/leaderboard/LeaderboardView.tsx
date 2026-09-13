@@ -42,7 +42,6 @@ export function LeaderboardView({ report, org, orgLogoUrl }: { report: Salespers
       {report.unspecified > 0 && (
         <p className="text-xs text-gray-400">{t('leaderboard.unspecifiedNote', { n: report.unspecified })}</p>
       )}
-      <p className="text-xs text-gray-400">{t('leaderboard.basisNote')}</p>
 
       <ReportStamp brand={t('reportStamp.brand')} generated={t('reportStamp.generated', { date: reportGeneratedLabel() })} />
     </div>

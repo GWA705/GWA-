@@ -118,8 +118,6 @@ export default async function DealerFundingPage({ searchParams }: { searchParams
           </div>
         )}
 
-        <p className="text-xs text-gray-400">{t('funding.basis')}</p>
-
         <ReportStamp brand={t('reportStamp.brand')} generated={t('reportStamp.generated', { date: generated })} />
       </div>
     </div>
