@@ -101,10 +101,19 @@ async function readAllDeals(): Promise<{ deals: DealLite[]; configured: boolean;
 
 // --- office & rep breakdown -------------------------------------------------
 
+export interface VocStoreCount {
+  storeName: string;
+  storeNumber: string | null;
+  office: string | null; // the GWA office that owns this store, if known
+  count: number;
+  avgOverall: number | null;
+}
+
 export interface VocReport extends VocBreakdown {
   configured: boolean; // journals reachable (so rep matching is possible)
   count: number; // VOC rows in the selected window
   totalStored: number; // VOC rows stored overall (ignores date filter)
+  stores: VocStoreCount[]; // VOCs per Home Depot store (rep-independent), desc
   lastImportedAt: Date | null;
   journalError?: string;
   from?: string;
@@ -128,12 +137,52 @@ export async function loadVocReport(
   const [entries, totalStored, offices, journal] = await Promise.all([
     prisma.vocEntry.findMany({
       where: hasDate ? { submissionDate: dateWhere } : {},
-      select: { leadRef: true, storeNumber: true, overallRating: true, importedAt: true },
+      select: { leadRef: true, storeName: true, storeNumber: true, overallRating: true, importedAt: true },
     }),
     prisma.vocEntry.count(),
     listReportOffices(),
     readAllDeals(),
   ]);
+
+  // Per-store counts — straight from the VOC file's store number, so a location's
+  // total is shown even when no VOC on it could be matched to a rep. Dealer scope
+  // sees only its own stores.
+  const storeToOfficeName = new Map<string, string>();
+  for (const o of offices) for (const s of o.storeNumbers) storeToOfficeName.set(String(s).trim(), o.name);
+  const dealerStores = opts.dealerId
+    ? new Set((offices.find((o) => o.dealerId === opts.dealerId)?.storeNumbers ?? []).map((s) => String(s).trim()))
+    : null;
+  const storeAcc = new Map<string, { storeName: string; storeNumber: string | null; office: string | null; count: number; ratingSum: number; ratingN: number }>();
+  for (const e of entries) {
+    if (dealerStores && (!e.storeNumber || !dealerStores.has(e.storeNumber))) continue;
+    const key = e.storeNumber || e.storeName || 'Unknown';
+    let a = storeAcc.get(key);
+    if (!a) {
+      a = {
+        storeName: e.storeName || (e.storeNumber ? `Store ${e.storeNumber}` : 'Unknown store'),
+        storeNumber: e.storeNumber ?? null,
+        office: e.storeNumber ? storeToOfficeName.get(e.storeNumber) ?? null : null,
+        count: 0,
+        ratingSum: 0,
+        ratingN: 0,
+      };
+      storeAcc.set(key, a);
+    }
+    a.count += 1;
+    if (e.overallRating != null) {
+      a.ratingSum += e.overallRating;
+      a.ratingN += 1;
+    }
+  }
+  const stores: VocStoreCount[] = [...storeAcc.values()]
+    .map((a) => ({
+      storeName: a.storeName,
+      storeNumber: a.storeNumber,
+      office: a.office,
+      count: a.count,
+      avgOverall: a.ratingN ? Math.round((a.ratingSum / a.ratingN) * 100) / 100 : null,
+    }))
+    .sort((x, y) => y.count - x.count || x.storeName.localeCompare(y.storeName));
 
   const breakdown = buildVocBreakdown(
     {
@@ -151,6 +200,7 @@ export async function loadVocReport(
     configured: journal.configured,
     count: entries.length,
     totalStored,
+    stores,
     lastImportedAt,
     journalError: journal.journalError,
     from: opts.from,

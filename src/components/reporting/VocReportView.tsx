@@ -70,6 +70,39 @@ export function VocReportView({ report, singleOffice = false }: { report: VocRep
         );
       })()}
 
+      {report.stores.length > 0 && (
+        <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+          <div className="border-b border-gray-100 px-5 py-3">
+            <h3 className="text-base font-bold text-gray-900">{t('voc.byStoreTitle')}</h3>
+            <p className="text-xs text-gray-500">{t('voc.byStoreHint')}</p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className={reportTheadRow}>
+                  <th className="px-4 py-3">{t('voc.colStore')}</th>
+                  <th className="px-4 py-3">{t('voc.colStoreNum')}</th>
+                  {!singleOffice && <th className="px-4 py-3">{t('voc.colOffice')}</th>}
+                  <th className="px-4 py-3 text-right">{t('voc.colCount')}</th>
+                  <th className="px-4 py-3 text-right">{t('voc.colAvg')}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {report.stores.map((s, i) => (
+                  <tr key={i} className={i % 2 ? 'bg-gray-50/40' : ''}>
+                    <td className="px-4 py-2.5 font-medium text-gray-800">{s.storeName}</td>
+                    <td className="px-4 py-2.5 font-mono text-xs text-gray-500">{s.storeNumber ?? '—'}</td>
+                    {!singleOffice && <td className="px-4 py-2.5 text-gray-600">{s.office ?? '—'}</td>}
+                    <td className="px-4 py-2.5 text-right font-semibold tabular-nums text-gray-900">{s.count}</td>
+                    <td className="px-4 py-2.5 text-right tabular-nums text-gray-600">{s.avgOverall != null ? s.avgOverall.toFixed(2) : '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
       {report.offices.map((office) => (
         <section key={office.dealerId ?? office.office} className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
           <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-gray-100 px-5 py-3">

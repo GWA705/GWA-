@@ -54,6 +54,11 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-13
+- **VOC "By store location" breakdown.** Added a per-Home-Depot-store table to the
+  VOC report (store name, store #, owning office, completed VOCs, avg rating),
+  counted straight from the file's store number — so every location's total shows
+  even when a VOC couldn't be matched to a rep. Respects the date filter; dealer
+  view is scoped to their own stores. (`voc.ts` `stores`, VocReportView, i18n.)
 - **VOC import de-dupes numbers.** VOCs are keyed by a normalized (digits-only) HD Lead #, which is UNIQUE — re-uploading a file or overlapping months updates rows instead of creating duplicates. Import now also collapses duplicates within one file and reports "X new, Y updated, Z merged".
 - **VOC contest standings.** Added a flat **sales-rep leaderboard** to the VOC
   report (dealer + staff): reps ranked by completed VOCs in the selected date
