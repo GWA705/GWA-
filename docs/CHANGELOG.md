@@ -54,14 +54,17 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-13
-- **New app launch (splash) screen.** Replaced the lone-icon-on-blue launch
-  screen with the full official GWA logo ("Georgian Water & Air") on a white
-  rounded card, centred on the brand blue (`#1d4ed8`), across all 11 iPhone
-  sizes under `public/splash/`. Logo used unaltered (no invented colours/fonts).
-  Added `scripts/gen-splash-card.mjs` to rebuild the set, plus a generic
-  `scripts/gen-splash.mjs` for future custom art. No code change — layout.tsx
-  already serves these files by name. (iOS caches the splash: remove the app from
-  the Home Screen and re-add it to see the change.)
+- **New full-bleed app launch (splash) screen (Sean's artwork).** Replaced the
+  splash with Sean's custom full-bleed portrait design (GWA lockup + water/air
+  motif + "Cleaner Healthier Brighter") across all 11 iPhone sizes under
+  `public/splash/`, generated cover-fit (scale-to-fill, centre-crop) from
+  `design/splash/source-mobile.png`. The source art (mobile + a wide/landscape
+  variant) is kept in `design/splash/` for reprocessing. Regenerate with
+  `node scripts/gen-splash.mjs design/splash/source-mobile.png --mode cover`.
+  (An earlier same-day pass used the logo-on-white-card look via
+  `scripts/gen-splash-card.mjs`; the custom artwork supersedes it.) No code
+  change — layout.tsx serves these files by name. (iOS caches the splash: remove
+  the app from the Home Screen and re-add it to see the change.)
 - **Dropped the grey "basis / methodology" footnote from the reports.** The small
   grey explanatory paragraph at the foot of each report (e.g. leaderboard's "From
   the journal's 'Dealer's Name' column… near-duplicate names are grouped…") is
