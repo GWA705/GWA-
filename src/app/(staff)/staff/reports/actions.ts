@@ -88,3 +88,36 @@ export async function importVocAction(
   revalidatePath('/dealer/reports/voc');
   return { ok: true, message: `Imported ${res.imported} VOC ${res.imported === 1 ? 'review' : 'reviews'}.` };
 }
+
+/**
+ * Check whether a VOC has been completed for one or more HD Lead #s. Accepts a
+ * pasted list (textarea) and/or an uploaded list (.xlsx / .csv / .txt). Staff
+ * with reports access only.
+ */
+export async function vocLookupAction(
+  _prev: { result?: unknown; error?: string },
+  formData: FormData,
+): Promise<{ result?: import('@/lib/reporting/voc').VocLookupResult; error?: string }> {
+  const user = await requireRole('REVIEWER', 'ADMIN');
+  const { canViewReportsArea } = await import('@/lib/reporting/access');
+  if (!(await canViewReportsArea(user))) return { error: 'Not authorized.' };
+
+  const { extractRefs } = await import('@/lib/reporting/vocMatch');
+  const { extractRefsFromFile, lookupVocs } = await import('@/lib/reporting/voc');
+
+  const pasted = String(formData.get('refs') ?? '');
+  let refs = extractRefs(pasted);
+
+  const file = formData.get('file');
+  if (file instanceof File && file.size > 0) {
+    if (file.size > 15 * 1024 * 1024) return { error: 'That file is too large (max 15 MB).' };
+    const buf = Buffer.from(await file.arrayBuffer());
+    refs = refs.concat(await extractRefsFromFile(buf, file.name));
+  }
+
+  if (refs.length === 0) return { error: 'Paste some numbers or upload a list first.' };
+  if (refs.length > 5000) return { error: 'Too many numbers at once (max 5000).' };
+
+  const result = await lookupVocs(refs);
+  return { result };
+}

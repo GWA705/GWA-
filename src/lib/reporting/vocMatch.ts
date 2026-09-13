@@ -37,6 +37,25 @@ export function normalizeRef(raw: unknown): string {
   return String(raw ?? '').replace(/\D/g, '');
 }
 
+/**
+ * Pull HD reference numbers out of free text (pasted list, CSV, or the flattened
+ * text of an uploaded sheet). Keeps 6–12 digit tokens (Lead #s are 9), de-dupes
+ * by digits while preserving the first spelling seen and input order.
+ */
+export function extractRefs(text: string): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  // Whitespace / commas separate numbers; dashes are allowed inside one (701-641-875).
+  for (const m of String(text ?? '').matchAll(/\d[\d-]{4,}\d/g)) {
+    const digits = m[0].replace(/\D/g, '');
+    if (digits.length < 6 || digits.length > 12) continue;
+    if (seen.has(digits)) continue;
+    seen.add(digits);
+    out.push(m[0].trim());
+  }
+  return out;
+}
+
 /** Pull the 4-digit HD store number out of a store label like "WINDSOR-7228". */
 export function storeNumberOf(raw: unknown): string | null {
   const m = String(raw ?? '').match(/(\d{4})/);

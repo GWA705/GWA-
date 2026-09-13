@@ -1,5 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { normalizeRef, storeNumberOf, buildVocBreakdown, REP_UNKNOWN } from '../src/lib/reporting/vocMatch';
+import { normalizeRef, storeNumberOf, buildVocBreakdown, extractRefs, REP_UNKNOWN } from '../src/lib/reporting/vocMatch';
+
+describe('extractRefs', () => {
+  it('pulls 6-12 digit numbers from free text and de-dupes by digits', () => {
+    expect(extractRefs('800237993\n800236265, 701641875')).toEqual(['800237993', '800236265', '701641875']);
+    expect(extractRefs('lead 800-237-993 and again 800237993')).toEqual(['800-237-993']); // same digits, first kept
+    expect(extractRefs('phone 5551234 but not 12345')).toEqual(['5551234']); // 5 digits dropped
+    expect(extractRefs('nothing here')).toEqual([]);
+  });
+});
 
 describe('normalizeRef', () => {
   it('keeps digits only', () => {

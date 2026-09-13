@@ -54,6 +54,13 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-13
+- **VOC report — date range filter + a "has it been done?" lookup.** The VOC
+  report (dealer + staff) now takes a **From/To submission-date filter**. The
+  staff page adds a **completion lookup**: paste one or many HD Lead #s (or upload
+  a .xlsx/.csv/.txt list) and see which have a completed VOC vs. still
+  outstanding, with each number's office and rep. (`lib/reporting/voc.ts`
+  `lookupVocs`/`extractRefsFromFile`, `vocMatch.ts` `extractRefs` (tested),
+  `staff/reports/voc` `VocLookup`, both voc pages, `en.ts`/`fr.ts`.)
 - **Voice of the Customer (VOC) report — completed HD reviews by office & sales
   rep.** New `VocEntry` model + migration. Admins upload Home Depot's VOC export
   (.xlsx) on **Staff → Reports → Voice of the Customer**; the parser (jszip, no
