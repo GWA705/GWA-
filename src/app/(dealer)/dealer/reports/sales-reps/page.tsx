@@ -4,6 +4,8 @@ import { canViewOwnerPricingReport } from '@/lib/reporting/access';
 import { reportDataset } from '@/lib/reporting/reportDataset';
 import { journalUnitsByRep, repKey } from '@/lib/reporting/salespersonLeaderboard';
 import { SalesRepReport, type RepStat } from '@/components/reporting/SalesRepReport';
+import { getDealerReportBrand } from '@/lib/reporting/dealerBrand';
+import { ReportHeader, ReportStamp, reportGeneratedLabel } from '@/components/reporting/kit';
 import { DealerReportTabs } from '../DealerReportTabs';
 import { getT } from '@/i18n/server';
 import type { ApplicationStatus } from '@prisma/client';
@@ -31,6 +33,7 @@ export default async function DealerSalesRepReport({ searchParams }: { searchPar
   if (!(await canViewOwnerPricingReport(user)) || !user.dealerId) notFound();
 
   const t = getT();
+  const brand = await getDealerReportBrand(user.dealerId);
   const range = (RANGES.some((r) => r.key === searchParams.range) ? searchParams.range : '12m') as RangeKey;
   const rangeLabel = t(RANGES.find((r) => r.key === range)!.tKey);
   const cut = cutoffYm(range);
@@ -68,7 +71,7 @@ export default async function DealerSalesRepReport({ searchParams }: { searchPar
   return (
     <div className="space-y-5">
       <DealerReportTabs active="reps" showOwner />
-      <form method="GET" className="flex flex-wrap items-end gap-3">
+      <form method="GET" className="no-print flex flex-wrap items-end gap-3">
         <div>
           <label className="label" htmlFor="range">{t('reports.dateRange')}</label>
           <select id="range" name="range" defaultValue={range} className="input min-w-[180px]">
@@ -77,7 +80,15 @@ export default async function DealerSalesRepReport({ searchParams }: { searchPar
         </div>
         <button type="submit" className="btn-primary">{t('reports.view')}</button>
       </form>
+      <ReportHeader
+        org={brand.name}
+        logoUrl={brand.logoUrl}
+        title={t('reports.tabReps')}
+        scope={rangeLabel}
+        generated={t('reportStamp.generated', { date: reportGeneratedLabel() })}
+      />
       <SalesRepReport reps={reps} rangeLabel={rangeLabel} />
+      <ReportStamp brand={t('reportStamp.brand')} generated={t('reportStamp.generated', { date: reportGeneratedLabel() })} />
     </div>
   );
 }

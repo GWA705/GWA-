@@ -2,6 +2,8 @@ import { notFound } from 'next/navigation';
 import { Download, FileSpreadsheet } from 'lucide-react';
 import { requireDealerAccess } from '@/lib/session';
 import { canViewOwnerPricingReport } from '@/lib/reporting/access';
+import { getDealerReportBrand } from '@/lib/reporting/dealerBrand';
+import { ReportHeader, ReportStamp, reportGeneratedLabel } from '@/components/reporting/kit';
 import { DealerReportTabs } from '../DealerReportTabs';
 import { getT } from '@/i18n/server';
 
@@ -20,8 +22,9 @@ function ym(offsetMonths: number): string {
  */
 export default async function AccountingExportPage() {
   const user = await requireDealerAccess();
-  if (!(await canViewOwnerPricingReport(user))) notFound();
+  if (!(await canViewOwnerPricingReport(user)) || !user.dealerId) notFound();
   const t = getT();
+  const brand = await getDealerReportBrand(user.dealerId);
 
   const firstOfMonth = new Date();
   firstOfMonth.setDate(1);
@@ -31,6 +34,13 @@ export default async function AccountingExportPage() {
   return (
     <div className="space-y-5">
       <DealerReportTabs active="accounting" showOwner />
+
+      <ReportHeader
+        org={brand.name}
+        logoUrl={brand.logoUrl}
+        title={t('reports.tabAccounting')}
+        generated={t('reportStamp.generated', { date: reportGeneratedLabel() })}
+      />
 
       <section className="card p-6">
         <div className="mb-4 flex items-start gap-3">
@@ -59,6 +69,8 @@ export default async function AccountingExportPage() {
 
         <p className="mt-3 text-xs text-gray-400">{t('reports.acctNote')}</p>
       </section>
+
+      <ReportStamp brand={t('reportStamp.brand')} generated={t('reportStamp.generated', { date: reportGeneratedLabel() })} />
     </div>
   );
 }

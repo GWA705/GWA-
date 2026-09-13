@@ -54,6 +54,13 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-13
+- **Owner-only reports branded to match.** The five owner/distributor reports
+  (Product pricing, Sales reps, Custom builder, Sales forecast, Accounting
+  export) previously had no header or footer at all. They now carry the same
+  dealer-branded top lockup (office name + uploaded logo, GWA fallback) and the
+  "Georgian Water & Air" footer stamp as the other reports. Added at the page
+  level so the staff-shared product-pricing view is untouched. (The five owner
+  report pages under `dealer/reports/*`.)
 - **Dealer reports now carry the dealer's own name + logo at the top; the GWA
   stamp stays at the foot.** On a dealer's own-office reports (Monthly, Weekly,
   Overall sales, Funding, Products & packages, Salesperson leaderboard) the top
