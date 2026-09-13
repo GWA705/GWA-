@@ -54,6 +54,17 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-13
+- **Dealer insights plan + Phase 1 "Snapshot" digest (on-screen).** Planned an
+  automated per-office insights digest (see `docs/DEALER-INSIGHTS-PLAN.md`:
+  weekly+monthly, on-screen + emailed, then speed-to-lead / peer benchmarking /
+  conversion funnel / HD-promo overlay). Built Phase 1: `buildDealerDigest()` +
+  a branded, printable **Reports → Snapshot** tab showing leads (vs prior period)
+  + an 8-period lead-volume trend, financing mix (financed, **HD Credit Cards**,
+  FinanceIt, cash/other, $ funded), and VOC (completed, avg, top reps), with
+  plain-language highlights. Phase 2 (emailed digest + weekly/monthly schedule)
+  is next. (`lib/reporting/dealerDigest.ts`, `components/reporting/DealerDigestView.tsx`,
+  `dealer/reports/digest`, `DealerReportTabs`, i18n.) Phase-1 view labels are
+  English for now; FR is a Phase-2 polish item.
 - **Leads report: lead-volume trend chart (weekly/monthly).** Added a bar chart of
   HD leads received per week or per month (last 12 periods, toggle), with the
   booked/sold portion highlighted — to see which Home Depot promotions actually

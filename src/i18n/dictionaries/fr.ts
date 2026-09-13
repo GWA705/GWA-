@@ -870,6 +870,7 @@ export const fr: Dictionary = {
     tabProducts: 'Produits et forfaits',
     tabLeaderboard: 'Classement des vendeurs',
     tabVoc: 'VOC',
+    tabDigest: 'Aperçu',
     tabAllLeads: 'Tous les prospects',
     tabLeadFunnel: 'Entonnoir des prospects',
     tabPricing: 'Prix par produit et forfait',
@@ -2239,6 +2240,10 @@ export const fr: Dictionary = {
     noDeals: 'Aucune transaction payée pour ce bureau durant l’année choisie.',
     readError: 'Lecture des journaux incomplète : {error}. Les chiffres peuvent être incomplets.',
     basisNote: 'Base : transactions OK comptées par date de paiement, comme le rapport mensuel.',
+  },
+  digest: {
+    title: 'Aperçu du bureau',
+    subtitle: 'Votre bureau en un coup d’œil pour la période.',
   },
   voc: {
     eyebrow: 'Aperçus',

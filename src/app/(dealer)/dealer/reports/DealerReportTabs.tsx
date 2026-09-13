@@ -5,7 +5,7 @@ import { getSession } from '@/lib/session';
 import { canViewAllLeads, canViewOwnerPricingReport, hasDealerReportAccess } from '@/lib/reporting/access';
 import { ReportTabSelect } from './ReportTabSelect';
 
-type Tab = 'monthly' | 'weekly' | 'overall' | 'funding' | 'products' | 'leaderboard' | 'voc' | 'allLeads' | 'leadFunnel' | 'pricing' | 'custom' | 'forecast' | 'reps' | 'accounting';
+type Tab = 'digest' | 'monthly' | 'weekly' | 'overall' | 'funding' | 'products' | 'leaderboard' | 'voc' | 'allLeads' | 'leadFunnel' | 'pricing' | 'custom' | 'forecast' | 'reps' | 'accounting';
 
 // Tab header for the dealer reports area. On phones this is a single dropdown
 // (the strip used to scroll sideways and hide tabs); on wider screens it's a
@@ -23,6 +23,7 @@ export async function DealerReportTabs({ active }: { active: Tab; showOwner?: bo
   const showOwner = user ? await canViewOwnerPricingReport(user) : false;
 
   const items: { href: string; label: string; key: Tab; show: boolean }[] = [
+    { href: '/dealer/reports/digest', label: t('reports.tabDigest'), key: 'digest', show: showBase },
     { href: '/dealer/reports', label: t('reports.tabMonthly'), key: 'monthly', show: showBase },
     { href: '/dealer/reports/weekly', label: t('reports.tabWeekly'), key: 'weekly', show: showBase },
     { href: '/dealer/reports/overall-sales', label: t('reports.tabOverall'), key: 'overall', show: showBase },

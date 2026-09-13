@@ -866,6 +866,7 @@ export const en = {
     tabProducts: 'Products & packages',
     tabLeaderboard: 'Salesperson leaderboard',
     tabVoc: 'VOC',
+    tabDigest: 'Snapshot',
     tabAllLeads: 'All leads',
     tabLeadFunnel: 'Lead funnel',
     tabPricing: 'Product & package pricing',
@@ -2235,6 +2236,10 @@ export const en = {
     noDeals: 'No paid deals for this office in the selected year.',
     readError: 'Couldn’t fully read the journals: {error}. Numbers may be incomplete.',
     basisNote: 'Basis: OK deals counted by date paid, matching the monthly report.',
+  },
+  digest: {
+    title: 'Office snapshot',
+    subtitle: 'Your office at a glance for the period.',
   },
   voc: {
     eyebrow: 'Insights',
