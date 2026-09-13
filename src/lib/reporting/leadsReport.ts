@@ -31,6 +31,13 @@ export interface DealerLeads {
   outcomes: OutcomeCounts;
 }
 
+/** One point on the leads trend chart (a week or a month). */
+export interface TrendPoint {
+  label: string; // e.g. 'Sep 8' (week) or 'Sep 2026' (month)
+  total: number; // leads received in the period
+  bookedSold: number; // of those, how many booked or sold
+}
+
 export interface LeadsReport {
   configured: boolean;
   error?: string;
@@ -43,6 +50,77 @@ export interface LeadsReport {
     outcomes: OutcomeCounts;
   };
   dealers: DealerLeads[];
+  // Lead volume over time, for spotting the effect of HD promotions. Both series
+  // cover the last 12 periods ending at generatedAt. `undated` = leads with no
+  // readable date (excluded from the trend).
+  trend: { week: TrendPoint[]; month: TrendPoint[]; undated: number };
+}
+
+const emptyTrend = (): LeadsReport['trend'] => ({ week: [], month: [], undated: 0 });
+
+function mondayOf(d: Date): Date {
+  const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const day = x.getDay(); // 0 Sun … 6 Sat
+  x.setDate(x.getDate() + (day === 0 ? -6 : 1 - day));
+  return x;
+}
+
+/**
+ * Bucket leads into the last 12 weeks and last 12 months by dateReceived,
+ * counting total leads and how many booked/sold, so the report can chart lead
+ * volume (and conversion) over time.
+ */
+function buildTrend(
+  leads: Lead[],
+  isBookedSold: (l: Lead) => boolean,
+  now: Date,
+): LeadsReport['trend'] {
+  const N = 12;
+  const weekMap = new Map<string, TrendPoint>();
+  const weekOrder: string[] = [];
+  const curMon = mondayOf(now);
+  for (let i = N - 1; i >= 0; i -= 1) {
+    const m = new Date(curMon);
+    m.setDate(curMon.getDate() - i * 7);
+    const key = m.toISOString().slice(0, 10);
+    weekOrder.push(key);
+    weekMap.set(key, { label: m.toLocaleString('en-US', { month: 'short', day: 'numeric' }), total: 0, bookedSold: 0 });
+  }
+  const monthMap = new Map<string, TrendPoint>();
+  const monthOrder: string[] = [];
+  for (let i = N - 1; i >= 0; i -= 1) {
+    const m = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const key = `${m.getFullYear()}-${String(m.getMonth() + 1).padStart(2, '0')}`;
+    monthOrder.push(key);
+    monthMap.set(key, { label: m.toLocaleString('en-US', { month: 'short', year: 'numeric' }), total: 0, bookedSold: 0 });
+  }
+
+  let undated = 0;
+  for (const l of leads) {
+    const d = l.dateReceived;
+    if (!d || isNaN(d.getTime())) {
+      undated += 1;
+      continue;
+    }
+    const bs = isBookedSold(l);
+    const wk = mondayOf(d).toISOString().slice(0, 10);
+    const wp = weekMap.get(wk);
+    if (wp) {
+      wp.total += 1;
+      if (bs) wp.bookedSold += 1;
+    }
+    const mk = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const mp = monthMap.get(mk);
+    if (mp) {
+      mp.total += 1;
+      if (bs) mp.bookedSold += 1;
+    }
+  }
+  return {
+    week: weekOrder.map((k) => weekMap.get(k)!),
+    month: monthOrder.map((k) => monthMap.get(k)!),
+    undated,
+  };
 }
 
 function emptyOutcomes(): OutcomeCounts {
@@ -81,10 +159,10 @@ export async function buildLeadsReport(generatedAtISO: string): Promise<LeadsRep
 
   const read = await readLeads();
   if (!read.configured) {
-    return { configured: false, generatedAt: generatedAtISO, group: emptyGroup, dealers: [] };
+    return { configured: false, generatedAt: generatedAtISO, group: emptyGroup, dealers: [], trend: emptyTrend() };
   }
   if (read.error) {
-    return { configured: true, error: read.error, generatedAt: generatedAtISO, group: emptyGroup, dealers: [] };
+    return { configured: true, error: read.error, generatedAt: generatedAtISO, group: emptyGroup, dealers: [], trend: emptyTrend() };
   }
 
   // store number → dealer.
@@ -151,6 +229,19 @@ export async function buildLeadsReport(generatedAtISO: string): Promise<LeadsRep
     }))
     .sort((a, b) => b.total - a.total || a.dealerName.localeCompare(b.dealerName));
 
+  const now = (() => {
+    const d = new Date(generatedAtISO);
+    return isNaN(d.getTime()) ? new Date() : d;
+  })();
+  const trend = buildTrend(
+    leads,
+    (l) => {
+      const o = latestOutcome(callsByKey[leadKeyOf(l)] ?? []);
+      return o === 'booked' || o === 'sold';
+    },
+    now,
+  );
+
   return {
     configured: true,
     generatedAt: generatedAtISO,
@@ -162,5 +253,6 @@ export async function buildLeadsReport(generatedAtISO: string): Promise<LeadsRep
       outcomes: groupOutcomes,
     },
     dealers,
+    trend,
   };
 }

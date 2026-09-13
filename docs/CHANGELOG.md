@@ -54,6 +54,13 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-13
+- **Leads report: lead-volume trend chart (weekly/monthly).** Added a bar chart of
+  HD leads received per week or per month (last 12 periods, toggle), with the
+  booked/sold portion highlighted — to see which Home Depot promotions actually
+  drove leads. `buildLeadsReport` now returns weekly + monthly `trend` series
+  (booked/sold by latest call outcome; undated leads noted and excluded).
+  Inline SVG (prints cleanly); shows on the dealer All-leads and staff Leads
+  reports. (`leadsReport.ts`, `LeadsReportView.tsx`.)
 - **VOC "By store location" breakdown.** Added a per-Home-Depot-store table to the
   VOC report (store name, store #, owning office, completed VOCs, avg rating),
   counted straight from the file's store number — so every location's total shows

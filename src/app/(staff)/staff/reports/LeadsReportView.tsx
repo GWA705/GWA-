@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import type { LeadsReport, DealerLeads, OutcomeCounts } from '@/lib/reporting/leadsReport';
+import type { LeadsReport, DealerLeads, OutcomeCounts, TrendPoint } from '@/lib/reporting/leadsReport';
 
 // Outcome columns, in the order they read on a call sheet, with a colour used
 // for the chips and the distribution bar.
@@ -119,6 +119,7 @@ function DealerCard({ d }: { d: DealerLeads }) {
 
 export function LeadsReportView({ report }: { report: LeadsReport }) {
   const [q, setQ] = useState('');
+  const [period, setPeriod] = useState<'week' | 'month'>('month');
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -161,6 +162,38 @@ export function LeadsReportView({ report }: { report: LeadsReport }) {
         </div>
       </div>
 
+      {/* Lead volume trend */}
+      <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h3 className="text-base font-bold text-gray-900">Lead volume over time</h3>
+            <p className="text-xs text-gray-500">Leads received per {period}, with how many booked or sold — to see what HD promotions moved the needle.</p>
+          </div>
+          <div className="no-print inline-flex rounded-lg border border-gray-200 bg-gray-50 p-0.5 text-sm">
+            <button
+              type="button"
+              onClick={() => setPeriod('week')}
+              className={`rounded-md px-3 py-1 font-semibold ${period === 'week' ? 'bg-white text-blue-700 shadow-sm' : 'text-gray-500'}`}
+            >
+              Weekly
+            </button>
+            <button
+              type="button"
+              onClick={() => setPeriod('month')}
+              className={`rounded-md px-3 py-1 font-semibold ${period === 'month' ? 'bg-white text-blue-700 shadow-sm' : 'text-gray-500'}`}
+            >
+              Monthly
+            </button>
+          </div>
+        </div>
+        <TrendChart points={period === 'week' ? report.trend.week : report.trend.month} />
+        <div className="mt-2 flex flex-wrap items-center gap-4 text-xs text-gray-500">
+          <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: '#93c5fd' }} /> Leads</span>
+          <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: '#10b981' }} /> Booked / sold</span>
+          {report.trend.undated > 0 && <span className="text-gray-400">· {report.trend.undated} lead(s) with no date aren’t shown on the chart</span>}
+        </div>
+      </div>
+
       {/* Search */}
       <div className="flex items-center gap-2">
         <input
@@ -184,6 +217,51 @@ export function LeadsReportView({ report }: { report: LeadsReport }) {
         </div>
       )}
 
+    </div>
+  );
+}
+
+function TrendChart({ points }: { points: TrendPoint[] }) {
+  if (points.length === 0) return <p className="text-xs text-gray-400">No dated leads to chart yet.</p>;
+  const W = 720;
+  const H = 200;
+  const padL = 26;
+  const padR = 8;
+  const padT = 12;
+  const padB = 26;
+  const plotH = H - padT - padB;
+  const plotW = W - padL - padR;
+  const max = Math.max(1, ...points.map((p) => p.total));
+  const slot = plotW / points.length;
+  const bw = Math.min(slot * 0.62, 46);
+  const y = (v: number) => padT + plotH - (v / max) * plotH;
+  const ticks = Array.from(new Set([0, Math.round(max / 2), max]));
+  const baseline = padT + plotH;
+  return (
+    <div className="overflow-x-auto">
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Lead volume trend">
+        {ticks.map((t, i) => (
+          <g key={i}>
+            <line x1={padL} y1={y(t)} x2={W - padR} y2={y(t)} stroke="#eef2f7" />
+            <text x={padL - 4} y={y(t) + 3} textAnchor="end" fontSize="9" fill="#9ca3af">{t}</text>
+          </g>
+        ))}
+        {points.map((p, i) => {
+          const x = padL + i * slot + (slot - bw) / 2;
+          return (
+            <g key={i}>
+              <rect x={x} y={y(p.total)} width={bw} height={Math.max(0, baseline - y(p.total))} rx="2" fill="#93c5fd" />
+              {p.bookedSold > 0 && (
+                <rect x={x} y={y(p.bookedSold)} width={bw} height={Math.max(0, baseline - y(p.bookedSold))} rx="2" fill="#10b981" />
+              )}
+              {p.total > 0 && (
+                <text x={x + bw / 2} y={y(p.total) - 3} textAnchor="middle" fontSize="9" fill="#374151" fontWeight="600">{p.total}</text>
+              )}
+              <text x={x + bw / 2} y={H - padB + 12} textAnchor="middle" fontSize="8.5" fill="#6b7280">{p.label}</text>
+            </g>
+          );
+        })}
+      </svg>
     </div>
   );
 }
