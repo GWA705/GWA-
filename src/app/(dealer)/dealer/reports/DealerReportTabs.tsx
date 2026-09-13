@@ -5,7 +5,7 @@ import { getSession } from '@/lib/session';
 import { canViewAllLeads, canViewOwnerPricingReport, hasDealerReportAccess } from '@/lib/reporting/access';
 import { ReportTabSelect } from './ReportTabSelect';
 
-type Tab = 'monthly' | 'weekly' | 'overall' | 'funding' | 'products' | 'leaderboard' | 'allLeads' | 'leadFunnel' | 'pricing' | 'custom' | 'forecast' | 'reps' | 'accounting';
+type Tab = 'monthly' | 'weekly' | 'overall' | 'funding' | 'products' | 'leaderboard' | 'voc' | 'allLeads' | 'leadFunnel' | 'pricing' | 'custom' | 'forecast' | 'reps' | 'accounting';
 
 // Tab header for the dealer reports area. On phones this is a single dropdown
 // (the strip used to scroll sideways and hide tabs); on wider screens it's a
@@ -29,6 +29,7 @@ export async function DealerReportTabs({ active }: { active: Tab; showOwner?: bo
     { href: '/dealer/reports/funding', label: t('reports.tabFunding'), key: 'funding', show: showBase },
     { href: '/dealer/reports/product-mix', label: t('reports.tabProducts'), key: 'products', show: showBase },
     { href: '/dealer/reports/leaderboard', label: t('reports.tabLeaderboard'), key: 'leaderboard', show: showBase },
+    { href: '/dealer/reports/voc', label: t('reports.tabVoc'), key: 'voc', show: showBase },
     { href: '/dealer/reports/all-leads', label: t('reports.tabAllLeads'), key: 'allLeads', show: showLeads },
     { href: '/dealer/reports/lead-funnel', label: t('reports.tabLeadFunnel'), key: 'leadFunnel', show: showLeads },
     { href: '/dealer/reports/product-pricing', label: t('reports.tabPricing'), key: 'pricing', show: showOwner },

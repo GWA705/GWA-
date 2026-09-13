@@ -1948,3 +1948,33 @@ model JournalRecord {
   @@index([dealerId, phone])
   @@index([year])
 }
+
+// Home Depot "Voice of the Customer" (VOC) survey results, imported from HD's
+// VOC export. Each row is one completed customer review, keyed by its HD Lead #
+// (the 800…/701… reference). The portal ties these to an office (via store
+// number) and a sales rep (by matching the Lead # to the sales journal's
+// "HD Ref #"). Import upserts by leadRef so re-uploading a fuller export is safe.
+model VocEntry {
+  id                    String    @id @default(cuid())
+  leadRef               String    @unique // HD Lead # (800…/701…)
+  storeName             String? // e.g. "WINDSOR-7228"
+  storeNumber           String? // parsed 4-digit HD store number
+  district              String? // HD district label
+  submissionDate        DateTime?
+  reviewText            String?   @db.Text
+  overallRating         Int?
+  ivoc                  Int?
+  ltsa                  Int?
+  knowledgeable         Int?
+  timely                Int?
+  workmanship           Int?
+  communication         Int?
+  installerCare         Int?
+  installerFriendliness Int?
+  importedById          String?
+  importedAt            DateTime  @default(now())
+  createdAt             DateTime  @default(now())
+
+  @@index([storeNumber])
+  @@index([submissionDate])
+}

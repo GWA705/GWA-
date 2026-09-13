@@ -54,6 +54,21 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-13
+- **Voice of the Customer (VOC) report — completed HD reviews by office & sales
+  rep.** New `VocEntry` model + migration. Admins upload Home Depot's VOC export
+  (.xlsx) on **Staff → Reports → Voice of the Customer**; the parser (jszip, no
+  new dependency) upserts by Lead #, so re-uploading a fuller month is safe. The
+  report ties each VOC to an **office** by store number and to a **sales rep** by
+  matching the VOC Lead # to the sales journal's **HD Ref #** (searched across
+  2024→current, so a 2026 VOC on a 2025 deal still matches). Near-duplicate rep
+  names are merged (same logic as the leaderboard); VOCs with no journal match
+  still count toward the office as "rep not found," and the **match rate is shown**
+  so we can validate the 800-number join against live data. Dealers see their own
+  office at **Reports → VOC** (brand-stamped, printable/emailable); staff/admin
+  see all offices. Pure matching engine is unit-tested (`tests/voc.test.ts`), and
+  the parser was validated against the real 76-row export.
+  (`lib/reporting/vocMatch.ts` + `voc.ts`, `components/reporting/VocReportView.tsx`,
+  staff + dealer `voc` pages, `DealerReportTabs`, `en.ts`/`fr.ts`.)
 - **New full-bleed app launch (splash) screen (Sean's artwork).** Replaced the
   splash with Sean's custom full-bleed portrait design (GWA lockup + water/air
   motif + "Cleaner Healthier Brighter") across all 11 iPhone sizes under

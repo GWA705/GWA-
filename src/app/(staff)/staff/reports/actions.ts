@@ -64,3 +64,27 @@ export async function previewJournalYearAction(year: number): Promise<JournalPre
   const yr = Number(year);
   return previewJournalYear(yr);
 }
+
+/**
+ * Import a Home Depot VOC (Voice of the Customer) export (.xlsx). Admin-only.
+ * Upserts by Lead #, so re-uploading a fuller export just fills in the gaps.
+ */
+export async function importVocAction(
+  _prev: { ok?: boolean; error?: string; message?: string },
+  formData: FormData,
+): Promise<{ ok?: boolean; error?: string; message?: string }> {
+  const session = await requireRole('ADMIN');
+  const file = formData.get('file');
+  if (!(file instanceof File) || file.size === 0) return { error: 'Choose a VOC .xlsx file to upload.' };
+  if (file.size > 15 * 1024 * 1024) return { error: 'That file is too large (max 15 MB).' };
+
+  const { importVocBuffer } = await import('@/lib/reporting/voc');
+  const buf = Buffer.from(await file.arrayBuffer());
+  const res = await importVocBuffer(buf, session.userId);
+  if (res.error) return { error: res.error };
+
+  await audit({ actorId: session.userId, action: 'SETTING_UPDATE', entityType: 'VocEntry', detail: `Imported ${res.imported} VOC rows` });
+  revalidatePath('/staff/reports/voc');
+  revalidatePath('/dealer/reports/voc');
+  return { ok: true, message: `Imported ${res.imported} VOC ${res.imported === 1 ? 'review' : 'reviews'}.` };
+}
