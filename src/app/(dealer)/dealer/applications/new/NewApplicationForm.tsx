@@ -66,7 +66,7 @@ const FIELD_LABEL_NAMES = new Set<string>([
   'province', 'dateOfSale', 'installationDate', 'homeDepotStoreId', 'consent',
   'paymentMethod', 'financeItNumber', 'salespersonName', 'installerName',
   'soapIncluded', 'productsSold', 'applicantDob', 'coDob', 'employerAddress',
-  'employerPhone',
+  'employerPhone', 'creditAppFile', 'billOfSaleFile',
 ]);
 
 // The error-summary label for a field: translated when known, else the raw name.
@@ -1130,6 +1130,43 @@ export function NewApplicationForm({
           </div>
         )}
       </section>
+
+      {/* Standard (option 3): attach the credit app and bill of sale right here
+          so there's no confusion or separate step. Both optional at submit — they
+          can also be added later on the application page. The server stores them
+          after the application is created (see createApplicationAction). */}
+      {method === 'PHOTO' && (
+        <section className="card border border-blue-200 bg-blue-50/40 p-5">
+          <div className="mb-3">
+            <h2 className="text-base font-semibold text-[#0e2756]">{t('newApplication.uploadsTitle')}</h2>
+            <p className="mt-0.5 text-xs text-gray-500">{t('newApplication.uploadsHint')}</p>
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="label" htmlFor="creditAppFile">{t('newApplication.uploadCreditApp')}</label>
+              <input
+                id="creditAppFile"
+                name="creditAppFile"
+                type="file"
+                accept=".pdf,image/*"
+                className="block w-full text-sm text-gray-700 file:mr-3 file:cursor-pointer file:rounded-md file:border-0 file:bg-brand-600 file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-white hover:file:bg-brand-700"
+              />
+              <Err state={state} name="creditAppFile" />
+            </div>
+            <div>
+              <label className="label" htmlFor="billOfSaleFile">{t('newApplication.uploadBillOfSale')}</label>
+              <input
+                id="billOfSaleFile"
+                name="billOfSaleFile"
+                type="file"
+                accept=".pdf,image/*"
+                className="block w-full text-sm text-gray-700 file:mr-3 file:cursor-pointer file:rounded-md file:border-0 file:bg-brand-600 file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-white hover:file:bg-brand-700"
+              />
+              <Err state={state} name="billOfSaleFile" />
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Consent (always) — the notice text itself is a legal notice reproduced
           verbatim (see CONSENT_TEXT); only the surrounding UI is translated. */}

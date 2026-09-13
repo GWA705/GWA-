@@ -18,7 +18,7 @@ import { applicationSchema, serialNumberSchema } from '@/lib/validation';
 import { mergeProductsSold, addDealerCustomProducts } from '@/lib/products';
 import { parseDealerProfileForm } from '@/lib/dealerProfile';
 import { applyDealerLogo } from '@/lib/dealerLogo';
-import { CONSENT_POLICY_VERSION, CONSENT_TEXT, PAYMENT_METHOD_LABELS, FUNDING_DOCUMENT_TYPES, SPLIT_PAYMENT_METHODS } from '@/lib/constants';
+import { CONSENT_POLICY_VERSION, CONSENT_TEXT, PAYMENT_METHOD_LABELS, FUNDING_DOCUMENT_TYPES, SPLIT_PAYMENT_METHODS, MAX_FILE_BYTES, ALLOWED_MIME_TYPES } from '@/lib/constants';
 import { validateSplits } from '@/lib/payments';
 import type { ApplicationStatus, DocumentType, PaymentMethod, Prisma } from '@prisma/client';
 
@@ -171,6 +171,31 @@ export async function createApplicationAction(
     [d.coFirstName, d.coLastName].filter(Boolean).join(' ').trim() || d.coApplicantName || null,
   );
 
+  // Option 3 (Standard) lets the dealer attach the credit application and bill
+  // of sale right on the form, so there's no separate upload step. Validate them
+  // up front (size + declared type) so a bad file is caught before the app is
+  // created; the bytes are stored just after creation, which needs the app id.
+  const inlineDocs: { file: File; label: string }[] = [];
+  const uploadErrors: Record<string, string> = {};
+  const checkInlineDoc = (field: string, label: string) => {
+    const v = formData.get(field);
+    if (!v || typeof v === 'string' || v.size === 0) return;
+    if (v.size > MAX_FILE_BYTES) {
+      uploadErrors[field] = `File exceeds the ${Math.floor(MAX_FILE_BYTES / 1024 / 1024)} MB limit.`;
+      return;
+    }
+    if (!ALLOWED_MIME_TYPES.includes(v.type)) {
+      uploadErrors[field] = 'Use a PDF or a photo (JPG, PNG, HEIC).';
+      return;
+    }
+    inlineDocs.push({ file: v, label });
+  };
+  checkInlineDoc('creditAppFile', 'Application info');
+  checkInlineDoc('billOfSaleFile', 'Bill of Sale');
+  if (Object.keys(uploadErrors).length > 0) {
+    return { error: 'Please correct the highlighted fields.', fieldErrors: uploadErrors };
+  }
+
   const app = await prisma.application.create({
     data: {
       dealerId: session.dealerId,
@@ -250,7 +275,29 @@ export async function createApplicationAction(
 
   await audit({ actorId: session.userId, action: 'APPLICATION_CREATE', entityType: 'Application', entityId: app.id });
   await audit({ actorId: session.userId, action: 'APPLICATION_SUBMIT', entityType: 'Application', entityId: app.id });
+
+  // Store any documents attached inline on the form (option 3). The app is
+  // already created, so a storage failure here must not discard the whole
+  // submission — log it; the dealer can re-upload on the application page.
+  const storedDocTypes: DocumentType[] = [];
+  for (const doc of inlineDocs) {
+    const result = await storeFiles({
+      application: app,
+      files: [doc.file],
+      type: 'SUPPORTING',
+      stage: 'APPLICATION',
+      uploadedById: session.userId,
+      label: doc.label,
+    });
+    if (result.error) {
+      console.error('[createApplication] inline document store failed', doc.label, result.error);
+    } else {
+      storedDocTypes.push(...(result.storedTypes ?? []));
+    }
+  }
+
   await notifyNewSubmission(app.id);
+  if (storedDocTypes.length > 0) await notifyNewDocuments(app.id, storedDocTypes);
 
   // Save the dealer's typed "Other" products to their own list if they opted in.
   if (addOtherToList && session.dealerId && otherText) {

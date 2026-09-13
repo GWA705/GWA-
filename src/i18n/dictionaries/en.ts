@@ -1114,6 +1114,8 @@ export const en = {
       coDob: 'Co-applicant date of birth',
       employerAddress: 'Employer address',
       employerPhone: 'Employer phone',
+      creditAppFile: 'Credit application file',
+      billOfSaleFile: 'Bill of sale file',
     },
     // Entry method
     startHere: 'Start here',
@@ -1133,7 +1135,12 @@ export const en = {
     standardTitle: 'Upload documents',
     standardBlurb: 'Send the application and bill of sale — Georgian Water & Air takes it from there.',
     standardAction: 'Use standard option',
-    photoHint: 'After you submit, open the application and upload the customer’s application and bill of sale under “Documents for approval.”',
+    photoHint: 'Attach the credit application and bill of sale at the bottom of this form — or, if you prefer, upload them after submitting under “Documents for approval.” Either works.',
+    // Inline document uploads (option 3 / Standard)
+    uploadsTitle: 'Attach the paperwork',
+    uploadsHint: 'Add the customer’s credit application and bill of sale here — a PDF or a clear photo of each. Optional: you can also upload them later on the application page.',
+    uploadCreditApp: 'Credit application',
+    uploadBillOfSale: 'Bill of sale',
     // Scan verification
     verifyScanTitle: 'Confirm the scanned details',
     verifyScanHint: 'Some fields were filled by a scan and can be misread. Please check each section against the customer’s documents, then tick to confirm. You can’t submit until every scanned section is confirmed.',

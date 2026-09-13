@@ -1118,6 +1118,8 @@ export const fr: Dictionary = {
       coDob: 'Date de naissance du coemprunteur',
       employerAddress: 'Adresse de l’employeur',
       employerPhone: 'Téléphone de l’employeur',
+      creditAppFile: 'Fichier de la demande de crédit',
+      billOfSaleFile: 'Fichier du contrat de vente',
     },
     // Entry method
     startHere: 'Commencez ici',
@@ -1137,7 +1139,12 @@ export const fr: Dictionary = {
     standardTitle: 'Téléverser des documents',
     standardBlurb: 'Envoyez la demande et le contrat de vente — Georgian Water & Air s’occupe du reste.',
     standardAction: 'Utiliser l’option standard',
-    photoHint: 'Après la soumission, ouvrez la demande et téléversez la demande du client et le contrat de vente sous « Documents pour approbation ».',
+    photoHint: 'Joignez la demande de crédit et le contrat de vente au bas de ce formulaire — ou, si vous préférez, téléversez-les après la soumission sous « Documents pour approbation ». Les deux fonctionnent.',
+    // Téléversements en ligne (option 3 / Standard)
+    uploadsTitle: 'Joindre les documents',
+    uploadsHint: 'Ajoutez ici la demande de crédit du client et le contrat de vente — un PDF ou une photo claire de chacun. Facultatif : vous pouvez aussi les téléverser plus tard sur la page de la demande.',
+    uploadCreditApp: 'Demande de crédit',
+    uploadBillOfSale: 'Contrat de vente',
     // Vérification de la numérisation
     verifyScanTitle: 'Confirmez les renseignements numérisés',
     verifyScanHint: 'Certains champs ont été remplis par numérisation et peuvent être mal lus. Vérifiez chaque section avec les documents du client, puis cochez pour confirmer. Vous ne pouvez pas soumettre tant que chaque section numérisée n’est pas confirmée.',

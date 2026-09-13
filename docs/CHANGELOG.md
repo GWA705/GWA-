@@ -53,6 +53,19 @@ source of truth; this file is the human-readable index.
   `testSingleLead()` on a French lead first. Portal display auto-translates lead
   free-text via DeepL.
 
+## 2026-09-13
+- **Option 3 (Standard): attach the credit app + bill of sale right on the
+  form.** Added an "Attach the paperwork" upload area at the bottom of the
+  new-application form when the dealer picks option 3, with two clearly labelled
+  file pickers — **Credit application** and **Bill of sale** — so there's no
+  confusion about what to send. Both are optional at submit (they can still be
+  uploaded later on the application page). Files are validated up front (size +
+  type; PDF or photo) and stored on the new application as `SUPPORTING`
+  documents labelled "Application info" / "Bill of Sale" — the same labels the
+  post-submit uploader uses — with the reviewer notified via
+  `notifyNewDocuments`. Reworded the option-3 hint to point at the new area.
+  (`NewApplicationForm.tsx`, `(dealer)/actions.ts`, `en.ts`/`fr.ts`.)
+
 ## 2026-09-12
 - **Removed the driver's-licence scan; kept the credit-app scan.** The "Scan
   driver's licence" option didn't work reliably, so it's gone from the new-
