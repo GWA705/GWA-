@@ -31,15 +31,17 @@ dealer. **Decisions locked** are marked ✅.
 - "View full report" link to the branded, printable portal report.
 
 ## Build phases
-1. **Digest engine + web page** — `buildDealerDigest(dealerId, period, offset)`
-   assembling the metrics from existing libs; a branded `/dealer/reports/digest`
-   page. (Phase 1 — this doc's first build.)
-2. **Email template + `sendDealerDigest`** in `notify.ts` (inline-styled HTML,
-   logo, chart, bilingual). Add `Dealer.insightsEnabled` + per-user
-   `notifyInsightsDigest` + one-click unsubscribe.
-3. **Schedule** — cron endpoint (weekly Mon + monthly 1st) looping enabled
-   dealers, with a "last sent" record + audit so it never double-sends.
-4. **Polish** — smart highlights, opt-in management UI, admin preview/send-test.
+1. ✅ **Digest engine + web page** — `buildDealerDigest(dealerId, period, offset)`;
+   branded `/dealer/reports/digest` ("Snapshot") tab.
+2. ✅ **Email + send** — `renderDigestBodyHtml` + `sendDealerDigest`
+   (`digestSend.ts`); `Dealer.insightsEnabled` (off by default); recipients =
+   every report user at the office; admin **test-send to self** before enabling.
+3. ✅ **Schedule** — `/api/cron/dealer-digest?period=week|month` (Bearer
+   CRON_SECRET), `DigestLog` dedupe so an office is never emailed twice for the
+   same period. **OPS TODO:** add two scheduled crons — weekly (Mon) `?period=week`
+   and monthly (1st) `?period=month` — reusing the existing `CRON_SECRET`.
+4. **Polish (pending)** — FR translation of the digest, per-user
+   subscribe/unsubscribe + one-click unsubscribe link, smart-highlight tuning.
 
 ## Add-ons (after the digest) — prioritized
 1. **Speed-to-lead + uncalled alerts** — time from lead received → first contact;

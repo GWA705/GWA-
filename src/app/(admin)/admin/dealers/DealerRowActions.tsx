@@ -1,6 +1,6 @@
 'use client';
 
-import { toggleDealerActiveAction, toggleDealerCalculatorAction, toggleDealerReportsAction, deleteDealerAction, viewAsDealerAction } from '@/app/(admin)/actions';
+import { toggleDealerActiveAction, toggleDealerCalculatorAction, toggleDealerReportsAction, toggleDealerInsightsAction, sendDigestTestAction, deleteDealerAction, viewAsDealerAction } from '@/app/(admin)/actions';
 
 export function DealerRowActions({
   id,
@@ -8,6 +8,7 @@ export function DealerRowActions({
   active,
   calculatorEnabled,
   reportsEnabled,
+  insightsEnabled = false,
   canDelete,
   align = 'end',
 }: {
@@ -16,6 +17,7 @@ export function DealerRowActions({
   active: boolean;
   calculatorEnabled: boolean;
   reportsEnabled: boolean;
+  insightsEnabled?: boolean;
   canDelete: boolean;
   align?: 'start' | 'end';
 }) {
@@ -46,6 +48,24 @@ export function DealerRowActions({
           title="Give everyone at this dealership reports for their own office only."
         >
           {reportsEnabled ? 'Reports ✓' : 'Reports'}
+        </button>
+      </form>
+      <form action={toggleDealerInsightsAction.bind(null, id)}>
+        <button
+          type="submit"
+          className={`text-xs ${insightsEnabled ? 'btn-primary' : 'btn-secondary'}`}
+          title="Email this office the weekly + monthly insights digest (Snapshot). Off by default."
+        >
+          {insightsEnabled ? 'Digest ✓' : 'Digest'}
+        </button>
+      </form>
+      <form action={sendDigestTestAction.bind(null, id)}>
+        <button
+          type="submit"
+          className="btn-secondary text-xs"
+          title="Send this office's weekly digest to YOUR email only, to preview it. The dealer is not emailed."
+        >
+          Test digest
         </button>
       </form>
       <form action={toggleDealerActiveAction.bind(null, id)}>

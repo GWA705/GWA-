@@ -455,6 +455,29 @@ export async function toggleDealerReportsAction(dealerId: string): Promise<void>
   revalidatePath('/admin/dealers');
 }
 
+/** Turn the emailed insights digest on/off for one office (off by default). */
+export async function toggleDealerInsightsAction(dealerId: string): Promise<void> {
+  const session = await requireAdminSection('dealers');
+  const dealer = await prisma.dealer.findUnique({ where: { id: dealerId }, select: { insightsEnabled: true } });
+  if (!dealer) return;
+  await prisma.dealer.update({ where: { id: dealerId }, data: { insightsEnabled: !dealer.insightsEnabled } });
+  await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'Dealer', entityId: dealerId, detail: `insights=${!dealer.insightsEnabled}` });
+  revalidatePath('/admin/dealers');
+}
+
+/** Send the weekly digest for one office to the admin's OWN email, to preview it
+ * before switching the office on. Never emails the dealer. */
+export async function sendDigestTestAction(dealerId: string): Promise<void> {
+  const session = await requireAdminSection('dealers');
+  const me = await prisma.user.findUnique({ where: { id: session.userId }, select: { email: true, notificationEmail: true } });
+  const to = me?.notificationEmail || me?.email;
+  if (!to) return;
+  const { sendDealerDigest } = await import('@/lib/reporting/digestSend');
+  const r = await sendDealerDigest(dealerId, 'week', { testTo: to, offset: -1 });
+  await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'Dealer', entityId: dealerId, detail: `digest test to ${to} (sent ${r.sent})` });
+  revalidatePath('/admin/dealers');
+}
+
 /**
  * Permanently delete a dealer. Only allowed when the dealer has no users and no
  * applications — deleting one with customer applications would destroy personal

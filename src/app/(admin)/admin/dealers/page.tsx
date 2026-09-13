@@ -60,6 +60,7 @@ export default async function DealersPage() {
                 active={d.active}
                 calculatorEnabled={d.calculatorEnabled}
                 reportsEnabled={d.reportsEnabled}
+                insightsEnabled={d.insightsEnabled}
                 canDelete={d._count.users === 0 && d._count.applications === 0}
                 align="start"
               />
@@ -98,6 +99,7 @@ export default async function DealersPage() {
                     active={d.active}
                     calculatorEnabled={d.calculatorEnabled}
                     reportsEnabled={d.reportsEnabled}
+                insightsEnabled={d.insightsEnabled}
                     canDelete={d._count.users === 0 && d._count.applications === 0}
                   />
                 </td>

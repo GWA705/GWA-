@@ -54,6 +54,17 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-13
+- **Dealer insights digest — Phase 2: emailed + scheduled.** The Snapshot can now
+  be emailed to each office. `Dealer.insightsEnabled` (**off by default**);
+  recipients = every report user at the office. Admin **Dealers** page gains a
+  **Digest** on/off toggle and a **Test digest** button (sends that office's
+  weekly snapshot to the admin's own email to preview — never the dealer). Cron
+  `/api/cron/dealer-digest?period=week|month` (Bearer `CRON_SECRET`) sends to
+  enabled offices with `DigestLog` dedupe (never twice per period).
+  **OPS TODO (Sean):** add two scheduled crons — weekly Mon `?period=week` and
+  monthly 1st `?period=month`, reusing the existing `CRON_SECRET`. (`dealerDigestEmail.ts`,
+  `digestSend.ts`, `api/cron/dealer-digest`, admin actions + DealerRowActions,
+  schema `insightsEnabled` + `DigestLog`.)
 - **Dealer insights plan + Phase 1 "Snapshot" digest (on-screen).** Planned an
   automated per-office insights digest (see `docs/DEALER-INSIGHTS-PLAN.md`:
   weekly+monthly, on-screen + emailed, then speed-to-lead / peer benchmarking /

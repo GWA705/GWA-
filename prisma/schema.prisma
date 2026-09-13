@@ -311,6 +311,9 @@ model Dealer {
   // Give every user at this dealership access to their own office's reports
   // (per-user grants via User.canViewReports still work on top of this).
   reportsEnabled   Boolean @default(false)
+  // Email the periodic "Snapshot" insights digest to this office's report users.
+  // Off by default — an admin turns it on per office after previewing a test.
+  insightsEnabled  Boolean @default(false)
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 
@@ -1977,4 +1980,18 @@ model VocEntry {
 
   @@index([storeNumber])
   @@index([submissionDate])
+}
+
+// One row per office+period the insights digest was sent for, so the scheduled
+// job never emails the same office twice for the same week/month.
+model DigestLog {
+  id             String   @id @default(cuid())
+  dealerId       String
+  period         String // 'week' | 'month'
+  periodKey      String // e.g. 'week:2026-09-07' or 'month:2026-08'
+  recipientCount Int      @default(0)
+  sentAt         DateTime @default(now())
+
+  @@unique([dealerId, periodKey])
+  @@index([sentAt])
 }
