@@ -2,6 +2,7 @@ import 'server-only';
 import { prisma } from '@/lib/db';
 import { readLeads, leadKeyOf, type Lead } from '@/lib/leads';
 import { readLeadCalls } from '@/lib/leadCalls';
+import { weekWindow, monthWindow } from './fundingReport';
 
 /**
  * The Leads report: everything worth knowing about HD leads, grouped by the
@@ -54,9 +55,28 @@ export interface LeadsReport {
   // cover the last 12 periods ending at generatedAt. `undated` = leads with no
   // readable date (excluded from the trend).
   trend: { week: TrendPoint[]; month: TrendPoint[]; undated: number };
+  periodLabel?: string; // set when the report is scoped to a week/month
 }
 
 const emptyTrend = (): LeadsReport['trend'] => ({ week: [], month: [], undated: 0 });
+
+/**
+ * Resolve a Leads-report period filter from the page's ?p= / ?o= params.
+ *  - p='week'|'month' with o = offset (0 = current, -1 = previous, …)
+ *  - anything else → all-time (no window).
+ */
+export function leadsPeriodWindow(period: string | undefined, offset: number): { from?: Date; to?: Date; label?: string } {
+  const day = (d: Date) => d.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' });
+  if (period === 'week') {
+    const w = weekWindow(offset);
+    return { from: w.start, to: w.end, label: `${day(w.start)} – ${day(new Date(w.end.getTime() - 86400000))}` };
+  }
+  if (period === 'month') {
+    const w = monthWindow(offset);
+    return { from: w.start, to: w.end, label: w.start.toLocaleDateString('en-CA', { month: 'long', year: 'numeric' }) };
+  }
+  return {};
+}
 
 function mondayOf(d: Date): Date {
   const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -154,7 +174,10 @@ function topKinds(map: Map<string, number>): { kind: string; count: number }[] {
     .sort((a, b) => b.count - a.count || a.kind.localeCompare(b.kind));
 }
 
-export async function buildLeadsReport(generatedAtISO: string): Promise<LeadsReport> {
+export async function buildLeadsReport(
+  generatedAtISO: string,
+  opts: { from?: Date; to?: Date; label?: string } = {},
+): Promise<LeadsReport> {
   const emptyGroup = { total: 0, noGood: 0, dealers: 0, byKind: [], outcomes: emptyOutcomes() };
 
   const read = await readLeads();
@@ -176,9 +199,18 @@ export async function buildLeadsReport(generatedAtISO: string): Promise<LeadsRep
     storeToDealer.set(num, { id: s.dealer.id, name: s.dealer.profile?.businessName || s.dealer.name });
   }
 
-  // Latest call outcome per lead key.
-  const leads = read.leads;
-  const keys = Array.from(new Set(leads.map(leadKeyOf)));
+  // The full set drives the trend chart (history); the tiles + per-dealer table
+  // scope to the selected period window when one is given.
+  const allLeads = read.leads;
+  const { from, to } = opts;
+  const leads =
+    from || to
+      ? allLeads.filter((l) => l.dateReceived && (!from || l.dateReceived >= from) && (!to || l.dateReceived < to))
+      : allLeads;
+
+  // Latest call outcome per lead key (built over ALL leads so the trend's
+  // booked/sold is correct even outside the selected window).
+  const keys = Array.from(new Set(allLeads.map(leadKeyOf)));
   const callsByKey = await readLeadCalls(keys);
 
   // Accumulate per dealer.
@@ -234,7 +266,7 @@ export async function buildLeadsReport(generatedAtISO: string): Promise<LeadsRep
     return isNaN(d.getTime()) ? new Date() : d;
   })();
   const trend = buildTrend(
-    leads,
+    allLeads,
     (l) => {
       const o = latestOutcome(callsByKey[leadKeyOf(l)] ?? []);
       return o === 'booked' || o === 'sold';
@@ -254,5 +286,6 @@ export async function buildLeadsReport(generatedAtISO: string): Promise<LeadsRep
     },
     dealers,
     trend,
+    periodLabel: opts.label,
   };
 }

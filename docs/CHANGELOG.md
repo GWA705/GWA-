@@ -53,6 +53,15 @@ source of truth; this file is the human-readable index.
   `testSingleLead()` on a French lead first. Portal display auto-translates lead
   free-text via DeepL.
 
+## 2026-09-14
+- **Leads report: period picker (All time / Weekly / Monthly).** Pick a specific
+  week or month and the whole report — group tiles, call-activity, leads-by-type
+  and the per-dealer table — scopes to that period (with ←/→ nav and a "Showing:
+  <period>" banner); the trend chart stays full-history for context. Printing or
+  emailing then produces a generated report for exactly that week/month. On the
+  dealer All-leads and staff Leads reports. (`buildLeadsReport` date window +
+  `leadsPeriodWindow`, `LeadsPeriodControls`, both pages.)
+
 ## 2026-09-13
 - **Dealer insights digest — Phase 2: emailed + scheduled.** The Snapshot can now
   be emailed to each office. `Dealer.insightsEnabled` (**off by default**);

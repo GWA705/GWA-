@@ -2,16 +2,19 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireRole } from '@/lib/session';
 import { canViewLeadershipSnapshot } from '@/lib/reporting/access';
-import { buildLeadsReport } from '@/lib/reporting/leadsReport';
+import { buildLeadsReport, leadsPeriodWindow } from '@/lib/reporting/leadsReport';
 import { LeadsReportView } from '../LeadsReportView';
+import { LeadsPeriodControls } from '@/components/reporting/LeadsPeriodControls';
 
 export const dynamic = 'force-dynamic';
 
-export default async function LeadsReportPage() {
+export default async function LeadsReportPage({ searchParams }: { searchParams: { p?: string; o?: string } }) {
   const user = await requireRole('REVIEWER', 'ADMIN');
   if (!(await canViewLeadershipSnapshot(user))) notFound();
 
-  const report = await buildLeadsReport(new Date().toISOString());
+  const period = searchParams.p === 'week' || searchParams.p === 'month' ? searchParams.p : 'all';
+  const offset = Number.parseInt(searchParams.o ?? '0', 10) || 0;
+  const report = await buildLeadsReport(new Date().toISOString(), leadsPeriodWindow(period, offset));
 
   return (
     <div className="space-y-5">
@@ -23,6 +26,8 @@ export default async function LeadsReportPage() {
           (NA, LM, Spoke, Booked, Sold, NI). Search a dealer, or read the group totals up top.
         </p>
       </div>
+
+      <div className="no-print"><LeadsPeriodControls basePath="/staff/reports/leads" period={period} offset={offset} /></div>
 
       <LeadsReportView report={report} />
     </div>

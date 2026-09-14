@@ -140,6 +140,12 @@ export function LeadsReportView({ report }: { report: LeadsReport }) {
 
   return (
     <div className="space-y-5">
+      {report.periodLabel && (
+        <div className="rounded-lg bg-[#eef3f6] px-4 py-2 text-sm font-semibold text-[#123448]">
+          Showing: {report.periodLabel}
+        </div>
+      )}
+
       {/* Group summary */}
       <div className="space-y-4 rounded-2xl border border-gray-200 bg-gray-50 p-4 sm:p-5">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
