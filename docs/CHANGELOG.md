@@ -54,6 +54,7 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-14
+- **Admin nav reorganized + two orphaned pages recovered.** Audited the admin menu: regrouped into Deals / Reporting / Dealers / Catalog / Dealer comms / People / System (splitting the overloaded Content + Deals menus and giving Reporting its own menu). Fixed **Report visibility** and **Outside costs**, which were reachable only by URL — both now appear in the nav. Nav-only; no access changes. (`(admin)/layout.tsx`.)
 - **Report visibility control (Super Admin → Report visibility).** One page to set
   who can open each report — level per report: **Super Admin only / Leadership /
   Staff / Dealers (own office) / By grant / Off (hidden)** — with a legend of who
