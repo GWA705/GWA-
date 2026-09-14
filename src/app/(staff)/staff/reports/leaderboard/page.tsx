@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireRole } from '@/lib/session';
+import { canViewReport } from '@/lib/reporting/visibility';
 import { canViewReportsArea, canViewDealerSnapshot } from '@/lib/reporting/access';
 import { reportingJournalEnabled } from '@/lib/reporting/journalRead';
 import { listReportOffices, ALL_OFFICES } from '@/lib/reporting/monthly';
@@ -17,7 +18,7 @@ export default async function LeaderboardPage({
   searchParams: { office?: string; year?: string };
 }) {
   const user = await requireRole('REVIEWER', 'ADMIN');
-  if (!(await canViewReportsArea(user))) notFound();
+  if (!(await canViewReport(user, 'staffReports'))) notFound();
   // Admin-only for now — the rep data still needs organising (name grouping).
   if (user.role !== 'ADMIN') notFound();
 

@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import { requireDealerAccess } from '@/lib/session';
+import { canViewReport } from '@/lib/reporting/visibility';
 import { hasDealerReportAccess } from '@/lib/reporting/access';
 import { reportingJournalEnabled } from '@/lib/reporting/journalRead';
 import { buildOfficeRangeReport } from '@/lib/reporting/officeRange';
@@ -29,7 +30,7 @@ function monthOptions(count: number): { value: string; label: string }[] {
  * emailable. */
 export default async function DealerOverallSalesPage({ searchParams }: { searchParams: { from?: string; to?: string } }) {
   const user = await requireDealerAccess();
-  if (!(await hasDealerReportAccess(user)) || !user.dealerId) notFound();
+  if (!(await canViewReport(user, 'overall')) || !user.dealerId) notFound();
 
   const t = getT();
   const brand = await getDealerReportBrand(user.dealerId);

@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { requireDealerAccess } from '@/lib/session';
+import { canViewReport } from '@/lib/reporting/visibility';
 import { hasDealerReportAccess } from '@/lib/reporting/access';
 import { prisma } from '@/lib/db';
 import { buildFundingReport, weekWindow, monthWindow } from '@/lib/reporting/fundingReport';
@@ -20,7 +21,7 @@ const dt = (iso: string) => new Date(iso).toLocaleDateString('en-CA', { month: '
  * emailable. Own office only. */
 export default async function DealerFundingPage({ searchParams }: { searchParams: { p?: string; o?: string } }) {
   const user = await requireDealerAccess();
-  if (!(await hasDealerReportAccess(user)) || !user.dealerId) notFound();
+  if (!(await canViewReport(user, 'funding')) || !user.dealerId) notFound();
 
   const t = getT();
   const period: 'week' | 'month' = searchParams.p === 'month' ? 'month' : 'week';

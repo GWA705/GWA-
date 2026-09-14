@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireRole } from '@/lib/session';
+import { canViewReport } from '@/lib/reporting/visibility';
 import { canViewReportsArea } from '@/lib/reporting/access';
 import { reportingJournalEnabled } from '@/lib/reporting/journalRead';
 import { listReportOffices, buildOfficeMonthlyReport } from '@/lib/reporting/monthly';
@@ -28,7 +29,7 @@ export default async function MonthlyReportPage({
   searchParams: { office?: string; ym?: string };
 }) {
   const user = await requireRole('REVIEWER', 'ADMIN');
-  if (!(await canViewReportsArea(user))) notFound();
+  if (!(await canViewReport(user, 'staffReports'))) notFound();
 
   const t = getT();
   const intlLocale = getLocale() === 'fr' ? 'fr-CA' : 'en-US';

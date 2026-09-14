@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireRole } from '@/lib/session';
+import { canViewReport } from '@/lib/reporting/visibility';
 import { canViewLeadershipSnapshot } from '@/lib/reporting/access';
 import { buildLeadsReport } from '@/lib/reporting/leadsReport';
 import { LeadFunnelView } from './LeadFunnelView';

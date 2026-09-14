@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import { requireDealerAccess } from '@/lib/session';
+import { canViewReport } from '@/lib/reporting/visibility';
 import { hasDealerReportAccess } from '@/lib/reporting/access';
 import { loadVocReport } from '@/lib/reporting/voc';
 import { getDealerReportBrand } from '@/lib/reporting/dealerBrand';
@@ -16,7 +17,7 @@ export const dynamic = 'force-dynamic';
  * dealer's own office, broken down by sales rep. Printable and emailable. */
 export default async function DealerVocPage({ searchParams }: { searchParams: { from?: string; to?: string } }) {
   const user = await requireDealerAccess();
-  if (!(await hasDealerReportAccess(user)) || !user.dealerId) notFound();
+  if (!(await canViewReport(user, 'voc')) || !user.dealerId) notFound();
 
   const t = getT();
   const brand = await getDealerReportBrand(user.dealerId);

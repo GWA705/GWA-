@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireDealerAccess } from '@/lib/session';
+import { canViewReport } from '@/lib/reporting/visibility';
 import { hasDealerReportAccess } from '@/lib/reporting/access';
 import { buildDealerDigest } from '@/lib/reporting/dealerDigest';
 import { getDealerReportBrand } from '@/lib/reporting/dealerBrand';
@@ -17,7 +18,7 @@ export const dynamic = 'force-dynamic';
  * the same builder powers the scheduled email digest. */
 export default async function DealerDigestPage({ searchParams }: { searchParams: { p?: string; o?: string } }) {
   const user = await requireDealerAccess();
-  if (!(await hasDealerReportAccess(user)) || !user.dealerId) notFound();
+  if (!(await canViewReport(user, 'digest')) || !user.dealerId) notFound();
 
   const t = getT();
   const period: 'week' | 'month' = searchParams.p === 'month' ? 'month' : 'week';

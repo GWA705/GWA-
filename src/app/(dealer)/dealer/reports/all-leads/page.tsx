@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireDealerAccess } from '@/lib/session';
+import { canViewReport } from '@/lib/reporting/visibility';
 import { canViewAllLeads } from '@/lib/reporting/access';
 import { buildLeadsReport, leadsPeriodWindow } from '@/lib/reporting/leadsReport';
 import { LeadsReportView } from '@/app/(staff)/staff/reports/LeadsReportView';
@@ -17,7 +18,7 @@ export const dynamic = 'force-dynamic';
  * month; printable/emailable for that period. */
 export default async function DealerAllLeadsPage({ searchParams }: { searchParams: { p?: string; o?: string } }) {
   const user = await requireDealerAccess();
-  if (!(await canViewAllLeads(user))) notFound();
+  if (!(await canViewReport(user, 'allLeads'))) notFound();
 
   const t = getT();
   const period = searchParams.p === 'week' || searchParams.p === 'month' ? searchParams.p : 'all';

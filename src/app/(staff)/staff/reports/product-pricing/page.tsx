@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireRole } from '@/lib/session';
+import { canViewReport } from '@/lib/reporting/visibility';
 import { canViewDealerSnapshot } from '@/lib/reporting/access';
 import { listReportOffices } from '@/lib/reporting/monthly';
 import { productPricing } from '@/lib/reporting/productPricing';

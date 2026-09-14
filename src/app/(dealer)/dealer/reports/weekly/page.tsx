@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireDealerAccess } from '@/lib/session';
+import { canViewReport } from '@/lib/reporting/visibility';
 import { hasDealerReportAccess, canViewOwnerPricingReport } from '@/lib/reporting/access';
 import { reportingJournalEnabled } from '@/lib/reporting/journalRead';
 import { buildStoreWeekReport } from '@/lib/reporting/storeWeek';
@@ -33,7 +34,7 @@ function weekOptions(count: number, t: TFunction, intlLocale: string): { value: 
 
 export default async function DealerWeeklyReportPage({ searchParams }: { searchParams: { weeks?: string } }) {
   const user = await requireDealerAccess();
-  if (!(await hasDealerReportAccess(user)) || !user.dealerId) notFound();
+  if (!(await canViewReport(user, 'weekly')) || !user.dealerId) notFound();
 
   const t = getT();
   const intlLocale = getLocale() === 'fr' ? 'fr-CA' : 'en-US';

@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import { requireDealerAccess } from '@/lib/session';
+import { canViewReport } from '@/lib/reporting/visibility';
 import { hasDealerReportAccess } from '@/lib/reporting/access';
 import { reportingJournalEnabled } from '@/lib/reporting/journalRead';
 import { buildSalespersonLeaderboard } from '@/lib/reporting/salespersonLeaderboard';
@@ -16,7 +17,7 @@ export const dynamic = 'force-dynamic';
  * emailable. */
 export default async function DealerLeaderboardPage({ searchParams }: { searchParams: { year?: string } }) {
   const user = await requireDealerAccess();
-  if (!(await hasDealerReportAccess(user)) || !user.dealerId) notFound();
+  if (!(await canViewReport(user, 'leaderboard')) || !user.dealerId) notFound();
 
   const t = getT();
   const brand = await getDealerReportBrand(user.dealerId);

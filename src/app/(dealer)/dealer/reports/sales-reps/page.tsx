@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import { requireDealerAccess } from '@/lib/session';
+import { canViewReport } from '@/lib/reporting/visibility';
 import { canViewOwnerPricingReport } from '@/lib/reporting/access';
 import { reportDataset } from '@/lib/reporting/reportDataset';
 import { journalUnitsByRep, repKey } from '@/lib/reporting/salespersonLeaderboard';
@@ -30,7 +31,7 @@ function cutoffYm(range: RangeKey): string | null {
 
 export default async function DealerSalesRepReport({ searchParams }: { searchParams: { range?: string } }) {
   const user = await requireDealerAccess();
-  if (!(await canViewOwnerPricingReport(user)) || !user.dealerId) notFound();
+  if (!(await canViewReport(user, 'reps')) || !user.dealerId) notFound();
 
   const t = getT();
   const brand = await getDealerReportBrand(user.dealerId);

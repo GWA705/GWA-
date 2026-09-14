@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import { requireDealerAccess } from '@/lib/session';
+import { canViewReport } from '@/lib/reporting/visibility';
 import { hasDealerReportAccess } from '@/lib/reporting/access';
 import { reportingJournalEnabled } from '@/lib/reporting/journalRead';
 import { buildProductMix } from '@/lib/reporting/productMix';
@@ -15,7 +16,7 @@ export const dynamic = 'force-dynamic';
  * own office. Printable and emailable. */
 export default async function DealerProductMixPage({ searchParams }: { searchParams: { year?: string } }) {
   const user = await requireDealerAccess();
-  if (!(await hasDealerReportAccess(user)) || !user.dealerId) notFound();
+  if (!(await canViewReport(user, 'products')) || !user.dealerId) notFound();
 
   const t = getT();
   const brand = await getDealerReportBrand(user.dealerId);

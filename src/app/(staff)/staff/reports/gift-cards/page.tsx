@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireRole } from '@/lib/session';
+import { canViewReport } from '@/lib/reporting/visibility';
 import { canViewDealerSnapshot } from '@/lib/reporting/access';
 import { buildGiftCardReport } from '@/lib/reporting/giftCardReport';
 import { GiftCardReportView } from '../GiftCardReportView';

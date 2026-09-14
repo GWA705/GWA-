@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { Download, FileSpreadsheet } from 'lucide-react';
 import { requireDealerAccess } from '@/lib/session';
+import { canViewReport } from '@/lib/reporting/visibility';
 import { canViewOwnerPricingReport } from '@/lib/reporting/access';
 import { getDealerReportBrand } from '@/lib/reporting/dealerBrand';
 import { ReportHeader, ReportStamp, reportGeneratedLabel } from '@/components/reporting/kit';
@@ -22,7 +23,7 @@ function ym(offsetMonths: number): string {
  */
 export default async function AccountingExportPage() {
   const user = await requireDealerAccess();
-  if (!(await canViewOwnerPricingReport(user)) || !user.dealerId) notFound();
+  if (!(await canViewReport(user, 'accounting')) || !user.dealerId) notFound();
   const t = getT();
   const brand = await getDealerReportBrand(user.dealerId);
 

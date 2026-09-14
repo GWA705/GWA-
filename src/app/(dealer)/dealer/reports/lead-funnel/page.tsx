@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import { requireDealerAccess } from '@/lib/session';
+import { canViewReport } from '@/lib/reporting/visibility';
 import { canViewAllLeads } from '@/lib/reporting/access';
 import { buildLeadsReport } from '@/lib/reporting/leadsReport';
 import { LeadFunnelView } from '@/app/(staff)/staff/reports/lead-funnel/LeadFunnelView';
@@ -14,7 +15,7 @@ export const dynamic = 'force-dynamic';
  * Where every office's leads land across the call stages. Printable/emailable. */
 export default async function DealerLeadFunnelPage() {
   const user = await requireDealerAccess();
-  if (!(await canViewAllLeads(user))) notFound();
+  if (!(await canViewReport(user, 'leadFunnel'))) notFound();
 
   const t = getT();
   const report = await buildLeadsReport(new Date().toISOString());

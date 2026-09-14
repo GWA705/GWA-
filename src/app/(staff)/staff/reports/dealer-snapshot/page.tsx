@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireRole } from '@/lib/session';
+import { canViewReport } from '@/lib/reporting/visibility';
 import { canViewDealerSnapshot } from '@/lib/reporting/access';
 import { reportingJournalEnabled } from '@/lib/reporting/journalRead';
 import { buildDealerSnapshot } from '@/lib/reporting/dealerSnapshot';
@@ -25,7 +26,7 @@ function monthOptions(count: number, intlLocale: string): { value: string; label
 export default async function DealerSnapshotPage({ searchParams }: { searchParams: { ym?: string } }) {
   const user = await requireRole('REVIEWER', 'ADMIN');
   // Sensitive cross-dealer financials — Super Admin, or a specific granted user.
-  if (!(await canViewDealerSnapshot(user))) notFound();
+  if (!(await canViewReport(user, 'staffDealerSnapshot'))) notFound();
 
   const t = getT();
   const intlLocale = getLocale() === 'fr' ? 'fr-CA' : 'en-US';

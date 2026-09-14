@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireDealerAccess } from '@/lib/session';
+import { canViewReport } from '@/lib/reporting/visibility';
 import { hasDealerReportAccess, canViewOwnerPricingReport } from '@/lib/reporting/access';
 import { reportingJournalEnabled } from '@/lib/reporting/journalRead';
 import { buildOfficeMonthlyReport } from '@/lib/reporting/monthly';
@@ -27,7 +28,7 @@ function monthOptions(count: number): { value: string; label: string }[] {
 
 export default async function DealerReportsPage({ searchParams }: { searchParams: { ym?: string } }) {
   const user = await requireDealerAccess();
-  if (!(await hasDealerReportAccess(user)) || !user.dealerId) notFound();
+  if (!(await canViewReport(user, 'monthly')) || !user.dealerId) notFound();
 
   const months = monthOptions(18);
   const now = new Date();

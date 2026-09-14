@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireRole } from '@/lib/session';
+import { canViewReport } from '@/lib/reporting/visibility';
 import { canViewLeadershipSnapshot } from '@/lib/reporting/access';
 import { buildLeadsReport, leadsPeriodWindow } from '@/lib/reporting/leadsReport';
 import { LeadsReportView } from '../LeadsReportView';
@@ -10,7 +11,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function LeadsReportPage({ searchParams }: { searchParams: { p?: string; o?: string } }) {
   const user = await requireRole('REVIEWER', 'ADMIN');
-  if (!(await canViewLeadershipSnapshot(user))) notFound();
+  if (!(await canViewReport(user, 'staffLeads'))) notFound();
 
   const period = searchParams.p === 'week' || searchParams.p === 'month' ? searchParams.p : 'all';
   const offset = Number.parseInt(searchParams.o ?? '0', 10) || 0;

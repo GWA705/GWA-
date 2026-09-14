@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireRole } from '@/lib/session';
+import { canViewReport } from '@/lib/reporting/visibility';
 import { canViewReportsArea } from '@/lib/reporting/access';
 import { prisma } from '@/lib/db';
 import { STATUS_LABELS } from '@/lib/constants';
@@ -27,7 +28,7 @@ function periodLabel(p: 'week' | 'month', o: number, win: { start: Date }, weekL
 
 export default async function FundingReportPage({ searchParams }: { searchParams: { p?: string; o?: string; status?: string } }) {
   const user = await requireRole('REVIEWER', 'ADMIN');
-  if (!(await canViewReportsArea(user))) notFound();
+  if (!(await canViewReport(user, 'staffReports'))) notFound();
 
   const period: 'week' | 'month' = searchParams.p === 'month' ? 'month' : 'week';
   const offset = Number.parseInt(searchParams.o ?? '0', 10) || 0;

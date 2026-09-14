@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireRole } from '@/lib/session';
+import { canViewReport } from '@/lib/reporting/visibility';
 import { canViewLeadershipSnapshot } from '@/lib/reporting/access';
 import { buildLeadsReport, leadsPeriodWindow } from '@/lib/reporting/leadsReport';
 import { buildLeadsPdf } from '@/lib/reporting/leadsPdf';
@@ -9,7 +10,7 @@ export const dynamic = 'force-dynamic';
 /** Download the Leads report as a real PDF (staff), scoped to the chosen period. */
 export async function GET(req: NextRequest) {
   const user = await requireRole('REVIEWER', 'ADMIN');
-  if (!(await canViewLeadershipSnapshot(user))) return new NextResponse('Not found', { status: 404 });
+  if (!(await canViewReport(user, 'staffLeads'))) return new NextResponse('Not found', { status: 404 });
 
   const p = req.nextUrl.searchParams.get('p');
   const period = p === 'week' || p === 'month' ? p : 'all';

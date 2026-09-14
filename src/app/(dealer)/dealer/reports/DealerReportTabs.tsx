@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { SectionHero } from '@/components/SectionHero';
 import { getT } from '@/i18n/server';
 import { getSession } from '@/lib/session';
-import { canViewAllLeads, canViewOwnerPricingReport, hasDealerReportAccess } from '@/lib/reporting/access';
+import { visibleReports } from '@/lib/reporting/visibility';
 import { ReportTabSelect } from './ReportTabSelect';
 
 type Tab = 'digest' | 'monthly' | 'weekly' | 'overall' | 'funding' | 'products' | 'leaderboard' | 'voc' | 'allLeads' | 'leadFunnel' | 'pricing' | 'custom' | 'forecast' | 'reps' | 'accounting';
@@ -15,31 +15,29 @@ type Tab = 'digest' | 'monthly' | 'weekly' | 'overall' | 'funding' | 'products' 
 export async function DealerReportTabs({ active }: { active: Tab; showOwner?: boolean }) {
   const t = getT();
   const user = await getSession();
-  // Compute tab visibility here (not from each page's props) so the tab set is
-  // identical on every report page — otherwise tabs appeared/disappeared as you
-  // navigated between reports.
-  const showBase = user ? await hasDealerReportAccess(user) : false;
-  const showLeads = user ? await canViewAllLeads(user) : false;
-  const showOwner = user ? await canViewOwnerPricingReport(user) : false;
+  // Tab visibility is resolved centrally (Admin → Report visibility), so the tab
+  // set is identical on every report page and matches each page's own gate.
+  const dealerKeys = ['digest', 'monthly', 'weekly', 'overall', 'funding', 'products', 'leaderboard', 'voc', 'allLeads', 'leadFunnel', 'pricing', 'reps', 'custom', 'forecast', 'accounting'];
+  const vis = user ? await visibleReports(user, dealerKeys) : new Set<string>();
 
-  const items: { href: string; label: string; key: Tab; show: boolean }[] = [
-    { href: '/dealer/reports/digest', label: t('reports.tabDigest'), key: 'digest', show: showBase },
-    { href: '/dealer/reports', label: t('reports.tabMonthly'), key: 'monthly', show: showBase },
-    { href: '/dealer/reports/weekly', label: t('reports.tabWeekly'), key: 'weekly', show: showBase },
-    { href: '/dealer/reports/overall-sales', label: t('reports.tabOverall'), key: 'overall', show: showBase },
-    { href: '/dealer/reports/funding', label: t('reports.tabFunding'), key: 'funding', show: showBase },
-    { href: '/dealer/reports/product-mix', label: t('reports.tabProducts'), key: 'products', show: showBase },
-    { href: '/dealer/reports/leaderboard', label: t('reports.tabLeaderboard'), key: 'leaderboard', show: showBase },
-    { href: '/dealer/reports/voc', label: t('reports.tabVoc'), key: 'voc', show: showBase },
-    { href: '/dealer/reports/all-leads', label: t('reports.tabAllLeads'), key: 'allLeads', show: showLeads },
-    { href: '/dealer/reports/lead-funnel', label: t('reports.tabLeadFunnel'), key: 'leadFunnel', show: showLeads },
-    { href: '/dealer/reports/product-pricing', label: t('reports.tabPricing'), key: 'pricing', show: showOwner },
-    { href: '/dealer/reports/sales-reps', label: t('reports.tabReps'), key: 'reps', show: showOwner },
-    { href: '/dealer/reports/custom', label: t('reports.tabCustom'), key: 'custom', show: showOwner },
-    { href: '/dealer/reports/forecast', label: t('reports.tabForecast'), key: 'forecast', show: showOwner },
-    { href: '/dealer/reports/accounting', label: t('reports.tabAccounting'), key: 'accounting', show: showOwner },
+  const items: { href: string; label: string; key: Tab }[] = [
+    { href: '/dealer/reports/digest', label: t('reports.tabDigest'), key: 'digest' },
+    { href: '/dealer/reports', label: t('reports.tabMonthly'), key: 'monthly' },
+    { href: '/dealer/reports/weekly', label: t('reports.tabWeekly'), key: 'weekly' },
+    { href: '/dealer/reports/overall-sales', label: t('reports.tabOverall'), key: 'overall' },
+    { href: '/dealer/reports/funding', label: t('reports.tabFunding'), key: 'funding' },
+    { href: '/dealer/reports/product-mix', label: t('reports.tabProducts'), key: 'products' },
+    { href: '/dealer/reports/leaderboard', label: t('reports.tabLeaderboard'), key: 'leaderboard' },
+    { href: '/dealer/reports/voc', label: t('reports.tabVoc'), key: 'voc' },
+    { href: '/dealer/reports/all-leads', label: t('reports.tabAllLeads'), key: 'allLeads' },
+    { href: '/dealer/reports/lead-funnel', label: t('reports.tabLeadFunnel'), key: 'leadFunnel' },
+    { href: '/dealer/reports/product-pricing', label: t('reports.tabPricing'), key: 'pricing' },
+    { href: '/dealer/reports/sales-reps', label: t('reports.tabReps'), key: 'reps' },
+    { href: '/dealer/reports/custom', label: t('reports.tabCustom'), key: 'custom' },
+    { href: '/dealer/reports/forecast', label: t('reports.tabForecast'), key: 'forecast' },
+    { href: '/dealer/reports/accounting', label: t('reports.tabAccounting'), key: 'accounting' },
   ];
-  const visible = items.filter((i) => i.show);
+  const visible = items.filter((i) => vis.has(i.key));
 
   return (
     <div className="space-y-3">

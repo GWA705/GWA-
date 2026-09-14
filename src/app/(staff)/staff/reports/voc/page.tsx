@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireRole } from '@/lib/session';
+import { canViewReport } from '@/lib/reporting/visibility';
 import { canViewReportsArea } from '@/lib/reporting/access';
 import { loadVocReport } from '@/lib/reporting/voc';
 import { VocReportView } from '@/components/reporting/VocReportView';
@@ -16,7 +17,7 @@ export const dynamic = 'force-dynamic';
  * filter by date, and can check whether specific Lead #s have a completed VOC. */
 export default async function StaffVocPage({ searchParams }: { searchParams: { from?: string; to?: string } }) {
   const user = await requireRole('REVIEWER', 'ADMIN');
-  if (!(await canViewReportsArea(user))) notFound();
+  if (!(await canViewReport(user, 'staffReports'))) notFound();
 
   const t = getT();
   const from = /^\d{4}-\d{2}-\d{2}$/.test(searchParams.from ?? '') ? searchParams.from : undefined;

@@ -455,6 +455,20 @@ export async function toggleDealerReportsAction(dealerId: string): Promise<void>
   revalidatePath('/admin/dealers');
 }
 
+/** Set a report's visibility level (Admin → Report visibility). Super-admin only,
+ * since it changes who can open reports across the whole portal. */
+export async function setReportVisibilityAction(formData: FormData): Promise<void> {
+  const session = await requireSuperAdmin();
+  const key = String(formData.get('key') || '');
+  const level = String(formData.get('level') || '');
+  const allowed = ['superadmin', 'leadership', 'staff', 'dealers', 'grant', 'off'];
+  if (!allowed.includes(level)) return;
+  const { setReportLevel } = await import('@/lib/reporting/visibility');
+  await setReportLevel(key, level as 'superadmin' | 'leadership' | 'staff' | 'dealers' | 'grant' | 'off');
+  await audit({ actorId: session.userId, action: 'SETTING_UPDATE', entityType: 'ReportVisibility', entityId: key, detail: `${key}=${level}` });
+  revalidatePath('/admin/report-visibility');
+}
+
 /** Turn the emailed insights digest on/off for one office (off by default). */
 export async function toggleDealerInsightsAction(dealerId: string): Promise<void> {
   const session = await requireAdminSection('dealers');

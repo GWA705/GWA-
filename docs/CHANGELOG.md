@@ -54,6 +54,17 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-14
+- **Report visibility control (Super Admin → Report visibility).** One page to set
+  who can open each report — level per report: **Super Admin only / Leadership /
+  Staff / Dealers (own office) / By grant / Off (hidden)** — with a legend of who
+  each lets in. Enforced centrally: the tab is hidden **and** the page 404s below
+  the chosen level (real access control). Backed by a report registry + batched
+  resolver (`lib/reporting/visibility.ts`); levels persist in app settings.
+  **Defaults exactly match the previous built-in gating, so nothing changes until
+  a report is switched.** Wired across all dealer reports (tabs + pages) and the
+  staff reports (grouped, plus Leads and Dealer-snapshot individually). New admin
+  nav entry; super-admin only. (`visibility.ts`, `DealerReportTabs`, every dealer
+  report page + staff report pages, `admin/report-visibility`, `setReportVisibilityAction`.)
 - **Leads report: real "Download PDF".** A server-generated PDF (pdf-lib — no
   headless browser, works in production) of the Leads report, scoped to the
   selected period: brand header, KPI row, call-activity, leads-by-type, and the

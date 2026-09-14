@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import { requireDealerAccess } from '@/lib/session';
+import { canViewReport } from '@/lib/reporting/visibility';
 import { canViewOwnerPricingReport } from '@/lib/reporting/access';
 import { productPricing } from '@/lib/reporting/productPricing';
 import { ProductPricingReport } from '@/components/reporting/ProductPricingReport';
@@ -13,7 +14,7 @@ export const dynamic = 'force-dynamic';
 export default async function DealerProductPricingReport() {
   const user = await requireDealerAccess();
   // Owner-only + office must have reports enabled by an admin.
-  if (!(await canViewOwnerPricingReport(user)) || !user.dealerId) notFound();
+  if (!(await canViewReport(user, 'pricing')) || !user.dealerId) notFound();
 
   const t = getT();
   const data = await productPricing({ dealerIds: [user.dealerId] });

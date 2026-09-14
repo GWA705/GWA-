@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import { requireDealerAccess } from '@/lib/session';
+import { canViewReport } from '@/lib/reporting/visibility';
 import { canViewOwnerPricingReport } from '@/lib/reporting/access';
 import { reportDataset } from '@/lib/reporting/reportDataset';
 import { prisma } from '@/lib/db';
@@ -14,7 +15,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function DealerCustomReport() {
   const user = await requireDealerAccess();
-  if (!(await canViewOwnerPricingReport(user)) || !user.dealerId) notFound();
+  if (!(await canViewReport(user, 'custom')) || !user.dealerId) notFound();
 
   const t = getT();
   const brand = await getDealerReportBrand(user.dealerId);
