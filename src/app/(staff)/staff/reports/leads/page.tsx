@@ -27,7 +27,12 @@ export default async function LeadsReportPage({ searchParams }: { searchParams: 
         </p>
       </div>
 
-      <div className="no-print"><LeadsPeriodControls basePath="/staff/reports/leads" period={period} offset={offset} /></div>
+      <div className="no-print flex flex-wrap items-center justify-between gap-3">
+        <LeadsPeriodControls basePath="/staff/reports/leads" period={period} offset={offset} />
+        <a href={`/staff/reports/leads/pdf?p=${period}&o=${offset}`} className="btn-secondary text-sm" title="Download this report as a PDF file">
+          ⬇ Download PDF
+        </a>
+      </div>
 
       <LeadsReportView report={report} />
     </div>

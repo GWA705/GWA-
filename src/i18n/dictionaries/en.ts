@@ -1430,6 +1430,7 @@ export const en = {
   },
   reportActions: {
     print: 'Print / Save as PDF',
+    pdf: 'Download PDF',
     email: 'Email to me',
     emailing: 'Sending…',
   },

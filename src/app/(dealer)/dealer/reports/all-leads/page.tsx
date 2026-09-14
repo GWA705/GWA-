@@ -30,7 +30,10 @@ export default async function DealerAllLeadsPage({ searchParams }: { searchParam
       <DealerReportTabs active="allLeads" />
       <div className="no-print flex flex-wrap items-center justify-between gap-3">
         <LeadsPeriodControls basePath="/dealer/reports/all-leads" period={period} offset={offset} />
-        <ReportActions title={t('reports.tabAllLeads')} />
+        <ReportActions
+          title={t('reports.tabAllLeads')}
+          pdfHref={`/dealer/reports/all-leads/pdf?p=${period}&o=${offset}`}
+        />
       </div>
       <div className="print-sheet space-y-5">
         <LeadsReportView report={report} />

@@ -1434,6 +1434,7 @@ export const fr: Dictionary = {
   },
   reportActions: {
     print: 'Imprimer / Enregistrer en PDF',
+    pdf: 'Télécharger le PDF',
     email: 'M’envoyer par courriel',
     emailing: 'Envoi…',
   },

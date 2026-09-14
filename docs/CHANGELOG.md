@@ -54,6 +54,13 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-14
+- **Leads report: real "Download PDF".** A server-generated PDF (pdf-lib — no
+  headless browser, works in production) of the Leads report, scoped to the
+  selected period: brand header, KPI row, call-activity, leads-by-type, and the
+  full per-office table (paginated with repeating header + page numbers).
+  Download button on the dealer All-leads and staff Leads reports; routes
+  `.../all-leads/pdf` and `.../leads/pdf` (same access as the report).
+  (`leadsPdf.ts`, two routes, `ReportActions` `pdfHref`.)
 - **Leads report: period picker (All time / Weekly / Monthly).** Pick a specific
   week or month and the whole report — group tiles, call-activity, leads-by-type
   and the per-dealer table — scopes to that period (with ←/→ nav and a "Showing:

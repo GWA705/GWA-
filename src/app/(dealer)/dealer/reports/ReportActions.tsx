@@ -10,7 +10,7 @@ import { useT } from '@/i18n/client';
  * Email sends the signed-in dealer a link to this exact report (current filters
  * included) — to their own account email only. Hidden from the printout (`no-print`).
  */
-export function ReportActions({ title, showPrint = true, showEmail = true }: { title: string; showPrint?: boolean; showEmail?: boolean }) {
+export function ReportActions({ title, showPrint = true, showEmail = true, pdfHref }: { title: string; showPrint?: boolean; showEmail?: boolean; pdfHref?: string }) {
   const t = useT();
   const [pending, start] = useTransition();
   const [msg, setMsg] = useState<string | null>(null);
@@ -30,6 +30,11 @@ export function ReportActions({ title, showPrint = true, showEmail = true }: { t
         <button type="button" onClick={() => window.print()} className="btn-secondary text-sm">
           🖨 {t('reportActions.print')}
         </button>
+      )}
+      {pdfHref && (
+        <a href={pdfHref} className="btn-secondary text-sm" title="Download this report as a PDF file">
+          ⬇ {t('reportActions.pdf')}
+        </a>
       )}
       {showEmail && (
         <button type="button" onClick={onEmail} disabled={pending} className="btn-secondary text-sm disabled:opacity-60">
