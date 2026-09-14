@@ -54,6 +54,7 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-14
+- **GWA-program deals no longer need an HD store.** On the new-application form, selecting **GWA** (not HD) in the Program dropdown now hides the Home Depot store field and drops it from the required fields (it was previously required on the Express path). HD deals are unchanged. (`NewApplicationForm.tsx`; server schema already treated the store as optional.)
 - **Admin nav reorganized + two orphaned pages recovered.** Audited the admin menu: regrouped into Deals / Reporting / Dealers / Catalog / Dealer comms / People / System (splitting the overloaded Content + Deals menus and giving Reporting its own menu). Fixed **Report visibility** and **Outside costs**, which were reachable only by URL — both now appear in the nav. Nav-only; no access changes. (`(admin)/layout.tsx`.)
 - **Report visibility control (Super Admin → Report visibility).** One page to set
   who can open each report — level per report: **Super Admin only / Leadership /

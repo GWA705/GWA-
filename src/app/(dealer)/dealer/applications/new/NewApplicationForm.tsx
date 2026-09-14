@@ -204,6 +204,10 @@ export function NewApplicationForm({
   // dealer picks option 1/2/3, which then opens the sections that option needs.
   const [method, setMethod] = useState<Method | ''>('');
   const [payment, setPayment] = useState<PaymentMethod>('FINANCEIT');
+  // Program (HD vs GWA). A GWA deal isn't a Home Depot deal, so no HD store is
+  // needed — the store field is hidden and not required when GWA is selected.
+  const [programType, setProgramType] = useState('');
+  const isGwa = programType === 'GWA';
   const typed = method === 'TYPED';
   const express = method === 'FINANCEIT';
   // The FinanceIT approval number is only needed when the Express deal was
@@ -402,7 +406,7 @@ export function NewApplicationForm({
   // details (and the FinanceIT number only when paid via FinanceIT).
   const requiredFields: RequiredField[] = [
     ...BASE_REQUIRED,
-    ...(express ? FINANCEIT_EXTRA.filter((f) => f.name !== 'homeDepotStoreId' || stores.length > 0) : []),
+    ...(express ? FINANCEIT_EXTRA.filter((f) => f.name !== 'homeDepotStoreId' || (stores.length > 0 && !isGwa)) : []),
     ...(needsFinanceNumber ? [{ name: 'financeItNumber', label: 'Financing deal number' }] : []),
     ...(method === 'TYPED'
       ? TYPED_EXTRA.filter((f) => !(retired && (f.name === 'employerAddress' || f.name === 'employerPhone')))
@@ -656,7 +660,7 @@ export function NewApplicationForm({
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div>
             <label className="label" htmlFor="programType">{t('newApplication.program')}</label>
-            <select id="programType" name="programType" className={fieldCls('programType')}>
+            <select id="programType" name="programType" value={programType} onChange={(e) => setProgramType(e.target.value)} className={fieldCls('programType')}>
               <option value="">{t('newApplication.selectPlaceholder')}</option>
               {PROGRAM_TYPES.map((p) => (<option key={p.value} value={p.value}>{programTypeLabel(t, p.value)}</option>))}
             </select>
@@ -771,14 +775,16 @@ export function NewApplicationForm({
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div><label className="label" htmlFor="dateOfSale">{t('newApplication.dateOfSale')}</label><input id="dateOfSale" name="dateOfSale" type="date" className={fieldCls('dateOfSale')} /><Err state={state} name="dateOfSale" /></div>
           <div><label className="label" htmlFor="installationDate">{t('newApplication.installationDate')}</label><input id="installationDate" name="installationDate" type="date" className={fieldCls('installationDate')} /><Err state={state} name="installationDate" /></div>
-          <div>
-            <label className="label" htmlFor="homeDepotStoreId">{t('newApplication.homeDepotStore')}</label>
-            <select id="homeDepotStoreId" name="homeDepotStoreId" className={fieldCls('homeDepotStoreId')} disabled={stores.length === 0}>
-              <option value="">{stores.length === 0 ? t('newApplication.noStoresAssigned') : t('newApplication.selectPlaceholder')}</option>
-              {stores.map((s) => (<option key={s.id} value={s.id}>{s.number}{s.name ? ` — ${s.name}` : ''}</option>))}
-            </select>
-            {stores.length === 0 && <p className="mt-1 text-xs text-gray-400">{t('newApplication.askAdminStores')}</p>}
-          </div>
+          {!isGwa && (
+            <div>
+              <label className="label" htmlFor="homeDepotStoreId">{t('newApplication.homeDepotStore')}</label>
+              <select id="homeDepotStoreId" name="homeDepotStoreId" className={fieldCls('homeDepotStoreId')} disabled={stores.length === 0}>
+                <option value="">{stores.length === 0 ? t('newApplication.noStoresAssigned') : t('newApplication.selectPlaceholder')}</option>
+                {stores.map((s) => (<option key={s.id} value={s.id}>{s.number}{s.name ? ` — ${s.name}` : ''}</option>))}
+              </select>
+              {stores.length === 0 && <p className="mt-1 text-xs text-gray-400">{t('newApplication.askAdminStores')}</p>}
+            </div>
+          )}
         </div>
       </section>
 
