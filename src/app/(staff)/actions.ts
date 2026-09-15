@@ -1304,7 +1304,9 @@ async function syncApplicationToJournal(
     hdReference: app.hdReference,
     financeItNumber: app.financeItNumber,
     hdStoreLabel: storeLabel,
-    dealerName: app.dealer?.name ?? null,
+    // Journal "Location" column: the dealer's journal short form when set, else
+    // the full dealer name (mirrors products' journalName override).
+    dealerName: app.dealer?.journalName?.trim() || app.dealer?.name || null,
     salesperson: app.salespersonName,
     installer: app.installerName,
     products: journalProducts.length ? journalProducts.join(', ') : null,

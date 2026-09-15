@@ -436,6 +436,21 @@ export async function toggleDealerActiveAction(dealerId: string): Promise<void> 
   revalidatePath('/admin/dealers');
 }
 
+// Set how this dealer's name reads in the sales journal's "Location" column
+// (e.g. "GWA" instead of "Georgian Water and Air"). Blank clears it → the full
+// name is written. Same short-form pattern as products' journal codes.
+export async function setDealerJournalNameAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const session = await requireAdminSection('dealers');
+  const id = String(formData.get('id') || '');
+  const journalName = cleanJournalName(String(formData.get('journalName') || ''));
+  const dealer = await prisma.dealer.findUnique({ where: { id }, select: { name: true } });
+  if (!dealer) return { error: 'Dealer not found.' };
+  await prisma.dealer.update({ where: { id }, data: { journalName } });
+  await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'Dealer', entityId: id, detail: `journal name: ${dealer.name} -> ${journalName ?? '(full name)'}` });
+  revalidatePath('/admin/dealers');
+  return { ok: true, message: 'Journal name saved.' };
+}
+
 // Give / revoke the payout calculator for a whole dealership (all its users).
 export async function toggleDealerCalculatorAction(dealerId: string): Promise<void> {
   const session = await requireAdminSection('dealers');

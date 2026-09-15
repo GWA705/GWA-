@@ -303,6 +303,11 @@ enum DealerType {
 model Dealer {
   id        String     @id @default(cuid())
   name      String
+  // How this dealer's name should read in the sales journal's "Location" column
+  // (e.g. full name "Georgian Water and Air" → journal short form "GWA"). When
+  // null/blank the full `name` is written instead, so existing dealers keep
+  // working. Same pattern as Product.journalName.
+  journalName String?
   type      DealerType @default(DEALER)
   active    Boolean    @default(true)
   // Give every user at this dealership the payout calculator (per-user grants

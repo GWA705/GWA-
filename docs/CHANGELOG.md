@@ -54,6 +54,15 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-15
+- **Dealer "journal name" — short form written to the journal's Location column.**
+  Each dealer now has an optional **journal name** (Admin → Dealers, inline next to
+  the dealer's name) that overrides how the office appears in the sales journal's
+  **Location** column (e.g. "Georgian Water and Air" → **GWA**). Leave it blank and
+  the full dealer name is written, exactly as before — so nothing changes until a
+  short form is filled in. Same pattern as products' journal codes. Takes effect on
+  the next journal write for that dealer's deals (re-approve / any reference change
+  re-writes the row). (`Dealer.journalName` + migration, `setDealerJournalNameAction`,
+  `DealerJournalNameForm`, dealers admin page, `syncApplicationToJournal`.)
 - **Paid auto-function now actually reaches "Paid" (was stopping at "Funded").**
   When the sales journal shows a deal paid (Result = OK + a Date Paid), the
   nightly sync was correctly recording `journalPaidOn` and advancing the deal to
