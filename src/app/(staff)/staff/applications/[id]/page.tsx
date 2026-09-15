@@ -834,6 +834,7 @@ export default async function StaffApplicationDetail({
           confirmationStatus={app.confirmationStatus}
           hasFundingDocs={app.documents.some((d) => d.stage === 'FUNDING')}
           hasPayouts={app.payouts.length > 0}
+          journalPaidOn={app.journalPaidOn}
           stageDates={stageDates}
         />
 

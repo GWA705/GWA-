@@ -164,6 +164,7 @@ export default async function DealerApplicationDetail({
         confirmationStatus={app.confirmationStatus}
         hasFundingDocs={dealerReturned}
         hasPayouts={app.payouts.length > 0}
+        journalPaidOn={app.journalPaidOn}
       />
 
       {/* What's needed from you — a self-serve "why is this stuck?" summary,

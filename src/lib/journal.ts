@@ -507,9 +507,13 @@ export async function readDealJournalStatus(deal: {
     // so it just works once the column is added; null on tabs that don't have it).
     let payToDealer: number | null = null;
     let payCol = -1;
+    // Match whitespace/punctuation-insensitively so "Pay to dealer", "Pay To Dealer",
+    // "pay-to-dealer", "Paid to Dealer" etc. all resolve to the same column (AO on
+    // the current journals). Collapse to bare alphanumerics before comparing.
+    const PAY_KEYS = ['paytodealer', 'paidtodealer', 'paydealer', 'dealerpay', 'dealerpayout'];
     for (let c = 0; c < Math.max(top.length, bottom.length); c += 1) {
-      const combined = norm(`${top[c] ?? ''} ${bottom[c] ?? ''}`);
-      if (combined.includes('pay to dealer')) { payCol = c; break; }
+      const combined = norm(`${top[c] ?? ''} ${bottom[c] ?? ''}`).replace(/[^a-z0-9]/g, '');
+      if (PAY_KEYS.some((k) => combined.includes(k))) { payCol = c; break; }
     }
     if (payCol >= 0) {
       const raw = cell(payCol).replace(/[$,\s]/g, '');

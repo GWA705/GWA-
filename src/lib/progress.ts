@@ -15,6 +15,10 @@ export interface ProgressSignals {
   confirmationStatus: ConfirmationStatus;
   hasFundingDocs: boolean;
   hasPayouts: boolean;
+  // The journal's confirmed Date Paid (set by the paid-sync when Result = OK +
+  // Date Paid). A deal is "Paid" once EITHER a payout receipt exists OR the
+  // journal confirms it was paid — the amount can fill in separately.
+  journalPaidOn?: Date | string | null;
 }
 
 export interface ProgressStage {
@@ -43,16 +47,18 @@ const STATUS_RANK: Record<ApplicationStatus, number> = {
 
 export function dealProgress(s: ProgressSignals): ProgressStage[] {
   const rank = STATUS_RANK[s.status] ?? 0;
+  // Paid = a recorded payout OR the journal confirming it was paid (Date Paid).
+  const isPaid = s.hasPayouts || !!s.journalPaidOn;
   return [
     { key: 'submitted', label: 'Submitted', done: s.status !== 'DRAFT' },
     { key: 'approved', label: 'Approved', done: rank >= 2 },
     { key: 'docs', label: 'Docs uploaded', done: s.hasFundingDocs || rank >= 3 },
     { key: 'confirmation', label: 'Confirmation', done: s.confirmationStatus === 'COMPLETED' },
-    // A recorded payout means the deal reached funding and was funded — so these
-    // earlier milestones can never lag behind "Paid".
-    { key: 'funding', label: 'In for funding', done: rank >= 5 || s.hasPayouts },
-    { key: 'funded', label: 'Funded', done: rank >= 6 || s.hasPayouts },
-    { key: 'paid', label: 'Paid', done: s.hasPayouts },
+    // Being paid means the deal reached funding and was funded — so these earlier
+    // milestones can never lag behind "Paid".
+    { key: 'funding', label: 'In for funding', done: rank >= 5 || isPaid },
+    { key: 'funded', label: 'Funded', done: rank >= 6 || isPaid },
+    { key: 'paid', label: 'Paid', done: isPaid },
   ];
 }
 

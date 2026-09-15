@@ -53,6 +53,27 @@ source of truth; this file is the human-readable index.
   `testSingleLead()` on a French lead first. Portal display auto-translates lead
   free-text via DeepL.
 
+## 2026-09-15
+- **Paid auto-function now actually reaches "Paid" (was stopping at "Funded").**
+  When the sales journal shows a deal paid (Result = OK + a Date Paid), the
+  nightly sync was correctly recording `journalPaidOn` and advancing the deal to
+  **Funded**, but the deal-progress tracker only lit the **Paid** step from a
+  recorded Payout, so a journal-confirmed payment never showed as Paid (e.g.
+  Leanne Vida last night). Fixed two things:
+  - **Tracker:** "Paid" (and the earlier "In for funding"/"Funded" milestones)
+    now light from **either** a recorded payout **or** the journal's Date Paid
+    (`journalPaidOn`). Both the dealer and staff deal pages pass `journalPaidOn`
+    into the tracker. The Vida deal will show **Paid** on next page load — no
+    re-sync needed. (`progress.ts`, staff + dealer `applications/[id]/page.tsx`.)
+  - **Auto-fill payout amount:** the sync auto-creates the dealer Payout from the
+    journal's **"Pay to dealer"** column (currently **AO**). Broadened the
+    header matcher to be whitespace/punctuation-insensitive so the column is found
+    reliably regardless of casing/spacing (`Pay to dealer`, `Pay To Dealer`,
+    `pay-to-dealer`, etc.). (`journal.ts` `readDealJournalStatus`.)
+  - **Note:** the "Pay to dealer" (AO) column currently exists only on the **TEST
+    journal**. Once verified, add the same column to the live journal — the payout
+    $ then auto-fills on the next sweep with no code change.
+
 ## 2026-09-14
 - **GWA-program deals no longer need an HD store.** On the new-application form, selecting **GWA** (not HD) in the Program dropdown now hides the Home Depot store field and drops it from the required fields (it was previously required on the Express path). HD deals are unchanged. (`NewApplicationForm.tsx`; server schema already treated the store as optional.)
 - **Admin nav reorganized + two orphaned pages recovered.** Audited the admin menu: regrouped into Deals / Reporting / Dealers / Catalog / Dealer comms / People / System (splitting the overloaded Content + Deals menus and giving Reporting its own menu). Fixed **Report visibility** and **Outside costs**, which were reachable only by URL — both now appear in the nav. Nav-only; no access changes. (`(admin)/layout.tsx`.)
