@@ -54,6 +54,24 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-16
+- **Lead-card scanner on the Leads page (dealer + staff).** Dealers (and GWA staff)
+  can photograph a handwritten Home Depot **water-test lead card** and the AI reads
+  it into a form to confirm and save — the booking site's scanner, ported into the
+  portal. New **"Scanned leads"** section on both the dealer and staff Leads pages:
+  an "Add a lead card" uploader (multi-photo of the same card for accuracy, or type
+  by hand) and a list of saved cards with status (New / Contacted / No good), the
+  original photo, and delete. Stored in the portal DB (`ScannedLead`), **separate
+  from the HD Leads Log sheet** — dealers see their own office's cards, staff see all
+  (attributed by store number). The original photo is kept encrypted in S3.
+  - Backend `lib/leadScanner.ts` calls the Anthropic REST API via `fetch` (no new
+    dependency; matches `lib/ai.ts`); gated on `ANTHROPIC_API_KEY` (already live) and
+    per-user rate-limited (`scan-lead`, 20/min). Confidence + uncertain-field flags
+    surface in the UI. Scanner is hidden when AI isn't configured.
+  - Files: `ScannedLead` model + migration `20260916120000`; `lib/leadScanner.ts`,
+    `lib/scannedLeads.ts`; `api/leads/scan-card` (read) + `api/leads/scanned/[id]/photo`
+    (serve, access-scoped); `scanActions.ts` (save/status/delete); `ScanLeadCard.tsx`,
+    `ScannedLeadsList.tsx`; wired into dealer + staff Leads pages.
+  - **English-only for now** (FR translation of the scanner UI is a follow-up).
 - **Concurrency caps on heavy jobs (memory-spike protection).** Added a tiny
   in-process semaphore (`src/lib/concurrency.ts`) and wrapped the two heaviest,
   memory-hungry paths so a burst can't exhaust the small instance's RAM: **OCR**

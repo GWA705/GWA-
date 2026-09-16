@@ -9,6 +9,11 @@ import { leadsSheetId, reportingJournalEnabled } from '@/lib/reporting/journalRe
 import { listReportOffices } from '@/lib/reporting/monthly';
 import { LeadsView, filterLeads, leadMonthOptions, leadOutcomeKey } from '@/components/LeadsView';
 import { leadsGeoData, storeGeos, unplacedStoresForMap } from '@/lib/leadGeo';
+import { ScanLeadCard } from '@/components/ScanLeadCard';
+import { ScannedLeadsList, type ScannedLeadRow } from '@/components/ScannedLeadsList';
+import { listScannedLeads } from '@/lib/scannedLeads';
+import { prisma } from '@/lib/db';
+import { aiConfigured } from '@/lib/ai';
 import { getT } from '@/i18n/server';
 
 export const dynamic = 'force-dynamic';
@@ -32,10 +37,35 @@ export default async function StaffLeadsPage({
   const view = searchParams.view === 'grouped' ? 'grouped' : searchParams.view === 'map' ? 'map' : 'list';
   const page = Math.max(1, parseInt(searchParams.page ?? '1', 10) || 1);
 
+  // Scanned lead cards (all offices) — independent of the HD Leads Log sheet.
+  const scannedRaw = await listScannedLeads(user);
+  const dealerIds = Array.from(new Set(scannedRaw.map((l) => l.dealerId).filter((x): x is string => !!x)));
+  const nameById = new Map(
+    (dealerIds.length ? await prisma.dealer.findMany({ where: { id: { in: dealerIds } }, select: { id: true, name: true } }) : [])
+      .map((d) => [d.id, d.name] as const),
+  );
+  const scanned: ScannedLeadRow[] = scannedRaw.map((l) => ({
+    id: l.id, customerName: l.customerName, phone: l.phone, address: l.address, city: l.city, postalCode: l.postalCode,
+    storeNumber: l.storeNumber, collectedOn: l.collectedOn, ownsHome: l.ownsHome, waterSource: l.waterSource,
+    waterQuality: l.waterQuality, conditions: l.conditions, waterNotes: l.waterNotes, note: l.note,
+    generatorName: l.generatorName, confidence: l.confidence, status: l.status, hasPhoto: !!l.photoStorageKey,
+    scannedByName: l.scannedByName, officeName: l.dealerId ? nameById.get(l.dealerId) ?? null : null, createdAt: l.createdAt.toISOString(),
+  }));
+  const scannedSection = (
+    <div className="space-y-4">
+      {aiConfigured() && <ScanLeadCard />}
+      <div>
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">Scanned leads</h2>
+        <ScannedLeadsList leads={scanned} showOffice />
+      </div>
+    </div>
+  );
+
   if (!leadsSheetId() || !reportingJournalEnabled()) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-5">
         <h1 className="text-xl font-semibold text-gray-900">{t('leads.heroEyebrow')}</h1>
+        {scannedSection}
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
           {t('staffLeads.notConnectedBefore')}<code className="rounded bg-amber-100 px-1">HD_LEADS_SHEET_ID</code>{t('staffLeads.notConnectedAfter')}
         </div>
@@ -96,6 +126,8 @@ export default async function StaffLeadsPage({
         {view === 'grouped' && <input type="hidden" name="view" value="grouped" />}
         <button type="submit" className="btn-primary">{t('staffLeads.viewButton')}</button>
       </form>
+
+      {scannedSection}
 
       {read.error && (
         <div className="rounded-lg border-l-4 border-amber-500 bg-amber-50 p-3 text-sm text-amber-800">

@@ -335,6 +335,7 @@ model Dealer {
   customProducts   DealerCustomProduct[]
   giftCardRequests GiftCardRequest[]
   businessDocuments DealerDocument[]
+  scannedLeads     ScannedLead[]
 }
 
 // A dealer's business/compliance document (WSIB, WCB, CSST, RBQ, trade licence,
@@ -1813,6 +1814,66 @@ model LeadCall {
 model LeadNotified {
   leadKey   String   @id
   createdAt DateTime @default(now())
+}
+
+/// A handwritten water-test lead card a rep collected at a Home Depot store,
+/// photographed and read by the AI scanner (see lib/leadScanner.ts), then
+/// confirmed and saved by a dealer or GWA staff. Separate from the HD Leads Log
+/// sheet (online HD booking leads) — these are the in-store paper cards. Shown in
+/// the "Scanned leads" section of the Leads page.
+model ScannedLead {
+  id          String   @id @default(cuid())
+  // Owning office. Null when GWA staff scan a card whose store can't be matched
+  // to a dealer yet (SetNull if the dealer is later removed).
+  dealerId    String?
+  dealer      Dealer?  @relation(fields: [dealerId], references: [id], onDelete: SetNull)
+  // Who scanned/saved it (id + snapshot name so attribution survives user delete).
+  scannedById   String?
+  scannedByName String?
+
+  customerName     String?
+  phone            String?
+  occupation       String?
+  spouseName       String?
+  spousePhone      String?
+  spouseOccupation String?
+  address          String?
+  city             String?
+  postalCode       String?
+  bestTimeToContact String?
+  waterNotes       String?  @db.Text
+
+  ownsHome         String?  // OWN | RENT | WITH_PARENTS | UNKNOWN
+  waterSource      String?  // City | Well | Other
+  waterQuality     String?  // Excellent | Good | Fair | Poor
+  conditions       String[] @default([]) // Taste | Odors | Scale build up | Stains
+  buysBottledWater Boolean?
+  hasFilters       Boolean?
+  hasWellWater     Boolean?
+
+  storeNumber   String?
+  collectedOn   String?  // date as written on the card (yyyy-mm-dd if legible)
+  generatorName String?  // rep who collected the card, if named
+
+  // The scanner's own read on legibility (0–100) and the fields it flagged.
+  confidence      Int?
+  uncertainFields String[] @default([])
+  // Raw tool JSON from the scan, kept for auditing.
+  rawJson         String?  @db.Text
+
+  // The original photo (encrypted in object storage), the source of truth.
+  photoStorageKey String?
+  photoMime       String?
+
+  // Follow-up state, mirroring how HD leads are worked.
+  status String  @default("NEW") // NEW | CONTACTED | NO_GOOD
+  note   String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([dealerId])
+  @@index([createdAt])
 }
 
 // ---- Chat / conversations -------------------------------------------------
