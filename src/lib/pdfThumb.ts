@@ -1,5 +1,6 @@
 import 'server-only';
 import sharp from 'sharp';
+import { withConcurrencyLimit } from './concurrency';
 
 /**
  * Rasterize the first page of a PDF into a small webp thumbnail. Runs at upload
@@ -10,6 +11,11 @@ import sharp from 'sharp';
  * can't break module load or the build.
  */
 export async function pdfFirstPageThumb(pdfBytes: Buffer): Promise<Buffer | null> {
+  // Cap concurrent PDF rasterization (memory-heavy) across the instance.
+  return withConcurrencyLimit('pdf-render', 2, () => pdfFirstPageThumbInner(pdfBytes));
+}
+
+async function pdfFirstPageThumbInner(pdfBytes: Buffer): Promise<Buffer | null> {
   try {
     const { pdf } = await import('pdf-to-img');
     const doc = await pdf(pdfBytes, { scale: 1.5 });
@@ -38,6 +44,12 @@ export async function pdfFirstPageThumb(pdfBytes: Buffer): Promise<Buffer | null
  * huge PDF can't produce an unbounded image.
  */
 export async function renderPdfPagesStacked(pdfBytes: Buffer, maxPages = 40): Promise<Buffer | null> {
+  // Shares the pdf-render pool with the thumbnail renderer — both rasterize pages
+  // and are the memory-heaviest path when several people open PDFs at once.
+  return withConcurrencyLimit('pdf-render', 2, () => renderPdfPagesStackedInner(pdfBytes, maxPages));
+}
+
+async function renderPdfPagesStackedInner(pdfBytes: Buffer, maxPages: number): Promise<Buffer | null> {
   try {
     const { pdf } = await import('pdf-to-img');
     const doc = await pdf(pdfBytes, { scale: 2 });

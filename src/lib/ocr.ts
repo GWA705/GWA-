@@ -7,6 +7,7 @@ import { prisma } from './db';
 import { getDocument } from './storage';
 import { findDates } from './docanalysis';
 import type { DocAnalysis } from './docanalysis-format';
+import { withConcurrencyLimit } from './concurrency';
 
 /**
  * Tier-2 OCR (assistive, on-prem — no data leaves the portal). Reads scans and
@@ -55,6 +56,16 @@ export async function ocrBytes(
   bytes: Buffer,
   mimeType: string,
   maxPages = OCR_MAX_PAGES,
+): Promise<{ text: string; pages: number }> {
+  // OCR (tesseract + page rasterization) is the heaviest job on the box; cap how
+  // many run at once so a burst of scans/uploads can't exhaust memory.
+  return withConcurrencyLimit('ocr', 2, () => ocrBytesInner(bytes, mimeType, maxPages));
+}
+
+async function ocrBytesInner(
+  bytes: Buffer,
+  mimeType: string,
+  maxPages: number,
 ): Promise<{ text: string; pages: number }> {
   let images: Buffer[] = [];
   if (mimeType === 'application/pdf') {

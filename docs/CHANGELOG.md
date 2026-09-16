@@ -54,6 +54,23 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-16
+- **Concurrency caps on heavy jobs (memory-spike protection).** Added a tiny
+  in-process semaphore (`src/lib/concurrency.ts`) and wrapped the two heaviest,
+  memory-hungry paths so a burst can't exhaust the small instance's RAM: **OCR**
+  (tesseract + page rasterization, `ocrBytes`) capped at 2 concurrent, and **PDF
+  page rendering** (`pdfFirstPageThumb` + `renderPdfPagesStacked`, shared pool)
+  capped at 2. Excess calls queue (they wait, never dropped) so a spike degrades to
+  "slightly slower" instead of an outage. Per-instance by design. (AWS capacity
+  item #4.)
+  - **OPS TODO — the AWS-side capacity items still need doing** (they require AWS
+    console/CLI access, which the portal/session can't do): **(1)** convert the EB
+    env `Gwa-portal-env` from single-instance to **load-balanced, min 1 / max 2–3**
+    with a CPU scale-out trigger (ends the single-point-of-failure); **(2)**
+    right-size to **t3.medium** only if the memory/credit alarms fire; **(3)** add
+    the **CloudWatch alarms** (CPU, CPU-credit-balance, memory, EB health, ALB 5xx,
+    RDS). Full copy-paste steps in **`docs/AWS-SCALING-ALARMS.md`**. Blocked on AWS
+    access (the "AWS MCP" connector isn't available to the org and the session's AWS
+    env creds return InvalidClientTokenId).
 - **Fixed the in-app document viewer opening in a tiny box (dealer + staff).** The
   `DocViewer` full-screen overlay (View on deal documents / customer paperwork /
   HD waivers) is `position: fixed`, but it rendered inside the page DOM — so a
