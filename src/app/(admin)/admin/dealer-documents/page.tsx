@@ -121,10 +121,10 @@ export default async function AdminDealerDocumentsPage() {
         <h2 className="mb-1 text-base font-semibold text-gray-900">Renewal reminder settings</h2>
         <p className="mb-4 text-sm text-gray-500">
           The reminder email + push go to the <strong>dealer&apos;s own active users</strong> at the
-          office that owns the document. Turn on <strong>Also CC GWA staff</strong> to have every
-          Reviewer and Admin get an email copy too. The first nudge goes out ahead of expiry, then
-          repeats on the schedule below through expiry and while overdue, until the document is
-          replaced.
+          office that owns the document. Turn on <strong>Email GWA staff a daily digest</strong> to
+          send every Reviewer and Admin one summary email per run listing everything reminded that
+          day (not a copy per document). The first nudge goes out ahead of expiry, then repeats on
+          the schedule below through expiry and while overdue, until the document is replaced.
         </p>
         <DocReminderConfigForm config={reminderConfig} />
       </div>

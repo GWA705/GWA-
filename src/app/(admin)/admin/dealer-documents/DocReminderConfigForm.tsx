@@ -52,9 +52,9 @@ export function DocReminderConfigForm({ config }: { config: DocReminderConfig })
       <label className="flex items-start gap-2 text-sm font-medium text-gray-800">
         <input type="checkbox" name="ccStaff" defaultChecked={config.ccStaff} className="mt-0.5 h-4 w-4 rounded border-gray-300" />
         <span>
-          Also CC GWA staff
+          Email GWA staff a daily digest
           <span className="block text-xs font-normal text-gray-400">
-            Every Reviewer and Admin account gets an email copy of each reminder, so the office can chase lapsing paperwork. Email only — dealers still get the email + push.
+            Every Reviewer and Admin account gets ONE summary email per run listing every document reminded that day (office, document, status) — not a copy per document. Sent only on days something is due. Dealers still get their own email + push.
           </span>
         </span>
       </label>

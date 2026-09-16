@@ -62,10 +62,11 @@ source of truth; this file is the human-readable index.
     on/off, first-reminder days-before (default 7), repeat cadence (default weekly),
     max reminders (default 6), send-hours window, and timezone — with "Reset to
     defaults". Persists in app settings (`reminders.docExpiry`).
-  - **"Also CC GWA staff"** toggle — when on, every Reviewer + Admin account gets an
-    email copy of each reminder (email only, no push) so the office can chase
-    lapsing paperwork; with it on, an office with no users of its own still triggers
-    a staff copy. Off by default.
+  - **"Email GWA staff a daily digest"** toggle — when on, every Reviewer + Admin
+    gets ONE summary email per run listing every document reminded that day
+    (office · document · status · expiry), instead of a copy per document; sent
+    only on days something is due, email only. Offices with no users of their own
+    still appear in the digest. Off by default.
   - **"Run it now"** button to fire the due sweep on demand (respects the send-hours
     window). (`docReminders.ts` `ccStaff` + staff CC, `saveDocReminderConfigAction`
     / `resetDocReminderConfigAction` / `runDocRemindersNowAction`,

@@ -137,6 +137,10 @@ export async function runDocExpiryReminders(now: Date = new Date()): Promise<Doc
   let emails = 0;
   let pushes = 0;
 
+  // Rows for the single GWA-staff digest sent at the end of the run (one email
+  // summarizing every document reminded today, instead of one copy per document).
+  const digestRows: { office: string; doc: string; whenPhrase: string; expiryStr: string; overdue: boolean; daysLeft: number }[] = [];
+
   for (const doc of candidates) {
     if (doc.lastRemindedAt && now.getTime() - doc.lastRemindedAt.getTime() < resendGapMs) continue;
 
@@ -178,12 +182,10 @@ export async function runDocExpiryReminders(now: Date = new Date()): Promise<Doc
       }
     }
 
-    // CC GWA staff a copy (email only — no push), when enabled. Staff get one
-    // copy per reminder so they can chase lapsing paperwork per office.
-    for (const to of staffEmails) {
-      // eslint-disable-next-line no-await-in-loop
-      const res = await sendEmail({ to, subject, html });
-      if (res.sent) emailed += 1;
+    // Collect this document for the end-of-run GWA-staff digest (one summary
+    // email per run) instead of emailing staff a copy per document.
+    if (staffEmails.length > 0) {
+      digestRows.push({ office: doc.dealer.name, doc: name, whenPhrase, expiryStr, overdue, daysLeft });
     }
 
     // eslint-disable-next-line no-await-in-loop
@@ -197,5 +199,63 @@ export async function runDocExpiryReminders(now: Date = new Date()): Promise<Doc
     pushes += pushed;
   }
 
+  // One digest email to GWA staff summarizing everything reminded this run.
+  if (staffEmails.length > 0 && digestRows.length > 0) {
+    // Needs-attention first: expired (most overdue first), then soonest to expire.
+    digestRows.sort((a, b) => a.daysLeft - b.daysLeft);
+    const offices = new Set(digestRows.map((r) => r.office)).size;
+    const overdueCount = digestRows.filter((r) => r.overdue).length;
+
+    const rowsHtml = digestRows
+      .map((r) => {
+        const color = r.overdue ? '#b91c1c' : r.daysLeft <= 7 ? '#b45309' : '#374151';
+        return `<tr>
+          <td style="padding:8px 10px;border-bottom:1px solid #eef0f2;font-size:13px;color:#111827;">${escapeHtml(r.office)}</td>
+          <td style="padding:8px 10px;border-bottom:1px solid #eef0f2;font-size:13px;color:#111827;">${escapeHtml(r.doc)}</td>
+          <td style="padding:8px 10px;border-bottom:1px solid #eef0f2;font-size:13px;color:${color};font-weight:600;">${escapeHtml(r.whenPhrase)}</td>
+          <td style="padding:8px 10px;border-bottom:1px solid #eef0f2;font-size:13px;color:#6b7280;">${escapeHtml(r.expiryStr)}</td>
+        </tr>`;
+      })
+      .join('');
+
+    const tableHtml = `
+      <p style="margin:0 0 14px;font-size:14px;line-height:1.6;color:#374151;">${digestRows.length} document${digestRows.length === 1 ? '' : 's'} across ${offices} office${offices === 1 ? '' : 's'} ${digestRows.length === 1 ? 'was' : 'were'} reminded today${overdueCount ? ` — <strong style="color:#b91c1c;">${overdueCount} already expired</strong>` : ''}. The dealers were emailed automatically; this is your copy so you can follow up.</p>
+      <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;border:1px solid #eef0f2;border-radius:8px;overflow:hidden;">
+        <thead>
+          <tr style="background:#f8fafc;">
+            <th align="left" style="padding:8px 10px;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#6b7280;">Office</th>
+            <th align="left" style="padding:8px 10px;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#6b7280;">Document</th>
+            <th align="left" style="padding:8px 10px;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#6b7280;">Status</th>
+            <th align="left" style="padding:8px 10px;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#6b7280;">Expiry</th>
+          </tr>
+        </thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>`;
+
+    const digestSubject = `Compliance digest: ${digestRows.length} document${digestRows.length === 1 ? '' : 's'} need${digestRows.length === 1 ? 's' : ''} renewal — Georgian Water & Air`;
+    const digestHtml = renderEmail({
+      heading: 'Dealer document renewals — daily digest',
+      intro: `${digestRows.length} document${digestRows.length === 1 ? '' : 's'} across ${offices} office${offices === 1 ? '' : 's'} ${digestRows.length === 1 ? 'is' : 'are'} due for renewal.`,
+      bodyHtml: tableHtml,
+      ctaLabel: 'Open the compliance dashboard',
+      ctaUrl: `${appUrl()}/admin/dealer-documents`,
+    });
+
+    for (const to of staffEmails) {
+      // eslint-disable-next-line no-await-in-loop
+      const res = await sendEmail({ to, subject: digestSubject, html: digestHtml });
+      if (res.sent) emails += 1;
+    }
+  }
+
   return { ran: true, docs: docsReminded, emails, pushes };
+}
+
+/** Minimal HTML escaping for values interpolated into the staff digest email. */
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
