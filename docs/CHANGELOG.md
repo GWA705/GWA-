@@ -53,6 +53,26 @@ source of truth; this file is the human-readable index.
   `testSingleLead()` on a French lead first. Portal display auto-translates lead
   free-text via DeepL.
 
+## 2026-09-16
+- **Document-expiry reminders: admin settings panel + optional CC to GWA staff.**
+  The WSIB/WCB (and "Other") renewal reminders already emailed + pushed the
+  **dealer's own active users** at the office that owns the document; that's
+  unchanged. Added, at **Admin → Dealers → Dealer documents**:
+  - **A settings panel** to edit the whole schedule without a code change:
+    on/off, first-reminder days-before (default 7), repeat cadence (default weekly),
+    max reminders (default 6), send-hours window, and timezone — with "Reset to
+    defaults". Persists in app settings (`reminders.docExpiry`).
+  - **"Also CC GWA staff"** toggle — when on, every Reviewer + Admin account gets an
+    email copy of each reminder (email only, no push) so the office can chase
+    lapsing paperwork; with it on, an office with no users of its own still triggers
+    a staff copy. Off by default.
+  - **"Run it now"** button to fire the due sweep on demand (respects the send-hours
+    window). (`docReminders.ts` `ccStaff` + staff CC, `saveDocReminderConfigAction`
+    / `resetDocReminderConfigAction` / `runDocRemindersNowAction`,
+    `DocReminderConfigForm`, `DocReminderRunner`, dealer-documents admin page.)
+  - Confirmed the daily Render Cron `gwa-doc-expiry-reminders`
+    (`0 13 * * *` → `/api/cron/doc-expiry-reminders`) is live, so reminders fire.
+
 ## 2026-09-15
 - **Dealer "journal name" — short form written to the journal's Location column.**
   Each dealer now has an optional **journal name** (Admin → Dealers, inline next to

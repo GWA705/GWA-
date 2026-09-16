@@ -9,6 +9,7 @@ import { hashPassword, validatePasswordStrength, generateTempPassword } from '@/
 import { audit } from '@/lib/audit';
 import { runAttentionAlerts } from '@/lib/sla';
 import { getReminderConfig, setReminderConfig, runDealerReminders, DEFAULT_REMINDER_CONFIG, type ReminderConfig } from '@/lib/reminders';
+import { getDocReminderConfig, setDocReminderConfig, runDocExpiryReminders, DEFAULT_DOC_REMINDER_CONFIG, type DocReminderConfig } from '@/lib/docReminders';
 import { sweepNewLeads } from '@/lib/leadNotify';
 import crypto from 'crypto';
 import path from 'path';
@@ -1222,6 +1223,73 @@ export async function resetReminderConfigAction(): Promise<void> {
   await setReminderConfig(DEFAULT_REMINDER_CONFIG);
   await audit({ actorId: session.userId, action: 'USER_UPDATE', entityType: 'AppSetting', entityId: 'reminders', detail: 'Dealer reminder rules reset to defaults' });
   revalidatePath('/admin/reminders');
+}
+
+// --- Business-document expiry reminders (Admin → Dealer documents) ----------
+
+export async function saveDocReminderConfigAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await requireAdminSection('dealer-documents');
+  const current = await getDocReminderConfig();
+
+  const num = (name: keyof DocReminderConfig, min: number, max: number): number => {
+    const raw = String(formData.get(name) ?? '').trim();
+    if (raw === '') return current[name] as number;
+    const n = Number(raw);
+    if (!Number.isFinite(n)) return current[name] as number;
+    return Math.min(max, Math.max(min, Math.round(n)));
+  };
+
+  const tzRaw = String(formData.get('timezone') ?? '').trim();
+
+  const patch: Partial<DocReminderConfig> = {
+    enabled: formData.get('enabled') === 'on',
+    ccStaff: formData.get('ccStaff') === 'on',
+    timezone: tzRaw || current.timezone,
+    daysBefore: num('daysBefore', 1, 180),
+    resendGapDays: num('resendGapDays', 1, 60),
+    maxReminders: num('maxReminders', 1, 30),
+    quietStartHour: num('quietStartHour', 0, 23),
+    quietEndHour: num('quietEndHour', 1, 24),
+  };
+
+  if (patch.quietEndHour! <= patch.quietStartHour!) {
+    return { error: 'The end hour must be later than the start hour.' };
+  }
+
+  await setDocReminderConfig(patch);
+  await audit({
+    actorId: session.userId,
+    action: 'USER_UPDATE',
+    entityType: 'AppSetting',
+    entityId: 'reminders.docExpiry',
+    detail: `Document-expiry reminder rules updated (enabled=${patch.enabled}, ccStaff=${patch.ccStaff})`,
+  });
+  revalidatePath('/admin/dealer-documents');
+  return { ok: true, message: 'Reminder settings saved.' };
+}
+
+export async function resetDocReminderConfigAction(): Promise<void> {
+  const session = await requireAdminSection('dealer-documents');
+  await setDocReminderConfig(DEFAULT_DOC_REMINDER_CONFIG);
+  await audit({ actorId: session.userId, action: 'USER_UPDATE', entityType: 'AppSetting', entityId: 'reminders.docExpiry', detail: 'Document-expiry reminder rules reset to defaults' });
+  revalidatePath('/admin/dealer-documents');
+}
+
+// Run the document-expiry sweep on demand (the same work the daily cron does).
+export async function runDocRemindersNowAction(
+  _prev: { ok?: boolean; message?: string; error?: string },
+): Promise<{ ok?: boolean; message?: string; error?: string }> {
+  await requireAdminSection('dealer-documents');
+  try {
+    const r = await runDocExpiryReminders();
+    if (!r.ran) return { ok: true, message: `Nothing sent — ${r.reason ?? 'not due'}.` };
+    return { ok: true, message: `Sent reminders for ${r.docs} document${r.docs === 1 ? '' : 's'} (${r.emails} email${r.emails === 1 ? '' : 's'}, ${r.pushes} push).` };
+  } catch (e) {
+    return { error: (e as Error).message || 'Run failed.' };
+  }
 }
 
 // Run the dealer-reminder sweep on demand (the same work the cron does).

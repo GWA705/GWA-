@@ -29,6 +29,9 @@ export interface DocReminderConfig {
   daysBefore: number; // first reminder this many days before expiry
   resendGapDays: number; // minimum days between repeat reminders for one doc
   maxReminders: number; // stop after this many (it's on the admin dashboard)
+  // Also send GWA staff (Reviewer + Admin users) a copy of every reminder, so
+  // the office can follow up on lapsing paperwork. Email only (no push to staff).
+  ccStaff: boolean;
 }
 
 export const DEFAULT_DOC_REMINDER_CONFIG: DocReminderConfig = {
@@ -39,6 +42,7 @@ export const DEFAULT_DOC_REMINDER_CONFIG: DocReminderConfig = {
   daysBefore: DOC_EXPIRY_REMIND_DAYS_BEFORE,
   resendGapDays: 7,
   maxReminders: 6,
+  ccStaff: false,
 };
 
 const SETTING_KEY = 'reminders.docExpiry';
@@ -117,6 +121,18 @@ export async function runDocExpiryReminders(now: Date = new Date()): Promise<Doc
     usersByDealer.set(u.dealerId, arr);
   }
 
+  // GWA staff who get CC'd on every reminder (email only), when enabled.
+  const staffEmails: string[] = cfg.ccStaff
+    ? (
+        await prisma.user.findMany({
+          where: { role: { in: ['REVIEWER', 'ADMIN'] }, active: true },
+          select: { email: true, notificationEmail: true },
+        })
+      )
+        .map((s) => (s.notificationEmail || s.email || '').trim())
+        .filter((e) => e.length > 0)
+    : [];
+
   let docsReminded = 0;
   let emails = 0;
   let pushes = 0;
@@ -125,7 +141,8 @@ export async function runDocExpiryReminders(now: Date = new Date()): Promise<Doc
     if (doc.lastRemindedAt && now.getTime() - doc.lastRemindedAt.getTime() < resendGapMs) continue;
 
     const recipients = usersByDealer.get(doc.dealerId) ?? [];
-    if (recipients.length === 0) continue;
+    // Nothing to send if the office has no users AND staff CC is off.
+    if (recipients.length === 0 && staffEmails.length === 0) continue;
 
     const daysLeft = daysUntil(doc.expiryDate, now) ?? 0;
     const name = docLabel(doc.type, doc.label);
@@ -159,6 +176,14 @@ export async function runDocExpiryReminders(now: Date = new Date()): Promise<Doc
       } catch {
         /* best-effort */
       }
+    }
+
+    // CC GWA staff a copy (email only — no push), when enabled. Staff get one
+    // copy per reminder so they can chase lapsing paperwork per office.
+    for (const to of staffEmails) {
+      // eslint-disable-next-line no-await-in-loop
+      const res = await sendEmail({ to, subject, html });
+      if (res.sent) emailed += 1;
     }
 
     // eslint-disable-next-line no-await-in-loop

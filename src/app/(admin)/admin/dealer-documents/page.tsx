@@ -3,6 +3,9 @@ import { requireAdminSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { BUSINESS_DOC_TYPES, OTHER_DOC_TYPE } from '@/lib/constants';
 import { docStatus, statusLabel, type DocStatus } from '@/lib/dealerDocs';
+import { getDocReminderConfig } from '@/lib/docReminders';
+import { DocReminderConfigForm } from './DocReminderConfigForm';
+import { DocReminderRunner } from './DocReminderRunner';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,11 +21,14 @@ const iso = (d: Date | null) => (d ? new Date(d).toISOString().slice(0, 10) : nu
 export default async function AdminDealerDocumentsPage() {
   await requireAdminSection('dealer-documents');
 
-  const dealers = await prisma.dealer.findMany({
-    where: { active: true },
-    orderBy: { name: 'asc' },
-    include: { businessDocuments: { orderBy: { createdAt: 'desc' } } },
-  });
+  const [dealers, reminderConfig] = await Promise.all([
+    prisma.dealer.findMany({
+      where: { active: true },
+      orderBy: { name: 'asc' },
+      include: { businessDocuments: { orderBy: { createdAt: 'desc' } } },
+    }),
+    getDocReminderConfig(),
+  ]);
 
   const now = new Date();
   type Row = {
@@ -109,6 +115,32 @@ export default async function AdminDealerDocumentsPage() {
             )}
           </tbody>
         </table>
+      </div>
+
+      <div className="card p-6">
+        <h2 className="mb-1 text-base font-semibold text-gray-900">Renewal reminder settings</h2>
+        <p className="mb-4 text-sm text-gray-500">
+          The reminder email + push go to the <strong>dealer&apos;s own active users</strong> at the
+          office that owns the document. Turn on <strong>Also CC GWA staff</strong> to have every
+          Reviewer and Admin get an email copy too. The first nudge goes out ahead of expiry, then
+          repeats on the schedule below through expiry and while overdue, until the document is
+          replaced.
+        </p>
+        <DocReminderConfigForm config={reminderConfig} />
+      </div>
+
+      <div className="card p-6">
+        <h2 className="mb-1 text-base font-semibold text-gray-900">Run it now</h2>
+        <p className="mb-4 text-sm text-gray-500">
+          Sends any reminders that are due right now (the same work the daily schedule does). Runs
+          only inside the send-hours window above.
+        </p>
+        <DocReminderRunner />
+        <p className="mt-4 rounded bg-brand-50 p-3 text-xs text-brand-800">
+          The automatic check runs from a Render Cron Job that calls
+          <code className="mx-1 rounded bg-brand-100 px-1">/api/cron/doc-expiry-reminders</code>
+          once a day with the <code className="rounded bg-brand-100 px-1">CRON_SECRET</code>.
+        </p>
       </div>
     </div>
   );
