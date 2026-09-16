@@ -54,6 +54,14 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-16
+- **Fixed the in-app document viewer opening in a tiny box (dealer + staff).** The
+  `DocViewer` full-screen overlay (View on deal documents / customer paperwork /
+  HD waivers) is `position: fixed`, but it rendered inside the page DOM — so a
+  `transform` on any ancestor (e.g. a card hover effect) became its containing
+  block and trapped the overlay in that little area instead of the viewport (it
+  only filled the screen when the cursor left, releasing the hover transform). Now
+  rendered through a React portal to `document.body`, so it always covers the full
+  viewport regardless of ancestor transforms. (`components/DocViewer.tsx`.)
 - **Security audit follow-ups (safe batch).** Acted on the 2026-09-16 read-only
   audit's low-risk findings (no behaviour changes for normal use):
   - **PII reveal is now logged-or-masked (fail-closed).** `audit()` returns whether

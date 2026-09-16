@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { DownloadButton } from './DownloadButton';
 import { useT } from '@/i18n/client';
 
@@ -35,6 +36,10 @@ export function DocViewer({
 }) {
   const t = useT();
   const [open, setOpen] = useState(false);
+  // Only portal after mount so SSR/first paint match (document isn't available
+  // server-side). The overlay itself only ever opens from a client click anyway.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const src = srcProp ?? `/api/documents/${id}`;
   const isImage = (mimeType ?? '').startsWith('image/');
   const isPdf = (mimeType ?? '') === 'application/pdf';
@@ -62,7 +67,11 @@ export function DocViewer({
       <button type="button" onClick={() => setOpen(true)} className={className} title={title ?? fileName}>
         {children}
       </button>
-      {open && (
+      {open && mounted && createPortal(
+        // Portalled to <body> so the full-screen overlay is positioned against the
+        // viewport, never a transformed ancestor (a `transform` on any parent —
+        // e.g. a card hover effect — would otherwise trap `fixed` inside that card
+        // and shrink the viewer to that little box).
         <div className="fixed inset-0 z-[60] flex flex-col bg-black/80" role="dialog" aria-modal="true" aria-label={fileName}>
           <div className="flex flex-none items-center gap-2 bg-white px-2 py-2 shadow">
             <button
@@ -94,7 +103,8 @@ export function DocViewer({
               <iframe src={src} title={fileName} className="h-full w-full border-0 bg-white" />
             )}
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </>
   );
