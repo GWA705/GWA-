@@ -16,6 +16,14 @@ on:
       - '**/*.md'
   workflow_dispatch: {}
 
+# Serialize deploys. Two pushes close together used to build in parallel and
+# both try to deploy — the second failed with "Environment ... must be Ready"
+# because Elastic Beanstalk was still applying the first. Queue runs (don't
+# cancel) so each build+deploy finishes before the next begins.
+concurrency:
+  group: deploy-eb-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: read
 
