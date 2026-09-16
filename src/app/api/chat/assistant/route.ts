@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getSession } from '@/lib/session';
+import { rateLimit } from '@/lib/ratelimit';
 import { isInternalRole } from '@/lib/constants';
 import {
   AFTER_HOURS_REPLY,
@@ -27,6 +28,11 @@ export const maxDuration = 30;
 export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return new NextResponse('Unauthorized', { status: 401 });
+
+  // Each reply triggers an LLM call; cap per-user bursts so a stuck client or a
+  // compromised account can't loop it to run up model cost or tie up workers.
+  const rl = await rateLimit(`chat-ai:${session.userId}`, 20, 60);
+  if (!rl.ok) return NextResponse.json({ replied: false, reason: 'rate_limited' }, { status: 429 });
 
   let conversationId: string | undefined;
   let context: string | undefined;
