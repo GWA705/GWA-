@@ -70,8 +70,12 @@ function clientIp(): string | null {
 /**
  * Append an entry to the audit trail. Best-effort: an audit failure must never
  * crash the request, but is logged to the server console for investigation.
+ *
+ * Returns `true` if the entry was written, `false` if it failed. Most callers can
+ * ignore this, but a caller that must NOT proceed without an audit record (e.g. a
+ * PII reveal) can check it and fall back to a masked view when it's `false`.
  */
-export async function audit(input: AuditInput): Promise<void> {
+export async function audit(input: AuditInput): Promise<boolean> {
   try {
     // Snapshot the actor's name/email so attribution survives a later user
     // deletion (which nulls actorId). Best-effort lookup.
@@ -97,7 +101,9 @@ export async function audit(input: AuditInput): Promise<void> {
         ipAddress: clientIp(),
       },
     });
+    return true;
   } catch (err) {
     console.error('[audit] failed to write audit log', input.action, err);
+    return false;
   }
 }

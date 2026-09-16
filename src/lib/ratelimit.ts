@@ -6,12 +6,36 @@ import { prisma } from './db';
  * multiple app instances Render runs (an in-memory limiter would not). Each call
  * counts one hit against `key` within a rolling `windowSeconds` window.
  *
- * Fails OPEN on a limiter/DB error — a limiter outage should not lock users out
- * of the whole app — but logs so it is visible.
+ * If the DB is unavailable it falls back to a **per-instance in-memory** limiter
+ * rather than failing fully open — so brute-force protection on login/MFA/reset
+ * doesn't disappear during a DB blip. (Per-instance is weaker than the shared DB
+ * window but far better than no limit; on the current single-instance deploy it's
+ * effectively global.)
  */
 export interface RateResult {
   ok: boolean;
   retryAfterSec: number;
+}
+
+// In-memory fallback window, used only when the DB call throws.
+const memWindows = new Map<string, { count: number; resetAt: number }>();
+
+function memRateLimit(key: string, limit: number, windowSeconds: number): RateResult {
+  const now = Date.now();
+  // Opportunistic prune so the map can't grow without bound during an outage.
+  if (memWindows.size > 5000) {
+    for (const [k, w] of memWindows) if (w.resetAt <= now) memWindows.delete(k);
+  }
+  const cur = memWindows.get(key);
+  if (!cur || cur.resetAt <= now) {
+    memWindows.set(key, { count: 1, resetAt: now + windowSeconds * 1000 });
+    return { ok: true, retryAfterSec: 0 };
+  }
+  if (cur.count >= limit) {
+    return { ok: false, retryAfterSec: Math.max(1, Math.ceil((cur.resetAt - now) / 1000)) };
+  }
+  cur.count += 1;
+  return { ok: true, retryAfterSec: 0 };
 }
 
 export async function rateLimit(
@@ -40,8 +64,8 @@ export async function rateLimit(
     await prisma.rateLimit.update({ where: { key }, data: { count: { increment: 1 } } });
     return { ok: true, retryAfterSec: 0 };
   } catch (e) {
-    console.error('[ratelimit] error (failing open)', e);
-    return { ok: true, retryAfterSec: 0 };
+    console.error('[ratelimit] DB error — using in-memory fallback', e);
+    return memRateLimit(key, limit, windowSeconds);
   }
 }
 

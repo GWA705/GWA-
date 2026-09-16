@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
   if (conversationId) {
     conv = await prisma.conversation.findUnique({ where: { id: conversationId }, select: { id: true, dealerId: true } });
   } else if (applicationId) {
-    conv = await getOrCreateDealConversation(applicationId);
+    conv = await getOrCreateDealConversation(applicationId, session);
   } else {
     return new NextResponse('Missing conversationId or applicationId', { status: 400 });
   }

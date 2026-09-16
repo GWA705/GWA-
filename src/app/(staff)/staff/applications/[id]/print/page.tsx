@@ -30,22 +30,33 @@ export default async function ApplicationPrintView({ params }: { params: { id: s
   if (!app) notFound();
 
   const loan = app.loanApplication;
-  const pv = {
-    dob: decryptOptional(app.applicantDobEnc) ?? '—',
-    address: decryptOptional(app.applicantAddressEnc) ?? '—',
-    govId: decryptOptional(app.govIdNumberEnc) ?? '—',
-    coDob: decryptOptional(loan?.coDobEnc) ?? '—',
-    coAddress: decryptOptional(loan?.coAddressEnc) ?? '—',
-    coGovId: decryptOptional(loan?.coGovIdNumberEnc) ?? '—',
-  };
-
-  await audit({
+  // Record the PII access first; only decrypt if the audit entry was written, so a
+  // reveal never happens unlogged. If it fails, the page renders with masked fields.
+  const revealOk = await audit({
     actorId: user.userId,
     action: 'PII_DECRYPT',
     entityType: 'Application',
     entityId: app.id,
     detail: 'Opened full application (print/entry view)',
   });
+  const mask = (enc: string | null | undefined) => (enc ? '••••••' : '—');
+  const pv = revealOk
+    ? {
+        dob: decryptOptional(app.applicantDobEnc) ?? '—',
+        address: decryptOptional(app.applicantAddressEnc) ?? '—',
+        govId: decryptOptional(app.govIdNumberEnc) ?? '—',
+        coDob: decryptOptional(loan?.coDobEnc) ?? '—',
+        coAddress: decryptOptional(loan?.coAddressEnc) ?? '—',
+        coGovId: decryptOptional(loan?.coGovIdNumberEnc) ?? '—',
+      }
+    : {
+        dob: mask(app.applicantDobEnc),
+        address: mask(app.applicantAddressEnc),
+        govId: mask(app.govIdNumberEnc),
+        coDob: mask(loan?.coDobEnc),
+        coAddress: mask(loan?.coAddressEnc),
+        coGovId: mask(loan?.coGovIdNumberEnc),
+      };
 
   return (
     <div className="mx-auto max-w-3xl space-y-4 p-4">
@@ -68,7 +79,7 @@ export default async function ApplicationPrintView({ params }: { params: { id: s
       <ReviewerEntryView
         app={app}
         loan={loan}
-        reveal
+        reveal={revealOk}
         pv={pv}
         revealHref={`/staff/applications/${app.id}/print`}
         hideHref={`/staff/applications/${app.id}`}

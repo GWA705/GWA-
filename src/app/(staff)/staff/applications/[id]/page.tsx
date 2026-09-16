@@ -172,7 +172,19 @@ export default async function StaffApplicationDetail({
   // field is empty.
   const masked = (enc: string | null | undefined) => (enc ? '••••••' : '—');
   const loan = app.loanApplication;
-  const pv = reveal
+  // Log the PII access BEFORE decrypting, and only reveal if the audit entry was
+  // actually written — a reveal must never happen without a record of it. If the
+  // audit write fails, fall back to the masked view.
+  const revealOk = reveal
+    ? await audit({
+        actorId: user.userId,
+        action: 'PII_DECRYPT',
+        entityType: 'Application',
+        entityId: app.id,
+        detail: 'Revealed identity fields (reviewer entry view)',
+      })
+    : false;
+  const pv = revealOk
     ? {
         dob: decryptOptional(app.applicantDobEnc) ?? '—',
         address: decryptOptional(app.applicantAddressEnc) ?? '—',
@@ -202,18 +214,8 @@ export default async function StaffApplicationDetail({
   const addrProv = nz(loan?.addressProvince) ?? nz(app.province);
   const addrPostal = nz(loan?.postalCode) ?? nz(app.applicantPostal);
   const cityProvPostal = [[addrCity, addrProv].filter(Boolean).join(', '), addrPostal].filter(Boolean).join(' ');
-  const streetShown = reveal && pv.address !== '—' ? pv.address : null;
+  const streetShown = revealOk && pv.address !== '—' ? pv.address : null;
   const fullAddress = [streetShown, cityProvPostal].filter(Boolean).join(', ');
-
-  if (reveal) {
-    await audit({
-      actorId: user.userId,
-      action: 'PII_DECRYPT',
-      entityType: 'Application',
-      entityId: app.id,
-      detail: 'Revealed identity fields (reviewer entry view)',
-    });
-  }
 
   const applicationDocs = app.documents.filter((d) => d.stage === 'APPLICATION');
   const fundingDocs = app.documents.filter((d) => d.stage === 'FUNDING');
@@ -445,7 +447,7 @@ export default async function StaffApplicationDetail({
               <div><dt className="text-gray-500">Program</dt><dd><ProgramBadge type={app.programType} category={programCategoryLabel(t, app.programCategory)} /></dd></div>
               <div><dt className="text-gray-500">Customer</dt><dd className="font-medium">{app.applicantFirstName} {app.applicantLastName}</dd></div>
               <div><dt className="text-gray-500">Phone</dt><dd className="font-medium">{app.applicantPhone}</dd></div>
-              <div className="sm:col-span-2"><dt className="text-gray-500">Address</dt><dd className="font-medium">{fullAddress || '—'}{!reveal && app.applicantAddressEnc && <a href={`/staff/applications/${app.id}?reveal=1`} className="ml-2 text-xs font-normal text-brand-600 hover:underline">reveal street</a>}</dd></div>
+              <div className="sm:col-span-2"><dt className="text-gray-500">Address</dt><dd className="font-medium">{fullAddress || '—'}{!revealOk && app.applicantAddressEnc && <a href={`/staff/applications/${app.id}?reveal=1`} className="ml-2 text-xs font-normal text-brand-600 hover:underline">reveal street</a>}</dd></div>
               <div><dt className="text-gray-500">Product(s)</dt><dd className="font-medium">{app.productsSold.length ? app.productsSold.join(', ') : '—'}</dd></div>
               <div><dt className="text-gray-500">Amount</dt><dd className="font-medium">{app.approvedAmount ? `$${app.approvedAmount.toString()}` : `$${app.requestedAmount.toString()}`}</dd></div>
               {app.isSplitPayment && <div><dt className="text-gray-500">Financed</dt><dd className="font-medium text-brand-700">${financedAmt.toLocaleString('en-CA', { minimumFractionDigits: 2 })} <span className="text-xs font-normal text-gray-400">(split)</span></dd></div>}
@@ -459,7 +461,7 @@ export default async function StaffApplicationDetail({
           <ReviewerEntryView
             app={app}
             loan={loan}
-            reveal={reveal}
+            reveal={revealOk}
             pv={pv}
             revealHref={`/staff/applications/${app.id}?reveal=1`}
             hideHref={`/staff/applications/${app.id}`}
@@ -840,7 +842,7 @@ export default async function StaffApplicationDetail({
 
         {app.taxExempt && (() => {
           const ex = exemptionSummary({ taxExempt: true, province: app.province, deliveredToReserve: app.deliveredToReserve });
-          const statusCard = reveal ? (decryptOptional(app.statusCardNumberEnc) ?? '—') : masked(app.statusCardNumberEnc);
+          const statusCard = revealOk ? (decryptOptional(app.statusCardNumberEnc) ?? '—') : masked(app.statusCardNumberEnc);
           return (
             <section className="card border border-amber-200 bg-amber-50 p-4">
               <div className="flex flex-wrap items-center gap-2">
@@ -848,7 +850,7 @@ export default async function StaffApplicationDetail({
                 <span className="text-sm text-amber-900">{ex.detail}</span>
               </div>
               <dl className="mt-3 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4 [&>div]:min-w-0 [&_dd]:break-words">
-                <div><dt className="text-gray-500">Status card #</dt><dd className="font-medium">{statusCard}{!reveal && app.statusCardNumberEnc && <a href={`/staff/applications/${app.id}?reveal=1`} className="ml-2 text-xs text-brand-600 hover:underline">reveal</a>}</dd></div>
+                <div><dt className="text-gray-500">Status card #</dt><dd className="font-medium">{statusCard}{!revealOk && app.statusCardNumberEnc && <a href={`/staff/applications/${app.id}?reveal=1`} className="ml-2 text-xs text-brand-600 hover:underline">reveal</a>}</dd></div>
                 <div><dt className="text-gray-500">Band / First Nation</dt><dd className="font-medium">{app.bandName ?? '—'}</dd></div>
                 <div><dt className="text-gray-500">On reserve</dt><dd className="font-medium">{app.deliveredToReserve ? 'Yes' : 'No'}</dd></div>
                 <div><dt className="text-gray-500">Province</dt><dd className="font-medium">{app.province}</dd></div>

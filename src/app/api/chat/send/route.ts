@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
   if (payload.conversationId) {
     conv = await prisma.conversation.findUnique({ where: { id: payload.conversationId }, select: { id: true, dealerId: true } });
   } else if (payload.applicationId) {
-    conv = await getOrCreateDealConversation(payload.applicationId);
+    conv = await getOrCreateDealConversation(payload.applicationId, session);
   } else if (payload.kind === 'SUPPORT') {
     // The general thread belongs to a dealer; anyone with a dealerId (a dealer,
     // or an admin viewing as one) can open it. Staff reply by conversationId.

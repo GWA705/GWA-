@@ -54,6 +54,26 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-16
+- **Security audit follow-ups (safe batch).** Acted on the 2026-09-16 read-only
+  audit's low-risk findings (no behaviour changes for normal use):
+  - **PII reveal is now logged-or-masked (fail-closed).** `audit()` returns whether
+    the entry was actually written; the reviewer deal view, edit form, and print
+    view now record the `PII_DECRYPT` entry **before** decrypting and only reveal
+    when it succeeded — otherwise fields stay masked. Closes an unlogged-PII-access
+    gap when an audit write fails. (`audit.ts`, staff `applications/[id]/page.tsx`,
+    `edit/page.tsx`, `print/page.tsx`.)
+  - **Rate limiter no longer fails fully open.** On a DB error the limiter falls
+    back to a per-instance in-memory window instead of allowing everything, so
+    login/MFA/reset brute-force protection survives a DB blip. (`ratelimit.ts`.)
+  - **Disabling 2FA now un-trusts remembered devices** — `disableMfaAction` bumps
+    `mfaTrustVersion` like every other MFA-change path. (`(account)/actions.ts`.)
+  - **Deal chat can't create a stray conversation row for a deal you can't access**
+    — `getOrCreateDealConversation` checks access before creating. (`chat.ts`,
+    chat `send`/`messages` routes.)
+  - (Earlier same day: rate-limited the AI support-assistant endpoint.)
+  - Deferred by design/decision: encryption single-key + KMS hardening (needs the
+    live key confirmed first), card-scan fail-open vs fail-closed, and login
+    account-lockout enumeration wording.
 - **Document-expiry reminders: admin settings panel + optional CC to GWA staff.**
   The WSIB/WCB (and "Other") renewal reminders already emailed + pushed the
   **dealer's own active users** at the office that owns the document; that's

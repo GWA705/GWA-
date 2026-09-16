@@ -191,7 +191,9 @@ export async function disableMfaAction(_prev: ActionState, formData: FormData): 
 
   await prisma.user.update({
     where: { id: session.userId },
-    data: { mfaEnabled: false, mfaMethod: null, mfaSecretEnc: null, mfaEmailCodeHash: null, mfaEmailCodeExpiresAt: null },
+    // Bump mfaTrustVersion so any remembered "trusted" devices stop being trusted
+    // once 2FA is turned off (matches every other MFA-change path).
+    data: { mfaEnabled: false, mfaMethod: null, mfaSecretEnc: null, mfaEmailCodeHash: null, mfaEmailCodeExpiresAt: null, mfaTrustVersion: { increment: 1 } },
   });
   await audit({ actorId: session.userId, action: 'USER_UPDATE', entityType: 'User', entityId: session.userId, detail: 'MFA disabled' });
   revalidatePath('/account');

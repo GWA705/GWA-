@@ -40,12 +40,21 @@ export function canAccessConversation(user: SessionUser, conv: { dealerId: strin
   return !!user.dealerId && user.dealerId === conv.dealerId;
 }
 
-/** Get (or lazily create) the DEAL conversation for an application. */
-export async function getOrCreateDealConversation(applicationId: string): Promise<{ id: string; dealerId: string } | null> {
+/**
+ * Get (or lazily create) the DEAL conversation for an application. Pass `user` so
+ * access is checked against the deal's dealer BEFORE any row is created — a caller
+ * who can't access the deal gets null (not a stray empty conversation row).
+ */
+export async function getOrCreateDealConversation(
+  applicationId: string,
+  user?: SessionUser,
+): Promise<{ id: string; dealerId: string } | null> {
   const existing = await prisma.conversation.findUnique({ where: { applicationId }, select: { id: true, dealerId: true } });
   if (existing) return existing;
   const app = await prisma.application.findUnique({ where: { id: applicationId }, select: { dealerId: true } });
   if (!app) return null;
+  // Don't create a conversation row for a deal the caller can't access.
+  if (user && !canAccessConversation(user, { dealerId: app.dealerId })) return null;
   return prisma.conversation.create({
     data: { dealerId: app.dealerId, kind: 'DEAL', applicationId },
     select: { id: true, dealerId: true },

@@ -44,8 +44,9 @@ export default async function EditDealPage({ params }: { params: { id: string } 
     select: { id: true, name: true },
   });
 
-  // Editing reveals the protected identity fields — record the access.
-  await audit({
+  // Editing reveals the protected identity fields — record the access first and
+  // only decrypt them if the audit entry was written (no unlogged PII reveal).
+  const revealOk = await audit({
     actorId: user.userId,
     action: 'PII_DECRYPT',
     entityType: 'Application',
@@ -65,14 +66,14 @@ export default async function EditDealPage({ params }: { params: { id: string } 
     applicantLastName: app.applicantLastName,
     applicantEmail: app.applicantEmail,
     applicantPhone: app.applicantPhone,
-    applicantDob: decDate(app.applicantDobEnc),
-    applicantAddress: decryptOptional(app.applicantAddressEnc) ?? '',
-    govIdNumber: decryptOptional(app.govIdNumberEnc) ?? '',
+    applicantDob: revealOk ? decDate(app.applicantDobEnc) : '',
+    applicantAddress: revealOk ? (decryptOptional(app.applicantAddressEnc) ?? '') : '',
+    govIdNumber: revealOk ? (decryptOptional(app.govIdNumberEnc) ?? '') : '',
     dateOfSale: ymd(app.dateOfSale),
     installationDate: ymd(app.installationDate),
     taxExempt: app.taxExempt,
     deliveredToReserve: app.deliveredToReserve,
-    statusCardNumber: decryptOptional(app.statusCardNumberEnc) ?? '',
+    statusCardNumber: revealOk ? (decryptOptional(app.statusCardNumberEnc) ?? '') : '',
     bandName: app.bandName ?? '',
     financingNote: app.financingNote ?? '',
     notes: app.notes ?? '',
