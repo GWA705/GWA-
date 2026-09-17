@@ -396,6 +396,8 @@ export const fr: Dictionary = {
   dealDetail: {
     backToApplications: '← Retour aux demandes',
     whereYouStand: 'État de votre dossier :',
+    messagesTitle: 'Messages de Georgian Water & Air',
+    messagesPlaceholder: 'Répondre à Georgian Water & Air…',
     readyToSubmit: '✅ Prêt à soumettre',
     whatsNeeded: '⚠️ Ce qu’il nous faut de vous',
     goToFunding: 'Aller au dossier de financement →',

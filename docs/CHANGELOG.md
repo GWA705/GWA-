@@ -54,6 +54,14 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-17
+- **Deal chat is back on the dealer side — but only when we've messaged them.** The
+  dealer's deal page now shows the `ConversationThread` chat in a card **right under
+  the status header**, so a message from our team is the first thing they see. It's
+  rendered **only once GWA has actually sent a message on that deal** (a real
+  `fromStaff`, non-`auto` `ChatMessage`) — no empty chat box otherwise. The dealer
+  can reply from there. (`dealer/applications/[id]/page.tsx` server-side
+  `hasStaffMessage` query + gated section, `dealDetail.messagesTitle` /
+  `messagesPlaceholder` i18n en/fr.)
 - **Per-person opt-out for new-deal/funding emails.** Added a **"A dealer submits a
   new deal or funding package"** toggle to staff notification settings (My account),
   backed by `User.notifyNewSubmission` (migration `20260917120000`, defaults **on**

@@ -10,6 +10,7 @@ import { PayoutReceipt } from '@/components/PayoutReceipt';
 import { ConfirmationBadge } from '@/components/ConfirmationBadge';
 import { ConfirmationView } from '@/components/ConfirmationView';
 import { DealProgress } from '@/components/DealProgress';
+import { ConversationThread } from '@/components/ConversationThread';
 import { UploadForm } from '@/components/UploadForm';
 import { CollapsibleSection } from '@/components/CollapsibleSection';
 import { SerialNumberForm } from '@/components/SerialNumberForm';
@@ -145,6 +146,15 @@ export default async function DealerApplicationDetail({
     hasPayouts: app.payouts.length > 0,
   });
 
+  // Show the deal chat to the dealer only once GWA has actually messaged them on
+  // this deal — no empty chat box when there's nothing to read. Automated
+  // after-hours replies don't count; this is for real messages from our team.
+  const dealChat = await prisma.conversation.findUnique({
+    where: { applicationId: app.id },
+    select: { messages: { where: { fromStaff: true, auto: false }, take: 1, select: { id: true } } },
+  });
+  const hasStaffMessage = !!dealChat?.messages.length;
+
   return (
     <div className="space-y-6">
       <div>
@@ -161,6 +171,21 @@ export default async function DealerApplicationDetail({
           {t('dealDetail.whereYouStand')} <span className="font-semibold text-brand-700">{whereYouStand}</span>
         </p>
       </div>
+
+      {/* Messages from GWA — only shown once our team has actually reached out on
+          this deal, so the dealer sees it right under the status. */}
+      {hasStaffMessage && (
+        <section className="card border border-brand-200 p-5">
+          <h2 className="mb-3 text-base font-semibold text-gray-900">
+            {t('dealDetail.messagesTitle')}
+          </h2>
+          <ConversationThread
+            applicationId={app.id}
+            heightClass="h-72"
+            placeholder={t('dealDetail.messagesPlaceholder')}
+          />
+        </section>
+      )}
 
       {/* Progress tracker */}
       <DealProgress
