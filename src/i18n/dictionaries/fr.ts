@@ -833,6 +833,7 @@ export const fr: Dictionary = {
     notificationEmail: 'Courriel de notification',
     notificationEmailHint: '(laisser vide pour utiliser {email})',
     notifyWhen: 'M’aviser lorsque…',
+    notifyNewSubmission: 'Un concessionnaire soumet une nouvelle demande ou un dossier de financement',
     notifyNewDocuments: 'Un concessionnaire téléverse de nouveaux documents',
     notifyAttentionAlerts: 'Un dossier ou un téléversement attend plus de 2 heures sans être consulté',
     notifyNewLeads: 'Un nouveau prospect arrive de Home Depot pour mon bureau',

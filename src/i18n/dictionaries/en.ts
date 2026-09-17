@@ -829,6 +829,7 @@ export const en = {
     notificationEmail: 'Notification email',
     notificationEmailHint: '(leave blank to use {email})',
     notifyWhen: 'Notify me when…',
+    notifyNewSubmission: 'A dealer submits a new deal or funding package',
     notifyNewDocuments: 'A dealer uploads new documents',
     notifyAttentionAlerts: 'A deal or upload waits over 2 hours without being looked at',
     notifyNewLeads: 'A new lead arrives from Home Depot for my office',

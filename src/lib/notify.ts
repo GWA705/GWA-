@@ -148,7 +148,7 @@ export async function notifyNewSubmission(applicationId: string) {
     const deal = dealLabel(app);
 
     const staff = await prisma.user.findMany({
-      where: { role: { in: ['REVIEWER', 'ADMIN'] }, active: true },
+      where: { role: { in: ['REVIEWER', 'ADMIN'] }, active: true, notifyNewSubmission: true },
     });
     for (const u of staff) {
       await sendEmail({
@@ -187,7 +187,7 @@ export async function notifyFundingSubmitted(applicationId: string) {
     const deal = dealLabel(app);
 
     const staff = await prisma.user.findMany({
-      where: { role: { in: ['REVIEWER', 'ADMIN'] }, active: true },
+      where: { role: { in: ['REVIEWER', 'ADMIN'] }, active: true, notifyNewSubmission: true },
     });
     for (const u of staff) {
       await sendEmail({

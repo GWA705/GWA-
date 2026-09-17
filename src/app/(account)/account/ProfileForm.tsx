@@ -13,6 +13,7 @@ interface Profile {
   notifyStatusUpdates: boolean;
   notifyNewNotes: boolean;
   notifyNewDocuments: boolean;
+  notifyNewSubmission: boolean;
   notifyAttentionAlerts: boolean;
   notifyIdleReminders: boolean;
   notifyNewLeads: boolean;
@@ -83,6 +84,7 @@ export function ProfileForm({ profile }: { profile: Profile }) {
         <div className="space-y-2">
           {profile.isStaff ? (
             <>
+              <Toggle name="notifyNewSubmission" label={t('account.notifyNewSubmission')} defaultChecked={profile.notifyNewSubmission} />
               <Toggle name="notifyNewDocuments" label={t('account.notifyNewDocuments')} defaultChecked={profile.notifyNewDocuments} />
               <Toggle name="notifyAttentionAlerts" label={t('account.notifyAttentionAlerts')} defaultChecked={profile.notifyAttentionAlerts} />
             </>

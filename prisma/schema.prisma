@@ -564,6 +564,7 @@ model User {
   notifyStatusUpdates Boolean @default(true)
   notifyNewNotes      Boolean @default(true)
   notifyNewDocuments  Boolean @default(true) // for reviewers/admins
+  notifyNewSubmission Boolean @default(true) // email/push when a dealer submits a new deal or funding package (reviewers/admins)
   notifyAttentionAlerts Boolean @default(true) // 2-hour "new deal not looked at" alert (reviewers/admins)
   notifyIdleReminders   Boolean @default(true) // escalating "your deal is waiting on you" reminders (dealers)
   notifyNewLeads        Boolean @default(true) // push when a new HD lead lands for the dealer's office (dealers)

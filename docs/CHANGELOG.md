@@ -54,6 +54,12 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-17
+- **Per-person opt-out for new-deal/funding emails.** Added a **"A dealer submits a
+  new deal or funding package"** toggle to staff notification settings (My account),
+  backed by `User.notifyNewSubmission` (migration `20260917120000`, defaults **on**
+  so nobody misses a deal). The new-submission and funding-submission emails now
+  respect it; push still goes to all staff. (`schema.prisma`, `notify.ts`,
+  `(account)/actions.ts`, `ProfileForm.tsx`, `account/page.tsx`, `validation.ts`, i18n.)
 - **New-deal & funding-package alerts now email reviewers, not just push.** New-deal
   submissions and funding-package submissions were **push-only** — and browser/PWA
   push silently lapses (expired subscription, notifications turned off, iOS quirks),

@@ -91,6 +91,7 @@ export default async function AccountPage() {
             notifyStatusUpdates: user.notifyStatusUpdates,
             notifyNewNotes: user.notifyNewNotes,
             notifyNewDocuments: user.notifyNewDocuments,
+            notifyNewSubmission: user.notifyNewSubmission,
             notifyAttentionAlerts: user.notifyAttentionAlerts,
             notifyIdleReminders: user.notifyIdleReminders,
             notifyNewLeads: user.notifyNewLeads,
