@@ -53,6 +53,28 @@ source of truth; this file is the human-readable index.
   `testSingleLead()` on a French lead first. Portal display auto-translates lead
   free-text via DeepL.
 
+## 2026-09-17
+- **Funding order-of-operations enforced (dealer can't return docs before we send them).**
+  Fixed a workflow gap where a dealer could upload/submit their signed funding
+  package while the deal was only **Approved** — before GWA sent the install
+  documents — which flipped the deal into "review" and falsely marked **"Produce
+  install documents"** and **"Sent — awaiting install"** as *Done* (with "0
+  documents sent"). Now the sequence is enforced end to end:
+  - **Server:** the dealer funding uploads (`uploadFundingDocAction`,
+    `uploadFundingBatchAction`) and the "submit funding package"
+    (`submitFundingAction`) require status **`DOCS_SENT`** or later — never
+    `APPROVED`/`CONDITIONAL`. `DOCS_SENT` is set precisely when a reviewer sends
+    install paperwork, so the dealer can only return what we've actually sent.
+  - **Reviewer flow / staff checklist:** a phase is "Done" only when it truly
+    happened — `hasDealerReturned` now requires our install docs to have gone out
+    first, and a deal that somehow reached `FUNDING_SUBMITTED` without sent docs is
+    surfaced back at "Produce install documents" instead of showing false greens.
+  - **Dealer page:** before we've sent docs, the funding uploader is replaced by a
+    clear "we're preparing your install documents — nothing to do right now" note;
+    the "What's needed from you" card no longer tells an approved dealer to upload
+    before they can. (`reviewerFlow.ts`, `outstanding.ts`, dealer `actions.ts`,
+    dealer `applications/[id]/page.tsx`.)
+
 ## 2026-09-16
 - **Lead-card scanner on the Leads page (dealer + staff).** Dealers (and GWA staff)
   can photograph a handwritten Home Depot **water-test lead card** and the AI reads

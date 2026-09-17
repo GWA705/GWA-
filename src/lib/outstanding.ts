@@ -11,8 +11,11 @@ import { fundingDocTypeLabel } from './enumLabels';
  * nudges on (APPROVED / CONDITIONAL / PROBLEM).
  */
 
-// Statuses where the ball is in the dealer's court.
-const DEALER_COURT: ApplicationStatus[] = ['APPROVED', 'CONDITIONAL', 'PROBLEM'];
+// Statuses where the ball is in the dealer's court. Note APPROVED/CONDITIONAL are
+// NOT here: an approved deal is waiting on US to send the install documents, so
+// the dealer has nothing to do until we do (status becomes DOCS_SENT). PROBLEM is
+// always the dealer's to fix.
+const DEALER_COURT: ApplicationStatus[] = ['DOCS_SENT', 'PROBLEM'];
 
 type DocLite = { type: DocumentType; verifiedAt: Date | null };
 type SerialLite = { productLabel: string | null; value: string };
@@ -65,9 +68,9 @@ export function dealerOutstanding(
   }).filter((doc) => doc.required && !uploaded.has(doc.type));
   for (const doc of missingDocs) items.push(t('outstanding.upload', { label: fundingDocTypeLabel(t, doc.type) }));
 
-  // When approved/conditional and everything is in, the last step is to submit.
-  const readyToSubmit =
-    (app.status === 'APPROVED' || app.status === 'CONDITIONAL') && items.length === 0;
+  // Once our install docs are out (DOCS_SENT) and everything is in, the last step
+  // is for the dealer to submit the signed package.
+  const readyToSubmit = app.status === 'DOCS_SENT' && items.length === 0;
   if (readyToSubmit) {
     items.push(t('outstanding.submitReady'));
   }

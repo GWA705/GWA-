@@ -88,11 +88,14 @@ export default async function DealerApplicationDetail({
   const gwaDocs = app.documents.filter((d) => d.stage === 'REVIEWER');
   const uploadedFundingTypes = new Set(fundingDocs.map((d) => d.type));
 
-  // The dealer can upload funding documents throughout the funding window —
-  // before AND after submitting — right up until the deal is funded.
-  const canUploadFunding = ['APPROVED', 'CONDITIONAL', 'DOCS_SENT', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW', 'FUNDED'].includes(app.status);
+  // Order of operations: the dealer can only upload/return the signed package once
+  // Georgian Water & Air has SENT the install documents (status DOCS_SENT) — never
+  // straight from Approved. Before that, the deal is waiting on our documents.
+  const canUploadFunding = ['DOCS_SENT', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW', 'FUNDED'].includes(app.status);
   const fundingVisible = canUploadFunding || app.status === 'FUNDED';
-  const canSubmitFunding = ['APPROVED', 'CONDITIONAL', 'DOCS_SENT'].includes(app.status);
+  const canSubmitFunding = app.status === 'DOCS_SENT';
+  // Approved (or conditionally approved) but we haven't sent the install docs yet.
+  const awaitingOurDocs = ['APPROVED', 'CONDITIONAL'].includes(app.status);
 
   // Serial-per-product rule (e.g. UEI): a serial is required for each selected
   // product before funding can be submitted.
@@ -311,6 +314,18 @@ export default async function DealerApplicationDetail({
         <section className="card p-6">
           <h2 className="mb-3 border-l-4 border-brand-500 pl-2.5 text-lg font-bold text-gray-900">{t('dealDetail.payoutReceipt')}</h2>
           <PayoutReceipt payouts={app.payouts} />
+        </section>
+      )}
+
+      {/* Approved, but we haven't sent the install documents yet — the dealer is
+          waiting on us and can't upload a signed package until our docs arrive. */}
+      {awaitingOurDocs && (
+        <section className="card p-6">
+          <h2 className="mb-2 border-l-4 border-brand-500 pl-2.5 text-lg font-bold text-gray-900">Install documents</h2>
+          <p className="text-sm text-gray-600">
+            Your deal is approved. Georgian Water &amp; Air is preparing your install documents — once we send them,
+            they&apos;ll appear here and you&apos;ll be able to upload your signed package back. Nothing to do right now.
+          </p>
         </section>
       )}
 

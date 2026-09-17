@@ -53,14 +53,19 @@ export interface FlowSignals {
 export function hasDealerReturned(
   docs: { stage: string; createdAt: Date }[],
 ): boolean {
-  if (docs.some((d) => d.stage === 'FUNDING')) return true;
+  // Order of operations: nothing counts as "returned" until WE have actually sent
+  // install paperwork. A dealer can't sign & send back documents they never got.
   const reviewerDocs = docs.filter((d) => d.stage === 'REVIEWER');
   if (reviewerDocs.length === 0) return false;
   const installSentAt = reviewerDocs.reduce(
     (min, d) => (d.createdAt < min ? d.createdAt : min),
     reviewerDocs[0].createdAt,
   );
-  return docs.some((d) => d.stage === 'APPLICATION' && d.createdAt > installSentAt);
+  // A signed funding package, or any dealer document, that arrived AFTER we sent
+  // the install docs is a genuine return.
+  return docs.some(
+    (d) => (d.stage === 'FUNDING' || d.stage === 'APPLICATION') && d.createdAt > installSentAt,
+  );
 }
 
 /** The phase index (1..7) a deal is currently in. */
@@ -85,7 +90,10 @@ export function currentPhaseIndex(s: FlowSignals): number {
       if (s.reviewerDocsSent) return 3;
       return 2;
     case 'FUNDING_SUBMITTED':
-      return 4; // dealer returned the package, reviewer is checking it
+      // Dealer returned the package, reviewer is checking it. Guard against a deal
+      // that reached this status without us ever sending install docs (legacy /
+      // out-of-order data): surface it back at "Produce install documents".
+      return s.reviewerDocsSent ? 4 : 2;
     case 'FUNDING_REVIEW':
       return s.hasPayouts ? 8 : 7; // in for funding / awaiting funder
     case 'FUNDED':

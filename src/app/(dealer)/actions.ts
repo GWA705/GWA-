@@ -374,8 +374,8 @@ export async function uploadFundingDocAction(
   const session = await requireDealerAccess();
   const app = await prisma.application.findUnique({ where: { id: applicationId } });
   if (!app || !canAccessAsDealer(session, app.dealerId)) return { error: 'Not found.' };
-  if (!['APPROVED', 'CONDITIONAL', 'DOCS_SENT', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW', 'FUNDED'].includes(app.status)) {
-    return { error: 'Funding documents can only be uploaded after approval.' };
+  if (!['DOCS_SENT', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW', 'FUNDED'].includes(app.status)) {
+    return { error: 'You can upload your signed documents once Georgian Water & Air sends you the install paperwork.' };
   }
 
   const files = formData.getAll('file') as File[];
@@ -402,8 +402,8 @@ export async function uploadFundingBatchAction(
   const session = await requireDealerAccess();
   const app = await prisma.application.findUnique({ where: { id: applicationId } });
   if (!app || !canAccessAsDealer(session, app.dealerId)) return { error: 'Not found.' };
-  if (!['APPROVED', 'CONDITIONAL', 'DOCS_SENT', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW', 'FUNDED'].includes(app.status)) {
-    return { error: 'Funding documents can only be uploaded after approval.' };
+  if (!['DOCS_SENT', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW', 'FUNDED'].includes(app.status)) {
+    return { error: 'You can upload your signed documents once Georgian Water & Air sends you the install paperwork.' };
   }
 
   const files = formData.getAll('file') as File[];
@@ -515,7 +515,9 @@ export async function submitFundingAction(applicationId: string): Promise<void> 
   const session = await requireDealerAccess();
   const app = await prisma.application.findUnique({ where: { id: applicationId } });
   if (!app || !canAccessAsDealer(session, app.dealerId)) redirect('/dealer');
-  if (!['APPROVED', 'CONDITIONAL', 'DOCS_SENT'].includes(app.status)) {
+  // Order of operations: the dealer can only submit the signed funding package
+  // once we've actually sent them the install documents (status DOCS_SENT).
+  if (app.status !== 'DOCS_SENT') {
     redirect(`/dealer/applications/${applicationId}`);
   }
   // Enforce the serial-per-product rule before funding can be submitted.
