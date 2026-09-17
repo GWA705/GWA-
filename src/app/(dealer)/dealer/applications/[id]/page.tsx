@@ -88,13 +88,15 @@ export default async function DealerApplicationDetail({
   const gwaDocs = app.documents.filter((d) => d.stage === 'REVIEWER');
   const uploadedFundingTypes = new Set(fundingDocs.map((d) => d.type));
 
-  // Order of operations: the dealer can only upload/return the signed package once
-  // Georgian Water & Air has SENT the install documents (status DOCS_SENT) — never
-  // straight from Approved. Before that, the deal is waiting on our documents.
-  const canUploadFunding = ['DOCS_SENT', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW', 'FUNDED'].includes(app.status);
+  // Dealers can upload documents any time after approval (e.g. a void cheque they
+  // already have). But *submitting the completed package* — which advances the
+  // deal — is only allowed once we've actually sent the install documents
+  // (DOCS_SENT). Uploading early never advances the deal on its own.
+  const canUploadFunding = ['APPROVED', 'CONDITIONAL', 'DOCS_SENT', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW', 'FUNDED'].includes(app.status);
   const fundingVisible = canUploadFunding || app.status === 'FUNDED';
   const canSubmitFunding = app.status === 'DOCS_SENT';
-  // Approved (or conditionally approved) but we haven't sent the install docs yet.
+  // Approved, but we haven't sent the install documents yet — they can upload, but
+  // can't submit the finished package until our paperwork arrives.
   const awaitingOurDocs = ['APPROVED', 'CONDITIONAL'].includes(app.status);
 
   // Serial-per-product rule (e.g. UEI): a serial is required for each selected
@@ -317,18 +319,6 @@ export default async function DealerApplicationDetail({
         </section>
       )}
 
-      {/* Approved, but we haven't sent the install documents yet — the dealer is
-          waiting on us and can't upload a signed package until our docs arrive. */}
-      {awaitingOurDocs && (
-        <section className="card p-6">
-          <h2 className="mb-2 border-l-4 border-brand-500 pl-2.5 text-lg font-bold text-gray-900">Install documents</h2>
-          <p className="text-sm text-gray-600">
-            Your deal is approved. Georgian Water &amp; Air is preparing your install documents — once we send them,
-            they&apos;ll appear here and you&apos;ll be able to upload your signed package back. Nothing to do right now.
-          </p>
-        </section>
-      )}
-
       {/* Funding stage */}
       {fundingVisible && (
         <section id="funding-package" className="card scroll-mt-4 p-6">
@@ -336,6 +326,12 @@ export default async function DealerApplicationDetail({
             <h2 className="border-l-4 border-brand-500 pl-2.5 text-lg font-bold text-gray-900">{t('dealDetail.fundingPackage')}</h2>
             <span className="text-xs text-gray-500">{t('dealDetail.statusPrefix')} {t(`enum.status.${app.status}`)}</span>
           </div>
+          {awaitingOurDocs && (
+            <div className="mb-4 rounded-md border border-sky-200 bg-sky-50 p-3 text-sm text-sky-800">
+              You can upload documents now (like a void cheque) if you have them ready. Georgian Water &amp; Air is
+              preparing your install documents — once they arrive you&apos;ll be able to submit the completed package.
+            </div>
+          )}
           <p className="mb-4 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
             <span><span className="mr-1 inline-block h-2.5 w-2.5 rounded-full bg-red-400 align-middle" />{t('dealDetail.legendMissing')}</span>
             <span><span className="mr-1 inline-block h-2.5 w-2.5 rounded-full bg-amber-400 align-middle" />{t('dealDetail.legendUploaded')}</span>

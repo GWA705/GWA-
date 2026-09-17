@@ -374,8 +374,11 @@ export async function uploadFundingDocAction(
   const session = await requireDealerAccess();
   const app = await prisma.application.findUnique({ where: { id: applicationId } });
   if (!app || !canAccessAsDealer(session, app.dealerId)) return { error: 'Not found.' };
-  if (!['DOCS_SENT', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW', 'FUNDED'].includes(app.status)) {
-    return { error: 'You can upload your signed documents once Georgian Water & Air sends you the install paperwork.' };
+  // Dealers may upload individual documents any time after approval (e.g. a void
+  // cheque they have on hand). Uploading does NOT advance the deal — only
+  // *submitting* the completed package does, and that stays gated to DOCS_SENT.
+  if (!['APPROVED', 'CONDITIONAL', 'DOCS_SENT', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW', 'FUNDED'].includes(app.status)) {
+    return { error: 'Documents can only be uploaded after approval.' };
   }
 
   const files = formData.getAll('file') as File[];
@@ -402,8 +405,10 @@ export async function uploadFundingBatchAction(
   const session = await requireDealerAccess();
   const app = await prisma.application.findUnique({ where: { id: applicationId } });
   if (!app || !canAccessAsDealer(session, app.dealerId)) return { error: 'Not found.' };
-  if (!['DOCS_SENT', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW', 'FUNDED'].includes(app.status)) {
-    return { error: 'You can upload your signed documents once Georgian Water & Air sends you the install paperwork.' };
+  // Uploading is allowed any time after approval (e.g. an early void cheque); it
+  // doesn't advance the deal — submitting the completed package does (DOCS_SENT).
+  if (!['APPROVED', 'CONDITIONAL', 'DOCS_SENT', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW', 'FUNDED'].includes(app.status)) {
+    return { error: 'Documents can only be uploaded after approval.' };
   }
 
   const files = formData.getAll('file') as File[];

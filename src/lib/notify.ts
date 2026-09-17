@@ -131,7 +131,13 @@ async function flushNewDocuments(applicationId: string, types: DocumentType[]) {
   });
 }
 
-/** Reviewers/admins are alerted when a dealer submits a new deal. Push only. */
+/**
+ * Reviewers/admins are alerted when a dealer submits a new deal. Sends BOTH email
+ * and push: push can silently lapse (expired browser subscription, notifications
+ * turned off, iOS PWA quirks), so email is the reliable channel that guarantees a
+ * new deal is seen. Emails every active reviewer/admin — new deals are the core
+ * job, so this isn't gated behind an opt-in preference.
+ */
 export async function notifyNewSubmission(applicationId: string) {
   try {
     const app = await prisma.application.findUnique({
@@ -139,9 +145,28 @@ export async function notifyNewSubmission(applicationId: string) {
       include: { dealer: true },
     });
     if (!app) return;
+    const deal = dealLabel(app);
+
+    const staff = await prisma.user.findMany({
+      where: { role: { in: ['REVIEWER', 'ADMIN'] }, active: true },
+    });
+    for (const u of staff) {
+      await sendEmail({
+        to: recipientEmail(u),
+        subject: `New deal submitted (${deal})`,
+        html: renderEmail({
+          heading: 'A new deal was submitted',
+          intro: `${deal} — ${app.dealer.name} just submitted a new deal for review.`,
+          bodyHtml: '<p style="margin:0 0 14px;font-size:14px;line-height:1.6;color:#374151;">Open it to review and start the approval.</p>',
+          ctaLabel: 'Review deal',
+          ctaUrl: `${appUrl()}/staff/applications/${applicationId}`,
+        }),
+      });
+    }
+
     await sendPushToRoles(STAFF_ROLES, {
       title: 'New deal submitted',
-      body: `${dealLabel(app)} (${app.dealer.name}) — a new deal was submitted.`,
+      body: `${deal} (${app.dealer.name}) — a new deal was submitted.`,
       url: `/staff/applications/${applicationId}`,
       tag: `submit-${applicationId}`,
     });
@@ -150,7 +175,8 @@ export async function notifyNewSubmission(applicationId: string) {
   }
 }
 
-/** Reviewers/admins are alerted when a dealer submits the funding package. Push only. */
+/** Reviewers/admins are alerted when a dealer submits the funding package. Email +
+ * push (email is the reliable channel — see notifyNewSubmission). */
 export async function notifyFundingSubmitted(applicationId: string) {
   try {
     const app = await prisma.application.findUnique({
@@ -158,9 +184,28 @@ export async function notifyFundingSubmitted(applicationId: string) {
       include: { dealer: true },
     });
     if (!app) return;
+    const deal = dealLabel(app);
+
+    const staff = await prisma.user.findMany({
+      where: { role: { in: ['REVIEWER', 'ADMIN'] }, active: true },
+    });
+    for (const u of staff) {
+      await sendEmail({
+        to: recipientEmail(u),
+        subject: `Funding package submitted (${deal})`,
+        html: renderEmail({
+          heading: 'A funding package was submitted',
+          intro: `${deal} — ${app.dealer.name} submitted the signed funding package.`,
+          bodyHtml: '<p style="margin:0 0 14px;font-size:14px;line-height:1.6;color:#374151;">Open it to review the signed documents and move it toward funding.</p>',
+          ctaLabel: 'Review deal',
+          ctaUrl: `${appUrl()}/staff/applications/${applicationId}`,
+        }),
+      });
+    }
+
     await sendPushToRoles(STAFF_ROLES, {
       title: 'Funding package submitted',
-      body: `${dealLabel(app)} (${app.dealer.name}) — funding package submitted.`,
+      body: `${deal} (${app.dealer.name}) — funding package submitted.`,
       url: `/staff/applications/${applicationId}`,
       tag: `funding-${applicationId}`,
     });

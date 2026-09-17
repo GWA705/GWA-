@@ -54,6 +54,23 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-17
+- **New-deal & funding-package alerts now email reviewers, not just push.** New-deal
+  submissions and funding-package submissions were **push-only** — and browser/PWA
+  push silently lapses (expired subscription, notifications turned off, iOS quirks),
+  so reviewers could stop seeing new deals. Both now **email every active
+  reviewer/admin AND push** (mirroring how document-upload alerts already worked),
+  so a new deal is reliably seen even when push is down. Not gated behind an opt-in
+  preference — new deals are the core job. (`notify.ts` `notifyNewSubmission`,
+  `notifyFundingSubmitted`.) Note: push itself needs the **VAPID keys set on
+  Elastic Beanstalk** to work at all — email works regardless.
+- **Void cheque (and any doc) can be uploaded early again — without advancing the deal.**
+  Refined the order-of-operations rule: dealers may **upload** individual documents
+  any time after approval (e.g. a void cheque they have on hand), but this no longer
+  advances the deal or marks it "returned." Only **submitting the completed package**
+  advances it, and that still requires our install docs to have gone out first
+  (DOCS_SENT). The dealer sees a hint that they can upload now and submit once our
+  paperwork arrives. (`(dealer)/actions.ts` upload gates reverted; `submitFunding`
+  gate + `hasDealerReturned` order rule kept; dealer page hint.)
 - **Funding order-of-operations enforced (dealer can't return docs before we send them).**
   Fixed a workflow gap where a dealer could upload/submit their signed funding
   package while the deal was only **Approved** — before GWA sent the install
