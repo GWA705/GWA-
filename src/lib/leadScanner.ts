@@ -198,40 +198,160 @@ appear marked, or you cannot tell which is marked, return null for that question
 name it in uncertainFields. The office can read the photo in two seconds; a wrong
 answer here is carried for the life of the lead.`;
 
+/** The per-card fields, shared by the single-card and multi-card tools. */
+const CARD_PROPS = {
+  name: { type: ['string', 'null'] },
+  phone: { type: ['string', 'null'] },
+  occupation: { type: ['string', 'null'] },
+  spouseName: { type: ['string', 'null'] },
+  spousePhone: { type: ['string', 'null'] },
+  spouseOccupation: { type: ['string', 'null'] },
+  address: { type: ['string', 'null'] },
+  city: { type: ['string', 'null'] },
+  postalCode: { type: ['string', 'null'] },
+  ownsHome: { type: 'string', enum: ['OWN', 'RENT', 'WITH_PARENTS', 'UNKNOWN'] },
+  buysBottledWater: { type: ['boolean', 'null'] },
+  hasFilters: { type: ['boolean', 'null'] },
+  waterSource: { type: ['string', 'null'], enum: ['City', 'Well', 'Other', null] },
+  waterQuality: { type: ['string', 'null'], enum: ['Excellent', 'Good', 'Fair', 'Poor', null] },
+  conditions: { type: 'array', items: { type: 'string', enum: ['Taste', 'Odors', 'Scale build up', 'Stains'] } },
+  storeNumber: { type: ['string', 'null'] },
+  collectedOn: { type: ['string', 'null'] },
+  generatorName: { type: ['string', 'null'] },
+  bestTimeToContact: { type: ['string', 'null'] },
+  waterNotes: { type: ['string', 'null'] },
+  hasWellWater: { type: ['boolean', 'null'] },
+  confidence: { type: 'number' },
+  uncertainFields: { type: 'array', items: { type: 'string' } },
+};
+
 /** The forced tool the model fills. Mirrors CardExtractionSchema. */
 const RECORD_CARD_TOOL = {
   name: 'record_card',
   description: 'Record the details read off the lead card.',
   input_schema: {
     type: 'object' as const,
-    properties: {
-      name: { type: ['string', 'null'] },
-      phone: { type: ['string', 'null'] },
-      occupation: { type: ['string', 'null'] },
-      spouseName: { type: ['string', 'null'] },
-      spousePhone: { type: ['string', 'null'] },
-      spouseOccupation: { type: ['string', 'null'] },
-      address: { type: ['string', 'null'] },
-      city: { type: ['string', 'null'] },
-      postalCode: { type: ['string', 'null'] },
-      ownsHome: { type: 'string', enum: ['OWN', 'RENT', 'WITH_PARENTS', 'UNKNOWN'] },
-      buysBottledWater: { type: ['boolean', 'null'] },
-      hasFilters: { type: ['boolean', 'null'] },
-      waterSource: { type: ['string', 'null'], enum: ['City', 'Well', 'Other', null] },
-      waterQuality: { type: ['string', 'null'], enum: ['Excellent', 'Good', 'Fair', 'Poor', null] },
-      conditions: { type: 'array', items: { type: 'string', enum: ['Taste', 'Odors', 'Scale build up', 'Stains'] } },
-      storeNumber: { type: ['string', 'null'] },
-      collectedOn: { type: ['string', 'null'] },
-      generatorName: { type: ['string', 'null'] },
-      bestTimeToContact: { type: ['string', 'null'] },
-      waterNotes: { type: ['string', 'null'] },
-      hasWellWater: { type: ['boolean', 'null'] },
-      confidence: { type: 'number' },
-      uncertainFields: { type: 'array', items: { type: 'string' } },
-    },
+    properties: CARD_PROPS,
     required: ['name', 'phone', 'confidence'],
   },
 };
+
+/** Multi-card tool: one entry per DISTINCT physical card found in the photo(s). */
+const RECORD_CARDS_TOOL = {
+  name: 'record_cards',
+  description: 'Record every distinct lead card visible in the image(s), one entry per physical card.',
+  input_schema: {
+    type: 'object' as const,
+    properties: {
+      cards: {
+        type: 'array',
+        description: 'One object per separate physical lead card in the image(s).',
+        items: { type: 'object', properties: CARD_PROPS, required: ['name', 'phone', 'confidence'] },
+      },
+    },
+    required: ['cards'],
+  },
+};
+
+const MULTI_CARD_NOTE = `IMPORTANT — this photo (or photos) may show ONE card or SEVERAL separate lead
+cards laid out together (for example four cards side by side on a table). Treat
+each PHYSICAL card as its own record and return one entry per card in "cards".
+Read each card's fields only from that card — never mix a name from one card with
+a phone from another. Order the entries top-to-bottom, left-to-right. If only one
+card is present, return exactly one entry. Do not return blank entries for empty
+space or the table.`;
+
+export const CardsExtractionSchema = z.object({
+  cards: z.array(CardExtractionSchema).catch([]),
+});
+
+export interface ExtractCardsResult {
+  available: boolean;
+  cards?: CardExtraction[];
+  raw?: string;
+  error?: string;
+  usage?: { inputTokens: number; outputTokens: number; model: string };
+}
+
+/**
+ * Read EVERY lead card visible in a single photo. Unlike extractCard (which treats
+ * multiple photos as one card), this returns an array — one entry per distinct
+ * physical card — so a photo of several cards laid out together becomes several
+ * leads. Never throws: returns `{ available, error }` on any failure.
+ */
+export async function extractCardsFromImage(
+  image: CardImageInput,
+  opts: { template?: CardTemplate; model?: string } = {},
+): Promise<ExtractCardsResult> {
+  if (!image?.buffer?.length) return { available: true, error: 'No card image to read.' };
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return { available: false, error: 'Card reading is not configured (no ANTHROPIC_API_KEY).' };
+  }
+
+  try {
+    const promptText = opts.template?.notes?.trim()
+      ? `${PROMPT}\n\n${MULTI_CARD_NOTE}\n\nNOTES ABOUT THIS CARD'S LAYOUT (from the office — trust these over your own read of where things sit):\n${opts.template.notes.trim()}`
+      : `${PROMPT}\n\n${MULTI_CARD_NOTE}`;
+
+    type Block =
+      | { type: 'image'; source: { type: 'base64'; media_type: ImageMime; data: string } }
+      | { type: 'text'; text: string };
+    const content: Block[] = [];
+    if (opts.template?.image) {
+      content.push(
+        { type: 'text', text: 'REFERENCE ONLY — the next image is a BLANK, unfilled copy of this card. Use it to learn where each field and tick-box sits. Do NOT read any customer values from it.' },
+        { type: 'image', source: { type: 'base64', media_type: toImageMime(opts.template.image.mime), data: opts.template.image.buffer.toString('base64') } },
+        { type: 'text', text: 'NOW READ THIS ONE — the following image is the FILLED photo, which may contain one or more cards.' },
+      );
+    }
+    content.push({ type: 'image', source: { type: 'base64', media_type: toImageMime(image.mime), data: image.buffer.toString('base64') } });
+    content.push({ type: 'text', text: promptText });
+
+    const model = opts.model || process.env.CARD_AI_MODEL || 'claude-sonnet-5';
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': process.env.ANTHROPIC_API_KEY as string,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: 4096, // several cards need more room than a single one
+        tools: [RECORD_CARDS_TOOL],
+        tool_choice: { type: 'tool', name: 'record_cards' },
+        messages: [{ role: 'user', content }],
+      }),
+    });
+    if (!res.ok) {
+      const detail = await res.text().catch(() => '');
+      console.error('[leadScanner] API error (multi)', res.status, detail.slice(0, 300));
+      return { available: true, error: 'Could not read the card automatically — please type it in.' };
+    }
+    const response = (await res.json()) as {
+      content?: Array<{ type: string; input?: unknown }>;
+      usage?: { input_tokens?: number; output_tokens?: number };
+      model?: string;
+    };
+    const usage = {
+      inputTokens: response.usage?.input_tokens ?? 0,
+      outputTokens: response.usage?.output_tokens ?? 0,
+      model: response.model ?? model,
+    };
+    const toolUse = (response.content ?? []).find((c) => c.type === 'tool_use');
+    if (!toolUse) return { available: true, error: 'The card reader returned nothing usable.', usage };
+    const parsed = CardsExtractionSchema.safeParse(toolUse.input);
+    if (!parsed.success) {
+      return { available: true, error: 'The card reader returned an unexpected shape.', raw: JSON.stringify(toolUse.input), usage };
+    }
+    // Drop entries with neither a name nor a phone (blank space read as a card).
+    const cards = parsed.data.cards.filter((c) => (c.name && c.name.trim()) || (c.phone && c.phone.trim()));
+    return { available: true, cards, raw: JSON.stringify(toolUse.input), usage };
+  } catch (err) {
+    console.error('[leadScanner] multi extraction failed', err);
+    return { available: true, error: 'Could not read the card automatically — please type it in.' };
+  }
+}
 
 /**
  * Optional blank-card reference. Pass a clean, EMPTY copy of your card and the

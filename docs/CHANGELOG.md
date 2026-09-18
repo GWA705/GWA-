@@ -54,6 +54,18 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-18
+- **Lead-card scanner now reads MANY cards at once (was one-at-a-time) + a Back
+  button.** The scanner was built as "multiple photos = one card"; a dealer who
+  submitted four cards got a single lead. It now treats every distinct card as its
+  own lead: each uploaded photo is read and can contain **one card or several cards
+  laid out together** (e.g. four side by side), and all detected cards come back as a
+  reviewable list — check/edit each, then **Save all N leads** in one go (each saved
+  with the photo it came from). Cards read with low confidence are flagged per field.
+  Added a clear **"← Start over"** control (and Cancel) so you're never stuck after
+  picking a photo. New multi-card extractor `extractCardsFromImage` (a `record_cards`
+  array tool, blank-space entries dropped); the scan API reads photos in parallel and
+  tags each card with its source photo. (`leadScanner.ts`, `api/leads/scan-card/route.ts`,
+  `ScanLeadCard.tsx`.)
 - **Flashing browser-tab alert for reviewers on new messages.** When a staff member
   is on another browser tab, the portal tab title now rotates between the page title
   and "🔔 (N) new message(s)" while they have unread portal messages — so reviewers

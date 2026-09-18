@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { getSession } from '@/lib/session';
 import { isInternalRole } from '@/lib/constants';
 import { rateLimit } from '@/lib/ratelimit';
-import { extractCard, type CardImageInput } from '@/lib/leadScanner';
+import { extractCardsFromImage, type CardImageInput } from '@/lib/leadScanner';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -12,9 +12,11 @@ const MAX_FILES = 6;
 const OK_MIME = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
 /**
- * Read a photographed Home Depot lead card and return the extracted fields for
- * the dealer/staff to confirm. Assistive only — nothing is saved here; the client
- * saves the confirmed lead via the createScannedLeadAction server action.
+ * Read photographed Home Depot lead card(s) and return the extracted fields for
+ * the dealer/staff to confirm. Each photo may contain one card OR several cards
+ * laid out together — every distinct card comes back as its own entry, tagged
+ * with the photo it came from. Assistive only — nothing is saved here; the client
+ * saves each confirmed lead via the createScannedLeadAction server action.
  */
 export async function POST(req: NextRequest) {
   const session = await getSession();
@@ -37,7 +39,7 @@ export async function POST(req: NextRequest) {
 
   const files = form.getAll('cardImage').filter((f): f is File => f instanceof File);
   if (files.length === 0) return NextResponse.json({ available: true, error: 'Choose a photo of the card first.' }, { status: 400 });
-  if (files.length > MAX_FILES) return NextResponse.json({ available: true, error: `Add at most ${MAX_FILES} photos of the same card.` }, { status: 400 });
+  if (files.length > MAX_FILES) return NextResponse.json({ available: true, error: `Add at most ${MAX_FILES} photos at a time.` }, { status: 400 });
 
   const images: CardImageInput[] = [];
   for (const f of files) {
@@ -46,6 +48,23 @@ export async function POST(req: NextRequest) {
     images.push({ buffer: Buffer.from(await f.arrayBuffer()), mime });
   }
 
-  const result = await extractCard(images);
-  return NextResponse.json(result);
+  // Read each photo in parallel. Every photo can yield one OR several cards; we
+  // flatten them all and tag each with the photo index it came from, so the
+  // client can attach the right photo when saving each lead.
+  const perImage = await Promise.all(images.map((img) => extractCardsFromImage(img)));
+
+  const off = perImage.find((r) => r.available === false);
+  if (off) return NextResponse.json({ available: false, error: off.error });
+
+  const cards: Array<Record<string, unknown> & { photoIndex: number }> = [];
+  for (let i = 0; i < perImage.length; i++) {
+    for (const c of perImage[i].cards ?? []) cards.push({ ...c, photoIndex: i });
+  }
+
+  if (cards.length === 0) {
+    const firstErr = perImage.find((r) => r.error)?.error;
+    return NextResponse.json({ available: true, cards: [], error: firstErr ?? 'No card details could be read — please type it in.' });
+  }
+
+  return NextResponse.json({ available: true, cards });
 }
