@@ -10,7 +10,7 @@ import { listReportOffices } from '@/lib/reporting/monthly';
 import { LeadsView, filterLeads, leadMonthOptions, leadOutcomeKey } from '@/components/LeadsView';
 import { leadsGeoData, storeGeos, unplacedStoresForMap } from '@/lib/leadGeo';
 import { ScanLeadCard } from '@/components/ScanLeadCard';
-import { ScannedLeadsList, type ScannedLeadRow } from '@/components/ScannedLeadsList';
+import { ScannedLeadsList, scannedLeadKey, type ScannedLeadRow } from '@/components/ScannedLeadsList';
 import { listScannedLeads } from '@/lib/scannedLeads';
 import { prisma } from '@/lib/db';
 import { aiConfigured } from '@/lib/ai';
@@ -51,12 +51,13 @@ export default async function StaffLeadsPage({
     generatorName: l.generatorName, confidence: l.confidence, status: l.status, hasPhoto: !!l.photoStorageKey,
     scannedByName: l.scannedByName, officeName: l.dealerId ? nameById.get(l.dealerId) ?? null : null, createdAt: l.createdAt.toISOString(),
   }));
+  const scannedCalls = await readLeadCalls(scanned.map((s) => scannedLeadKey(s.id)));
   const scannedSection = (
     <div className="space-y-4">
       {aiConfigured() && <ScanLeadCard />}
       <div>
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">Scanned leads</h2>
-        <ScannedLeadsList leads={scanned} showOffice />
+        <ScannedLeadsList leads={scanned} callsByKey={scannedCalls} showOffice />
       </div>
     </div>
   );

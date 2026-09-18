@@ -54,6 +54,22 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-18
+- **Scanned leads now look and act like the Home Depot lead rows.** They were an
+  always-open card grid; they're now collapsible status-striped rows (name · store ·
+  phone · status badge) that expand to the full detail — matching the HD leads list —
+  and carry **the same call functions**: the `LeadCallTracker` (No answer / Msg left /
+  Spoke / Booked / Sold / Not interested + notes), reusing the shared `LeadCall`
+  store under a `scanned:<id>` key. The status badge/stripe now reflect the call
+  history. (`ScannedLeadsList.tsx`, dealer + staff `leads/page.tsx` pass `callsByKey`.)
+- **"View photo" on a scanned lead now opens an in-app lightbox with a close button.**
+  It used to open the image in a new tab, which on mobile/PWA left the user stuck with
+  no way back. Now it opens over the app (× button, Escape, tap-outside to close, plus
+  an "Open in new tab" option). (`ScannedLeadsList.tsx`.)
+- **Fixed the Test/Live journal toggle not switching.** The toggle depended on
+  `window.confirm` (silently blocked in some in-app browsers) and the action returned
+  nothing, so a click could do nothing with no feedback. It now uses an inline
+  confirm, flips immediately from the action's returned mode, and surfaces any error.
+  (`reports/actions.ts` returns a result, `WriteModeToggle.tsx`.)
 - **Lead-card scanner now reads MANY cards at once (was one-at-a-time) + a Back
   button.** The scanner was built as "multiple photos = one card"; a dealer who
   submitted four cards got a single lead. It now treats every distinct card as its

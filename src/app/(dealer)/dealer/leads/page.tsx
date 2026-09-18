@@ -8,7 +8,7 @@ import { LeadsView, filterLeads, leadMonthOptions, leadOutcomeKey } from '@/comp
 import { leadsGeoData, storeGeos, unplacedStoresForMap } from '@/lib/leadGeo';
 import { SectionHero } from '@/components/SectionHero';
 import { ScanLeadCard } from '@/components/ScanLeadCard';
-import { ScannedLeadsList, type ScannedLeadRow } from '@/components/ScannedLeadsList';
+import { ScannedLeadsList, scannedLeadKey, type ScannedLeadRow } from '@/components/ScannedLeadsList';
 import { listScannedLeads } from '@/lib/scannedLeads';
 import { aiConfigured } from '@/lib/ai';
 import { getT } from '@/i18n/server';
@@ -37,12 +37,13 @@ export default async function DealerLeadsPage({ searchParams }: { searchParams: 
 
   // Scanned lead cards are independent of the HD Leads Log sheet — always shown.
   const scanned = (await listScannedLeads(user)).map(toRow);
+  const scannedCalls = await readLeadCalls(scanned.map((s) => scannedLeadKey(s.id)));
   const scannedSection = (
     <div className="space-y-4">
       {aiConfigured() && <ScanLeadCard />}
       <div>
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">Scanned leads</h2>
-        <ScannedLeadsList leads={scanned} />
+        <ScannedLeadsList leads={scanned} callsByKey={scannedCalls} />
       </div>
     </div>
   );

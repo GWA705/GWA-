@@ -16,10 +16,17 @@ import {
  * journal or the real LIVE journal. Admin-only — this changes where real
  * customer data lands. Reporting reads are unaffected (always the live journal).
  */
-export async function setJournalWriteModeAction(mode: JournalWriteMode): Promise<void> {
+export async function setJournalWriteModeAction(
+  mode: JournalWriteMode,
+): Promise<{ ok?: boolean; error?: string; mode?: JournalWriteMode }> {
   const session = await requireRole('ADMIN');
   const value: JournalWriteMode = mode === 'live' ? 'live' : 'test';
-  await setSetting(JOURNAL_SETTING_KEYS.writeMode, value);
+  try {
+    await setSetting(JOURNAL_SETTING_KEYS.writeMode, value);
+  } catch (e) {
+    console.error('[journal] write-mode save failed', e);
+    return { error: 'Could not save the change — please try again.' };
+  }
   await audit({
     actorId: session.userId,
     action: 'SETTING_UPDATE',
@@ -28,6 +35,7 @@ export async function setJournalWriteModeAction(mode: JournalWriteMode): Promise
     detail: `journal write mode = ${value}`,
   });
   revalidatePath('/staff/reports/connection');
+  return { ok: true, mode: value };
 }
 
 /**
