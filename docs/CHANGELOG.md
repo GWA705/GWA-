@@ -54,6 +54,16 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-18
+- **Lead-card reader accuracy pass, tuned to the real card.** From real cards: the
+  reader now (a) captures **"Number of people in your household"** (new `householdSize`
+  field + column, migration `20260918160000`) which was being dropped entirely; (b)
+  supports **"Community Well"** as its own water source (was collapsed to Well/Other);
+  and (c) reads the **store number from the large hand-written number in the right
+  margin** (e.g. "7138") as well as the "Store Location" line — the key to routing the
+  lead. The extraction prompt was rewritten to match this exact card field-by-field
+  (labels, order, the two date fields, AM/PM/Evening best-time ticks, no occupation/
+  spouse block on this card). (`leadScanner.ts`, `schema.prisma`, `ScanLeadCard.tsx`,
+  `scanActions.ts`, `ScannedLeadsList.tsx`, dealer + staff `leads/page.tsx`.)
 - **Scanned leads now look and act like the Home Depot lead rows.** They were an
   always-open card grid; they're now collapsible status-striped rows (name · store ·
   phone · status badge) that expand to the full detail — matching the HD leads list —

@@ -20,7 +20,7 @@ function toRow(l: Awaited<ReturnType<typeof listScannedLeads>>[number]): Scanned
   return {
     id: l.id, customerName: l.customerName, phone: l.phone, address: l.address, city: l.city, postalCode: l.postalCode,
     storeNumber: l.storeNumber, collectedOn: l.collectedOn, ownsHome: l.ownsHome, waterSource: l.waterSource,
-    waterQuality: l.waterQuality, conditions: l.conditions, waterNotes: l.waterNotes, note: l.note,
+    waterQuality: l.waterQuality, conditions: l.conditions, householdSize: l.householdSize, waterNotes: l.waterNotes, note: l.note,
     generatorName: l.generatorName, confidence: l.confidence, status: l.status, hasPhoto: !!l.photoStorageKey,
     scannedByName: l.scannedByName, createdAt: l.createdAt.toISOString(),
   };

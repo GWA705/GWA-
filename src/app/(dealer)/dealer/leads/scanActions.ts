@@ -91,6 +91,7 @@ export async function createScannedLeadAction(_prev: ScanSaveState, fd: FormData
       buysBottledWater: bool(fd, 'buysBottledWater'),
       hasFilters: bool(fd, 'hasFilters'),
       hasWellWater: bool(fd, 'hasWellWater'),
+      householdSize: str(fd, 'householdSize'),
       storeNumber,
       collectedOn: str(fd, 'collectedOn'),
       generatorName: str(fd, 'generatorName'),

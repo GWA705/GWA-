@@ -1851,12 +1851,13 @@ model ScannedLead {
   waterNotes       String?  @db.Text
 
   ownsHome         String?  // OWN | RENT | WITH_PARENTS | UNKNOWN
-  waterSource      String?  // City | Well | Other
+  waterSource      String?  // City | Well | Community Well | Other
   waterQuality     String?  // Excellent | Good | Fair | Poor
   conditions       String[] @default([]) // Taste | Odors | Scale build up | Stains
   buysBottledWater Boolean?
   hasFilters       Boolean?
   hasWellWater     Boolean?
+  householdSize    String?  // "Number of people in your household", as written
 
   storeNumber   String?
   collectedOn   String?  // date as written on the card (yyyy-mm-dd if legible)

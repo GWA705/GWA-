@@ -97,11 +97,14 @@ export const CardExtractionSchema = z.object({
   buysBottledWater: looseBool(),
   /** "Do you use any water filters on your water now" */
   hasFilters: looseBool(),
-  /** "What water source do you have?" */
+  /** "What water source do you have? City / Well / Community Well / Other" */
   waterSource: z.preprocess(
-    (v) => pick(v, [['well', 'Well'], ['city', 'City'], ['municip', 'City'], ['other', 'Other']], null),
-    z.enum(['City', 'Well', 'Other']).nullable(),
+    // Order matters: check "community" before plain "well".
+    (v) => pick(v, [['communit', 'Community Well'], ['well', 'Well'], ['city', 'City'], ['municip', 'City'], ['other', 'Other']], null),
+    z.enum(['City', 'Well', 'Community Well', 'Other']).nullable(),
   ).catch(null),
+  /** "Number of people in your household" — a small number, as written. */
+  householdSize: nullableStr(),
   /** "How would you rate your water quality?" */
   waterQuality: z.preprocess(
     (v) => pick(v, [['excellent', 'Excellent'], ['good', 'Good'], ['fair', 'Fair'], ['poor', 'Poor']], null),
@@ -150,53 +153,69 @@ export interface ExtractResult {
 // is drawn, and tell it what a wrong answer costs. See README "Improving
 // accuracy" before changing anything here.
 
-const PROMPT = `You are reading a handwritten lead card collected by a Georgian Water & Air
-representative at a Home Depot store in Ontario, Canada.
+const PROMPT = `You are reading a handwritten Georgian Water & Air / Home Depot water-test lead
+card from Ontario, Canada. The printed form is titled "COMPLETE THIS INFORMATION
+& MAIL BACK WITH YOUR WATER SAMPLE" and its fields sit in this exact order:
 
-Extract the customer's details into the given schema. Rules:
-- Handwriting is often messy. If a field is genuinely unreadable, return null for it
-  rather than guessing — a blank field costs seconds to type, a wrong phone number
-  costs a lead.
-- Phone numbers are North American. Return digits only, no formatting.
-- Cards have a second block for the spouse or partner — name, phone and occupation.
-  Fill spouseName / spousePhone / spouseOccupation from it. Leave them null if the
-  card has no spouse block or it was left blank; do not repeat the customer's own
-  details into them.
-- Occupation is often shorthand or a trade ("RN", "millwright", "retired"). Return
-  it as written.
-- Addresses are Ontario addresses. Postal codes look like L4M 4S5.
-- "Best time to contact" is often shorthand: "eves", "aft 5", "wknds". Return it as
-  written; do not expand or interpret it.
-- Water notes are the customer's own words about their water (smell, taste, staining,
-  hardness, well water). Keep their phrasing — it is the sales hook.
-- List in uncertainFields the name of every field you are less than confident about.
-- confidence is your overall read on how legible this card was, 0-100.
-- If you see anything resembling a credit card number, DO NOT transcribe it. Leave the
-  field null and note "card number present" in waterNotes.
+  Name ______________________   Date water sample taken ______
+  Address ____________  City ______  Province __  PC (postal code) ______
+  Telephone ____________   Best time to call:  ___ AM / PM / Evening
+  Do you own your home? Yes / No      Do you buy bottled water? Yes / No
+  Number of people in your household ___   Do you use any filters on water now? Yes / No
+  What water source do you have?  City / Well / Community Well / Other
+  How would you rate your water quality?  Excellent / Good / Fair / Poor
+  Please check any conditions you experience:  Tastes / Odors / Scale Build Up / Stains
+  Signature ______   Date ______   Store Location ______
 
-The card also carries a short tick-box questionnaire. Read the ticks, not the labels:
-- "Do you own your Home? Yes / No" -> ownsHome OWN or RENT. If they have written
-  something like "with parents" use WITH_PARENTS. If no box is ticked use UNKNOWN.
-  Do not infer this from anything else on the card — it decides whether the lead is
-  callable at all, so a guess here is worse than an admission of not knowing.
-- "Do you buy bottled water? Yes / No" -> buysBottledWater true or false, null if blank.
-- "Do you use any water filters on your water now Yes / No" -> hasFilters, null if blank.
-- "What water source do you have? City / Well / Other" -> waterSource. Words written
-  beside "Other" belong in waterNotes, not in waterSource.
+Map each printed field to the schema:
+- Name -> name. Return exactly the customer's name; never put a rep/collector name here.
+- Address -> address; City -> city; Province is Ontario (ignore, it's always ON);
+  PC -> postalCode, formatted like "N3S 1M2" (a letter-digit-letter space digit-letter-digit).
+- Telephone -> phone, digits only, no formatting (North American 10 digits).
+- "Best time to call": there is usually a time written plus a tick on AM, PM or Evening.
+  Return bestTimeToContact as written, e.g. "10 AM", "eves", "after 5". Do not interpret.
+- "Number of people in your household" -> householdSize, the number as written (e.g. "4").
+- Water notes: any of the customer's own words about their water go in waterNotes; keep
+  their phrasing. This card often has none — leave null if so.
+- This card has NO occupation field and NO spouse block. Leave occupation, spouseName,
+  spousePhone and spouseOccupation null unless the card clearly has them written in.
+
+Tick-box questions — READ THE TICK (a check, cross, scribble or circle), not just the label:
+- "Do you own your home? Yes / No" -> ownsHome OWN or RENT (WITH_PARENTS only if written).
+  If no box is marked, UNKNOWN. This decides if the lead is callable — never guess.
+- "Do you buy bottled water? Yes / No" -> buysBottledWater true/false, null if blank.
+- "Do you use any filters on water now? Yes / No" -> hasFilters true/false, null if blank.
+- "What water source do you have? City / Well / Community Well / Other" -> waterSource.
+  "Community Well" is its own value — do not collapse it to "Well". Anything written next
+  to "Other" goes in waterNotes, not waterSource.
 - "How would you rate your water quality? Excellent / Good / Fair / Poor" -> waterQuality.
-- "Please check any conditions you experience: Taste / Odors / Scale build up / Stains"
-  -> conditions, listing every one that is ticked. An empty list is fine.
-- "Store #" -> storeNumber, digits as written.
-- "Date" -> collectedOn as yyyy-mm-dd. Cards are written in the current or previous
-  month; if the year is missing or ambiguous, return null rather than assuming.
-- A person's name written on the card that is plainly not the customer — beside the
-  water source, in a margin, or by a "collected by" line — is the lead generator.
-  Put it in generatorName, never in name.
+- "Please check any conditions you experience: Tastes / Odors / Scale Build Up / Stains"
+  -> conditions (use the schema spellings: Taste, Odors, Scale build up, Stains). List
+  every ticked one; an empty list is fine.
 
-A tick can be a check, a cross, a scribble or a circle. If two boxes on one question
-appear marked, or you cannot tell which is marked, return null for that question and
-name it in uncertainFields. The office can read the photo in two seconds; a wrong
-answer here is carried for the life of the lead.`;
+Store number — IMPORTANT, it appears in two places and is the key to routing the lead:
+- The rep writes the 4-digit HD store number LARGE in the right-hand margin (often twice),
+  e.g. "7138". Return that 4-digit number as storeNumber.
+- The "Store Location" line may hold the same number, or a place name like "Brantford".
+  Prefer the 4-digit number for storeNumber. If Store Location is only a place name and
+  the City field is blank, you may use it for city; otherwise ignore the place name.
+
+Dates:
+- Both "Date water sample taken" (top) and "Date" (by the signature) are the collection
+  date. Return collectedOn as yyyy-mm-dd. Cards are written in the current or previous
+  month; if the year is missing or ambiguous, return null rather than assuming a year.
+
+Other:
+- generatorName: a person's name that is plainly the rep/collector (a margin note or a
+  "collected by" line), never the customer. Usually absent on this card — null if so.
+- A tick can be a check, cross, scribble or circle. If two boxes on one question look
+  marked, or you can't tell, return null for that question and name it in uncertainFields.
+- List in uncertainFields every field you are less than fully confident about.
+- confidence is your overall read on this card's legibility, 0-100.
+- If you see anything resembling a credit card number, DO NOT transcribe it: leave the
+  field null and note "card number present" in waterNotes.
+- If a field is genuinely unreadable, return null — a blank field costs seconds to type;
+  a wrong phone number or address costs the lead.`;
 
 /** The per-card fields, shared by the single-card and multi-card tools. */
 const CARD_PROPS = {
@@ -212,9 +231,10 @@ const CARD_PROPS = {
   ownsHome: { type: 'string', enum: ['OWN', 'RENT', 'WITH_PARENTS', 'UNKNOWN'] },
   buysBottledWater: { type: ['boolean', 'null'] },
   hasFilters: { type: ['boolean', 'null'] },
-  waterSource: { type: ['string', 'null'], enum: ['City', 'Well', 'Other', null] },
+  waterSource: { type: ['string', 'null'], enum: ['City', 'Well', 'Community Well', 'Other', null] },
   waterQuality: { type: ['string', 'null'], enum: ['Excellent', 'Good', 'Fair', 'Poor', null] },
   conditions: { type: 'array', items: { type: 'string', enum: ['Taste', 'Odors', 'Scale build up', 'Stains'] } },
+  householdSize: { type: ['string', 'null'] },
   storeNumber: { type: ['string', 'null'] },
   collectedOn: { type: ['string', 'null'] },
   generatorName: { type: ['string', 'null'] },

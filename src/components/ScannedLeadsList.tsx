@@ -20,6 +20,7 @@ export interface ScannedLeadRow {
   waterSource: string | null;
   waterQuality: string | null;
   conditions: string[];
+  householdSize: string | null;
   waterNotes: string | null;
   note: string | null;
   generatorName: string | null;
@@ -136,7 +137,13 @@ function Row({ lead, calls, showOffice }: { lead: ScannedLeadRow; calls: LeadCal
         <dl className="space-y-0.5 text-sm text-gray-600">
           {addr && <div>{addr}</div>}
           {water && <div className="text-xs text-gray-500">{water}</div>}
-          {lead.ownsHome && lead.ownsHome !== 'UNKNOWN' && <div className="text-xs text-gray-500">Home: {lead.ownsHome === 'OWN' ? 'owns' : lead.ownsHome === 'RENT' ? 'rents' : 'with parents'}</div>}
+          {(lead.ownsHome && lead.ownsHome !== 'UNKNOWN' || lead.householdSize) && (
+            <div className="text-xs text-gray-500">
+              {lead.ownsHome && lead.ownsHome !== 'UNKNOWN' && <>Home: {lead.ownsHome === 'OWN' ? 'owns' : lead.ownsHome === 'RENT' ? 'rents' : 'with parents'}</>}
+              {lead.ownsHome && lead.ownsHome !== 'UNKNOWN' && lead.householdSize ? ' · ' : ''}
+              {lead.householdSize && <>{lead.householdSize} in household</>}
+            </div>
+          )}
           {lead.generatorName && <div className="text-xs text-gray-500">Collected by: {lead.generatorName}</div>}
           {lead.waterNotes && <div className="text-xs italic text-gray-500">“{lead.waterNotes}”</div>}
           {lead.note && <div className="text-xs text-gray-500">Note: {lead.note}</div>}

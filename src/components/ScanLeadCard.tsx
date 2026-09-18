@@ -13,7 +13,8 @@ interface CardExtraction {
   bestTimeToContact: string | null; waterNotes: string | null; hasWellWater: boolean | null;
   ownsHome: 'OWN' | 'RENT' | 'WITH_PARENTS' | 'UNKNOWN';
   buysBottledWater: boolean | null; hasFilters: boolean | null;
-  waterSource: 'City' | 'Well' | 'Other' | null;
+  householdSize: string | null;
+  waterSource: 'City' | 'Well' | 'Community Well' | 'Other' | null;
   waterQuality: 'Excellent' | 'Good' | 'Fair' | 'Poor' | null;
   conditions: ('Taste' | 'Odors' | 'Scale build up' | 'Stains')[];
   storeNumber: string | null; collectedOn: string | null; generatorName: string | null;
@@ -27,6 +28,7 @@ type Fields = {
   spouseName: string; spousePhone: string; spouseOccupation: string;
   address: string; city: string; postalCode: string;
   storeNumber: string; collectedOn: string; bestTimeToContact: string; generatorName: string;
+  householdSize: string;
   ownsHome: string; waterSource: string; waterQuality: string;
   buysBottledWater: string; hasFilters: string; hasWellWater: string;
   conditions: string[]; waterNotes: string; note: string;
@@ -42,6 +44,7 @@ type CardForm = Fields & {
 const EMPTY_FIELDS: Fields = {
   customerName: '', phone: '', occupation: '', spouseName: '', spousePhone: '', spouseOccupation: '',
   address: '', city: '', postalCode: '', storeNumber: '', collectedOn: '', bestTimeToContact: '', generatorName: '',
+  householdSize: '',
   ownsHome: 'UNKNOWN', waterSource: '', waterQuality: '', buysBottledWater: '', hasFilters: '', hasWellWater: '',
   conditions: [], waterNotes: '', note: '',
 };
@@ -58,7 +61,7 @@ function cardFromExtraction(d: CardExtraction): CardForm {
     spouseName: d.spouseName ?? '', spousePhone: d.spousePhone ?? '', spouseOccupation: d.spouseOccupation ?? '',
     address: d.address ?? '', city: d.city ?? '', postalCode: d.postalCode ?? '',
     storeNumber: d.storeNumber ?? '', collectedOn: d.collectedOn ?? '', bestTimeToContact: d.bestTimeToContact ?? '',
-    generatorName: d.generatorName ?? '', ownsHome: d.ownsHome ?? 'UNKNOWN', waterSource: d.waterSource ?? '',
+    generatorName: d.generatorName ?? '', householdSize: d.householdSize ?? '', ownsHome: d.ownsHome ?? 'UNKNOWN', waterSource: d.waterSource ?? '',
     waterQuality: d.waterQuality ?? '', buysBottledWater: boolToStr(d.buysBottledWater), hasFilters: boolToStr(d.hasFilters),
     hasWellWater: boolToStr(d.hasWellWater), conditions: d.conditions ?? [], waterNotes: d.waterNotes ?? '', note: '',
     uncertain: d.uncertainFields ?? [], confidence: typeof d.confidence === 'number' ? d.confidence : null,
@@ -287,6 +290,7 @@ export function ScanLeadCard({ onSaved }: { onSaved?: () => void }) {
                     {field(idx, 'postalCode', 'Postal code')}
                     {field(idx, 'occupation', 'Occupation')}
                     {field(idx, 'bestTimeToContact', 'Best time to contact')}
+                    {field(idx, 'householdSize', 'People in household')}
                     {field(idx, 'storeNumber', 'Store #')}
                     {field(idx, 'collectedOn', 'Date collected')}
                     {field(idx, 'spouseName', 'Spouse name')}
@@ -302,7 +306,7 @@ export function ScanLeadCard({ onSaved }: { onSaved?: () => void }) {
                     <div>
                       <label className={label} htmlFor={`sl_${idx}_waterSource`}>Water source</label>
                       <select id={`sl_${idx}_waterSource`} value={c.waterSource} onChange={(e) => setField(idx, 'waterSource', e.target.value)} className="input">
-                        <option value="">—</option><option>City</option><option>Well</option><option>Other</option>
+                        <option value="">—</option><option>City</option><option>Well</option><option>Community Well</option><option>Other</option>
                       </select>
                     </div>
                     <div>
