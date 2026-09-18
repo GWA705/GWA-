@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { setScannedLeadStatusAction, deleteScannedLeadAction } from '@/app/(dealer)/dealer/leads/scanActions';
 import { LeadCallTracker } from './LeadCallTracker';
 import type { LeadCallRow } from '@/lib/leadCalls';
+import { scannedLeadKey } from '@/lib/scannedLeadKey';
 
 export interface ScannedLeadRow {
   id: string;
@@ -28,11 +29,6 @@ export interface ScannedLeadRow {
   scannedByName: string | null;
   officeName?: string | null; // staff view only
   createdAt: string; // ISO
-}
-
-/** Stable key for the shared call-tracker (same table as HD leads). */
-export function scannedLeadKey(id: string): string {
-  return `scanned:${id}`;
 }
 
 const CHIP: Record<string, string> = {

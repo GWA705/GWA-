@@ -8,7 +8,8 @@ import { LeadsView, filterLeads, leadMonthOptions, leadOutcomeKey } from '@/comp
 import { leadsGeoData, storeGeos, unplacedStoresForMap } from '@/lib/leadGeo';
 import { SectionHero } from '@/components/SectionHero';
 import { ScanLeadCard } from '@/components/ScanLeadCard';
-import { ScannedLeadsList, scannedLeadKey, type ScannedLeadRow } from '@/components/ScannedLeadsList';
+import { ScannedLeadsList, type ScannedLeadRow } from '@/components/ScannedLeadsList';
+import { scannedLeadKey } from '@/lib/scannedLeadKey';
 import { listScannedLeads } from '@/lib/scannedLeads';
 import { aiConfigured } from '@/lib/ai';
 import { getT } from '@/i18n/server';
