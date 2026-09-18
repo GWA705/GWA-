@@ -1,0 +1,57 @@
+name: Journal paid sync (cron)
+
+# Drives the portal's journal -> paid sync on a schedule. Deals that are settled
+# in the sales journal (Result "OK" + a Date Paid) get auto-advanced to Funded and
+# have their "Pay to dealer" payout filled in from the journal. The app itself runs
+# NO scheduler, so this workflow is what actually calls
+# src/app/api/cron/journal-paid-sync/route.ts in production.
+#
+# Setup (one-time):
+#   1. Add repo secret CRON_SECRET (Settings -> Secrets and variables -> Actions).
+#      It MUST match the CRON_SECRET environment variable set on the Elastic
+#      Beanstalk environment (Gwa-portal-env). If they don't match the endpoint
+#      returns 401 and nothing syncs.
+#   2. (Optional) Add repo variable PORTAL_BASE_URL to override the production URL.
+#
+# Run it on demand any time from the Actions tab -> "Journal paid sync (cron)" ->
+# "Run workflow" (this is the quickest way to clear a backlog immediately).
+
+on:
+  schedule:
+    - cron: '0 */2 * * *'   # every 2 hours, on the hour (UTC)
+  workflow_dispatch: {}       # manual "Run workflow" button
+
+concurrency:
+  group: journal-paid-sync
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call journal-paid-sync endpoint
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          BASE_URL: ${{ vars.PORTAL_BASE_URL || 'https://portal.ghsbarrie.ca' }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "::error::CRON_SECRET repo secret is not set. Add it under Settings -> Secrets and variables -> Actions. It must match the CRON_SECRET env var on Elastic Beanstalk."
+            exit 1
+          fi
+          url="${BASE_URL%/}/api/cron/journal-paid-sync"
+          echo "POST $url"
+          code=$(curl -sS -o /tmp/body.txt -w '%{http_code}' -X POST "$url" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            --retry 3 --retry-delay 5 --max-time 120 || echo "000")
+          echo "HTTP status: $code"
+          echo "Response body: $(cat /tmp/body.txt 2>/dev/null)"
+          case "$code" in
+            200) echo "Sweep started successfully." ;;
+            401) echo "::error::401 Unauthorized - CRON_SECRET repo secret does not match the one on Elastic Beanstalk."; exit 1 ;;
+            503) echo "::error::503 - CRON_SECRET is not configured on the Elastic Beanstalk environment."; exit 1 ;;
+            000) echo "::error::Could not reach $url (network/DNS/timeout). Check PORTAL_BASE_URL."; exit 1 ;;
+            *)   echo "::error::journal-paid-sync returned HTTP $code"; exit 1 ;;
+          esac

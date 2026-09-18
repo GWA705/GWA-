@@ -53,6 +53,23 @@ source of truth; this file is the human-readable index.
   `testSingleLead()` on a French lead first. Portal display auto-translates lead
   free-text via DeepL.
 
+## 2026-09-18
+- **Scheduled the journal → paid sync (it was built but nothing ever ran it).** The
+  journal-paid automation (`journalPaidSync.ts` + `/api/cron/journal-paid-sync`) —
+  which reads each journal-written deal back, and when the row shows Result "OK" +
+  a Date Paid, auto-advances the deal to Funded and auto-fills the "Pay to dealer"
+  payout from the journal — has always been code-complete but had **no scheduler**.
+  The app runs no cron of its own; `render.yaml` has no cron job; and prod is on AWS
+  EB (not Render, where the go-live checklist pointed the cron). So the sweep never
+  fired on its own — deals only synced if a reviewer pressed "Check journal" on the
+  deal. Added `.github/workflows/journal-paid-sync.yml`: a scheduled GitHub Action
+  that POSTs the cron endpoint every 2h (and can be run on demand from the Actions
+  tab). **Requires**: repo secret `CRON_SECRET` matching the EB env var; and the live
+  journal must have the "Pay to dealer" column or the payout amount won't fill (deal
+  still auto-funds + stamps journalPaidOn). Long-term this should move to AWS
+  EventBridge Scheduler (same infra as prod; GitHub disables schedule crons after 60d
+  of no commits). (`.github/workflows/journal-paid-sync.yml`.)
+
 ## 2026-09-17
 - **Deal chat is back on the dealer side — but only when we've messaged them.** The
   dealer's deal page now shows the `ConversationThread` chat in a card **right under
