@@ -214,12 +214,14 @@ export function ScanLeadCard({ onSaved }: { onSaved?: () => void }) {
         )}
       </div>
       <p className="mb-3 text-xs text-gray-500">
-        Snap the Home Depot water-test cards and the scanner reads them for you — then check and save.
+        Snap a photo — or upload one from your files — of the Home Depot water-test cards and the scanner reads them for you, then check and save.
         You can photograph <strong>several cards at once</strong> (side by side, or one photo per card) and each becomes its own lead.
       </p>
 
       <div className="flex flex-wrap items-center gap-3">
-        <input ref={fileRef} name="cardImage" type="file" accept="image/*" capture="environment" multiple onChange={onPick} className="text-sm" />
+        {/* No `capture` attribute: leaving it off lets the device offer Take Photo,
+            Photo Library AND Choose File, instead of forcing the camera. */}
+        <input ref={fileRef} name="cardImage" type="file" accept="image/*" multiple onChange={onPick} className="text-sm" />
         <button type="button" onClick={scan} disabled={scanning}
           className="rounded-lg bg-brand-600 px-3.5 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60">
           {scanning ? 'Reading…' : previews.length > 1 ? `Read ${previews.length} photos` : 'Read the cards'}
