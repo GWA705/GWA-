@@ -2,6 +2,7 @@ import { requireRole, hasBothPortals } from '@/lib/session';
 import { roleLabel } from '@/lib/rbac';
 import { StaffShell } from '@/components/StaffShell';
 import { AlertModal } from '@/components/AlertModal';
+import { TabUnreadNotifier } from '@/components/TabUnreadNotifier';
 import { alertWhereForUser } from '@/lib/alerts';
 import { prisma } from '@/lib/db';
 import { canAdminSection, hasAnyAdminSection, isSuperAdmin } from '@/lib/rbac';
@@ -69,6 +70,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
       nav={nav}
     >
       {children}
+      {canDeals && <TabUnreadNotifier />}
       {alerts.length > 0 && <AlertModal alerts={alerts} />}
     </StaffShell>
   );

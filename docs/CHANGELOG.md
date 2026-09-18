@@ -54,6 +54,14 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-18
+- **Flashing browser-tab alert for reviewers on new messages.** When a staff member
+  is on another browser tab, the portal tab title now rotates between the page title
+  and "🔔 (N) new message(s)" while they have unread portal messages — so reviewers
+  notice a dealer's message without watching the app. It stops the moment they return
+  to the tab (and clears once the messages are read). New `TabUnreadNotifier` client
+  component polls the same `/api/chat/summary` (`totalUnread`) the chat badge uses;
+  mounted in the staff layout for users with chat access. (`TabUnreadNotifier.tsx`,
+  `(staff)/layout.tsx`.)
 - **Dealer-facing payouts: staff auto-complete, dealer visibility, and actual-payout
   receipts in the calculator.** Building on the journal → paid sync (below), three
   linked changes so a settled deal flows all the way to the dealer with no manual work:
