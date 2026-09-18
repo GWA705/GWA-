@@ -95,6 +95,11 @@ export function DealerCalculator({ defaultProvince = 'ON' }: { defaultProvince?:
   const n = Number(amount.replace(/[^0-9.]/g, ''));
   const r = n > 0 ? computeDealerPayout(n, province) : null;
 
+  // Once a picked deal is fully paid (a payout has been recorded — usually
+  // auto-filled from the journal's "Pay to dealer"), the calculator shows the
+  // ACTUAL amount paid instead of the estimate, and the receipt reads "actual".
+  const showActual = !!deal?.isPaid && deal.actualPayout != null;
+
   function copyBreakdown() {
     if (!r?.ok) return;
     const lines = [
@@ -122,23 +127,29 @@ export function DealerCalculator({ defaultProvince = 'ON' }: { defaultProvince?:
 
   const [savingPdf, setSavingPdf] = useState(false);
   async function savePdf() {
-    if (!r?.ok || savingPdf) return;
+    if ((!r?.ok && !showActual) || savingPdf) return;
     setSavingPdf(true);
     try {
       const res = await fetch('/api/dealer/calculator/receipt', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          amount: n,
-          province,
-          customer,
-          reference,
-          saleDate: fmtDate(deal?.saleDate ?? null) ?? undefined,
-          products: deal?.products.length ? deal.products.join(', ') : undefined,
-          salesperson: deal?.salesperson ?? undefined,
-          installer: deal?.installer ?? undefined,
-          paymentLabel: deal?.paymentLabel ?? undefined,
-        }),
+        body: JSON.stringify(
+          // For a fully-paid deal, ask the server to build the ACTUAL receipt from
+          // the recorded payout (re-verified server-side) rather than the estimate.
+          showActual
+            ? { dealId: deal!.id, actual: true }
+            : {
+                amount: n,
+                province,
+                customer,
+                reference,
+                saleDate: fmtDate(deal?.saleDate ?? null) ?? undefined,
+                products: deal?.products.length ? deal.products.join(', ') : undefined,
+                salesperson: deal?.salesperson ?? undefined,
+                installer: deal?.installer ?? undefined,
+                paymentLabel: deal?.paymentLabel ?? undefined,
+              },
+        ),
       });
       if (!res.ok) return;
       const blob = await res.blob();
@@ -262,25 +273,34 @@ export function DealerCalculator({ defaultProvince = 'ON' }: { defaultProvince?:
             </div>
           </div>
 
-          {/* Result — stays on the left, under the inputs */}
-          {r?.ok && (
+          {/* Result — stays on the left, under the inputs. Shows the ACTUAL paid
+              amount for a fully-paid deal, otherwise the estimate. */}
+          {(r?.ok || showActual) && (
             <div className="overflow-hidden rounded-2xl border border-gray-200 shadow-sm">
-              <div className="relative px-6 py-7 text-center text-white" style={{ background: 'linear-gradient(135deg,#0f7a4d,#1aa06a)' }}>
+              <div className="relative px-6 py-7 text-center text-white" style={{ background: showActual ? 'linear-gradient(135deg,#0e2b5c,#1f4f9c)' : 'linear-gradient(135deg,#0f7a4d,#1aa06a)' }}>
                 <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70">
-                  {t('calculator.estimatedPayout')}{customer ? ` · ${customer}` : ''}
+                  {showActual ? t('calculator.actualPayout') : t('calculator.estimatedPayout')}{customer ? ` · ${customer}` : ''}
                 </div>
-                <div className="mt-1 text-4xl font-extrabold tabular-nums sm:text-5xl">{money(r.payout)}</div>
+                <div className="mt-1 text-4xl font-extrabold tabular-nums sm:text-5xl">
+                  {showActual ? money(deal!.actualPayout!) : money(r!.payout)}
+                </div>
                 <div className="mt-1 text-sm text-white/70">
-                  {r.province} · tax {pct(r.taxRate)}{reference ? ` · ${reference}` : ''}
+                  {showActual
+                    ? `${t('calculator.paidOn')} ${fmtDate(deal!.paidOn) ?? '—'}${deal!.payoutMethod ? ` · ${deal!.payoutMethod}` : ''}${reference ? ` · ${reference}` : ''}`
+                    : `${r!.province} · tax ${pct(r!.taxRate)}${reference ? ` · ${reference}` : ''}`}
                 </div>
               </div>
               <div className="bg-white">
                 <div className="flex items-center justify-between px-5 pt-3">
-                  <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">{t('calculator.howCalculated')}</span>
+                  <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+                    {showActual ? t('calculator.confirmedPaid') : t('calculator.howCalculated')}
+                  </span>
                   <div className="flex gap-1.5">
-                    <button type="button" onClick={copyBreakdown} className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-semibold text-gray-600 transition hover:bg-gray-50">
-                      {copied ? <><Check size={13} className="text-green-600" /> {t('calculator.copied')}</> : <><Copy size={13} /> {t('calculator.copy')}</>}
-                    </button>
+                    {r?.ok && (
+                      <button type="button" onClick={copyBreakdown} className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-semibold text-gray-600 transition hover:bg-gray-50">
+                        {copied ? <><Check size={13} className="text-green-600" /> {t('calculator.copied')}</> : <><Copy size={13} /> {t('calculator.copy')}</>}
+                      </button>
+                    )}
                     <button type="button" onClick={savePdf} disabled={savingPdf} className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-semibold text-gray-600 transition hover:bg-gray-50 disabled:opacity-60">
                       <FileDown size={13} /> {savingPdf ? t('calculator.saving') : t('calculator.savePdf')}
                     </button>
@@ -289,8 +309,11 @@ export function DealerCalculator({ defaultProvince = 'ON' }: { defaultProvince?:
                     </button>
                   </div>
                 </div>
-                <BreakdownTable r={r} t={t} />
-                {r.warning && <p className="border-t border-gray-100 px-5 py-2 text-xs text-amber-700">{r.warning}</p>}
+                {showActual && r?.ok && (
+                  <p className="px-5 pt-2 text-xs text-gray-500">{t('calculator.actualNote')}</p>
+                )}
+                {r?.ok && <BreakdownTable r={r} t={t} />}
+                {r?.ok && r.warning && <p className="border-t border-gray-100 px-5 py-2 text-xs text-amber-700">{r.warning}</p>}
               </div>
             </div>
           )}
@@ -307,8 +330,8 @@ export function DealerCalculator({ defaultProvince = 'ON' }: { defaultProvince?:
       </p>
 
       {/* Printable receipt (hidden on screen) */}
-      {r?.ok && (
-        <Receipt r={r} customer={customer} reference={reference} deal={deal} />
+      {(r?.ok || showActual) && (
+        <Receipt r={r?.ok ? r : null} customer={customer} reference={reference} deal={deal} actual={showActual} />
       )}
     </div>
   );
@@ -404,14 +427,17 @@ function BreakdownTable({ r, t }: { r: PayoutBreakdown; t: TFunction }) {
   );
 }
 
-/* ---- Printable receipt (hidden on screen; shown by @media print) ---- */
+/* ---- Printable receipt (hidden on screen; shown by @media print) ----
+   For a fully-paid deal (actual=true) this prints the confirmed payout that
+   Georgian Water & Air actually paid; otherwise it prints the estimate. */
 function Receipt({
-  r, customer, reference, deal,
+  r, customer, reference, deal, actual,
 }: {
-  r: PayoutBreakdown;
+  r: PayoutBreakdown | null;
   customer: string;
   reference: string;
   deal: DealMatch | null;
+  actual: boolean;
 }) {
   const details: [string, string | null][] = [
     ['Customer', customer || null],
@@ -421,7 +447,7 @@ function Receipt({
     ['Sales rep', deal?.salesperson ?? null],
     ['Installer', deal?.installer ?? null],
     ['Payment method', deal?.paymentLabel ?? null],
-    ['Province', r.province],
+    ['Province', r?.province ?? deal?.province ?? null],
   ];
   const shown = details.filter(([, v]) => v);
   return (
@@ -443,35 +469,63 @@ function Receipt({
         </tbody>
       </table>
 
-      <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: '#666', marginBottom: '4px' }}>Payout breakdown</div>
-      <table style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse' }}>
-        <tbody>
-          {[
-            ['Total sale (with tax)', money(r.totalWithTax)],
-            ['Subtotal (pre-tax)', money(r.subtotal)],
-            ['HD Discount (13%)', `−${money(r.hdDiscount)}`],
-            ['Subtotal after HD Discount', money(r.afterHd)],
-            ['HD IBX Discount (1.25%)', `−${money(r.ibxDiscount)}`],
-            ['Subtotal after IBX Discount', money(r.afterIbx)],
-            ['HD Program (4%)', `−${money(r.hdProgram)}`],
-            ['Net payout (pre-tax)', money(r.netPreTax)],
-            [`HST / Tax (${pct(r.taxRate)})`, `+${money(r.hst)}`],
-          ].map(([k, v]) => (
-            <tr key={k} style={{ borderBottom: '1px solid #eee' }}>
-              <td style={{ padding: '4px 0', color: '#444' }}>{k}</td>
-              <td style={{ padding: '4px 0', textAlign: 'right' }}>{v}</td>
-            </tr>
-          ))}
-          <tr style={{ borderTop: '2px solid #0f7a4d' }}>
-            <td style={{ padding: '6px 0', fontWeight: 800, color: '#0f7a4d' }}>TOTAL EFT PAYOUT</td>
-            <td style={{ padding: '6px 0', textAlign: 'right', fontWeight: 800, color: '#0f7a4d' }}>{money(r.payout)}</td>
-          </tr>
-        </tbody>
-      </table>
-
-      <p style={{ fontSize: '10px', color: '#999', marginTop: '18px' }}>
-        Estimate for your records. The amount paid is confirmed by Georgian Water &amp; Air when the deal funds.
-      </p>
+      {actual && deal?.actualPayout != null ? (
+        <>
+          <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: '#666', marginBottom: '4px' }}>Payment</div>
+          <table style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse' }}>
+            <tbody>
+              {[
+                ['Date paid', fmtDate(deal.paidOn) ?? '—'],
+                ['Method', deal.payoutMethod ?? '—'],
+                ['Reference', deal.payoutReference ?? '—'],
+              ].map(([k, v]) => (
+                <tr key={k} style={{ borderBottom: '1px solid #eee' }}>
+                  <td style={{ padding: '4px 0', color: '#444' }}>{k}</td>
+                  <td style={{ padding: '4px 0', textAlign: 'right' }}>{v}</td>
+                </tr>
+              ))}
+              <tr style={{ borderTop: '2px solid #0f7a4d' }}>
+                <td style={{ padding: '6px 0', fontWeight: 800, color: '#0f7a4d' }}>PAYOUT PAID</td>
+                <td style={{ padding: '6px 0', textAlign: 'right', fontWeight: 800, color: '#0f7a4d' }}>{money(deal.actualPayout)}</td>
+              </tr>
+            </tbody>
+          </table>
+          <p style={{ fontSize: '10px', color: '#999', marginTop: '18px' }}>
+            Actual payout paid to your office by Georgian Water &amp; Air. Recorded from the sales journal.
+          </p>
+        </>
+      ) : r ? (
+        <>
+          <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: '#666', marginBottom: '4px' }}>Payout breakdown</div>
+          <table style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse' }}>
+            <tbody>
+              {[
+                ['Total sale (with tax)', money(r.totalWithTax)],
+                ['Subtotal (pre-tax)', money(r.subtotal)],
+                ['HD Discount (13%)', `−${money(r.hdDiscount)}`],
+                ['Subtotal after HD Discount', money(r.afterHd)],
+                ['HD IBX Discount (1.25%)', `−${money(r.ibxDiscount)}`],
+                ['Subtotal after IBX Discount', money(r.afterIbx)],
+                ['HD Program (4%)', `−${money(r.hdProgram)}`],
+                ['Net payout (pre-tax)', money(r.netPreTax)],
+                [`HST / Tax (${pct(r.taxRate)})`, `+${money(r.hst)}`],
+              ].map(([k, v]) => (
+                <tr key={k} style={{ borderBottom: '1px solid #eee' }}>
+                  <td style={{ padding: '4px 0', color: '#444' }}>{k}</td>
+                  <td style={{ padding: '4px 0', textAlign: 'right' }}>{v}</td>
+                </tr>
+              ))}
+              <tr style={{ borderTop: '2px solid #0f7a4d' }}>
+                <td style={{ padding: '6px 0', fontWeight: 800, color: '#0f7a4d' }}>TOTAL EFT PAYOUT</td>
+                <td style={{ padding: '6px 0', textAlign: 'right', fontWeight: 800, color: '#0f7a4d' }}>{money(r.payout)}</td>
+              </tr>
+            </tbody>
+          </table>
+          <p style={{ fontSize: '10px', color: '#999', marginTop: '18px' }}>
+            Estimate for your records. The amount paid is confirmed by Georgian Water &amp; Air when the deal funds.
+          </p>
+        </>
+      ) : null}
     </div>
   );
 }

@@ -319,6 +319,12 @@ model Dealer {
   // Email the periodic "Snapshot" insights digest to this office's report users.
   // Off by default — an admin turns it on per office after previewing a test.
   insightsEnabled  Boolean @default(false)
+  // Show the dealer's payout amount (final "pay to dealer" figure, once a deal is
+  // paid) to EVERY user at this dealership, not just the owner/main contact
+  // (distributor). On by default; an office that doesn't want its sales reps
+  // seeing payout dollars can turn this off, leaving payouts visible only to the
+  // distributor. The distributor always sees payouts regardless of this flag.
+  showPayoutsToAllUsers Boolean @default(true)
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 

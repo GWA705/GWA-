@@ -19,6 +19,14 @@ export interface DealMatch {
   salesperson: string | null;
   installer: string | null;
   paymentLabel: string | null;  // how the customer paid
+  // Actual settlement — populated once the deal is fully paid (a payout has been
+  // recorded, usually auto-filled from the journal's "Pay to dealer"). When paid,
+  // the calculator shows this REAL figure instead of the estimate.
+  isPaid: boolean;
+  actualPayout: number | null;  // total recorded payout ($), only when paid
+  paidOn: string | null;        // ISO date of the latest payout
+  payoutMethod: string | null;
+  payoutReference: string | null;
 }
 
 /**
@@ -69,20 +77,35 @@ export async function searchDealerDeals(query: string): Promise<DealMatch[]> {
       salespersonName: true,
       installerName: true,
       paymentMethod: true,
+      journalPaidOn: true,
+      payouts: {
+        select: { amount: true, paidOn: true, method: true, reference: true },
+        orderBy: { paidOn: 'desc' },
+      },
     },
   });
 
-  return apps.map((a) => ({
-    id: a.id,
-    name: `${a.applicantFirstName} ${a.applicantLastName}`.trim(),
-    amount: a.approvedAmount != null ? Number(a.approvedAmount) : null,
-    province: a.province,
-    reference: a.hdReference || a.financeItNumber || '',
-    statusLabel: STATUS_LABELS_SHORT[a.status],
-    saleDate: a.dateOfSale ? a.dateOfSale.toISOString().slice(0, 10) : null,
-    products: Array.isArray(a.productsSold) ? a.productsSold.filter(Boolean) : [],
-    salesperson: a.salespersonName || null,
-    installer: a.installerName || null,
-    paymentLabel: a.paymentMethod ? (PAYMENT_METHOD_LABELS[a.paymentMethod] ?? null) : null,
-  }));
+  return apps.map((a) => {
+    const isPaid = a.payouts.length > 0;
+    const actualPayout = isPaid ? a.payouts.reduce((sum, p) => sum + Number(p.amount), 0) : null;
+    const latest = a.payouts[0] ?? null;
+    return {
+      id: a.id,
+      name: `${a.applicantFirstName} ${a.applicantLastName}`.trim(),
+      amount: a.approvedAmount != null ? Number(a.approvedAmount) : null,
+      province: a.province,
+      reference: a.hdReference || a.financeItNumber || '',
+      statusLabel: STATUS_LABELS_SHORT[a.status],
+      saleDate: a.dateOfSale ? a.dateOfSale.toISOString().slice(0, 10) : null,
+      products: Array.isArray(a.productsSold) ? a.productsSold.filter(Boolean) : [],
+      salesperson: a.salespersonName || null,
+      installer: a.installerName || null,
+      paymentLabel: a.paymentMethod ? (PAYMENT_METHOD_LABELS[a.paymentMethod] ?? null) : null,
+      isPaid,
+      actualPayout,
+      paidOn: latest ? latest.paidOn.toISOString().slice(0, 10) : null,
+      payoutMethod: latest?.method ?? null,
+      payoutReference: latest?.reference ?? null,
+    };
+  });
 }

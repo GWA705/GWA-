@@ -55,6 +55,7 @@ export default async function DealerApplicationDetail({
       dealNotes: { where: { internal: false }, orderBy: { createdAt: 'asc' }, include: { author: true } },
       confirmation: { include: { confirmedBy: true } },
       cancellations: { orderBy: { createdAt: 'desc' }, take: 1 },
+      dealer: { select: { showPayoutsToAllUsers: true } },
     },
   });
   if (!app || !canAccessAsDealer(user, app.dealerId)) notFound();
@@ -154,6 +155,11 @@ export default async function DealerApplicationDetail({
     select: { messages: { where: { fromStaff: true, auto: false }, take: 1, select: { id: true } } },
   });
   const hasStaffMessage = !!dealChat?.messages.length;
+
+  // Who may see the payout amount: the distributor (owner/main contact) always,
+  // and every other user at the office unless the office turned that off.
+  const canSeePayout = user.isDistributor || app.dealer.showPayoutsToAllUsers;
+  const payoutTotal = app.payouts.reduce((sum, p) => sum + Number(p.amount), 0);
 
   return (
     <div className="space-y-6">
@@ -335,11 +341,17 @@ export default async function DealerApplicationDetail({
         </section>
       )}
 
-      {/* Payout receipt — money paid to the dealer, so only the distributor
-          (owner / main contact) sees it, not every dealer user. */}
-      {user.isDistributor && app.payouts.length > 0 && (
+      {/* Payout receipt — money paid to the dealer. The owner/main contact
+          (distributor) always sees it; every other user at the office sees it too
+          unless the office has turned that off (showPayoutsToAllUsers). "Fully
+          paid" here means a payout has actually been recorded. */}
+      {canSeePayout && app.payouts.length > 0 && (
         <section className="card p-6">
-          <h2 className="mb-3 border-l-4 border-brand-500 pl-2.5 text-lg font-bold text-gray-900">{t('dealDetail.payoutReceipt')}</h2>
+          <h2 className="mb-1 border-l-4 border-brand-500 pl-2.5 text-lg font-bold text-gray-900">{t('dealDetail.payoutReceipt')}</h2>
+          <p className="mb-4 pl-2.5 text-sm text-gray-500">{t('dealDetail.finalPayout')}</p>
+          <p className="mb-4 pl-2.5 text-3xl font-bold tabular-nums text-brand-700">
+            ${payoutTotal.toFixed(2)}
+          </p>
           <PayoutReceipt payouts={app.payouts} />
         </section>
       )}

@@ -604,22 +604,41 @@ export default async function StaffApplicationDetail({
     funding: app.status === 'FUNDING_REVIEW'
       ? <FundingStepActions applicationId={app.id} journalCheckedAt={app.journalCheckedAt ? app.journalCheckedAt.toISOString() : null} />
       : null,
-    // 8 · Pay dealer
+    // 8 · Pay dealer. Once a payout has been recorded — which now happens
+    // automatically from the sales journal ("Pay to dealer") — there's nothing for
+    // the reviewer to fill in: show it as complete and tuck the manual entry away
+    // behind a collapsed section for the rare correction/second payout.
     pay: (
       <div>
-        {app.journalPaidOn && (
-          <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-            <span className="font-semibold">Sales journal:</span> this deal is marked <strong>OK &amp; paid</strong> on{' '}
-            {app.journalPaidOn.toLocaleDateString('en-CA')}. Record the dealer payout below to complete the disbursement.
-          </div>
+        {app.payouts.length > 0 ? (
+          <>
+            <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+              <span className="font-semibold">Paid — nothing to enter.</span>{' '}
+              {app.journalPaidOn
+                ? <>The sales journal marked this deal <strong>OK &amp; paid</strong> on {app.journalPaidOn.toLocaleDateString('en-CA')}, and the dealer payout below was filled in automatically.</>
+                : <>The dealer payout below is recorded. This deal is complete.</>}
+            </div>
+            <div className="mb-5">
+              <PayoutReceipt payouts={app.payouts} />
+            </div>
+            <CollapsibleSection title="Record another payout or a correction" defaultOpen={false}>
+              <PayoutForm applicationId={app.id} />
+            </CollapsibleSection>
+          </>
+        ) : (
+          <>
+            {app.journalPaidOn && (
+              <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                <span className="font-semibold">Sales journal:</span> this deal is marked <strong>OK &amp; paid</strong> on{' '}
+                {app.journalPaidOn.toLocaleDateString('en-CA')}. Record the dealer payout below to complete the disbursement.
+              </div>
+            )}
+            <div className="border-t border-gray-100 pt-4">
+              <h3 className="mb-3 text-sm font-medium text-gray-700">Record a payout</h3>
+              <PayoutForm applicationId={app.id} />
+            </div>
+          </>
         )}
-        <div className="mb-5">
-          <PayoutReceipt payouts={app.payouts} />
-        </div>
-        <div className="border-t border-gray-100 pt-4">
-          <h3 className="mb-3 text-sm font-medium text-gray-700">Record a payout</h3>
-          <PayoutForm applicationId={app.id} />
-        </div>
       </div>
     ),
   };

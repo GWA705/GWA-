@@ -54,6 +54,30 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-18
+- **Dealer-facing payouts: staff auto-complete, dealer visibility, and actual-payout
+  receipts in the calculator.** Building on the journal → paid sync (below), three
+  linked changes so a settled deal flows all the way to the dealer with no manual work:
+  1. **Staff "Pay dealer" step reads complete when auto-filled.** Once a payout is
+     recorded (now automatic from the journal's "Pay to dealer"), the step shows a
+     "Paid — nothing to enter" state with the receipt; the manual entry form is tucked
+     behind a collapsed "Record another payout or a correction" section instead of
+     always demanding input. (`staff/applications/[id]/page.tsx` pay block.)
+  2. **Dealers see their final payout amount on the deal.** The deal page now shows a
+     prominent final payout figure + receipt once a payout exists. New per-office
+     toggle `Dealer.showPayoutsToAllUsers` (migration `20260918120000`, default **on**):
+     everyone at the office sees payout dollars by default; an office can switch to
+     owner/main-contact-only from Admin → Dealers (**Payouts ✓** button). The
+     distributor always sees it. (`schema.prisma`, `(dealer)/…/[id]/page.tsx`,
+     `(admin)/actions.ts` `toggleDealerShowPayoutsAction`, `DealerRowActions.tsx`,
+     `admin/dealers/page.tsx`, i18n `dealDetail.finalPayout`.)
+  3. **HD payout calculator shows the ACTUAL payout + prints a real receipt for paid
+     deals.** When a dealer looks up one of their fully-paid deals (a payout exists),
+     the calculator shows the real amount paid (date/method) instead of the estimate,
+     and "Save PDF"/Print produce an **actual** receipt built server-side from the
+     recorded payout (re-verified within the dealer's tenant scope — never client math).
+     Unpaid deals still get the estimate as before. (`calculator/actions.ts` `DealMatch`
+     +payouts, `DealerCalculator.tsx`, `api/dealer/calculator/receipt/route.ts`, i18n
+     `calculator.actualPayout`/`paidOn`/`confirmedPaid`/`actualNote`.)
 - **Scheduled the journal → paid sync (it was built but nothing ever ran it).** The
   journal-paid automation (`journalPaidSync.ts` + `/api/cron/journal-paid-sync`) —
   which reads each journal-written deal back, and when the row shows Result "OK" +

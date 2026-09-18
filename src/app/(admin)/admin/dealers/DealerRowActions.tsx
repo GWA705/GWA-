@@ -1,6 +1,6 @@
 'use client';
 
-import { toggleDealerActiveAction, toggleDealerCalculatorAction, toggleDealerReportsAction, toggleDealerInsightsAction, sendDigestTestAction, deleteDealerAction, viewAsDealerAction } from '@/app/(admin)/actions';
+import { toggleDealerActiveAction, toggleDealerCalculatorAction, toggleDealerReportsAction, toggleDealerInsightsAction, toggleDealerShowPayoutsAction, sendDigestTestAction, deleteDealerAction, viewAsDealerAction } from '@/app/(admin)/actions';
 
 export function DealerRowActions({
   id,
@@ -9,6 +9,7 @@ export function DealerRowActions({
   calculatorEnabled,
   reportsEnabled,
   insightsEnabled = false,
+  showPayoutsToAllUsers = true,
   canDelete,
   align = 'end',
 }: {
@@ -18,6 +19,7 @@ export function DealerRowActions({
   calculatorEnabled: boolean;
   reportsEnabled: boolean;
   insightsEnabled?: boolean;
+  showPayoutsToAllUsers?: boolean;
   canDelete: boolean;
   align?: 'start' | 'end';
 }) {
@@ -57,6 +59,15 @@ export function DealerRowActions({
           title="Email this office the weekly + monthly insights digest (Snapshot). Off by default."
         >
           {insightsEnabled ? 'Digest ✓' : 'Digest'}
+        </button>
+      </form>
+      <form action={toggleDealerShowPayoutsAction.bind(null, id)}>
+        <button
+          type="submit"
+          className={`text-xs ${showPayoutsToAllUsers ? 'btn-primary' : 'btn-secondary'}`}
+          title="Show the payout amount to EVERY user at this dealership. When off, only the owner/main contact sees payout dollars. On by default."
+        >
+          {showPayoutsToAllUsers ? 'Payouts ✓' : 'Payouts'}
         </button>
       </form>
       <form action={sendDigestTestAction.bind(null, id)}>

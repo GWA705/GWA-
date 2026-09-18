@@ -485,6 +485,17 @@ export async function setReportVisibilityAction(formData: FormData): Promise<voi
   revalidatePath('/admin/report-visibility');
 }
 
+/** Show/hide the payout amount for every user at one office (on by default). When
+ * off, only the distributor (owner/main contact) sees payout dollars. */
+export async function toggleDealerShowPayoutsAction(dealerId: string): Promise<void> {
+  const session = await requireAdminSection('dealers');
+  const dealer = await prisma.dealer.findUnique({ where: { id: dealerId }, select: { showPayoutsToAllUsers: true } });
+  if (!dealer) return;
+  await prisma.dealer.update({ where: { id: dealerId }, data: { showPayoutsToAllUsers: !dealer.showPayoutsToAllUsers } });
+  await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'Dealer', entityId: dealerId, detail: `showPayouts=${!dealer.showPayoutsToAllUsers}` });
+  revalidatePath('/admin/dealers');
+}
+
 /** Turn the emailed insights digest on/off for one office (off by default). */
 export async function toggleDealerInsightsAction(dealerId: string): Promise<void> {
   const session = await requireAdminSection('dealers');
