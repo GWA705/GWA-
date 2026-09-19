@@ -14,6 +14,7 @@ import {
 } from '@/lib/constants';
 import type { PaymentMethod } from '@prisma/client';
 import { formatPhone, formatPostal } from '@/lib/format';
+import { sectionsBlockingSubmit } from '@/lib/scanReview';
 import { DocScan } from '@/components/DocScan';
 import { FinanceitPdfButton } from '@/components/FinanceitPdfButton';
 import type { BorrowerAutofill } from '@/lib/autofill';
@@ -265,6 +266,25 @@ export function NewApplicationForm({
     setPendingCo(null);
   }, [pendingCo, hasCoApplicant]);
 
+  // If the co-applicant is removed after a scan flagged it (dealer clears the
+  // co-applicant first name), drop the co-applicant review requirement — there is
+  // no co-applicant to verify, so it must not block the deal.
+  useEffect(() => {
+    if (hasCoApplicant) return;
+    setScanReview((prev) => {
+      if (!prev.has('coApplicant')) return prev;
+      const next = new Set(prev);
+      next.delete('coApplicant');
+      return next;
+    });
+    setConfirmed((prev) => {
+      if (!prev.has('coApplicant')) return prev;
+      const next = new Set(prev);
+      next.delete('coApplicant');
+      return next;
+    });
+  }, [hasCoApplicant]);
+
   function fillFromCoLicense(f: BorrowerAutofill) {
     setCoFirstName(f.firstName || f.lastName || ''); // opens the co-applicant section
     setPendingCo(f);
@@ -435,7 +455,20 @@ export function NewApplicationForm({
     // Scan verification: any section a scan filled must be confirmed correct. The
     // confirm checkbox lives IN each section (see renderScanConfirm), so on a miss
     // we scroll to the first unconfirmed section rather than a bottom panel.
-    const unconfirmed = SECTION_ORDER.filter((k) => scanReview.has(k) && !confirmed.has(k));
+    //
+    // Only a section whose confirm checkbox is ACTUALLY ON SCREEN can block the
+    // deal. A scan can flag a section (e.g. employment) that the current entry
+    // method doesn't show — Express/Photo don't render the employment or
+    // co-applicant sections, and switching method after a co-applicant scan
+    // unmounts them. Those hidden sections have no checkbox to tick, and their
+    // scanned data isn't submitted anyway, so they must never stop the deal. The
+    // `scan-confirm-<key>` element exists only when that section is rendered.
+    const unconfirmed = sectionsBlockingSubmit(
+      SECTION_ORDER,
+      scanReview,
+      confirmed,
+      (k) => document.getElementById(`scan-confirm-${k}`) != null,
+    );
 
     if (Object.keys(errs).length > 0) {
       e.preventDefault();

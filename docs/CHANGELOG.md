@@ -54,6 +54,19 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-19
+- **New-deal scan verification no longer blocks a deal with an invisible checkbox
+  (fix).** After scanning a licence/credit app, some deals couldn't be submitted:
+  the scan flags every section it filled so the dealer confirms it, but a full
+  credit-app scan also flags **Employment** (and sometimes **Co-applicant**) — and
+  those sections only render on the **typed** (Priority) flow. On the **Express**
+  and **Photo** flows their confirm checkbox never appears, so the deal was stuck
+  behind a requirement with no box to tick. Dealers hit it right after the
+  DOB/applicant confirm, so it looked like a "date of birth" problem, and it only
+  happened when scanning. Fix: a scanned section can only block submission if its
+  confirm checkbox is actually **on screen** (all three entry points behave the
+  same now); a co-applicant flagged by a scan and then removed no longer blocks
+  either. Blocking logic extracted to `lib/scanReview.ts` with unit tests.
+  (`NewApplicationForm.tsx`, `lib/scanReview.ts`, `tests/scanReview.test.ts`.)
 - **Live journal is now strictly append-only (data-integrity fix).** A live-journal
   write could land on an existing row and overwrite it — it matched rows by HD ref
   / loan number and would also fill the first blank-Last-Name row, which meant a
