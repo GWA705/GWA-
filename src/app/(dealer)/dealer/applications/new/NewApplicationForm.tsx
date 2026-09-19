@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormState } from 'react-dom';
 import { createApplicationAction, type ActionState } from '@/app/(dealer)/actions';
 import {
   PROVINCES,
@@ -15,6 +15,7 @@ import {
 import type { PaymentMethod } from '@prisma/client';
 import { formatPhone, formatPostal } from '@/lib/format';
 import { sectionsBlockingSubmit } from '@/lib/scanReview';
+import { PendingSubmitButton } from '@/components/PendingSubmitButton';
 import { DocScan } from '@/components/DocScan';
 import { FinanceitPdfButton } from '@/components/FinanceitPdfButton';
 import type { BorrowerAutofill } from '@/lib/autofill';
@@ -42,12 +43,12 @@ function Err({ state, name }: { state: ActionState; name: string }) {
 }
 
 function SubmitButton() {
-  const { pending } = useFormStatus();
   const t = useT();
   return (
-    <button type="submit" className="btn-primary" disabled={pending}>
-      {pending ? t('newApplication.submitting') : t('newApplication.submitApplication')}
-    </button>
+    <PendingSubmitButton
+      idleLabel={t('newApplication.submitApplication')}
+      pendingLabel={t('newApplication.submitting')}
+    />
   );
 }
 
@@ -188,6 +189,31 @@ const FIELD_LABELS: Partial<Record<keyof BorrowerAutofill, string>> = {
   businessName: 'Employer', positionTitle: 'Position', employerAddress: 'Employer address',
   employerPhone: 'Employer phone', grossMonthlyIncome: 'Gross income', timeAtJob: 'Time at job',
 };
+
+// Autofill field key → the DOM id of its input on THIS form. Used to decide
+// whether a "double-check this field" hint is worth showing: if the field isn't
+// rendered in the current entry method (e.g. Express/Photo don't show "Years at
+// address" or the date of birth), we must not tell the dealer to re-check a field
+// that appears nowhere on their screen.
+const FIELD_DOM_ID: Partial<Record<keyof BorrowerAutofill, string>> = {
+  firstName: 'applicantFirstName', middleName: 'middleName', lastName: 'applicantLastName',
+  dob: 'applicantDob', idType: 'idType', idNumber: 'govIdNumber', idProvince: 'idProvince',
+  idExpiry: 'idExpiry', email: 'applicantEmail', phone: 'applicantPhone', homePhone: 'homePhone',
+  maritalStatus: 'maritalStatus', address: 'applicantAddress', city: 'city', province: 'province',
+  postal: 'postalCode', monthlyHousingCost: 'monthlyHousingCost', yearsAtAddress: 'yearsAtAddress',
+  housingStatus: 'housingStatus', businessName: 'businessName', positionTitle: 'positionTitle',
+  employerAddress: 'employerAddress', employerPhone: 'employerPhone',
+  grossMonthlyIncome: 'grossMonthlyIncome', timeAtJob: 'timeAtJobYears',
+};
+
+// Is this scannable field actually on screen right now? (Safe during SSR: returns
+// false when there is no document, but the confirm banner only renders client-side
+// after a scan, so a real field is always found.)
+function fieldIsVisible(key: keyof BorrowerAutofill): boolean {
+  const id = FIELD_DOM_ID[key];
+  if (!id) return true; // no known input to check → don't suppress
+  return typeof document !== 'undefined' && document.getElementById(id) != null;
+}
 
 // Top-to-bottom order of the scannable sections, so a failed submit scrolls to the
 // FIRST unconfirmed one.
@@ -496,9 +522,11 @@ export function NewApplicationForm({
     if (!scanReview.has(sectionKey)) return null;
     const isOn = confirmed.has(sectionKey);
     const err = showReviewError && !isOn;
-    // Fields in this section the scan flagged as possibly misread.
+    // Fields in this section the scan flagged as possibly misread — but only those
+    // actually shown in the current entry method, so we never point the dealer at a
+    // field (e.g. "Years at address") that isn't on their screen.
     const flagged = (SCAN_SECTIONS.find((s) => s.key === sectionKey)?.fields ?? [])
-      .filter((k) => scanUncertain.has(k))
+      .filter((k) => scanUncertain.has(k) && fieldIsVisible(k))
       .map((k) => FIELD_LABELS[k] ?? String(k));
     return (
       <div className="flex flex-none flex-col items-end gap-1">

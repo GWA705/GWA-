@@ -1,8 +1,9 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormState } from 'react-dom';
 import { FileDropInput } from './FileDropInput';
+import { PendingSubmitButton } from './PendingSubmitButton';
 import { useT } from '@/i18n/client';
 
 export interface UploadState {
@@ -18,12 +19,14 @@ export interface UploadCategory {
 export const OTHER_CATEGORY = 'OTHER';
 
 function SubmitButton({ label, disabled }: { label: string; disabled: boolean }) {
-  const { pending } = useFormStatus();
   const t = useT();
   return (
-    <button type="submit" className="btn-primary text-sm" disabled={pending || disabled}>
-      {pending ? t('uploadForm.uploading') : label}
-    </button>
+    <PendingSubmitButton
+      className="btn-primary text-sm"
+      idleLabel={label}
+      pendingLabel={t('uploadForm.uploading')}
+      disabled={disabled}
+    />
   );
 }
 

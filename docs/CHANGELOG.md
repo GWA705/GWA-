@@ -54,6 +54,19 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-19
+- **Submit buttons: no more double-taps, and they show they're working.** A new
+  shared `PendingSubmitButton` disables the button the instant a form starts
+  submitting (so an impatient double-tap can't fire a second deal / cancellation /
+  upload), swaps in a spinner + "working…" label immediately, and once the wait
+  passes ~2s appends a live elapsed-seconds counter so a slow save visibly ticks
+  instead of looking frozen. Wired into the **new-deal submit**, the **Cancel this
+  deal** button, and the **document upload** button. (`PendingSubmitButton.tsx`,
+  `NewApplicationForm.tsx`, `DealCancelPanel.tsx`, `UploadForm.tsx`.)
+- **Scan "double-check" hints no longer name a field that isn't on screen.** The
+  scan-verification banner would say e.g. "⚠️ Double-check: Years at address" even
+  on the Express/Photo flows, which don't have that field — confusing, since there
+  was nothing to check. It now lists only flagged fields whose input is actually
+  visible in the current entry method. (`NewApplicationForm.tsx`.)
 - **New-deal scan verification no longer blocks a deal with an invisible checkbox
   (fix).** After scanning a licence/credit app, some deals couldn't be submitted:
   the scan flags every section it filled so the dealer confirms it, but a full

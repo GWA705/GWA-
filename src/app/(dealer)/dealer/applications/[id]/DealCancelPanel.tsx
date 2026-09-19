@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormState } from 'react-dom';
 import { XCircle, Clock, CheckCircle2, RotateCcw, AlertTriangle } from 'lucide-react';
 import { requestCancellationAction } from '@/app/(dealer)/actions';
 import type { ActionState } from '@/app/(dealer)/actions';
+import { PendingSubmitButton } from '@/components/PendingSubmitButton';
 import { useT, useI18n } from '@/i18n/client';
 
 export interface CancellationVM {
@@ -21,11 +22,13 @@ export interface CancellationVM {
 const initial: ActionState = {};
 
 function SubmitBtn({ label, pendingLabel }: { label: string; pendingLabel: string }) {
-  const { pending } = useFormStatus();
   return (
-    <button type="submit" className="btn-danger inline-flex items-center gap-2" disabled={pending}>
-      <XCircle size={15} /> {pending ? pendingLabel : label}
-    </button>
+    <PendingSubmitButton
+      className="btn-danger"
+      icon={<XCircle size={15} />}
+      idleLabel={label}
+      pendingLabel={pendingLabel}
+    />
   );
 }
 
