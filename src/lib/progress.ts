@@ -49,10 +49,28 @@ export function dealProgress(s: ProgressSignals): ProgressStage[] {
   const rank = STATUS_RANK[s.status] ?? 0;
   // Paid = a recorded payout OR the journal confirming it was paid (Date Paid).
   const isPaid = s.hasPayouts || !!s.journalPaidOn;
+
+  // A stage is "done" only once the deal has genuinely moved PAST it — so the
+  // current-stage marker (the first not-done stage) sits on the stage the deal is
+  // actually AT, not the next one it's heading toward. Marking a stage done the
+  // moment the deal *reaches* it pushed the marker one step ahead, so a just-
+  // submitted deal looked like it was already up for approval, and a freshly
+  // approved deal (e.g. an instant-approved Financeit deal) jumped straight to
+  // "Docs uploaded".
+  //
+  //  - "Submitted" is behind us once the deal is approved or later (rank >= 2). A
+  //    SUBMITTED / UNDER_REVIEW deal therefore rests on "Submitted" until a
+  //    reviewer approves it.
+  //  - "Docs uploaded" is done once the dealer's funding docs are in (or the deal
+  //    is further along). "Approved" is behind us once we've moved past the
+  //    approval-prep stage — i.e. those docs are in OR the install paperwork has
+  //    been sent (DOCS_SENT) — so a freshly approved deal rests on "Approved".
+  const docsDone = s.hasFundingDocs || rank >= 3;
+  const pastApproval = docsDone || s.status === 'DOCS_SENT';
   return [
-    { key: 'submitted', label: 'Submitted', done: s.status !== 'DRAFT' },
-    { key: 'approved', label: 'Approved', done: rank >= 2 },
-    { key: 'docs', label: 'Docs uploaded', done: s.hasFundingDocs || rank >= 3 },
+    { key: 'submitted', label: 'Submitted', done: rank >= 2 },
+    { key: 'approved', label: 'Approved', done: pastApproval },
+    { key: 'docs', label: 'Docs uploaded', done: docsDone },
     { key: 'confirmation', label: 'Confirmation', done: s.confirmationStatus === 'COMPLETED' },
     // Being paid means the deal reached funding and was funded — so these earlier
     // milestones can never lag behind "Paid".

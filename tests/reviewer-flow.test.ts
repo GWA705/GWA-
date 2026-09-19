@@ -37,7 +37,13 @@ describe('currentPhaseIndex', () => {
 
   it('dealer returning the signed package jumps to review (phase 4)', () => {
     expect(currentPhaseIndex({ ...base, status: 'APPROVED', reviewerDocsSent: true, fundingDocsReceived: true })).toBe(4);
-    expect(currentPhaseIndex({ ...base, status: 'FUNDING_SUBMITTED' })).toBe(4);
+    expect(currentPhaseIndex({ ...base, status: 'FUNDING_SUBMITTED', reviewerDocsSent: true })).toBe(4);
+  });
+
+  it('FUNDING_SUBMITTED without install docs ever sent falls back to producing docs (phase 2)', () => {
+    // Guard for legacy / out-of-order data: a deal can\'t be "reviewing signed
+    // docs" if we never sent install paperwork.
+    expect(currentPhaseIndex({ ...base, status: 'FUNDING_SUBMITTED' })).toBe(2);
   });
 
   it('in-for-funding sits at phase 7 until paid', () => {
@@ -52,7 +58,7 @@ describe('currentPhaseIndex', () => {
 
 describe('reviewerPhaseStates', () => {
   it('marks earlier phases done, current now, later todo', () => {
-    const states = reviewerPhaseStates({ ...base, status: 'FUNDING_SUBMITTED' }); // phase 4
+    const states = reviewerPhaseStates({ ...base, status: 'FUNDING_SUBMITTED', reviewerDocsSent: true }); // phase 4
     expect(states.map((s) => s.state)).toEqual(['done', 'done', 'done', 'now', 'todo', 'todo', 'todo', 'todo']);
   });
 
@@ -90,7 +96,7 @@ describe('dealerFacingStatus', () => {
   it('gives a plain-language label per phase', () => {
     expect(dealerFacingStatus({ ...base, status: 'SUBMITTED' })).toBe('Under review');
     expect(dealerFacingStatus({ ...base, status: 'APPROVED' })).toBe('Approved — preparing your documents');
-    expect(dealerFacingStatus({ ...base, status: 'FUNDING_SUBMITTED' })).toBe('Reviewing your documents');
+    expect(dealerFacingStatus({ ...base, status: 'FUNDING_SUBMITTED', reviewerDocsSent: true })).toBe('Reviewing your documents');
     expect(dealerFacingStatus({ ...base, status: 'FUNDING_REVIEW' })).toBe('In for funding');
   });
 

@@ -54,6 +54,18 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-19
+- **Deal progress bar: the highlighted step now sits on where the deal actually
+  is, not one step ahead.** Each linear stage was marked "done" the moment a deal
+  *reached* it, so the current-step marker (the first not-done stage) pointed at
+  the next milestone: a just-**submitted** deal looked like it was already up for
+  approval, and a freshly **approved** deal (e.g. an instant-approved Financeit
+  deal) jumped straight to "Docs uploaded". Now a stage is "done" only once the
+  deal has moved *past* it — a SUBMITTED/UNDER_REVIEW deal rests on **Submitted**
+  until a reviewer approves, and a freshly approved deal rests on **Approved**
+  until its funding docs are in (or install paperwork is sent). The funding half
+  of the bar is unchanged. (`progress.ts`; new `tests/progress.test.ts`; also
+  refreshed 3 stale `reviewer-flow.test.ts` assertions to match the existing
+  FUNDING_SUBMITTED guard.)
 - **Lead-card reader: stronger model + optional blank-card reference (accuracy).**
   Two changes aimed at reading messy handwriting better:
   - The reader now defaults to **`claude-opus-5`** (was `claude-sonnet-5`) — a more
