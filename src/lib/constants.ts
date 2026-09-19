@@ -652,6 +652,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
   { key: 'email', label: 'Email settings', href: '/admin/email' },
   { key: 'system-health', label: 'System health', href: '/admin/system-health', hint: 'Connections & integrations' },
   { key: 'costs', label: 'Outside costs', href: '/admin/costs', hint: 'Google API + hosting cost total' },
+  { key: 'mail-in-billing', label: 'Mail-in billing', href: '/admin/mail-in-billing', hint: 'Scanned mail-in leads billable to offices' },
   { key: 'audit', label: 'Audit log', href: '/admin/audit' },
   { key: 'review-queue', label: 'Review queue', href: '/staff', hint: 'Deals queue' },
 ];

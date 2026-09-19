@@ -54,6 +54,18 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-19
+- **Mail-in lead billing: tracking + admin report.** Each scanned card now records
+  whether **Georgian Water** uploaded it (leads mailed to our office → billable to
+  the owning office) vs the office scanning its own cards (not billed) — a new
+  `uploadedByGwa` flag set at upload time from the scanner's role (migration
+  `20260919170000`; an admin "viewing as" a dealer counts as the office, not GW).
+  New **admin-only** page **Admin → Mail-in billing** (`/admin/mail-in-billing`,
+  section `mail-in-billing`) with a month picker and two tables: **Billable to
+  offices** (what GW uploaded, by office) and **All mail-in leads by office**
+  (every card per office, billable + office-uploaded + total). Counts from the day
+  the flag shipped; a per-lead rate can be added when invoicing. (`schema.prisma`,
+  `scanActions.ts`, `lib/reporting/mailInLeads.ts`, `admin/mail-in-billing/page.tsx`,
+  `constants.ts`.)
 - **Blank HD Mail In Test reference card added — the scanner accuracy feature is
   now live.** Dropped the clean, unfilled HD Mail In card in `assets/lead-card/
   blank-card.jpg` (straightened + downscaled from Sean's photo). The reader now

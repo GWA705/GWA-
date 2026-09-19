@@ -1855,6 +1855,11 @@ model ScannedLead {
   // Who scanned/saved it (id + snapshot name so attribution survives user delete).
   scannedById   String?
   scannedByName String?
+  // Billing: true when GEORGIAN WATER staff uploaded this card (leads mailed to
+  // our office → billable to the owning office). False when the office scanned
+  // its own mailed-in cards (not billed). Set once at upload time from the
+  // scanner's role; never inferred later, so billing stays stable.
+  uploadedByGwa Boolean @default(false)
 
   customerName     String?
   phone            String?

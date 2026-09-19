@@ -75,6 +75,9 @@ export async function createScannedLeadAction(_prev: ScanSaveState, fd: FormData
       dealerId,
       scannedById: user.userId,
       scannedByName: user.name,
+      // Billable only when uploaded by Georgian Water staff (not an office
+      // scanning its own cards, and not an admin acting as a dealer).
+      uploadedByGwa: staff,
       customerName,
       phone,
       occupation: str(fd, 'occupation'),
