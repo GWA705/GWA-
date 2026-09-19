@@ -1,5 +1,6 @@
 import { google, type sheets_v4 } from 'googleapis';
 import { parseFlexibleDate } from './reporting/journalRead';
+import type { JournalWriteMode } from './settings';
 
 /**
  * Google Sheets "sales journal" writer.
@@ -246,20 +247,59 @@ async function readLayout(
 // --- Row selection ---------------------------------------------------------
 
 /**
- * Decide which sheet row this deal should occupy.
- *  1. If we already synced it and that row still looks like this deal (same
- *     last name, or empty), reuse it — that's the update-in-place path.
- *  2. Otherwise look for an existing row matching the HD ref / loan number
- *     (covers the live journal, which has no hidden id column).
- *  3. Otherwise take the next empty numbered row (the "Last Name" cell blank).
+ * The 1-based sheet row of the last row that carries ANY real content, so the
+ * append point is the row right after it. "Content" ignores column A (the "No."
+ * column), which the live journal pre-fills with running numbers down blank
+ * rows — those pre-numbered-but-empty rows must NOT count as occupied, or we'd
+ * append into the middle of them. A row with notes/dates/amounts but a blank
+ * Last Name DOES count, so we never land on top of a human's notes.
  */
-function chooseRow(
+function lastContentRow(layout: JournalLayout): number {
+  let last = layout.headerBottomRow; // never before the header
+  for (let r = layout.firstDataRow; r <= layout.rows.length; r += 1) {
+    const row = layout.rows[r - 1] || [];
+    // Any non-empty cell other than the "No." column (index 0) means real content.
+    const hasContent = row.some((cell, idx) => idx !== 0 && norm(cell) !== '');
+    if (hasContent) last = r;
+  }
+  return last;
+}
+
+/**
+ * Decide which sheet row this deal should occupy.
+ *
+ * LIVE journal (mode === 'live') is APPEND-ONLY, by explicit rule: a new deal is
+ * only ever written to the first row BELOW all existing content — never over any
+ * other row, and never filling a gap. The single exception is the update-in-place
+ * path: if we already wrote this exact deal and that row STILL carries its last
+ * name, we update that same row (so re-syncing a deal doesn't create a
+ * duplicate). We do not match arbitrary rows by reference number on live, and we
+ * do not reuse a remembered row whose last name no longer matches — either could
+ * clobber a row a human has since edited.
+ *
+ * TEST journal is the shakeout sandbox and keeps the more lenient behavior
+ * (reuse a cleared remembered row, match by reference number, fill the first
+ * blank row) so repeated test runs stay tidy.
+ */
+export function chooseRow(
   layout: JournalLayout,
   deal: { lastName: string; hdRef: string | null; loanNo: string | null; knownRow: number | null },
+  mode: JournalWriteMode,
 ): number {
   const lastNameCol = layout.columns.lastName;
   const cellAt = (row1: number, col: number) => norm((layout.rows[row1 - 1] || [])[col]);
 
+  if (mode === 'live') {
+    // Update-in-place ONLY when the remembered row still holds this customer's
+    // last name — proof it's still our row and not something a human replaced.
+    if (deal.knownRow && deal.knownRow >= layout.firstDataRow && cellAt(deal.knownRow, lastNameCol) === norm(deal.lastName)) {
+      return deal.knownRow;
+    }
+    // Otherwise strictly append below everything already in the sheet.
+    return lastContentRow(layout) + 1;
+  }
+
+  // --- Test sandbox (unchanged, lenient) ---
   // 1. Reuse the remembered row when it still matches (or was cleared).
   if (deal.knownRow && deal.knownRow >= layout.firstDataRow) {
     const existing = cellAt(deal.knownRow, lastNameCol);
@@ -325,7 +365,10 @@ export interface JournalResult {
 export async function writeDealToJournal(deal: JournalDeal): Promise<JournalResult> {
   const sheets = await sheetsClient();
   // Pick the target journal by the deal's SALE year (in live mode); the test
-  // journal is a single sandbox for every year.
+  // journal is a single sandbox for every year. The mode also decides row
+  // selection: live is strictly append-only (never over existing rows).
+  const { getJournalWriteMode } = await import('./settings');
+  const mode = await getJournalWriteMode();
   const ssId = await resolveWriteSheetId(deal.saleDate.getUTCFullYear());
 
   // Resolve the month tab from the sale date.
@@ -348,7 +391,7 @@ export async function writeDealToJournal(deal: JournalDeal): Promise<JournalResu
     hdRef: deal.hdReference,
     loanNo: deal.financeItNumber,
     knownRow: deal.knownTab === tab ? deal.knownRow : null,
-  });
+  }, mode);
 
   // Map field keys → values. Only defined, non-empty values are written, so we
   // never blank out a cell a human may have filled.

@@ -54,6 +54,19 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-19
+- **Live journal is now strictly append-only (data-integrity fix).** A live-journal
+  write could land on an existing row and overwrite it — it matched rows by HD ref
+  / loan number and would also fill the first blank-Last-Name row, which meant a
+  human's notes row (blank Last Name but real notes) got clobbered and the journal
+  shifted. Root cause was in `chooseRow` (`journal.ts`). **Live** mode now only
+  ever writes to the row **below all existing content** (never over another row,
+  never into a gap); the sole in-place update is when we re-sync a deal whose
+  remembered row still carries that customer's Last Name. It no longer matches
+  arbitrary rows by reference number, and won't reuse a remembered row whose Last
+  Name no longer matches. The **test** sandbox keeps its lenient fill-the-blank
+  behavior. `chooseRow` is now exported and covered by unit tests
+  (`tests/journal.test.ts`). NOTE: a previously-overwritten row must be restored
+  from the sheet's own Version history. (`journal.ts`, `settings.ts` type import.)
 - **Pop-up alerts can now carry an image.** A must-read pop-up can attach a flyer /
   notice image (JPEG/PNG/WebP/GIF, ≤12 MB); with an image the message text is
   optional — dealers just view it and press X to close (the acknowledgement is
