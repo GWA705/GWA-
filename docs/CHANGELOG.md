@@ -71,6 +71,14 @@ source of truth; this file is the human-readable index.
   type later, once that distinction exists.) (`LeadsTabs.tsx`,
   `MailInTestWorkspace.tsx`, `LeadCallTracker.tsx`, `ScannedLeadsList.tsx`,
   dealer + staff `leads/page.tsx`.)
+- **The "All" tab is now one fully-merged list.** HD Mail In Test cards and Store
+  leads interleave in a single status-striped list (each row tagged Mail-In /
+  Store) with a shared search, sort and status filter and its own paging — not two
+  stacked sections. Each row keeps its type's full detail by reusing the same row
+  component its dedicated tab uses (`StoreLeadRow` / `ScannedLeadRowItem`), so
+  nothing is lost; the per-type tabs still hold the power features (the Store tab's
+  map / grouped / month views). (`AllLeadsView.tsx`, `ScanCardsPanel.tsx`;
+  `LeadsView.tsx` and `ScannedLeadsList.tsx` export their row components.)
 - **Renamed the scanned cards to "HD Mail In Test"** across the dealer + staff
   leads UI (display-only; the `ScannedLead` model is unchanged).
 - **Location-isolation audit + fixes (scanned leads, lead calls, chat).** Full

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useState, useTransition, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { setScannedLeadStatusAction, deleteScannedLeadAction } from '@/app/(dealer)/dealer/leads/scanActions';
 import { LeadCallTracker } from './LeadCallTracker';
@@ -108,7 +108,7 @@ function PhotoLightbox({ id, onClose }: { id: string; onClose: () => void }) {
   );
 }
 
-function Row({ lead, calls, showOffice }: { lead: ScannedLeadRow; calls: LeadCallRow[]; showOffice: boolean }) {
+export function ScannedLeadRowItem({ lead, calls, showOffice, typeTag }: { lead: ScannedLeadRow; calls: LeadCallRow[]; showOffice: boolean; typeTag?: ReactNode }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [err, setErr] = useState<string | null>(null);
@@ -137,6 +137,7 @@ function Row({ lead, calls, showOffice }: { lead: ScannedLeadRow; calls: LeadCal
   return (
     <details className="group overflow-hidden rounded-xl border border-gray-200 bg-white transition hover:border-gray-300 hover:shadow-sm open:shadow-sm">
       <summary className={`flex cursor-pointer list-none items-center gap-3 border-l-[6px] ${STRIPE[badge.tone]} rounded-l-xl px-4 py-3 hover:bg-gray-50 group-open:bg-gray-50/60`}>
+        {typeTag}
         <span className="min-w-0 flex-1">
           <span className="block truncate font-semibold text-gray-900">{lead.customerName ? titleCase(lead.customerName) : '(no name)'}</span>
           <span className="mt-0.5 block truncate text-xs text-gray-500">{sub || 'Mail-in test card'}</span>
@@ -205,7 +206,7 @@ export function ScannedLeadsList({
   }
   return (
     <div className="space-y-2">
-      {leads.map((l) => <Row key={l.id} lead={l} calls={callsByKey[scannedLeadKey(l.id)] ?? []} showOffice={showOffice} />)}
+      {leads.map((l) => <ScannedLeadRowItem key={l.id} lead={l} calls={callsByKey[scannedLeadKey(l.id)] ?? []} showOffice={showOffice} />)}
     </div>
   );
 }

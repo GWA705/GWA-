@@ -143,6 +143,7 @@ function LeadRow({
   storeLabel,
   isStaff,
   t,
+  typeTag,
 }: {
   l: Lead;
   leadKey: string;
@@ -152,10 +153,12 @@ function LeadRow({
   storeLabel: (n: string) => string;
   isStaff: boolean;
   t: TFunction;
+  typeTag?: React.ReactNode;
 }) {
   return (
     <details className="group overflow-hidden rounded-xl border border-gray-200 bg-white transition hover:border-gray-300 hover:shadow-sm open:shadow-sm">
       <summary className={`flex cursor-pointer list-none items-center gap-3 border-l-[6px] ${stripe} rounded-l-xl px-4 py-3 hover:bg-gray-50 group-open:bg-gray-50/60`}>
+        {typeTag}
         <span className="min-w-0 flex-1">
           <span className="block truncate font-semibold text-gray-900">{titleCase(l.customerName) || t('leads.noName')}</span>
           <span className="mt-0.5 block truncate text-xs text-gray-500">
@@ -201,6 +204,50 @@ function LeadRow({
       </div>
     </details>
   );
+}
+
+/**
+ * A single Home Depot ("Store") lead row, ready to drop into any list — it
+ * computes its own call-status + stripe from the calls. Used by the Store tab
+ * (via LeadsView) and the merged "All" view, so both render identical detail.
+ */
+export function StoreLeadRow({
+  l,
+  calls,
+  storeNames = {},
+  isStaff = false,
+  t,
+  typeTag,
+}: {
+  l: Lead;
+  calls: LeadCallRow[];
+  storeNames?: Record<string, string>;
+  isStaff?: boolean;
+  t: TFunction;
+  typeTag?: React.ReactNode;
+}) {
+  const storeLabel = (num: string) => {
+    if (!num) return '';
+    const name = storeNames[num];
+    return name ? t('leads.storeLabel', { num, name }) : t('leads.storeLabelPlain', { num });
+  };
+  const cs = leadCallStatus(calls, t);
+  const stateKey = leadStateKey(l.noGood, calls.length > 0, cs.tone);
+  return (
+    <LeadRow l={l} leadKey={leadKeyOf(l)} calls={calls} cs={cs} stripe={STRIPE[stateKey]} storeLabel={storeLabel} isStaff={isStaff} t={t} typeTag={typeTag} />
+  );
+}
+
+/** Coarse status group for a store lead (same vocabulary as scannedGroupKey). */
+export function storeGroupKey(l: Lead, calls: { outcome: string }[]): string {
+  if (l.noGood) return 'nogood';
+  if (calls.length === 0) return 'new';
+  const last = calls[calls.length - 1].outcome;
+  if (last === 'SOLD') return 'sold';
+  if (last === 'BOOKED') return 'booked';
+  if (last === 'SPOKE') return 'spoke';
+  if (last === 'NOT_INTERESTED') return 'nogood';
+  return 'working';
 }
 
 export function LeadsView({

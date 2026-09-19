@@ -1,10 +1,11 @@
 import Link from 'next/link';
 import { requireDealerAccess } from '@/lib/session';
-import { readLeads, dealerStoreNumbers, summarize, storeNameMap, leadKeyOf } from '@/lib/leads';
+import { readLeads, dealerStoreNumbers, summarize, storeNameMap, leadKeyOf, type Lead } from '@/lib/leads';
 import { readLeadCalls } from '@/lib/leadCalls';
 import { reportingJournalEnabled } from '@/lib/reporting/journalRead';
 import { leadsSheetId } from '@/lib/reporting/journalRead';
 import { LeadsView, filterLeads, leadMonthOptions, leadOutcomeKey } from '@/components/LeadsView';
+import { AllLeadsView } from '@/components/AllLeadsView';
 import { leadsGeoData, storeGeos, unplacedStoresForMap } from '@/lib/leadGeo';
 import { SectionHero } from '@/components/SectionHero';
 import { MailInTestWorkspace } from '@/components/MailInTestWorkspace';
@@ -27,15 +28,15 @@ function toRow(l: Awaited<ReturnType<typeof listScannedLeads>>[number]): Scanned
   };
 }
 
-const SECTION_H = 'text-sm font-semibold uppercase tracking-wide text-gray-500';
-
-export default async function DealerLeadsPage({ searchParams }: { searchParams: { q?: string; status?: string; page?: string; month?: string; view?: string; outcome?: string; tab?: string } }) {
+export default async function DealerLeadsPage({ searchParams }: { searchParams: { q?: string; status?: string; page?: string; month?: string; view?: string; outcome?: string; tab?: string; g?: string; sort?: string } }) {
   const user = await requireDealerAccess();
   const t = getT();
   const q = (searchParams.q ?? '').trim();
   const status = (searchParams.status ?? '').trim();
   const month = (searchParams.month ?? '').trim();
   const outcome = (searchParams.outcome ?? '').trim();
+  const g = (searchParams.g ?? '').trim();
+  const sort = (searchParams.sort ?? '').trim();
   const view = searchParams.view === 'grouped' ? 'grouped' : searchParams.view === 'map' ? 'map' : 'list';
   const page = Math.max(1, parseInt(searchParams.page ?? '1', 10) || 1);
   const tab: LeadsTab = searchParams.tab === 'mailin' ? 'mailin' : searchParams.tab === 'store' ? 'store' : 'all';
@@ -44,95 +45,90 @@ export default async function DealerLeadsPage({ searchParams }: { searchParams: 
   // activity — scope every LeadCall read to this office.
   const callScope = { dealerId: user.dealerId };
 
-  // ── HD Mail In Test (scanned cards) — always available, independent of the sheet.
+  // HD Mail In Test (scanned cards) — always available, independent of the sheet.
   const scanned = (await listScannedLeads(user)).map(toRow);
   const scannedCalls = await readLeadCalls(scanned.map((s) => scannedLeadKey(s.id)), callScope);
-  const mailinSection = <MailInTestWorkspace leads={scanned} callsByKey={scannedCalls} canScan={aiConfigured()} />;
 
-  // ── Store (Home Depot leads from the HD Leads Log). Compute the count for the
-  // tab badge whenever it's configured; only build the full view when it's shown.
-  const showMailin = tab === 'mailin' || tab === 'all';
-  const showStore = tab === 'store' || tab === 'all';
+  // Store (Home Depot) leads from the HD Leads Log. Load the base set for the
+  // count; each tab uses what it needs.
   const storeConfigured = !!leadsSheetId() && reportingJournalEnabled();
-
+  let read: Awaited<ReturnType<typeof readLeads>> | null = null;
+  let mine: Lead[] = [];
+  let storeNames: Record<string, string> = {};
   let storeCount = 0;
-  let storeSection: React.ReactNode = null;
-
-  if (!storeConfigured) {
-    if (showStore) storeSection = <NotReadyNote />;
-  } else {
-    const [read, myStores, storeNames] = await Promise.all([
+  let hasStores = false;
+  if (storeConfigured) {
+    const [r, myStores, names] = await Promise.all([
       readLeads(),
       user.dealerId ? dealerStoreNumbers(user.dealerId) : Promise.resolve([]),
       user.dealerId ? storeNameMap(user.dealerId) : Promise.resolve({}),
     ]);
-    if (myStores.length === 0) {
-      if (showStore) {
-        storeSection = (
-          <div className="rounded-lg border border-sky-200 bg-sky-50 p-4 text-sm text-sky-800">
-            {t('leads.noStoresBefore')}
-            <Link href="/dealer/support" className="underline">{t('leads.contactLink')}</Link>
-            {t('leads.noStoresAfter')}
-          </div>
-        );
-      }
-    } else {
-      const storeSet = new Set(myStores);
-      const mine = read.leads.filter((l) => storeSet.has(l.storeNumber));
-      const summary = summarize(mine);
-      storeCount = summary.total;
-      if (showStore) {
-        const monthOptions = leadMonthOptions(mine);
-        let filtered = filterLeads(mine, q, status, month);
-        const callsByKey = await readLeadCalls(filtered.map(leadKeyOf), callScope);
-        if (outcome) {
-          filtered = filtered.filter((l) => leadOutcomeKey(l.noGood, callsByKey[leadKeyOf(l)] ?? []) === outcome);
-        }
-        const geo =
-          view === 'map' && user.dealerId
-            ? {
-                stores: await storeGeos(user.dealerId),
-                pendingStores: await unplacedStoresForMap(user.dealerId),
-                byKey: await leadsGeoData(filtered),
-              }
-            : undefined;
-        storeSection = (
-          <>
-            {read.error && (
-              <div className="rounded-lg border-l-4 border-amber-500 bg-amber-50 p-3 text-sm text-amber-800">
-                {t('leads.readError', { error: read.error })}
-              </div>
-            )}
-            <LeadsView
-              leads={filtered} summary={summary} q={q} status={status} basePath="/dealer/leads" page={page}
-              month={month} monthOptions={monthOptions} storeNames={storeNames} callsByKey={callsByKey}
-              view={view} outcome={outcome} geo={geo} extraHidden={[{ name: 'tab', value: tab }]}
-            />
-          </>
-        );
-      }
+    read = r;
+    storeNames = names;
+    if (myStores.length > 0) {
+      const set = new Set(myStores);
+      mine = r.leads.filter((l) => set.has(l.storeNumber));
+      storeCount = summarize(mine).total;
+      hasStores = true;
     }
   }
 
   const counts = { all: scanned.length + storeCount, mailin: scanned.length, store: storeCount };
-  const withHeadings = tab === 'all';
+
+  let content: React.ReactNode;
+  if (tab === 'mailin') {
+    content = <MailInTestWorkspace leads={scanned} callsByKey={scannedCalls} canScan={aiConfigured()} />;
+  } else if (tab === 'store') {
+    if (!storeConfigured) {
+      content = <NotReadyNote />;
+    } else if (!hasStores) {
+      content = <NoStoresNote />;
+    } else {
+      const monthOptions = leadMonthOptions(mine);
+      let filtered = filterLeads(mine, q, status, month);
+      const callsByKey = await readLeadCalls(filtered.map(leadKeyOf), callScope);
+      if (outcome) {
+        filtered = filtered.filter((l) => leadOutcomeKey(l.noGood, callsByKey[leadKeyOf(l)] ?? []) === outcome);
+      }
+      const geo =
+        view === 'map' && user.dealerId
+          ? {
+              stores: await storeGeos(user.dealerId),
+              pendingStores: await unplacedStoresForMap(user.dealerId),
+              byKey: await leadsGeoData(filtered),
+            }
+          : undefined;
+      content = (
+        <>
+          {read?.error && (
+            <div className="rounded-lg border-l-4 border-amber-500 bg-amber-50 p-3 text-sm text-amber-800">
+              {t('leads.readError', { error: read.error })}
+            </div>
+          )}
+          <LeadsView
+            leads={filtered} summary={summarize(mine)} q={q} status={status} basePath="/dealer/leads" page={page}
+            month={month} monthOptions={monthOptions} storeNames={storeNames} callsByKey={callsByKey}
+            view={view} outcome={outcome} geo={geo} extraHidden={[{ name: 'tab', value: 'store' }]}
+          />
+        </>
+      );
+    }
+  } else {
+    // All — the merged HD Mail In Test + Store list.
+    const storeCalls = mine.length ? await readLeadCalls(mine.map(leadKeyOf), callScope) : {};
+    content = (
+      <AllLeadsView
+        mailin={scanned} store={mine} callsByKey={{ ...scannedCalls, ...storeCalls }} storeNames={storeNames}
+        q={q} group={g} sort={sort} page={page} basePath="/dealer/leads" canScan={aiConfigured()}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
       <Header />
       <LeadsTabs tab={tab} basePath="/dealer/leads" counts={counts} />
-      {showMailin && (
-        <section className="space-y-3">
-          {withHeadings && <h2 className={SECTION_H}>HD Mail In Test</h2>}
-          {mailinSection}
-        </section>
-      )}
-      {showStore && (
-        <section className="space-y-5">
-          {withHeadings && <h2 className={SECTION_H}>Store</h2>}
-          {storeSection}
-        </section>
-      )}
+      {content}
     </div>
   );
 }
@@ -146,6 +142,17 @@ function Header() {
       subtitle={t('leads.heroSubtitle')}
       bgImage="/leads-hero.webp"
     />
+  );
+}
+
+function NoStoresNote() {
+  const t = getT();
+  return (
+    <div className="rounded-lg border border-sky-200 bg-sky-50 p-4 text-sm text-sky-800">
+      {t('leads.noStoresBefore')}
+      <Link href="/dealer/support" className="underline">{t('leads.contactLink')}</Link>
+      {t('leads.noStoresAfter')}
+    </div>
   );
 }
 
