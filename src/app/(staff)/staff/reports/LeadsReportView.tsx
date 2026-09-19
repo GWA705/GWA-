@@ -154,6 +154,14 @@ export function LeadsReportView({ report }: { report: LeadsReport }) {
           <Stat label="Sold" value={g.outcomes.sold} accent="#8b5cf6" />
           <Stat label="Dealers" value={g.dealers} />
         </div>
+        {g.bySource && (
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg bg-white px-3 py-2 text-xs text-gray-600 ring-1 ring-gray-200">
+            <span className="font-semibold uppercase tracking-wide text-gray-400">Leads by source</span>
+            <span className="tabular-nums"><strong className="text-gray-900">{g.bySource.store}</strong> Store (HD leads)</span>
+            <span className="tabular-nums"><strong className="text-gray-900">{g.bySource.mailIn}</strong> HD Mail In Test</span>
+            <span className="text-gray-400">The metrics above cover HD Store leads; mail-in has its own list &amp; billing.</span>
+          </div>
+        )}
         <div>
           <div className="mb-1.5 flex items-center justify-between">
             <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">Call activity (all leads)</span>

@@ -54,6 +54,11 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-19
+- **Leads report shows leads by source (Store vs HD Mail In Test).** The Leads
+  report now surfaces a "Leads by source" line — HD Store leads vs scanned HD Mail
+  In Test cards (same window) — so mail-in is visible alongside store. The existing
+  HD metrics/funnel are unchanged (they still cover Store leads); mail-in keeps its
+  own list, views and billing. (`leadsReport.ts`, `LeadsReportView.tsx`.)
 - **HD Mail In Test now has List / Grouped / Map — the same options as Store, plus
   split Booked/Sold.** The mail-in workspace gained a **Grouped** view (sections by
   status) and a **Map** view (reusing the Store map + geocoder; scanned cards are

@@ -49,6 +49,10 @@ export interface LeadsReport {
     dealers: number;
     byKind: { kind: string; count: number }[];
     outcomes: OutcomeCounts;
+    // Leads by source, so mail-in is visible alongside the HD store leads. The
+    // metrics above are the HD (Store) leads from the sheet; `bySource.mailIn`
+    // is the count of scanned HD Mail In Test cards in the same window.
+    bySource?: { store: number; mailIn: number };
   };
   dealers: DealerLeads[];
   // Lead volume over time, for spotting the effect of HD promotions. Both series
@@ -274,6 +278,12 @@ export async function buildLeadsReport(
     now,
   );
 
+  // Scanned HD Mail In Test cards in the same window (by upload/createdAt), so the
+  // report shows mail-in alongside the HD store leads. All offices (staff view).
+  const mailInCount = await prisma.scannedLead.count({
+    where: from || to ? { createdAt: { ...(from ? { gte: from } : {}), ...(to ? { lt: to } : {}) } } : {},
+  });
+
   return {
     configured: true,
     generatedAt: generatedAtISO,
@@ -283,6 +293,7 @@ export async function buildLeadsReport(
       dealers: dealers.filter((d) => d.dealerId).length,
       byKind: topKinds(groupKinds),
       outcomes: groupOutcomes,
+      bySource: { store: leads.length, mailIn: mailInCount },
     },
     dealers,
     trend,
