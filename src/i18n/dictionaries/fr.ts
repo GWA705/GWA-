@@ -1095,6 +1095,7 @@ export const fr: Dictionary = {
     // Buttons / error summary
     submitting: 'Envoi en cours…',
     submitApplication: 'Soumettre la demande',
+    submitFailedHint: 'Non soumis — veuillez corriger les éléments surlignés ci-dessus, puis soumettre à nouveau.',
     fixBeforeSubmit: 'Veuillez remplir ou corriger ce qui suit avant de soumettre :',
     required: 'requis',
     selectPlaceholder: 'Sélectionner…',

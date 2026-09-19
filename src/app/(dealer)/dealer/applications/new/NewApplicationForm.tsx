@@ -1253,9 +1253,19 @@ export function NewApplicationForm({
         </p>
       )}
 
-      <div className="flex flex-wrap items-center justify-end gap-3">
-        {typed && <FinanceitPdfButton className="mr-auto" />}
-        <SubmitButton />
+      <div className="flex flex-col items-stretch gap-2 sm:items-end">
+        <div className="flex w-full flex-wrap items-center justify-end gap-3">
+          {typed && <FinanceitPdfButton className="mr-auto" />}
+          <SubmitButton />
+        </div>
+        {/* A plain-language reason RIGHT AT the button when a submit is rejected,
+            so it never looks like the tap did nothing. The summary above lists the
+            specific items. */}
+        {(state.error || errorEntries.length > 0) && (
+          <p className="text-right text-sm font-medium text-red-700" role="alert">
+            {t('newApplication.submitFailedHint')}
+          </p>
+        )}
       </div>
         </>
       )}

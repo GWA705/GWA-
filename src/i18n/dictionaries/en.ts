@@ -1091,6 +1091,7 @@ export const en = {
     // Buttons / error summary
     submitting: 'Submitting…',
     submitApplication: 'Submit application',
+    submitFailedHint: 'Not submitted — please fix the highlighted items above, then submit again.',
     fixBeforeSubmit: 'Please complete or fix the following before submitting:',
     required: 'required',
     selectPlaceholder: 'Select…',

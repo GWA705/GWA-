@@ -54,6 +54,15 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-19
+- **New deal: a rejected submit is now obvious (was "nothing happens").** When the
+  server rejected a submit (a field it didn't like), the button showed "working…"
+  for ~1s then reverted to normal with the error summary up at the top of the form
+  — off-screen for a dealer looking at the Submit button, so it read as "the tap
+  did nothing" and cost time on all three flows. Added a plain-language red note
+  **right at the Submit button** ("Not submitted — please fix the highlighted items
+  above, then submit again") so the failure is always in the dealer's eyeline; the
+  existing scroll-to-summary is unchanged. (`NewApplicationForm.tsx`, en/fr
+  `newApplication.submitFailedHint`.)
 - **Submit buttons: no more double-taps, and they show they're working.** A new
   shared `PendingSubmitButton` disables the button the instant a form starts
   submitting (so an impatient double-tap can't fire a second deal / cancellation /
