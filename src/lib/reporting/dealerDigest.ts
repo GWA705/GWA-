@@ -84,7 +84,7 @@ export async function buildDealerDigest(
     const cur = officeLeads.filter((l) => inWin(l.dateReceived));
     const prev = officeLeads.filter((l) => inPrev(l.dateReceived));
     const keys = [...new Set(cur.map(leadKeyOf))];
-    const calls = await readLeadCalls(keys);
+    const calls = await readLeadCalls(keys, { dealerId }); // office-scoped digest
     const kinds = new Map<string, number>();
     let contacted = 0;
     let bookedSold = 0;

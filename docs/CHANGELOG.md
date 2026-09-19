@@ -54,6 +54,27 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-19
+- **Location-isolation audit + fixes (scanned leads, lead calls, chat).** Full
+  cross-office data-isolation sweep. The main dealer read/write surfaces (deals,
+  documents, gift cards, mail, reports, downloads) were confirmed correctly
+  `dealerId`-scoped. Fixed:
+  - **Lead calls** (`leadCalls.ts`, `leadCallActions.ts`): `readLeadCalls` now
+    scopes to the viewing office (own calls + GWA staff notes; never another
+    office's), and `logLeadCallAction` verifies a scanned lead belongs to the
+    caller's office before logging — so a dealer can't inject a call/note onto
+    another office's lead. Dealer leads page + dealer digest pass the office
+    scope. The all-office `leadsReport` stays unscoped by design (staff report).
+  - **Chat** (`chat.ts`): `canAccessConversation` and the author-name masking now
+    respect impersonation, so an admin "viewing as" a dealer is confined to that
+    dealer's threads (same class as the scanned-leads fix).
+  - **Scanned-lead save** (`scanActions.ts`): an admin viewing as a dealer now
+    saves cards to that office, not by store lookup.
+  - Tests: `tests/chatAccess.test.ts` (+ existing `scannedLeads.test.ts`).
+  - **Follow-up (config, not code):** the report-visibility screen lets an admin
+    set an inherently cross-office report (all-leads / lead-funnel) to the
+    "own office's data" level, which would then expose every office's leads to any
+    office with reports on. Recommend disallowing that level for cross-office
+    reports — flagged for a decision.
 - **Scanned leads: fixed cross-office visibility in "view as dealer".** Each
   scanned lead is owned by an office (`dealerId`), and real dealers were already
   scoped to their own — but an admin **viewing as** a dealer still saw *every*

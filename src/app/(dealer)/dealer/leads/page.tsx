@@ -37,8 +37,11 @@ export default async function DealerLeadsPage({ searchParams }: { searchParams: 
   const page = Math.max(1, parseInt(searchParams.page ?? '1', 10) || 1);
 
   // Scanned lead cards are independent of the HD Leads Log sheet — always shown.
+  // A dealer (or an admin viewing as one) only ever sees their own office's call
+  // activity — scope every LeadCall read to this office.
+  const callScope = { dealerId: user.dealerId };
   const scanned = (await listScannedLeads(user)).map(toRow);
-  const scannedCalls = await readLeadCalls(scanned.map((s) => scannedLeadKey(s.id)));
+  const scannedCalls = await readLeadCalls(scanned.map((s) => scannedLeadKey(s.id)), callScope);
   const scannedSection = (
     <div className="space-y-4">
       {aiConfigured() && <ScanLeadCard />}
@@ -84,7 +87,7 @@ export default async function DealerLeadsPage({ searchParams }: { searchParams: 
   const summary = summarize(mine);
   const monthOptions = leadMonthOptions(mine);
   let filtered = filterLeads(mine, q, status, month);
-  const callsByKey = await readLeadCalls(filtered.map(leadKeyOf));
+  const callsByKey = await readLeadCalls(filtered.map(leadKeyOf), callScope);
   if (outcome) {
     filtered = filtered.filter((l) => leadOutcomeKey(l.noGood, callsByKey[leadKeyOf(l)] ?? []) === outcome);
   }

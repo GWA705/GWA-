@@ -7,6 +7,7 @@ import { isInternal } from './rbac';
 import { audit } from './audit';
 import { rateLimit } from './ratelimit';
 import { LEAD_CALL_OUTCOMES } from './leadCalls';
+import { getScannedLeadForViewer } from './scannedLeads';
 
 /**
  * Log a follow-up call (or a plain note) on a lead. Available to any signed-in
@@ -24,6 +25,18 @@ export async function logLeadCallAction(input: {
   if (!(LEAD_CALL_OUTCOMES as readonly string[]).includes(input.outcome)) return { error: 'Unknown outcome.' };
   const leadKey = String(input.leadKey || '').trim().slice(0, 160);
   if (!leadKey) return { error: 'Missing lead.' };
+
+  // Office isolation: a dealer may only log against a lead their office owns.
+  // For a scanned lead the key carries its id, so we can verify ownership here
+  // (staff/impersonation handled by getScannedLeadForViewer). HD-lead keys are
+  // derived from sheet data the dealer already only sees for their own stores,
+  // and reads are office-scoped (see readLeadCalls), so a stray write can't
+  // surface in another office.
+  if (!isInternal(user) && leadKey.startsWith('scanned:')) {
+    const scannedId = leadKey.slice('scanned:'.length);
+    const owned = await getScannedLeadForViewer(scannedId, user);
+    if (!owned) return { error: 'Not found.' };
+  }
 
   const rl = await rateLimit(`leadcall:${user.userId}`, 60, 60);
   if (!rl.ok) return { error: 'Too many updates — wait a moment.' };

@@ -39,7 +39,9 @@ const STATUSES = ['NEW', 'CONTACTED', 'NO_GOOD'];
 export async function createScannedLeadAction(_prev: ScanSaveState, fd: FormData): Promise<ScanSaveState> {
   const user = await getSession();
   if (!user) return { error: 'Please sign in again.' };
-  const staff = isInternalRole(user.role);
+  // An admin "viewing as" a dealer saves to THAT office (not by store lookup), so
+  // the card lands where the impersonated dealer would put it.
+  const staff = isInternalRole(user.role) && !user.impersonating;
   if (!staff && !user.dealerId) return { error: 'Your account can’t save lead cards.' };
 
   const storeNumber = str(fd, 'storeNumber');

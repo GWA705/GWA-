@@ -34,9 +34,12 @@ export interface ConversationSummary {
 
 const EPOCH = new Date(0);
 
-/** Can this user read/write the conversation? Dealers are scoped to their dealer. */
+/** Can this user read/write the conversation? Dealers are scoped to their dealer.
+ * Internal staff see every office's threads — EXCEPT while "viewing as" a dealer,
+ * where an admin is confined to exactly that dealer's threads (impersonation keeps
+ * the ADMIN role and only swaps in the dealer's id). */
 export function canAccessConversation(user: SessionUser, conv: { dealerId: string }): boolean {
-  if (isInternalRole(user.role)) return true;
+  if (isInternalRole(user.role) && !user.impersonating) return true;
   return !!user.dealerId && user.dealerId === conv.dealerId;
 }
 
@@ -202,7 +205,9 @@ export async function markConversationRead(conversationId: string, userId: strin
 
 /** Messages in a conversation, oldest first. Names are anonymised for dealers. */
 export async function conversationMessages(conversationId: string, viewer: SessionUser): Promise<ChatMessageView[]> {
-  const forDealer = !isInternalRole(viewer.role);
+  // Anonymise staff names for dealers — and for an admin viewing as a dealer, so
+  // the impersonated view matches what the real dealer sees.
+  const forDealer = !isInternalRole(viewer.role) || !!viewer.impersonating;
   const rows = await prisma.chatMessage.findMany({
     where: { conversationId },
     orderBy: { createdAt: 'asc' },

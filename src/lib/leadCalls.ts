@@ -21,13 +21,31 @@ export interface LeadCallRow {
   createdAt: string; // ISO, for the client component
 }
 
-/** Fetch all call records for a set of lead keys, grouped by key (newest last). */
-export async function readLeadCalls(keys: string[]): Promise<Record<string, LeadCallRow[]>> {
+/**
+ * Fetch all call records for a set of lead keys, grouped by key (newest last).
+ *
+ * `scope` scopes the read to one office: a dealer must only ever see their own
+ * office's activity (plus GWA staff notes, which carry a null dealerId), never
+ * another office's — even if a foreign call was somehow written against one of
+ * their lead keys. Leave `scope` undefined for internal staff, who see all
+ * offices' activity for the given keys.
+ */
+export async function readLeadCalls(
+  keys: string[],
+  scope?: { dealerId: string | null },
+): Promise<Record<string, LeadCallRow[]>> {
   const out: Record<string, LeadCallRow[]> = {};
   if (keys.length === 0) return out;
   try {
+    const where = scope
+      ? {
+          leadKey: { in: keys },
+          // Own office's calls + GWA staff notes (dealerId null); never another office's.
+          OR: [{ dealerId: scope.dealerId ?? '__none__' }, { dealerId: null }],
+        }
+      : { leadKey: { in: keys } };
     const rows = await prisma.leadCall.findMany({
-      where: { leadKey: { in: keys } },
+      where,
       orderBy: { createdAt: 'asc' },
       select: { id: true, leadKey: true, outcome: true, note: true, actorName: true, createdAt: true },
     });
