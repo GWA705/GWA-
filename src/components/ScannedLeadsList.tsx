@@ -111,7 +111,7 @@ function Row({ lead, calls, showOffice }: { lead: ScannedLeadRow; calls: LeadCal
     });
   }
   function remove() {
-    if (!confirm(`Delete the scanned lead for ${lead.customerName || 'this card'}?`)) return;
+    if (!confirm(`Delete this HD Mail In Test for ${lead.customerName || 'this card'}?`)) return;
     start(async () => {
       const r = await deleteScannedLeadAction(lead.id);
       if (r.error) setErr(r.error); else router.refresh();
@@ -123,7 +123,7 @@ function Row({ lead, calls, showOffice }: { lead: ScannedLeadRow; calls: LeadCal
       <summary className={`flex cursor-pointer list-none items-center gap-3 border-l-[6px] ${STRIPE[badge.tone]} rounded-l-xl px-4 py-3 hover:bg-gray-50 group-open:bg-gray-50/60`}>
         <span className="min-w-0 flex-1">
           <span className="block truncate font-semibold text-gray-900">{lead.customerName ? titleCase(lead.customerName) : '(no name)'}</span>
-          <span className="mt-0.5 block truncate text-xs text-gray-500">{sub || 'Scanned card'}</span>
+          <span className="mt-0.5 block truncate text-xs text-gray-500">{sub || 'Mail-in test card'}</span>
         </span>
         <span className="hidden shrink-0 text-xs text-gray-500 md:inline">{lead.phone}</span>
         <span className={`badge shrink-0 ${CHIP[badge.tone]}`}>{badge.label}</span>
@@ -185,7 +185,7 @@ export function ScannedLeadsList({
   showOffice?: boolean;
 }) {
   if (leads.length === 0) {
-    return <p className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-5 text-center text-sm text-gray-500">No scanned lead cards yet. Use “Add lead cards” above to scan one.</p>;
+    return <p className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-5 text-center text-sm text-gray-500">No HD Mail In Test cards yet. Use “Add HD Mail In Test” above to scan one.</p>;
   }
   return (
     <div className="space-y-2">

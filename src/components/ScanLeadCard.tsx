@@ -209,7 +209,7 @@ export function ScanLeadCard({ onSaved }: { onSaved?: () => void }) {
   return (
     <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
       <div className="mb-1 flex items-center justify-between gap-2">
-        <div className="text-base font-bold text-[#0d2a63]">Add lead cards</div>
+        <div className="text-base font-bold text-[#0d2a63]">Add HD Mail In Test</div>
         {(hasCards || previews.length > 0) && (
           <button type="button" onClick={resetAll} className="rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-semibold text-gray-600 hover:bg-gray-50">
             ← Start over

@@ -46,7 +46,7 @@ export default async function DealerLeadsPage({ searchParams }: { searchParams: 
     <div className="space-y-4">
       {aiConfigured() && <ScanLeadCard />}
       <div>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">Scanned leads</h2>
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">HD Mail In Test</h2>
         <ScannedLeadsList leads={scanned} callsByKey={scannedCalls} />
       </div>
     </div>
