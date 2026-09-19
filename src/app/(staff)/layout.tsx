@@ -55,7 +55,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
   const alerts = await prisma.dealerAlert.findMany({
     where: alertWhereForUser(user.role, user.dealerId, user.userId),
     orderBy: { createdAt: 'asc' },
-    select: { id: true, title: true, body: true, linkUrl: true },
+    select: { id: true, title: true, body: true, linkUrl: true, imageStorageKey: true },
   });
 
   const initials =

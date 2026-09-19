@@ -18,6 +18,7 @@ export function AlertForm({ dealers }: { dealers: { id: string; name: string }[]
   const [state, action] = useFormState(createDealerAlertAction, {} as ActionState);
   const formRef = useRef<HTMLFormElement>(null);
   const [audience, setAudience] = useState<string>('ALL_DEALERS');
+  const [hasImage, setHasImage] = useState(false);
   if (state?.ok) formRef.current?.reset();
 
   return (
@@ -27,8 +28,20 @@ export function AlertForm({ dealers }: { dealers: { id: string; name: string }[]
         <input id="title" name="title" className="input" placeholder="e.g. Civic Holiday Hours" maxLength={160} required />
       </div>
       <div>
-        <label className="label" htmlFor="body">Message</label>
-        <textarea id="body" name="body" className="input" rows={4} placeholder="The information dealers must read…" maxLength={4000} required />
+        <label className="label" htmlFor="body">Message{hasImage ? ' (optional with an image)' : ''}</label>
+        <textarea id="body" name="body" className="input" rows={4} placeholder="The information dealers must read…" maxLength={4000} required={!hasImage} />
+      </div>
+      <div>
+        <label className="label" htmlFor="image">Image (optional)</label>
+        <input
+          id="image"
+          name="image"
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/gif"
+          className="text-sm"
+          onChange={(e) => setHasImage(!!e.target.files?.length)}
+        />
+        <p className="mt-1 text-xs text-gray-500">Shown in the pop-up (a flyer / notice). With an image the message is optional — dealers just view it and close.</p>
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>

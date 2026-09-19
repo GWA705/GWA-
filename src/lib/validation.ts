@@ -376,7 +376,8 @@ export const announcementSchema = z
 // Admin-managed must-read pop-up for dealers (forced acknowledgement).
 export const dealerAlertSchema = z.object({
   title: z.string().min(1, 'Enter a title').max(160),
-  body: z.string().min(1, 'Enter a message').max(4000),
+  // Optional: an image-only pop-up is allowed (the action requires body OR image).
+  body: z.string().max(4000).optional(),
   linkUrl: z
     .string()
     .max(500)

@@ -65,6 +65,10 @@ model DealerAlert {
   title       String
   body        String   @db.Text
   linkUrl     String?
+  // Optional image shown in the pop-up (a flyer / notice). Stored like other
+  // documents; served via /api/alerts/[id]/image to users who can see the alert.
+  imageStorageKey String?
+  imageMime       String?
   active      Boolean  @default(true)
   // Who sees this pop-up: ALL_DEALERS | DEALER (a specific dealer) | REVIEWERS |
   // ADMINS | STAFF (reviewers + admins) | EVERYONE.

@@ -8,6 +8,7 @@ export type DealerAlertItem = {
   title: string;
   body: string;
   linkUrl: string | null;
+  imageStorageKey?: string | null;
 };
 
 /**
@@ -53,9 +54,21 @@ export function AlertModal({ alerts }: { alerts: DealerAlertItem[] }) {
           <h2 id="alert-title" className="text-2xl font-semibold text-gray-900">
             {current.title}
           </h2>
-          <p className="mt-3 whitespace-pre-wrap text-base leading-relaxed text-gray-700">
-            {current.body}
-          </p>
+          {current.body && (
+            <p className="mt-3 whitespace-pre-wrap text-base leading-relaxed text-gray-700">
+              {current.body}
+            </p>
+          )}
+          {current.imageStorageKey && (
+            <a href={`/api/alerts/${current.id}/image?size=full`} target="_blank" rel="noreferrer" className="mt-4 block">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={`/api/alerts/${current.id}/image`}
+                alt={current.title}
+                className="max-h-[60vh] w-full rounded-lg border border-gray-200 object-contain"
+              />
+            </a>
+          )}
           {current.linkUrl && (
             <a
               href={current.linkUrl}

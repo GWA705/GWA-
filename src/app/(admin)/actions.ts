@@ -1434,16 +1434,41 @@ export async function createDealerAlertAction(
   if (d.audience === 'DEALER' && !dealerId) {
     return { error: 'Pick which dealer this pop-up is for.' };
   }
+
+  // Optional image (a flyer / notice shown in the pop-up). An image-only pop-up
+  // is allowed, but there must be a message OR an image.
+  const image = formData.get('image');
+  const okImageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+  const hasImage = image instanceof File && image.size > 0;
+  if (hasImage) {
+    if (image.size > 12 * 1024 * 1024) return { error: 'Image must be under 12 MB.' };
+    if (!okImageTypes.includes(image.type)) return { error: 'Image must be a JPG, PNG, WEBP or GIF.' };
+  }
+  const bodyText = (d.body ?? '').trim();
+  if (!bodyText && !hasImage) return { error: 'Add a message or an image.' };
+
   const created = await prisma.dealerAlert.create({
     data: {
       title: toTitleCase(d.title),
-      body: toSentenceCase(d.body),
+      body: bodyText ? toSentenceCase(bodyText) : '',
       linkUrl: d.linkUrl?.trim() || null,
       audience: d.audience,
       dealerId,
       createdById: session.userId,
     },
   });
+
+  // Store the image best-effort and attach it (a storage hiccup shouldn't lose the pop-up).
+  if (hasImage) {
+    try {
+      const ext = image.type === 'image/png' ? '.png' : image.type === 'image/webp' ? '.webp' : image.type === 'image/gif' ? '.gif' : '.jpg';
+      const key = `alerts/${created.id}${ext}`;
+      await putDocument(key, Buffer.from(await image.arrayBuffer()));
+      await prisma.dealerAlert.update({ where: { id: created.id }, data: { imageStorageKey: key, imageMime: image.type } });
+    } catch (e) {
+      console.error('[alert] image store failed', e);
+    }
+  }
   await audit({
     actorId: session.userId,
     action: 'ALERT_CREATE',

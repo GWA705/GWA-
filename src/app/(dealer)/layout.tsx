@@ -38,7 +38,7 @@ export default async function DealerLayout({ children }: { children: React.React
     dealerAlerts = await prisma.dealerAlert.findMany({
       where: alertWhereForUser(user.role, user.dealerId, user.userId),
       orderBy: { createdAt: 'asc' },
-      select: { id: true, title: true, body: true, linkUrl: true },
+      select: { id: true, title: true, body: true, linkUrl: true, imageStorageKey: true },
     });
   }
 

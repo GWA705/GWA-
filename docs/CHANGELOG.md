@@ -54,6 +54,24 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-19
+- **Pop-up alerts can now carry an image.** A must-read pop-up can attach a flyer /
+  notice image (JPEG/PNG/WebP/GIF, ≤12 MB); with an image the message text is
+  optional — dealers just view it and press X to close (the acknowledgement is
+  still recorded). The image is served audience-scoped (only users the alert
+  targets can fetch it) and clicking it opens the full-size version in a new tab.
+  (`schema.prisma` `DealerAlert.imageStorageKey`/`imageMime`, migration
+  `20260919180000`, admin `AlertForm.tsx`, `createDealerAlertAction`,
+  `api/alerts/[id]/image/route.ts`, `AlertModal.tsx`.)
+- **Document viewer: view *or* download when preview fails.** When an inline PDF/
+  doc preview can't render, the viewer now offers both **Open in new tab** (view)
+  and **Download**, instead of download-only. (`DocViewer.tsx`, `en.ts`/`fr.ts`
+  `docViewer.openNewTab`.)
+- **Accidental duplicate deal submissions are blocked.** Submitting a new customer
+  application now guards against a double-submit — the same office + applicant name
+  within a short window (status not already declined/withdrawn) is refused rather
+  than creating a second identical deal. Existing duplicates are cleared by staff
+  declining or the deal being withdrawn (applications aren't hard-deleted, for
+  audit). (`(dealer)/actions.ts`.)
 - **Leads report shows leads by source (Store vs HD Mail In Test).** The Leads
   report now surfaces a "Leads by source" line — HD Store leads vs scanned HD Mail
   In Test cards (same window) — so mail-in is visible alongside store. The existing
