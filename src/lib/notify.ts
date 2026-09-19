@@ -9,6 +9,23 @@ import { sendPushToRoles, sendPushToUser } from './push';
 const STAFF_ROLES: Role[] = ['REVIEWER', 'ADMIN'];
 
 /**
+ * Run a notification WITHOUT making the caller wait for it. Staff emails + push
+ * are external network calls (often several seconds for a handful of reviewers);
+ * a dealer submitting or cancelling a deal should never sit through them. We run
+ * on a persistent Node server (Elastic Beanstalk), so the process stays alive
+ * after the HTTP response is sent and the send finishes in the background. Errors
+ * are logged, never thrown — matching the best-effort contract of every notifier.
+ *
+ * Only safe for notifiers that don't need request-scoped context (these don't —
+ * they read from prisma + env), and whose result the caller doesn't use.
+ */
+export function notifyInBackground(label: string, run: () => unknown): void {
+  void Promise.resolve()
+    .then(run)
+    .catch((e) => console.error(`[notify] ${label} (background) failed`, e));
+}
+
+/**
  * Notification helpers. Each is best-effort — a failure never breaks the action
  * that triggered it. Emails carry no sensitive personal information; they link
  * back to the portal. While email is in log-only mode these just log.

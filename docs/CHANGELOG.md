@@ -54,6 +54,15 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-19
+- **Deal submit & cancellation are much faster — staff notifications no longer
+  block the dealer.** A dealer submitting a deal or requesting a cancellation was
+  made to wait while the server emailed **every** reviewer/admin one-by-one (plus a
+  push) — several seconds of external calls before the page moved. Those sends now
+  run in the **background** (new `notifyInBackground`; safe because we run on a
+  persistent Elastic Beanstalk server, so the process finishes them after the
+  response). The dealer's request is still saved durably first; only the
+  notifications are deferred. (`lib/notify.ts`, `(dealer)/actions.ts` —
+  `requestCancellationAction`, `createApplicationAction`, doc-upload paths.)
 - **New deal: a rejected submit is now obvious (was "nothing happens").** When the
   server rejected a submit (a field it didn't like), the button showed "working…"
   for ~1s then reverted to normal with the error summary up at the top of the form

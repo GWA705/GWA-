@@ -13,7 +13,7 @@ import { findCardData, CARD_BLOCK_MESSAGE } from '@/lib/cardscan';
 import { storeFiles } from '@/lib/upload';
 import { deleteDocument } from '@/lib/storage';
 import { markDealerAction } from '@/lib/activity';
-import { notifyNewDocuments, notifyNewNote, notifyNewSubmission, notifyFundingSubmitted, notifyAdminsUserRequest, notifyCancellationRequested } from '@/lib/notify';
+import { notifyNewDocuments, notifyNewNote, notifyNewSubmission, notifyFundingSubmitted, notifyAdminsUserRequest, notifyCancellationRequested, notifyInBackground } from '@/lib/notify';
 import { applicationSchema, serialNumberSchema } from '@/lib/validation';
 import { mergeProductsSold, addDealerCustomProducts } from '@/lib/products';
 import { parseDealerProfileForm } from '@/lib/dealerProfile';
@@ -317,8 +317,13 @@ export async function createApplicationAction(
     }
   }
 
-  await notifyNewSubmission(app.id);
-  if (storedDocTypes.length > 0) await notifyNewDocuments(app.id, storedDocTypes);
+  // Staff email + push run in the background so the dealer is redirected to their
+  // new deal immediately instead of waiting on the notifications.
+  notifyInBackground('new-submission', () => notifyNewSubmission(app.id));
+  if (storedDocTypes.length > 0) {
+    const types = storedDocTypes;
+    notifyInBackground('new-documents', () => notifyNewDocuments(app.id, types));
+  }
 
   // Save the dealer's typed "Other" products to their own list if they opted in.
   if (addOtherToList && session.dealerId && otherText) {
@@ -359,7 +364,7 @@ export async function uploadSupportingDocAction(
   if (result.error) return result;
 
   await markDealerAction(applicationId, 'DOCUMENT');
-  notifyNewDocuments(applicationId, result.storedTypes ?? []);
+  notifyInBackground('new-documents', () => notifyNewDocuments(applicationId, result.storedTypes ?? []));
   revalidatePath(`/dealer/applications/${applicationId}`);
   return {};
 }
@@ -407,7 +412,7 @@ export async function uploadFundingDocAction(
   if (result.error) return result;
 
   await markDealerAction(applicationId, 'DOCUMENT');
-  notifyNewDocuments(applicationId, result.storedTypes ?? []);
+  notifyInBackground('new-documents', () => notifyNewDocuments(applicationId, result.storedTypes ?? []));
   revalidatePath(`/dealer/applications/${applicationId}`);
   return {};
 }
@@ -463,7 +468,7 @@ export async function uploadFundingBatchAction(
   }
 
   await markDealerAction(applicationId, 'DOCUMENT');
-  notifyNewDocuments(applicationId, storedTypes);
+  notifyInBackground('new-documents', () => notifyNewDocuments(applicationId, storedTypes));
   revalidatePath(`/dealer/applications/${applicationId}`);
   return {};
 }
@@ -635,7 +640,9 @@ export async function requestCancellationAction(
 
   await markDealerAction(applicationId, 'CANCELLATION');
   await audit({ actorId: session.userId, action: 'STATUS_CHANGE', entityType: 'DealCancellation', entityId: created.id, detail: `Cancellation requested (${wasFunded ? 'funded — refund needed' : app.status})` });
-  await notifyCancellationRequested(applicationId, wasFunded);
+  // Staff email + push run in the background so the dealer isn't held waiting on
+  // them — the request itself is already saved above.
+  notifyInBackground('cancellation-requested', () => notifyCancellationRequested(applicationId, wasFunded));
 
   revalidatePath(`/dealer/applications/${applicationId}`);
   return { ok: true };
