@@ -1691,6 +1691,7 @@ export const en = {
     renderErrorPre: 'Couldn’t render a preview.',
     downloadPdf: 'Download the PDF',
     renderErrorPost: 'instead.',
+    openNewTab: 'Open in new tab',
   },
   productPicker: {
     searchPlaceholder: 'Search {n} products…',

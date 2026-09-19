@@ -126,8 +126,13 @@ function PdfPages({ pagesUrl, fileUrl, fileName }: { pagesUrl: string; fileUrl: 
       )}
       {state === 'error' ? (
         <div className="py-12 text-center text-sm text-white/80">
-          {t('docViewer.renderErrorPre')}{' '}
-          <DownloadButton url={`${fileUrl}?download=1`} fileName={fileName} className="font-semibold text-white underline">{t('docViewer.downloadPdf')}</DownloadButton> {t('docViewer.renderErrorPost')}
+          <div>{t('docViewer.renderErrorPre')}</div>
+          <div className="mt-3 flex flex-wrap items-center justify-center gap-4">
+            <a href={fileUrl} target="_blank" rel="noreferrer" className="font-semibold text-white underline">
+              {t('docViewer.openNewTab')}
+            </a>
+            <DownloadButton url={`${fileUrl}?download=1`} fileName={fileName} className="font-semibold text-white underline">{t('docViewer.downloadPdf')}</DownloadButton>
+          </div>
         </div>
       ) : (
         // eslint-disable-next-line @next/next/no-img-element

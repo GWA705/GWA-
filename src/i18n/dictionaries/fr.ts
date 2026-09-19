@@ -1695,6 +1695,7 @@ export const fr: Dictionary = {
     renderErrorPre: 'Impossible d’afficher un aperçu.',
     downloadPdf: 'Télécharger le PDF',
     renderErrorPost: 'à la place.',
+    openNewTab: 'Ouvrir dans un nouvel onglet',
   },
   productPicker: {
     searchPlaceholder: 'Rechercher parmi {n} produits…',
