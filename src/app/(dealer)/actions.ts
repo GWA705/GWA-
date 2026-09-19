@@ -196,6 +196,27 @@ export async function createApplicationAction(
     return { error: 'Please correct the highlighted fields.', fieldErrors: uploadErrors };
   }
 
+  // Guard against accidental double-submits (a double-click, or going Back and
+  // resubmitting): the same dealer submitting the same applicant within a few
+  // minutes is almost always a duplicate. Block it and point them to their list.
+  const dupSince = new Date(Date.now() - 3 * 60 * 1000);
+  const duplicate = await prisma.application.findFirst({
+    where: {
+      dealerId: session.dealerId,
+      applicantFirstName: toTitleCase(d.applicantFirstName),
+      applicantLastName: toTitleCase(d.applicantLastName),
+      createdAt: { gte: dupSince },
+      status: { notIn: ['DECLINED', 'WITHDRAWN'] },
+    },
+    select: { id: true },
+  });
+  if (duplicate) {
+    return {
+      error:
+        'This looks like a duplicate — a deal for this applicant was just submitted. Check your Applications list before submitting again.',
+    };
+  }
+
   const app = await prisma.application.create({
     data: {
       dealerId: session.dealerId,
