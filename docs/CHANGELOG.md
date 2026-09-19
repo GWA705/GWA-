@@ -54,6 +54,14 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-19
+- **Blank HD Mail In Test reference card added — the scanner accuracy feature is
+  now live.** Dropped the clean, unfilled HD Mail In card in `assets/lead-card/
+  blank-card.jpg` (straightened + downscaled from Sean's photo). The reader now
+  shows it as a labelled layout map before every filled card, which measurably
+  improves reads on busy handwriting. This completes the blank-card reference
+  wiring shipped earlier today (`getLeadCardTemplate` picks it up automatically;
+  `LEAD_CARD_TEMPLATE_DISABLED=1` still turns it off). The lead-generation card is
+  a different layout and will be added later as its own type.
 - **Leads page redesign: view switcher + HD Mail In Test workspace + Undo.**
   Rebuilt the dealer Leads page around a **view switcher** — **All · HD Mail In
   Test · Store** (each with a live count, `?tab=` param) — so the two lead types
