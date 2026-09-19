@@ -54,6 +54,17 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-19
+- **Scanned leads: fixed cross-office visibility in "view as dealer".** Each
+  scanned lead is owned by an office (`dealerId`), and real dealers were already
+  scoped to their own — but an admin **viewing as** a dealer still saw *every*
+  office's cards, because impersonation keeps the ADMIN role (which the scanned-
+  lead scoping treated as "see all") and only swaps in the dealer's id. Added a
+  `seesAllScannedLeads()` guard: internal staff see all **except** while
+  impersonating, when they see exactly what that dealer sees. Closes the list, the
+  status/delete actions, and the card-photo route in one place. (`lib/scannedLeads.ts`;
+  `tests/scannedLeads.test.ts`.) Note: staff-scanned cards whose store number
+  doesn't map to a dealer stay **unassigned** and are visible only to staff — map
+  the store to an office to route them.
 - **System health: real AI cost meter + tidier AI section.** Added a *measured*
   "AI spend this month" meter (USD) to Admin → System health, alongside the DeepL
   meter. Every card-reader and support-assistant call now records its real token
