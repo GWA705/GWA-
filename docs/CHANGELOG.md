@@ -54,6 +54,13 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-19
+- **HD Mail In Test now has List / Grouped / Map — the same options as Store, plus
+  split Booked/Sold.** The mail-in workspace gained a **Grouped** view (sections by
+  status) and a **Map** view (reusing the Store map + geocoder; scanned cards are
+  geocoded by their address via the new `addressGeoData`, dealer store pins
+  included). The Leads report's combined **"Booked / sold"** tile is now two
+  separate **Booked** and **Sold** tiles. (`MailInTestWorkspace.tsx`, `leadGeo.ts`,
+  dealer `leads/page.tsx`, `LeadsReportView.tsx`.)
 - **Mail-in lead billing: tracking + admin report.** Each scanned card now records
   whether **Georgian Water** uploaded it (leads mailed to our office → billable to
   the owning office) vs the office scanning its own cards (not billed) — a new

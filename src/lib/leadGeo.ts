@@ -133,6 +133,28 @@ export async function leadsGeoData(leads: Lead[]): Promise<Record<string, LeadGe
 }
 
 /**
+ * Geocode data for arbitrary {key, address, city} items — used by the HD Mail In
+ * Test map, whose cards carry a free street `address` + `city` (no parsed Lead
+ * shape). Mirrors leadsGeoData: returns each item's geocode key, query and cached
+ * coordinate; the map fills uncached ones via /api/leads/geocode like HD leads.
+ */
+export async function addressGeoData(
+  items: { key: string; address?: string | null; city?: string | null }[],
+): Promise<Record<string, LeadGeoEntry>> {
+  const entries = items.map((it) => {
+    const bits = [it.address, it.city].map((x) => (x ?? '').trim()).filter(Boolean);
+    const query = bits.length ? `${bits.join(', ')}, Canada` : '';
+    return { key: it.key, geoKey: query ? normKey(query) : '', query };
+  });
+  const cached = await getCachedGeocodes(entries.map((e) => e.geoKey).filter(Boolean));
+  const out: Record<string, LeadGeoEntry> = {};
+  for (const e of entries) {
+    out[e.key] = { geoKey: e.geoKey, query: e.query, coord: e.geoKey && e.geoKey in cached ? cached[e.geoKey] : undefined };
+  }
+  return out;
+}
+
+/**
  * Store coordinates for the Leads map, scoped to one dealer (or all offices).
  * Read-only and fast: returns only stores that are already placed. Placing a
  * store geocodes it, which is throttled (~1/sec) and must never run inside a

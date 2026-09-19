@@ -135,7 +135,6 @@ export function LeadsReportView({ report }: { report: LeadsReport }) {
   }
 
   const g = report.group;
-  const won = g.outcomes.booked + g.outcomes.sold;
   const contacted = g.total - g.outcomes.notCalled;
 
   return (
@@ -148,10 +147,11 @@ export function LeadsReportView({ report }: { report: LeadsReport }) {
 
       {/* Group summary */}
       <div className="space-y-4 rounded-2xl border border-gray-200 bg-gray-50 p-4 sm:p-5">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
           <Stat label="Total leads" value={g.total} />
           <Stat label="No good" value={g.noGood} accent="#ef4444" />
-          <Stat label="Booked / sold" value={won} accent="#10b981" />
+          <Stat label="Booked" value={g.outcomes.booked} accent="#10b981" />
+          <Stat label="Sold" value={g.outcomes.sold} accent="#8b5cf6" />
           <Stat label="Dealers" value={g.dealers} />
         </div>
         <div>

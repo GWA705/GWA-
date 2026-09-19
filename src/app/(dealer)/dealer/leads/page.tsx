@@ -6,7 +6,7 @@ import { reportingJournalEnabled } from '@/lib/reporting/journalRead';
 import { leadsSheetId } from '@/lib/reporting/journalRead';
 import { LeadsView, filterLeads, leadMonthOptions, leadOutcomeKey } from '@/components/LeadsView';
 import { AllLeadsView } from '@/components/AllLeadsView';
-import { leadsGeoData, storeGeos, unplacedStoresForMap } from '@/lib/leadGeo';
+import { leadsGeoData, storeGeos, unplacedStoresForMap, addressGeoData } from '@/lib/leadGeo';
 import { SectionHero } from '@/components/SectionHero';
 import { MailInTestWorkspace } from '@/components/MailInTestWorkspace';
 import { LeadsTabs, type LeadsTab } from '@/components/LeadsTabs';
@@ -77,7 +77,19 @@ export default async function DealerLeadsPage({ searchParams }: { searchParams: 
 
   let content: React.ReactNode;
   if (tab === 'mailin') {
-    content = <MailInTestWorkspace leads={scanned} callsByKey={scannedCalls} canScan={aiConfigured()} />;
+    // Map data for the mail-in leads (same infra the Store map uses).
+    const mailinGeo = user.dealerId
+      ? {
+          stores: await storeGeos(user.dealerId),
+          pendingStores: await unplacedStoresForMap(user.dealerId),
+          byKey: await addressGeoData(scanned.map((s) => ({ key: scannedLeadKey(s.id), address: s.address, city: s.city }))),
+        }
+      : undefined;
+    content = (
+      <MailInTestWorkspace
+        leads={scanned} callsByKey={scannedCalls} canScan={aiConfigured()} geo={mailinGeo} basePath="/dealer/leads"
+      />
+    );
   } else if (tab === 'store') {
     if (!storeConfigured) {
       content = <NotReadyNote />;
