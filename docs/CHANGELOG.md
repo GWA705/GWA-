@@ -54,6 +54,25 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-19
+- **Leads page redesign: view switcher + HD Mail In Test workspace + Undo.**
+  Rebuilt the dealer Leads page around a **view switcher** — **All · HD Mail In
+  Test · Store** (each with a live count, `?tab=` param) — so the two lead types
+  live together and you can flip between them or view all. The **HD Mail In Test**
+  section is now a real workspace (`MailInTestWorkspace`): search, **sort**
+  (newest / oldest / name / store / collected date / status), status-filter chips,
+  and **paging** (Load more, 12 at a time) so it stops sprawling as cards pile up;
+  the scanner is tucked into the toolbar as a compact **＋ Scan cards** button
+  instead of an always-open box. The **Store** tab is the existing Home Depot
+  leads view unchanged (keeps its map / grouped / month filters). Staff leads page
+  gets the same HD Mail In Test workspace (its office selector is unchanged).
+  Added a discoverable **Undo** on the call tracker: a Sold / Booked / Not-
+  interested lead shows a one-tap "↩ Undo" (was only a hidden ✕ in the history),
+  so a mis-tapped Sold can be reopened. ("Associate" will be added as a third lead
+  type later, once that distinction exists.) (`LeadsTabs.tsx`,
+  `MailInTestWorkspace.tsx`, `LeadCallTracker.tsx`, `ScannedLeadsList.tsx`,
+  dealer + staff `leads/page.tsx`.)
+- **Renamed the scanned cards to "HD Mail In Test"** across the dealer + staff
+  leads UI (display-only; the `ScannedLead` model is unchanged).
 - **Location-isolation audit + fixes (scanned leads, lead calls, chat).** Full
   cross-office data-isolation sweep. The main dealer read/write surfaces (deals,
   documents, gift cards, mail, reports, downloads) were confirmed correctly

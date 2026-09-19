@@ -65,6 +65,11 @@ export function LeadCallTracker({ leadKey, initial }: { leadKey: string; initial
   const router = useRouter();
 
   const s = derive(calls, tr);
+  // A terminal outcome (Sold / Booked / Not interested) closes the lead and hides
+  // the "next step". Surface a one-tap Undo so a mis-tap (e.g. Sold by accident)
+  // can be reversed without hunting for the tiny ✕ in the history.
+  const lastCall = calls.length ? calls[calls.length - 1] : null;
+  const canUndo = !!lastCall && ['SOLD', 'BOOKED', 'NOT_INTERESTED'].includes(lastCall.outcome);
 
   function log(outcome: string) {
     const n = note.trim();
@@ -111,6 +116,16 @@ export function LeadCallTracker({ leadKey, initial }: { leadKey: string; initial
           <span className={`h-1.5 w-1.5 rounded-full ${t.dot}`} /> {s.label}
         </span>
         {s.next && <span className="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700">{tr('leads.nextTitle', { next: s.next })}</span>}
+        {canUndo && lastCall && (
+          <button
+            type="button"
+            onClick={() => remove(lastCall.id)}
+            title={`Undo ${outcomeLabel(lastCall.outcome)}`}
+            className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800 transition hover:bg-amber-100 active:scale-95"
+          >
+            ↩ Undo {outcomeLabel(lastCall.outcome)}
+          </button>
+        )}
         <span className="ml-auto text-xs text-gray-400">{calls.length > 0 ? tr('leads.loggedCount', { n: calls.length }) : ''}</span>
       </div>
 

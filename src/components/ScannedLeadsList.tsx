@@ -41,6 +41,22 @@ const STRIPE: Record<string, string> = {
   teal: 'border-teal-500', green: 'border-emerald-500', violet: 'border-violet-500',
 };
 
+/**
+ * Coarse status group for a mail-in card, for the workspace's filter chips and
+ * sorting: new / working / spoke / booked / sold / nogood. Derived from the
+ * logged calls plus the card's own No-good status.
+ */
+export function scannedGroupKey(status: string, calls: { outcome: string }[]): string {
+  if (status === 'NO_GOOD') return 'nogood';
+  if (calls.length === 0) return 'new';
+  const last = calls[calls.length - 1].outcome;
+  if (last === 'SOLD') return 'sold';
+  if (last === 'BOOKED') return 'booked';
+  if (last === 'SPOKE') return 'spoke';
+  if (last === 'NOT_INTERESTED') return 'nogood';
+  return 'working'; // LEFT_MESSAGE / NO_ANSWER / notes
+}
+
 // Same status shape the HD lead rows use, derived from the logged calls (plus a
 // No-good override from the card's own status).
 function deriveBadge(status: string, calls: { outcome: string }[]): { tone: string; label: string } {

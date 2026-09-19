@@ -9,8 +9,8 @@ import { leadsSheetId, reportingJournalEnabled } from '@/lib/reporting/journalRe
 import { listReportOffices } from '@/lib/reporting/monthly';
 import { LeadsView, filterLeads, leadMonthOptions, leadOutcomeKey } from '@/components/LeadsView';
 import { leadsGeoData, storeGeos, unplacedStoresForMap } from '@/lib/leadGeo';
-import { ScanLeadCard } from '@/components/ScanLeadCard';
-import { ScannedLeadsList, type ScannedLeadRow } from '@/components/ScannedLeadsList';
+import { MailInTestWorkspace } from '@/components/MailInTestWorkspace';
+import { type ScannedLeadRow } from '@/components/ScannedLeadsList';
 import { scannedLeadKey } from '@/lib/scannedLeadKey';
 import { listScannedLeads } from '@/lib/scannedLeads';
 import { prisma } from '@/lib/db';
@@ -52,14 +52,12 @@ export default async function StaffLeadsPage({
     generatorName: l.generatorName, confidence: l.confidence, status: l.status, hasPhoto: !!l.photoStorageKey,
     scannedByName: l.scannedByName, officeName: l.dealerId ? nameById.get(l.dealerId) ?? null : null, createdAt: l.createdAt.toISOString(),
   }));
+  // Staff see all offices' mail-in cards — no office scope on the call read.
   const scannedCalls = await readLeadCalls(scanned.map((s) => scannedLeadKey(s.id)));
   const scannedSection = (
-    <div className="space-y-4">
-      {aiConfigured() && <ScanLeadCard />}
-      <div>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">HD Mail In Test</h2>
-        <ScannedLeadsList leads={scanned} callsByKey={scannedCalls} showOffice />
-      </div>
+    <div>
+      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">HD Mail In Test</h2>
+      <MailInTestWorkspace leads={scanned} callsByKey={scannedCalls} showOffice canScan={aiConfigured()} />
     </div>
   );
 
