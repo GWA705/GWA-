@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { setScannedLeadStatusAction, deleteScannedLeadAction } from '@/app/(dealer)/dealer/leads/scanActions';
 import { LeadCallTracker } from './LeadCallTracker';
+import { ScannedLeadEditForm } from './ScannedLeadEditForm';
 import type { LeadCallRow } from '@/lib/leadCalls';
 import { scannedLeadKey } from '@/lib/scannedLeadKey';
 
@@ -97,6 +98,7 @@ export function ScannedLeadRowItem({ lead, calls, showOffice, typeTag }: { lead:
   const [pending, start] = useTransition();
   const [err, setErr] = useState<string | null>(null);
   const [photoOpen, setPhotoOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
 
   const addr = [lead.address, [lead.city, lead.postalCode].filter(Boolean).join(' ')].filter(Boolean).join(', ');
   const water = [lead.waterSource, lead.waterQuality && `${lead.waterQuality} quality`, lead.conditions.length ? lead.conditions.join(', ') : null]
@@ -157,6 +159,9 @@ export function ScannedLeadRowItem({ lead, calls, showOffice, typeTag }: { lead:
               View photo
             </button>
           )}
+          <button type="button" onClick={() => setEditing((v) => !v)} className="rounded-md border border-gray-200 px-2 py-1 font-medium text-brand-700 hover:bg-gray-50">
+            {editing ? 'Close edit' : 'Edit'}
+          </button>
           <label className="sr-only" htmlFor={`st_${lead.id}`}>Card status</label>
           <select id={`st_${lead.id}`} value={lead.status} onChange={(e) => setStatus(e.target.value)} disabled={pending}
             className="rounded-md border border-gray-200 px-2 py-1 text-xs">
@@ -166,6 +171,8 @@ export function ScannedLeadRowItem({ lead, calls, showOffice, typeTag }: { lead:
         </div>
         {lead.confidence != null && <div className="mt-1 text-[11px] text-gray-400">Scanned {lead.confidence}% confidence{lead.scannedByName ? ` · by ${lead.scannedByName}` : ''}</div>}
         {err && <div className="mt-1 text-xs text-red-600">{err}</div>}
+
+        {editing && <ScannedLeadEditForm lead={lead} onDone={() => setEditing(false)} />}
 
         {/* Call functions — same tracker the Home Depot leads use. */}
         <LeadCallTracker leadKey={scannedLeadKey(lead.id)} initial={calls} />

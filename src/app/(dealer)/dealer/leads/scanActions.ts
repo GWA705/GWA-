@@ -121,6 +121,55 @@ export async function createScannedLeadAction(_prev: ScanSaveState, fd: FormData
   return { ok: true, id: lead.id };
 }
 
+/**
+ * Edit a scanned lead's details — for fixing anything the scanner misread. Only
+ * content fields change; the owning office (dealerId) and the billing flag
+ * (uploadedByGwa) are never touched here. Scoped: only the owning office (or GWA
+ * staff) may edit.
+ */
+export async function updateScannedLeadAction(id: string, fd: FormData): Promise<ScanSaveState> {
+  const user = await getSession();
+  if (!user) return { error: 'Please sign in again.' };
+  const lead = await getScannedLeadForViewer(id, user);
+  if (!lead) return { error: 'Not found.' };
+
+  const customerName = str(fd, 'customerName');
+  const phone = str(fd, 'phone');
+  if (!customerName && !phone) return { error: 'Enter at least a name or a phone number.' };
+
+  await prisma.scannedLead.update({
+    where: { id },
+    data: {
+      customerName,
+      phone,
+      address: str(fd, 'address'),
+      city: str(fd, 'city'),
+      postalCode: str(fd, 'postalCode'),
+      storeNumber: str(fd, 'storeNumber'),
+      collectedOn: str(fd, 'collectedOn'),
+      householdSize: str(fd, 'householdSize'),
+      ownsHome: str(fd, 'ownsHome'),
+      waterSource: str(fd, 'waterSource'),
+      waterQuality: str(fd, 'waterQuality'),
+      conditions: jsonArr(fd, 'conditions'),
+      generatorName: str(fd, 'generatorName'),
+      waterNotes: str(fd, 'waterNotes'),
+      note: str(fd, 'note'),
+    },
+  });
+
+  await audit({
+    actorId: user.userId,
+    action: 'STATUS_CHANGE',
+    entityType: 'ScannedLead',
+    entityId: id,
+    detail: 'Scanned lead edited',
+  });
+  revalidatePath('/dealer/leads');
+  revalidatePath('/staff/leads');
+  return { ok: true, id };
+}
+
 /** Update a scanned lead's follow-up status (NEW / CONTACTED / NO_GOOD). */
 export async function setScannedLeadStatusAction(id: string, status: string): Promise<{ error?: string }> {
   const user = await getSession();
