@@ -67,10 +67,10 @@ export function AiCostCalculator() {
   });
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white shadow-sm p-5">
-      <h2 className="text-sm font-semibold text-gray-900">AI assistant — cost estimator</h2>
-      <p className="mt-1 text-xs text-gray-500">
-        Rough monthly cost of the dealer support assistant, by model. Adjust the assumptions; the table updates live.
+    <div>
+      <p className="text-xs text-gray-500">
+        Rough monthly cost of the dealer support assistant, by model — a what-if to compare models. For actual
+        billed spend, see the “AI spend this month” meter above.
       </p>
 
       <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">

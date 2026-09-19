@@ -54,6 +54,20 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-19
+- **System health: real AI cost meter + tidier AI section.** Added a *measured*
+  "AI spend this month" meter (USD) to Admin → System health, alongside the DeepL
+  meter. Every card-reader and support-assistant call now records its real token
+  usage (new `AiUsage` table, migration `20260919120000_ai_usage`; recorded
+  best-effort so metering never breaks a feature), priced at Anthropic first-party
+  rates and broken down by feature (card reader vs assistant) and model. It
+  measures from deploy forward — earlier usage isn't counted (full history lives
+  in the Anthropic Console). The old client-side estimator is kept as a collapsed
+  "Model cost comparison (what-if)". The AI-assistant cards are now grouped under
+  one "AI assistant" heading, and "What dealers are asking" is collapsed by
+  default and capped to 5 with "Show all", so the Q&A log no longer sprawls.
+  (`lib/aiUsage.ts`, `AiCostMeter.tsx`, `CollapsibleCard.tsx`, `system-health/
+  page.tsx`, `AssistantReview.tsx`, `AiCostCalculator.tsx`, `ai.ts`,
+  `api/leads/scan-card/route.ts`, `schema.prisma`; `tests/aiUsage.test.ts`.)
 - **Deal progress bar: the highlighted step now sits on where the deal actually
   is, not one step ahead.** Each linear stage was marked "done" the moment a deal
   *reached* it, so the current-step marker (the first not-done stage) pointed at

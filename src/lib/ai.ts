@@ -1,4 +1,5 @@
 import 'server-only';
+import { recordAiUsage, AI_SERVICES } from './aiUsage';
 
 /**
  * Minimal Anthropic Messages API client (via fetch — no SDK dependency) used for
@@ -120,7 +121,21 @@ export async function generateSupportReply(
       console.error(`[ai] Anthropic ${res.status} (${process.env.ANTHROPIC_MODEL || DEFAULT_MODEL}): ${detail.slice(0, 300)}`);
       return null;
     }
-    const data = (await res.json()) as { content?: Array<{ type: string; text?: string }> };
+    const data = (await res.json()) as {
+      content?: Array<{ type: string; text?: string }>;
+      model?: string;
+      usage?: { input_tokens?: number; output_tokens?: number };
+    };
+    // Meter real token usage so System health can show actual AI spend.
+    // Best-effort — recordAiUsage never throws.
+    if (data.usage) {
+      void recordAiUsage({
+        service: AI_SERVICES.assistant,
+        model: data.model || process.env.ANTHROPIC_MODEL || DEFAULT_MODEL,
+        inputTokens: data.usage.input_tokens ?? 0,
+        outputTokens: data.usage.output_tokens ?? 0,
+      });
+    }
     const text = (data.content ?? [])
       .filter((b) => b.type === 'text' && b.text)
       .map((b) => b.text!.trim())

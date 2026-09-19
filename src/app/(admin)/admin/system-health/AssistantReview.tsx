@@ -16,11 +16,18 @@ function timeAgo(iso: string): string {
  * click promotes a good answer into that area's knowledge (so the assistant
  * improves, with admin approval). Filter to gaps (answers it punted on).
  */
+// How many Q&As to show before "Show all" — keeps the page from sprawling when
+// there's a long history.
+const PREVIEW_COUNT = 5;
+
 export function AssistantReview({ initial }: { initial: QaRow[] }) {
   const [rows, setRows] = useState<QaRow[]>(initial);
   const [gapsOnly, setGapsOnly] = useState(false);
+  const [showAll, setShowAll] = useState(false);
   const [pending, startTransition] = useTransition();
   const [note, setNote] = useState<{ id: string; ok: boolean; msg: string } | null>(null);
+
+  const shown = showAll ? rows : rows.slice(0, PREVIEW_COUNT);
 
   function refresh(onlyGaps: boolean) {
     startTransition(async () => setRows(await listAssistantQa(onlyGaps)));
@@ -50,20 +57,17 @@ export function AssistantReview({ initial }: { initial: QaRow[] }) {
   }
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white shadow-sm p-5">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold text-gray-900">What dealers are asking</h2>
-        <div className="flex items-center gap-3">
-          <label className="flex items-center gap-1.5 text-xs text-gray-600">
-            <input type="checkbox" checked={gapsOnly} onChange={toggleGaps} className="rounded border-gray-300" />
-            Needs an answer only
-          </label>
-          <button type="button" onClick={() => refresh(gapsOnly)} disabled={pending} className="btn-secondary text-xs disabled:opacity-50">
-            {pending ? '…' : 'Refresh'}
-          </button>
-        </div>
+    <div>
+      <div className="flex flex-wrap items-center justify-end gap-3">
+        <label className="mr-auto flex items-center gap-1.5 text-xs text-gray-600">
+          <input type="checkbox" checked={gapsOnly} onChange={toggleGaps} className="rounded border-gray-300" />
+          Needs an answer only
+        </label>
+        <button type="button" onClick={() => refresh(gapsOnly)} disabled={pending} className="btn-secondary text-xs disabled:opacity-50">
+          {pending ? '…' : 'Refresh'}
+        </button>
       </div>
-      <p className="mt-1 text-xs text-gray-500">
+      <p className="mt-2 text-xs text-gray-500">
         Every question the assistant answered. <strong>Add to knowledge</strong> promotes a good answer into that area&rsquo;s
         knowledge, so it&rsquo;s used going forward. Items flagged <span className="text-amber-700">Needs answer</span> are where it
         deferred to a teammate — good candidates to fill in.
@@ -73,7 +77,7 @@ export function AssistantReview({ initial }: { initial: QaRow[] }) {
         <p className="mt-4 text-sm text-gray-400">{gapsOnly ? 'No open gaps — nice.' : 'No questions yet. They’ll show here as dealers use the chat.'}</p>
       ) : (
         <ul className="mt-3 divide-y divide-gray-100">
-          {rows.map((r) => (
+          {shown.map((r) => (
             <li key={r.id} className="py-3">
               <div className="flex flex-wrap items-center gap-2 text-[11px] text-gray-400">
                 <span className="badge bg-gray-100 text-gray-600">{r.areaLabel}</span>
@@ -97,6 +101,16 @@ export function AssistantReview({ initial }: { initial: QaRow[] }) {
             </li>
           ))}
         </ul>
+      )}
+
+      {rows.length > PREVIEW_COUNT && (
+        <button
+          type="button"
+          onClick={() => setShowAll((v) => !v)}
+          className="mt-3 text-xs font-semibold text-brand-700 hover:underline"
+        >
+          {showAll ? 'Show fewer' : `Show all ${rows.length}`}
+        </button>
       )}
     </div>
   );

@@ -4,6 +4,7 @@ import { isInternalRole } from '@/lib/constants';
 import { rateLimit } from '@/lib/ratelimit';
 import { extractCardsFromImage, type CardImageInput } from '@/lib/leadScanner';
 import { getLeadCardTemplate } from '@/lib/leadCardTemplate';
+import { recordAiUsage, AI_SERVICES } from '@/lib/aiUsage';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -56,6 +57,19 @@ export async function POST(req: NextRequest) {
   // map; it's undefined when none is configured, so this is a no-op until then.
   const template = await getLeadCardTemplate();
   const perImage = await Promise.all(images.map((img) => extractCardsFromImage(img, { template })));
+
+  // Meter real token usage per call so System health can show actual AI spend.
+  // Best-effort — recordAiUsage never throws.
+  for (const r of perImage) {
+    if (r.usage) {
+      void recordAiUsage({
+        service: AI_SERVICES.cardScan,
+        model: r.usage.model,
+        inputTokens: r.usage.inputTokens,
+        outputTokens: r.usage.outputTokens,
+      });
+    }
+  }
 
   const off = perImage.find((r) => r.available === false);
   if (off) return NextResponse.json({ available: false, error: off.error });

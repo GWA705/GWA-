@@ -4,10 +4,13 @@ import { getSystemHealth, type HealthCheck } from '@/lib/health';
 import { deeplUsage } from '@/lib/translate';
 import { CopyField } from '@/app/(staff)/staff/reports/connection/CopyField';
 import { getSettings, ASSISTANT_AREAS } from '@/lib/settings';
+import { aiUsageForMonth } from '@/lib/aiUsage';
 import { TranslateHealthCheck } from './TranslateHealthCheck';
 import { AiCostCalculator } from './AiCostCalculator';
+import { AiCostMeter } from './AiCostMeter';
 import { AssistantKnowledge } from './AssistantKnowledge';
 import { AssistantReview } from './AssistantReview';
+import { CollapsibleCard } from './CollapsibleCard';
 import { listAssistantQa } from './actions';
 
 export const dynamic = 'force-dynamic';
@@ -88,11 +91,12 @@ function Dot({ status }: { status: HealthCheck['status'] }) {
 
 export default async function SystemHealthPage() {
   await requireAdminSection('system-health');
-  const [health, usage, knowledgeMap, qaRows] = await Promise.all([
+  const [health, usage, knowledgeMap, qaRows, aiUsage] = await Promise.all([
     getSystemHealth(),
     deeplUsage(),
     getSettings(ASSISTANT_AREAS.map((a) => a.key)),
     listAssistantQa(false),
+    aiUsageForMonth(),
   ]);
   const knowledgeAreas = ASSISTANT_AREAS.map((a) => ({ area: a.area, label: a.label, value: knowledgeMap[a.key] ?? '' }));
 
@@ -124,10 +128,24 @@ export default async function SystemHealthPage() {
         </div>
       </div>
 
-      {/* AI assistant: per-area knowledge editor, review/promote loop, cost estimator */}
-      <AssistantKnowledge areas={knowledgeAreas} />
-      <AssistantReview initial={qaRows} />
-      <AiCostCalculator />
+      {/* AI assistant — grouped: real spend, knowledge editor, review queue, what-if */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-3">
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-500">AI assistant</h2>
+          <div className="h-px flex-1 bg-gray-200" />
+        </div>
+        <AiCostMeter summary={aiUsage} />
+        <AssistantKnowledge areas={knowledgeAreas} />
+        <CollapsibleCard
+          title="What dealers are asking"
+          hint="Questions the assistant answered — promote good answers into knowledge"
+        >
+          <AssistantReview initial={qaRows} />
+        </CollapsibleCard>
+        <CollapsibleCard title="Model cost comparison (what-if)" hint="Compare model costs by adjusting the assumptions">
+          <AiCostCalculator />
+        </CollapsibleCard>
+      </div>
 
       {/* Translation usage, fallback + live test */}
       <TranslationCard usage={usage} />
