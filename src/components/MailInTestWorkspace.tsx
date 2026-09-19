@@ -1,7 +1,8 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { ScannedLeadsList, scannedGroupKey, type ScannedLeadRow } from './ScannedLeadsList';
+import { ScannedLeadsList, type ScannedLeadRow } from './ScannedLeadsList';
+import { scannedGroupKey } from '@/lib/scannedLeadStatus';
 import { ScanLeadCard } from './ScanLeadCard';
 import type { LeadCallRow } from '@/lib/leadCalls';
 import { scannedLeadKey } from '@/lib/scannedLeadKey';

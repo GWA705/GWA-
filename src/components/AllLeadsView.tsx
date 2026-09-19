@@ -4,7 +4,8 @@ import { leadKeyOf, type Lead } from '@/lib/leads';
 import type { LeadCallRow } from '@/lib/leadCalls';
 import { scannedLeadKey } from '@/lib/scannedLeadKey';
 import { StoreLeadRow, storeGroupKey } from './LeadsView';
-import { ScannedLeadRowItem, scannedGroupKey, type ScannedLeadRow } from './ScannedLeadsList';
+import { ScannedLeadRowItem, type ScannedLeadRow } from './ScannedLeadsList';
+import { scannedGroupKey } from '@/lib/scannedLeadStatus';
 import { LeadsSelect } from './LeadsSelect';
 import { ScanCardsPanel } from './ScanCardsPanel';
 
