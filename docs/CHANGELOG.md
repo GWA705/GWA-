@@ -53,6 +53,25 @@ source of truth; this file is the human-readable index.
   `testSingleLead()` on a French lead first. Portal display auto-translates lead
   free-text via DeepL.
 
+## 2026-09-19
+- **Lead-card reader: stronger model + optional blank-card reference (accuracy).**
+  Two changes aimed at reading messy handwriting better:
+  - The reader now defaults to **`claude-opus-5`** (was `claude-sonnet-5`) — a more
+    capable vision model, ~2× the cost per scan (still a few cents, on low volume).
+    Contained to the card reader only (the chat assistant's `ANTHROPIC_MODEL` is
+    untouched) and still overridable via `CARD_AI_MODEL` — set it to
+    `claude-sonnet-5` or `claude-haiku-4-5` to trade a little accuracy for cost.
+  - Added an **optional blank-card reference**: a clean, unfilled photo of the card
+    (plus optional office `notes.txt`) dropped in `assets/lead-card/` is shown to the
+    reader first as a "here's where each field sits" layout map before each filled
+    photo — measurably better on busy cards. Fully optional and off until a blank
+    photo is added: `getLeadCardTemplate()` returns `undefined` when the folder is
+    empty, so the scanner behaves exactly as before. Env `LEAD_CARD_TEMPLATE_DISABLED=1`
+    turns it off without deleting anything. (`leadScanner.ts`, new `leadCardTemplate.ts`,
+    `api/leads/scan-card/route.ts`, `assets/lead-card/README.md`.)
+  - **To finish the blank-card win:** add one clean, blank card photo as
+    `assets/lead-card/blank-card.jpg` (see `assets/lead-card/README.md`).
+
 ## 2026-09-18
 - **Lead-card reader accuracy pass, tuned to the real card.** From real cards: the
   reader now (a) captures **"Number of people in your household"** (new `householdSize`

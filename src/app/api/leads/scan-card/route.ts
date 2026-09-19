@@ -3,6 +3,7 @@ import { getSession } from '@/lib/session';
 import { isInternalRole } from '@/lib/constants';
 import { rateLimit } from '@/lib/ratelimit';
 import { extractCardsFromImage, type CardImageInput } from '@/lib/leadScanner';
+import { getLeadCardTemplate } from '@/lib/leadCardTemplate';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -50,8 +51,11 @@ export async function POST(req: NextRequest) {
 
   // Read each photo in parallel. Every photo can yield one OR several cards; we
   // flatten them all and tag each with the photo index it came from, so the
-  // client can attach the right photo when saving each lead.
-  const perImage = await Promise.all(images.map((img) => extractCardsFromImage(img)));
+  // client can attach the right photo when saving each lead. The optional blank-
+  // card reference (assets/lead-card/) is shown to the reader first as a layout
+  // map; it's undefined when none is configured, so this is a no-op until then.
+  const template = await getLeadCardTemplate();
+  const perImage = await Promise.all(images.map((img) => extractCardsFromImage(img, { template })));
 
   const off = perImage.find((r) => r.available === false);
   if (off) return NextResponse.json({ available: false, error: off.error });

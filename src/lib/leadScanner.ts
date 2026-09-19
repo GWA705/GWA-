@@ -19,7 +19,9 @@
  *
  * Environment:
  *   ANTHROPIC_API_KEY   (required) — your Anthropic API key.
- *   CARD_AI_MODEL       (optional) — defaults to 'claude-sonnet-5'.
+ *   CARD_AI_MODEL       (optional) — defaults to 'claude-opus-5'. Set to
+ *                       'claude-sonnet-5' or 'claude-haiku-4-5' to trade a little
+ *                       accuracy for lower cost per scan.
  *
  * Privacy note: this is the one place customer data leaves your server (card
  * photos are sent to Anthropic's vision API). Make sure that's covered by your
@@ -327,7 +329,7 @@ export async function extractCardsFromImage(
     content.push({ type: 'image', source: { type: 'base64', media_type: toImageMime(image.mime), data: image.buffer.toString('base64') } });
     content.push({ type: 'text', text: promptText });
 
-    const model = opts.model || process.env.CARD_AI_MODEL || 'claude-sonnet-5';
+    const model = opts.model || process.env.CARD_AI_MODEL || 'claude-opus-5';
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -439,7 +441,7 @@ export async function extractCard(
     }
     content.push({ type: 'text', text: promptText });
 
-    const model = opts.model || process.env.CARD_AI_MODEL || 'claude-sonnet-5';
+    const model = opts.model || process.env.CARD_AI_MODEL || 'claude-opus-5';
     // Call the Anthropic REST API directly (the portal doesn't use the SDK — see
     // lib/ai.ts), so there's no extra dependency to install.
     const res = await fetch('https://api.anthropic.com/v1/messages', {
