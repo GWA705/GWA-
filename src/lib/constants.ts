@@ -76,7 +76,7 @@ export function isFinancedMethod(m: PaymentMethod): boolean {
 
 // Payment methods that settle the deal outside of financing. These deals have no
 // loan/approval number, so the Financing deal number is never required for them.
-export const NON_FINANCE_PAYMENT_METHODS: PaymentMethod[] = ['CASH', 'CHEQUE', 'CREDIT_CARD', 'HD_CREDIT_CARD'];
+export const NON_FINANCE_PAYMENT_METHODS: PaymentMethod[] = ['CASH', 'CHEQUE', 'E_TRANSFER', 'CREDIT_CARD', 'HD_CREDIT_CARD'];
 
 // Whether a deal is financed (and therefore needs a Financing deal number). A
 // null paymentMethod is a regular finance-company application (TYPED/PHOTO entry),

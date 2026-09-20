@@ -22,8 +22,9 @@ const APPROVED: ApplicationStatus[] = ['CONDITIONAL', 'APPROVED', 'DOCS_SENT', '
 const PENDING: ApplicationStatus[] = ['SUBMITTED', 'UNDER_REVIEW'];
 const ACTION_NEEDED: ApplicationStatus[] = ['APPROVED', 'CONDITIONAL', 'DOCS_SENT', 'PROBLEM'];
 // Deals that never happened carry no dollar value, so they're left out of the
-// "Total Value" tile (a withdrawn deal was pulled back by the customer/dealer).
-const NO_VALUE: ApplicationStatus[] = ['WITHDRAWN'];
+// "Total Value" tile: a withdrawn deal was pulled back, a declined deal wasn't
+// approved, and a draft was never submitted.
+const NO_VALUE: ApplicationStatus[] = ['WITHDRAWN', 'DECLINED', 'DRAFT'];
 
 const money = (n: number) => `$${n.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 

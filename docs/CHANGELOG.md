@@ -54,6 +54,20 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-20
+- **E-Transfer is now treated as an already-paid method, not financing.** It was
+  missing from `NON_FINANCE_PAYMENT_METHODS`, so e-transfer deals were asked for a
+  financing deal number and the signed finance package like a financed deal. It's
+  now aligned with its `financed: false` split-payment marker: no financing number,
+  no finance-doc requirement. (`constants.ts`.)
+- **Total Value (this month) now also excludes declined & draft deals.** Extends
+  the earlier withdrawn-exclusion: the tile counts only deals that could carry
+  value. `NO_VALUE` is now WITHDRAWN + DECLINED + DRAFT. (`(dealer)/dealer/page.tsx`.)
+- **Maintenance "be right back" page redesigned — modern, not an old error screen.**
+  Dark ambient background with a frosted-glass card, a slow greyscale aurora, fine
+  grain texture, and a shimmer progress bar; still greyscale + the logo as the only
+  colour (brand kit), self-contained, safe-area aware, auto-refreshing.
+  (`public/maintenance.html`.) Activation is still a CloudFront change (S3 error
+  origin + custom error responses) — steps documented, not yet wired.
 - **Document viewer: the Close button no longer hides behind the iPhone notch (was
   "stuck with no way to close").** In the installed PWA the full-screen document
   viewer's header sat under the iOS status bar / notch, so on a reviewer's phone
