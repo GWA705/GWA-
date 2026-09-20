@@ -21,6 +21,9 @@ export const dynamic = 'force-dynamic';
 const APPROVED: ApplicationStatus[] = ['CONDITIONAL', 'APPROVED', 'DOCS_SENT', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW', 'FUNDED'];
 const PENDING: ApplicationStatus[] = ['SUBMITTED', 'UNDER_REVIEW'];
 const ACTION_NEEDED: ApplicationStatus[] = ['APPROVED', 'CONDITIONAL', 'DOCS_SENT', 'PROBLEM'];
+// Deals that never happened carry no dollar value, so they're left out of the
+// "Total Value" tile (a withdrawn deal was pulled back by the customer/dealer).
+const NO_VALUE: ApplicationStatus[] = ['WITHDRAWN'];
 
 const money = (n: number) => `$${n.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -54,7 +57,9 @@ export default async function DealerDashboard() {
   const approvedThisMonth = thisMonth.filter((a) => APPROVED.includes(a.status)).length;
   const approvalRate = totalThisMonth ? Math.round((approvedThisMonth / totalThisMonth) * 100) : 0;
   const pendingNow = apps.filter((a) => PENDING.includes(a.status)).length;
-  const valueThisMonth = thisMonth.reduce((s, a) => s + amountOf(a), 0);
+  const valueThisMonth = thisMonth
+    .filter((a) => !NO_VALUE.includes(a.status))
+    .reduce((s, a) => s + amountOf(a), 0);
 
   // Donut — all-time
   const approvedAll = apps.filter((a) => APPROVED.includes(a.status)).length;

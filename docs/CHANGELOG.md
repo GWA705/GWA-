@@ -53,6 +53,13 @@ source of truth; this file is the human-readable index.
   `testSingleLead()` on a French lead first. Portal display auto-translates lead
   free-text via DeepL.
 
+## 2026-09-20
+- **Dealer home "Total Value (this month)" no longer counts withdrawn deals.** The
+  headline value tile summed every application created this month regardless of
+  status, so a withdrawn deal still inflated the figure. Withdrawn deals are now
+  excluded (`NO_VALUE` set). Declined/draft deals still count for now — say the
+  word and those can be excluded too. (`(dealer)/dealer/page.tsx`.)
+
 ## 2026-09-19
 - **Deal submit & cancellation are much faster — staff notifications no longer
   block the dealer.** A dealer submitting a deal or requesting a cancellation was
