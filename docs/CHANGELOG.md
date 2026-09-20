@@ -54,6 +54,13 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-20
+- **Document viewer: the Close button no longer hides behind the iPhone notch (was
+  "stuck with no way to close").** In the installed PWA the full-screen document
+  viewer's header sat under the iOS status bar / notch, so on a reviewer's phone
+  there was no reachable way to close a file. The header now pads past the notch
+  with `env(safe-area-inset-*)`, and the control is a clear "✕ Close". Affects the
+  in-app viewer everywhere (reviewer deal docs, dealer docs, paperwork).
+  (`DocViewer.tsx`, en/fr `docViewer.close`.)
 - **Dealer home "Total Value (this month)" no longer counts withdrawn deals.** The
   headline value tile summed every application created this month regardless of
   status, so a withdrawn deal still inflated the figure. Withdrawn deals are now

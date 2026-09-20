@@ -1691,6 +1691,7 @@ export const fr: Dictionary = {
   },
   docViewer: {
     back: '‹ Retour',
+    close: 'Fermer',
     download: 'Télécharger',
     loadingPages: 'Chargement des pages…',
     renderErrorPre: 'Impossible d’afficher un aperçu.',

@@ -1687,6 +1687,7 @@ export const en = {
   },
   docViewer: {
     back: '‹ Back',
+    close: 'Close',
     download: 'Download',
     loadingPages: 'Loading pages…',
     renderErrorPre: 'Couldn’t render a preview.',

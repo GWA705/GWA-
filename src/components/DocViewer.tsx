@@ -73,13 +73,26 @@ export function DocViewer({
         // e.g. a card hover effect — would otherwise trap `fixed` inside that card
         // and shrink the viewer to that little box).
         <div className="fixed inset-0 z-[60] flex flex-col bg-black/80" role="dialog" aria-modal="true" aria-label={fileName}>
-          <div className="flex flex-none items-center gap-2 bg-white px-2 py-2 shadow">
+          {/* The header must clear the iOS status bar / notch in the installed PWA
+              (standalone, no browser chrome) — without this the Close button sits
+              UNDER the status bar and reviewers can't tap it, i.e. get stuck on the
+              file. env(safe-area-inset-*) pads the white bar down past the notch. */}
+          <div
+            className="flex flex-none items-center gap-2 bg-white px-2 py-2 shadow"
+            style={{
+              paddingTop: 'calc(env(safe-area-inset-top) + 0.5rem)',
+              paddingLeft: 'calc(env(safe-area-inset-left) + 0.5rem)',
+              paddingRight: 'calc(env(safe-area-inset-right) + 0.5rem)',
+            }}
+          >
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-sm font-semibold text-brand-700 hover:bg-gray-100"
+              aria-label={t('docViewer.close')}
+              className="inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-semibold text-brand-700 hover:bg-gray-100"
             >
-              {t('docViewer.back')}
+              <span aria-hidden className="text-base leading-none">✕</span>
+              {t('docViewer.close')}
             </button>
             <span className="min-w-0 flex-1 truncate text-center text-sm font-medium text-gray-700">{fileName}</span>
             <DownloadButton
