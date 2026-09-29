@@ -53,6 +53,19 @@ source of truth; this file is the human-readable index.
   `testSingleLead()` on a French lead first. Portal display auto-translates lead
   free-text via DeepL.
 
+## 2026-09-29
+- **Void cheques / PAP forms are no longer wrongly blocked as "credit cards."** The
+  upload card-scanner OCRs each file; a void cheque's transit + institution +
+  account numbers can run together into a Luhn-valid 13–19 digit string sitting
+  next to the words "Account Number", which the scanner treated as card context and
+  hard-blocked. Fix: when a document clearly reads as banking (VOID / void cheque /
+  pre-authorized / PAP / transit / institution / routing) **and** carries no
+  payment-card signal (brand word, CVV, expiry, credit limit, cardholder, "card
+  number"), a bare Luhn number in "account number" context no longer blocks it.
+  Real cards still block — a brand BIN, the known HD / FinanceIT prefixes, or any
+  card signal all still trip it (proven by tests). (`lib/cardscan.ts`,
+  `tests/cardscan.test.ts`.)
+
 ## 2026-09-20
 - **E-Transfer is now treated as an already-paid method, not financing.** It was
   missing from `NON_FINANCE_PAYMENT_METHODS`, so e-transfer deals were asked for a

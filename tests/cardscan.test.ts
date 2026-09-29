@@ -88,3 +88,36 @@ describe('findCardData (hard block)', () => {
     expect(r.signals.join(' ')).not.toMatch(/4111/);
   });
 });
+
+describe('void cheque / PAP is not a card (banking context)', () => {
+  // OCR of the RBC void-cheque letter that was wrongly blocked: the three
+  // banking numbers run together into a Luhn-valid 15-digit string sitting next
+  // to "Account Number".
+  const chequeOcr =
+    'Royal Bank RBC DARCY JAMES CULSHAW Re: Void Cheque ' +
+    "Please accept this copy of a void cheque as confirmation of the bank account information for the purposes of pre-authorized debit or credit. " +
+    'VOID Transit Number Institution Number Account Number 02869 003 5019849';
+
+  it('does NOT block a void cheque with only banking context', () => {
+    expect(findCardData(chequeOcr).blocked).toBe(false);
+  });
+  it('does NOT block a bare PAP form account number run', () => {
+    expect(findCardData('Pre-authorized debit form. Institution Number Transit Number Account Number 02869 003 5019849').blocked).toBe(false);
+  });
+
+  // The exemption must NOT let real cards through.
+  it('still blocks a real Visa even if the word "void" appears', () => {
+    expect(findCardData('VOID sample — Visa 4111 1111 1111 1111').blocked).toBe(true);
+  });
+  it('still blocks the HD Consumer card by prefix on a banking-looking doc', () => {
+    expect(findCardData('void cheque account number 6035294400000000').blocked).toBe(true);
+  });
+  it('still blocks the FinanceIT one-time card by prefix', () => {
+    expect(findCardData('pre-authorized 4356012100000000').blocked).toBe(true);
+  });
+  it('still blocks a card statement that says "account number" but has a card signal', () => {
+    // A real statement carries a card signal (CVV / expiry / cardholder / brand),
+    // which cancels the banking exemption.
+    expect(findCardData('Cardholder DARCY CULSHAW Account Number 02869 003 5019849 CVV 123').blocked).toBe(true);
+  });
+});

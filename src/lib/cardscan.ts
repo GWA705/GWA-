@@ -79,6 +79,18 @@ const BRAND_WORD_RE = /\b(visa|mastercard|master\s?card|amex|american\s?express|
 const EXPIRY_RE = /\b(0[1-9]|1[0-2])\s?[/\-]\s?(\d{2}|\d{4})\b/;
 const CVV_CONTEXT_RE = /\b(cvv|cvc|cvv2|cvc2|security\s?code|card\s?verification)\b/i;
 
+// Banking / void-cheque / PAP context. When a document clearly reads as bank
+// account info (a void cheque, a pre-authorized debit form) it carries an
+// "Account Number" that is a BANK account, not a card — and a cheque's
+// transit+institution+account digits can run together into a 13–19 digit string
+// that happens to pass Luhn. We must not block those as cards.
+const BANK_CONTEXT_RE =
+  /\bvoid\b|void\s*che(?:que|ck)|pre[-\s]?authoriz|pre[-\s]?authoris|\bpap\b|transit\s*(?:number|no|#)|institution\s*(?:number|no|#)|routing\s*(?:number|no|#)|direct\s*deposit/i;
+// Signals that a document really is about a PAYMENT CARD (not a bank account).
+// If any of these are present, the banking exemption does NOT apply.
+const CARD_SIGNAL_RE =
+  /\b(visa|mastercard|master\s?card|amex|american\s?express|discover)\b|\bcvv2?\b|\bcvc2?\b|security\s*code|credit\s*limit|card\s?holder|cardholder|card\s*number|(0[1-9]|1[0-2])\s?[/\-]\s?(\d{2}|\d{4})/i;
+
 // "Strong" card indicators — two or more in a document, or one right beside the
 // number, means it's card data even when the number isn't a major-brand BIN
 // (e.g. store / private-label / finance cards like the HD consumer card).
@@ -111,6 +123,13 @@ export function findCardData(text: string): CardScanResult {
   const strongCount =
     STRONG_CONTEXT.filter((re) => re.test(text)).length + (BRAND_WORD_RE.test(text) ? 1 : 0);
 
+  // A document that clearly is a void cheque / PAP form (bank context) with NO
+  // payment-card signal is treated as banking: a Luhn-valid run in plain
+  // "account number" context must NOT block it. Real cards still block — they
+  // match a brand BIN (below) or carry a card signal (which cancels this), and
+  // the known HD / FinanceIT prefixes always block regardless.
+  const bankingDoc = BANK_CONTEXT_RE.test(text) && !CARD_SIGNAL_RE.test(text);
+
   // Blank out phone numbers first (same-length spaces keep every index aligned
   // with `text`, so the context slices below still read the real surrounding
   // words). Card candidates are then found in the phone-free text.
@@ -139,7 +158,10 @@ export function findCardData(text: string): CardScanResult {
       brandsFound.add(brand);
       continue;
     }
-    // Non-major-brand but Luhn-valid: block if it's clearly in card context.
+    // Non-major-brand but Luhn-valid: block if it's clearly in card context —
+    // unless this is a banking document (void cheque / PAP), where the "account
+    // number" context is a bank account, not a card.
+    if (bankingDoc) continue;
     const idx = m.index ?? 0;
     const near = NEAR_CONTEXT_RE.test(text.slice(Math.max(0, idx - 80), idx + m[0].length + 80));
     if (near || strongCount >= 2) {
