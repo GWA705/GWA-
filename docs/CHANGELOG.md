@@ -30,6 +30,19 @@ source of truth; this file is the human-readable index.
 | Hosting / runtime (AWS) | ✅ **Live on AWS** (cutover 2026-09-06) | App runs on **Elastic Beanstalk** (`Gwa-portal-env`, Docker on AL2023, single t3.small) behind **CloudFront + WAF**; RDS Postgres + S3 in `ca-central-1`; DNS `portal.ghsbarrie.ca` → CloudFront. Render web service retained but being decommissioned. |
 | Auto-deploy (GitHub → EB) | ✅ **Live** (2026-09-11, Sean) | Every push to the branch builds the image to ECR **and auto-deploys to Elastic Beanstalk** (deploy step in `.github/workflows/build-ecr.yml`, bundles `Dockerrun.aws.json` + `.platform/` nginx fix). IAM user `github-ecr-push` has `AdministratorAccess-AWSElasticBeanstalk`. `wait_for_deployment: false` (the single-instance env flaps Yellow on low traffic, which false-failed the step). No more manual ZIP uploads. |
 | Desktop/phone push notifications | ✅ Keys set (2026-09-11, Sean) — confirm with a test | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` set on EB. The client fetches the public key at **runtime** (`GET /api/push/key`) so it survives rebuilds. Reviewers get push on new dealer docs / activity. iOS needs the app installed to the Home Screen. **To confirm:** Account → Enable desktop notifications → Send a test. |
+| Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
+
+### Booking-site lead push (2026-09-29)
+- **Confirmed scanned leads now push to the booking system.** When a scanned
+  lead card is saved (`createScannedLeadAction` in
+  `src/app/(dealer)/dealer/leads/scanActions.ts`), the portal POSTs it to the
+  booking app's `/api/intake/portal` endpoint so it lands on a booker's calling
+  screen — no retyping between the two systems. Keyed by the scanned lead's id,
+  so a re-save never double-creates the customer on the booking side.
+- New `src/lib/bookingPush.ts` — fire-and-forget, fail-safe (a booking outage or
+  slow response never blocks the portal save) and **inert until configured**.
+- **To switch on:** set `BOOKING_INTAKE_URL` + `PORTAL_INTAKE_TOKEN` on Elastic
+  Beanstalk, then redeploy. Until both are set it does nothing.
 
 ### French lead parsing — reference script synced (2026-09-07)
 - **French Home Depot lead parsing (Québec/French leads).** The portal only

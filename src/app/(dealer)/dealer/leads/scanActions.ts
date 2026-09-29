@@ -7,6 +7,7 @@ import { prisma } from '@/lib/db';
 import { audit } from '@/lib/audit';
 import { putDocument, newScannedLeadStorageKey } from '@/lib/storage';
 import { resolveDealerIdForStore, getScannedLeadForViewer } from '@/lib/scannedLeads';
+import { pushLeadToBooking } from '@/lib/bookingPush';
 
 export interface ScanSaveState { ok?: boolean; error?: string; id?: string }
 
@@ -116,6 +117,10 @@ export async function createScannedLeadAction(_prev: ScanSaveState, fd: FormData
     entityId: lead.id,
     detail: `Scanned lead saved${storeNumber ? ` (store ${storeNumber})` : ''}${dealerId ? '' : ' — unassigned'}`,
   });
+  // Hand the confirmed lead to the booking system so it lands on a booker's
+  // calling screen. Fail-safe and inert until configured — never blocks the save.
+  await pushLeadToBooking(lead);
+
   revalidatePath('/dealer/leads');
   revalidatePath('/staff/leads');
   return { ok: true, id: lead.id };
