@@ -946,20 +946,18 @@ async function loadStuckFundingCandidates() {
       applicantFirstName: true,
       applicantLastName: true,
       dealer: { select: { name: true } },
-      documents: { where: { stage: { in: ['FUNDING', 'REVIEWER'] } }, select: { stage: true, type: true, verifiedAt: true } },
+      documents: { where: { stage: 'FUNDING' }, select: { type: true, verifiedAt: true } },
       statusEvents: { select: { to: true } },
     },
   });
   return rows
     .map((a) => {
-      const fundingDocs = a.documents.filter((d) => d.stage === 'FUNDING');
-      const reviewerDocCount = a.documents.filter((d) => d.stage === 'REVIEWER').length;
+      const fundingDocs = a.documents;
       const outOfBand =
         a.status !== 'FUNDING_SUBMITTED' &&
         isOutOfBandReturn({
           status: a.status,
           fundingDocTypes: fundingDocs.map((d) => d.type),
-          reviewerDocCount,
           statusHistoryTos: a.statusEvents.map((e) => e.to),
         });
       // Include submitted deals always; Approved/Conditional only when out-of-band.
@@ -1043,16 +1041,15 @@ export async function advanceDealToInForFundingAction(applicationId: string): Pr
     where: { id: applicationId },
     select: {
       id: true, status: true,
-      documents: { where: { stage: { in: ['FUNDING', 'REVIEWER'] } }, select: { stage: true, type: true, verifiedAt: true } },
+      documents: { where: { stage: 'FUNDING' }, select: { type: true, verifiedAt: true } },
       statusEvents: { select: { to: true } },
     },
   });
   if (!a) return { error: 'Not found.' };
-  const fundingDocs = a.documents.filter((d) => d.stage === 'FUNDING');
-  const reviewerDocCount = a.documents.filter((d) => d.stage === 'REVIEWER').length;
+  const fundingDocs = a.documents;
   const eligible =
     a.status === 'FUNDING_SUBMITTED' ||
-    isOutOfBandReturn({ status: a.status, fundingDocTypes: fundingDocs.map((d) => d.type), reviewerDocCount, statusHistoryTos: a.statusEvents.map((e) => e.to) });
+    isOutOfBandReturn({ status: a.status, fundingDocTypes: fundingDocs.map((d) => d.type), statusHistoryTos: a.statusEvents.map((e) => e.to) });
   if (!eligible) return { error: 'This deal is not at a stage that can move to In for funding.' };
   if (fundingDocs.length === 0 || fundingDocs.some((d) => d.verifiedAt === null)) {
     return { error: 'Confirm every uploaded funding document first.' };

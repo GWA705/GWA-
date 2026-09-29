@@ -256,7 +256,6 @@ export default async function StaffApplicationDetail({
   const packageReturnedEarly = isOutOfBandReturn({
     status: app.status,
     fundingDocTypes: fundingDocs.map((d) => d.type),
-    reviewerDocCount: reviewerDocs.length,
     statusHistoryTos: app.statusEvents.map((e) => e.to),
   });
   // The out-of-band deal can move to In for funding once its uploaded funding

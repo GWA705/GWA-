@@ -67,6 +67,15 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-29
+- **Out-of-band detection fix: "install docs sent" now means the deal reached
+  DOCS_SENT, not merely that reviewer docs exist.** A reviewer can *produce* the
+  install documents and hand them over another way (email) without the deal ever
+  being *sent* in the portal — status stays Approved. The previous check treated
+  any reviewer-stage doc as "sent," which wrongly excluded exactly those deals
+  (e.g. Darcy Culshaw) from the out-of-band banner and the Funding queue. Now only
+  the status history (ever reached DOCS_SENT/FUNDING_*/FUNDED) decides it.
+  (`outOfBandReturn.ts` — `installDocsEverSent`/`isOutOfBandReturn` no longer take a
+  reviewer-doc count; callers in staff/dealer updated.)
 - **Out-of-band (stuck-at-Approved) deals can now be moved to funding.** These
   weren't in the admin Funding queue (which only listed *In-for-funding submitted*)
   and had no move button, so a deal like an emailed-docs return sat at Approved with

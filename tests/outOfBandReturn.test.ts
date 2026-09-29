@@ -6,15 +6,12 @@ const S = (...s: ApplicationStatus[]): ApplicationStatus[] => s;
 const D = (...d: DocumentType[]): DocumentType[] => d;
 
 describe('installDocsEverSent', () => {
-  it('true when the reviewer produced install docs', () => {
-    expect(installDocsEverSent(1, [])).toBe(true);
-  });
   it('true when the deal ever reached DOCS_SENT or beyond', () => {
-    expect(installDocsEverSent(0, S('SUBMITTED', 'APPROVED', 'DOCS_SENT'))).toBe(true);
-    expect(installDocsEverSent(0, S('FUNDING_REVIEW'))).toBe(true);
+    expect(installDocsEverSent(S('SUBMITTED', 'APPROVED', 'DOCS_SENT'))).toBe(true);
+    expect(installDocsEverSent(S('FUNDING_REVIEW'))).toBe(true);
   });
-  it('false when never sent', () => {
-    expect(installDocsEverSent(0, S('SUBMITTED', 'APPROVED', 'CONDITIONAL'))).toBe(false);
+  it('false when never reached DOCS_SENT (even if the reviewer produced docs and emailed them)', () => {
+    expect(installDocsEverSent(S('SUBMITTED', 'APPROVED', 'CONDITIONAL'))).toBe(false);
   });
 });
 
@@ -22,19 +19,19 @@ describe('isOutOfBandReturn', () => {
   const base = {
     status: 'APPROVED' as ApplicationStatus,
     fundingDocTypes: D('SIGNED_HD_DOCUMENT'),
-    reviewerDocCount: 0,
     statusHistoryTos: S('SUBMITTED', 'APPROVED'),
   };
 
-  it('true: package returned, still approved, install docs never sent', () => {
+  it('true: package returned, still approved, never reached DOCS_SENT', () => {
     expect(isOutOfBandReturn({ ...base })).toBe(true);
   });
 
-  it('FALSE when install docs were sent in-portal (reviewer docs exist) — the reported false positive', () => {
-    expect(isOutOfBandReturn({ ...base, reviewerDocCount: 2 })).toBe(false);
+  it('true even though the reviewer produced install docs — if they were emailed (never DOCS_SENT)', () => {
+    // Darcy case: install docs produced then handled out-of-band, status stayed Approved.
+    expect(isOutOfBandReturn({ ...base, statusHistoryTos: S('SUBMITTED', 'APPROVED') })).toBe(true);
   });
 
-  it('FALSE when the deal reached DOCS_SENT and was moved back to Conditional', () => {
+  it('FALSE when the deal reached DOCS_SENT and was moved back to Conditional (sent in-portal)', () => {
     expect(isOutOfBandReturn({ ...base, status: 'CONDITIONAL', statusHistoryTos: S('APPROVED', 'DOCS_SENT', 'CONDITIONAL') })).toBe(false);
   });
 

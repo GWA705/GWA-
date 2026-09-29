@@ -401,13 +401,12 @@ export async function addSerialNumberAction(
  */
 async function isOutOfBandUpload(applicationId: string, uploadedTypes: DocumentType[]): Promise<boolean> {
   if (!uploadedTypes.some((t) => PACKAGE_RETURN_FUNDING_TYPES.includes(t))) return false;
-  const [priorReturn, reviewerDocs, sentBeyond] = await Promise.all([
+  const [priorReturn, sentBeyond] = await Promise.all([
     prisma.document.count({ where: { applicationId, stage: 'FUNDING', type: { in: PACKAGE_RETURN_FUNDING_TYPES } } }),
-    prisma.document.count({ where: { applicationId, stage: 'REVIEWER' } }),
     prisma.statusEvent.count({ where: { applicationId, to: { in: SENT_OR_BEYOND } } }),
   ]);
   if (priorReturn > 0) return false; // already have a return doc → already flagged
-  if (reviewerDocs > 0 || sentBeyond > 0) return false; // install docs WERE sent → not out-of-band
+  if (sentBeyond > 0) return false; // install docs WERE sent through the portal → not out-of-band
   return true;
 }
 
