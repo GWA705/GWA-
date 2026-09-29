@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/db';
-import { requireStaffSection } from '@/lib/session';
+import { requireStaffSection, requireAdminSection } from '@/lib/session';
 import { audit } from '@/lib/audit';
 import { findCardData, CARD_BLOCK_MESSAGE } from '@/lib/cardscan';
 import { markReviewerAction } from '@/lib/activity';
@@ -918,6 +918,98 @@ export async function moveToInForFundingAction(applicationId: string): Promise<v
   await notifyStatusChange(applicationId, 'FUNDING_REVIEW');
   revalidatePath(`/staff/applications/${applicationId}`);
   revalidatePath('/staff');
+}
+
+/** How many deals are eligible for the one-click bulk advance (below). */
+export async function countReadyFundingDeals(): Promise<number> {
+  const candidates = await prisma.application.findMany({
+    where: { status: 'FUNDING_SUBMITTED' },
+    select: { id: true, documents: { where: { stage: 'FUNDING' }, select: { verifiedAt: true } } },
+  });
+  return candidates.filter((a) => a.documents.length > 0 && a.documents.every((d) => d.verifiedAt !== null)).length;
+}
+
+export interface StuckFundingDeal {
+  id: string;
+  name: string;
+  dealerName: string;
+  total: number; // uploaded funding docs
+  unconfirmed: number; // of those, not yet confirmed
+  hasDocs: boolean;
+  ready: boolean; // has docs AND all confirmed → can advance now
+}
+
+/**
+ * Every deal sitting at "In-for-funding submitted", oldest first, with why each
+ * one is (or isn't) ready to advance. Powers the admin "Funding queue" list.
+ */
+export async function listStuckFundingDeals(): Promise<StuckFundingDeal[]> {
+  const rows = await prisma.application.findMany({
+    where: { status: 'FUNDING_SUBMITTED' },
+    orderBy: { createdAt: 'asc' },
+    select: {
+      id: true,
+      applicantFirstName: true,
+      applicantLastName: true,
+      dealer: { select: { name: true } },
+      documents: { where: { stage: 'FUNDING' }, select: { verifiedAt: true } },
+    },
+  });
+  return rows.map((a) => {
+    const total = a.documents.length;
+    const unconfirmed = a.documents.filter((d) => d.verifiedAt === null).length;
+    return {
+      id: a.id,
+      name: `${a.applicantFirstName} ${a.applicantLastName}`.trim(),
+      dealerName: a.dealer.name,
+      total,
+      unconfirmed,
+      hasDocs: total > 0,
+      ready: total > 0 && unconfirmed === 0,
+    };
+  });
+}
+
+/**
+ * One-time backlog cleanup: advance every deal sitting at "In-for-funding
+ * submitted" whose uploaded funding documents are ALL already confirmed to
+ * "In for funding" (FUNDING_REVIEW) — the exact move a reviewer would make by
+ * hand, applied in bulk. It deliberately:
+ *   - moves ONLY to In for funding (never straight to Funded — funding still
+ *     happens the normal way, reviewer or journal), and
+ *   - touches ONLY deals whose docs a reviewer already confirmed (verified), so
+ *     nothing skips human review.
+ * Dealer notifications are skipped on purpose so a backlog sweep doesn't blast a
+ * flood of emails/push; each move is still logged (status history + audit).
+ */
+export async function advanceReadyFundingDealsAction(): Promise<{ moved: number }> {
+  const session = await requireAdminSection('overview');
+  const candidates = await prisma.application.findMany({
+    where: { status: 'FUNDING_SUBMITTED' },
+    select: { id: true, documents: { where: { stage: 'FUNDING' }, select: { verifiedAt: true } } },
+  });
+  const ready = candidates.filter((a) => a.documents.length > 0 && a.documents.every((d) => d.verifiedAt !== null));
+
+  let moved = 0;
+  for (const a of ready) {
+    await prisma.$transaction([
+      prisma.application.update({ where: { id: a.id }, data: { status: 'FUNDING_REVIEW' } }),
+      prisma.statusEvent.create({
+        data: {
+          applicationId: a.id,
+          from: 'FUNDING_SUBMITTED',
+          to: 'FUNDING_REVIEW',
+          actorId: session.userId,
+          note: 'Bulk advance — all uploaded documents already confirmed',
+        },
+      }),
+    ]);
+    await audit({ actorId: session.userId, action: 'STATUS_CHANGE', entityType: 'Application', entityId: a.id, detail: 'Bulk advance to FUNDING_REVIEW (backlog cleanup)' });
+    moved += 1;
+  }
+  revalidatePath('/admin');
+  revalidatePath('/staff');
+  return { moved };
 }
 
 // Reviewer/admin manually sets a deal's status at any time (override/correct).

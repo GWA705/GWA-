@@ -54,6 +54,18 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-29
+- **Admin "Funding queue" — list of stuck deals + one-click bulk advance.** The
+  admin overview now lists every deal sitting at *In-for-funding submitted* (oldest
+  first, each linking to the deal) with why it's stuck — green = ready, amber = N
+  docs to confirm, red = no docs. An **"Advance N ready deals → In for funding"**
+  button moves, in one click, every deal whose uploaded docs are already confirmed
+  (the move a reviewer would make by hand) to FUNDING_REVIEW. It never marks
+  anything Funded (that stays with the reviewer / journal), touches only
+  docs-confirmed deals, and logs each move (status history + audit); dealer
+  notifications are skipped so a backlog sweep doesn't flood them. Guard:
+  `requireAdminSection('overview')`. (`(staff)/actions.ts` `listStuckFundingDeals` /
+  `advanceReadyFundingDealsAction`, `(admin)/admin/AdvanceReadyDealsButton.tsx`,
+  admin `page.tsx`.)
 - **Reviewers are now alerted when signed paperwork comes back out-of-band.** If a
   dealer uploads a signed-package document (signed contract / HD docs / HD waiver /
   install photo) while the deal is still **Approved/Conditional** — i.e. its install

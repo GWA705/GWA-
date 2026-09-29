@@ -5,6 +5,8 @@ import { STATUS_LABELS, STATUS_COLORS } from '@/lib/constants';
 import type { ApplicationStatus } from '@prisma/client';
 import { StorageCheck } from './StorageCheck';
 import { StoreImport } from './StoreImport';
+import { AdvanceReadyDealsButton } from './AdvanceReadyDealsButton';
+import { listStuckFundingDeals } from '@/app/(staff)/actions';
 import { StorageMeter } from './StorageMeter';
 import { getStorageUsage } from '@/lib/storage-usage';
 import { AdminAttention } from './AdminAttention';
@@ -21,6 +23,8 @@ function money(n: number): string {
 
 export default async function AdminOverview() {
   const user = await requireAdminSection('overview');
+  const stuckFunding = await listStuckFundingDeals();
+  const readyFundingCount = stuckFunding.filter((d) => d.ready).length;
 
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -121,6 +125,41 @@ export default async function AdminOverview() {
 
       {/* Immediate action items */}
       <AdminAttention user={user} />
+
+      {/* Funding backlog — the list of stuck deals + one-click advance */}
+      <div className="card p-6">
+        <div className="mb-1 flex items-center justify-between gap-3">
+          <h2 className="text-base font-semibold text-gray-900">Funding queue</h2>
+          <span className="text-xs text-gray-500">{stuckFunding.length} waiting at “In-for-funding submitted”</span>
+        </div>
+        <p className="mb-3 text-xs text-gray-500">
+          Deals the dealer has submitted for funding. Green ones are ready to advance now; amber ones need their
+          uploaded documents confirmed first; red ones have no documents yet.
+        </p>
+
+        <AdvanceReadyDealsButton readyCount={readyFundingCount} />
+
+        {stuckFunding.length > 0 && (
+          <ul className="mt-4 divide-y divide-gray-100 border-t border-gray-100">
+            {stuckFunding.map((d) => {
+              const tone = d.ready ? 'text-emerald-700' : d.hasDocs ? 'text-amber-700' : 'text-red-700';
+              const label = d.ready
+                ? 'Ready to advance'
+                : d.hasDocs
+                  ? `${d.unconfirmed} document${d.unconfirmed === 1 ? '' : 's'} to confirm`
+                  : 'No documents uploaded yet';
+              return (
+                <li key={d.id} className="flex items-center justify-between gap-3 py-2 text-sm">
+                  <Link href={`/staff/applications/${d.id}`} className="min-w-0 flex-1 truncate font-medium text-brand-700 hover:underline">
+                    {d.name} <span className="font-normal text-gray-400">· {d.dealerName}</span>
+                  </Link>
+                  <span className={`flex-none text-xs font-semibold ${tone}`}>{label}</span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
 
       {/* KPI tiles */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
