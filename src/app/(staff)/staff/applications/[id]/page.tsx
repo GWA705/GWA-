@@ -53,6 +53,7 @@ import {
 import { VerifyFinanceNumberButton } from '@/components/VerifyFinanceNumberButton';
 import { STATUS_LABELS, REVIEWER_PAPERWORK_TYPES, applicableVerificationChecks, decisionTone } from '@/lib/constants';
 import { isOutOfBandReturn } from '@/lib/outOfBandReturn';
+import { AdvanceToFundingButton } from './AdvanceToFundingButton';
 import { computeDealerPayout } from '@/lib/payoutCalc';
 import { decisionDisplayLabel } from '@/lib/enumLabels';
 import type { ApplicationStatus } from '@prisma/client';
@@ -258,6 +259,9 @@ export default async function StaffApplicationDetail({
     reviewerDocCount: reviewerDocs.length,
     statusHistoryTos: app.statusEvents.map((e) => e.to),
   });
+  // The out-of-band deal can move to In for funding once its uploaded funding
+  // documents are all confirmed.
+  const fundingDocsReady = fundingDocs.length > 0 && fundingDocs.every((d) => d.verifiedAt !== null);
   const latestPayout = app.payouts.length
     ? app.payouts.reduce((max, p) => (p.paidOn > max ? p.paidOn : max), app.payouts[0].paidOn)
     : null;
@@ -930,6 +934,7 @@ export default async function StaffApplicationDetail({
               under <strong>Funding documents</strong>, then move the deal forward so it doesn&apos;t stay stuck at
               its current status.
             </p>
+            <AdvanceToFundingButton applicationId={app.id} ready={fundingDocsReady} />
           </div>
         </div>
       )}

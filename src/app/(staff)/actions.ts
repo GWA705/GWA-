@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import { requireStaffSection, requireAdminSection } from '@/lib/session';
 import { audit } from '@/lib/audit';
+import { isOutOfBandReturn } from '@/lib/outOfBandReturn';
 import { findCardData, CARD_BLOCK_MESSAGE } from '@/lib/cardscan';
 import { markReviewerAction } from '@/lib/activity';
 import { encryptOptional, decryptOptional } from '@/lib/crypto';
@@ -920,15 +921,6 @@ export async function moveToInForFundingAction(applicationId: string): Promise<v
   revalidatePath('/staff');
 }
 
-/** How many deals are eligible for the one-click bulk advance (below). */
-export async function countReadyFundingDeals(): Promise<number> {
-  const candidates = await prisma.application.findMany({
-    where: { status: 'FUNDING_SUBMITTED' },
-    select: { id: true, documents: { where: { stage: 'FUNDING' }, select: { verifiedAt: true } } },
-  });
-  return candidates.filter((a) => a.documents.length > 0 && a.documents.every((d) => d.verifiedAt !== null)).length;
-}
-
 export interface StuckFundingDeal {
   id: string;
   name: string;
@@ -937,79 +929,139 @@ export interface StuckFundingDeal {
   unconfirmed: number; // of those, not yet confirmed
   hasDocs: boolean;
   ready: boolean; // has docs AND all confirmed → can advance now
+  outOfBand: boolean; // stuck at Approved/Conditional (install docs never sent) vs submitted
 }
 
-/**
- * Every deal sitting at "In-for-funding submitted", oldest first, with why each
- * one is (or isn't) ready to advance. Powers the admin "Funding queue" list.
- */
-export async function listStuckFundingDeals(): Promise<StuckFundingDeal[]> {
+// A deal "stuck in funding" is either sitting at In-for-funding submitted, OR
+// sitting at Approved/Conditional as an out-of-band return (signed package back,
+// install docs never sent through the portal). Both need the same nudge to In
+// for funding. This loads the candidates with everything both cases need.
+async function loadStuckFundingCandidates() {
   const rows = await prisma.application.findMany({
-    where: { status: 'FUNDING_SUBMITTED' },
+    where: { status: { in: ['FUNDING_SUBMITTED', 'APPROVED', 'CONDITIONAL'] } },
     orderBy: { createdAt: 'asc' },
     select: {
       id: true,
+      status: true,
       applicantFirstName: true,
       applicantLastName: true,
       dealer: { select: { name: true } },
-      documents: { where: { stage: 'FUNDING' }, select: { verifiedAt: true } },
+      documents: { where: { stage: { in: ['FUNDING', 'REVIEWER'] } }, select: { stage: true, type: true, verifiedAt: true } },
+      statusEvents: { select: { to: true } },
     },
   });
-  return rows.map((a) => {
-    const total = a.documents.length;
-    const unconfirmed = a.documents.filter((d) => d.verifiedAt === null).length;
-    return {
-      id: a.id,
-      name: `${a.applicantFirstName} ${a.applicantLastName}`.trim(),
-      dealerName: a.dealer.name,
-      total,
-      unconfirmed,
-      hasDocs: total > 0,
-      ready: total > 0 && unconfirmed === 0,
-    };
-  });
+  return rows
+    .map((a) => {
+      const fundingDocs = a.documents.filter((d) => d.stage === 'FUNDING');
+      const reviewerDocCount = a.documents.filter((d) => d.stage === 'REVIEWER').length;
+      const outOfBand =
+        a.status !== 'FUNDING_SUBMITTED' &&
+        isOutOfBandReturn({
+          status: a.status,
+          fundingDocTypes: fundingDocs.map((d) => d.type),
+          reviewerDocCount,
+          statusHistoryTos: a.statusEvents.map((e) => e.to),
+        });
+      // Include submitted deals always; Approved/Conditional only when out-of-band.
+      const include = a.status === 'FUNDING_SUBMITTED' || outOfBand;
+      const total = fundingDocs.length;
+      const unconfirmed = fundingDocs.filter((d) => d.verifiedAt === null).length;
+      return {
+        id: a.id,
+        status: a.status,
+        name: `${a.applicantFirstName} ${a.applicantLastName}`.trim(),
+        dealerName: a.dealer.name,
+        total,
+        unconfirmed,
+        hasDocs: total > 0,
+        ready: total > 0 && unconfirmed === 0,
+        outOfBand,
+        include,
+      };
+    })
+    .filter((a) => a.include);
+}
+
+/** How many deals are eligible for the one-click bulk advance (below). */
+export async function countReadyFundingDeals(): Promise<number> {
+  return (await loadStuckFundingCandidates()).filter((a) => a.ready).length;
 }
 
 /**
- * One-time backlog cleanup: advance every deal sitting at "In-for-funding
- * submitted" whose uploaded funding documents are ALL already confirmed to
- * "In for funding" (FUNDING_REVIEW) — the exact move a reviewer would make by
- * hand, applied in bulk. It deliberately:
- *   - moves ONLY to In for funding (never straight to Funded — funding still
- *     happens the normal way, reviewer or journal), and
- *   - touches ONLY deals whose docs a reviewer already confirmed (verified), so
- *     nothing skips human review.
- * Dealer notifications are skipped on purpose so a backlog sweep doesn't blast a
- * flood of emails/push; each move is still logged (status history + audit).
+ * Every deal stuck in funding, oldest first, with why each is (or isn't) ready to
+ * advance. Powers the admin "Funding queue" list. Includes both In-for-funding
+ * submitted deals and out-of-band Approved/Conditional deals (install docs never
+ * sent, signed package returned).
+ */
+export async function listStuckFundingDeals(): Promise<StuckFundingDeal[]> {
+  const rows = await loadStuckFundingCandidates();
+  return rows.map(({ id, name, dealerName, total, unconfirmed, hasDocs, ready, outOfBand }) => ({
+    id, name, dealerName, total, unconfirmed, hasDocs, ready, outOfBand,
+  }));
+}
+
+/** Advance one stuck deal to In for funding (banner button + reused by bulk). */
+async function moveStuckDealToInForFunding(id: string, from: ApplicationStatus, actorId: string): Promise<void> {
+  await prisma.$transaction([
+    prisma.application.update({ where: { id }, data: { status: 'FUNDING_REVIEW' } }),
+    prisma.statusEvent.create({
+      data: { applicationId: id, from, to: 'FUNDING_REVIEW', actorId, note: 'Advanced to In for funding — uploaded documents confirmed' },
+    }),
+  ]);
+  await audit({ actorId, action: 'STATUS_CHANGE', entityType: 'Application', entityId: id, detail: `Advance to FUNDING_REVIEW (from ${from})` });
+}
+
+/**
+ * One-click backlog cleanup: advance every stuck deal (submitted OR out-of-band
+ * Approved/Conditional) whose uploaded funding documents are ALL already
+ * confirmed to "In for funding" (FUNDING_REVIEW). Deliberately: moves ONLY to In
+ * for funding (never Funded), only docs-confirmed deals, logs each move; dealer
+ * notifications are skipped so a sweep doesn't flood them.
  */
 export async function advanceReadyFundingDealsAction(): Promise<{ moved: number }> {
   const session = await requireAdminSection('overview');
-  const candidates = await prisma.application.findMany({
-    where: { status: 'FUNDING_SUBMITTED' },
-    select: { id: true, documents: { where: { stage: 'FUNDING' }, select: { verifiedAt: true } } },
-  });
-  const ready = candidates.filter((a) => a.documents.length > 0 && a.documents.every((d) => d.verifiedAt !== null));
-
+  const ready = (await loadStuckFundingCandidates()).filter((a) => a.ready);
   let moved = 0;
   for (const a of ready) {
-    await prisma.$transaction([
-      prisma.application.update({ where: { id: a.id }, data: { status: 'FUNDING_REVIEW' } }),
-      prisma.statusEvent.create({
-        data: {
-          applicationId: a.id,
-          from: 'FUNDING_SUBMITTED',
-          to: 'FUNDING_REVIEW',
-          actorId: session.userId,
-          note: 'Bulk advance — all uploaded documents already confirmed',
-        },
-      }),
-    ]);
-    await audit({ actorId: session.userId, action: 'STATUS_CHANGE', entityType: 'Application', entityId: a.id, detail: 'Bulk advance to FUNDING_REVIEW (backlog cleanup)' });
+    await moveStuckDealToInForFunding(a.id, a.status, session.userId);
     moved += 1;
   }
   revalidatePath('/admin');
   revalidatePath('/staff');
   return { moved };
+}
+
+/**
+ * Advance ONE stuck deal to In for funding — used by the "Move to In for funding"
+ * button on a deal (e.g. the out-of-band banner). Only moves a deal that is
+ * genuinely stuck (submitted, or out-of-band Approved/Conditional) and whose
+ * uploaded funding documents are all confirmed. Never marks a deal Funded.
+ */
+export async function advanceDealToInForFundingAction(applicationId: string): Promise<ActionState> {
+  const session = await requireStaffSection('review-queue');
+  const a = await prisma.application.findUnique({
+    where: { id: applicationId },
+    select: {
+      id: true, status: true,
+      documents: { where: { stage: { in: ['FUNDING', 'REVIEWER'] } }, select: { stage: true, type: true, verifiedAt: true } },
+      statusEvents: { select: { to: true } },
+    },
+  });
+  if (!a) return { error: 'Not found.' };
+  const fundingDocs = a.documents.filter((d) => d.stage === 'FUNDING');
+  const reviewerDocCount = a.documents.filter((d) => d.stage === 'REVIEWER').length;
+  const eligible =
+    a.status === 'FUNDING_SUBMITTED' ||
+    isOutOfBandReturn({ status: a.status, fundingDocTypes: fundingDocs.map((d) => d.type), reviewerDocCount, statusHistoryTos: a.statusEvents.map((e) => e.to) });
+  if (!eligible) return { error: 'This deal is not at a stage that can move to In for funding.' };
+  if (fundingDocs.length === 0 || fundingDocs.some((d) => d.verifiedAt === null)) {
+    return { error: 'Confirm every uploaded funding document first.' };
+  }
+  await moveStuckDealToInForFunding(a.id, a.status, session.userId);
+  revalidatePath(`/staff/applications/${applicationId}`);
+  revalidatePath('/admin');
+  revalidatePath('/staff');
+  return { ok: true };
 }
 
 // Reviewer/admin manually sets a deal's status at any time (override/correct).

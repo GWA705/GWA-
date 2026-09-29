@@ -130,11 +130,12 @@ export default async function AdminOverview() {
       <div className="card p-6">
         <div className="mb-1 flex items-center justify-between gap-3">
           <h2 className="text-base font-semibold text-gray-900">Funding queue</h2>
-          <span className="text-xs text-gray-500">{stuckFunding.length} waiting at “In-for-funding submitted”</span>
+          <span className="text-xs text-gray-500">{stuckFunding.length} waiting to move to In for funding</span>
         </div>
         <p className="mb-3 text-xs text-gray-500">
-          Deals the dealer has submitted for funding. Green ones are ready to advance now; amber ones need their
-          uploaded documents confirmed first; red ones have no documents yet.
+          Deals waiting to move to In for funding — both submitted packages and out-of-band ones still at Approved.
+          Green ones are ready to advance now; amber ones need their uploaded documents confirmed first; red ones have
+          no documents yet.
         </p>
 
         <AdvanceReadyDealsButton readyCount={readyFundingCount} />
@@ -152,6 +153,7 @@ export default async function AdminOverview() {
                 <li key={d.id} className="flex items-center justify-between gap-3 py-2 text-sm">
                   <Link href={`/staff/applications/${d.id}`} className="min-w-0 flex-1 truncate font-medium text-brand-700 hover:underline">
                     {d.name} <span className="font-normal text-gray-400">· {d.dealerName}</span>
+                    {d.outOfBand && <span className="ml-2 rounded bg-red-100 px-1.5 py-0.5 text-[11px] font-semibold text-red-700">Approved · out-of-band</span>}
                   </Link>
                   <span className={`flex-none text-xs font-semibold ${tone}`}>{label}</span>
                 </li>

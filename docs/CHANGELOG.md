@@ -54,6 +54,16 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-29
+- **Out-of-band (stuck-at-Approved) deals can now be moved to funding.** These
+  weren't in the admin Funding queue (which only listed *In-for-funding submitted*)
+  and had no move button, so a deal like an emailed-docs return sat at Approved with
+  nowhere to go. Now: (1) the admin **Funding queue** includes out-of-band
+  Approved/Conditional deals (tagged "Approved · out-of-band"), (2) the one-click
+  bulk advance moves them too when their docs are confirmed, and (3) the red banner
+  on the deal has a **"Move to In for funding"** button (enabled once the uploaded
+  docs are confirmed). All still cap at In for funding — never Funded — and log each
+  move. (`(staff)/actions.ts` `advanceDealToInForFundingAction` + shared candidate
+  loader, `AdvanceToFundingButton.tsx`, staff `page.tsx`, admin `page.tsx`.)
 - **Out-of-band banner/alert false positive fixed.** The "dealer sent paperwork
   before install docs were sent" banner (and its reviewer email) fired on any
   Approved/Conditional deal that had a package-return doc — even ones whose install
