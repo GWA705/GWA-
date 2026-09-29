@@ -54,6 +54,16 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-29
+- **Reviewers are now alerted when signed paperwork comes back out-of-band.** If a
+  dealer uploads a signed-package document (signed contract / HD docs / HD waiver /
+  install photo) while the deal is still **Approved/Conditional** — i.e. its install
+  documents were never sent through the portal (handled another way, e.g. emailed
+  because the dealer couldn't log in) — reviewers now get an email + push
+  ("paperwork uploaded before install docs were sent"), and the reviewer deal page
+  shows a red banner so the deal doesn't sit stuck. Fires once per deal, and only
+  for real package-return docs — an early void cheque / "other" file stays benign.
+  (`notify.ts` `notifyFundingDocsBeforeSend`, `(dealer)/actions.ts` upload actions,
+  `constants.ts` `PACKAGE_RETURN_FUNDING_TYPES`, staff deal `page.tsx` banner.)
 - **Deals no longer get stranded before "In for funding" (reviewer funding gate).**
   The "Move to In for funding" button was gated on every *required document type*
   having a confirmed file — so a doc filed under the wrong category (e.g. an

@@ -232,6 +232,52 @@ export async function notifyFundingSubmitted(applicationId: string) {
 }
 
 /**
+ * Out-of-band paperwork: a dealer uploaded signed funding documents on a deal
+ * that is still Approved/Conditional — i.e. the install documents were never sent
+ * through the portal (they were handled another way, e.g. emailed because the
+ * dealer couldn't log in). Normally funding docs only come back AFTER "Sent —
+ * awaiting install", so this is an exception the reviewer must see: the deal has
+ * effectively advanced but is sitting at Approved. Alerts reviewers/admins so it
+ * doesn't get stuck.
+ */
+export async function notifyFundingDocsBeforeSend(applicationId: string) {
+  try {
+    const app = await prisma.application.findUnique({
+      where: { id: applicationId },
+      include: { dealer: true },
+    });
+    if (!app) return;
+    const deal = dealLabel(app);
+    const staff = await prisma.user.findMany({
+      where: { role: { in: STAFF_ROLES }, active: true },
+      select: { email: true, notificationEmail: true },
+    });
+    for (const u of staff) {
+      await sendEmail({
+        to: recipientEmail(u),
+        subject: `⚠️ Paperwork uploaded before install docs were sent (${deal})`,
+        html: renderEmail({
+          heading: 'Dealer uploaded paperwork on a deal that hasn’t had install documents sent',
+          intro: `${app.dealer.name} uploaded signed paperwork for ${deal}, but this deal is still Approved — its install documents were never sent through the portal.`,
+          bodyHtml:
+            '<p style="margin:0 0 14px;font-size:14px;line-height:1.6;color:#374151;">If the documents were sent another way (e.g. emailed), open the deal, review what the dealer uploaded, and move it forward so it doesn’t stay stuck at Approved.</p>',
+          ctaLabel: 'Open deal',
+          ctaUrl: `${appUrl()}/staff/applications/${applicationId}`,
+        }),
+      });
+    }
+    await sendPushToRoles(STAFF_ROLES, {
+      title: 'Paperwork arrived early — needs review',
+      body: `${deal} (${app.dealer.name}) — dealer uploaded paperwork while the deal is still Approved (install docs not sent in-portal).`,
+      url: `/staff/applications/${applicationId}`,
+      tag: `oob-${applicationId}`,
+    });
+  } catch (e) {
+    console.error('[notify] funding docs before send failed', e);
+  }
+}
+
+/**
  * A dealer requested to cancel a deal — reviewers/admins are alerted (email +
  * push) so they can confirm it. A funded deal is flagged as a priority because a
  * Home Depot refund is owed before it can be finalized.

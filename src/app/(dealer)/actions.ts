@@ -13,12 +13,12 @@ import { findCardData, CARD_BLOCK_MESSAGE } from '@/lib/cardscan';
 import { storeFiles } from '@/lib/upload';
 import { deleteDocument } from '@/lib/storage';
 import { markDealerAction } from '@/lib/activity';
-import { notifyNewDocuments, notifyNewNote, notifyNewSubmission, notifyFundingSubmitted, notifyAdminsUserRequest, notifyCancellationRequested, notifyInBackground } from '@/lib/notify';
+import { notifyNewDocuments, notifyNewNote, notifyNewSubmission, notifyFundingSubmitted, notifyAdminsUserRequest, notifyCancellationRequested, notifyInBackground, notifyFundingDocsBeforeSend } from '@/lib/notify';
 import { applicationSchema, serialNumberSchema } from '@/lib/validation';
 import { mergeProductsSold, addDealerCustomProducts } from '@/lib/products';
 import { parseDealerProfileForm } from '@/lib/dealerProfile';
 import { applyDealerLogo } from '@/lib/dealerLogo';
-import { CONSENT_POLICY_VERSION, CONSENT_TEXT, PAYMENT_METHOD_LABELS, FUNDING_DOCUMENT_TYPES, SPLIT_PAYMENT_METHODS, MAX_FILE_BYTES, ALLOWED_MIME_TYPES } from '@/lib/constants';
+import { CONSENT_POLICY_VERSION, CONSENT_TEXT, PAYMENT_METHOD_LABELS, FUNDING_DOCUMENT_TYPES, PACKAGE_RETURN_FUNDING_TYPES, SPLIT_PAYMENT_METHODS, MAX_FILE_BYTES, ALLOWED_MIME_TYPES } from '@/lib/constants';
 import { validateSplits } from '@/lib/payments';
 import type { ApplicationStatus, DocumentType, PaymentMethod, Prisma } from '@prisma/client';
 
@@ -407,12 +407,25 @@ export async function uploadFundingDocAction(
     return { error: 'Documents can only be uploaded after approval.' };
   }
 
+  // Out-of-band paperwork: the signed package normally comes back after install
+  // docs are sent (DOCS_SENT). A package-return doc arriving while the deal is
+  // still Approved/Conditional means the process was short-circuited (docs handled
+  // another way) — flag it to reviewers the FIRST time it happens on this deal.
+  // An early void cheque / "other" file is benign and does NOT trigger this.
+  const preSend = app.status === 'APPROVED' || app.status === 'CONDITIONAL';
+  const priorReturnDocs = preSend
+    ? await prisma.document.count({ where: { applicationId, stage: 'FUNDING', type: { in: PACKAGE_RETURN_FUNDING_TYPES } } })
+    : 0;
+
   const files = formData.getAll('file') as File[];
   const result = await storeFiles({ application: app, files, type: docType, stage: 'FUNDING', uploadedById: session.userId });
   if (result.error) return result;
 
   await markDealerAction(applicationId, 'DOCUMENT');
   notifyInBackground('new-documents', () => notifyNewDocuments(applicationId, result.storedTypes ?? []));
+  if (preSend && priorReturnDocs === 0 && PACKAGE_RETURN_FUNDING_TYPES.includes(docType)) {
+    notifyInBackground('funding-before-send', () => notifyFundingDocsBeforeSend(applicationId));
+  }
   revalidatePath(`/dealer/applications/${applicationId}`);
   return {};
 }
@@ -436,6 +449,13 @@ export async function uploadFundingBatchAction(
   if (!['APPROVED', 'CONDITIONAL', 'DOCS_SENT', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW', 'FUNDED'].includes(app.status)) {
     return { error: 'Documents can only be uploaded after approval.' };
   }
+
+  // See uploadFundingDocAction: flag a signed-package return that arrives before
+  // install docs were sent (deal still Approved/Conditional), first time only.
+  const preSend = app.status === 'APPROVED' || app.status === 'CONDITIONAL';
+  const priorReturnDocs = preSend
+    ? await prisma.document.count({ where: { applicationId, stage: 'FUNDING', type: { in: PACKAGE_RETURN_FUNDING_TYPES } } })
+    : 0;
 
   const files = formData.getAll('file') as File[];
   const categories = formData.getAll('category').map(String);
@@ -469,6 +489,9 @@ export async function uploadFundingBatchAction(
 
   await markDealerAction(applicationId, 'DOCUMENT');
   notifyInBackground('new-documents', () => notifyNewDocuments(applicationId, storedTypes));
+  if (preSend && priorReturnDocs === 0 && storedTypes.some((t) => PACKAGE_RETURN_FUNDING_TYPES.includes(t))) {
+    notifyInBackground('funding-before-send', () => notifyFundingDocsBeforeSend(applicationId));
+  }
   revalidatePath(`/dealer/applications/${applicationId}`);
   return {};
 }

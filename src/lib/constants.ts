@@ -376,6 +376,13 @@ export const FUNDING_DOCUMENT_TYPES: {
 // checklist entirely.
 const HD_ONLY_FUNDING_TYPES: DocumentType[] = ['SIGNED_HD_DOCUMENT', 'HD_WAIVER'];
 
+// Funding docs that mean the dealer is returning the completed, signed package —
+// as opposed to an early void cheque / PAP or a misc "other" file, which a dealer
+// may legitimately drop in right after approval. Getting one of THESE before the
+// install documents were sent (deal still Approved) means the process was
+// short-circuited (docs handled another way), so reviewers are flagged.
+export const PACKAGE_RETURN_FUNDING_TYPES: DocumentType[] = ['SIGNED_CONTRACT', 'SIGNED_HD_DOCUMENT', 'HD_WAIVER', 'INSTALL_PHOTO'];
+
 // Items that only apply when there is a financed portion. An already-paid Express
 // deal (cash / cheque / credit card, no financing) has no loan agreement and no
 // pre-authorized debit, so the signed finance package and the void cheque / PAP

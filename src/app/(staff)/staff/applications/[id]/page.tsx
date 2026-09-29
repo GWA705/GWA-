@@ -51,7 +51,7 @@ import {
   deleteDocumentAction,
 } from '@/app/(staff)/actions';
 import { VerifyFinanceNumberButton } from '@/components/VerifyFinanceNumberButton';
-import { STATUS_LABELS, REVIEWER_PAPERWORK_TYPES, applicableVerificationChecks, decisionTone } from '@/lib/constants';
+import { STATUS_LABELS, REVIEWER_PAPERWORK_TYPES, applicableVerificationChecks, decisionTone, PACKAGE_RETURN_FUNDING_TYPES } from '@/lib/constants';
 import { computeDealerPayout } from '@/lib/payoutCalc';
 import { decisionDisplayLabel } from '@/lib/enumLabels';
 import type { ApplicationStatus } from '@prisma/client';
@@ -246,6 +246,12 @@ export default async function StaffApplicationDetail({
   const earliestFundingDoc = fundingDocs.length
     ? fundingDocs.reduce((min, d) => (d.createdAt < min ? d.createdAt : min), fundingDocs[0].createdAt)
     : null;
+  // Out-of-band return: the dealer sent back signed-package documents while the
+  // deal is still Approved/Conditional — its install documents were never sent
+  // through the portal (handled another way). Surface it so the deal isn't stuck.
+  const packageReturnedEarly =
+    (app.status === 'APPROVED' || app.status === 'CONDITIONAL') &&
+    fundingDocs.some((d) => (PACKAGE_RETURN_FUNDING_TYPES as string[]).includes(d.type));
   const latestPayout = app.payouts.length
     ? app.payouts.reduce((max, p) => (p.paidOn > max ? p.paidOn : max), app.payouts[0].paidOn)
     : null;
@@ -906,6 +912,20 @@ export default async function StaffApplicationDetail({
           </p>
           <DocumentList documents={lateDealerDocs} deleteAction={deleteDocumentAction} />
         </section>
+      )}
+
+      {packageReturnedEarly && (
+        <div className="mb-4 flex items-start gap-3 rounded-lg border-2 border-red-300 bg-red-50 p-4">
+          <span className="mt-0.5 flex h-6 w-6 flex-none items-center justify-center rounded-full bg-red-500 text-sm font-bold text-white" aria-hidden>!</span>
+          <div className="text-sm text-red-900">
+            <p className="font-semibold">The dealer sent signed paperwork, but this deal never had its install documents sent here.</p>
+            <p className="mt-0.5">
+              It looks like the documents were handled outside the portal (e.g. emailed). Review what the dealer uploaded
+              under <strong>Funding documents</strong>, then move the deal forward so it doesn&apos;t stay stuck at
+              its current status.
+            </p>
+          </div>
+        </div>
       )}
 
       <ReviewerWorkspace
