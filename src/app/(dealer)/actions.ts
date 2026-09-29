@@ -19,6 +19,7 @@ import { mergeProductsSold, addDealerCustomProducts } from '@/lib/products';
 import { parseDealerProfileForm } from '@/lib/dealerProfile';
 import { applyDealerLogo } from '@/lib/dealerLogo';
 import { CONSENT_POLICY_VERSION, CONSENT_TEXT, PAYMENT_METHOD_LABELS, FUNDING_DOCUMENT_TYPES, PACKAGE_RETURN_FUNDING_TYPES, SPLIT_PAYMENT_METHODS, MAX_FILE_BYTES, ALLOWED_MIME_TYPES } from '@/lib/constants';
+import { SENT_OR_BEYOND } from '@/lib/outOfBandReturn';
 import { validateSplits } from '@/lib/payments';
 import type { ApplicationStatus, DocumentType, PaymentMethod, Prisma } from '@prisma/client';
 
@@ -391,6 +392,25 @@ export async function addSerialNumberAction(
   return {};
 }
 
+/**
+ * Whether this funding upload is a genuine out-of-band signed-package return —
+ * a package-return doc arriving while the deal is pre-send AND its install
+ * documents were never sent through the portal AND no package-return doc was
+ * already on file (so reviewers are alerted once). Called BEFORE the upload is
+ * stored, so the prior-doc count reflects the state before this upload.
+ */
+async function isOutOfBandUpload(applicationId: string, uploadedTypes: DocumentType[]): Promise<boolean> {
+  if (!uploadedTypes.some((t) => PACKAGE_RETURN_FUNDING_TYPES.includes(t))) return false;
+  const [priorReturn, reviewerDocs, sentBeyond] = await Promise.all([
+    prisma.document.count({ where: { applicationId, stage: 'FUNDING', type: { in: PACKAGE_RETURN_FUNDING_TYPES } } }),
+    prisma.document.count({ where: { applicationId, stage: 'REVIEWER' } }),
+    prisma.statusEvent.count({ where: { applicationId, to: { in: SENT_OR_BEYOND } } }),
+  ]);
+  if (priorReturn > 0) return false; // already have a return doc → already flagged
+  if (reviewerDocs > 0 || sentBeyond > 0) return false; // install docs WERE sent → not out-of-band
+  return true;
+}
+
 export async function uploadFundingDocAction(
   applicationId: string,
   docType: DocumentType,
@@ -413,9 +433,7 @@ export async function uploadFundingDocAction(
   // another way) — flag it to reviewers the FIRST time it happens on this deal.
   // An early void cheque / "other" file is benign and does NOT trigger this.
   const preSend = app.status === 'APPROVED' || app.status === 'CONDITIONAL';
-  const priorReturnDocs = preSend
-    ? await prisma.document.count({ where: { applicationId, stage: 'FUNDING', type: { in: PACKAGE_RETURN_FUNDING_TYPES } } })
-    : 0;
+  const outOfBand = preSend ? await isOutOfBandUpload(applicationId, [docType]) : false;
 
   const files = formData.getAll('file') as File[];
   const result = await storeFiles({ application: app, files, type: docType, stage: 'FUNDING', uploadedById: session.userId });
@@ -423,7 +441,7 @@ export async function uploadFundingDocAction(
 
   await markDealerAction(applicationId, 'DOCUMENT');
   notifyInBackground('new-documents', () => notifyNewDocuments(applicationId, result.storedTypes ?? []));
-  if (preSend && priorReturnDocs === 0 && PACKAGE_RETURN_FUNDING_TYPES.includes(docType)) {
+  if (outOfBand) {
     notifyInBackground('funding-before-send', () => notifyFundingDocsBeforeSend(applicationId));
   }
   revalidatePath(`/dealer/applications/${applicationId}`);
@@ -453,9 +471,6 @@ export async function uploadFundingBatchAction(
   // See uploadFundingDocAction: flag a signed-package return that arrives before
   // install docs were sent (deal still Approved/Conditional), first time only.
   const preSend = app.status === 'APPROVED' || app.status === 'CONDITIONAL';
-  const priorReturnDocs = preSend
-    ? await prisma.document.count({ where: { applicationId, stage: 'FUNDING', type: { in: PACKAGE_RETURN_FUNDING_TYPES } } })
-    : 0;
 
   const files = formData.getAll('file') as File[];
   const categories = formData.getAll('category').map(String);
@@ -489,7 +504,7 @@ export async function uploadFundingBatchAction(
 
   await markDealerAction(applicationId, 'DOCUMENT');
   notifyInBackground('new-documents', () => notifyNewDocuments(applicationId, storedTypes));
-  if (preSend && priorReturnDocs === 0 && storedTypes.some((t) => PACKAGE_RETURN_FUNDING_TYPES.includes(t))) {
+  if (preSend && (await isOutOfBandUpload(applicationId, storedTypes))) {
     notifyInBackground('funding-before-send', () => notifyFundingDocsBeforeSend(applicationId));
   }
   revalidatePath(`/dealer/applications/${applicationId}`);

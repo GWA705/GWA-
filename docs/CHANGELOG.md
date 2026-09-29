@@ -54,6 +54,16 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-29
+- **Out-of-band banner/alert false positive fixed.** The "dealer sent paperwork
+  before install docs were sent" banner (and its reviewer email) fired on any
+  Approved/Conditional deal that had a package-return doc — even ones whose install
+  documents *were* sent through the portal and were simply moved back to
+  Approved/Conditional. It now only fires when install docs were **never** sent:
+  no reviewer-stage (install) documents AND the deal never reached DOCS_SENT or
+  beyond. Logic extracted to `lib/outOfBandReturn.ts` (`isOutOfBandReturn` /
+  `installDocsEverSent`) with unit tests; wired into the staff deal banner and the
+  dealer upload notification. (`outOfBandReturn.ts`, staff `page.tsx`,
+  `(dealer)/actions.ts`.)
 - **Admin "Funding queue" — list of stuck deals + one-click bulk advance.** The
   admin overview now lists every deal sitting at *In-for-funding submitted* (oldest
   first, each linking to the deal) with why it's stuck — green = ready, amber = N

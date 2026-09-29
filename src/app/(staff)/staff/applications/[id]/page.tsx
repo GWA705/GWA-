@@ -51,7 +51,8 @@ import {
   deleteDocumentAction,
 } from '@/app/(staff)/actions';
 import { VerifyFinanceNumberButton } from '@/components/VerifyFinanceNumberButton';
-import { STATUS_LABELS, REVIEWER_PAPERWORK_TYPES, applicableVerificationChecks, decisionTone, PACKAGE_RETURN_FUNDING_TYPES } from '@/lib/constants';
+import { STATUS_LABELS, REVIEWER_PAPERWORK_TYPES, applicableVerificationChecks, decisionTone } from '@/lib/constants';
+import { isOutOfBandReturn } from '@/lib/outOfBandReturn';
 import { computeDealerPayout } from '@/lib/payoutCalc';
 import { decisionDisplayLabel } from '@/lib/enumLabels';
 import type { ApplicationStatus } from '@prisma/client';
@@ -247,11 +248,16 @@ export default async function StaffApplicationDetail({
     ? fundingDocs.reduce((min, d) => (d.createdAt < min ? d.createdAt : min), fundingDocs[0].createdAt)
     : null;
   // Out-of-band return: the dealer sent back signed-package documents while the
-  // deal is still Approved/Conditional — its install documents were never sent
-  // through the portal (handled another way). Surface it so the deal isn't stuck.
-  const packageReturnedEarly =
-    (app.status === 'APPROVED' || app.status === 'CONDITIONAL') &&
-    fundingDocs.some((d) => (PACKAGE_RETURN_FUNDING_TYPES as string[]).includes(d.type));
+  // deal is still Approved/Conditional AND its install documents were never sent
+  // through the portal. A deal that WAS sent and later moved back to
+  // Approved/Conditional must NOT trip this (that's a normal correction, not
+  // out-of-band) — so we also check the reviewer docs + full status history.
+  const packageReturnedEarly = isOutOfBandReturn({
+    status: app.status,
+    fundingDocTypes: fundingDocs.map((d) => d.type),
+    reviewerDocCount: reviewerDocs.length,
+    statusHistoryTos: app.statusEvents.map((e) => e.to),
+  });
   const latestPayout = app.payouts.length
     ? app.payouts.reduce((max, p) => (p.paidOn > max ? p.paidOn : max), app.payouts[0].paidOn)
     : null;
