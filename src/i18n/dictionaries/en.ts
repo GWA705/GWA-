@@ -1736,6 +1736,7 @@ export const en = {
     markAllCompleted: 'Mark all completed',
     moveToInForFunding: 'Move to In for funding',
     confirmRequiredFirst: 'Confirm all required documents first',
+    confirmAllFirst: 'Confirm every uploaded document first',
     allConfirmed: 'All uploaded documents confirmed.',
     noneUploaded: 'No documents uploaded yet.',
   },

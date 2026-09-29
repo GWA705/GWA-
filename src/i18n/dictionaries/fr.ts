@@ -1740,6 +1740,7 @@ export const fr: Dictionary = {
     markAllCompleted: 'Tout marquer comme complété',
     moveToInForFunding: 'Passer à En cours de financement',
     confirmRequiredFirst: 'Confirmez d’abord tous les documents requis',
+    confirmAllFirst: 'Confirmez d’abord chaque document téléversé',
     allConfirmed: 'Tous les documents téléversés sont confirmés.',
     noneUploaded: 'Aucun document téléversé pour le moment.',
   },

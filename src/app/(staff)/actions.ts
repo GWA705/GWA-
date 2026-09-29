@@ -24,7 +24,6 @@ import {
   editDealSchema,
 } from '@/lib/validation';
 import {
-  fundingDocumentTypesFor,
   REVIEWER_PAPERWORK_PREFIX,
   REVIEWER_PAPERWORK_TYPES,
   VERIFICATION_CHECKS,
@@ -889,17 +888,15 @@ export async function moveToInForFundingAction(applicationId: string): Promise<v
     return;
   }
 
-  const verifiedTypes = new Set(
-    app.documents.filter((d) => d.verifiedAt !== null).map((d) => d.type),
-  );
-  const allRequiredVerified = fundingDocumentTypesFor(app.programType, {
-    paymentMethod: app.paymentMethod,
-    isSplitPayment: app.isSplitPayment,
-  })
-    .filter((t) => t.required)
-    .every((t) => verifiedTypes.has(t.type));
-  if (!allRequiredVerified) {
-    // Guard: not all required documents confirmed yet.
+  // The reviewer is the gate: the deal can move once every uploaded funding
+  // document is confirmed (verified) and at least one exists. We do NOT require
+  // each required document *type* to be present — a doc filed under the "wrong"
+  // category used to silently strand the deal here. The required-type list on the
+  // page still flags anything missing as guidance for the reviewer.
+  const fundingDocs = app.documents; // already scoped to stage FUNDING
+  const allUploadedConfirmed = fundingDocs.length > 0 && fundingDocs.every((d) => d.verifiedAt !== null);
+  if (!allUploadedConfirmed) {
+    // Guard: still has an unconfirmed (or zero) uploaded document.
     revalidatePath(`/staff/applications/${applicationId}`);
     return;
   }

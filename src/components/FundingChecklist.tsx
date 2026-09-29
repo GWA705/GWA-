@@ -61,13 +61,14 @@ export function FundingChecklist({
 }) {
   const t = getT();
   const docTypes = fundingDocumentTypesFor(programType, { paymentMethod, isSplitPayment });
-  const verifiedTypes = new Set(fundingDocs.filter((d) => d.verifiedAt).map((d) => d.type));
-  const allRequiredVerified = docTypes.filter((dt) => dt.required).every((dt) =>
-    verifiedTypes.has(dt.type),
-  );
   const hasDocs = fundingDocs.length > 0;
   const hasUnverified = fundingDocs.some((d) => !d.verifiedAt);
   const canMove = status === 'FUNDING_SUBMITTED';
+  // The reviewer is the gate: once every uploaded funding document is confirmed
+  // (and at least one exists), the deal can move to In for funding. The
+  // required-type list above is guidance — a missing type shows red but does not
+  // hard-block, so a doc filed under the "wrong" category can't strand the deal.
+  const canConfirmMove = hasDocs && !hasUnverified;
 
   const verifyAll = verifyAllFundingDocsAction.bind(null, applicationId);
   const moveToFunding = moveToInForFundingAction.bind(null, applicationId);
@@ -167,10 +168,10 @@ export function FundingChecklist({
 
         {canMove && (
           <form action={moveToFunding} className="flex items-center gap-2">
-            {!allRequiredVerified && (
-              <span className="text-xs text-amber-700">{t('fundingChecklist.confirmRequiredFirst')}</span>
+            {!canConfirmMove && (
+              <span className="text-xs text-amber-700">{t('fundingChecklist.confirmAllFirst')}</span>
             )}
-            <button type="submit" className="btn-primary text-sm" disabled={!allRequiredVerified}>
+            <button type="submit" className="btn-primary text-sm" disabled={!canConfirmMove}>
               {t('fundingChecklist.moveToInForFunding')}
             </button>
           </form>

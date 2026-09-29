@@ -54,6 +54,17 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-29
+- **Deals no longer get stranded before "In for funding" (reviewer funding gate).**
+  The "Move to In for funding" button was gated on every *required document type*
+  having a confirmed file — so a doc filed under the wrong category (e.g. an
+  install photo dropped into "Other supporting documents"), or a required type not
+  uploaded, silently disabled the move even though "All uploaded documents
+  confirmed" and "this deal can be funded" both showed green. That's why some deals
+  moved and some didn't. Now the reviewer is the gate: once **every uploaded
+  funding document is confirmed** (and at least one exists), the deal can move; the
+  required-type list stays as guidance (red = missing) but no longer hard-blocks.
+  Changed on the client and server together. (`FundingChecklist.tsx`,
+  `moveToInForFundingAction`, en/fr `fundingChecklist.confirmAllFirst`.)
 - **Void cheques / PAP forms are no longer wrongly blocked as "credit cards."** The
   upload card-scanner OCRs each file; a void cheque's transit + institution +
   account numbers can run together into a Luhn-valid 13–19 digit string sitting
