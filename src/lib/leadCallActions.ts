@@ -8,6 +8,7 @@ import { audit } from './audit';
 import { rateLimit } from './ratelimit';
 import { LEAD_CALL_OUTCOMES } from './leadCalls';
 import { getScannedLeadForViewer } from './scannedLeads';
+import { pushScannedStatusToBooking, coarseFromCallOutcome } from './bookingPush';
 
 /**
  * Log a follow-up call (or a plain note) on a lead. Available to any signed-in
@@ -56,6 +57,12 @@ export async function logLeadCallAction(input: {
     return { error: 'Call tracking isn’t available yet — try again in a minute.' };
   }
   await audit({ actorId: user.userId, action: 'STATUS_CHANGE', entityType: 'LeadCall', detail: `${input.outcome} · ${leadKey}` });
+  // For a scanned lead (key `scanned:<id>`), reflect the call outcome on the
+  // booker's screen. Fail-safe and inert until configured.
+  if (leadKey.startsWith('scanned:')) {
+    const coarse = coarseFromCallOutcome(input.outcome);
+    if (coarse) await pushScannedStatusToBooking(leadKey.slice('scanned:'.length), coarse);
+  }
   revalidatePath('/dealer/leads');
   revalidatePath('/staff/leads');
   return {};

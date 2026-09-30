@@ -1904,6 +1904,12 @@ model ScannedLead {
   status String  @default("NEW") // NEW | CONTACTED | NO_GOOD
   note   String? @db.Text
 
+  // Mirror of the booking system's status for this lead, pushed back by the
+  // booking app (/api/intake/booking-status) so the office sees what the bookers
+  // did without leaving the portal. Booking owns this value; we only display it.
+  bookingStatus   String? // e.g. WORKING | BOOKED | CONFIRMED | SOLD | DEAD
+  bookingStatusAt DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
