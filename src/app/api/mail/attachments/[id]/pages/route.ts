@@ -37,7 +37,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   return new NextResponse(new Uint8Array(img), {
     status: 200,
     headers: {
-      'Content-Type': 'image/webp',
+      'Content-Type': 'image/jpeg',
       'X-Content-Type-Options': 'nosniff',
       'Cache-Control': 'private, max-age=3600',
     },

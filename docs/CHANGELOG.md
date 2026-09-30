@@ -66,6 +66,23 @@ source of truth; this file is the human-readable index.
   `testSingleLead()` on a French lead first. Portal display auto-translates lead
   free-text via DeepL.
 
+## 2026-09-30
+- **Document preview fix: multi-page PDFs now render instead of "Couldn't render
+  a preview."** The in-app viewer (reviewer *and* dealer side) rasterizes a whole
+  PDF into one tall scrollable image. That image was encoded as **WebP**, which
+  has a hard **16,383px** dimension ceiling — so any PDF past ~11 letter pages
+  produced an image too tall to encode, the render threw, and the viewer showed
+  "Couldn't render a preview" (with only open-in-new-tab / download as fallback).
+  Short docs worked, long ones never did — which is why "some documents load and
+  some don't." Switched the stacked render to **JPEG** (65,535px ceiling) and
+  added a running-height guard (`SAFE_MAX_H = 60,000px`) so even legal-size or
+  very dense PDFs stay under the ceiling (overflow pages fall back to download).
+  Verified: 3/12/26/40-page letter PDFs all render as valid JPEG; 40-page legal
+  capped safely at 58,418px. (`src/lib/pdfThumb.ts`; Content-Type set to
+  `image/jpeg` on all four `/pages` routes — deal documents, resource files, mail
+  attachments, content library. First-page thumbnails stay WebP — they never
+  approach the limit.)
+
 ## 2026-09-29
 - **Out-of-band detection fix: "install docs sent" now means the deal reached
   DOCS_SENT, not merely that reviewer docs exist.** A reviewer can *produce* the
