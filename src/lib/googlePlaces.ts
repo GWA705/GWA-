@@ -166,7 +166,10 @@ export async function postalForAddress(address: string): Promise<PostalLookup> {
   }
   if (data.status !== 'OK') {
     console.error('[geocode] postal status', data.status, data.error_message || '');
-    throw new Error(`geocode_status_${data.status}`);
+    // Carry Google's status AND its human message so the admin tool can show the
+    // real reason (e.g. REQUEST_DENIED: "Geocoding API has not been used…") rather
+    // than a blanket "couldn't be looked up".
+    throw new Error(`geocode_status_${data.status}${data.error_message ? `: ${data.error_message}` : ''}`);
   }
 
   const top = data.results![0];

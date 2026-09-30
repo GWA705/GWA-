@@ -67,6 +67,17 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-30
+- **"Fill missing postal codes" now shows *why* a lookup failed.** When every lead
+  came back "couldn't be looked up," the tool gave no reason — it collapsed every
+  Google error into one blank message. Now the first failure's Google status +
+  message is carried back and shown as a plain-English cause + fix (e.g.
+  REQUEST_DENIED → "the Geocoding API isn't enabled on the key's project, or the
+  key's API restrictions don't include Geocoding — enable it and rerun"). This is a
+  diagnostics fix: an all-rows failure is a Google Cloud **config** issue (Geocoding
+  API not enabled / key restriction / billing), not a portal bug — the message now
+  points straight at it. (`googlePlaces.ts` carries status+error_message on throw;
+  `postalFill.ts` adds `failReason`; `PostalFillButton.tsx` explains it. Also dropped
+  the misleading "— run it again" from the failure count.)
 - **"Download upload package (ZIP)" button on the reviewer deal page.** A second
   download button (next to "Download all documents") that grabs only the docs a
   reviewer sends OUT to the funder / Home Depot — the FUNDING-stage signed package

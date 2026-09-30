@@ -18,21 +18,52 @@ interface Totals { processed: number; filled: number; blank: number; failed: num
 const ZERO: Totals = { processed: 0, filled: 0, blank: 0, failed: 0 };
 const MAX_CHUNKS = 5000; // safety stop for the loop
 
+// Turn Google's raw status into a one-line, actionable explanation for the admin.
+function explainFailure(raw: string): string {
+  const r = raw || '';
+  if (/REQUEST_DENIED/i.test(r)) {
+    return 'Google rejected every request (REQUEST_DENIED). Almost always: the ' +
+      '“Geocoding API” isn’t enabled on the API key’s Google Cloud project, or the ' +
+      'key’s API restrictions don’t include Geocoding (the app’s address autocomplete ' +
+      'uses a different API, so that can work while this fails). Enable the Geocoding ' +
+      'API and allow it on the key, then run this again.';
+  }
+  if (/OVER_QUERY_LIMIT|RESOURCE_EXHAUSTED/i.test(r)) {
+    return 'Google returned a quota/billing limit (OVER_QUERY_LIMIT). Check that ' +
+      'billing is enabled on the Google Cloud project and the daily cap isn’t exceeded, then retry.';
+  }
+  if (/INVALID_REQUEST/i.test(r)) {
+    return 'Google returned INVALID_REQUEST for the lookups — likely a malformed address. ' +
+      'Details were logged server-side.';
+  }
+  if (/geocode_http_/i.test(r)) {
+    return 'The request to Google failed at the network level (HTTP error). This is usually ' +
+      'transient — try again; if it persists the server may be blocked from reaching Google.';
+  }
+  if (/no GOOGLE_MAPS_API_KEY|geocode_unavailable/i.test(r)) {
+    return 'No Google Maps API key is configured on the server (GOOGLE_MAPS_API_KEY).';
+  }
+  return `Google returned: ${r}`;
+}
+
 export function PostalFillButton() {
   const [pending, startTransition] = useTransition();
   const [totals, setTotals] = useState<Totals | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [reason, setReason] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const stop = useRef(false);
 
   function run() {
     setError(null);
+    setReason(null);
     setDone(false);
     stop.current = false;
     const acc: Totals = { ...ZERO };
     setTotals({ ...acc });
     startTransition(async () => {
       let cursor: string | null | undefined = undefined;
+      let firstReason: string | null = null;
       for (let i = 0; i < MAX_CHUNKS; i += 1) {
         const state = await fillMissingPostalsAction(cursor);
         if (state.error) { setError(state.error); return; }
@@ -40,6 +71,7 @@ export function PostalFillButton() {
         if (r) {
           acc.processed += r.processed; acc.filled += r.filled; acc.blank += r.blank; acc.failed += r.failed;
           setTotals({ ...acc });
+          if (!firstReason && r.failReason) { firstReason = r.failReason; setReason(explainFailure(r.failReason)); }
         }
         if (state.result?.done || stop.current) { setDone(true); return; }
         cursor = state.result?.lastId;
@@ -78,7 +110,13 @@ export function PostalFillButton() {
         <p className={`mt-3 rounded border-l-4 p-2 text-xs ${done ? 'border-green-500 bg-green-50 text-green-800' : 'border-blue-400 bg-blue-50 text-blue-800'}`}>
           {done ? 'Done. ' : 'Looking up… '}
           Checked {totals.processed}: <strong>{totals.filled}</strong> filled, {totals.blank} left blank (address too vague)
-          {totals.failed ? `, ${totals.failed} couldn’t be looked up — run it again` : ''}.
+          {totals.failed ? `, ${totals.failed} couldn’t be looked up` : ''}.
+        </p>
+      )}
+
+      {reason && (
+        <p className="mt-2 rounded border-l-4 border-red-500 bg-red-50 p-2 text-xs text-red-800">
+          <strong>Why the lookups failed:</strong> {reason}
         </p>
       )}
     </div>

@@ -24,6 +24,13 @@ export interface PostalFillChunk {
   filled: number; // postals written (confident matches)
   blank: number; // no confident match — left blank on purpose
   failed: number; // lookup errored (transient) — safe to sweep again
+  /**
+   * Why the lookups failed, when they did — Google's status + message from the
+   * first failure this chunk (e.g. "geocode_status_REQUEST_DENIED: Geocoding API
+   * has not been used in project …"). Lets the admin tool show the real cause
+   * instead of a blanket "couldn't be looked up". Undefined when nothing failed.
+   */
+  failReason?: string;
   lastId: string | null; // cursor: pass back as afterId for the next call
   done: boolean; // no more leads missing a postal beyond the cursor
 }
@@ -71,6 +78,7 @@ export async function fillMissingPostals(afterId?: string | null): Promise<Posta
         } catch (e) {
           console.error('[postalFill] lookup failed for', r.id, e);
           out.failed += 1;
+          if (!out.failReason) out.failReason = e instanceof Error ? e.message : String(e);
         }
       }),
     );
