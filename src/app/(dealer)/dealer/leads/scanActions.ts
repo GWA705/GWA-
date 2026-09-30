@@ -7,7 +7,7 @@ import { prisma } from '@/lib/db';
 import { audit } from '@/lib/audit';
 import { putDocument, newScannedLeadStorageKey } from '@/lib/storage';
 import { resolveDealerIdForStore, getScannedLeadForViewer } from '@/lib/scannedLeads';
-import { pushLeadToBooking } from '@/lib/bookingPush';
+import { pushLeadToBooking, pushScannedStatusToBooking, coarseFromScannedStatus } from '@/lib/bookingPush';
 
 export interface ScanSaveState { ok?: boolean; error?: string; id?: string }
 
@@ -183,6 +183,10 @@ export async function setScannedLeadStatusAction(id: string, status: string): Pr
   const lead = await getScannedLeadForViewer(id, user);
   if (!lead) return { error: 'Not found.' };
   await prisma.scannedLead.update({ where: { id }, data: { status } });
+  // Reflect the office's status onto the booker's screen (fail-safe, inert until
+  // configured; booking applies it with guardrails so it never downgrades a
+  // booker's own progress).
+  await pushScannedStatusToBooking(id, coarseFromScannedStatus(status));
   revalidatePath('/dealer/leads');
   revalidatePath('/staff/leads');
   return {};

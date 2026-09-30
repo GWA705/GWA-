@@ -39,6 +39,63 @@ function bookingConfig(): { url: string; token: string } | null {
   return { url, token };
 }
 
+/** Booking's status-sync URL, derived from the lead-intake URL so there's no
+ * second env var to set: .../api/intake/portal -> .../api/intake/portal-status. */
+function bookingStatusUrl(): string | null {
+  const base = process.env.BOOKING_INTAKE_URL?.trim();
+  if (!base) return null;
+  return base.replace(/\/api\/intake\/portal\/?$/, '/api/intake/portal-status');
+}
+
+/** The shared coarse status vocabulary the two systems agree on. */
+export type CoarseStatus = 'new' | 'working' | 'spoke' | 'booked' | 'sold' | 'nogood';
+
+/** A scanned lead's own status (NEW | CONTACTED | NO_GOOD) as a coarse status. */
+export function coarseFromScannedStatus(status: string): CoarseStatus {
+  if (status === 'NO_GOOD') return 'nogood';
+  if (status === 'CONTACTED') return 'working';
+  return 'new';
+}
+
+/** A logged call outcome as a coarse status (null = a plain note, nothing to sync). */
+export function coarseFromCallOutcome(outcome: string): CoarseStatus | null {
+  switch (outcome) {
+    case 'SOLD': return 'sold';
+    case 'BOOKED': return 'booked';
+    case 'SPOKE': return 'spoke';
+    case 'NOT_INTERESTED': return 'nogood';
+    case 'LEFT_MESSAGE':
+    case 'NO_ANSWER': return 'working';
+    default: return null; // NOTE and anything unknown
+  }
+}
+
+/**
+ * Tell booking the portal-side status of a scanned lead, so a lead the office
+ * marks NO GOOD (or works up to booked/sold) reflects on the booker's screen.
+ * Fire-and-forget and inert until configured. Booking applies it with guardrails
+ * so it can never downgrade a booker's own progress.
+ */
+export async function pushScannedStatusToBooking(applicationId: string, status: CoarseStatus): Promise<void> {
+  const url = bookingStatusUrl();
+  const token = process.env.PORTAL_INTAKE_TOKEN?.trim();
+  if (!url || !token || !applicationId) return;
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 5000);
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+      body: JSON.stringify({ applicationId, status }),
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+    if (!res.ok) console.error(`[bookingPush] status sync returned ${res.status} for ${applicationId}`);
+  } catch (e) {
+    console.error('[bookingPush] could not push status to booking', e);
+  }
+}
+
 /** Shape one scanned lead the way the booking intake expects it. */
 function toBookingPayload(lead: BookingLead) {
   return {

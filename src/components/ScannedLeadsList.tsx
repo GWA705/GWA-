@@ -27,6 +27,7 @@ export interface ScannedLeadRow {
   generatorName: string | null;
   confidence: number | null;
   status: string;
+  bookingStatus?: string | null; // booking system's status for this lead, mirrored back
   hasPhoto: boolean;
   scannedByName: string | null;
   officeName?: string | null; // staff view only
@@ -58,6 +59,27 @@ function deriveBadge(status: string, calls: { outcome: string }[]): { tone: stri
     case 'NO_ANSWER': return noAns >= 2 ? { tone: 'red', label: `No answer ×${noAns}` } : { tone: 'amber', label: 'No answer' };
     default: return { tone: 'grey', label: 'Note' };
   }
+}
+
+// The booking system's status for this lead, mirrored back so the office sees
+// what the bookers did. A friendly label + tone; unknown values pass through.
+const BOOKING_LABEL: Record<string, { tone: string; label: string }> = {
+  NEW: { tone: 'grey', label: 'Booking: new' },
+  WORKING: { tone: 'amber', label: 'Booking: calling' },
+  CALLBACK: { tone: 'amber', label: 'Booking: callback' },
+  BOOKED: { tone: 'green', label: 'Booking: booked' },
+  CONFIRMED: { tone: 'green', label: 'Booking: confirmed' },
+  DISPATCHED: { tone: 'teal', label: 'Booking: dispatched' },
+  SOLD: { tone: 'violet', label: 'Booking: sold' },
+  NOT_SOLD: { tone: 'grey', label: 'Booking: not sold' },
+  NO_SHOW: { tone: 'grey', label: 'Booking: no show' },
+  NOT_QUALIFIED: { tone: 'grey', label: 'Booking: not qualified' },
+  CANCELLED: { tone: 'grey', label: 'Booking: cancelled' },
+  DEAD: { tone: 'red', label: 'Booking: dead' },
+};
+function bookingBadge(s: string | null | undefined): { tone: string; label: string } | null {
+  if (!s) return null;
+  return BOOKING_LABEL[s] ?? { tone: 'grey', label: `Booking: ${s.toLowerCase()}` };
 }
 
 function titleCase(s: string): string {
@@ -104,6 +126,7 @@ export function ScannedLeadRowItem({ lead, calls, showOffice, typeTag }: { lead:
   const water = [lead.waterSource, lead.waterQuality && `${lead.waterQuality} quality`, lead.conditions.length ? lead.conditions.join(', ') : null]
     .filter(Boolean).join(' · ');
   const badge = deriveBadge(lead.status, calls);
+  const bkg = bookingBadge(lead.bookingStatus);
   const sub = [lead.storeNumber && `Store ${lead.storeNumber}`, lead.city, lead.collectedOn && `collected ${lead.collectedOn}`].filter(Boolean).join(' · ');
 
   function setStatus(status: string) {
@@ -129,6 +152,7 @@ export function ScannedLeadRowItem({ lead, calls, showOffice, typeTag }: { lead:
           <span className="mt-0.5 block truncate text-xs text-gray-500">{sub || 'Mail-in test card'}</span>
         </span>
         <span className="hidden shrink-0 text-xs text-gray-500 md:inline">{lead.phone}</span>
+        {bkg && <span className={`badge hidden shrink-0 sm:inline ${CHIP[bkg.tone]}`} title="Status in the booking system">{bkg.label}</span>}
         <span className={`badge shrink-0 ${CHIP[badge.tone]}`}>{badge.label}</span>
         <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-gray-200 text-[11px] text-gray-400 transition group-hover:border-gray-300 group-hover:text-gray-600 group-open:rotate-180" aria-hidden>▾</span>
       </summary>
