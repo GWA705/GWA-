@@ -11,6 +11,7 @@ import { LeadsView, filterLeads, leadMonthOptions, leadOutcomeKey } from '@/comp
 import { leadsGeoData, storeGeos, unplacedStoresForMap } from '@/lib/leadGeo';
 import { MailInTestWorkspace } from '@/components/MailInTestWorkspace';
 import { type ScannedLeadRow } from '@/components/ScannedLeadsList';
+import { BackfillBookingButton } from '@/components/BackfillBookingButton';
 import { scannedLeadKey } from '@/lib/scannedLeadKey';
 import { listScannedLeads } from '@/lib/scannedLeads';
 import { prisma } from '@/lib/db';
@@ -57,6 +58,7 @@ export default async function StaffLeadsPage({
   const scannedSection = (
     <div>
       <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">HD Mail In Test</h2>
+      <div className="mb-3"><BackfillBookingButton /></div>
       <MailInTestWorkspace leads={scanned} callsByKey={scannedCalls} showOffice canScan={aiConfigured()} />
     </div>
   );
