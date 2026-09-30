@@ -18,23 +18,34 @@ interface Totals { processed: number; filled: number; blank: number; failed: num
 const ZERO: Totals = { processed: 0, filled: 0, blank: 0, failed: 0 };
 const MAX_CHUNKS = 5000; // safety stop for the loop
 
+// Google's literal error text, when we carried one back (raw looks like
+// "geocode_status_REQUEST_DENIED: <the message>"). Surfaced verbatim because the
+// wording is what distinguishes the sub-cases (wrong key, wrong project, referrer
+// restriction, not-yet-propagated).
+function googleMessage(raw: string): string | null {
+  const m = /geocode_status_[A-Z_]+:\s*(.+)$/i.exec(raw || '');
+  const msg = m?.[1]?.trim();
+  return msg && msg.length > 1 ? msg : null;
+}
+
 // Turn Google's raw status into a one-line, actionable explanation for the admin.
 function explainFailure(raw: string): string {
   const r = raw || '';
+  const g = googleMessage(r);
+  const exact = g ? ` — Google’s exact words: “${g}”` : '';
   if (/REQUEST_DENIED/i.test(r)) {
-    return 'Google rejected every request (REQUEST_DENIED). Almost always: the ' +
-      '“Geocoding API” isn’t enabled on the API key’s Google Cloud project, or the ' +
-      'key’s API restrictions don’t include Geocoding (the app’s address autocomplete ' +
-      'uses a different API, so that can work while this fails). Enable the Geocoding ' +
-      'API and allow it on the key, then run this again.';
+    return 'Google rejected every request (REQUEST_DENIED). Usual causes: the ' +
+      '“Geocoding API” isn’t allowed on the key the SERVER uses (check the key’s API ' +
+      'restrictions), the server’s key belongs to a different Google Cloud project than ' +
+      'the one you enabled Geocoding on, or the change hasn’t propagated yet (give it up ' +
+      'to 5 minutes). Confirm the key the portal uses is the exact one you edited' + exact + '.';
   }
   if (/OVER_QUERY_LIMIT|RESOURCE_EXHAUSTED/i.test(r)) {
     return 'Google returned a quota/billing limit (OVER_QUERY_LIMIT). Check that ' +
-      'billing is enabled on the Google Cloud project and the daily cap isn’t exceeded, then retry.';
+      'billing is enabled on the Google Cloud project and the daily cap isn’t exceeded, then retry' + exact + '.';
   }
   if (/INVALID_REQUEST/i.test(r)) {
-    return 'Google returned INVALID_REQUEST for the lookups — likely a malformed address. ' +
-      'Details were logged server-side.';
+    return 'Google returned INVALID_REQUEST for the lookups — likely a malformed address' + exact + '.';
   }
   if (/geocode_http_/i.test(r)) {
     return 'The request to Google failed at the network level (HTTP error). This is usually ' +
