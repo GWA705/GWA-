@@ -113,6 +113,71 @@ export async function geocodeAddress(address: string): Promise<GeocodeResult | n
 
 type Comp = { long_name: string; short_name: string; types: string[] };
 
+/** A full Canadian postal code (A1A 1A1) — not a bare forward-sortation area. */
+function isFullCanadianPostal(s: string): boolean {
+  return /^[ABCEGHJ-NPRSTVXY]\d[ABCEGHJ-NPRSTV-Z][ -]?\d[ABCEGHJ-NPRSTV-Z]\d$/i.test(s.trim());
+}
+
+export interface PostalLookup {
+  /** The full postal code, when Google matched confidently — else null. */
+  postal: string | null;
+  /**
+   * True only when Google pinned a real street address. When it's false the
+   * postal was a city-area guess (or missing), and we don't trust it: a wrong
+   * postal that looks filled-in is worse than a blank one.
+   */
+  confident: boolean;
+}
+
+/**
+ * Look up the postal code for a free-form address with the Google geocoder.
+ *
+ * We only call a postal CONFIDENT when Google resolved to an actual street
+ * address (location_type ROOFTOP or RANGE_INTERPOLATED, and a street-level
+ * result) and handed back a full A1A 1A1 code. A city-only or OCR-mangled
+ * address resolves to a city centroid — Google still returns *a* postal, but
+ * it's a guess, so we report confident:false and the caller leaves the field
+ * blank. Throws (rather than returning a false "no result") on a
+ * key/quota/network failure, matching geocodeAddress.
+ */
+export async function postalForAddress(address: string): Promise<PostalLookup> {
+  const key = apiKey();
+  const q = address.trim();
+  if (!key) throw new Error('geocode_unavailable: no GOOGLE_MAPS_API_KEY');
+  if (q.length < 6) return { postal: null, confident: false };
+
+  const url = new URL('https://maps.googleapis.com/maps/api/geocode/json');
+  url.searchParams.set('address', q);
+  url.searchParams.set('region', 'ca');
+  url.searchParams.set('language', 'en');
+  url.searchParams.set('components', 'country:CA');
+  url.searchParams.set('key', key);
+
+  const res = await fetch(url, { cache: 'no-store' });
+  void recordApiUsage(API_SERVICES.googleGeocode);
+  if (!res.ok) throw new Error(`geocode_http_${res.status}`);
+  const data = (await res.json()) as {
+    status?: string;
+    error_message?: string;
+    results?: { address_components?: Comp[]; types?: string[]; geometry?: { location_type?: string } }[];
+  };
+  if (data.status === 'ZERO_RESULTS' || (data.status === 'OK' && !data.results?.length)) {
+    return { postal: null, confident: false };
+  }
+  if (data.status !== 'OK') {
+    console.error('[geocode] postal status', data.status, data.error_message || '');
+    throw new Error(`geocode_status_${data.status}`);
+  }
+
+  const top = data.results![0];
+  const postal = (top.address_components ?? []).find((c) => c.types.includes('postal_code'))?.long_name ?? null;
+  const locType = top.geometry?.location_type ?? '';
+  const streetLevel = (top.types ?? []).some((t) => ['street_address', 'premise', 'subpremise'].includes(t));
+  const confident = !!postal && isFullCanadianPostal(postal) && (locType === 'ROOFTOP' || locType === 'RANGE_INTERPOLATED') && streetLevel;
+
+  return { postal: confident ? postal!.toUpperCase() : null, confident };
+}
+
 // Resolve a selected prediction into structured address fields.
 export async function placeDetails(placeId: string, sessionToken?: string): Promise<AddressDetails | null> {
   const key = apiKey();
