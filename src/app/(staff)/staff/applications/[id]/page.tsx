@@ -851,6 +851,18 @@ export default async function StaffApplicationDetail({
               <Link href={`/staff/applications/${app.id}/edit`} className="btn-secondary text-xs">
                 ✎ Edit deal
               </Link>
+              {app.documents.some((d) => d.stage === 'FUNDING' || d.stage === 'REVIEWER') && (
+                // The docs that get uploaded to the funder / Home Depot, cleanly
+                // named, as one ZIP. Blob download so it works in the installed PWA.
+                <DownloadButton
+                  url={`/api/applications/${app.id}/upload-package`}
+                  fileName={`GWA_${app.applicantLastName}_${app.applicantFirstName}_upload-package.zip`}
+                  className="btn-secondary text-xs"
+                  title="Only the documents that get uploaded to the funder / Home Depot, named properly"
+                >
+                  ↓ Download upload package (ZIP)
+                </DownloadButton>
+              )}
               {app.documents.length > 0 && (
                 // Blob download (not a plain <a href>) so it also works in the
                 // installed PWA, where navigating the window to the ZIP would

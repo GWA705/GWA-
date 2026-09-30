@@ -67,6 +67,23 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-30
+- **"Download upload package (ZIP)" button on the reviewer deal page.** A second
+  download button (next to "Download all documents") that grabs only the docs a
+  reviewer sends OUT to the funder / Home Depot — the FUNDING-stage signed package
+  (signed contract, HD document, HD waiver, void cheque/PAP, install photos) and
+  the REVIEWER-stage paperwork (HD agreements, certificate of completion/COC,
+  financing paperwork) — as one flat ZIP, cleanly named
+  `Lastname_Firstname - <doc type>.pdf`. APPLICATION-stage intake is excluded (it's
+  internal, not uploaded to the funder). This is the *general* (un-curated) version;
+  the *curated* per-funder subset (e.g. HD+Enercare → Enercare application +
+  certificate of completion + HD contract + HD waiver, others adding install pics
+  etc.) will layer on once those per-funder parameters are set. Reviewer/admin only,
+  audit-logged (`DOC_DOWNLOAD`), memory-bounded (200 MB / 200 files), blob download
+  so it works in the installed PWA. (`src/app/api/applications/[id]/upload-package/route.ts`,
+  button in the staff deal page.)
+- **"Download all documents (ZIP)" now works in the installed PWA.** It was a plain
+  `<a href>` that dead-ended the reviewer on the archive inside the standalone app;
+  swapped for the blob `DownloadButton`. (Endpoint unchanged.)
 - **Document preview fix: multi-page PDFs now render instead of "Couldn't render
   a preview."** The in-app viewer (reviewer *and* dealer side) rasterizes a whole
   PDF into one tall scrollable image. That image was encoded as **WebP**, which
