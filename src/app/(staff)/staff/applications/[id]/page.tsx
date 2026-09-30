@@ -525,9 +525,12 @@ export default async function StaffApplicationDetail({
         )}
       </div>
     ),
-    // 3 · Sent — awaiting install. Not a dead "waiting" step: the reviewer often
-    // needs to send more than one document, so keep the paperwork sender open
-    // here too. Sending the first doc no longer closes off adding the rest.
+    // 3 · Sent — awaiting install. This step is about WAITING on the dealer, not a
+    // second copy of "Produce install documents" — so the focus is the
+    // Mark-complete button, the waiting note, and what's already been sent. The
+    // reviewer can still send more paperwork, but the full uploader is tucked
+    // behind a "Send more paperwork" disclosure so it doesn't read as a duplicate
+    // of step 2. (Native <details> — no JS needed, collapsed by default.)
     await: (
       <div>
         <ReviewerDoneButton
@@ -536,19 +539,26 @@ export default async function StaffApplicationDetail({
           doneByName={app.reviewerDoneByName}
         />
         <p className="mb-4 text-xs text-gray-500">
-          Waiting on the dealer&apos;s signed package. You can still send more paperwork below — the deal moves to review on its own the moment the dealer sends anything back.
+          Waiting on the dealer&apos;s signed package — the deal moves to review on its own the moment the dealer sends anything back.
         </p>
         <div className="mb-2 text-sm font-medium text-gray-700">Documents you&apos;ve sent the dealer</div>
         <div className="mb-4">
           <DocumentList documents={reviewerDocs} deleteAction={deleteDocumentAction} />
         </div>
-        <div className="border-t border-gray-100 pt-4">
-          <ReviewerPaperworkBoxes
-            action={uploadReviewerPaperworkAction.bind(null, app.id)}
-            categories={REVIEWER_PAPERWORK_TYPES}
-            scope={app.id}
-          />
-        </div>
+        <details className="border-t border-gray-100 pt-4">
+          <summary className="flex cursor-pointer list-none items-center gap-1.5 text-sm font-medium text-brand-700 hover:underline [&::-webkit-details-marker]:hidden">
+            <span aria-hidden className="text-base leading-none">＋</span>
+            Send more paperwork
+          </summary>
+          <p className="mt-1 text-xs text-gray-500">Only if the dealer still needs another document — otherwise just wait for their signed package.</p>
+          <div className="mt-4">
+            <ReviewerPaperworkBoxes
+              action={uploadReviewerPaperworkAction.bind(null, app.id)}
+              categories={REVIEWER_PAPERWORK_TYPES}
+              scope={app.id}
+            />
+          </div>
+        </details>
       </div>
     ),
     // 4 · Review signed documents

@@ -68,6 +68,16 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-09-30
+- **Reviewer flow: "Sent — awaiting install" (step 3) no longer looks like a
+  duplicate of "Produce install documents" (step 2).** Both steps rendered the
+  full four-box paperwork uploader + the sent-docs list, so once a deal was past
+  them they read as identical carbon copies (a reviewer flagged the confusion).
+  Step 3 is really a *waiting* step, so it now leads with the "Mark my paperwork
+  complete" button, the waiting note, and what's already been sent — and tucks the
+  uploader behind a collapsed **"＋ Send more paperwork"** disclosure (native
+  `<details>`, closed by default). Reviewers can still send additional documents;
+  it just no longer mirrors step 2. Step 2 is unchanged. (Behaviour/flow logic in
+  `reviewerFlow.ts` untouched — display only, in the staff deal page.)
 - **"Fill missing postal codes" now shows *why* a lookup failed.** When every lead
   came back "couldn't be looked up," the tool gave no reason — it collapsed every
   Google error into one blank message. Now the first failure's Google status +
