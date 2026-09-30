@@ -7,6 +7,7 @@ import { decryptOptional } from '@/lib/crypto';
 import { audit } from '@/lib/audit';
 import { StatusBadge } from '@/components/StatusBadge';
 import { DocumentList } from '@/components/DocumentList';
+import { DownloadButton } from '@/components/DownloadButton';
 import { FundingChecklist } from '@/components/FundingChecklist';
 import { VerificationChecklist, type VerificationState } from '@/components/VerificationChecklist';
 import { ReviewerEntryView } from '@/components/ReviewerEntryView';
@@ -851,9 +852,16 @@ export default async function StaffApplicationDetail({
                 ✎ Edit deal
               </Link>
               {app.documents.length > 0 && (
-                <a href={`/api/applications/${app.id}/documents`} className="btn-secondary text-xs">
+                // Blob download (not a plain <a href>) so it also works in the
+                // installed PWA, where navigating the window to the ZIP would
+                // dead-end the reviewer on the file with no back button.
+                <DownloadButton
+                  url={`/api/applications/${app.id}/documents`}
+                  fileName={`GWA_${app.applicantLastName}_${app.applicantFirstName}_documents.zip`}
+                  className="btn-secondary text-xs"
+                >
                   ↓ Download all documents (ZIP)
-                </a>
+                </DownloadButton>
               )}
             </div>
           </div>
