@@ -13,11 +13,12 @@ import { toTitleCase, titleOrNull } from '@/lib/textcase';
 import { mergeProductsSold, journalProductNames } from '@/lib/products';
 import { writeDealToJournal, writeCancellationToJournal, journalEnabled, type JournalDeal } from '@/lib/journal';
 import { storeFiles } from '@/lib/upload';
-import { deleteDocument } from '@/lib/storage';
+import { deleteDocument, getDocument } from '@/lib/storage';
 import { notifyStatusChange, notifyNewNote, notifyCancellationResolved } from '@/lib/notify';
 import { sendEmail, emailEnabled } from '@/lib/email';
 import { sendSms, smsEnabled } from '@/lib/sms';
 import { buildReviewEmail, buildReviewSms } from '@/lib/reviewRequest';
+import { buildDocsEmail } from '@/lib/customerDocsEmail';
 import { getReviewLink, setSetting, REVIEW_SETTING_KEYS } from '@/lib/settings';
 import {
   decisionSchema,
@@ -1679,6 +1680,80 @@ export async function sendReviewTestAction(): Promise<ActionState & { sentTo?: s
     ? undefined
     : 'No review link is set yet, so the button points to the website for now — set the link and it’ll point to Google.';
   return { ok: true, sentTo: to, note };
+}
+
+/**
+ * Email one or more stored library documents (brochures / manuals) to the
+ * customer — e.g. when they ask for one on the confirmation call. Files are
+ * decrypted and attached (capped so the email stays deliverable); a record is
+ * written to the deal (customer file) and audited. Reviewer/admin only.
+ */
+export async function emailDocumentsToCustomerAction(
+  applicationId: string,
+  contentItemIds: string[],
+  message: string,
+  toOverride?: string,
+): Promise<ActionState & { sentTo?: string }> {
+  const session = await requireStaffSection('review-queue');
+  if (!emailEnabled()) return { error: 'Email isn’t switched on here (SMTP).' };
+
+  const app = await prisma.application.findUnique({
+    where: { id: applicationId },
+    select: { id: true, applicantFirstName: true, applicantLastName: true, applicantEmail: true },
+  });
+  if (!app) return { error: 'Deal not found.' };
+
+  const to = (toOverride?.trim() || app.applicantEmail || '').trim();
+  if (!to || !EMAIL_RE.test(to)) return { error: 'Enter a valid customer email to send to.' };
+
+  const ids = Array.from(new Set((contentItemIds || []).filter(Boolean))).slice(0, 10);
+  if (ids.length === 0) return { error: 'Pick at least one document to send.' };
+
+  const items = await prisma.contentItem.findMany({
+    where: { id: { in: ids }, active: true, fileStorageKey: { not: null } },
+    select: { id: true, title: true, fileName: true, fileMime: true, fileStorageKey: true },
+  });
+  if (items.length === 0) return { error: 'Those documents aren’t available to send.' };
+
+  // Keep the email deliverable — most providers cap attachments around 25 MB.
+  const MAX_TOTAL = 20 * 1024 * 1024;
+  let total = 0;
+  const attachments: { filename: string; content: Buffer; contentType?: string }[] = [];
+  for (const it of items) {
+    let buf: Buffer;
+    try {
+      buf = await getDocument(it.fileStorageKey!);
+    } catch {
+      return { error: `Couldn’t read “${it.title}”. Try again or pick a different file.` };
+    }
+    total += buf.length;
+    if (total > MAX_TOTAL) {
+      return { error: 'Those files are over 20 MB together — too large to email. Send fewer/smaller files (a secure download link for big manuals can be added later).' };
+    }
+    attachments.push({
+      filename: it.fileName || `${it.title}.pdf`,
+      content: buf,
+      contentType: it.fileMime || 'application/octet-stream',
+    });
+  }
+
+  const name = `${app.applicantFirstName} ${app.applicantLastName}`.trim();
+  const { subject, html, text } = buildDocsEmail({
+    customerName: name,
+    message: message || '',
+    docTitles: items.map((i) => i.title),
+    logoUrl: `${portalUrl()}/gwa-hd-partners.png`,
+  });
+  const r = await sendEmail({ to, subject, html, text, attachments });
+  if (!r.sent) return { error: `Didn’t send (${r.reason ?? 'error'}).` };
+
+  // Record on the customer file (internal note) + audit.
+  await prisma.note.create({
+    data: { applicationId, authorId: session.userId, internal: true, body: `📎 Emailed to customer (${to}): ${items.map((i) => i.title).join(', ')}` },
+  });
+  await audit({ actorId: session.userId, action: 'MAIL_SEND', entityType: 'Application', entityId: applicationId, detail: `Emailed documents to customer: ${items.map((i) => i.title).join(', ')}` });
+  revalidatePath(`/staff/applications/${applicationId}`);
+  return { ok: true, sentTo: to };
 }
 
 /**

@@ -57,6 +57,8 @@ import { isOutOfBandReturn } from '@/lib/outOfBandReturn';
 import { AdvanceToFundingButton } from './AdvanceToFundingButton';
 import { ReviewRequestCard } from './ReviewRequestCard';
 import { FlagDealerIssueCard } from './FlagDealerIssueCard';
+import { EmailDocsCard } from './EmailDocsCard';
+import { CONTENT_SECTION_LABELS } from '@/lib/constants';
 import { getReviewLink } from '@/lib/settings';
 import { smsEnabled } from '@/lib/sms';
 import { computeDealerPayout } from '@/lib/payoutCalc';
@@ -231,6 +233,14 @@ export default async function StaffApplicationDetail({
   // Customer review request (confirmation step): is a review link configured, and
   // can this user set it (admins only)?
   const reviewLink = await getReviewLink();
+  // Library documents (brochures / manuals) that can be emailed to the customer.
+  const libraryDocs = (
+    await prisma.contentItem.findMany({
+      where: { active: true, fileStorageKey: { not: null } },
+      select: { id: true, title: true, section: true },
+      orderBy: [{ section: 'asc' }, { sortOrder: 'asc' }, { title: 'asc' }],
+    })
+  ).map((d) => ({ id: d.id, title: d.title, sectionLabel: CONTENT_SECTION_LABELS[d.section] }));
 
   // When the install paperwork first went out (earliest reviewer-stage doc).
   // Anything the dealer uploads AFTER this point is a returned document, even if
@@ -636,6 +646,7 @@ export default async function StaffApplicationDetail({
           sentByName={app.reviewRequestByName}
         />
         <FlagDealerIssueCard applicationId={app.id} />
+        <EmailDocsCard applicationId={app.id} customerEmail={app.applicantEmail ?? ''} docs={libraryDocs} />
       </div>
     ),
     // 6 · Submit to finance company

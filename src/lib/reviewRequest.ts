@@ -64,7 +64,8 @@ export function buildReviewEmail(opts: {
                style="display:block;width:440px;max-width:92%;height:auto;border:0;outline:none;text-decoration:none;" />
         </td></tr>
         <tr><td align="center" style="padding:8px 28px 0;">
-          <div style="font-size:40px;line-height:1;letter-spacing:4px;color:#fbbc04;" aria-hidden="true">★★★★★</div>
+          <a href="${escapeHtml(link)}" aria-label="Leave us a review"
+             style="display:inline-block;text-decoration:none;font-size:40px;line-height:1;letter-spacing:4px;color:#fbbc04;">★★★★★</a>
         </td></tr>
         <tr><td style="padding:12px 28px 4px;">
           <h1 style="margin:0 0 12px;font-size:22px;line-height:1.3;color:#111827;text-align:center;">
