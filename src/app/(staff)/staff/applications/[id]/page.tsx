@@ -55,6 +55,9 @@ import { VerifyFinanceNumberButton } from '@/components/VerifyFinanceNumberButto
 import { STATUS_LABELS, REVIEWER_PAPERWORK_TYPES, applicableVerificationChecks, decisionTone } from '@/lib/constants';
 import { isOutOfBandReturn } from '@/lib/outOfBandReturn';
 import { AdvanceToFundingButton } from './AdvanceToFundingButton';
+import { ReviewRequestCard } from './ReviewRequestCard';
+import { getReviewLink } from '@/lib/settings';
+import { smsEnabled } from '@/lib/sms';
 import { computeDealerPayout } from '@/lib/payoutCalc';
 import { decisionDisplayLabel } from '@/lib/enumLabels';
 import type { ApplicationStatus } from '@prisma/client';
@@ -223,6 +226,10 @@ export default async function StaffApplicationDetail({
   const applicationDocs = app.documents.filter((d) => d.stage === 'APPLICATION');
   const fundingDocs = app.documents.filter((d) => d.stage === 'FUNDING');
   const reviewerDocs = app.documents.filter((d) => d.stage === 'REVIEWER');
+
+  // Customer review request (confirmation step): is a review link configured, and
+  // can this user set it (admins only)?
+  const reviewLink = await getReviewLink();
 
   // When the install paperwork first went out (earliest reviewer-stage doc).
   // Anything the dealer uploads AFTER this point is a returned document, even if
@@ -615,6 +622,17 @@ export default async function StaffApplicationDetail({
           defaultCity={app.loanApplication?.city ?? ''}
           defaultPhone={app.applicantPhone}
           defaultAmount={(app.approvedAmount ?? app.requestedAmount).toString()}
+        />
+        <ReviewRequestCard
+          applicationId={app.id}
+          customerEmail={app.applicantEmail ?? ''}
+          customerPhone={app.applicantPhone}
+          reviewLinkSet={!!reviewLink}
+          smsConfigured={smsEnabled()}
+          canManageLink={user.role === 'ADMIN'}
+          sentAt={app.reviewRequestSentAt ? app.reviewRequestSentAt.toISOString() : null}
+          sentVia={app.reviewRequestVia}
+          sentByName={app.reviewRequestByName}
         />
       </div>
     ),

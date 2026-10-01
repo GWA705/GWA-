@@ -48,6 +48,18 @@ export const MARKETPLACE_SETTING_KEYS = {
   orderEmail: 'marketplace.orderEmail',
 } as const;
 
+// The "leave us a review" destination the customer review request links to
+// (e.g. a Google-review landing page). Admin-editable; the review-request
+// feature stays dormant until this is set.
+export const REVIEW_SETTING_KEYS = {
+  link: 'review.link',
+} as const;
+
+/** The customer review link, or null when an admin hasn't set one yet. */
+export async function getReviewLink(): Promise<string | null> {
+  return getSetting(REVIEW_SETTING_KEYS.link);
+}
+
 // Admin-editable knowledge the AI support assistant answers from (FAQ, process,
 // policies, tone — written in the team's own words). Injected into the system
 // prompt on every reply; edit it to "train" the assistant without a deploy.

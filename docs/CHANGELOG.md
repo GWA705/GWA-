@@ -67,6 +67,31 @@ source of truth; this file is the human-readable index.
   `testSingleLead()` on a French lead first. Portal display auto-translates lead
   free-text via DeepL.
 
+## 2026-10-01
+- **Customer review request from the confirmation step.** New "Ask the customer
+  for a review" card in the deal's Confirmation section: one click emails the
+  customer a friendly, on-brand (greyscale + logo, "Georgian Water & Air") email
+  with a big "Leave a quick review" button linking to a configurable review link
+  (e.g. a Google-review landing page). Supporting pieces:
+  - **Inline "add customer email"** right on the card — deals often have no email
+    on file, so staff can add/correct `applicantEmail` without leaving the page.
+  - **Review link is an admin setting** (`review.link`, set inline by an admin the
+    first time; feature stays dormant until set).
+  - **Texting is scaffolded, not yet live.** The portal had no SMS provider, so a
+    new `src/lib/sms.ts` (Twilio via REST, inert until `TWILIO_ACCOUNT_SID` /
+    `TWILIO_AUTH_TOKEN` / `TWILIO_FROM_NUMBER` are set) is ready to flip on. The
+    "Also text …" option shows but is disabled with "texting not set up yet" until
+    a provider is configured. SMS copy drafted (short, link, STOP opt-out).
+  - **Records the last send** on the deal (`reviewRequestSentAt` / `Via` / `ByName`,
+    new nullable columns — migration `20261001120000_review_request`) so staff see
+    it went out and can resend.
+  - New files: `src/lib/reviewRequest.ts` (email + SMS content), `src/lib/sms.ts`,
+    `ReviewRequestCard.tsx`; actions `sendReviewRequestAction` /
+    `setCustomerEmailAction` / `setReviewLinkAction` in `(staff)/actions.ts`.
+  - **Still TODO (external):** an SMS provider to enable texting (Twilio etc. —
+    account, a Canadian number, A2P/toll-free registration), and the actual review
+    link to paste into the setting.
+
 ## 2026-09-30
 - **Reviewer flow: "Sent — awaiting install" (step 3) no longer looks like a
   duplicate of "Produce install documents" (step 2).** Both steps rendered the

@@ -1232,6 +1232,14 @@ model Application {
   reviewerDoneAt     DateTime?
   reviewerDoneByName String?
 
+  // Post-job "leave us a review" request sent to the customer from the
+  // confirmation step. Records the last send so staff don't double-send and can
+  // see it went out. Via is 'email', 'sms', or 'email+sms'. Display only — does
+  // not affect deal status.
+  reviewRequestSentAt DateTime?
+  reviewRequestVia    String?
+  reviewRequestByName String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

@@ -15,6 +15,10 @@ import { writeDealToJournal, writeCancellationToJournal, journalEnabled, type Jo
 import { storeFiles } from '@/lib/upload';
 import { deleteDocument } from '@/lib/storage';
 import { notifyStatusChange, notifyNewNote, notifyCancellationResolved } from '@/lib/notify';
+import { sendEmail, emailEnabled } from '@/lib/email';
+import { sendSms, smsEnabled } from '@/lib/sms';
+import { buildReviewEmail, buildReviewSms } from '@/lib/reviewRequest';
+import { getReviewLink, setSetting, REVIEW_SETTING_KEYS } from '@/lib/settings';
 import {
   decisionSchema,
   payoutSchema,
@@ -1503,4 +1507,129 @@ export async function writeToJournalAction(
   await markReviewerAction(applicationId);
   revalidatePath(`/staff/applications/${applicationId}`);
   return { ok: true };
+}
+
+// --- Customer review request (confirmation step) ---------------------------
+
+function portalUrl(): string {
+  return (process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://portal.ghsbarrie.ca').replace(/\/$/, '');
+}
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/**
+ * Add/correct the customer's email on a deal, so the review request (and other
+ * customer email) can go out. Reviewer/admin only.
+ */
+export async function setCustomerEmailAction(
+  applicationId: string,
+  email: string,
+): Promise<ActionState> {
+  const session = await requireStaffSection('review-queue');
+  const e = (email || '').trim();
+  if (!EMAIL_RE.test(e) || e.length > 160) return { error: 'Enter a valid email address.' };
+  const app = await prisma.application.findUnique({ where: { id: applicationId }, select: { id: true } });
+  if (!app) return { error: 'Deal not found.' };
+  await prisma.application.update({ where: { id: applicationId }, data: { applicantEmail: e } });
+  await audit({
+    actorId: session.userId,
+    action: 'APPLICATION_UPDATE',
+    entityType: 'Application',
+    entityId: applicationId,
+    detail: 'Added/updated customer email',
+  });
+  revalidatePath(`/staff/applications/${applicationId}`);
+  return { ok: true };
+}
+
+/**
+ * Set the global customer-review link (e.g. a Google-review landing page).
+ * Admin only. Passing an empty string clears it.
+ */
+export async function setReviewLinkAction(link: string): Promise<ActionState> {
+  await requireAdminSection('overview');
+  const v = (link || '').trim();
+  if (v && !/^https?:\/\/\S+$/i.test(v)) return { error: 'Enter a full link starting with https://' };
+  await setSetting(REVIEW_SETTING_KEYS.link, v);
+  revalidatePath('/staff/applications', 'layout');
+  return { ok: true };
+}
+
+/**
+ * Send the customer a "leave us a review" request by email and/or text. Sends
+ * only on the channels asked for and available (email needs an address on file;
+ * SMS needs a provider configured). Records the send for display. Reviewer/admin.
+ */
+export async function sendReviewRequestAction(
+  applicationId: string,
+  channels: { email?: boolean; sms?: boolean },
+): Promise<ActionState & { sentEmail?: boolean; sentSms?: boolean; note?: string }> {
+  const session = await requireStaffSection('review-queue');
+
+  const link = await getReviewLink();
+  if (!link) return { error: 'No review link is set yet — add it first, then send.' };
+
+  const app = await prisma.application.findUnique({
+    where: { id: applicationId },
+    select: { id: true, applicantFirstName: true, applicantLastName: true, applicantEmail: true, applicantPhone: true },
+  });
+  if (!app) return { error: 'Deal not found.' };
+
+  const name = `${app.applicantFirstName} ${app.applicantLastName}`.trim();
+  const wantEmail = channels.email !== false; // default to email
+  const wantSms = channels.sms === true;
+
+  let sentEmail = false;
+  let sentSms = false;
+  const problems: string[] = [];
+
+  if (wantEmail) {
+    const to = (app.applicantEmail || '').trim();
+    if (!to || !EMAIL_RE.test(to)) {
+      problems.push('no email on file');
+    } else if (!emailEnabled()) {
+      problems.push('email is not switched on (SMTP)');
+    } else {
+      const { subject, html, text } = buildReviewEmail({
+        customerName: name,
+        reviewLink: link,
+        logoUrl: `${portalUrl()}/GWANewLogo.png`,
+      });
+      const r = await sendEmail({ to, subject, html, text });
+      if (r.sent) sentEmail = true;
+      else problems.push(`email didn't send (${r.reason ?? 'error'})`);
+    }
+  }
+
+  if (wantSms) {
+    if (!smsEnabled()) {
+      problems.push('texting isn’t set up yet');
+    } else {
+      const body = buildReviewSms({ customerName: name, reviewLink: link });
+      const r = await sendSms({ to: app.applicantPhone, body });
+      if (r.sent) sentSms = true;
+      else problems.push(`text didn't send (${r.reason ?? 'error'})`);
+    }
+  }
+
+  if (!sentEmail && !sentSms) {
+    return { error: `Couldn’t send the review request: ${problems.join('; ') || 'nothing to send'}.` };
+  }
+
+  const via = [sentEmail && 'email', sentSms && 'sms'].filter(Boolean).join('+');
+  await prisma.application.update({
+    where: { id: applicationId },
+    data: { reviewRequestSentAt: new Date(), reviewRequestVia: via, reviewRequestByName: session.name },
+  });
+  await audit({
+    actorId: session.userId,
+    action: 'MAIL_SEND',
+    entityType: 'Application',
+    entityId: applicationId,
+    detail: `Review request sent (${via})`,
+  });
+  revalidatePath(`/staff/applications/${applicationId}`);
+
+  const note = problems.length ? `Sent, but: ${problems.join('; ')}.` : undefined;
+  return { ok: true, sentEmail, sentSms, note };
 }
