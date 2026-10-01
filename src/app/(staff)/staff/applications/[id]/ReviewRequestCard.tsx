@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { sendReviewRequestAction, setCustomerEmailAction, setReviewLinkAction } from '@/app/(staff)/actions';
+import { sendReviewRequestAction, setCustomerEmailAction, setReviewLinkAction, sendReviewTestAction } from '@/app/(staff)/actions';
 
 /**
  * Confirmation-step action: send the customer a "leave us a review" request by
@@ -79,6 +79,15 @@ export function ReviewRequestCard({
     });
   }
 
+  function sendTest() {
+    setMsg(null);
+    start(async () => {
+      const r = await sendReviewTestAction();
+      if (r.error) { setMsg({ kind: 'err', text: r.error }); return; }
+      setMsg({ kind: 'ok', text: `Test sent to ${r.sentTo} — check your inbox (and spam).${r.note ? ' ' + r.note : ''}` });
+    });
+  }
+
   return (
     <div className="mt-6 rounded-xl border border-gray-200 bg-white p-4">
       <div className="flex items-center gap-2">
@@ -88,6 +97,14 @@ export function ReviewRequestCard({
       <p className="mt-0.5 text-xs text-gray-500">
         Had a great call? Send a friendly link so the customer can leave Georgian Water &amp; Air a quick review.
       </p>
+      <button
+        type="button"
+        onClick={sendTest}
+        disabled={pending}
+        className="mt-1.5 text-xs font-medium text-brand-700 hover:underline disabled:opacity-50"
+      >
+        ✉ Send me a test email
+      </button>
 
       {sentAt && (
         <p className="mt-2 rounded-md border-l-4 border-green-500 bg-green-50 p-2 text-xs text-green-800">

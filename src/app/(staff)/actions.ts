@@ -1647,6 +1647,41 @@ export async function sendReviewRequestAction(
 }
 
 /**
+ * Send a TEST of the review email to the signed-in staffer's own inbox, so they
+ * can confirm the real thing (logo, From Reporter@, layout) renders and delivers.
+ * Uses the configured review link (or a placeholder if none is set yet) and
+ * sample product/rep values so the copy lines show.
+ */
+export async function sendReviewTestAction(): Promise<ActionState & { sentTo?: string; note?: string }> {
+  const session = await requireStaffSection('review-queue');
+  if (!emailEnabled()) return { error: 'Email isn’t switched on here (SMTP), so a test can’t be sent.' };
+  const to = (session.email || '').trim();
+  if (!to || !EMAIL_RE.test(to)) return { error: 'Your account has no valid email to send the test to.' };
+
+  const configuredLink = await getReviewLink();
+  const link = configuredLink || `https://georgianwaterandair.ca`;
+  const { subject, html, text } = buildReviewEmail({
+    customerName: session.name || 'there',
+    reviewLink: link,
+    logoUrl: `${portalUrl()}/gwa-hd-partners.png`,
+    products: 'Reverse Osmosis Drinking Water System and Water Softener',
+    repName: 'Mark',
+  });
+  const r = await sendEmail({
+    to, subject, html, text,
+    from: 'Georgian Water & Air <Reporter@ghsbarrie.ca>',
+    replyTo: 'Reporter@ghsbarrie.ca',
+  });
+  if (!r.sent) return { error: `Test didn’t send (${r.reason ?? 'error'}).` };
+
+  await audit({ actorId: session.userId, action: 'MAIL_SEND', entityType: 'User', entityId: session.userId, detail: 'Review email test sent' });
+  const note = configuredLink
+    ? undefined
+    : 'No review link is set yet, so the button points to the website for now — set the link and it’ll point to Google.';
+  return { ok: true, sentTo: to, note };
+}
+
+/**
  * Flag an issue to the dealer from the confirmation step: when a confirmer finds
  * the customer has a question or concern, this posts a dealer-visible note on the
  * deal (so it lives in the portal, on the customer's file, and the dealer can

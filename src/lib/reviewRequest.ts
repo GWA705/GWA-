@@ -60,7 +60,7 @@ export function buildReviewEmail(opts: {
           <!-- width+height attributes so Outlook (which ignores max-width) sizes it;
                the inline style scales it down responsively on phones. -->
           <img src="${escapeHtml(opts.logoUrl)}" alt="Georgian Water &amp; Air — Authorized Home Depot Installer"
-               width="440" height="195"
+               width="440" height="134"
                style="display:block;width:440px;max-width:92%;height:auto;border:0;outline:none;text-decoration:none;" />
         </td></tr>
         <tr><td align="center" style="padding:8px 28px 0;">
