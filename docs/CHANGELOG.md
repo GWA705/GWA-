@@ -68,6 +68,14 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-10-01
+- **Staff HD Leads: selecting an office now scopes the scanned-cards section too.**
+  On `/staff/leads`, picking an office correctly filtered the parsed HD Leads Log
+  list, but the scanned-cards ("HD Mail In Test") section always showed every
+  office's cards — so an admin "viewing as" an office saw all scanned leads mixed
+  in. Now the scanned section is scoped to the selected office's `dealerId` (none
+  selected = all offices, unchanged), matching exactly what that office's own users
+  see (`listScannedLeads` filters a dealer to their own `dealerId`). The office
+  column is hidden when a single office is selected. (`(staff)/staff/leads/page.tsx`.)
 - **Customer review request from the confirmation step.** New "Ask the customer
   for a review" card in the deal's Confirmation section: one click emails the
   customer a friendly, on-brand (greyscale + logo, "Georgian Water & Air") email

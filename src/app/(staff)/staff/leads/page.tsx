@@ -40,8 +40,12 @@ export default async function StaffLeadsPage({
   const view = searchParams.view === 'grouped' ? 'grouped' : searchParams.view === 'map' ? 'map' : 'list';
   const page = Math.max(1, parseInt(searchParams.page ?? '1', 10) || 1);
 
-  // Scanned lead cards (all offices) — independent of the HD Leads Log sheet.
-  const scannedRaw = await listScannedLeads(user);
+  // Scanned lead cards — independent of the HD Leads Log sheet. Staff normally see
+  // every office's cards, but when an office is selected we scope to just that
+  // office (matching exactly what that office sees — listScannedLeads filters a
+  // dealer to dealerId === their own), so an admin's "view as office" is accurate.
+  const scannedAll = await listScannedLeads(user);
+  const scannedRaw = officeId ? scannedAll.filter((l) => l.dealerId === officeId) : scannedAll;
   const dealerIds = Array.from(new Set(scannedRaw.map((l) => l.dealerId).filter((x): x is string => !!x)));
   const nameById = new Map(
     (dealerIds.length ? await prisma.dealer.findMany({ where: { id: { in: dealerIds } }, select: { id: true, name: true } }) : [])
@@ -60,7 +64,7 @@ export default async function StaffLeadsPage({
     <div>
       <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">HD Mail In Test</h2>
       <div className="mb-3 grid gap-3 md:grid-cols-2"><PostalFillButton /><BackfillBookingButton /></div>
-      <MailInTestWorkspace leads={scanned} callsByKey={scannedCalls} showOffice canScan={aiConfigured()} />
+      <MailInTestWorkspace leads={scanned} callsByKey={scannedCalls} showOffice={!officeId} canScan={aiConfigured()} />
     </div>
   );
 
