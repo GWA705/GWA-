@@ -1571,7 +1571,10 @@ export async function sendReviewRequestAction(
 
   const app = await prisma.application.findUnique({
     where: { id: applicationId },
-    select: { id: true, applicantFirstName: true, applicantLastName: true, applicantEmail: true, applicantPhone: true },
+    select: {
+      id: true, applicantFirstName: true, applicantLastName: true, applicantEmail: true, applicantPhone: true,
+      salespersonName: true, productsSold: true,
+    },
   });
   if (!app) return { error: 'Deal not found.' };
 
@@ -1594,6 +1597,8 @@ export async function sendReviewRequestAction(
         customerName: name,
         reviewLink: link,
         logoUrl: `${portalUrl()}/GWANewLogo.png`,
+        products: app.productsSold.length ? app.productsSold.join(', ') : '',
+        repName: app.salespersonName ?? '',
       });
       const r = await sendEmail({ to, subject, html, text });
       if (r.sent) sentEmail = true;

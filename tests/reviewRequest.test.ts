@@ -26,6 +26,27 @@ describe('buildReviewEmail', () => {
     const e = buildReviewEmail({ customerName: '', reviewLink: LINK, logoUrl: 'x' });
     expect(e.html).toContain('Hi there');
   });
+
+  it('includes the rep name and full product names when given', () => {
+    const e = buildReviewEmail({
+      customerName: 'Jane Smith',
+      reviewLink: LINK,
+      logoUrl: 'x',
+      products: 'Reverse Osmosis System',
+      repName: 'Mark',
+    });
+    expect(e.html).toContain('Home Depot Home Services');
+    expect(e.html).toContain('for your new Reverse Osmosis System');
+    expect(e.html).toContain('Mark and the rest of our team');
+    expect(e.text).toContain('Mark and the rest of our team');
+    expect(e.text).toContain('Reverse Osmosis System');
+  });
+
+  it('reads cleanly with no rep or products', () => {
+    const e = buildReviewEmail({ customerName: 'Jane', reviewLink: LINK, logoUrl: 'x' });
+    expect(e.html).toContain('Our team appreciates your trust');
+    expect(e.html).not.toContain('for your new .');
+  });
 });
 
 describe('buildReviewSms', () => {

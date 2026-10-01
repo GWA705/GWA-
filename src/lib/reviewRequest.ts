@@ -30,10 +30,25 @@ export function buildReviewEmail(opts: {
   customerName: string;
   reviewLink: string;
   logoUrl: string;
+  /** Full product names sold (not abbreviations), e.g. "Reverse Osmosis System". */
+  products?: string;
+  /** The rep/salesperson who sold it, shown in the thank-you line. */
+  repName?: string;
 }): { subject: string; html: string; text: string } {
   const first = escapeHtml(firstName(opts.customerName));
   const link = opts.reviewLink;
   const subject = `How did we do? — ${COMPANY}`;
+
+  const prod = (opts.products ?? '').trim();
+  const rep = (opts.repName ?? '').trim();
+  const productPhraseHtml = prod ? ` for your new ${escapeHtml(prod)}` : '';
+  const productPhraseText = prod ? ` for your new ${prod}` : '';
+  const thanksClauseHtml = rep
+    ? `${escapeHtml(rep)} and the rest of our team appreciate your trust, and we hope you&rsquo;re enjoying your new purchase.`
+    : `Our team appreciates your trust, and we hope you&rsquo;re enjoying your new purchase.`;
+  const thanksClauseText = rep
+    ? `${rep} and the rest of our team appreciate your trust, and we hope you're enjoying your new purchase.`
+    : `Our team appreciates your trust, and we hope you're enjoying your new purchase.`;
 
   const html = `<!-- ${COMPANY_HTML} review request -->
 <div style="background:#f4f4f5;padding:24px 0;font-family:Arial,Helvetica,sans-serif;color:#111827;">
@@ -46,16 +61,19 @@ export function buildReviewEmail(opts: {
                style="display:block;width:220px;max-width:70%;height:auto;" />
         </td></tr>
         <tr><td align="center" style="padding:8px 28px 0;">
-          <div style="font-size:40px;line-height:1;letter-spacing:4px;color:#111827;" aria-hidden="true">★★★★★</div>
+          <div style="font-size:40px;line-height:1;letter-spacing:4px;color:#fbbc04;" aria-hidden="true">★★★★★</div>
         </td></tr>
         <tr><td style="padding:12px 28px 4px;">
-          <h1 style="margin:0 0 10px;font-size:22px;line-height:1.3;color:#111827;text-align:center;">
-            Hi ${first}, how did we do?
+          <h1 style="margin:0 0 12px;font-size:22px;line-height:1.3;color:#111827;text-align:center;">
+            Hi ${first}!
           </h1>
+          <p style="margin:0 0 14px;font-size:15px;line-height:1.65;color:#374151;text-align:center;">
+            Thank you for choosing <strong>Home Depot Home Services</strong> and ${COMPANY_HTML}${productPhraseHtml}.
+            ${thanksClauseHtml}
+          </p>
           <p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:#374151;text-align:center;">
-            Thank you for choosing ${COMPANY_HTML}. If our team took great care of you,
-            would you take <strong>30 seconds</strong> to share a quick review? It
-            genuinely helps your neighbours find us — and it means the world to our crew.
+            Would you take a moment to tell us how we did? We&rsquo;d love to hear about your
+            experience &mdash; your feedback means a lot to our team.
           </p>
         </td></tr>
         <tr><td align="center" style="padding:6px 28px 8px;">
@@ -88,9 +106,11 @@ export function buildReviewEmail(opts: {
 </div>`;
 
   const text = [
-    `Hi ${firstName(opts.customerName)}, how did we do?`,
+    `Hi ${firstName(opts.customerName)}!`,
     ``,
-    `Thank you for choosing ${COMPANY}. If our team took great care of you, would you take 30 seconds to leave a quick review? It really helps.`,
+    `Thank you for choosing Home Depot Home Services and ${COMPANY}${productPhraseText}. ${thanksClauseText}`,
+    ``,
+    `Would you take a moment to tell us how we did? We'd love to hear about your experience — your feedback means a lot to our team.`,
     ``,
     `Leave a review: ${link}`,
     ``,
