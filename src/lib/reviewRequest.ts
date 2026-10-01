@@ -37,7 +37,7 @@ export function buildReviewEmail(opts: {
 }): { subject: string; html: string; text: string } {
   const first = escapeHtml(firstName(opts.customerName));
   const link = opts.reviewLink;
-  const subject = `How did we do? — ${COMPANY}`;
+  const subject = `How did we do? — Home Depot Home Services`;
 
   const prod = (opts.products ?? '').trim();
   const rep = (opts.repName ?? '').trim();
@@ -56,9 +56,12 @@ export function buildReviewEmail(opts: {
     <tr><td align="center">
       <table role="presentation" width="520" cellpadding="0" cellspacing="0"
              style="max-width:520px;width:100%;background:#ffffff;border-radius:14px;overflow:hidden;border:1px solid #e5e7eb;">
-        <tr><td align="center" style="padding:28px 24px 8px;">
-          <img src="${escapeHtml(opts.logoUrl)}" alt="${COMPANY_HTML}" width="220"
-               style="display:block;width:220px;max-width:70%;height:auto;" />
+        <tr><td align="center" style="padding:22px 16px 8px;">
+          <!-- width+height attributes so Outlook (which ignores max-width) sizes it;
+               the inline style scales it down responsively on phones. -->
+          <img src="${escapeHtml(opts.logoUrl)}" alt="Georgian Water &amp; Air — Authorized Home Depot Installer"
+               width="440" height="195"
+               style="display:block;width:440px;max-width:92%;height:auto;border:0;outline:none;text-decoration:none;" />
         </td></tr>
         <tr><td align="center" style="padding:8px 28px 0;">
           <div style="font-size:40px;line-height:1;letter-spacing:4px;color:#fbbc04;" aria-hidden="true">★★★★★</div>
@@ -68,7 +71,7 @@ export function buildReviewEmail(opts: {
             Hi ${first}!
           </h1>
           <p style="margin:0 0 14px;font-size:15px;line-height:1.65;color:#374151;text-align:center;">
-            Thank you for choosing <strong>Home Depot Home Services</strong> and ${COMPANY_HTML}${productPhraseHtml}.
+            Thank you for choosing <strong>Home Depot Home Services</strong> and <strong>${COMPANY_HTML}</strong>${productPhraseHtml}.
             ${thanksClauseHtml}
           </p>
           <p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:#374151;text-align:center;">
@@ -97,7 +100,7 @@ export function buildReviewEmail(opts: {
             <a href="https://${WEB}" style="color:#6b7280;text-decoration:none;">${WEB}</a>
           </p>
           <p style="margin:8px 0 0;font-size:11px;color:#9ca3af;">
-            You're receiving this because you recently had work completed by ${COMPANY_HTML}.
+            You're receiving this because you recently had work completed by Home Depot Home Services and ${COMPANY_HTML}.
           </p>
         </td></tr>
       </table>

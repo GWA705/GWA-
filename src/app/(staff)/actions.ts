@@ -1596,11 +1596,18 @@ export async function sendReviewRequestAction(
       const { subject, html, text } = buildReviewEmail({
         customerName: name,
         reviewLink: link,
-        logoUrl: `${portalUrl()}/GWANewLogo.png`,
+        logoUrl: `${portalUrl()}/gwa-hd-partners.png`,
         products: app.productsSold.length ? app.productsSold.join(', ') : '',
         repName: app.salespersonName ?? '',
       });
-      const r = await sendEmail({ to, subject, html, text });
+      // Review requests come from (and reply to) Reporter@ghsbarrie.ca, separate
+      // from the general hello@/info@ identity. The SMTP account must be allowed
+      // to send as this address or the provider may rewrite the From.
+      const r = await sendEmail({
+        to, subject, html, text,
+        from: 'Georgian Water & Air <Reporter@ghsbarrie.ca>',
+        replyTo: 'Reporter@ghsbarrie.ca',
+      });
       if (r.sent) sentEmail = true;
       else problems.push(`email didn't send (${r.reason ?? 'error'})`);
     }

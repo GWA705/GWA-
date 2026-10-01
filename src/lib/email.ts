@@ -27,6 +27,15 @@ export interface SendEmailArgs {
   html: string;
   text?: string;
   attachments?: EmailAttachment[];
+  /**
+   * Per-message From override, e.g. "Georgian Water & Air <Reporter@ghsbarrie.ca>".
+   * Defaults to the account's configured identity. Note: the SMTP account must be
+   * allowed to send as this address (a Google Workspace "send as" alias / verified
+   * sender), or the provider may rewrite it to the authenticated user.
+   */
+  from?: string;
+  /** Per-message Reply-To override; defaults to the configured reply-to. */
+  replyTo?: string;
 }
 
 export function emailEnabled(): boolean {
@@ -116,7 +125,9 @@ export async function sendEmail(
   }
 
   try {
-    const { from, replyTo } = await identity();
+    const id = await identity();
+    const from = args.from || id.from;
+    const replyTo = args.replyTo || id.replyTo;
     await getTransport().sendMail({
       from,
       replyTo,
