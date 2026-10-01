@@ -27,8 +27,13 @@ export default async function StaffLeadsPage({
   searchParams: { q?: string; status?: string; office?: string; page?: string; month?: string; view?: string; outcome?: string };
 }) {
   const user = await requireRole('REVIEWER', 'ADMIN');
-  // All-offices leads = leadership view: super admin or a granted 'leads' section.
-  if (!isSuperAdmin(user) && !canAdminSection(user, 'leads')) notFound();
+  // Viewing all-offices leads is open to every reviewer (so anyone handling a
+  // customer call can search whether a store received a lead) plus admins granted
+  // the 'leads' section — same model as the Deals/Mail tabs. MANAGING leads (the
+  // bulk postal-fill and booking-push tools, which have write/external side
+  // effects) stays restricted to leads-section admins / super admins.
+  const canManageLeads = isSuperAdmin(user) || canAdminSection(user, 'leads');
+  if (user.role !== 'REVIEWER' && !canManageLeads) notFound();
 
   const t = getT();
 
@@ -63,7 +68,9 @@ export default async function StaffLeadsPage({
   const scannedSection = (
     <div>
       <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">HD Mail In Test</h2>
-      <div className="mb-3 grid gap-3 md:grid-cols-2"><PostalFillButton /><BackfillBookingButton /></div>
+      {canManageLeads && (
+        <div className="mb-3 grid gap-3 md:grid-cols-2"><PostalFillButton /><BackfillBookingButton /></div>
+      )}
       <MailInTestWorkspace leads={scanned} callsByKey={scannedCalls} showOffice={!officeId} canScan={aiConfigured()} />
     </div>
   );

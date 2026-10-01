@@ -44,7 +44,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
   if (canDirectory) tools.push({ href: '/staff/directory', label: 'Directory' });
   if ((await isGlobalSearchEnabled()) && (await canSearchAllCustomers(user)))
     tools.push({ href: '/staff/find-customer', label: 'Find customer' });
-  if (isSuperAdmin(user) || canAdminSection(user, 'leads')) tools.push({ href: '/staff/leads', label: 'Leads' });
+  if (user.role === 'REVIEWER' || isSuperAdmin(user) || canAdminSection(user, 'leads')) tools.push({ href: '/staff/leads', label: 'Leads' });
   if (await canViewReportsArea(user)) tools.push({ href: '/staff/reports', label: 'Reports' });
   if (tools.length > 0) nav.push({ label: 'Tools', children: tools });
 

@@ -68,6 +68,17 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-10-01
+- **Reviewers can now see the HD Leads tab (all offices).** The Leads tab was
+  admin-only (super admin or the `leads` admin section), and reviewers never hold
+  admin sections — so a reviewer couldn't open it at all. Now *viewing* leads is
+  open to every reviewer (plus leads-section admins / super admins), same model as
+  the Deals and Mail tabs — so anyone handling a customer call (e.g. Alyssa) can
+  search all offices to confirm whether a store received a lead. *Managing* leads —
+  the bulk "Fill postal codes" and "Send existing scans to booking" tools, which
+  write to the DB / push to the external booking feed — stays restricted to
+  leads-section admins and is hidden from reviewers (the action guards are
+  unchanged, defense-in-depth). (nav in `(staff)/layout.tsx`; page gate + button
+  visibility in `(staff)/staff/leads/page.tsx`.)
 - **Staff HD Leads: selecting an office now scopes the scanned-cards section too.**
   On `/staff/leads`, picking an office correctly filtered the parsed HD Leads Log
   list, but the scanned-cards ("HD Mail In Test") section always showed every
