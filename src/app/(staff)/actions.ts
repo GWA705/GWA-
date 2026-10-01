@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/db';
-import { requireStaffSection, requireAdminSection } from '@/lib/session';
+import { requireStaffSection, requireAdminSection, requireRole } from '@/lib/session';
 import { audit } from '@/lib/audit';
 import { isOutOfBandReturn } from '@/lib/outOfBandReturn';
 import { findCardData, CARD_BLOCK_MESSAGE } from '@/lib/cardscan';
@@ -1654,7 +1654,7 @@ export async function sendReviewRequestAction(
  * sample product/rep values so the copy lines show.
  */
 export async function sendReviewTestAction(): Promise<ActionState & { sentTo?: string; note?: string }> {
-  const session = await requireStaffSection('review-queue');
+  const session = await requireRole('REVIEWER', 'ADMIN');
   if (!emailEnabled()) return { error: 'Email isn’t switched on here (SMTP), so a test can’t be sent.' };
   const to = (session.email || '').trim();
   if (!to || !EMAIL_RE.test(to)) return { error: 'Your account has no valid email to send the test to.' };
@@ -1709,11 +1709,15 @@ export async function emailDocumentsToCustomerAction(
   const ids = Array.from(new Set((contentItemIds || []).filter(Boolean))).slice(0, 10);
   if (ids.length === 0) return { error: 'Pick at least one document to send.' };
 
-  const items = await prisma.contentItem.findMany({
-    where: { id: { in: ids }, active: true, fileStorageKey: { not: null } },
-    select: { id: true, title: true, fileName: true, fileMime: true, fileStorageKey: true },
+  // The Product Library files (manuals / brochures / spec sheets).
+  const items = await prisma.resourceProductFile.findMany({
+    where: { id: { in: ids }, product: { active: true } },
+    select: { id: true, storageKey: true, mime: true, originalName: true, label: true, kind: true, product: { select: { title: true } } },
   });
   if (items.length === 0) return { error: 'Those documents aren’t available to send.' };
+
+  const titleOf = (it: (typeof items)[number]) => `${it.product.title}${it.label ? ` (${it.label})` : ''}`;
+  const cleanName = (s: string) => (s || 'document').replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim();
 
   // Keep the email deliverable — most providers cap attachments around 25 MB.
   const MAX_TOTAL = 20 * 1024 * 1024;
@@ -1722,18 +1726,18 @@ export async function emailDocumentsToCustomerAction(
   for (const it of items) {
     let buf: Buffer;
     try {
-      buf = await getDocument(it.fileStorageKey!);
+      buf = await getDocument(it.storageKey);
     } catch {
-      return { error: `Couldn’t read “${it.title}”. Try again or pick a different file.` };
+      return { error: `Couldn’t read “${titleOf(it)}”. Try again or pick a different file.` };
     }
     total += buf.length;
     if (total > MAX_TOTAL) {
       return { error: 'Those files are over 20 MB together — too large to email. Send fewer/smaller files (a secure download link for big manuals can be added later).' };
     }
     attachments.push({
-      filename: it.fileName || `${it.title}.pdf`,
+      filename: it.originalName || `${cleanName(it.product.title)}.pdf`,
       content: buf,
-      contentType: it.fileMime || 'application/octet-stream',
+      contentType: it.mime || 'application/octet-stream',
     });
   }
 
@@ -1741,7 +1745,7 @@ export async function emailDocumentsToCustomerAction(
   const { subject, html, text } = buildDocsEmail({
     customerName: name,
     message: message || '',
-    docTitles: items.map((i) => i.title),
+    docTitles: items.map(titleOf),
     logoUrl: `${portalUrl()}/gwa-hd-partners.png`,
   });
   const r = await sendEmail({ to, subject, html, text, attachments });
@@ -1749,9 +1753,9 @@ export async function emailDocumentsToCustomerAction(
 
   // Record on the customer file (internal note) + audit.
   await prisma.note.create({
-    data: { applicationId, authorId: session.userId, internal: true, body: `📎 Emailed to customer (${to}): ${items.map((i) => i.title).join(', ')}` },
+    data: { applicationId, authorId: session.userId, internal: true, body: `📎 Emailed to customer (${to}): ${items.map(titleOf).join(', ')}` },
   });
-  await audit({ actorId: session.userId, action: 'MAIL_SEND', entityType: 'Application', entityId: applicationId, detail: `Emailed documents to customer: ${items.map((i) => i.title).join(', ')}` });
+  await audit({ actorId: session.userId, action: 'MAIL_SEND', entityType: 'Application', entityId: applicationId, detail: `Emailed documents to customer: ${items.map(titleOf).join(', ')}` });
   revalidatePath(`/staff/applications/${applicationId}`);
   return { ok: true, sentTo: to };
 }

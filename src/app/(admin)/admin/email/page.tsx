@@ -1,6 +1,7 @@
 import { requireAdminSection } from '@/lib/session';
 import { emailEnabled, getEmailIdentityInfo } from '@/lib/email';
 import { TestEmailForm } from './TestEmailForm';
+import { ReviewTestButton } from './ReviewTestButton';
 import { EmailIdentityForm } from './EmailIdentityForm';
 import { AttentionAlertRunner } from './AttentionAlertRunner';
 
@@ -44,6 +45,16 @@ export default async function EmailSettingsPage() {
           Confirms outgoing email works end-to-end. No personal information is included.
         </p>
         <TestEmailForm defaultTo={admin.email} enabled={enabled} />
+      </div>
+
+      <div className="card p-6">
+        <h2 className="mb-1 text-base font-semibold text-gray-900">Customer review email</h2>
+        <p className="mb-4 text-sm text-gray-500">
+          Send yourself the actual customer review email (co-brand logo, gold stars, from Reporter@ghsbarrie.ca)
+          to confirm how it looks and that it delivers — in Gmail and Outlook. Uses the configured review link,
+          or the website as a placeholder until one is set.
+        </p>
+        <ReviewTestButton enabled={enabled} />
       </div>
 
       <div className="card p-6">

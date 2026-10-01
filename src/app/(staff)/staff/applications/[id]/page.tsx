@@ -58,7 +58,6 @@ import { AdvanceToFundingButton } from './AdvanceToFundingButton';
 import { ReviewRequestCard } from './ReviewRequestCard';
 import { FlagDealerIssueCard } from './FlagDealerIssueCard';
 import { EmailDocsCard } from './EmailDocsCard';
-import { CONTENT_SECTION_LABELS } from '@/lib/constants';
 import { getReviewLink } from '@/lib/settings';
 import { smsEnabled } from '@/lib/sms';
 import { computeDealerPayout } from '@/lib/payoutCalc';
@@ -233,14 +232,22 @@ export default async function StaffApplicationDetail({
   // Customer review request (confirmation step): is a review link configured, and
   // can this user set it (admins only)?
   const reviewLink = await getReviewLink();
-  // Library documents (brochures / manuals) that can be emailed to the customer.
+  // Product Library files (manuals / brochures / spec sheets) that can be emailed
+  // to the customer — from the ResourceProduct catalog, not the internal content.
+  const RESOURCE_FILE_KIND_LABELS: Record<string, string> = {
+    MANUAL: 'Manual', BROCHURE: 'Brochure', SPEC_SHEET: 'Spec sheet', WARRANTY: 'Warranty', OTHER: 'File',
+  };
   const libraryDocs = (
-    await prisma.contentItem.findMany({
-      where: { active: true, fileStorageKey: { not: null } },
-      select: { id: true, title: true, section: true },
-      orderBy: [{ section: 'asc' }, { sortOrder: 'asc' }, { title: 'asc' }],
+    await prisma.resourceProductFile.findMany({
+      where: { product: { active: true } },
+      select: { id: true, kind: true, label: true, product: { select: { title: true } } },
+      orderBy: [{ product: { title: 'asc' } }, { sortOrder: 'asc' }],
     })
-  ).map((d) => ({ id: d.id, title: d.title, sectionLabel: CONTENT_SECTION_LABELS[d.section] }));
+  ).map((f) => ({
+    id: f.id,
+    title: `${f.product.title}${f.label ? ` (${f.label})` : ''}`,
+    sectionLabel: RESOURCE_FILE_KIND_LABELS[f.kind] ?? 'File',
+  }));
 
   // When the install paperwork first went out (earliest reviewer-stage doc).
   // Anything the dealer uploads AFTER this point is a returned document, even if
