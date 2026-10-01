@@ -284,7 +284,7 @@ export function LeadsView({
   isStaff?: boolean;
   // 'list' = flat status-striped list; 'grouped' = grouped by what to do next;
   // 'map' = Leaflet map of leads + stores.
-  view?: 'list' | 'grouped' | 'map';
+  view?: 'list' | 'grouped' | 'map' | 'all';
   // Filter to a single outcome (see LEAD_OUTCOME_FILTERS); '' = all.
   outcome?: string;
   // Map data (only needed for the map view): store coords + per-lead geocode +
@@ -341,8 +341,8 @@ export function LeadsView({
     );
   };
 
-  // Segmented List / Grouped / Map toggle — preserves the current search + filters.
-  const viewLink = (val: 'list' | 'grouped' | 'map', label: string) => {
+  // Segmented List / Grouped / Map / All toggle — preserves the current search + filters.
+  const viewLink = (val: 'list' | 'grouped' | 'map' | 'all', label: string) => {
     const active = view === val;
     return (
       <Link
@@ -449,6 +449,7 @@ export function LeadsView({
             {viewLink('list', t('leads.viewList'))}
             {viewLink('grouped', t('leads.viewGrouped'))}
             {viewLink('map', t('leads.viewMap'))}
+            {viewLink('all', 'All leads')}
           </div>
           <LeadsSelect
             paramName="outcome"

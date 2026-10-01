@@ -8,6 +8,7 @@ import { readLeadCalls } from '@/lib/leadCalls';
 import { leadsSheetId, reportingJournalEnabled } from '@/lib/reporting/journalRead';
 import { listReportOffices } from '@/lib/reporting/monthly';
 import { LeadsView, filterLeads, leadMonthOptions, leadOutcomeKey } from '@/components/LeadsView';
+import { CombinedLeadsView } from '@/components/CombinedLeadsView';
 import { leadsGeoData, storeGeos, unplacedStoresForMap } from '@/lib/leadGeo';
 import { MailInTestWorkspace } from '@/components/MailInTestWorkspace';
 import { type ScannedLeadRow } from '@/components/ScannedLeadsList';
@@ -42,7 +43,11 @@ export default async function StaffLeadsPage({
   const officeId = (searchParams.office ?? '').trim();
   const month = (searchParams.month ?? '').trim();
   const outcome = (searchParams.outcome ?? '').trim();
-  const view = searchParams.view === 'grouped' ? 'grouped' : searchParams.view === 'map' ? 'map' : 'list';
+  const view =
+    searchParams.view === 'grouped' ? 'grouped'
+    : searchParams.view === 'map' ? 'map'
+    : searchParams.view === 'all' ? 'all'
+    : 'list';
   const page = Math.max(1, parseInt(searchParams.page ?? '1', 10) || 1);
 
   // Scanned lead cards — independent of the HD Leads Log sheet. Staff normally see
@@ -99,10 +104,14 @@ export default async function StaffLeadsPage({
   const summary = summarize(scoped);
   const monthOptions = leadMonthOptions(scoped);
   let filtered = filterLeads(scoped, q, status, month);
-  const callsByKey = await readLeadCalls(filtered.map(leadKeyOf));
+  // The combined "All leads" view does its own filtering client-side over the full
+  // office-scoped set, so load calls for that superset there; otherwise just for
+  // the filtered list the normal view shows.
+  const callsByKey = await readLeadCalls((view === 'all' ? scoped : filtered).map(leadKeyOf));
   if (outcome) {
     filtered = filtered.filter((l) => leadOutcomeKey(l.noGood, callsByKey[leadKeyOf(l)] ?? []) === outcome);
   }
+  const parsedView = view === 'all' ? 'list' : view; // LeadsView never renders in 'all'
 
   // Map data — only when the map is shown. Scoped to the selected office, or all
   // offices when none is picked (the leadership all-offices map).
@@ -137,11 +146,9 @@ export default async function StaffLeadsPage({
         {status && <input type="hidden" name="status" value={status} />}
         {month && <input type="hidden" name="month" value={month} />}
         {outcome && <input type="hidden" name="outcome" value={outcome} />}
-        {view === 'grouped' && <input type="hidden" name="view" value="grouped" />}
+        {view !== 'list' && <input type="hidden" name="view" value={view} />}
         <button type="submit" className="btn-primary">{t('staffLeads.viewButton')}</button>
       </form>
-
-      {scannedSection}
 
       {read.error && (
         <div className="rounded-lg border-l-4 border-amber-500 bg-amber-50 p-3 text-sm text-amber-800">
@@ -149,23 +156,56 @@ export default async function StaffLeadsPage({
         </div>
       )}
 
-      <LeadsView
-        leads={filtered}
-        summary={summary}
-        q={q}
-        status={status}
-        basePath="/staff/leads"
-        extraHidden={[{ name: 'office', value: officeId }]}
-        page={page}
-        month={month}
-        monthOptions={monthOptions}
-        storeNames={storeNames}
-        callsByKey={callsByKey}
-        isStaff
-        view={view}
-        outcome={outcome}
-        geo={geo}
-      />
+      {view === 'all' ? (
+        <div className="space-y-3">
+          {canManageLeads && (
+            <div className="grid gap-3 md:grid-cols-2"><PostalFillButton /><BackfillBookingButton /></div>
+          )}
+          {/* View toggle (page-level here, since the combined list replaces LeadsView) */}
+          <div className="inline-flex rounded-full bg-gray-100 p-0.5" role="group" aria-label={t('leads.viewAria')}>
+            {([['list', t('leads.viewList')], ['grouped', t('leads.viewGrouped')], ['map', t('leads.viewMap')], ['all', 'All leads']] as const).map(([v, label]) => {
+              const href = v === 'list'
+                ? `/staff/leads${officeId ? `?office=${officeId}` : ''}`
+                : `/staff/leads?view=${v}${officeId ? `&office=${officeId}` : ''}`;
+              const active = view === v;
+              return (
+                <Link key={v} href={href} className={`px-3 py-1 text-sm font-medium transition ${active ? 'bg-white text-brand-700 shadow-sm' : 'text-gray-600 hover:text-gray-800'}`}>
+                  {label}
+                </Link>
+              );
+            })}
+          </div>
+          <CombinedLeadsView
+            parsed={scoped}
+            scanned={scanned}
+            parsedCalls={callsByKey}
+            scannedCalls={scannedCalls}
+            storeNames={storeNames}
+            showOffice={!officeId}
+          />
+        </div>
+      ) : (
+        <>
+          {scannedSection}
+          <LeadsView
+            leads={filtered}
+            summary={summary}
+            q={q}
+            status={status}
+            basePath="/staff/leads"
+            extraHidden={[{ name: 'office', value: officeId }]}
+            page={page}
+            month={month}
+            monthOptions={monthOptions}
+            storeNames={storeNames}
+            callsByKey={callsByKey}
+            isStaff
+            view={parsedView}
+            outcome={outcome}
+            geo={geo}
+          />
+        </>
+      )}
     </div>
   );
 }

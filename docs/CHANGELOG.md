@@ -68,6 +68,17 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-10-01
+- **HD Leads: new "All leads" view — scanned + parsed together in one list.** For
+  booking, staff wanted every lead for a store in one place instead of the two
+  separate sections (scanned "HD Mail In Test" cards + the HD Leads Log). Added a
+  fourth view option (List / Grouped / Map / **All leads**) that merges both
+  sources into one searchable list, each row tagged **"Mail in"** (scanned) or
+  **"Store"** (HD Log). Reuses each source's native row (`ScannedLeadRowItem` /
+  `StoreLeadRow`), so call-logging / booking still work; client-side search,
+  source filter (All / Mail in / Store), status filter, and sort (newest / oldest /
+  name / by store). Respects the office filter. (`CombinedLeadsView.tsx`; view
+  wiring in `(staff)/staff/leads/page.tsx`; "All leads" added to the LeadsView
+  toggle.)
 - **Gift-card queue: pending cards grouped by office, then by day uploaded.** When
   staff pay out water-test gift cards they send them office by office, but the
   pending list was one flat table mixing offices/days, so a batch could be "one or
