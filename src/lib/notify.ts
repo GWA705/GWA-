@@ -424,17 +424,23 @@ export async function notifyConfirmationIssue(applicationId: string, mailId: str
     for (const u of users) {
       await sendEmail({
         to: recipientEmail(u),
-        subject: `Action needed: a confirmation issue on ${deal}`,
+        subject: `⚠ ACTION REQUIRED: confirmation issue on ${deal} — please acknowledge`,
         html: renderEmail({
-          heading: 'Action needed — please review and acknowledge',
-          intro: `A Georgian Water & Air confirmation reviewer flagged an issue on your deal for ${deal}. Please open it, review the details, and confirm you've read it.`,
-          ctaLabel: 'Open & acknowledge',
+          heading: '⚠ Action required — please review & acknowledge',
+          intro: `A Georgian Water & Air confirmation reviewer flagged an issue on your deal for ${deal} during the confirmation call.`,
+          bodyHtml: `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:4px 0 16px;">
+            <tr><td style="border-left:4px solid #dc2626;background:#fef2f2;border-radius:6px;padding:12px 14px;">
+              <p style="margin:0;font-size:15px;line-height:1.6;color:#991b1b;font-weight:700;">This needs your attention now.</p>
+              <p style="margin:6px 0 0;font-size:14px;line-height:1.6;color:#991b1b;">Open the deal, review the details, and confirm you&rsquo;ve read it. It stays flagged — on the deal and in your portal mail — until someone at your office acknowledges it.</p>
+            </td></tr>
+          </table>`,
+          ctaLabel: 'Open & acknowledge now',
           ctaUrl: `${appUrl()}/dealer/mail/${mailId}`,
         }),
       });
       await sendPushToUser(u.id, {
-        title: 'Action needed on a deal',
-        body: `${deal} — a confirmation issue needs your review.`,
+        title: '⚠ Action required on a deal',
+        body: `${deal} — a confirmation issue needs your review and acknowledgement.`,
         url: `/dealer/mail/${mailId}`,
         tag: `issue-${mailId}`,
       });

@@ -166,6 +166,7 @@ export const en = {
     actions: 'Actions',
     actionNeeded: 'Action needed',
     sentBack: 'Sent back',
+    issueFlagged: 'Issue — acknowledge',
     // Insight charts
     byStatus: 'Applications by Status',
     total: 'Total',

@@ -39,6 +39,24 @@ export default async function DealerApplications() {
   const pinnedSet = new Set(pinRows.map((r) => r.applicationId));
   const initialView: ViewKey = usage[0] && (VIEWS as readonly string[]).includes(usage[0].view) ? (usage[0].view as ViewKey) : 'tracker';
 
+  // Unacknowledged flagged confirmation issues → red flag in the list at a glance.
+  const issueMailIds = apps.map((a) => a.confirmationIssueMailId).filter((x): x is string => !!x);
+  const acknowledgedMailIds = issueMailIds.length
+    ? new Set(
+        (
+          await prisma.mailReceipt.findMany({
+            where: { mailId: { in: issueMailIds }, acknowledgedAt: { not: null } },
+            select: { mailId: true },
+          })
+        ).map((r) => r.mailId),
+      )
+    : new Set<string>();
+  const issueOpenSet = new Set(
+    apps
+      .filter((a) => a.confirmationIssueMailId && !acknowledgedMailIds.has(a.confirmationIssueMailId))
+      .map((a) => a.id),
+  );
+
   const deals: DealVM[] = apps.map((a) => {
     const isPaid = a._count.payouts > 0 || a.journalPaidOn != null;
     const outstanding = dealerOutstanding({
@@ -68,6 +86,7 @@ export default async function DealerApplications() {
       hasAction: outstanding.hasAction,
       readyToSubmit: outstanding.readyToSubmit,
       problem: a.status === 'PROBLEM',
+      issueFlagged: issueOpenSet.has(a.id),
       stageKey: stage.key,
       stageLabel: t(stage.labelKey),
       pct: stage.pct,

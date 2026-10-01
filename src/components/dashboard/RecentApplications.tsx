@@ -19,6 +19,8 @@ export interface RecentApp {
   actionNeeded: boolean;
   /** Reviewer flagged an issue / sent it back. */
   problem: boolean;
+  /** A confirmation issue was flagged and the office hasn't acknowledged it yet. */
+  issueFlagged: boolean;
   /** Pinned to the top by this user. */
   pinned: boolean;
 }
@@ -65,6 +67,12 @@ export function RecentApplications({ items }: { items: RecentApp[] }) {
                 </div>
                 <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                   <StatusBadge status={a.status} />
+                  {a.issueFlagged && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700">
+                      <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-red-600 text-[9px] font-black leading-none text-white">!</span>
+                      {t('dashboard.issueFlagged')}
+                    </span>
+                  )}
                   {a.problem && (
                     <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700">
                       <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-red-600 text-[9px] font-black leading-none text-white">!</span>
@@ -117,6 +125,12 @@ export function RecentApplications({ items }: { items: RecentApp[] }) {
                         {a.name}
                       </Link>
                       <div className="mt-1 flex flex-wrap gap-1">
+                        {a.issueFlagged && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700">
+                            <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-red-600 text-[9px] font-black leading-none text-white">!</span>
+                            {t('dashboard.issueFlagged')}
+                          </span>
+                        )}
                         {a.problem && (
                           <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700">
                             <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-red-600 text-[9px] font-black leading-none text-white">!</span>

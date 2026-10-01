@@ -41,12 +41,34 @@ export default async function DealerDashboard() {
         id: true, status: true, createdAt: true, approvedAmount: true, requestedAmount: true,
         programType: true, programCategory: true, province: true,
         applicantFirstName: true, applicantLastName: true,
+        confirmationIssueMailId: true,
       },
     }),
     user.dealerId ? prisma.dealerProfile.findUnique({ where: { dealerId: user.dealerId }, select: { businessName: true } }) : Promise.resolve(null),
     prisma.applicationPin.findMany({ where: { userId: user.userId }, select: { applicationId: true } }).catch(() => []),
   ]);
   const pinnedSet = new Set(pinRows.map((p) => p.applicationId));
+
+  // Deals with a flagged confirmation issue the office hasn't acknowledged yet get
+  // a red flag in the list, so it's visible at a glance without opening the deal.
+  // "Unacknowledged" = the issue mail has no receipt with an acknowledgedAt. One
+  // batch query over just the deals that actually carry an issue mail.
+  const issueMailIds = apps.map((a) => a.confirmationIssueMailId).filter((x): x is string => !!x);
+  const acknowledgedMailIds = issueMailIds.length
+    ? new Set(
+        (
+          await prisma.mailReceipt.findMany({
+            where: { mailId: { in: issueMailIds }, acknowledgedAt: { not: null } },
+            select: { mailId: true },
+          })
+        ).map((r) => r.mailId),
+      )
+    : new Set<string>();
+  const issueOpenSet = new Set(
+    apps
+      .filter((a) => a.confirmationIssueMailId && !acknowledgedMailIds.has(a.confirmationIssueMailId))
+      .map((a) => a.id),
+  );
 
   const amountOf = (a: (typeof apps)[number]) => Number(a.approvedAmount ?? a.requestedAmount);
 
@@ -104,6 +126,7 @@ export default async function DealerDashboard() {
       submitted: a.createdAt.toLocaleDateString('en-CA'),
       actionNeeded: ACTION_NEEDED.includes(a.status),
       problem: a.status === 'PROBLEM',
+      issueFlagged: issueOpenSet.has(a.id),
       pinned: pinnedSet.has(a.id),
     }));
 

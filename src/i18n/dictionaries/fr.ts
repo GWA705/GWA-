@@ -170,6 +170,7 @@ export const fr: Dictionary = {
     actions: 'Actions',
     actionNeeded: 'Action requise',
     sentBack: 'Retournée',
+    issueFlagged: 'Problème — à confirmer',
     // Insight charts
     byStatus: 'Demandes par statut',
     total: 'Total',

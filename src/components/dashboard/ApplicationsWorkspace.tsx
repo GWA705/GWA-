@@ -27,6 +27,8 @@ export interface DealVM {
   hasAction: boolean;
   readyToSubmit: boolean;
   problem: boolean;
+  /** A confirmation issue was flagged and the office hasn't acknowledged it yet. */
+  issueFlagged: boolean;
   stageKey: DealStageKey;
   stageLabel: string;
   pct: number;
@@ -60,6 +62,14 @@ function recordView(view: ViewKey) {
 }
 
 function ActionChip({ deal, t }: { deal: DealVM; t: TFunction }) {
+  if (deal.issueFlagged) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700">
+        <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-red-600 text-[9px] font-black leading-none text-white">!</span>
+        {t('dashboard.issueFlagged')}
+      </span>
+    );
+  }
   if (deal.problem) {
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700">
@@ -239,7 +249,7 @@ function PipelineCard({ d, t }: { d: DealVM; t: TFunction }) {
   return (
     <Link
       href={`/dealer/applications/${d.id}`}
-      className={`block rounded-xl border bg-white p-3 shadow-sm transition hover:shadow-md ${d.problem ? 'border-red-200' : 'border-gray-200'}`}
+      className={`block rounded-xl border bg-white p-3 shadow-sm transition hover:shadow-md ${d.problem || d.issueFlagged ? 'border-red-200' : 'border-gray-200'}`}
     >
       <div className="flex items-start justify-between gap-2">
         <span className="min-w-0 flex-1 truncate text-sm font-semibold text-blue-600">{d.name}</span>
@@ -382,7 +392,7 @@ function ProgressView({ deals, page, setPage, t }: { deals: DealVM[]; page: numb
                 <span className="text-sm font-semibold text-gray-700">{d.amountLabel}</span>
               </div>
               <div className="mt-2 flex items-center gap-3">
-                <div className="flex-1"><ProgressBar pct={d.pct} problem={d.problem} /></div>
+                <div className="flex-1"><ProgressBar pct={d.pct} problem={d.problem || d.issueFlagged} /></div>
                 <span className="flex-none text-xs font-semibold tabular-nums text-gray-500">{d.pct}%</span>
               </div>
               <div className="mt-1.5 flex items-center justify-between text-xs">

@@ -68,6 +68,17 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-10-01
+- **Flagged issues show at a glance in the dealer's deal lists + a more urgent email.**
+  Any deal with an unacknowledged confirmation issue now carries a red
+  "Issue — acknowledge" flag in the dealer dashboard's Recent Applications and in the
+  full Applications workspace (all views), with a red row accent — so the office sees
+  it without opening each deal. The flag clears automatically once someone at the
+  office acknowledges. The email notification is now visibly urgent: "⚠ ACTION
+  REQUIRED" subject + heading, a red alert box, and an "Open & acknowledge now" button
+  (push notification likewise). ("Unacknowledged" is computed from the issue mail's
+  receipts in one batch query per list.) Files: `RecentApplications.tsx`,
+  `ApplicationsWorkspace.tsx`, dealer `page.tsx` + `applications/page.tsx`,
+  `notifyConfirmationIssue` (`lib/notify.ts`); new i18n key `dashboard.issueFlagged`.
 - **Flag-an-issue, upgraded: portal Mail with required acknowledgement, a top-of-deal
   banner, and an email alert.** Flagging an issue now (1) posts to the deal chat as
   before, (2) sends the office a real portal **Mail** with `requireAck: true` — it
