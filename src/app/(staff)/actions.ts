@@ -1633,3 +1633,47 @@ export async function sendReviewRequestAction(
   const note = problems.length ? `Sent, but: ${problems.join('; ')}.` : undefined;
   return { ok: true, sentEmail, sentSms, note };
 }
+
+/**
+ * Flag an issue to the dealer from the confirmation step: when a confirmer finds
+ * the customer has a question or concern, this posts a dealer-visible note on the
+ * deal (so it lives in the portal, on the customer's file, and the dealer can
+ * reply), marks the confirmation as an ISSUE, and notifies the office's users by
+ * email + push via the normal note plumbing. The dealer's reply comes back to
+ * staff the same way, so the whole back-and-forth is tracked in the portal.
+ */
+export async function flagDealerIssueAction(
+  applicationId: string,
+  body: string,
+): Promise<ActionState> {
+  const session = await requireStaffSection('review-queue');
+  const text = (body || '').trim();
+  if (text.length < 3) return { error: 'Describe the issue first.' };
+  if (text.length > 4000) return { error: 'That note is too long — keep it under 4000 characters.' };
+
+  // Never store payment-card data (same guard as a normal note).
+  const card = findCardData(text);
+  if (card.blocked) {
+    await audit({ actorId: session.userId, action: 'CARD_DATA_BLOCKED', entityType: 'Application', entityId: applicationId, detail: `Issue note blocked — card data detected (${card.signals.join(', ')})` });
+    return { error: CARD_BLOCK_MESSAGE };
+  }
+
+  const app = await prisma.application.findUnique({ where: { id: applicationId }, select: { id: true } });
+  if (!app) return { error: 'Deal not found.' };
+
+  // A dealer-visible note (internal:false) marked as an issue, so it reads clearly
+  // on the dealer's copy of the deal and in the thread.
+  await prisma.note.create({
+    data: { applicationId, authorId: session.userId, body: `⚠ Issue to review (from confirmation call):\n\n${text}`, internal: false },
+  });
+  // Mark the confirmation as an issue (a soft flag — does not move the deal).
+  await prisma.application.update({ where: { id: applicationId }, data: { confirmationStatus: 'ISSUE' } });
+
+  await markReviewerAction(applicationId);
+  await audit({ actorId: session.userId, action: 'DECISION', entityType: 'Application', entityId: applicationId, detail: 'Issue flagged to dealer (confirmation)' });
+  // Emails + pushes the office's portal users; the dealer sees it on their deal
+  // and can reply, which notifies staff back.
+  await notifyNewNote(applicationId, 'REVIEWER');
+  revalidatePath(`/staff/applications/${applicationId}`);
+  return { ok: true };
+}

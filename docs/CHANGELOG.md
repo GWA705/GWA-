@@ -68,6 +68,16 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-10-01
+- **Confirmation step: "⚠ Flag an issue to the dealer" button.** Under the review
+  button on a deal's Confirmation section. When a confirmer finds the customer has
+  a question/concern on the call, it expands to a message box; sending posts a
+  dealer-visible note on the deal (so it lives in the portal, on the customer's
+  file), marks the confirmation as an ISSUE, and emails + push-notifies the office's
+  users via the normal note plumbing. The dealer sees it on their copy of the deal
+  and replies there, which notifies staff back — so the whole exchange is tracked
+  in the portal. Reuses the existing Note / ConversationThread / notifyNewNote
+  system (no new tables). (`flagDealerIssueAction` in `(staff)/actions.ts`;
+  `FlagDealerIssueCard.tsx`; card added under the review card in the deal page.)
 - **HD Leads: new "All leads" view — scanned + parsed together in one list.** For
   booking, staff wanted every lead for a store in one place instead of the two
   separate sections (scanned "HD Mail In Test" cards + the HD Leads Log). Added a

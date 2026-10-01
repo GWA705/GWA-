@@ -56,6 +56,7 @@ import { STATUS_LABELS, REVIEWER_PAPERWORK_TYPES, applicableVerificationChecks, 
 import { isOutOfBandReturn } from '@/lib/outOfBandReturn';
 import { AdvanceToFundingButton } from './AdvanceToFundingButton';
 import { ReviewRequestCard } from './ReviewRequestCard';
+import { FlagDealerIssueCard } from './FlagDealerIssueCard';
 import { getReviewLink } from '@/lib/settings';
 import { smsEnabled } from '@/lib/sms';
 import { computeDealerPayout } from '@/lib/payoutCalc';
@@ -634,6 +635,7 @@ export default async function StaffApplicationDetail({
           sentVia={app.reviewRequestVia}
           sentByName={app.reviewRequestByName}
         />
+        <FlagDealerIssueCard applicationId={app.id} />
       </div>
     ),
     // 6 · Submit to finance company
