@@ -21,16 +21,50 @@ function firstName(full: string): string {
 export function buildDocsEmail(opts: {
   customerName: string;
   message: string; // optional free-text note from the rep
-  docTitles: string[];
+  /** Files included as email attachments. */
+  attachedTitles?: string[];
+  /** Files too big to attach — offered as secure download links instead. */
+  links?: { title: string; url: string }[];
+  /** How many days the download links stay valid (for the on-page note). */
+  linkTtlDays?: number;
   logoUrl: string;
 }): { subject: string; html: string; text: string } {
   const first = escapeHtml(firstName(opts.customerName));
   const subject = `Your requested information — ${COMPANY}`;
   const note = (opts.message || '').trim();
+  const attached = opts.attachedTitles ?? [];
+  const links = opts.links ?? [];
+  const ttl = opts.linkTtlDays ?? 30;
   const noteHtml = note
     ? `<p style="margin:0 0 14px;font-size:15px;line-height:1.65;color:#374151;">${escapeHtml(note).replace(/\n/g, '<br />')}</p>`
     : '';
-  const list = opts.docTitles.map((d) => `<li style="margin:2px 0;">${escapeHtml(d)}</li>`).join('');
+
+  // Attached files — a simple bulleted list.
+  const attachedHtml = attached.length
+    ? `<p style="margin:0 0 8px;font-size:15px;line-height:1.65;color:#374151;">
+          ${attached.length === 1 ? 'The following document is' : 'The following documents are'} attached to this email:
+        </p>
+        <ul style="margin:0 0 14px;padding-left:20px;font-size:14px;color:#374151;">${attached
+          .map((d) => `<li style="margin:2px 0;">${escapeHtml(d)}</li>`)
+          .join('')}</ul>`
+    : '';
+
+  // Download-link files — rendered as tappable buttons (too big to attach).
+  const linksHtml = links.length
+    ? `<p style="margin:0 0 10px;font-size:15px;line-height:1.65;color:#374151;">
+          ${links.length === 1 ? 'Your document is' : 'Your documents are'} ready to download${
+            attached.length ? ' as well' : ''
+          }:
+        </p>
+        ${links
+          .map(
+            (l) => `<p style="margin:0 0 8px;">
+          <a href="${escapeHtml(l.url)}" style="display:inline-block;background:#111827;color:#ffffff;text-decoration:none;font-weight:700;padding:11px 18px;border-radius:8px;font-size:14px;">⬇ ${escapeHtml(l.title)}</a>
+        </p>`,
+          )
+          .join('')}
+        <p style="margin:2px 0 14px;font-size:12px;line-height:1.5;color:#9ca3af;">These download links work for ${ttl} days.</p>`
+    : '';
 
   const html = `<!-- ${COMPANY_HTML} documents -->
 <div style="background:#f4f4f5;padding:24px 0;font-family:Arial,Helvetica,sans-serif;color:#111827;">
@@ -45,10 +79,9 @@ export function buildDocsEmail(opts: {
       <tr><td style="padding:10px 28px 4px;">
         <h1 style="margin:0 0 12px;font-size:20px;line-height:1.3;color:#111827;">Hi ${first},</h1>
         ${noteHtml}
-        <p style="margin:0 0 8px;font-size:15px;line-height:1.65;color:#374151;">
-          As requested, ${opts.docTitles.length === 1 ? 'the document is' : 'the documents are'} attached to this email:
-        </p>
-        <ul style="margin:0 0 14px;padding-left:20px;font-size:14px;color:#374151;">${list}</ul>
+        <p style="margin:0 0 12px;font-size:15px;line-height:1.65;color:#374151;">As requested, here is the information you asked for.</p>
+        ${attachedHtml}
+        ${linksHtml}
         <p style="margin:0 0 6px;font-size:14px;line-height:1.6;color:#374151;">
           Questions? Just reply to this email or call us at
           <a href="tel:${TEL_LINK}" style="color:#111827;">${TEL_DISPLAY}</a> — we're happy to help.
@@ -70,8 +103,11 @@ export function buildDocsEmail(opts: {
     `Hi ${firstName(opts.customerName)},`,
     ``,
     ...(note ? [note, ``] : []),
-    `As requested, ${opts.docTitles.length === 1 ? 'the document is' : 'the documents are'} attached:`,
-    ...opts.docTitles.map((d) => `  - ${d}`),
+    `As requested, here is the information you asked for.`,
+    ...(attached.length ? [``, `Attached:`, ...attached.map((d) => `  - ${d}`)] : []),
+    ...(links.length
+      ? [``, `Download (links work for ${ttl} days):`, ...links.map((l) => `  - ${l.title}: ${l.url}`)]
+      : []),
     ``,
     `Questions? Reply to this email or call ${TEL_DISPLAY}.`,
     ``,

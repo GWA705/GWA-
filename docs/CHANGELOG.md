@@ -68,6 +68,16 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-10-01
+- **Email manuals/brochures of any size: big files now go as secure 30-day download
+  links instead of erroring.** The "Email a brochure/manual" sender used to hard-stop
+  with "over 20 MB — too large to email." Now it attaches what fits (≤20 MB keeps the
+  message deliverable) and sends anything larger as a secure, expiring download link in
+  the same email — so large Aerus manuals actually reach the customer. Links are
+  tamper-proof, time-limited tokens (encrypted with the app key, no new table/secret),
+  served by a new public route `GET /d/[token]`; expired/altered links show a friendly
+  "invalid or expired" message. New `lib/docLink.ts` (+ tests), `app/d/[token]/route.ts`;
+  `buildDocsEmail` now renders an attached list and/or download buttons;
+  `emailDocumentsToCustomerAction` splits files into attach-vs-link.
 - **Flagged issues show at a glance in the dealer's deal lists + a more urgent email.**
   Any deal with an unacknowledged confirmation issue now carries a red
   "Issue — acknowledge" flag in the dealer dashboard's Recent Applications and in the

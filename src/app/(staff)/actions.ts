@@ -19,6 +19,7 @@ import { sendEmail, emailEnabled } from '@/lib/email';
 import { sendSms, smsEnabled } from '@/lib/sms';
 import { buildReviewEmail, buildReviewSms } from '@/lib/reviewRequest';
 import { buildDocsEmail } from '@/lib/customerDocsEmail';
+import { makeDocLinkToken, DOC_LINK_TTL_DAYS } from '@/lib/docLink';
 import { getOrCreateDealConversation, postChatMessage } from '@/lib/chat';
 import { getReviewLink, setSetting, REVIEW_SETTING_KEYS } from '@/lib/settings';
 import {
@@ -1726,10 +1727,16 @@ export async function emailDocumentsToCustomerAction(
   const titleOf = (it: (typeof items)[number]) => `${it.product.title}${it.label ? ` (${it.label})` : ''}`;
   const cleanName = (s: string) => (s || 'document').replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim();
 
-  // Keep the email deliverable — most providers cap attachments around 25 MB.
-  const MAX_TOTAL = 20 * 1024 * 1024;
-  let total = 0;
+  // Attach what fits and keeps the email deliverable (providers cap the whole
+  // message near 25 MB, and base64 inflates attachments ~37%, so we hold the raw
+  // attachment budget at 20 MB). Anything that would blow the budget — or a
+  // single oversized manual — is sent as a secure, 30-day download link instead,
+  // so big files still reach the customer rather than erroring out.
+  const ATTACH_BUDGET = 20 * 1024 * 1024;
+  let attachedBytes = 0;
   const attachments: { filename: string; content: Buffer; contentType?: string }[] = [];
+  const attachedTitles: string[] = [];
+  const links: { title: string; url: string }[] = [];
   for (const it of items) {
     let buf: Buffer;
     try {
@@ -1737,30 +1744,35 @@ export async function emailDocumentsToCustomerAction(
     } catch {
       return { error: `Couldn’t read “${titleOf(it)}”. Try again or pick a different file.` };
     }
-    total += buf.length;
-    if (total > MAX_TOTAL) {
-      return { error: 'Those files are over 20 MB together — too large to email. Send fewer/smaller files (a secure download link for big manuals can be added later).' };
+    if (buf.length <= ATTACH_BUDGET && attachedBytes + buf.length <= ATTACH_BUDGET) {
+      attachedBytes += buf.length;
+      attachments.push({
+        filename: it.originalName || `${cleanName(it.product.title)}.pdf`,
+        content: buf,
+        contentType: it.mime || 'application/octet-stream',
+      });
+      attachedTitles.push(titleOf(it));
+    } else {
+      links.push({ title: titleOf(it), url: `${portalUrl()}/d/${makeDocLinkToken(it.id)}` });
     }
-    attachments.push({
-      filename: it.originalName || `${cleanName(it.product.title)}.pdf`,
-      content: buf,
-      contentType: it.mime || 'application/octet-stream',
-    });
   }
 
   const name = `${app.applicantFirstName} ${app.applicantLastName}`.trim();
   const { subject, html, text } = buildDocsEmail({
     customerName: name,
     message: message || '',
-    docTitles: items.map(titleOf),
+    attachedTitles,
+    links,
+    linkTtlDays: DOC_LINK_TTL_DAYS,
     logoUrl: `${portalUrl()}/gwa-hd-partners.png`,
   });
   const r = await sendEmail({ to, subject, html, text, attachments });
   if (!r.sent) return { error: `Didn’t send (${r.reason ?? 'error'}).` };
 
   // Record on the customer file (internal note) + audit.
+  const linkNote = links.length ? ` (${links.length} sent as ${DOC_LINK_TTL_DAYS}-day download link${links.length === 1 ? '' : 's'})` : '';
   await prisma.note.create({
-    data: { applicationId, authorId: session.userId, internal: true, body: `📎 Emailed to customer (${to}): ${items.map(titleOf).join(', ')}` },
+    data: { applicationId, authorId: session.userId, internal: true, body: `📎 Emailed to customer (${to}): ${items.map(titleOf).join(', ')}${linkNote}` },
   });
   await audit({ actorId: session.userId, action: 'MAIL_SEND', entityType: 'Application', entityId: applicationId, detail: `Emailed documents to customer: ${items.map(titleOf).join(', ')}` });
   revalidatePath(`/staff/applications/${applicationId}`);
