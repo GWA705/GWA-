@@ -68,6 +68,17 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-10-01
+- **Gift-card queue: pending cards grouped by office, then by day uploaded.** When
+  staff pay out water-test gift cards they send them office by office, but the
+  pending list was one flat table mixing offices/days, so a batch could be "one or
+  two from one location, then one from another." Now the pending queue renders a
+  section per **office** (alphabetical), each split into **day-uploaded** sub-groups,
+  with a per-office **"Select only this office"** button and an office/day select-all
+  — so Copy emails / Copy CSV / Mark sent act on exactly that office's batch. The
+  existing location filter is kept (relabelled "Location"). (`GiftCardQueue.tsx`;
+  `giftCardQueueData.ts` now returns the raw request date for day-grouping.)
+  Note: the History search already matches office name, so "search by location"
+  works there by typing the office.
 - **Reviewers can now see the HD Leads tab (all offices).** The Leads tab was
   admin-only (super admin or the `leads` admin section), and reviewers never hold
   admin sections — so a reviewer couldn't open it at all. Now *viewing* leads is

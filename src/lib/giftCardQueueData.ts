@@ -41,6 +41,7 @@ export async function loadGiftCardQueue() {
     customerPhone: r.customerPhone,
     amount: Number(r.amount),
     requestedAt: dt(r.createdAt),
+    requestedAtISO: r.createdAt.toISOString(), // raw date for grouping by day
     staffUnread: r.staffUnread,
     notes: mapNotes(r.notes),
   }));
