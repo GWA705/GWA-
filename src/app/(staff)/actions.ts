@@ -19,6 +19,7 @@ import { sendEmail, emailEnabled } from '@/lib/email';
 import { sendSms, smsEnabled } from '@/lib/sms';
 import { buildReviewEmail, buildReviewSms } from '@/lib/reviewRequest';
 import { buildDocsEmail } from '@/lib/customerDocsEmail';
+import { getOrCreateDealConversation, postChatMessage } from '@/lib/chat';
 import { getReviewLink, setSetting, REVIEW_SETTING_KEYS } from '@/lib/settings';
 import {
   decisionSchema,
@@ -1771,11 +1772,11 @@ export async function emailDocumentsToCustomerAction(
 export async function flagDealerIssueAction(
   applicationId: string,
   body: string,
-): Promise<ActionState> {
+): Promise<ActionState & { notified?: number }> {
   const session = await requireStaffSection('review-queue');
   const text = (body || '').trim();
   if (text.length < 3) return { error: 'Describe the issue first.' };
-  if (text.length > 4000) return { error: 'That note is too long — keep it under 4000 characters.' };
+  if (text.length > 4000) return { error: 'Keep the issue under 4000 characters.' };
 
   // Never store payment-card data (same guard as a normal note).
   const card = findCardData(text);
@@ -1784,22 +1785,29 @@ export async function flagDealerIssueAction(
     return { error: CARD_BLOCK_MESSAGE };
   }
 
-  const app = await prisma.application.findUnique({ where: { id: applicationId }, select: { id: true } });
+  const app = await prisma.application.findUnique({ where: { id: applicationId }, select: { id: true, dealerId: true } });
   if (!app) return { error: 'Deal not found.' };
 
-  // A dealer-visible note (internal:false) marked as an issue, so it reads clearly
-  // on the dealer's copy of the deal and in the thread.
-  await prisma.note.create({
-    data: { applicationId, authorId: session.userId, body: `⚠ Issue to review (from confirmation call):\n\n${text}`, internal: false },
-  });
+  // Post the issue into the DEAL CHAT — it shows on BOTH the staff and dealer
+  // copies of the deal (the "Chat with the dealer" thread), is saved to the
+  // customer file, and the dealer can reply right there. (A one-way dealer note
+  // isn't shown on the staff side, which is why a flagged issue seemed to vanish.)
+  const conv = await getOrCreateDealConversation(applicationId, session);
+  if (!conv) return { error: 'Couldn’t open the deal conversation to post the issue.' };
+  await postChatMessage({ conversationId: conv.id, user: session, body: `⚠ Issue to review (confirmation call):\n\n${text}` });
+
   // Mark the confirmation as an issue (a soft flag — does not move the deal).
   await prisma.application.update({ where: { id: applicationId }, data: { confirmationStatus: 'ISSUE' } });
 
+  // Email + push the office's portal users (same as any new deal message). Count
+  // how many will actually get an email so the UI can be honest about it.
+  const notified = await prisma.user.count({
+    where: { dealerId: app.dealerId, role: 'DEALER_USER', active: true, notifyNewNotes: true },
+  });
+  await notifyNewNote(applicationId, 'REVIEWER').catch(() => {});
+
   await markReviewerAction(applicationId);
   await audit({ actorId: session.userId, action: 'DECISION', entityType: 'Application', entityId: applicationId, detail: 'Issue flagged to dealer (confirmation)' });
-  // Emails + pushes the office's portal users; the dealer sees it on their deal
-  // and can reply, which notifies staff back.
-  await notifyNewNote(applicationId, 'REVIEWER');
   revalidatePath(`/staff/applications/${applicationId}`);
-  return { ok: true };
+  return { ok: true, notified };
 }
