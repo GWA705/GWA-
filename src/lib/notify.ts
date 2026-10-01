@@ -407,6 +407,46 @@ export async function notifyNewNote(applicationId: string, authorRole: Role) {
 }
 
 /**
+ * A confirmer flagged an issue to the dealer (confirmation call). This is
+ * action-required — the office must acknowledge it — so, unlike routine notes,
+ * it emails + pushes EVERY active user at the dealer regardless of their
+ * "new notes" preference, pointing them at the mail where they acknowledge.
+ * Returns how many office users were notified. Best-effort; never throws.
+ */
+export async function notifyConfirmationIssue(applicationId: string, mailId: string): Promise<number> {
+  try {
+    const app = await prisma.application.findUnique({ where: { id: applicationId } });
+    if (!app) return 0;
+    const deal = dealLabel(app);
+    const users = await prisma.user.findMany({
+      where: { dealerId: app.dealerId, role: 'DEALER_USER', active: true },
+    });
+    for (const u of users) {
+      await sendEmail({
+        to: recipientEmail(u),
+        subject: `Action needed: a confirmation issue on ${deal}`,
+        html: renderEmail({
+          heading: 'Action needed — please review and acknowledge',
+          intro: `A Georgian Water & Air confirmation reviewer flagged an issue on your deal for ${deal}. Please open it, review the details, and confirm you've read it.`,
+          ctaLabel: 'Open & acknowledge',
+          ctaUrl: `${appUrl()}/dealer/mail/${mailId}`,
+        }),
+      });
+      await sendPushToUser(u.id, {
+        title: 'Action needed on a deal',
+        body: `${deal} — a confirmation issue needs your review.`,
+        url: `/dealer/mail/${mailId}`,
+        tag: `issue-${mailId}`,
+      });
+    }
+    return users.length;
+  } catch (e) {
+    console.error('[notify] confirmation issue failed', e);
+    return 0;
+  }
+}
+
+/**
  * A mail thread got a reply. When a dealer replies, notify GWA staff (the mail
  * sender + staff who watch new notes) by email and push. When staff reply back,
  * notify that dealer's users. Best-effort; never breaks the reply itself.

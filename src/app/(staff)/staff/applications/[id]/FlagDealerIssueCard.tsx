@@ -29,9 +29,9 @@ export function FlagDealerIssueCard({ applicationId }: { applicationId: string }
       const emailed = typeof r.notified === 'number'
         ? (r.notified > 0
             ? ` ${r.notified} office contact${r.notified === 1 ? '' : 's'} emailed.`
-            : ' (No one at the office has email alerts turned on, but they’ll see it in the portal.)')
+            : ' (No active office contacts to email, but it’s in their portal inbox to acknowledge.)')
         : '';
-      setMsg({ kind: 'ok', text: `Issue posted to the deal chat below (“Chat with the dealer”) — the dealer can reply there, and it’s saved to the customer file.${emailed}` });
+      setMsg({ kind: 'ok', text: `Issue sent. It’s posted to the deal chat below (“Chat with the dealer”) and in the office’s portal Mail, where they must acknowledge they’ve read it. A banner stays at the top of this deal until they do.${emailed}` });
       router.refresh();
     });
   }
@@ -48,13 +48,13 @@ export function FlagDealerIssueCard({ applicationId }: { applicationId: string }
             >
               <span aria-hidden>⚠</span> Flag an issue to the dealer
             </button>
-            <p className="mt-1 text-xs text-gray-500">Customer has a question or concern? It posts to the deal chat so the office sees it and can reply — tracked on the deal.</p>
+            <p className="mt-1 text-xs text-gray-500">Customer has a question or concern? It posts to the deal chat, emails the office, and lands in their portal Mail where they must acknowledge they’ve read it — all tracked on the deal.</p>
           </div>
         </div>
       ) : (
         <div>
           <label htmlFor="issueBody" className="block text-sm font-semibold text-amber-900">What’s the issue?</label>
-          <p className="mb-1.5 text-xs text-amber-700">This posts to the deal chat (and emails the office). They’ll see it on the deal and can reply there.</p>
+          <p className="mb-1.5 text-xs text-amber-700">This posts to the deal chat, emails the office, and sends it to their portal Mail where they must acknowledge they’ve read it. They can reply in the chat.</p>
           <textarea
             id="issueBody"
             value={body}

@@ -32,7 +32,7 @@ describe('buildReviewEmail', () => {
       customerName: 'Jane Smith',
       reviewLink: LINK,
       logoUrl: 'x',
-      products: 'Reverse Osmosis System',
+      products: ['Reverse Osmosis System'],
       repName: 'Mark',
     });
     expect(e.html).toContain('Home Depot Home Services');
@@ -40,6 +40,25 @@ describe('buildReviewEmail', () => {
     expect(e.html).toContain('Mark and the rest of our team');
     expect(e.text).toContain('Mark and the rest of our team');
     expect(e.text).toContain('Reverse Osmosis System');
+  });
+
+  it('joins multiple products naturally with "and" / an Oxford comma', () => {
+    const two = buildReviewEmail({
+      customerName: 'Jane',
+      reviewLink: LINK,
+      logoUrl: 'x',
+      products: ['Reverse Osmosis Drinking Water System', 'Water Softener'],
+    });
+    expect(two.html).toContain('for your new Reverse Osmosis Drinking Water System and Water Softener');
+    expect(two.text).toContain('Reverse Osmosis Drinking Water System and Water Softener');
+
+    const three = buildReviewEmail({
+      customerName: 'Jane',
+      reviewLink: LINK,
+      logoUrl: 'x',
+      products: ['Reverse Osmosis System', 'Water Softener', 'UV Filter'],
+    });
+    expect(three.html).toContain('Reverse Osmosis System, Water Softener, and UV Filter');
   });
 
   it('reads cleanly with no rep or products', () => {

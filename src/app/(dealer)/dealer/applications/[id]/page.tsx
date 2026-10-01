@@ -8,6 +8,8 @@ import { DocumentList } from '@/components/DocumentList';
 import { PaperworkCards } from '@/components/PaperworkCards';
 import { PayoutReceipt } from '@/components/PayoutReceipt';
 import { ConfirmationBadge } from '@/components/ConfirmationBadge';
+import { ConfirmationIssueBanner } from '@/components/ConfirmationIssueBanner';
+import { loadConfirmationIssue } from '@/lib/confirmationIssue';
 import { ConfirmationView } from '@/components/ConfirmationView';
 import { DealProgress } from '@/components/DealProgress';
 import { ConversationThread } from '@/components/ConversationThread';
@@ -59,6 +61,9 @@ export default async function DealerApplicationDetail({
     },
   });
   if (!app || !canAccessAsDealer(user, app.dealerId)) notFound();
+
+  // Flagged confirmation issue → top banner the office must acknowledge.
+  const confirmationIssue = await loadConfirmationIssue(app.confirmationIssueMailId);
 
   // Latest cancellation request (if any) + whether the dealer can start one now.
   const latestCancellation = app.cancellations[0] ?? null;
@@ -202,6 +207,8 @@ export default async function DealerApplicationDetail({
         hasPayouts={app.payouts.length > 0}
         journalPaidOn={app.journalPaidOn}
       />
+
+      {confirmationIssue && <ConfirmationIssueBanner side="dealer" issue={confirmationIssue} />}
 
       {/* What's needed from you — a self-serve "why is this stuck?" summary,
           shown only while the ball is in the dealer's court. */}

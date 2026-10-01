@@ -26,12 +26,24 @@ function firstName(full: string): string {
   return f || 'there';
 }
 
+/**
+ * Join product names into a natural phrase: "A" / "A and B" / "A, B, and C"
+ * (Oxford comma for three or more). Blank entries are dropped.
+ */
+function formatList(items: string[]): string {
+  const xs = items.map((s) => (s || '').trim()).filter(Boolean);
+  if (xs.length === 0) return '';
+  if (xs.length === 1) return xs[0];
+  if (xs.length === 2) return `${xs[0]} and ${xs[1]}`;
+  return `${xs.slice(0, -1).join(', ')}, and ${xs[xs.length - 1]}`;
+}
+
 export function buildReviewEmail(opts: {
   customerName: string;
   reviewLink: string;
   logoUrl: string;
-  /** Full product names sold (not abbreviations), e.g. "Reverse Osmosis System". */
-  products?: string;
+  /** Full product names sold (not abbreviations), e.g. ["Reverse Osmosis System", "Water Softener"]. */
+  products?: string[];
   /** The rep/salesperson who sold it, shown in the thank-you line. */
   repName?: string;
 }): { subject: string; html: string; text: string } {
@@ -39,7 +51,7 @@ export function buildReviewEmail(opts: {
   const link = opts.reviewLink;
   const subject = `How did we do? — Home Depot Home Services`;
 
-  const prod = (opts.products ?? '').trim();
+  const prod = formatList(opts.products ?? []);
   const rep = (opts.repName ?? '').trim();
   const productPhraseHtml = prod ? ` for your new ${escapeHtml(prod)}` : '';
   const productPhraseText = prod ? ` for your new ${prod}` : '';

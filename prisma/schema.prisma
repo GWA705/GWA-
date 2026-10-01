@@ -1240,6 +1240,12 @@ model Application {
   reviewRequestVia    String?
   reviewRequestByName String?
 
+  // When a confirmer flags an issue to the dealer, we send a portal Mail that
+  // requires the office to acknowledge they've read it. This holds that mail's id
+  // so the deal page can show a top banner with the acknowledgement state and a
+  // link to it. Null = no issue has been flagged (via the button) on this deal.
+  confirmationIssueMailId String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

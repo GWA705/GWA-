@@ -68,6 +68,24 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-10-01
+- **Flag-an-issue, upgraded: portal Mail with required acknowledgement, a top-of-deal
+  banner, and an email alert.** Flagging an issue now (1) posts to the deal chat as
+  before, (2) sends the office a real portal **Mail** with `requireAck: true` — it
+  lands in `/dealer/mail` with the "Ack required" badge and forces the "I have read
+  this" button; staff can see who acknowledged at `/staff/mail/<id>`, (3) shows a
+  prominent **banner at the top of the deal** (both staff + dealer pages, styled like
+  "what's needed from the dealer") that's red while awaiting acknowledgement and turns
+  green once the office confirms, and (4) emails + push-notifies **every active user at
+  the office** (action-required, so it overrides the routine "new notes" preference).
+  The mail's id is stored on the deal (`Application.confirmationIssueMailId`, new
+  nullable column — migration `20261001130000_confirmation_issue_mail`) so the banner
+  can show the live ack state. New: `notifyConfirmationIssue` (`lib/notify.ts`),
+  `lib/confirmationIssue.ts`, `components/ConfirmationIssueBanner.tsx`; rewired
+  `flagDealerIssueAction`. Fixes the earlier report that a flagged issue "vanished" and
+  sent no reliable mail (the old dealer-facing Note wasn't rendered on the staff page).
+- **Review email now lists multiple products naturally.** "A and B" for two,
+  "A, B, and C" for three+ (Oxford comma), using the full product names off the deal
+  (never the journal abbreviations). (`buildReviewEmail` now takes a `string[]`.)
 - **Confirmation step: "⚠ Flag an issue to the dealer" button.** Under the review
   button on a deal's Confirmation section. When a confirmer finds the customer has
   a question/concern on the call, it expands to a message box; sending posts a

@@ -21,6 +21,8 @@ import { NoteThread } from '@/components/NoteThread';
 import { NoteForm } from '@/components/NoteForm';
 import { ConversationThread } from '@/components/ConversationThread';
 import { ConfirmationBadge } from '@/components/ConfirmationBadge';
+import { ConfirmationIssueBanner } from '@/components/ConfirmationIssueBanner';
+import { loadConfirmationIssue } from '@/lib/confirmationIssue';
 import { DealProgress } from '@/components/DealProgress';
 import { ProgramBadge } from '@/components/ProgramBadge';
 import {
@@ -169,6 +171,9 @@ export default async function StaffApplicationDetail({
   );
 
   const internalNotes = app.dealNotes.filter((n) => n.internal);
+
+  // Flagged confirmation issue → top banner with its acknowledgement state.
+  const confirmationIssue = await loadConfirmationIssue(app.confirmationIssueMailId);
 
   const reveal = searchParams.reveal === '1';
 
@@ -941,6 +946,8 @@ export default async function StaffApplicationDetail({
           journalPaidOn={app.journalPaidOn}
           stageDates={stageDates}
         />
+
+        {confirmationIssue && <ConfirmationIssueBanner side="staff" issue={confirmationIssue} />}
 
         {app.taxExempt && (() => {
           const ex = exemptionSummary({ taxExempt: true, province: app.province, deliveredToReserve: app.deliveredToReserve });

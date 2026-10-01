@@ -14,7 +14,7 @@ import { mergeProductsSold, journalProductNames } from '@/lib/products';
 import { writeDealToJournal, writeCancellationToJournal, journalEnabled, type JournalDeal } from '@/lib/journal';
 import { storeFiles } from '@/lib/upload';
 import { deleteDocument, getDocument } from '@/lib/storage';
-import { notifyStatusChange, notifyNewNote, notifyCancellationResolved } from '@/lib/notify';
+import { notifyStatusChange, notifyNewNote, notifyCancellationResolved, notifyConfirmationIssue } from '@/lib/notify';
 import { sendEmail, emailEnabled } from '@/lib/email';
 import { sendSms, smsEnabled } from '@/lib/sms';
 import { buildReviewEmail, buildReviewSms } from '@/lib/reviewRequest';
@@ -1282,10 +1282,16 @@ export async function saveConfirmationAction(
 
   const newStatus =
     d.intent === 'complete' ? 'COMPLETED' : d.intent === 'issue' ? 'ISSUE' : app.confirmationStatus;
-  if (newStatus !== app.confirmationStatus) {
+  // Completing the confirmation resolves any flagged issue, so clear the deal's
+  // issue banner (the Mail itself stays in the office's inbox as history).
+  const clearIssue = completing;
+  if (newStatus !== app.confirmationStatus || clearIssue) {
     await prisma.application.update({
       where: { id: d.applicationId },
-      data: { confirmationStatus: newStatus },
+      data: {
+        confirmationStatus: newStatus,
+        ...(clearIssue ? { confirmationIssueMailId: null } : {}),
+      },
     });
   }
 
@@ -1599,7 +1605,7 @@ export async function sendReviewRequestAction(
         customerName: name,
         reviewLink: link,
         logoUrl: `${portalUrl()}/gwa-hd-partners.png`,
-        products: app.productsSold.length ? app.productsSold.join(', ') : '',
+        products: app.productsSold,
         repName: app.salespersonName ?? '',
       });
       // Review requests come from (and reply to) Reporter@ghsbarrie.ca, separate
@@ -1666,7 +1672,7 @@ export async function sendReviewTestAction(): Promise<ActionState & { sentTo?: s
     customerName: session.name || 'there',
     reviewLink: link,
     logoUrl: `${portalUrl()}/gwa-hd-partners.png`,
-    products: 'Reverse Osmosis Drinking Water System and Water Softener',
+    products: ['Reverse Osmosis Drinking Water System', 'Water Softener'],
     repName: 'Mark',
   });
   const r = await sendEmail({
@@ -1785,10 +1791,13 @@ export async function flagDealerIssueAction(
     return { error: CARD_BLOCK_MESSAGE };
   }
 
-  const app = await prisma.application.findUnique({ where: { id: applicationId }, select: { id: true, dealerId: true } });
+  const app = await prisma.application.findUnique({
+    where: { id: applicationId },
+    select: { id: true, dealerId: true, applicantFirstName: true, applicantLastName: true },
+  });
   if (!app) return { error: 'Deal not found.' };
 
-  // Post the issue into the DEAL CHAT — it shows on BOTH the staff and dealer
+  // 1) Post the issue into the DEAL CHAT — it shows on BOTH the staff and dealer
   // copies of the deal (the "Chat with the dealer" thread), is saved to the
   // customer file, and the dealer can reply right there. (A one-way dealer note
   // isn't shown on the staff side, which is why a flagged issue seemed to vanish.)
@@ -1796,18 +1805,42 @@ export async function flagDealerIssueAction(
   if (!conv) return { error: 'Couldn’t open the deal conversation to post the issue.' };
   await postChatMessage({ conversationId: conv.id, user: session, body: `⚠ Issue to review (confirmation call):\n\n${text}` });
 
-  // Mark the confirmation as an issue (a soft flag — does not move the deal).
-  await prisma.application.update({ where: { id: applicationId }, data: { confirmationStatus: 'ISSUE' } });
-
-  // Email + push the office's portal users (same as any new deal message). Count
-  // how many will actually get an email so the UI can be honest about it.
-  const notified = await prisma.user.count({
-    where: { dealerId: app.dealerId, role: 'DEALER_USER', active: true, notifyNewNotes: true },
+  // 2) Send a portal Mail to the office that REQUIRES them to acknowledge they've
+  // read it. It lands in /dealer/mail with an "Ack required" badge and forces the
+  // "I have read this" button; staff can see who acknowledged at /staff/mail/<id>.
+  // The subject carries the "action needed" framing, so the body is just the
+  // confirmer's words (which the deal banner also shows).
+  const first = (app.applicantFirstName || '').trim();
+  const lastInitial = (app.applicantLastName || '').trim().charAt(0);
+  const dealName = `${first}${lastInitial ? ` ${lastInitial}.` : ''}`.trim() || 'a deal';
+  const mail = await prisma.mail.create({
+    data: {
+      subject: `Action needed: confirmation issue — ${dealName}`,
+      body: text,
+      requireAck: true,
+      allowReplies: false,
+      distributorsOnly: false,
+      allDealers: false,
+      senderId: session.userId,
+      recipients: { create: [{ dealerId: app.dealerId }] },
+    },
   });
-  await notifyNewNote(applicationId, 'REVIEWER').catch(() => {});
+
+  // Mark the confirmation as an issue (a soft flag — does not move the deal) and
+  // remember the mail so the deal page can show a top banner with its ack state.
+  await prisma.application.update({
+    where: { id: applicationId },
+    data: { confirmationStatus: 'ISSUE', confirmationIssueMailId: mail.id },
+  });
+
+  // 3) Email + push every active user at the office. This is action-required, so
+  // it overrides the routine "new notes" preference. Returns how many were sent.
+  const notified = await notifyConfirmationIssue(applicationId, mail.id);
 
   await markReviewerAction(applicationId);
+  await audit({ actorId: session.userId, action: 'MAIL_SEND', entityType: 'Mail', entityId: mail.id, detail: `Confirmation issue flagged to dealer ${app.dealerId}, acknowledgement required` });
   await audit({ actorId: session.userId, action: 'DECISION', entityType: 'Application', entityId: applicationId, detail: 'Issue flagged to dealer (confirmation)' });
   revalidatePath(`/staff/applications/${applicationId}`);
+  revalidatePath('/staff/mail');
   return { ok: true, notified };
 }
