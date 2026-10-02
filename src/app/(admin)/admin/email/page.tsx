@@ -3,6 +3,7 @@ import { emailEnabled, getEmailIdentityInfo } from '@/lib/email';
 import { smsEnabled } from '@/lib/sms';
 import { TestEmailForm } from './TestEmailForm';
 import { TestSmsForm } from './TestSmsForm';
+import { TwilioUsageCard } from './TwilioUsageCard';
 import { ReviewTestButton } from './ReviewTestButton';
 import { EmailIdentityForm } from './EmailIdentityForm';
 import { AttentionAlertRunner } from './AttentionAlertRunner';
@@ -73,6 +74,12 @@ export default async function EmailSettingsPage() {
             : 'Texting isn’t switched on yet. Add the Twilio keys on the Elastic Beanstalk environment (see below), then send a test.'}
         </p>
         <TestSmsForm defaultTo="" enabled={smsOn} />
+
+        <div className="mt-5 border-t border-gray-100 pt-4">
+          <h3 className="mb-2 text-sm font-semibold text-gray-900">Texting spend</h3>
+          <TwilioUsageCard enabled={smsOn} />
+        </div>
+
         <div className="mt-4 rounded bg-gray-50 p-3 text-xs text-gray-600">
           <p className="mb-1 font-medium text-gray-700">How to turn on texting</p>
           <p>

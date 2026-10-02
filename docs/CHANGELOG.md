@@ -68,6 +68,11 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-10-02
+- **Admin: Twilio cost meter.** New "Texting spend" panel on Admin → Email showing SMS
+  spend **this month** and **today** (with text counts) plus the account **balance**,
+  pulled live from Twilio's usage API using the existing credentials (read-only, with a
+  Refresh button). Figures use whatever currency the Twilio account reports.
+  (`lib/twilioUsage.ts` + `parseUsageRecord` tests, `getTwilioUsageAction`, `TwilioUsageCard`.)
 - **Journal (live): duplicate guard — never duplicate or overwrite a manually-entered deal.**
   Live writes now recognise a deal that is already on the sheet (e.g. a staff member
   typed it in) by its unique reference number (HD Ref # / Loan #): instead of appending

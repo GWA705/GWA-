@@ -20,6 +20,7 @@ import { redirect } from 'next/navigation';
 import { CONTENT_SECTIONS } from '@/lib/constants';
 import { sendEmail, emailEnabled } from '@/lib/email';
 import { sendSms, smsEnabled, toE164 } from '@/lib/sms';
+import { getTwilioUsage, type TwilioUsage } from '@/lib/twilioUsage';
 import { buildInviteEmail } from '@/lib/email-templates';
 import { setSetting, EMAIL_SETTING_KEYS, BANNER_SETTING_KEYS, SECURITY_SETTING_KEYS, MFA_TRUST_DAY_OPTIONS, DEFAULT_MFA_TRUST_DAYS, type MfaRequirement } from '@/lib/settings';
 import { parseDealerProfileForm, readExtraContacts, type OfficeContact } from '@/lib/dealerProfile';
@@ -209,6 +210,24 @@ export async function sendTestSmsAction(
   else if (/^http_(400|403|21)/.test(reason)) hint = ' → Twilio rejected the request — often the From number isn’t a valid/owned Twilio number (use E.164, e.g. +17055550123) or isn’t registered to text Canada yet.';
   else if (reason === 'bad-number') hint = ' → That number didn’t look like a valid 10-digit number.';
   return { error: `Could not send: ${reason}${hint}` };
+}
+
+/**
+ * Read-only Twilio cost meter: current balance + SMS spend this month and today.
+ * Admin-only. Returns an error string the card can show when texting is off or
+ * Twilio rejects the request.
+ */
+export async function getTwilioUsageAction(): Promise<{ error?: string; usage?: TwilioUsage }> {
+  await requireAdminSection('email');
+  if (!smsEnabled()) return { error: 'Texting isn’t connected yet — add the Twilio keys first.' };
+  try {
+    return { usage: await getTwilioUsage() };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'error';
+    if (/twilio_http_401/.test(msg)) return { error: 'Twilio rejected the credentials — check TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN.' };
+    if (/not-configured/.test(msg)) return { error: 'Texting isn’t connected yet.' };
+    return { error: `Couldn’t load Twilio usage (${msg}).` };
+  }
 }
 
 export async function createDealerAction(
