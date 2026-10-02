@@ -69,6 +69,19 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-10-02
+- **Upload-package ZIP: dealer's FINAL copies only + HD waiver naming convention.**
+  Two fixes to the "Download upload package (ZIP)" on the staff deal page
+  (`src/app/api/applications/[id]/upload-package/route.ts`):
+  1. **Dealer finals only.** The ZIP included both FUNDING-stage docs (the dealer's
+     returned signed copies) *and* REVIEWER-stage docs (the blank paperwork/agreements
+     GWA staff upload *for* the dealer to complete). It now includes **FUNDING stage
+     only** — the dealer's final copies — so the staff templates no longer double up
+     the package. (APPLICATION-stage intake was already excluded.)
+  2. **HD waiver filename.** The HD waiver now downloads named to Home Depot's
+     required convention: **`#WAIVER#<HD Ref #>`** (the literal `#WAIVER#` tag then
+     the 800-series HD reference, no brackets, e.g. `#WAIVER#800255027.pdf`), instead
+     of the generic "Lastname_Firstname - Home Depot waiver". Falls back to the
+     generic name if a deal has no HD reference.
 - **Journal next-blank-line fix: ignore formula zeros so deals stop landing below the totals row (live journal).**
   Root cause of the "writes below the totals row" bug — found after the re-place
   button still landed deals on row 237. The **live** journal's pre-numbered blank

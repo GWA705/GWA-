@@ -6,18 +6,17 @@ import { getDocument } from '@/lib/storage';
 import { audit } from '@/lib/audit';
 import { DOCUMENT_TYPE_LABELS } from '@/lib/constants';
 
-// "Upload package" download: only the documents a reviewer sends OUT to the
-// funder / Home Depot, cleanly named, as one flat ZIP. This is the general
-// (un-curated) version — it includes the completed outbound docs and leaves the
-// reviewer to pick what each funder needs. The curated, funder-specific subset
-// (e.g. HD+Enercare -> Enercare application + certificate of completion + HD
-// contract + HD waiver) is layered on top once those parameters are configured.
+// "Upload package" download: ONLY the dealer's returned FINAL copies — the
+// signed package + install photos + void cheque/PAP — cleanly named, as one flat
+// ZIP. These are the FUNDING-stage documents the dealer uploads back.
 //
-// Outbound docs = FUNDING stage (the signed package + install photos + void
-// cheque/PAP) and REVIEWER stage (HD agreements, certificate of completion,
-// financing paperwork). APPLICATION-stage intake is deliberately excluded — it's
-// internal and not part of what gets uploaded to the funder.
-const OUTBOUND_STAGES = ['FUNDING', 'REVIEWER'] as const;
+// Deliberately EXCLUDED:
+//  - REVIEWER stage — blank paperwork/agreements GWA staff upload FOR the dealer
+//    to complete (HD paperwork, financing paperwork, release of funds). The
+//    dealer returns the COMPLETED versions as FUNDING, so including the staff
+//    templates here just doubled up the package with non-final copies.
+//  - APPLICATION stage — internal intake, never part of the funder upload.
+const OUTBOUND_STAGES = ['FUNDING'] as const;
 
 const clean = (s: string) => (s || '').replace(/[^a-zA-Z0-9]+/g, '') || 'x';
 
@@ -80,7 +79,15 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
     // Proper, funder-friendly name: "Smith_Sean - Home Depot waiver.pdf".
     const typeLabel = doc.label?.trim() || DOCUMENT_TYPE_LABELS[doc.type] || 'Document';
     const ext = extOf(doc.fileName, doc.mimeType);
-    const baseName = `${customer} - ${typeLabel}`.replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim();
+    // The HD waiver uses Home Depot's required upload naming convention:
+    // "#WAIVER#<HD Ref #>" — the literal "#WAIVER#" tag followed directly by the
+    // 800-series HD reference number (no brackets). Falls back to the normal
+    // customer-based name if there's no HD reference.
+    const rawBase =
+      doc.type === 'HD_WAIVER' && app.hdReference?.trim()
+        ? `#WAIVER#${app.hdReference.trim()}`
+        : `${customer} - ${typeLabel}`;
+    const baseName = rawBase.replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim();
     let name = `${baseName}${ext}`;
     if (used.has(name)) {
       let n = 2;
