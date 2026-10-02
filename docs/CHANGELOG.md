@@ -69,6 +69,20 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-10-02
+- **Journal row-selection: judge "free line" by the DEAL columns only (fixes deals landing below the totals in the live journal).**
+  Confirmed with Sean and by reading the live sheet: the live journal has **formula
+  columns** (Net / TAX / Balance, the product-code legend, the Province/Tax-rate
+  helper, status columns) that render a value — `$0.00`, `-`, `AB`, a formula
+  result — on **every** row, including the blank pre-numbered lines. The earlier
+  `$0.00`-only fix wasn't enough because the values weren't all zeros. Row-selection
+  now decides whether a pre-numbered line is free by looking **only at the deal
+  columns** (`DEAL_OCCUPANCY_KEYS`: Last Name, First Name, HD Ref #, Loan #, Cash
+  amount, Financed amount) and **ignores every other column**. A deal or totals row
+  fills a name/amount so it's still never landed on; a blank line has all deal
+  columns empty regardless of its formulas, so new deals land on the first blank
+  numbered line above the totals. (The test journal has no such formulas, which is
+  why it always worked there.) `src/lib/journal.ts` (`rowHasDeal`, `lastContentRow`,
+  `planRow`); `tests/journal.test.ts` rewritten to model the real sheet.
 - **Upload-package ZIP: dealer's FINAL copies only + HD waiver naming convention.**
   Two fixes to the "Download upload package (ZIP)" on the staff deal page
   (`src/app/api/applications/[id]/upload-package/route.ts`):

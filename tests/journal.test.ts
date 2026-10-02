@@ -32,91 +32,89 @@ describe('matchTab', () => {
 });
 
 describe('planRow/chooseRow — live journal: next available line + duplicate guard', () => {
-  // A journal grid: two-row header on sheet rows 1–2, data from row 3.
-  // Columns: 0=No. 1=Last Name 2=First Name 3=HD Ref 4=Loan 5=(office notes).
-  // Rows 3–5 are real deals; row 6 has a blank Last Name but office NOTES in
-  // col 5 (the exact shape that got clobbered); rows 7–8 are pre-numbered but
-  // otherwise empty (the live journal pre-fills the "No." column down blanks).
+  // A journal grid modelled on the REAL sheet: two-row header on sheet rows 1–2,
+  // data from row 3. Columns: 0=No. 1=Last Name 2=First Name 3=HD Ref 4=Loan
+  // 5=Cash/Chq amount. Column 6 ("calc") stands in for the journal's formula /
+  // legend / helper columns (Net, TAX, Balance, product legend, Province/Tax
+  // rate) that carry a value — "$0.00", "-", "AB", a formula result — on EVERY
+  // row, including blank pre-numbered ones. Rows 3–5 are real deals; rows 6–7 are
+  // pre-numbered-but-empty (only the "No." column + the formula column are set).
   const layout = {
     headerBottomRow: 2,
     firstDataRow: 3,
-    columns: { lastName: 1, firstName: 2, hdRef: 3, loanNo: 4 } as Record<string, number>,
+    columns: { lastName: 1, firstName: 2, hdRef: 3, loanNo: 4, cashAmount: 5 } as Record<string, number>,
     rows: [
-      ['', '', '', '', '', ''],
-      ['No.', 'Last Name', 'First Name', 'HD Ref #', 'Loan #', 'Notes'],
-      ['1', 'Smith', 'John', '111', '', ''],
-      ['2', 'Jones', 'Mary', '222', '', ''],
-      ['3', 'Brown', 'Al', '333', '', ''],
-      ['4', '', '', '', '', 'Clean Air and Water'], // notes row, blank Last Name
-      ['5', '', '', '', '', ''], // pre-numbered, empty
-      ['6', '', '', '', '', ''], // pre-numbered, empty
+      ['', '', '', '', '', '', ''],
+      ['No.', 'Last Name', 'First Name', 'HD Ref #', 'Loan #', 'Amount', 'Net'],
+      ['1', 'Smith', 'John', '111', '', '1200', '$1,200.00'],
+      ['2', 'Jones', 'Mary', '222', '', '900', '$900.00'],
+      ['3', 'Brown', 'Al', '333', '', '300', '$300.00'],
+      ['4', '', '', '', '', '', '$0.00'], // pre-numbered blank — formula col shows $0.00
+      ['5', '', '', '', '', '', '$0.00'], // pre-numbered blank — formula col shows $0.00
     ],
   };
   const deal = (over: Partial<{ lastName: string; hdRef: string | null; loanNo: string | null; knownRow: number | null }> = {}) => ({
     lastName: 'Freeborn', hdRef: '999', loanNo: null, knownRow: null, ...over,
   });
 
-  it('writes below all content when there is no empty slot above it — never onto the notes row', () => {
-    // Deals (3–5) then a notes row (6) are contiguous content; the first empty
-    // line is 7. The notes row (blank Last Name but real notes) is never used.
-    expect(chooseRow(layout, deal(), 'live')).toBe(7);
+  it('LIVE FORMULA COLUMNS: lands on the first blank deal line, ignoring the $0.00 formula column', () => {
+    // The real bug: every pre-numbered blank row carries a formula column that
+    // shows "$0.00" (Net/TAX/Balance/…). Judging occupancy by that column made
+    // every line look taken, so deals were appended below the totals. Occupancy
+    // is now judged only by the deal columns (name/ref/amounts), so row 6 — the
+    // first line with no deal on it — is correctly chosen.
+    expect(planRow(layout, deal(), 'live')).toEqual({ kind: 'empty', row: 6 });
   });
 
-  it('fills the first empty pre-numbered line even when a totals row sits below it', () => {
-    // The real-world bug: pre-numbered blank rows (5–6) sit ABOVE a totals row
-    // (7), with deals wrongly appended below it (8). The next available line is
-    // the first blank pre-numbered row (5) — not beneath the totals/appended block.
+  it('fills the first blank deal line even when a totals row sits below it', () => {
+    // Pre-numbered blank rows (5–6) sit ABOVE a totals row (7), with a deal
+    // wrongly appended below it (8). The next available line is the first blank
+    // deal line (5) — the formula column shows $0.00 on every row and is ignored.
     const withTotals = {
       ...layout,
       rows: [
-        ['', '', '', '', '', ''],
-        ['No.', 'Last Name', 'First Name', 'HD Ref #', 'Loan #', 'Notes'],
-        ['1', 'Smith', 'John', '111', '', ''], // row 3 deal
-        ['2', 'Jones', 'Mary', '222', '', ''], // row 4 deal
-        ['3', '', '', '', '', ''], // row 5 pre-numbered BLANK
-        ['4', '', '', '', '', ''], // row 6 pre-numbered BLANK
-        ['', '', '', '', '', '481,688.00'], // row 7 TOTALS (blank Last Name, has an amount)
-        ['', 'Appended', 'Guy', '', '', ''], // row 8 deal wrongly appended below the totals
+        ['', '', '', '', '', '', ''],
+        ['No.', 'Last Name', 'First Name', 'HD Ref #', 'Loan #', 'Amount', 'Net'],
+        ['1', 'Smith', 'John', '111', '', '1200', '$1,200.00'], // row 3 deal
+        ['2', 'Jones', 'Mary', '222', '', '900', '$900.00'], // row 4 deal
+        ['3', '', '', '', '', '', '$0.00'], // row 5 pre-numbered BLANK
+        ['4', '', '', '', '', '', '$0.00'], // row 6 pre-numbered BLANK
+        ['', '', '', '', '', '481688', '$481,688.00'], // row 7 TOTALS (amount filled)
+        ['', 'Appended', 'Guy', '', '', '2500', '$2,500.00'], // row 8 deal wrongly appended below
       ],
     };
     expect(chooseRow(withTotals, deal(), 'live')).toBe(5);
   });
 
-  it('LIVE FORMULA ZEROS: a pre-numbered row whose calc columns show $0.00 is still a free slot', () => {
-    // The real live-journal bug: every pre-numbered blank row carries formula
-    // columns that render "$0.00" / "-" (Net, TAX, Balance, Pay-to-dealer …), so
-    // the old "any non-empty cell = occupied" check thought EVERY line was taken
-    // and appended new deals below the totals row. The blank rows (5–6) must still
-    // be recognised as free — the deal lands on the first one (row 5).
-    const withFormulaZeros = {
-      ...layout,
-      columns: { lastName: 1, firstName: 2, hdRef: 3, loanNo: 4 } as Record<string, number>,
-      rows: [
-        ['', '', '', '', '', '', ''],
-        ['No.', 'Last Name', 'First Name', 'HD Ref #', 'Loan #', 'Net', 'Balance'],
-        ['1', 'Smith', 'John', '111', '', '$1,200.00', '$300.00'], // row 3 real deal
-        ['2', 'Jones', 'Mary', '222', '', '$900.00', '$0.00'], // row 4 real deal
-        ['3', '', '', '', '', '$0.00', '$0.00'], // row 5 BLANK (formula zeros only)
-        ['4', '', '', '', '', '$0.00', '-'], // row 6 BLANK (formula zeros / dash)
-        ['', '', '', '', '', '$2,100.00', '$300.00'], // row 7 TOTALS (non-zero sums)
-      ],
-    };
-    expect(chooseRow(withFormulaZeros, deal(), 'live')).toBe(5);
-  });
-
-  it('never lands on a totals row (blank Last Name but an amount)', () => {
+  it('never lands on a totals row (blank name but a real amount) — appends below', () => {
     // A totals row directly after the deals, no blank slot above it → append below.
     const totalsNoBlanks = {
       ...layout,
       rows: [
-        ['', '', '', '', '', ''],
-        ['No.', 'Last Name', 'First Name', 'HD Ref #', 'Loan #', 'Notes'],
-        ['1', 'Smith', 'John', '111', '', ''], // row 3 deal
-        ['2', 'Jones', 'Mary', '222', '', ''], // row 4 deal
-        ['', '', '', '', '', '12,345.00'], // row 5 TOTALS
+        ['', '', '', '', '', '', ''],
+        ['No.', 'Last Name', 'First Name', 'HD Ref #', 'Loan #', 'Amount', 'Net'],
+        ['1', 'Smith', 'John', '111', '', '1200', '$1,200.00'], // row 3 deal
+        ['2', 'Jones', 'Mary', '222', '', '900', '$900.00'], // row 4 deal
+        ['', '', '', '', '', '12345', '$12,345.00'], // row 5 TOTALS (amount filled)
       ],
     };
     expect(chooseRow(totalsNoBlanks, deal(), 'live')).toBe(6);
+  });
+
+  it('never lands on a notes row (note typed in the Last Name column)', () => {
+    // In the real journal a "notes only" line is typed into the name column, so it
+    // reads as occupied and is skipped — the deal lands on the blank line after it.
+    const withNote = {
+      ...layout,
+      rows: [
+        ['', '', '', '', '', '', ''],
+        ['No.', 'Last Name', 'First Name', 'HD Ref #', 'Loan #', 'Amount', 'Net'],
+        ['1', 'Smith', 'John', '111', '', '1200', '$1,200.00'], // row 3 deal
+        ['2', 'SEE NOTE: clean air and water', '', '', '', '', '$0.00'], // row 4 note in name col
+        ['3', '', '', '', '', '', '$0.00'], // row 5 pre-numbered BLANK
+      ],
+    };
+    expect(chooseRow(withNote, deal(), 'live')).toBe(5);
   });
 
   it('DUPLICATE GUARD: reuses an existing row matched by HD ref (no duplicate, fill blanks)', () => {
@@ -145,16 +143,16 @@ describe('planRow/chooseRow — live journal: next available line + duplicate gu
     expect(planRow(dupe, deal({ lastName: 'Jones', hdRef: '222' }), 'live').kind).toBe('conflict');
   });
 
-  it('no reference match → next empty line, never onto a deal or notes row', () => {
-    expect(planRow(layout, deal({ hdRef: '999' }), 'live')).toEqual({ kind: 'empty', row: 7 });
+  it('no reference match → first blank deal line, never onto a deal row', () => {
+    expect(planRow(layout, deal({ hdRef: '999' }), 'live')).toEqual({ kind: 'empty', row: 6 });
   });
 
   it('updates in place only when the remembered row still holds this customer', () => {
     expect(chooseRow(layout, deal({ lastName: 'Jones', knownRow: 4 }), 'live')).toBe(4);
-    // Remembered row whose last name no longer matches → append, don't clobber.
-    expect(chooseRow(layout, deal({ lastName: 'Freeborn', knownRow: 4 }), 'live')).toBe(7);
-    // Remembered row that a human blanked (now the notes row) → append.
-    expect(chooseRow(layout, deal({ lastName: 'Freeborn', knownRow: 6 }), 'live')).toBe(7);
+    // Remembered row whose last name no longer matches → re-place, don't clobber.
+    expect(chooseRow(layout, deal({ lastName: 'Freeborn', knownRow: 4 }), 'live')).toBe(6);
+    // Remembered row that is actually blank → re-place to the first blank line.
+    expect(chooseRow(layout, deal({ lastName: 'Freeborn', knownRow: 6 }), 'live')).toBe(6);
   });
 
   it('test sandbox stays lenient (fills the first blank Last Name row)', () => {

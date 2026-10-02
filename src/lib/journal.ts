@@ -267,22 +267,38 @@ async function readLayout(
 // --- Row selection ---------------------------------------------------------
 
 /**
- * The 1-based sheet row of the last row that carries ANY real content, so the
- * append point is the row right after it. "Content" ignores column A (the "No."
- * column), which the live journal pre-fills with running numbers down blank
- * rows — those pre-numbered-but-empty rows must NOT count as occupied, or we'd
- * append into the middle of them. A row with notes/dates/amounts but a blank
- * Last Name DOES count, so we never land on top of a human's notes.
+ * Columns that unambiguously mean "a deal occupies this row": the customer's
+ * name, the unique reference numbers, and the deal amounts. Whether a
+ * pre-numbered line is FREE is decided by looking ONLY at these — never at the
+ * journal's calc / legend / status / helper columns (Net, TAX, Balance, the
+ * product-code legend, the Province/Tax-rate helper, checkboxes …). Those carry
+ * a value on EVERY row ("$0.00", "-", a default, FALSE), and counting them made
+ * every blank line look occupied, so deals got appended below the month's totals
+ * row. A real deal fills a name + amounts; a totals row fills amounts; a blank
+ * pre-numbered line has all of these empty.
+ */
+const DEAL_OCCUPANCY_KEYS = ['lastName', 'firstName', 'hdRef', 'loanNo', 'cashAmount', 'financedAmount'] as const;
+
+/** True when a row carries actual deal data in a deal column (see above). */
+function rowHasDeal(layout: JournalLayout, row1: number): boolean {
+  const row = layout.rows[row1 - 1] || [];
+  for (const key of DEAL_OCCUPANCY_KEYS) {
+    const col = layout.columns[key];
+    if (col != null && !isBlankish(row[col])) return true;
+  }
+  return false;
+}
+
+/**
+ * The 1-based sheet row of the last row that carries a deal, so the append point
+ * is the row right after it. Judged only by the deal columns (see
+ * DEAL_OCCUPANCY_KEYS) — the pre-numbered "No." column and the calc/legend/helper
+ * columns are ignored, so empty-but-decorated rows never count as occupied.
  */
 function lastContentRow(layout: JournalLayout): number {
   let last = layout.headerBottomRow; // never before the header
   for (let r = layout.firstDataRow; r <= layout.rows.length; r += 1) {
-    const row = layout.rows[r - 1] || [];
-    // Any cell with REAL content other than the "No." column (index 0) means the
-    // row is occupied. Formula zeros ("$0.00", "-") are NOT real content, so the
-    // live journal's pre-numbered blank rows don't count as occupied.
-    const hasContent = row.some((cell, idx) => idx !== 0 && !isBlankish(cell));
-    if (hasContent) last = r;
+    if (rowHasDeal(layout, r)) last = r;
   }
   return last;
 }
@@ -376,16 +392,15 @@ export function planRow(
       return { kind: 'conflict', row: refMatches[0], reason: `this deal's reference number is already on ${refMatches.length} rows (${refMatches.join(', ')}) — remove the duplicate first` };
     }
 
-    // 3) No existing row — first truly-empty line (above a totals row), else append.
-    //    "Occupied" ignores formula zeros ("$0.00", "-"): the live journal fills
-    //    calculated columns down every blank pre-numbered row, and counting those
-    //    as content used to push every new deal below the totals row. A notes row
-    //    or totals row carries real text / a non-zero amount, so it still counts.
+    // 3) No existing row — first line with no DEAL on it (above a totals row),
+    //    else append below the last deal. "Free" is judged only by the deal
+    //    columns (rowHasDeal): the live journal fills calc/legend/helper columns
+    //    down every blank pre-numbered row, and counting those used to push every
+    //    new deal below the totals row. A deal or totals row fills name/amounts,
+    //    so it still counts as occupied and is never landed on.
     const end = lastContentRow(layout);
     for (let r = layout.firstDataRow; r <= end; r += 1) {
-      const row = layout.rows[r - 1] || [];
-      const occupied = row.some((cell, idx) => idx !== 0 && !isBlankish(cell));
-      if (!occupied) return { kind: 'empty', row: r };
+      if (!rowHasDeal(layout, r)) return { kind: 'empty', row: r };
     }
     return { kind: 'empty', row: end + 1 };
   }
