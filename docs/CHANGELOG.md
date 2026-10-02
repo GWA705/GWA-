@@ -69,6 +69,17 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-10-02
+- **Journal Test/Live write-mode toggle actually takes effect now.**
+  The admin Test/Live toggle (`/staff/reports/connection`) could "save" but not
+  change where deals wrote — the button showed one mode while the status line
+  showed the other. Cause: `getJournalWriteMode()` read from the shared
+  module-level settings cache, and in production Next.js serves renders/actions
+  from separate worker processes that each hold their own cache, so flipping the
+  toggle only cleared the cache in one worker. Fixes: (1) `getJournalWriteMode()`
+  now reads straight from the DB (never the per-worker cache), so the toggle takes
+  effect everywhere immediately; (2) the toggle button syncs to the saved server
+  mode after each refresh, so it can never show a mode that isn't actually live.
+  (`src/lib/settings.ts`; `WriteModeToggle.tsx`.)
 - **Journal row-selection: judge "free line" by the DEAL columns only (fixes deals landing below the totals in the live journal).**
   Confirmed with Sean and by reading the live sheet: the live journal has **formula
   columns** (Net / TAX / Balance, the product-code legend, the Province/Tax-rate

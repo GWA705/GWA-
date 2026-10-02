@@ -111,7 +111,17 @@ export const JOURNAL_SETTING_KEYS = {
 export type JournalWriteMode = 'test' | 'live';
 
 export async function getJournalWriteMode(): Promise<JournalWriteMode> {
-  const v = await getSetting(JOURNAL_SETTING_KEYS.writeMode);
+  // Read straight from the DB, NOT the shared in-process settings cache. This
+  // controls where REAL deals get written, and in production Next.js serves
+  // renders and server actions from separate worker processes that each keep
+  // their own module-level cache — so a value cached at startup could lag the
+  // admin's Test/Live toggle (the toggle would "save" but writes/reads keep the
+  // old mode). One tiny indexed row read per journal write / settings page load
+  // is negligible, and it guarantees the toggle takes effect everywhere at once.
+  const row = await prisma.appSetting.findUnique({
+    where: { key: JOURNAL_SETTING_KEYS.writeMode },
+  });
+  const v = row?.value?.trim();
   return v === 'live' ? 'live' : 'test';
 }
 

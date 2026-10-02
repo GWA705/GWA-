@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { setJournalWriteModeAction } from '../actions';
 
@@ -10,6 +10,11 @@ export function WriteModeToggle({ mode }: { mode: 'test' | 'live' }) {
   // Track the mode locally so the toggle flips immediately from the action's
   // result, rather than depending only on the page revalidating.
   const [current, setCurrent] = useState<'test' | 'live'>(mode);
+  // Keep the toggle honest: once the page re-fetches the SAVED mode (after a
+  // switch, or a reload), snap the button to it. Without this, the local state
+  // is sticky and could show "Test" selected while the server is still "Live"
+  // (e.g. if a save didn't take) — the button must never lie about what's live.
+  useEffect(() => { setCurrent(mode); }, [mode]);
   const [confirming, setConfirming] = useState<'test' | 'live' | null>(null);
   const [error, setError] = useState<string | null>(null);
 
