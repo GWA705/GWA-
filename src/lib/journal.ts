@@ -739,6 +739,54 @@ export async function updateJournalRowCells(
   };
 }
 
+// --- Re-place a misplaced row ----------------------------------------------
+
+export interface JournalClearResult {
+  cleared: number; // how many managed cells were blanked
+  error?: string;
+}
+
+/**
+ * Blank the portal-managed cells on a single journal row (Last Name, First Name,
+ * HD Ref #, Loan #, amounts, …) so a deal can be re-placed on the correct line
+ * without leaving a duplicate behind. Used by the staff "Move to the correct
+ * line" control for deals the old code appended below the totals row.
+ *
+ * Safety: refuses to touch the row unless its Last Name still matches the deal
+ * we expect there, so we never wipe the wrong customer. Never clears column A
+ * (the "No." numbering) or any manual workflow column (Result, Date Paid, …) —
+ * only the columns this writer owns. Best-effort for the caller to wrap.
+ */
+export async function clearJournalRow(
+  year: number,
+  tab: string,
+  row: number,
+  expectLastName: string,
+): Promise<JournalClearResult> {
+  const sheets = await sheetsClient();
+  const ssId = await resolveWriteSheetId(year);
+  const layout = await readLayout(sheets, tab, ssId);
+
+  const lastNameCol = layout.columns['lastName'];
+  const target = layout.rows[row - 1] || [];
+  const rowLastName = lastNameCol != null ? norm(target[lastNameCol]) : '';
+  if (!rowLastName || rowLastName !== norm(expectLastName)) {
+    return { cleared: 0, error: 'This journal row no longer matches this customer (it may have moved).' };
+  }
+
+  const data: sheets_v4.Schema$ValueRange[] = [];
+  for (const colIdx of Object.values(layout.columns)) {
+    data.push({ range: `'${tab}'!${colLetter(colIdx)}${row}`, values: [['']] });
+  }
+  if (data.length > 0) {
+    await sheets.spreadsheets.values.batchUpdate({
+      spreadsheetId: ssId,
+      requestBody: { valueInputOption: 'USER_ENTERED', data },
+    });
+  }
+  return { cleared: data.length };
+}
+
 // --- Cancellation → journal "RB" writeback ---------------------------------
 
 export interface JournalRbResult {

@@ -69,6 +69,18 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-10-02
+- **Journal "Move to the correct line" — re-place a deal the old writer stranded below the totals row.**
+  Deals written *before* the next-blank-line fix went live were appended below the
+  month's totals row, and the portal **remembers** that spot — so pressing "Update
+  journal" re-writes the deal in place (by design, to avoid duplicates), keeping it
+  stuck there (e.g. the "Deleon" deal at October row 237). Added a one-click **Move
+  to the correct line** control on the staff deal page: it clears that deal's old
+  (misplaced) row in the sheet — guarded by a last-name match so it never wipes the
+  wrong customer — forgets the stored position, then re-writes the deal, which lands
+  it on the next blank numbered line (above the totals). Brand-new deals already
+  place correctly; this is the cure for the handful of old stragglers.
+  (`src/lib/journal.ts` `clearJournalRow`; `replaceJournalRowAction` in staff
+  `actions.ts`; `WriteToJournalButton.tsx`.)
 - **Gift-card bulk import: accept Excel (.xlsx) + drag-and-drop + catch wrong columns.**
   The "Add several at once (spreadsheet)" uploader only accepted `.csv`, so a sheet
   filled in Excel and saved as `.xlsx` was silently rejected. It now parses `.xlsx`

@@ -11,7 +11,7 @@ import { markReviewerAction } from '@/lib/activity';
 import { encryptOptional, decryptOptional } from '@/lib/crypto';
 import { toTitleCase, titleOrNull } from '@/lib/textcase';
 import { mergeProductsSold, journalProductNames } from '@/lib/products';
-import { writeDealToJournal, writeCancellationToJournal, journalEnabled, type JournalDeal } from '@/lib/journal';
+import { writeDealToJournal, writeCancellationToJournal, clearJournalRow, journalEnabled, type JournalDeal } from '@/lib/journal';
 import { storeFiles } from '@/lib/upload';
 import { deleteDocument, getDocument } from '@/lib/storage';
 import { notifyStatusChange, notifyNewNote, notifyCancellationResolved, notifyConfirmationIssue } from '@/lib/notify';
@@ -1545,6 +1545,56 @@ export async function writeToJournalAction(
   await markReviewerAction(applicationId);
   revalidatePath(`/staff/applications/${applicationId}`);
   return { ok: true, message: res.message };
+}
+
+/**
+ * Re-place a deal that is sitting on the wrong journal row (e.g. one the old code
+ * appended below the totals row and the portal still "remembers" there). We clear
+ * that remembered row's managed cells in the sheet, forget the stored position,
+ * and re-write the deal — which lands it on the next blank numbered line. This is
+ * the one-click cure for stragglers; brand-new deals already place correctly.
+ */
+export async function replaceJournalRowAction(
+  applicationId: string,
+  _prev: ActionState,
+  _formData: FormData,
+): Promise<ActionState> {
+  const session = await requireStaffSection('review-queue');
+  if (!journalEnabled()) {
+    return { error: 'The sales journal is not connected yet.' };
+  }
+  const app = await prisma.application.findUnique({ where: { id: applicationId } });
+  if (!app) return { error: 'Deal not found.' };
+
+  // Clear the old (misplaced) row's managed cells so re-writing doesn't leave a
+  // duplicate and so the duplicate-guard won't re-grab that row by its HD Ref #
+  // / Loan #. Best-effort and self-guarding (it refuses if the row's Last Name
+  // no longer matches), so a stale remembered row never blocks the re-place.
+  if (app.journalTab && app.journalRow) {
+    try {
+      const year = (app.dateOfSale ?? app.createdAt).getUTCFullYear();
+      await clearJournalRow(year, app.journalTab, app.journalRow, app.applicantLastName);
+    } catch (err) {
+      console.error('[journal] clear old row failed (continuing)', err);
+    }
+  }
+
+  // Forget the remembered position so the deal is re-placed as if brand new.
+  await prisma.application.update({
+    where: { id: applicationId },
+    data: { journalTab: null, journalRow: null, journalSyncedAt: null },
+  });
+
+  const res = await syncApplicationToJournal(applicationId, session.userId);
+  if (res.status === 'disabled') return { error: 'The sales journal is not connected yet.' };
+  if (res.status === 'error') return { error: `Could not re-place the deal: ${res.message}` };
+  if (res.status === 'conflict') {
+    await markReviewerAction(applicationId);
+    return { error: `⚠ ${res.message ?? 'This deal is already on the journal.'}` };
+  }
+  await markReviewerAction(applicationId);
+  revalidatePath(`/staff/applications/${applicationId}`);
+  return { ok: true, message: res.message ? `Moved to the next blank line. ${res.message}` : 'Moved to the next blank line.' };
 }
 
 // --- Customer review request (confirmation step) ---------------------------
