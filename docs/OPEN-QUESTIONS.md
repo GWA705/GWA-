@@ -4,7 +4,25 @@ A running list of things to go over together. Grouped by type and rough
 priority. Nothing here blocks the app from running today — these are the
 "fill in the real details / make a call" items.
 
-_Last updated: 2026-07-30_
+_Last updated: 2026-10-02_
+
+---
+
+## ⭐ Near-term loose ends (opened 2026-10-02)
+
+- **Twilio carrier registration** — toll-free verification / A2P 10DLC, so review
+  texts actually deliver in Canada (see item 8). *The one blocker for texting.*
+- **Google review link** — paste your Google-review landing-page URL into the
+  review setting so the review request (email + text) links somewhere. Feature is
+  dormant until it's set. (Sean getting it from the landing-page provider.)
+- **`Reporter@ghsbarrie.ca` "Send mail as" alias** in Google Workspace — so the
+  review email's From line isn't rewritten by Google.
+- **Journal one-time cleanup** — the code now writes to the next open line, but the
+  deals already written *below the totals row* in the Sept 2026 tab (the pre-fix
+  mess) still need to be moved up by hand in the sheet. Ask Claude for the exact
+  steps when ready.
+- **Confirm the SSM-sourced Google credential works** — do one *Write to Journal*
+  on a deal post-cutover to be 100% sure (EB health is green, so very likely fine).
 
 ---
 
@@ -36,9 +54,13 @@ _Last updated: 2026-07-30_
 7. **Legal-reviewed consent wording** — the consent text on the application is
    a placeholder; needs a Canadian privacy lawyer (PIPEDA + Quebec Law 25).
 
-8. ⛔ **Parked (your call) — SMS/text notifications.** You said leave text/SMS
-   out for now. Email covers notifications today. Reopen if you want texts (needs
-   a paid provider like Twilio).
+8. ✅ **DONE — Texting (SMS) via Twilio (2026-10-02).** Twilio keys set on EB
+   (`TWILIO_ACCOUNT_SID` / `AUTH_TOKEN` / `FROM_NUMBER`); `src/lib/sms.ts` is live.
+   Powers the customer review-request text. Admin → Email has a status badge, a
+   send-test-text button, and a cost meter. ⚠ **Still to do (Sean, in Twilio):**
+   complete **carrier registration — toll-free verification / A2P 10DLC** — until
+   that's approved, texts to Canadian numbers may send from the portal but not
+   actually deliver.
 
 ---
 

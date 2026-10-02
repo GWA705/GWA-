@@ -3,7 +3,7 @@
 The durable reference for how this app is built and configured. Update it when a
 core fact changes. (Roadmap/ideas live in `BACKLOG.md`; privacy posture in
 `COMPLIANCE.md`; the yearly journal ritual in `JOURNALS.md`; reporting defs in
-`REPORTING-SPEC.md`; the **planned move to AWS Canada** in `AWS-MIGRATION.md`.)
+`REPORTING-SPEC.md`; the **AWS Canada move (completed 2026-09-06)** in `AWS-MIGRATION.md`.)
 
 ## What it is
 A secure credit-application + funding portal for **GWA / Georgian Water & Air
@@ -16,9 +16,21 @@ N/A).
 ## Stack & hosting
 - **Next.js 14 (App Router) + TypeScript**, server actions, **Tailwind 3.4**.
 - **Prisma + PostgreSQL** on **AWS RDS, ca-central-1**.
-- **Render** hosting. **Production auto-deploys from branch
-  `claude/pci-credit-application-portal-vi7d6r`**; **staging** from branch
-  `staging` (throwaway DB, local storage, log-only email, staging banner).
+- **AWS Elastic Beanstalk** hosting (cutover from Render 2026-09-06). AWS account
+  **`863478708936`**, region **`ca-central-1`**. Env **`Gwa-portal-env`** (Docker
+  on AL2023, single t3.small) behind **CloudFront + WAF**; DNS `portal.ghsbarrie.ca` → CloudFront. **Every push to
+  branch `claude/pci-credit-application-portal-vi7d6r` builds an image to ECR and
+  auto-deploys to EB** (`.github/workflows/build-ecr.yml`). Render is
+  decommissioned — **older docs that say "Render" mean EB now.**
+- **Runtime env vars live on the EB environment** (Configuration → Software), NOT
+  in GitHub. GitHub repo secrets hold only the AWS deploy keys + the two
+  build-time `NEXT_PUBLIC_*` keys baked into the image. **EB caps total plain-text
+  env properties at 4 KB**, so the large `GOOGLE_SERVICE_ACCOUNT_JSON` is sourced
+  from **AWS SSM Parameter Store** (SecureString `/gwa-portal/GOOGLE_SERVICE_ACCOUNT_JSON`
+  in ca-central-1; the EB row's Source = "Parameter Store" pointing at its ARN;
+  read via the EB instance role `aws-elasticbeanstalk-ec2-role` + inline policy
+  `gwa-ssm-google-sa`). **Put any future large secret in SSM the same way.** (Set
+  up 2026-10-02 to make room for the Twilio vars.)
 - Migrations are hand-written SQL, applied via `prisma migrate deploy` in
   `scripts/start.sh` on deploy.
 - **File storage:** S3 **ca-central-1**, bucket **`gwa-portal-documents`**, with
@@ -26,6 +38,13 @@ N/A).
   public URLs.
 - **Email:** SMTP is **LIVE**, sending from **`hello@ghsbarrie.ca`**. (Falls back
   to log-only if `SMTP_HOST/USER/PASS` are unset.)
+- **Texting (SMS):** Twilio — `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` /
+  `TWILIO_FROM_NUMBER` (E.164, or a `MG…` Messaging Service SID) set on EB
+  (2026-10-02). `src/lib/sms.ts` stays inert until all three are set. Powers the
+  customer review-request text. **Carrier registration (toll-free verification /
+  A2P 10DLC) is still required for reliable Canadian delivery.** Admin → Email has
+  a Connected/Not-set-up badge, a send-test-text button, and a Twilio cost meter
+  (`src/lib/twilioUsage.ts`).
 
 ## Google Workspace (Sheets) integration
 - **Service account:** `gwa-journal-writer@gwa-portal-504012.iam.gserviceaccount.com`.
@@ -46,6 +65,19 @@ N/A).
   Test/Live toggle (admin, on the Journal-connection / System-health area): Test
   writes to the sandbox; Live writes to the deal's sale-year journal
   (year-aware — 2027 deals go to the 2027 journal automatically).
+- **Deal WRITE row selection (live, `planRow` in `src/lib/journal.ts`; updated
+  2026-10-02):** writes to the **first truly-empty line** (every cell blank but
+  the pre-printed "No."), scanning top-down — so it fills the pre-numbered blanks
+  that sit ABOVE a totals row instead of appending below it. **Duplicate guard:**
+  if the deal's HD Ref # / Loan # is already on a row (e.g. a staff member typed
+  it in), it reuses that row and fills only its BLANK cells — never duplicates,
+  never overwrites a human entry; a same-ref-different-name or multi-row case is a
+  **'conflict'** (nothing written, surfaced on the "Write to Journal" button for a
+  human to reconcile). A notes/totals row carries no reference, so it's never
+  matched (preserves the Sep-19 notes-row protection). Re-syncing our own
+  remembered row (stored `journalTab`+`journalRow` still holding the last name)
+  updates in place. NOTE: deals written below a month's totals row *before* this
+  fix are a one-time manual cleanup in the sheet.
 - **Admin → System health** verifies every connection (DB, S3, email, service
   account, journals, leads) live, and shows the service-account share address.
 
@@ -140,7 +172,12 @@ verification + payouts · dealer profiles + notifications · content tabs +
 marketplace + announcements/alerts · office directory + support contacts ·
 user-request intake/approval · **reporting suite** (3 reports, internal +
 dealer) · **HD leads database** (per-office, view-only, month filter) ·
-**Resource library** (product manuals/brochures) · **payout calculator** +
+**Resource library** (product manuals/brochures) · **email a brochure/manual to
+the customer** (attaches what fits; large files go as a secure 30-day download
+link via the public `/d/[token]` route) · **customer review request** from the
+Confirmation step (email + text, gold-star co-branded email, configurable Google
+review link) · **flag an issue to the dealer** (deal chat + portal Mail with
+required acknowledgement + top-of-deal banner + email) · **payout calculator** +
 portal-deal lookup · **global customer search** + **customer-assist** page
 (what they bought, matched manuals, local office, message-the-office
 notification) · **System health** dashboard · grouped admin nav + "Needs
