@@ -295,8 +295,21 @@ export function chooseRow(
     if (deal.knownRow && deal.knownRow >= layout.firstDataRow && cellAt(deal.knownRow, lastNameCol) === norm(deal.lastName)) {
       return deal.knownRow;
     }
-    // Otherwise strictly append below everything already in the sheet.
-    return lastContentRow(layout) + 1;
+    // Write to the first TRULY-EMPTY line, scanning top-down — "the next
+    // available line" the office pre-numbers ahead. A row counts as occupied
+    // when ANY cell other than the pre-filled "No." column has content, so a
+    // deal, a human notes row, or a totals/subtotal row is NEVER landed on; only
+    // a blank (often pre-numbered) slot is filled. Crucially this fills blanks
+    // that sit ABOVE a totals row — the case a plain append-below-everything
+    // skips, dropping new deals beneath the totals. When no empty slot exists
+    // within the sheet's content, append just below all of it.
+    const end = lastContentRow(layout);
+    for (let r = layout.firstDataRow; r <= end; r += 1) {
+      const row = layout.rows[r - 1] || [];
+      const occupied = row.some((cell, idx) => idx !== 0 && norm(cell) !== '');
+      if (!occupied) return r;
+    }
+    return end + 1;
   }
 
   // --- Test sandbox (unchanged, lenient) ---

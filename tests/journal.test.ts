@@ -31,7 +31,7 @@ describe('matchTab', () => {
   });
 });
 
-describe('chooseRow — live journal is append-only', () => {
+describe('chooseRow — live journal fills the next available line (never over content)', () => {
   // A journal grid: two-row header on sheet rows 1–2, data from row 3.
   // Columns: 0=No. 1=Last Name 2=First Name 3=HD Ref 4=Loan 5=(office notes).
   // Rows 3–5 are real deals; row 6 has a blank Last Name but office NOTES in
@@ -56,9 +56,45 @@ describe('chooseRow — live journal is append-only', () => {
     lastName: 'Freeborn', hdRef: '999', loanNo: null, knownRow: null, ...over,
   });
 
-  it('appends a NEW deal below all content — never onto the notes row or a gap', () => {
-    // The last row with content is the notes row (sheet row 6); append at 7.
+  it('writes below all content when there is no empty slot above it — never onto the notes row', () => {
+    // Deals (3–5) then a notes row (6) are contiguous content; the first empty
+    // line is 7. The notes row (blank Last Name but real notes) is never used.
     expect(chooseRow(layout, deal(), 'live')).toBe(7);
+  });
+
+  it('fills the first empty pre-numbered line even when a totals row sits below it', () => {
+    // The real-world bug: pre-numbered blank rows (5–6) sit ABOVE a totals row
+    // (7), with deals wrongly appended below it (8). The next available line is
+    // the first blank pre-numbered row (5) — not beneath the totals/appended block.
+    const withTotals = {
+      ...layout,
+      rows: [
+        ['', '', '', '', '', ''],
+        ['No.', 'Last Name', 'First Name', 'HD Ref #', 'Loan #', 'Notes'],
+        ['1', 'Smith', 'John', '111', '', ''], // row 3 deal
+        ['2', 'Jones', 'Mary', '222', '', ''], // row 4 deal
+        ['3', '', '', '', '', ''], // row 5 pre-numbered BLANK
+        ['4', '', '', '', '', ''], // row 6 pre-numbered BLANK
+        ['', '', '', '', '', '481,688.00'], // row 7 TOTALS (blank Last Name, has an amount)
+        ['', 'Appended', 'Guy', '', '', ''], // row 8 deal wrongly appended below the totals
+      ],
+    };
+    expect(chooseRow(withTotals, deal(), 'live')).toBe(5);
+  });
+
+  it('never lands on a totals row (blank Last Name but an amount)', () => {
+    // A totals row directly after the deals, no blank slot above it → append below.
+    const totalsNoBlanks = {
+      ...layout,
+      rows: [
+        ['', '', '', '', '', ''],
+        ['No.', 'Last Name', 'First Name', 'HD Ref #', 'Loan #', 'Notes'],
+        ['1', 'Smith', 'John', '111', '', ''], // row 3 deal
+        ['2', 'Jones', 'Mary', '222', '', ''], // row 4 deal
+        ['', '', '', '', '', '12,345.00'], // row 5 TOTALS
+      ],
+    };
+    expect(chooseRow(totalsNoBlanks, deal(), 'live')).toBe(6);
   });
 
   it('never matches an existing row by reference number on live', () => {

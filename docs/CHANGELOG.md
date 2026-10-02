@@ -67,6 +67,21 @@ source of truth; this file is the human-readable index.
   `testSingleLead()` on a French lead first. Portal display auto-translates lead
   free-text via DeepL.
 
+## 2026-10-02
+- **Journal (live): write to the next available line, not below the totals row.** A
+  live-journal write chose its row by appending below *all* content (added Sep 19 to
+  stop deals clobbering human notes rows). Side effect: because a month tab has a
+  **totals row** partway down, new deals landed *beneath* it instead of filling the
+  pre-numbered blank lines — so deals ended up split between the top and the very
+  bottom of the sheet. Fix: in live mode, write to the **first truly-empty line**
+  (every cell blank except the pre-printed "No."), scanning top-down. This fills the
+  blank numbered rows that sit above a totals row, while still never landing on a
+  deal, a notes row, or a totals/subtotal row (any of which has content) — so the
+  Sep 19 notes-row protection is preserved. Falls back to append-below when there's no
+  empty slot. (`chooseRow` live branch in `lib/journal.ts`; 2 new unit tests for the
+  totals-row cases.) NOTE: this fixes future writes; deals already written below the
+  totals row in a month tab are a one-time manual cleanup in the sheet.
+
 ## 2026-10-01
 - **Email manuals/brochures of any size: big files now go as secure 30-day download
   links instead of erroring.** The "Email a brochure/manual" sender used to hard-stop
