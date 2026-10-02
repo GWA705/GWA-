@@ -82,6 +82,28 @@ describe('planRow/chooseRow — live journal: next available line + duplicate gu
     expect(chooseRow(withTotals, deal(), 'live')).toBe(5);
   });
 
+  it('LIVE FORMULA ZEROS: a pre-numbered row whose calc columns show $0.00 is still a free slot', () => {
+    // The real live-journal bug: every pre-numbered blank row carries formula
+    // columns that render "$0.00" / "-" (Net, TAX, Balance, Pay-to-dealer …), so
+    // the old "any non-empty cell = occupied" check thought EVERY line was taken
+    // and appended new deals below the totals row. The blank rows (5–6) must still
+    // be recognised as free — the deal lands on the first one (row 5).
+    const withFormulaZeros = {
+      ...layout,
+      columns: { lastName: 1, firstName: 2, hdRef: 3, loanNo: 4 } as Record<string, number>,
+      rows: [
+        ['', '', '', '', '', '', ''],
+        ['No.', 'Last Name', 'First Name', 'HD Ref #', 'Loan #', 'Net', 'Balance'],
+        ['1', 'Smith', 'John', '111', '', '$1,200.00', '$300.00'], // row 3 real deal
+        ['2', 'Jones', 'Mary', '222', '', '$900.00', '$0.00'], // row 4 real deal
+        ['3', '', '', '', '', '$0.00', '$0.00'], // row 5 BLANK (formula zeros only)
+        ['4', '', '', '', '', '$0.00', '-'], // row 6 BLANK (formula zeros / dash)
+        ['', '', '', '', '', '$2,100.00', '$300.00'], // row 7 TOTALS (non-zero sums)
+      ],
+    };
+    expect(chooseRow(withFormulaZeros, deal(), 'live')).toBe(5);
+  });
+
   it('never lands on a totals row (blank Last Name but an amount)', () => {
     // A totals row directly after the deals, no blank slot above it → append below.
     const totalsNoBlanks = {

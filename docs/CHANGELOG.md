@@ -69,6 +69,18 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-10-02
+- **Journal next-blank-line fix: ignore formula zeros so deals stop landing below the totals row (live journal).**
+  Root cause of the "writes below the totals row" bug — found after the re-place
+  button still landed deals on row 237. The **live** journal's pre-numbered blank
+  rows carry **formula columns** (Net / TAX / Balance / Pay-to-dealer …) that render
+  **`$0.00` / `-`** on every row, and the row-selection code counted any non-empty
+  cell as "occupied" — so it thought *every* line was taken and appended each deal
+  below the month's totals. (The **test** journal has genuinely empty blank rows,
+  which is why it always worked there.) Fix: "is this row a free slot?" now treats
+  `$0.00` / `0` / `-` / blank as empty (`isBlankish`), while real text (notes rows)
+  and non-zero dollar sums (totals rows) still count as occupied and are never
+  landed on. New regression test covers the formula-zero case.
+  (`src/lib/journal.ts`; `tests/journal.test.ts`.)
 - **Journal "Move to the correct line" — re-place a deal the old writer stranded below the totals row.**
   Deals written *before* the next-blank-line fix went live were appended below the
   month's totals row, and the portal **remembers** that spot — so pressing "Update

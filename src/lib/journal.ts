@@ -110,6 +110,26 @@ function norm(s: unknown): string {
     .trim();
 }
 
+/**
+ * True when a cell carries no REAL content for the purpose of "is this row an
+ * available blank line?". Besides a truly empty cell, this treats a formula's
+ * zero/placeholder output as empty — the live journal's calculated columns
+ * (Net / TAX / Balance / Pay-to-dealer …) render "$0.00", "0", "-" or "$ -" on
+ * every pre-numbered blank row, which must NOT make the row look occupied (that
+ * bug pushed every new deal below the totals row). Real text ("Clean Air and
+ * Water") or a non-zero amount ("481,688.00") is NOT blankish, so notes rows and
+ * totals rows are still protected.
+ */
+function isBlankish(cell: unknown): boolean {
+  const raw = String(cell ?? '').trim();
+  if (raw === '') return true;
+  // Strip currency/grouping/percent/whitespace and a lone dash placeholder.
+  const stripped = raw.replace(/[$,%\s]/g, '');
+  if (stripped === '' || stripped === '-' || stripped === '–' || stripped === '—') return true;
+  const n = Number(stripped);
+  return Number.isFinite(n) && n === 0;
+}
+
 // --- Tab (month) resolution ------------------------------------------------
 
 const MONTHS = [
@@ -258,8 +278,10 @@ function lastContentRow(layout: JournalLayout): number {
   let last = layout.headerBottomRow; // never before the header
   for (let r = layout.firstDataRow; r <= layout.rows.length; r += 1) {
     const row = layout.rows[r - 1] || [];
-    // Any non-empty cell other than the "No." column (index 0) means real content.
-    const hasContent = row.some((cell, idx) => idx !== 0 && norm(cell) !== '');
+    // Any cell with REAL content other than the "No." column (index 0) means the
+    // row is occupied. Formula zeros ("$0.00", "-") are NOT real content, so the
+    // live journal's pre-numbered blank rows don't count as occupied.
+    const hasContent = row.some((cell, idx) => idx !== 0 && !isBlankish(cell));
     if (hasContent) last = r;
   }
   return last;
@@ -355,10 +377,14 @@ export function planRow(
     }
 
     // 3) No existing row — first truly-empty line (above a totals row), else append.
+    //    "Occupied" ignores formula zeros ("$0.00", "-"): the live journal fills
+    //    calculated columns down every blank pre-numbered row, and counting those
+    //    as content used to push every new deal below the totals row. A notes row
+    //    or totals row carries real text / a non-zero amount, so it still counts.
     const end = lastContentRow(layout);
     for (let r = layout.firstDataRow; r <= end; r += 1) {
       const row = layout.rows[r - 1] || [];
-      const occupied = row.some((cell, idx) => idx !== 0 && norm(cell) !== '');
+      const occupied = row.some((cell, idx) => idx !== 0 && !isBlankish(cell));
       if (!occupied) return { kind: 'empty', row: r };
     }
     return { kind: 'empty', row: end + 1 };
