@@ -1,6 +1,8 @@
 import { requireAdminSection } from '@/lib/session';
 import { emailEnabled, getEmailIdentityInfo } from '@/lib/email';
+import { smsEnabled } from '@/lib/sms';
 import { TestEmailForm } from './TestEmailForm';
+import { TestSmsForm } from './TestSmsForm';
 import { ReviewTestButton } from './ReviewTestButton';
 import { EmailIdentityForm } from './EmailIdentityForm';
 import { AttentionAlertRunner } from './AttentionAlertRunner';
@@ -10,6 +12,7 @@ export const dynamic = 'force-dynamic';
 export default async function EmailSettingsPage() {
   const admin = await requireAdminSection('email');
   const enabled = emailEnabled();
+  const smsOn = smsEnabled();
   const identity = await getEmailIdentityInfo();
 
   return (
@@ -55,6 +58,37 @@ export default async function EmailSettingsPage() {
           or the website as a placeholder until one is set.
         </p>
         <ReviewTestButton enabled={enabled} />
+      </div>
+
+      <div className="card p-6">
+        <div className="mb-2 flex items-center gap-3">
+          <h2 className="text-base font-semibold text-gray-900">Texting (SMS)</h2>
+          <span className={`badge ${smsOn ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}`}>
+            {smsOn ? 'Connected' : 'Not set up'}
+          </span>
+        </div>
+        <p className="mb-4 text-sm text-gray-500">
+          {smsOn
+            ? 'Twilio is connected — the portal can text customers (e.g. the review-request link). Send yourself a test to confirm delivery.'
+            : 'Texting isn’t switched on yet. Add the Twilio keys on the Elastic Beanstalk environment (see below), then send a test.'}
+        </p>
+        <TestSmsForm defaultTo="" enabled={smsOn} />
+        <div className="mt-4 rounded bg-gray-50 p-3 text-xs text-gray-600">
+          <p className="mb-1 font-medium text-gray-700">How to turn on texting</p>
+          <p>
+            In AWS → Elastic Beanstalk → <span className="font-medium">Gwa-portal-env</span> → Configuration →
+            Software → Environment properties, add:
+          </p>
+          <div className="mt-2 overflow-x-auto rounded bg-white p-2 font-mono text-[11px] text-gray-700 ring-1 ring-gray-200">
+            <div>TWILIO_ACCOUNT_SID = <span className="text-gray-400">(your Account SID, starts AC…)</span></div>
+            <div>TWILIO_AUTH_TOKEN = <span className="text-gray-400">(your Auth Token)</span></div>
+            <div>TWILIO_FROM_NUMBER = <span className="text-gray-400">+1XXXXXXXXXX (E.164), or a MG… Messaging Service SID</span></div>
+          </div>
+          <p className="mt-2 text-amber-700">
+            Canadian texting needs the sending number registered (toll-free verification or A2P 10DLC) before carriers
+            deliver reliably — otherwise a test may send from the portal but not arrive.
+          </p>
+        </div>
       </div>
 
       <div className="card p-6">

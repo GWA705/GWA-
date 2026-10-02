@@ -68,6 +68,20 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-10-02
+- **Journal (live): duplicate guard — never duplicate or overwrite a manually-entered deal.**
+  Live writes now recognise a deal that is already on the sheet (e.g. a staff member
+  typed it in) by its unique reference number (HD Ref # / Loan #): instead of appending
+  a second row, it reuses that row and **fills only the blank cells** — never overwriting
+  what a human entered. If the same reference number is on a row under a different name,
+  or on several rows, it's flagged as a **conflict** and nothing is written, so a human
+  reconciles it (no corruption, no duplicate). The "Write to Journal" button now reports
+  exactly what happened ("Added…", "Updated…", "Already on … filled N blanks, left M as
+  entered", or the conflict). (`planRow` + fill-blanks/conflict handling in
+  `lib/journal.ts`; `syncApplicationToJournal`/`writeToJournalAction` surface it; new
+  unit tests for match/conflict/multi-row.)
+- **Admin: Texting (SMS) status + send-a-test-text.** New card on Admin → Email with a
+  Connected/Not-set-up badge and a "Send test text" button (mirrors the email test), plus
+  in-page instructions for the Twilio env vars. (`sendTestSmsAction`, `TestSmsForm`.)
 - **Journal (live): write to the next available line, not below the totals row.** A
   live-journal write chose its row by appending below *all* content (added Sep 19 to
   stop deals clobbering human notes rows). Side effect: because a month tab has a

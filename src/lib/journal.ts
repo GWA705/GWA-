@@ -266,73 +266,128 @@ function lastContentRow(layout: JournalLayout): number {
 }
 
 /**
- * Decide which sheet row this deal should occupy.
- *
- * LIVE journal (mode === 'live') is APPEND-ONLY, by explicit rule: a new deal is
- * only ever written to the first row BELOW all existing content — never over any
- * other row, and never filling a gap. The single exception is the update-in-place
- * path: if we already wrote this exact deal and that row STILL carries its last
- * name, we update that same row (so re-syncing a deal doesn't create a
- * duplicate). We do not match arbitrary rows by reference number on live, and we
- * do not reuse a remembered row whose last name no longer matches — either could
- * clobber a row a human has since edited.
- *
- * TEST journal is the shakeout sandbox and keeps the more lenient behavior
- * (reuse a cleared remembered row, match by reference number, fill the first
- * blank row) so repeated test runs stay tidy.
+ * How a deal's row was chosen — drives whether the write fills the whole row or
+ * only its blanks, and whether it should happen at all.
+ *  - 'own'      → our remembered row (re-sync); write the portal's values.
+ *  - 'empty'    → a fresh blank line; write the portal's values.
+ *  - 'match'    → an existing row for THIS deal (e.g. a staff member typed it in);
+ *                 fill only its BLANK cells, never overwrite, never duplicate.
+ *  - 'conflict' → the deal's reference number is already on the sheet but doesn't
+ *                 line up (different name, or on several rows); DO NOT write — a
+ *                 human reconciles it, so we never corrupt or duplicate a row.
  */
+export type RowPlan =
+  | { kind: 'own'; row: number }
+  | { kind: 'empty'; row: number }
+  | { kind: 'match'; row: number }
+  | { kind: 'conflict'; row: number; reason: string };
+
+/**
+ * Data rows (1-based) whose HD Ref # or Loan # cell equals this deal's. These are
+ * unique per deal, so a match means "this exact deal is already on that row"; a
+ * notes or totals row has neither, so it can never match.
+ */
+function rowsMatchingReference(
+  layout: JournalLayout,
+  deal: { hdRef: string | null; loanNo: string | null },
+): number[] {
+  const hdCol = layout.columns.hdRef;
+  const loanCol = layout.columns.loanNo;
+  const hd = norm(deal.hdRef ?? '');
+  const loan = norm(deal.loanNo ?? '');
+  if (!hd && !loan) return [];
+  const out: number[] = [];
+  for (let r = layout.firstDataRow; r <= layout.rows.length; r += 1) {
+    const row = layout.rows[r - 1] || [];
+    const hdHit = !!hd && hdCol != null && norm(row[hdCol]) === hd;
+    const loanHit = !!loan && loanCol != null && norm(row[loanCol]) === loan;
+    if (hdHit || loanHit) out.push(r);
+  }
+  return out;
+}
+
+/**
+ * Decide which row a deal should occupy, and how to write it (see RowPlan).
+ *
+ * LIVE journal: (1) re-sync our own remembered row when it still holds this
+ * customer's last name; (2) DUPLICATE GUARD — if the deal's unique reference
+ * number (HD Ref # / Loan #) is already on a row (e.g. a staff member entered it
+ * by hand), reuse that row and fill only its blanks (never duplicate, never
+ * overwrite); a same-ref-different-name or multi-row situation is a 'conflict'
+ * and is left for a human; (3) otherwise write to the first truly-empty line
+ * (the pre-numbered blanks that sit above a totals row), else append below all
+ * content. A deal, notes, or totals row is never landed on because each carries
+ * content in a non-"No." column.
+ *
+ * TEST journal is the lenient sandbox (reuse remembered row, match by reference,
+ * fill the first blank) so repeated test runs stay tidy; it always full-writes.
+ */
+export function planRow(
+  layout: JournalLayout,
+  deal: { lastName: string; hdRef: string | null; loanNo: string | null; knownRow: number | null },
+  mode: JournalWriteMode,
+): RowPlan {
+  const lastNameCol = layout.columns.lastName;
+  const cellAt = (row1: number, col: number) => norm((layout.rows[row1 - 1] || [])[col]);
+
+  if (mode === 'live') {
+    // 1) Our own row — re-sync in place when the remembered row still holds this
+    //    customer's last name (proof it's still ours, not something a human replaced).
+    if (deal.knownRow && deal.knownRow >= layout.firstDataRow && cellAt(deal.knownRow, lastNameCol) === norm(deal.lastName)) {
+      return { kind: 'own', row: deal.knownRow };
+    }
+
+    // 2) Duplicate guard — is this deal already on the sheet (typed in manually,
+    //    or a prior write we lost track of)? Match ONLY by the unique reference
+    //    numbers, so we never mistake a notes/totals row for the deal.
+    const refMatches = rowsMatchingReference(layout, deal);
+    if (refMatches.length === 1) {
+      const r = refMatches[0];
+      const existingName = cellAt(r, lastNameCol);
+      if (existingName && existingName !== norm(deal.lastName)) {
+        const shown = (layout.rows[r - 1] || [])[lastNameCol] ?? '';
+        return { kind: 'conflict', row: r, reason: `the reference number is already on row ${r} under a different name ("${shown}")` };
+      }
+      return { kind: 'match', row: r };
+    }
+    if (refMatches.length > 1) {
+      return { kind: 'conflict', row: refMatches[0], reason: `this deal's reference number is already on ${refMatches.length} rows (${refMatches.join(', ')}) — remove the duplicate first` };
+    }
+
+    // 3) No existing row — first truly-empty line (above a totals row), else append.
+    const end = lastContentRow(layout);
+    for (let r = layout.firstDataRow; r <= end; r += 1) {
+      const row = layout.rows[r - 1] || [];
+      const occupied = row.some((cell, idx) => idx !== 0 && norm(cell) !== '');
+      if (!occupied) return { kind: 'empty', row: r };
+    }
+    return { kind: 'empty', row: end + 1 };
+  }
+
+  // --- Test sandbox (lenient; always full-write) ---
+  if (deal.knownRow && deal.knownRow >= layout.firstDataRow) {
+    const existing = cellAt(deal.knownRow, lastNameCol);
+    if (existing === '' || existing === norm(deal.lastName)) return { kind: 'own', row: deal.knownRow };
+  }
+  const hdCol = layout.columns.hdRef;
+  const loanCol = layout.columns.loanNo;
+  for (let r = layout.firstDataRow; r <= layout.rows.length; r += 1) {
+    if (deal.hdRef && hdCol != null && cellAt(r, hdCol) === norm(deal.hdRef)) return { kind: 'own', row: r };
+    if (deal.loanNo && loanCol != null && cellAt(r, loanCol) === norm(deal.loanNo)) return { kind: 'own', row: r };
+  }
+  for (let r = layout.firstDataRow; r <= layout.rows.length + 1; r += 1) {
+    if (cellAt(r, lastNameCol) === '') return { kind: 'own', row: r };
+  }
+  return { kind: 'own', row: layout.rows.length + 1 };
+}
+
+/** Back-compat helper: just the 1-based row number (see planRow for the full plan). */
 export function chooseRow(
   layout: JournalLayout,
   deal: { lastName: string; hdRef: string | null; loanNo: string | null; knownRow: number | null },
   mode: JournalWriteMode,
 ): number {
-  const lastNameCol = layout.columns.lastName;
-  const cellAt = (row1: number, col: number) => norm((layout.rows[row1 - 1] || [])[col]);
-
-  if (mode === 'live') {
-    // Update-in-place ONLY when the remembered row still holds this customer's
-    // last name — proof it's still our row and not something a human replaced.
-    if (deal.knownRow && deal.knownRow >= layout.firstDataRow && cellAt(deal.knownRow, lastNameCol) === norm(deal.lastName)) {
-      return deal.knownRow;
-    }
-    // Write to the first TRULY-EMPTY line, scanning top-down — "the next
-    // available line" the office pre-numbers ahead. A row counts as occupied
-    // when ANY cell other than the pre-filled "No." column has content, so a
-    // deal, a human notes row, or a totals/subtotal row is NEVER landed on; only
-    // a blank (often pre-numbered) slot is filled. Crucially this fills blanks
-    // that sit ABOVE a totals row — the case a plain append-below-everything
-    // skips, dropping new deals beneath the totals. When no empty slot exists
-    // within the sheet's content, append just below all of it.
-    const end = lastContentRow(layout);
-    for (let r = layout.firstDataRow; r <= end; r += 1) {
-      const row = layout.rows[r - 1] || [];
-      const occupied = row.some((cell, idx) => idx !== 0 && norm(cell) !== '');
-      if (!occupied) return r;
-    }
-    return end + 1;
-  }
-
-  // --- Test sandbox (unchanged, lenient) ---
-  // 1. Reuse the remembered row when it still matches (or was cleared).
-  if (deal.knownRow && deal.knownRow >= layout.firstDataRow) {
-    const existing = cellAt(deal.knownRow, lastNameCol);
-    if (existing === '' || existing === norm(deal.lastName)) return deal.knownRow;
-  }
-
-  // 2. Match an existing row by reference number.
-  const hdCol = layout.columns.hdRef;
-  const loanCol = layout.columns.loanNo;
-  for (let r = layout.firstDataRow; r <= layout.rows.length; r += 1) {
-    if (deal.hdRef && hdCol != null && cellAt(r, hdCol) === norm(deal.hdRef)) return r;
-    if (deal.loanNo && loanCol != null && cellAt(r, loanCol) === norm(deal.loanNo)) return r;
-  }
-
-  // 3. Next empty numbered row (Last Name blank). Fall back to the row after
-  //    the last populated one if every pre-numbered row is full.
-  for (let r = layout.firstDataRow; r <= layout.rows.length + 1; r += 1) {
-    if (cellAt(r, lastNameCol) === '') return r;
-  }
-  return layout.rows.length + 1;
+  return planRow(layout, deal, mode).row;
 }
 
 // --- Public API ------------------------------------------------------------
@@ -369,6 +424,12 @@ export interface JournalResult {
   tab: string;
   row: number;
   wrote: string[]; // field keys written
+  /** How the row was chosen/handled — see RowPlan. */
+  outcome: 'created' | 'updated' | 'matched' | 'conflict';
+  /** On a 'matched' write: field keys left as-is because the row already had a value. */
+  skipped?: string[];
+  /** Human-readable note for the UI (e.g. why a conflict was not written). */
+  message?: string;
 }
 
 /**
@@ -399,12 +460,29 @@ export async function writeDealToJournal(deal: JournalDeal): Promise<JournalResu
   }
 
   const layout = await readLayout(sheets, tab, ssId);
-  const row = chooseRow(layout, {
+  const plan = planRow(layout, {
     lastName: deal.lastName,
     hdRef: deal.hdReference,
     loanNo: deal.financeItNumber,
     knownRow: deal.knownTab === tab ? deal.knownRow : null,
   }, mode);
+
+  // A conflict (the deal's reference number is already on the sheet but doesn't
+  // line up) is NOT written — report it so a human reconciles, so we never
+  // duplicate or corrupt a row.
+  if (plan.kind === 'conflict') {
+    return {
+      tab,
+      row: plan.row,
+      wrote: [],
+      outcome: 'conflict',
+      message: `This deal looks like it is already on the journal — ${plan.reason}. Nothing was written, to avoid a duplicate.`,
+    };
+  }
+  const row = plan.row;
+  // On a 'match' (an existing row for this deal, e.g. typed by staff) fill ONLY
+  // blank cells — never overwrite what a human already entered.
+  const fillBlanksOnly = plan.kind === 'match';
 
   // Map field keys → values. Only defined, non-empty values are written, so we
   // never blank out a cell a human may have filled.
@@ -435,9 +513,16 @@ export async function writeDealToJournal(deal: JournalDeal): Promise<JournalResu
 
   const data: sheets_v4.Schema$ValueRange[] = [];
   const wrote: string[] = [];
+  const skipped: string[] = [];
   for (const [key, colIdx] of Object.entries(layout.columns)) {
     const v = values[key];
     if (v == null || v === '') continue;
+    // Never overwrite a human's entry on a matched (pre-existing) row — only fill
+    // its blanks. (We also never blank a cell, since empty values are skipped above.)
+    if (fillBlanksOnly && norm((layout.rows[row - 1] || [])[colIdx]) !== '') {
+      skipped.push(key);
+      continue;
+    }
     data.push({ range: `'${tab}'!${colLetter(colIdx)}${row}`, values: [[v]] });
     wrote.push(key);
   }
@@ -449,7 +534,9 @@ export async function writeDealToJournal(deal: JournalDeal): Promise<JournalResu
     });
   }
 
-  return { tab, row, wrote };
+  const outcome: JournalResult['outcome'] =
+    plan.kind === 'own' ? 'updated' : plan.kind === 'match' ? 'matched' : 'created';
+  return { tab, row, wrote, outcome, skipped: skipped.length ? skipped : undefined };
 }
 
 // --- Read-back (journal → portal) ------------------------------------------

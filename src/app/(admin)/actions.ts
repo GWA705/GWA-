@@ -19,6 +19,7 @@ import { createUserSchema, updateUserSchema, createDealerSchema, createFinanceCo
 import { redirect } from 'next/navigation';
 import { CONTENT_SECTIONS } from '@/lib/constants';
 import { sendEmail, emailEnabled } from '@/lib/email';
+import { sendSms, smsEnabled, toE164 } from '@/lib/sms';
 import { buildInviteEmail } from '@/lib/email-templates';
 import { setSetting, EMAIL_SETTING_KEYS, BANNER_SETTING_KEYS, SECURITY_SETTING_KEYS, MFA_TRUST_DAY_OPTIONS, DEFAULT_MFA_TRUST_DAYS, type MfaRequirement } from '@/lib/settings';
 import { parseDealerProfileForm, readExtraContacts, type OfficeContact } from '@/lib/dealerProfile';
@@ -167,6 +168,47 @@ export async function sendTestEmailAction(
   }
 
   return { error: `Could not send: ${raw}${hint}` };
+}
+
+/**
+ * Send a test text to confirm Twilio is connected end-to-end. Admin-only, under
+ * the 'email' (messaging) section. No customer data is included.
+ */
+export async function sendTestSmsAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await requireAdminSection('email');
+  const raw = String(formData.get('to') || '').trim();
+  const to = toE164(raw);
+  if (!to) {
+    return { error: 'Enter a valid mobile number (10-digit North American, e.g. 705-555-0123).' };
+  }
+
+  if (!smsEnabled()) {
+    return {
+      error:
+        'Texting isn’t switched on yet. Set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN and TWILIO_FROM_NUMBER on the Elastic Beanstalk environment, then try again.',
+    };
+  }
+
+  const result = await sendSms({
+    to,
+    body: 'Georgian Water & Air — test message from the dealer portal. If you got this, texting is set up correctly. (No reply needed.)',
+  });
+
+  await audit({ actorId: session.userId, action: 'USER_UPDATE', entityType: 'User', entityId: session.userId, detail: `Sent test SMS to ${to} (${result.sent ? 'sent' : result.reason})` });
+
+  if (result.sent) {
+    return { ok: true, message: `Test text sent to ${to}. It should arrive shortly — if it doesn’t, the sending number may still need carrier registration (toll-free verification / A2P 10DLC).` };
+  }
+
+  const reason = result.reason || 'unknown error';
+  let hint = '';
+  if (/^http_401$/.test(reason)) hint = ' → Twilio rejected the credentials. Re-check TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN.';
+  else if (/^http_(400|403|21)/.test(reason)) hint = ' → Twilio rejected the request — often the From number isn’t a valid/owned Twilio number (use E.164, e.g. +17055550123) or isn’t registered to text Canada yet.';
+  else if (reason === 'bad-number') hint = ' → That number didn’t look like a valid 10-digit number.';
+  return { error: `Could not send: ${reason}${hint}` };
 }
 
 export async function createDealerAction(

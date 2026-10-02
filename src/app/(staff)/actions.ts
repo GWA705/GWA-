@@ -47,6 +47,7 @@ import type { ApplicationStatus, DecisionType, DocumentType, VerificationStatus 
 export interface ActionState {
   error?: string;
   ok?: boolean;
+  message?: string;
 }
 
 // Map a decision to the resulting application status. `null` means "leave the
@@ -1419,7 +1420,7 @@ const JOURNAL_SYNC_STATUSES: ApplicationStatus[] = [
 async function syncApplicationToJournal(
   applicationId: string,
   actorId: string,
-): Promise<{ status: 'ok' | 'disabled' | 'error'; message?: string }> {
+): Promise<{ status: 'ok' | 'disabled' | 'error' | 'conflict'; message?: string }> {
   if (!journalEnabled()) return { status: 'disabled' };
 
   const app = await prisma.application.findUnique({
@@ -1481,6 +1482,21 @@ async function syncApplicationToJournal(
 
   try {
     const result = await writeDealToJournal(deal);
+
+    // Duplicate guard tripped: the deal is already on the journal but doesn't
+    // line up. Don't record a row (we didn't write one) — surface it so a human
+    // reconciles, rather than duplicating or overwriting.
+    if (result.outcome === 'conflict') {
+      await audit({
+        actorId,
+        action: 'JOURNAL_WRITE',
+        entityType: 'Application',
+        entityId: applicationId,
+        detail: `Journal conflict — ${result.tab} row ${result.row}: ${result.message ?? 'reference already present'}`,
+      });
+      return { status: 'conflict', message: result.message };
+    }
+
     await prisma.application.update({
       where: { id: applicationId },
       data: { journalTab: result.tab, journalRow: result.row, journalSyncedAt: new Date() },
@@ -1490,9 +1506,16 @@ async function syncApplicationToJournal(
       action: 'JOURNAL_WRITE',
       entityType: 'Application',
       entityId: applicationId,
-      detail: `Wrote to sales journal — ${result.tab} row ${result.row} (${result.wrote.length} fields)`,
+      detail: `Wrote to sales journal — ${result.tab} row ${result.row} (${result.outcome}, ${result.wrote.length} field${result.wrote.length === 1 ? '' : 's'}${result.skipped?.length ? `, kept ${result.skipped.length} existing` : ''})`,
     });
-    return { status: 'ok' };
+
+    const message =
+      result.outcome === 'matched'
+        ? `This deal was already on ${result.tab} (row ${result.row}) — filled ${result.wrote.length} blank field${result.wrote.length === 1 ? '' : 's'}${result.skipped?.length ? ` and left ${result.skipped.length} as entered (no overwrite)` : ''}.`
+        : result.outcome === 'updated'
+          ? `Updated ${result.tab}, row ${result.row}.`
+          : `Added to ${result.tab}, row ${result.row}.`;
+    return { status: 'ok', message };
   } catch (err) {
     console.error('[journal] write failed', err);
     return { status: 'error', message: err instanceof Error ? err.message : 'Unknown error' };
@@ -1513,9 +1536,15 @@ export async function writeToJournalAction(
     };
   }
   if (res.status === 'error') return { error: `Could not write to the journal: ${res.message}` };
+  if (res.status === 'conflict') {
+    // Not a failure and not a silent success — the deal is already on the journal.
+    // Surface it clearly so staff reconcile it by hand.
+    await markReviewerAction(applicationId);
+    return { error: `⚠ ${res.message ?? 'This deal is already on the journal.'}` };
+  }
   await markReviewerAction(applicationId);
   revalidatePath(`/staff/applications/${applicationId}`);
-  return { ok: true };
+  return { ok: true, message: res.message };
 }
 
 // --- Customer review request (confirmation step) ---------------------------

@@ -36,7 +36,7 @@ export function WriteToJournalButton({
   return (
     <form action={action} className="mt-4 space-y-2 border-t border-gray-100 pt-4">
       {state.error && <div className="rounded-md bg-red-50 p-2 text-xs text-red-700">{state.error}</div>}
-      {state.ok && <div className="rounded-md bg-green-50 p-2 text-xs text-green-700">Written to the journal.</div>}
+      {state.ok && <div className="rounded-md bg-green-50 p-2 text-xs text-green-700">{state.message || 'Written to the journal.'}</div>}
       <div className="flex items-center justify-between gap-3">
         <p className="text-xs text-gray-400">
           {synced
