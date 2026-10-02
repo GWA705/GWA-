@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { sendReviewRequestAction, setCustomerEmailAction, setReviewLinkAction } from '@/app/(staff)/actions';
+import { sendReviewRequestAction, setCustomerEmailAction, setCustomerPhoneAction, setReviewLinkAction } from '@/app/(staff)/actions';
 
 /**
  * Confirmation-step action: send the customer a "leave us a review" request by
@@ -37,6 +37,9 @@ export function ReviewRequestCard({
   const [email, setEmail] = useState(customerEmail);
   const [emailDraft, setEmailDraft] = useState('');
   const [editingEmail, setEditingEmail] = useState(false);
+  const [phone, setPhone] = useState(customerPhone);
+  const [phoneDraft, setPhoneDraft] = useState('');
+  const [editingPhone, setEditingPhone] = useState(false);
   const [linkDraft, setLinkDraft] = useState('');
   const [alsoText, setAlsoText] = useState(false);
   const [msg, setMsg] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
@@ -55,6 +58,18 @@ export function ReviewRequestCard({
       setEmail(emailDraft.trim());
       setEditingEmail(false);
       setEmailDraft('');
+      router.refresh();
+    });
+  }
+
+  function savePhone() {
+    setMsg(null);
+    start(async () => {
+      const r = await setCustomerPhoneAction(applicationId, phoneDraft);
+      if (r.error) { setMsg({ kind: 'err', text: r.error }); return; }
+      setPhone(phoneDraft.trim());
+      setEditingPhone(false);
+      setPhoneDraft('');
       router.refresh();
     });
   }
@@ -170,16 +185,52 @@ export function ReviewRequestCard({
           </div>
 
           {/* Also-text option */}
-          <label className={`mt-3 flex items-center gap-2 text-sm ${smsConfigured ? 'text-gray-700' : 'text-gray-400'}`}>
-            <input
-              type="checkbox"
-              checked={alsoText}
-              disabled={!smsConfigured}
-              onChange={(e) => setAlsoText(e.target.checked)}
-            />
-            Also text {customerPhone || 'the customer'}
-            {!smsConfigured && <span className="text-xs">(texting not set up yet)</span>}
-          </label>
+          {editingPhone ? (
+            <div className="mt-3 rounded-md border border-gray-200 bg-gray-50 p-3">
+              <label className="block text-xs font-medium text-gray-700">
+                {phone.trim() ? 'Update customer mobile number' : 'Add a mobile number to text the review link'}
+              </label>
+              <div className="mt-1.5 flex flex-wrap gap-2">
+                <input
+                  type="tel"
+                  inputMode="tel"
+                  placeholder="905-555-0123"
+                  value={phoneDraft}
+                  onChange={(e) => setPhoneDraft(e.target.value)}
+                  className="min-w-0 flex-1 rounded-md border border-gray-300 px-2.5 py-1.5 text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={savePhone}
+                  disabled={pending || !phoneDraft.trim()}
+                  className="rounded-md bg-brand-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
+                >
+                  {pending ? 'Saving…' : 'Save'}
+                </button>
+                <button type="button" onClick={() => { setEditingPhone(false); setPhoneDraft(''); }} className="px-2 py-1.5 text-sm text-gray-500 hover:underline">
+                  cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <label className={`mt-3 flex flex-wrap items-center gap-2 text-sm ${smsConfigured ? 'text-gray-700' : 'text-gray-400'}`}>
+              <input
+                type="checkbox"
+                checked={alsoText}
+                disabled={!smsConfigured || !phone.trim()}
+                onChange={(e) => setAlsoText(e.target.checked)}
+              />
+              Also text {phone.trim() || 'the customer'}
+              <button
+                type="button"
+                onClick={() => { setEditingPhone(true); setPhoneDraft(phone); setMsg(null); }}
+                className="text-xs text-brand-700 hover:underline"
+              >
+                {phone.trim() ? 'change' : 'add number'}
+              </button>
+              {!smsConfigured && <span className="text-xs">(texting not set up yet)</span>}
+            </label>
+          )}
 
           {/* Send */}
           <div className="mt-3 flex flex-wrap items-center gap-2">

@@ -16,7 +16,7 @@ import { storeFiles } from '@/lib/upload';
 import { deleteDocument, getDocument } from '@/lib/storage';
 import { notifyStatusChange, notifyNewNote, notifyCancellationResolved, notifyConfirmationIssue } from '@/lib/notify';
 import { sendEmail, emailEnabled } from '@/lib/email';
-import { sendSms, smsEnabled } from '@/lib/sms';
+import { sendSms, smsEnabled, toE164 } from '@/lib/sms';
 import { buildReviewEmail, buildReviewSms } from '@/lib/reviewRequest';
 import { buildDocsEmail } from '@/lib/customerDocsEmail';
 import { makeDocLinkToken, DOC_LINK_TTL_DAYS } from '@/lib/docLink';
@@ -1575,6 +1575,36 @@ export async function setCustomerEmailAction(
     entityType: 'Application',
     entityId: applicationId,
     detail: 'Added/updated customer email',
+  });
+  revalidatePath(`/staff/applications/${applicationId}`);
+  return { ok: true };
+}
+
+/**
+ * Add/correct the customer's phone on a deal, so the review request can be
+ * texted (and so a malformed number gets fixed). Validates it's a real number
+ * and stores a tidy format. Reviewer/admin only.
+ */
+export async function setCustomerPhoneAction(
+  applicationId: string,
+  phone: string,
+): Promise<ActionState> {
+  const session = await requireStaffSection('review-queue');
+  const e164 = toE164(phone);
+  if (!e164) return { error: 'Enter a valid mobile number (10-digit North American, e.g. 905-555-0123).' };
+  // Store NANP numbers as XXX-XXX-XXXX (the portal's phone convention); keep a
+  // non-NANP international number in E.164.
+  const m = /^\+1(\d{3})(\d{3})(\d{4})$/.exec(e164);
+  const stored = m ? `${m[1]}-${m[2]}-${m[3]}` : e164;
+  const app = await prisma.application.findUnique({ where: { id: applicationId }, select: { id: true } });
+  if (!app) return { error: 'Deal not found.' };
+  await prisma.application.update({ where: { id: applicationId }, data: { applicantPhone: stored } });
+  await audit({
+    actorId: session.userId,
+    action: 'APPLICATION_UPDATE',
+    entityType: 'Application',
+    entityId: applicationId,
+    detail: 'Added/updated customer phone',
   });
   revalidatePath(`/staff/applications/${applicationId}`);
   return { ok: true };

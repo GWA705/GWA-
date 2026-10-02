@@ -68,6 +68,12 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-10-02
+- **Review card: change/add the customer phone inline (like email).** The review-request
+  card now has a **"change" / "add number"** link next to "Also text …", so staff can fix
+  a wrong or incomplete number (e.g. a truncated one) or add a missing one without leaving
+  the deal. Validated as a real number and stored tidily (XXX-XXX-XXXX); the "Also text"
+  box stays disabled until a valid number is on file. (`setCustomerPhoneAction`;
+  `ReviewRequestCard`.)
 - **Admin: Twilio cost meter.** New "Texting spend" panel on Admin → Email showing SMS
   spend **this month** and **today** (with text counts) plus the account **balance**,
   pulled live from Twilio's usage API using the existing credentials (read-only, with a
