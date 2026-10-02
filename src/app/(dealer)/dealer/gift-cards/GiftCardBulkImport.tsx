@@ -8,7 +8,7 @@ import { useI18n } from '@/i18n/client';
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 // English + French downloadable templates. Column ORDER is identical, so a sheet
 // filled from either template imports the same way; the header row is only used
-// to re-map columns if the office reorders them (see toRows).
+// to re-map columns if the office reorders them (see rowsFromGrid).
 const TEMPLATE_EN =
   'Customer name,Customer email,Customer cell,Card amount\n' +
   'Jane Doe,jane@example.com,705-555-0123,25\n' +
@@ -44,10 +44,70 @@ function parseCsv(text: string): string[][] {
   return rows.filter((r) => r.some((c) => c.trim() !== ''));
 }
 
+// --- .xlsx (Excel) parsing: the office usually fills the template in Excel and
+// saves it as .xlsx, so accept that too. We read the sheet straight from the
+// zip (sharedStrings + first worksheet) with JSZip (already a dependency),
+// lazy-loaded so it never weighs down the page unless an .xlsx is actually used.
+function colToIndex(col: string): number {
+  let n = 0;
+  for (let i = 0; i < col.length; i++) n = n * 26 + (col.charCodeAt(i) - 64);
+  return n - 1;
+}
+function decodeXml(s: string): string {
+  return s
+    .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+    .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(Number(d)))
+    .replace(/&amp;/g, '&');
+}
+async function xlsxToGrid(buf: ArrayBuffer): Promise<string[][]> {
+  const JSZip = (await import('jszip')).default;
+  const zip = await JSZip.loadAsync(buf);
+  const ssXml = (await zip.file('xl/sharedStrings.xml')?.async('string')) || '';
+  const shared: string[] = [];
+  for (const si of ssXml.matchAll(/<si>([\s\S]*?)<\/si>/g)) {
+    let s = '';
+    for (const tM of si[1].matchAll(/<t[^>]*>([\s\S]*?)<\/t>/g)) s += tM[1];
+    shared.push(decodeXml(s));
+  }
+  const sheetPaths = Object.keys(zip.files)
+    .filter((p) => /^xl\/worksheets\/sheet\d+\.xml$/.test(p))
+    .sort((a, b) => (parseInt(a.replace(/\D/g, ''), 10) || 0) - (parseInt(b.replace(/\D/g, ''), 10) || 0));
+  if (sheetPaths.length === 0) return [];
+  const xml = (await zip.file(sheetPaths[0])!.async('string')) || '';
+  const grid: string[][] = [];
+  for (const rowM of xml.matchAll(/<row\b[^>]*>([\s\S]*?)<\/row>/g)) {
+    const cells: string[] = [];
+    for (const cM of rowM[1].matchAll(/<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g)) {
+      const attrs = cM[1] || '';
+      const inner = cM[2] || '';
+      const refCol = /r="([A-Z]+)\d+"/.exec(attrs)?.[1];
+      const idx = refCol ? colToIndex(refCol) : cells.length;
+      const t = /t="([^"]+)"/.exec(attrs)?.[1];
+      let val = '';
+      if (t === 's') {
+        const vi = /<v>([\s\S]*?)<\/v>/.exec(inner)?.[1];
+        val = vi != null ? (shared[Number(vi)] ?? '') : '';
+      } else if (t === 'inlineStr') {
+        let s = '';
+        for (const tM of inner.matchAll(/<t[^>]*>([\s\S]*?)<\/t>/g)) s += tM[1];
+        val = decodeXml(s);
+      } else {
+        val = decodeXml(/<v>([\s\S]*?)<\/v>/.exec(inner)?.[1] ?? '');
+      }
+      for (let k = cells.length; k < idx; k++) cells[k] = '';
+      cells[idx] = val;
+    }
+    grid.push(cells.map((c) => c ?? ''));
+  }
+  return grid.filter((r) => r.some((c) => (c ?? '').trim() !== ''));
+}
+
 // Lower-case, strip accents (é→e) and non-letters, so French headers like
 // "Téléphone" / "Montant" normalise to plain ascii for matching.
 const norm = (s: string) =>
-  s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z]/g, '');
+  s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z]/g, '');
 
 // Header matchers accept both English and French column names.
 const isName = (h: string) => h.includes('name') || h.includes('nom');
@@ -55,8 +115,7 @@ const isEmail = (h: string) => h.includes('email') || h.includes('courriel');
 const isPhone = (h: string) => h.includes('cell') || h.includes('phone') || h.includes('telephone');
 const isAmount = (h: string) => h.includes('amount') || h.includes('card') || h.includes('montant');
 
-function toRows(text: string): ParsedRow[] {
-  const grid = parseCsv(text);
+function rowsFromGrid(grid: string[][]): ParsedRow[] {
   if (grid.length === 0) return [];
   // Detect a header row (has a recognisable name + email column in EN or FR);
   // otherwise assume the template column order: name, email, cell, amount.
@@ -82,6 +141,9 @@ function toRows(text: string): ParsedRow[] {
     // translation key so the message renders in the viewer's language.
     const digits = phone.replace(/\D/g, '');
     if (!name) row._error = 'giftCards.errMissingName';
+    // A customer name that's all digits usually means the wrong column was filled
+    // in (e.g. a store number pasted into the "Customer name" column).
+    else if (/^\d[\d\s-]*$/.test(name)) row._error = 'giftCards.errNameLooksNumeric';
     else if (!EMAIL_RE.test(email.toLowerCase())) row._error = 'giftCards.errInvalidEmail';
     else if (phone && digits.length < 10) row._error = 'giftCards.errCellShort';
     else if (amount && !(Number(amount.replace(/[$,\s]/g, '')) > 0)) row._error = 'giftCards.errBadAmount';
@@ -110,24 +172,41 @@ export function GiftCardBulkImport() {
   const [open, setOpen] = useState(false);
   const [rows, setRows] = useState<ParsedRow[] | null>(null);
   const [fileName, setFileName] = useState('');
+  const [fileError, setFileError] = useState<string | null>(null);
+  const [dragging, setDragging] = useState(false);
   const [result, setResult] = useState<{ created: number; errors: string[] } | null>(null);
   const [pending, start] = useTransition();
 
   const valid = rows?.filter((r) => !r._error) ?? [];
   const invalid = rows?.filter((r) => r._error) ?? [];
 
-  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0];
+  async function handleFile(f: File | undefined | null) {
     if (!f) return;
     setFileName(f.name);
     setResult(null);
-    const text = await f.text();
-    setRows(toRows(text));
+    setFileError(null);
+    setRows(null);
+    const isXlsx = /\.xlsx$/i.test(f.name) ||
+      f.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    const isCsv = /\.(csv|txt)$/i.test(f.name) ||
+      f.type === 'text/csv' || f.type === 'application/vnd.ms-excel' || f.type === 'text/plain' || f.type === '';
+    try {
+      if (isXlsx) {
+        setRows(rowsFromGrid(await xlsxToGrid(await f.arrayBuffer())));
+      } else if (isCsv) {
+        setRows(rowsFromGrid(parseCsv(await f.text())));
+      } else {
+        setFileError(t('giftCards.badFile'));
+      }
+    } catch {
+      setFileError(t('giftCards.readErr'));
+    }
   }
 
   function reset() {
     setRows(null);
     setFileName('');
+    setFileError(null);
     setResult(null);
     if (fileRef.current) fileRef.current.value = '';
   }
@@ -157,16 +236,42 @@ export function GiftCardBulkImport() {
             {t('giftCards.bulkIntro')}
           </p>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <button type="button" onClick={() => download(templateName, template)} className="btn-secondary text-sm">
-              {t('giftCards.downloadTemplate')}
-            </button>
-            <label className="btn-secondary cursor-pointer text-sm">
-              {t('giftCards.uploadSheet')}
-              <input ref={fileRef} type="file" accept=".csv,text/csv" onChange={onFile} className="hidden" />
-            </label>
-            {fileName && <span className="text-xs text-gray-500">{fileName}</span>}
+          <div className="rounded-md border border-blue-100 bg-blue-50/60 p-3 text-xs text-blue-900">
+            <p className="font-semibold">{t('giftCards.fileHelpTitle')}</p>
+            <p className="mt-0.5 leading-relaxed">{t('giftCards.fileHelpBody')}</p>
           </div>
+
+          <button type="button" onClick={() => download(templateName, template)} className="btn-secondary text-sm">
+            {t('giftCards.downloadTemplate')}
+          </button>
+
+          {/* Drag-and-drop zone (also click-to-choose). Accepts .csv and .xlsx. */}
+          <div
+            onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+            onDragLeave={() => setDragging(false)}
+            onDrop={(e) => { e.preventDefault(); setDragging(false); handleFile(e.dataTransfer.files?.[0]); }}
+            className={`rounded-lg border-2 border-dashed p-5 text-center transition-colors ${dragging ? 'border-brand-500 bg-brand-50' : 'border-gray-300 bg-white'}`}
+          >
+            <p className="text-sm text-gray-600">
+              {t('giftCards.dropHint')}{' '}
+              <label className="cursor-pointer font-semibold text-brand-700 hover:underline">
+                {t('giftCards.uploadSheet')}
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept=".csv,text/csv,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                  onChange={(e) => handleFile(e.target.files?.[0])}
+                  className="hidden"
+                />
+              </label>
+            </p>
+            <p className="mt-1 text-xs text-gray-400">.csv or .xlsx</p>
+            {fileName && <p className="mt-2 text-xs text-gray-500">{fileName}</p>}
+          </div>
+
+          {fileError && (
+            <div className="rounded-md bg-amber-50 p-2 text-sm text-amber-800">{fileError}</div>
+          )}
 
           {result && (
             <div className={`rounded-md p-2 text-sm ${result.created > 0 ? 'bg-green-50 text-green-800' : 'bg-amber-50 text-amber-800'}`}>

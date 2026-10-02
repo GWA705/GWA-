@@ -69,6 +69,14 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-10-02
+- **Gift-card bulk import: accept Excel (.xlsx) + drag-and-drop + catch wrong columns.**
+  The "Add several at once (spreadsheet)" uploader only accepted `.csv`, so a sheet
+  filled in Excel and saved as `.xlsx` was silently rejected. It now parses `.xlsx`
+  too (client-side via JSZip, lazy-loaded; reuses the VOC-import approach) and is a
+  proper **drag-and-drop** zone (still click-to-choose). Added a guard that flags a
+  **numeric "Customer name"** (e.g. a store number pasted into the name column) in
+  the preview, plus clear "unsupported file" / "couldn't read" messages.
+  (`GiftCardBulkImport.tsx`; new i18n keys.)
 - **Texting went live + Google credential moved to SSM (infra, Sean + Claude).**
   Twilio keys added on EB so SMS is connected (see the Operational status table).
   Adding them hit EB's **4 KB plain-text env limit**, so the ~2 KB

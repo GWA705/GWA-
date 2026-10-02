@@ -768,6 +768,8 @@ export const en = {
     // Bulk import
     addSeveral: '📄 Add several at once (spreadsheet)',
     bulkIntro: 'Did a batch of water tests? Download the template, fill in a row per customer, and upload it — we’ll create all the requests at once. Cell and amount are optional (amount defaults to $25).',
+    fileHelpTitle: 'How to fill it in',
+    fileHelpBody: 'Keep the template’s four columns exactly as they are — Customer name, Customer email, Customer cell, Card amount — with one customer per row. Put the customer’s name (not a store number) in the first column. You can upload it as a CSV or an Excel (.xlsx) file.',
     downloadTemplate: '⬇ Download template',
     uploadSheet: '⬆ Upload filled sheet',
     addedOne: '✓ Added 1 request.',
@@ -789,6 +791,10 @@ export const en = {
     errInvalidEmail: 'invalid email',
     errCellShort: 'cell too short',
     errBadAmount: 'bad amount',
+    errNameLooksNumeric: 'name looks like a number — put the customer’s name in the “Customer name” column',
+    dropHint: 'Drag & drop your filled sheet here, or',
+    badFile: 'Please upload the filled template as a .csv or .xlsx file.',
+    readErr: 'Couldn’t read that file. Re-download the template, fill it in, and upload the .csv or .xlsx.',
   },
   account: {
     title: 'My account',
