@@ -10,7 +10,10 @@ import path from 'path';
  * gradient) when the folder is empty.
  */
 
-const IMG = /\.(png|jpe?g|webp|avif)$/i;
+// Includes gif so an animated night hero (e.g. hero-23.gif) works — the backdrop
+// paints it as a CSS background-image, so GIFs animate; served statically from
+// public/, untouched.
+const IMG = /\.(png|jpe?g|webp|avif|gif)$/i;
 
 function dayOfYear(d = new Date()): number {
   const start = new Date(d.getFullYear(), 0, 0);
