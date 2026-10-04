@@ -36,6 +36,22 @@ source of truth; this file is the human-readable index.
 | Desktop/phone push notifications | ✅ Keys set (2026-09-11, Sean) — confirm with a test | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` set on EB. The client fetches the public key at **runtime** (`GET /api/push/key`) so it survives rebuilds. Reviewers get push on new dealer docs / activity. iOS needs the app installed to the Home Screen. **To confirm:** Account → Enable desktop notifications → Send a test. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### Security fix — admin privilege boundary (audit #3) (2026-10-04)
+Closes the privilege-escalation path from the audit: a scoped "Users"-section
+admin could reset a **Super Admin's** password (then sign in as them) or change
+privileged roles, and nothing guarded the last Super Admin from this screen.
+- `updateUserAction`/`createUserAction` (`src/app/(admin)/actions.ts`): only a
+  Super Admin may edit an administrator account, reset its password, or promote
+  anyone to administrator. Reviewers/dealers stay fully manageable by a scoped
+  Users admin.
+- Last-active-Super-Admin guard added to `updateUserAction` (mirrors
+  `saveAdminAccessAction`), so neither screen can orphan the back end; demoting an
+  admin now also strips its Super-Admin + section grants.
+- Same boundary applied to `toggleUserActiveAction` (can't archive an admin / the
+  last Super Admin) and `signOutUserEverywhereAction` (can't force an admin off
+  their devices) — both were `requireAdminSection('users')` only.
+- No behaviour change for a Super Admin or for managing non-admin users.
+
 ### Security hardening — insider DoS batch 1 (2026-10-04)
 From the 2026-10-04 security audit (`docs/SECURITY-AUDIT-2026-10.md`), the
 highest-impact uptime risks (the Oct-2 class: one insider/accidental action

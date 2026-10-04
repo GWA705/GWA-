@@ -261,6 +261,12 @@ export async function createUserAction(
   }
   const d = parsed.data;
 
+  // Privilege boundary (SECURITY-AUDIT #3): only a Super Admin can create an
+  // administrator account; a scoped "Users" admin can create dealers/reviewers.
+  if (!session.superAdmin && d.role === 'ADMIN') {
+    return { error: 'Only a Super Admin can create an administrator account.' };
+  }
+
   if (d.role === 'DEALER_USER' && !d.dealerId) {
     return { error: 'Choose a dealer for this dealer user.' };
   }
@@ -346,6 +352,30 @@ export async function updateUserAction(
   const target = await prisma.user.findUnique({ where: { id: userId } });
   if (!target) return { error: 'User not found.' };
 
+  // Privilege boundary (SECURITY-AUDIT #3): the "Users" section lets a scoped
+  // admin manage ordinary accounts, but it must NOT be a path to take over the
+  // back end. Only a Super Admin may edit an administrator account (e.g. reset a
+  // Super Admin's password) or promote anyone to administrator. Reviewers/dealers
+  // remain fully manageable by a scoped Users admin.
+  if (!session.superAdmin) {
+    if (target.role === 'ADMIN') {
+      return { error: 'Only a Super Admin can edit an administrator account.' };
+    }
+    if (d.role === 'ADMIN') {
+      return { error: 'Only a Super Admin can grant administrator access.' };
+    }
+  }
+  // Never demote the last active Super Admin via a role change (mirrors the guard
+  // in saveAdminAccessAction, so neither screen can orphan the back end).
+  if (target.superAdmin && d.role !== 'ADMIN') {
+    const otherSupers = await prisma.user.count({
+      where: { role: 'ADMIN', superAdmin: true, active: true, id: { not: userId } },
+    });
+    if (otherSupers === 0) {
+      return { error: 'At least one Super Admin is required. Promote someone else before changing this account.' };
+    }
+  }
+
   if (d.role === 'DEALER_USER' && !d.dealerId) {
     return { error: 'Choose a dealer for this dealer user.' };
   }
@@ -374,6 +404,8 @@ export async function updateUserAction(
     passwordHash?: string;
     passwordChangedAt?: Date | null;
     tokenVersion?: { increment: number };
+    superAdmin?: boolean;
+    adminSections?: string[];
   } = {
     email,
     name: toTitleCase(d.name),
@@ -399,6 +431,13 @@ export async function updateUserAction(
     canManageGiftCards: d.role !== 'DEALER_USER' && formData.get('canManageGiftCards') === 'on',
   };
 
+  // Demoting an administrator also strips Super-Admin + section grants, so an
+  // account never silently keeps back-end powers after losing the admin role.
+  if (target.role === 'ADMIN' && d.role !== 'ADMIN') {
+    data.superAdmin = false;
+    data.adminSections = [];
+  }
+
   if (d.newPassword && d.newPassword.trim()) {
     const pwError = validatePasswordStrength(d.newPassword);
     if (pwError) return { error: pwError };
@@ -423,6 +462,16 @@ export async function toggleUserActiveAction(userId: string): Promise<void> {
   const session = await requireAdminSection('users');
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user || user.id === session.userId) return; // cannot disable self
+  // Privilege boundary (SECURITY-AUDIT #3): a scoped Users admin can't archive an
+  // administrator, and the last active Super Admin can never be archived (either
+  // would hand off / remove back-end control).
+  if (!session.superAdmin && user.role === 'ADMIN') return;
+  if (user.active && user.superAdmin) {
+    const otherSupers = await prisma.user.count({
+      where: { role: 'ADMIN', superAdmin: true, active: true, id: { not: userId } },
+    });
+    if (otherSupers === 0) return;
+  }
   // Deactivating also revokes the user's live sessions immediately.
   await prisma.user.update({
     where: { id: userId },
@@ -439,8 +488,11 @@ export async function toggleUserActiveAction(userId: string): Promise<void> {
  */
 export async function signOutUserEverywhereAction(userId: string): Promise<void> {
   const session = await requireAdminSection('users');
-  const user = await prisma.user.findUnique({ where: { id: userId }, select: { id: true, name: true } });
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { id: true, name: true, role: true } });
   if (!user) return;
+  // Privilege boundary (SECURITY-AUDIT #3): only a Super Admin can force an
+  // administrator off their devices.
+  if (!session.superAdmin && user.role === 'ADMIN') return;
   await prisma.user.update({
     where: { id: userId },
     data: { tokenVersion: { increment: 1 }, mfaTrustVersion: { increment: 1 } },

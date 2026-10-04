@@ -41,7 +41,14 @@ scheduling soon, especially the DoS ones given the recent outage.
   #2 (rate-limit the render/thumbnail endpoints), #6 (per-user upload throttle).
   See the CHANGELOG entry of the same date. Still open from the DoS set: #4
   (render memory), #9 (`full-export` streaming), and the Prisma `connection_limit`
-  ops tweak. All other findings below are unchanged / open.
+  ops tweak.
+- **2026-10-04 — #3 fixed (admin privilege boundary):** password reset / role
+  change / archive / force-logout of an administrator are now Super-Admin-only,
+  with a last-active-Super-Admin guard, across `updateUserAction`,
+  `createUserAction`, `toggleUserActiveAction`, `signOutUserEverywhereAction`.
+- Still open: #5 MFA-lockout reset, #7 chat section gating, #8 mail-attachment
+  MIME, #10 (confirm the production encryption key — your check), and the Low
+  items. All findings below are otherwise unchanged / open.
 
 ## Priority list (most to least urgent)
 
