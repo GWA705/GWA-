@@ -26,6 +26,26 @@ export async function resizedImageResponse(
   },
 ): Promise<NextResponse> {
   const src = Buffer.isBuffer(bytes) ? bytes : Buffer.from(bytes);
+
+  // Animated GIFs must NOT go through the sharp resize/encode below — a plain
+  // .webp() would flatten them to the first frame (losing the animation), and
+  // resizing every frame is memory-heavy on the single instance. Detect a GIF by
+  // its magic bytes ("GIF8") and serve the original untouched so it keeps moving.
+  const isGif = src.length >= 4 && src[0] === 0x47 && src[1] === 0x49 && src[2] === 0x46 && src[3] === 0x38;
+  if (isGif) {
+    const gifCache = opts.versioned
+      ? 'private, max-age=31536000, immutable'
+      : `private, max-age=${opts.maxAgeSeconds ?? 86400}`;
+    return new NextResponse(new Uint8Array(src), {
+      status: 200,
+      headers: {
+        'Content-Type': 'image/gif',
+        'X-Content-Type-Options': 'nosniff',
+        'Cache-Control': gifCache,
+      },
+    });
+  }
+
   let out = src;
   let mime = 'image/webp';
   try {

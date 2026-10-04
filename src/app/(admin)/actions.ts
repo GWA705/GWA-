@@ -976,8 +976,12 @@ export async function setAnnouncementImageAction(
 
   if (!hasImage) return { error: 'Choose an image to upload.' };
   if (file!.size > MAX_FILE_BYTES) return { error: 'Image is too large (max 15 MB).' };
-  if (!ALLOWED_MIME_TYPES.includes(file!.type) || !file!.type.startsWith('image/')) {
-    return { error: 'Banner must be an image (JPG, PNG, WEBP).' };
+  // Banners accept animated GIF (served untouched so it keeps animating), in
+  // addition to the standard image types. This is deliberately a wider list than
+  // ALLOWED_MIME_TYPES (deal documents) — GIF never belongs on a financial doc.
+  const BANNER_MIME = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/gif'];
+  if (!file!.type.startsWith('image/') || !BANNER_MIME.includes(file!.type)) {
+    return { error: 'Banner must be an image (JPG, PNG, WEBP, or GIF).' };
   }
 
   try {

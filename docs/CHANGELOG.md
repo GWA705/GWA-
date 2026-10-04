@@ -36,6 +36,19 @@ source of truth; this file is the human-readable index.
 | Desktop/phone push notifications | ✅ Keys set (2026-09-11, Sean) — confirm with a test | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` set on EB. The client fetches the public key at **runtime** (`GET /api/push/key`) so it survives rebuilds. Reviewers get push on new dealer docs / activity. iOS needs the app installed to the Home Screen. **To confirm:** Account → Enable desktop notifications → Send a test. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### Dealer banner (portal sign) supports animated GIF (2026-10-04)
+- The announcement banner upload (Admin → Dealer portal sign) now accepts
+  **animated GIF**, and it keeps animating on the dealer dashboard. The upload
+  already stored the original bytes; the two blockers were the MIME allowlist and
+  the shared image-serving helper flattening it.
+- `setAnnouncementImageAction` accepts `image/gif` (a banner-specific list — GIF is
+  deliberately NOT added to the deal-document allowlist). File picker updated.
+- `resizedImageResponse` (`src/lib/imageResponse.ts`) now detects a GIF by its
+  magic bytes and serves the original untouched instead of running it through
+  sharp (which would flatten it to one frame) — this also avoids heavy
+  multi-frame rasterization on the single instance. Benefits any caller that
+  serves a stored GIF. Still 15 MB max; smaller GIFs load faster for dealers.
+
 ### Journal → Paid sync now works for hand-typed rows (2026-10-04)
 The read-back (journal shows **Result "OK" + a Date Paid** → portal marks the deal
 **Funded & Paid**) had never fired in practice. Two reasons, both fixed:

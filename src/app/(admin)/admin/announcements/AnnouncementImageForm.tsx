@@ -27,7 +27,7 @@ export function AnnouncementImageForm({ id, hasImage }: { id: string; hasImage: 
       <input
         type="file"
         name="image"
-        accept=".jpg,.jpeg,.png,.webp"
+        accept=".jpg,.jpeg,.png,.webp,.gif,image/gif"
         className="block w-40 text-xs text-gray-600 file:mr-2 file:rounded file:border-0 file:bg-gray-100 file:px-2 file:py-1 file:text-xs"
       />
       <Btn label={hasImage ? 'Replace image' : 'Add image'} />
