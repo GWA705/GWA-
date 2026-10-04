@@ -2,15 +2,24 @@ import { redirect } from 'next/navigation';
 import { getSession, defaultLandingFor } from '@/lib/session';
 import { getT } from '@/i18n/server';
 import { isSpookySeason } from '@/lib/seasonal';
+import { activeLoginTheme } from '@/lib/loginTheme';
+import { SeasonalLogin } from '@/components/auth/SeasonalLogin';
 import { SpookyLogin } from './SpookyLogin';
 import { LoginForm } from './LoginForm';
+
+export const dynamic = 'force-dynamic';
 
 export default async function LoginPage() {
   const session = await getSession();
   if (session) redirect(defaultLandingFor(session.role));
 
-  // Full Halloween skin during the season (decided server-side from the Toronto
-  // date, so no flicker and it reverts on its own); the normal login otherwise.
+  // An admin-managed login theme (Admin → Login screen) wins when one is live —
+  // scheduled for an occasion or set to always-on. Otherwise the built-in
+  // Halloween skin shows during the spooky season (both decided server-side from
+  // the Toronto date, so no flicker and they revert on their own); the normal
+  // login otherwise.
+  const theme = await activeLoginTheme();
+  if (theme) return <SeasonalLogin bgSrc={theme.src} accent={theme.accent ?? undefined} />;
   if (isSpookySeason()) return <SpookyLogin />;
 
   const t = getT();

@@ -639,6 +639,7 @@ model User {
   verificationChecks  VerificationCheck[]
   callRecordings      CallRecording[]     @relation("CallRecordingCreator")
   dashboardHeroes     DashboardHero[]     @relation("DashboardHeroCreator")
+  loginThemes         LoginTheme[]        @relation("LoginThemeCreator")
   pushSubscriptions   PushSubscription[]
   alertAcks           AlertAck[]
   contentReads        ContentSectionRead[]
@@ -1593,6 +1594,28 @@ model DashboardHero {
   updatedAt DateTime @updatedAt
 
   @@index([kind])
+  @@index([active])
+}
+
+// Admin-managed sign-in screen looks. Each theme is a full-bleed background
+// (+ optional accent colour) for the login page. With a date window it shows
+// only between those days and reverts on its own; with no dates it's a manual
+// always-on look. A dated theme that's in-window wins over an undated one.
+model LoginTheme {
+  id          String  @id @default(cuid())
+  name        String
+  startsOn    DateTime? // first day it shows (inclusive); null = no schedule (manual)
+  endsOn      DateTime? // last day it shows (inclusive)
+  accentColor String?   // hex e.g. "#ff7416"; null = default orange
+  imageStorageKey String
+  imageMime   String
+  active      Boolean @default(true)
+
+  createdById String?
+  createdBy   User?    @relation("LoginThemeCreator", fields: [createdById], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([active])
 }
 

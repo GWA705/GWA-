@@ -2337,3 +2337,74 @@ export async function deleteDashboardHeroAction(id: string): Promise<void> {
   revalidatePath('/admin/dashboard-hero');
   revalidatePath('/dealer');
 }
+
+// --- Login screen manager ----------------------------------------------------
+
+async function storeLoginThemeImage(file: File): Promise<{ key: string; mime: string } | { error: string }> {
+  if (file.size > MAX_FILE_BYTES) return { error: 'Image is too large (max 15 MB).' };
+  if (!file.type.startsWith('image/') || !HERO_IMAGE_MIME.includes(file.type)) {
+    return { error: 'Background must be an image (JPG, PNG, WEBP, or GIF).' };
+  }
+  const ext = path.extname(file.name).slice(0, 12).replace(/[^a-zA-Z0-9.]/g, '') || '.img';
+  const key = `login-theme/${crypto.randomBytes(10).toString('hex')}${ext}`;
+  const bytes = Buffer.from(await file.arrayBuffer());
+  await putDocument(key, bytes);
+  return { key, mime: file.type };
+}
+
+/** Add a sign-in screen look: a background (+ optional accent), optionally scheduled. */
+export async function createLoginThemeAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const session = await requireAdminSection('login-screen');
+  const name = String(formData.get('name') || '').trim().slice(0, 60) || 'Login theme';
+
+  // Dates are optional, but if you set one you must set both (a half window never shows).
+  const startStr = String(formData.get('startsOn') || '').trim();
+  const endStr = String(formData.get('endsOn') || '').trim();
+  if ((startStr && !endStr) || (!startStr && endStr)) return { error: 'Set both a start and end date, or leave both blank for always-on.' };
+  let startsOn: Date | null = null;
+  let endsOn: Date | null = null;
+  if (startStr && endStr) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(startStr) || !/^\d{4}-\d{2}-\d{2}$/.test(endStr)) return { error: 'Choose valid dates.' };
+    startsOn = new Date(startStr);
+    endsOn = new Date(endStr);
+    if (endsOn.getTime() < startsOn.getTime()) return { error: 'The end date is before the start date.' };
+  }
+
+  // Accent is optional; a valid 6-digit hex or nothing (falls back to the default).
+  const accentRaw = String(formData.get('accentColor') || '').trim();
+  const accentColor = /^#[0-9a-fA-F]{6}$/.test(accentRaw) ? accentRaw.toLowerCase() : null;
+
+  const file = formData.get('image') as File | null;
+  if (!file || typeof file === 'string' || file.size === 0) return { error: 'Choose a background image.' };
+  const stored = await storeLoginThemeImage(file);
+  if ('error' in stored) return stored;
+
+  const created = await prisma.loginTheme.create({
+    data: { name, startsOn, endsOn, accentColor, imageStorageKey: stored.key, imageMime: stored.mime, createdById: session.userId },
+  });
+  await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'LoginTheme', entityId: created.id, detail: `"${name}" ${startStr || 'always'}${endStr ? `..${endStr}` : ''}` });
+  revalidatePath('/admin/login-screen');
+  revalidatePath('/login');
+  return { ok: true };
+}
+
+export async function toggleLoginThemeActiveAction(id: string): Promise<void> {
+  const session = await requireAdminSection('login-screen');
+  const t = await prisma.loginTheme.findUnique({ where: { id } });
+  if (!t) return;
+  await prisma.loginTheme.update({ where: { id }, data: { active: !t.active } });
+  await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'LoginTheme', entityId: id, detail: `active=${!t.active}` });
+  revalidatePath('/admin/login-screen');
+  revalidatePath('/login');
+}
+
+export async function deleteLoginThemeAction(id: string): Promise<void> {
+  const session = await requireAdminSection('login-screen');
+  const t = await prisma.loginTheme.findUnique({ where: { id } });
+  if (!t) return;
+  await deleteDocument(t.imageStorageKey).catch(() => {});
+  await prisma.loginTheme.delete({ where: { id } });
+  await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'LoginTheme', entityId: id, detail: 'deleted' });
+  revalidatePath('/admin/login-screen');
+  revalidatePath('/login');
+}

@@ -36,6 +36,26 @@ source of truth; this file is the human-readable index.
 | Desktop/phone push notifications | ✅ Keys set (2026-09-11, Sean) — confirm with a test | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` set on EB. The client fetches the public key at **runtime** (`GET /api/push/key`) so it survives rebuilds. Reviewers get push on new dealer docs / activity. iOS needs the app installed to the Home Screen. **To confirm:** Account → Enable desktop notifications → Send a test. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### Login screen manager — upload a sign-in look + schedule occasions (2026-10-04)
+- **New admin page `/admin/login-screen`** (grantable section `login-screen`) to
+  set the sign-in page's background (and accent colour) from the portal — the same
+  idea as the dashboard hero manager, for the login screen.
+  - Upload a background (GIF fine), name it, pick an accent colour (drives the
+    title word, the sign-in button and the field focus ring).
+  - **Optional dates:** set both and it shows only in that window (Toronto date)
+    and reverts on its own; leave both blank for an always-on look you switch on
+    and off. A scheduled look in its window beats an always-on one.
+- The sign-in page now resolves in order: an active admin login theme →
+  the built-in Halloween skin (spooky season) → the normal login. The Halloween
+  skin was generalised into `SeasonalLogin` (accent-parametrised via a CSS var +
+  `color-mix`, so any colour reads right); `SpookyLogin` is now a thin preset of it.
+- New `LoginTheme` model + additive migration `20261004160000_login_theme` (empty
+  table; the built-in looks keep working until a theme is added). Served through a
+  **public, per-IP rate-limited** route (`/api/login-theme/[id]/image`) — the
+  sign-in page is pre-auth — via the shared image helper (GIFs untouched so they
+  animate). `src/lib/loginTheme.ts` resolves the live theme; tests in
+  `tests/login-theme.test.ts`.
+
 ### Halloween sign-in skin — full-bleed night look (2026-10-04)
 - The sign-in page gets a full seasonal reskin during the spooky season (Oct 18 →
   Oct 31, reverts Nov 1 — all decided server-side from the Toronto date, so no
