@@ -630,6 +630,7 @@ model User {
   conversationReads   ConversationRead[]
   confirmations       Confirmation[]
   verificationChecks  VerificationCheck[]
+  callRecordings      CallRecording[]     @relation("CallRecordingCreator")
   pushSubscriptions   PushSubscription[]
   alertAcks           AlertAck[]
   contentReads        ContentSectionRead[]
@@ -1269,6 +1270,7 @@ model Application {
   cancellations   DealCancellation[]
   remittanceLines HdRemittanceLine[]
   linkedMails     Mail[]              @relation("MailApplication")
+  callRecordings  CallRecording[]
 
   @@index([dealerId])
   @@index([status])
@@ -1522,6 +1524,39 @@ model Confirmation {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// A recording of a phone call about a deal — e.g. the confirmation call — placed
+// through Twilio Voice. GROUNDWORK: nothing writes to this yet (see src/lib/voice.ts
+// and docs/VOICE.md); the table exists so recordings have a home ON THE DEAL (and
+// therefore the customer's profile) the moment voice is switched on. The audio
+// itself is kept in our own storage (recordingStorageKey) rather than hot-linking
+// Twilio, so it survives and stays access-controlled; recordingUrl is a fallback.
+model CallRecording {
+  id            String      @id @default(cuid())
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  provider            String  @default("twilio") // which voice provider produced it
+  providerCallSid     String? // Twilio Call SID ("CA...")
+  providerRecordingSid String? // Twilio Recording SID ("RE...")
+  direction     String  @default("outbound") // 'outbound' (we called) | 'inbound'
+  fromNumber    String? // E.164, masked for display
+  toNumber      String? // E.164, masked for display
+  status        String  @default("pending") // pending | in-progress | completed | failed
+  durationSec   Int?
+  recordingStorageKey String? // our stored copy of the audio (preferred)
+  recordingUrl  String? // provider URL fallback
+  purpose       String  @default("confirmation") // what the call was for
+
+  startedAt     DateTime?
+  createdById   String?
+  createdBy     User?     @relation("CallRecordingCreator", fields: [createdById], references: [id])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([applicationId])
+  @@index([providerCallSid])
 }
 
 model SerialNumber {

@@ -254,6 +254,7 @@ export default async function StaffQueue({ searchParams }: { searchParams: { q?:
         <h1 className="text-xl font-semibold text-gray-900">Deals</h1>
         <div className="flex flex-wrap items-center gap-2">
           <Link href="/staff/cancellations" className="btn-secondary text-sm">🚫 Cancellations</Link>
+          <Link href="/staff/confirmations" className="btn-secondary text-sm">☎ Confirmation calls</Link>
           <SearchBox action="/staff" q={q} />
           <QueueSortControl sort={sort} />
         </div>

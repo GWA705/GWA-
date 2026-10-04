@@ -8,7 +8,7 @@ import { MobileNav } from '@/components/MobileNav';
 import { useT } from '@/i18n/client';
 import {
   FileText, Mail, MessageSquare, Gift, Building2, Users, BarChart3, UserCircle,
-  ShieldCheck, Wrench, Search, Bell, LogOut, Droplets, ArrowLeftRight, type LucideIcon,
+  ShieldCheck, Wrench, Search, Bell, LogOut, Droplets, ArrowLeftRight, Phone, type LucideIcon,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -26,6 +26,7 @@ function iconFor(label: string): LucideIcon {
   if (l.includes('deal') || l.includes('queue')) return FileText;
   if (l.includes('mail')) return Mail;
   if (l.includes('chat') || l.includes('conversation')) return MessageSquare;
+  if (l.includes('confirmation') || l.includes('call')) return Phone;
   if (l.includes('gift')) return Gift;
   if (l.includes('director')) return Building2;
   if (l.includes('find') || l.includes('customer')) return Search;

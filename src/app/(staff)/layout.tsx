@@ -11,6 +11,7 @@ import { isGlobalSearchEnabled } from '@/lib/settings';
 import { canSearchAllCustomers } from '@/lib/customerSearch';
 import { canManageGiftCards, staffHasGiftCardUnread } from '@/lib/giftCardAccess';
 import { totalUnread } from '@/lib/chat';
+import { hasOutstandingConfirmations } from '@/lib/confirmationQueue';
 
 export default async function StaffLayout({ children }: { children: React.ReactNode }) {
   const user = await requireRole('REVIEWER', 'ADMIN');
@@ -20,6 +21,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
   const canDeals = user.role === 'REVIEWER' || canAdminSection(user, 'review-queue');
   const canMail = user.role === 'REVIEWER' || canAdminSection(user, 'mail');
   const canDirectory = user.role === 'REVIEWER' || canAdminSection(user, 'directory');
+  const canConfirmations = user.role === 'REVIEWER' || canAdminSection(user, 'confirmations');
 
   interface NavItem {
     href?: string;
@@ -33,6 +35,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
   if (canDeals) nav.push({ href: '/staff', label: 'Deals' });
   if (canMail) nav.push({ href: '/staff/mail', label: 'Mail' });
   if (canDeals) nav.push({ href: '/staff/conversations', label: 'Chat', badge: (await totalUnread(user)) > 0 });
+  if (canConfirmations) nav.push({ href: '/staff/confirmations', label: 'Confirmation calls', badge: await hasOutstandingConfirmations() });
   if (await canManageGiftCards(user)) {
     nav.push({ href: '/staff/gift-cards', label: 'Gift cards', badge: await staffHasGiftCardUnread() });
   }

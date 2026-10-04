@@ -36,6 +36,47 @@ source of truth; this file is the human-readable index.
 | Desktop/phone push notifications | ✅ Keys set (2026-09-11, Sean) — confirm with a test | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` set on EB. The client fetches the public key at **runtime** (`GET /api/push/key`) so it survives rebuilds. Reviewers get push on new dealer docs / activity. iOS needs the app installed to the Home Screen. **To confirm:** Account → Enable desktop notifications → Send a test. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### Confirmation calls worklist (reviewer) (2026-10-04)
+- **New reviewer worklist at `/staff/confirmations`** so the confirmation call
+  stops falling through. Deals keep advancing (into funding, even Funded) before
+  the call is made, so the ones still owed a call scattered out of view with no
+  way to find them. This page pulls them all together in one place.
+- **Four work-states, derived — no dealer-facing change, no enum migration.**
+  `src/lib/confirmationWork.ts` computes a per-deal state from data that already
+  exists: **Needs a call** (reached the review/signed-docs stage but not started),
+  **In progress** (call started — shows which of the six checks are left, "3 of 6"),
+  **Issue · follow-up** (a flagged confirmation issue), **Confirmed** (completed
+  today). Eligibility reuses `currentPhaseIndex >= 4` from `reviewerFlow`, the same
+  gate the deal page uses, so the worklist and the deal never disagree.
+- **The follow-up queue is folded in.** The "Issues · follow-up" state is the
+  weekend follow-up queue — a flagged issue where the office replied last (so it's
+  waiting on a reviewer) surfaces here, aging to red after 2 days. One list, so
+  office replies over a weekend don't get lost.
+- **Three views, like the Deals queue:** Worklist (urgency bands + overdue
+  callout), Tabs (state chips + live search by name/office/HD ref), Stacked.
+  Choice remembered per reviewer. Everything links into the customer's deal, where
+  the call is made and the history lives — the page is an index, not a new store.
+- **Nav + discovery:** a "Confirmation calls" item in the staff nav with an
+  outstanding-work dot (`src/lib/confirmationQueue.ts`, cheap count), a quick link
+  on the Deals header, and a new grantable admin section `confirmations`.
+- Unit tests in `tests/confirmation-work.test.ts`.
+
+### Twilio Voice — call-recording groundwork, OFF (2026-10-04)
+- **Prepared, not live.** Lays the groundwork to record confirmation calls the way
+  the booking site does, without turning anything on — same safe pattern as SMS
+  (present in code, inert until configured). Nothing dials, records, or reaches
+  Twilio yet.
+- `src/lib/voice.ts` — `voiceEnabled()` / `voiceRecordingEnabled()` /
+  `voiceConfig()`, gated on new env vars and reusing the **same Twilio account as
+  SMS**. `voiceEnabled()` is false until `TWILIO_VOICE_CALLER_ID` +
+  `TWILIO_TWIML_APP_SID` are set.
+- New additive `CallRecording` table (`20261004130000_call_recording`) hanging off
+  `Application`, so a recording lives **on the deal / customer profile**. Empty and
+  unused until voice is switched on — safe to ship.
+- A "Call recording" panel on the staff deal page shows the inactive state so the
+  home is already there. Turn-on steps (webhooks, consent notice, player) are
+  documented in `docs/VOICE.md` — a later, deliberate build.
+
 ### Booking-site lead push (2026-09-29)
 - **Confirmed scanned leads now push to the booking system.** When a scanned
   lead card is saved (`createScannedLeadAction` in

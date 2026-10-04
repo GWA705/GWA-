@@ -35,6 +35,7 @@ import {
 import { programCategoryLabel, paymentMethodLabel } from '@/lib/enumLabels';
 import { getT } from '@/i18n/server';
 import { ConfirmationForm } from './ConfirmationForm';
+import { CallRecordingPanel } from './CallRecordingPanel';
 import { DealReferencesForm } from './DealReferencesForm';
 import { WriteToJournalButton } from './WriteToJournalButton';
 import { DecisionForm } from './DecisionForm';
@@ -62,6 +63,7 @@ import { FlagDealerIssueCard } from './FlagDealerIssueCard';
 import { EmailDocsCard } from './EmailDocsCard';
 import { getReviewLink } from '@/lib/settings';
 import { smsEnabled } from '@/lib/sms';
+import { voiceEnabled } from '@/lib/voice';
 import { computeDealerPayout } from '@/lib/payoutCalc';
 import { decisionDisplayLabel } from '@/lib/enumLabels';
 import type { ApplicationStatus } from '@prisma/client';
@@ -646,6 +648,7 @@ export default async function StaffApplicationDetail({
           defaultPhone={app.applicantPhone}
           defaultAmount={(app.approvedAmount ?? app.requestedAmount).toString()}
         />
+        <CallRecordingPanel enabled={voiceEnabled()} />
         <ReviewRequestCard
           applicationId={app.id}
           customerEmail={app.applicantEmail ?? ''}
