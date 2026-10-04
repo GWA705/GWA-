@@ -1,11 +1,12 @@
 #!/usr/bin/env sh
-# Production start script (used by Render). Waits for the database to be ready,
-# applies migrations, seeds sample data, then starts the web server. Logs each
-# step so failures are easy to diagnose in the service logs.
+# Production start script (AWS Elastic Beanstalk — the app was migrated off
+# Render). Waits for the database to be ready, applies migrations, seeds sample
+# data, then starts the web server. Logs each step so failures are easy to
+# diagnose in the service logs.
 
-# Render runs in UTC. This is an Ontario business, so render all dates/times in
-# Eastern (handles EST/EDT automatically). Set before the Node server starts so
-# every timestamp — audit log, histories, deal times — shows local time.
+# Containers run in UTC. This is an Ontario business, so render all dates/times
+# in Eastern (handles EST/EDT automatically). Set before the Node server starts
+# so every timestamp — audit log, histories, deal times — shows local time.
 export TZ="America/Toronto"
 
 echo "[start] Applying database migrations..."
