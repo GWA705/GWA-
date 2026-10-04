@@ -44,16 +44,18 @@ export function LoginThemeForm() {
           <span className="mt-1 block text-[11px] text-gray-400">Colours the title word, the sign-in button and the field focus ring.</span>
         </label>
         <label className="block">
-          <Lab>Start date (optional)</Lab>
+          <Lab>Starts on</Lab>
           <input type="date" name="startsOn" className="input" />
+          <span className="mt-1 block text-[11px] text-gray-400">The sign-in page switches to this look.</span>
         </label>
         <label className="block">
-          <Lab>End date (optional)</Lab>
+          <Lab>Back to original on</Lab>
           <input type="date" name="endsOn" className="input" />
+          <span className="mt-1 block text-[11px] text-gray-400">After this day it returns to the normal sign-in by itself.</span>
         </label>
       </div>
       <p className="text-[11px] text-gray-400">
-        Set both dates to schedule it for an occasion — it turns on and off on its own. Leave both blank to switch it on now and keep it until you turn it off.
+        Set both dates to schedule an occasion — it turns on, then puts itself back to the original look on its own. Leave both blank to switch it on now and keep it until you turn it off.
       </p>
       <div className="flex items-center gap-3">
         <Submit />

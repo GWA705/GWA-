@@ -84,7 +84,7 @@ export default async function LoginScreenPage() {
                         )}
                       </div>
                       <div className="mt-1 text-xs tabular-nums text-gray-500">
-                        {t.startsOn && t.endsOn ? `${fmtDate(t.startsOn)} → ${fmtDate(t.endsOn)}` : 'Always on (manual)'}
+                        {t.startsOn && t.endsOn ? `Starts ${fmtDate(t.startsOn)} · back to original after ${fmtDate(t.endsOn)}` : 'Always on (manual)'}
                       </div>
                     </div>
                   </div>
