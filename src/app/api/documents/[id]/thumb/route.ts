@@ -5,6 +5,7 @@ import { getSession } from '@/lib/session';
 import { canAccessApplication } from '@/lib/rbac';
 import { getDocument } from '@/lib/storage';
 import { pdfFirstPageThumb } from '@/lib/pdfThumb';
+import { rateLimit } from '@/lib/ratelimit';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -19,6 +20,17 @@ export const maxDuration = 60;
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getSession();
   if (!session) return new NextResponse('Unauthorized', { status: 401 });
+
+  // Thumbnails rasterize/resize (sharp / first-page PDF render). A checklist grid
+  // legitimately loads several at once, so the cap is higher than the full-page
+  // render, but still bounds a scripted burst against the single instance.
+  const rl = await rateLimit(`doc-thumb:${session.userId}`, 120, 60);
+  if (!rl.ok) {
+    return new NextResponse('Too many requests — please wait a moment.', {
+      status: 429,
+      headers: { 'Retry-After': String(rl.retryAfterSec) },
+    });
+  }
 
   const doc = await prisma.document.findUnique({
     where: { id: params.id },

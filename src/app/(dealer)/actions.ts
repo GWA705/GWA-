@@ -11,6 +11,7 @@ import { toTitleCase, titleOrNull } from '@/lib/textcase';
 import { audit } from '@/lib/audit';
 import { findCardData, CARD_BLOCK_MESSAGE } from '@/lib/cardscan';
 import { storeFiles } from '@/lib/upload';
+import { rateLimit } from '@/lib/ratelimit';
 import { deleteDocument } from '@/lib/storage';
 import { markDealerAction } from '@/lib/activity';
 import { notifyNewDocuments, notifyNewNote, notifyNewSubmission, notifyFundingSubmitted, notifyAdminsUserRequest, notifyCancellationRequested, notifyInBackground, notifyFundingDocsBeforeSend } from '@/lib/notify';
@@ -343,6 +344,11 @@ export async function uploadSupportingDocAction(
   const app = await prisma.application.findUnique({ where: { id: applicationId } });
   if (!app || !canAccessAsDealer(session, app.dealerId)) return { error: 'Not found.' };
 
+  // Uploads run OCR + image processing on the request path; throttle per user so a
+  // burst can't tie up the single instance's workers (see SECURITY-AUDIT #6).
+  const rl = await rateLimit(`upload:${session.userId}`, 30, 60);
+  if (!rl.ok) return { error: 'You’re uploading too quickly — wait a moment and try again.' };
+
   // The uploader tags what the document is (Bill of Sale / Application info /
   // Other → typed). Stored as the document's label and shown as its title.
   const CATEGORY_LABELS: Record<string, string> = {
@@ -419,6 +425,8 @@ export async function uploadFundingDocAction(
   const session = await requireDealerAccess();
   const app = await prisma.application.findUnique({ where: { id: applicationId } });
   if (!app || !canAccessAsDealer(session, app.dealerId)) return { error: 'Not found.' };
+  const rl = await rateLimit(`upload:${session.userId}`, 30, 60);
+  if (!rl.ok) return { error: 'You’re uploading too quickly — wait a moment and try again.' };
   // Dealers may upload individual documents any time after approval (e.g. a void
   // cheque they have on hand). Uploading does NOT advance the deal — only
   // *submitting* the completed package does, and that stays gated to DOCS_SENT.
@@ -461,6 +469,8 @@ export async function uploadFundingBatchAction(
   const session = await requireDealerAccess();
   const app = await prisma.application.findUnique({ where: { id: applicationId } });
   if (!app || !canAccessAsDealer(session, app.dealerId)) return { error: 'Not found.' };
+  const rl = await rateLimit(`upload:${session.userId}`, 30, 60);
+  if (!rl.ok) return { error: 'You’re uploading too quickly — wait a moment and try again.' };
   // Uploading is allowed any time after approval (e.g. an early void cheque); it
   // doesn't advance the deal — submitting the completed package does (DOCS_SENT).
   if (!['APPROVED', 'CONDITIONAL', 'DOCS_SENT', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW', 'FUNDED'].includes(app.status)) {

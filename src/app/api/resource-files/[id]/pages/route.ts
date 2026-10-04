@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { getSession } from '@/lib/session';
 import { getDocument } from '@/lib/storage';
 import { renderPdfPagesStacked } from '@/lib/pdfThumb';
+import { rateLimit } from '@/lib/ratelimit';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 120;
@@ -12,6 +13,15 @@ export const maxDuration = 120;
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getSession();
   if (!session) return new NextResponse('Unauthorized', { status: 401 });
+
+  // Heavy whole-PDF rasterization — cap per account (see documents/[id]/pages).
+  const rl = await rateLimit(`res-pages:${session.userId}`, 30, 60);
+  if (!rl.ok) {
+    return new NextResponse('Too many requests — please wait a moment.', {
+      status: 429,
+      headers: { 'Retry-After': String(rl.retryAfterSec) },
+    });
+  }
 
   const f = await prisma.resourceProductFile.findUnique({ where: { id: params.id } });
   if (!f) return new NextResponse('Not found', { status: 404 });

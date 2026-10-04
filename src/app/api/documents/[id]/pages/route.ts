@@ -4,6 +4,7 @@ import { getSession } from '@/lib/session';
 import { canAccessApplication } from '@/lib/rbac';
 import { getDocument } from '@/lib/storage';
 import { renderPdfPagesStacked } from '@/lib/pdfThumb';
+import { rateLimit } from '@/lib/ratelimit';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 120;
@@ -13,6 +14,18 @@ export const maxDuration = 120;
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getSession();
   if (!session) return new NextResponse('Unauthorized', { status: 401 });
+
+  // This rasterizes a whole PDF (CPU + memory heavy) behind a small shared
+  // concurrency pool, so cap how often one account can trigger it — otherwise a
+  // scripted burst of page-render requests ties up workers and the DB pool on the
+  // single instance. Generous for normal reading (the image is browser-cached 1h).
+  const rl = await rateLimit(`doc-pages:${session.userId}`, 30, 60);
+  if (!rl.ok) {
+    return new NextResponse('Too many requests — please wait a moment.', {
+      status: 429,
+      headers: { 'Retry-After': String(rl.retryAfterSec) },
+    });
+  }
 
   const doc = await prisma.document.findUnique({
     where: { id: params.id },

@@ -35,6 +35,14 @@ scheduling soon, especially the DoS ones given the recent outage.
 
 ---
 
+## Remediation log
+
+- **2026-10-04 — DoS batch 1 shipped:** #1 (chat unread single query + list cap),
+  #2 (rate-limit the render/thumbnail endpoints), #6 (per-user upload throttle).
+  See the CHANGELOG entry of the same date. Still open from the DoS set: #4
+  (render memory), #9 (`full-export` streaming), and the Prisma `connection_limit`
+  ops tweak. All other findings below are unchanged / open.
+
 ## Priority list (most to least urgent)
 
 | # | Severity | Area | Issue | Fix effort |

@@ -1,4 +1,5 @@
 import 'server-only';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { isInternalRole } from '@/lib/constants';
 import type { SessionUser } from '@/lib/session';
@@ -31,8 +32,6 @@ export interface ConversationSummary {
   preview: string | null;
   unread: number;
 }
-
-const EPOCH = new Date(0);
 
 /** Can this user read/write the conversation? Dealers are scoped to their dealer.
  * Internal staff see every office's threads — EXCEPT while "viewing as" a dealer,
@@ -229,19 +228,24 @@ export async function conversationMessages(conversationId: string, viewer: Sessi
 async function unreadCounts(conversationIds: string[], userId: string): Promise<Map<string, number>> {
   const out = new Map<string, number>();
   if (conversationIds.length === 0) return out;
-  const reads = await prisma.conversationRead.findMany({
-    where: { userId, conversationId: { in: conversationIds } },
-    select: { conversationId: true, lastReadAt: true },
-  });
-  const lastRead = new Map(reads.map((r) => [r.conversationId, r.lastReadAt]));
-  await Promise.all(
-    conversationIds.map(async (id) => {
-      const n = await prisma.chatMessage.count({
-        where: { conversationId: id, authorId: { not: userId }, createdAt: { gt: lastRead.get(id) ?? EPOCH } },
-      });
-      out.set(id, n);
-    }),
-  );
+  // ONE grouped query instead of a COUNT per conversation. The old version did a
+  // separate prisma.chatMessage.count() for every conversation in parallel — on an
+  // auto-polled badge that fanned out to hundreds of queries per load and could
+  // exhaust the DB connection pool on the single instance (see SECURITY-AUDIT).
+  // Unread = messages from someone else (authorId <> me; auto messages have a null
+  // author and are excluded, matching the previous `not: userId` behaviour) that
+  // are newer than this user's lastReadAt for that conversation.
+  const rows = await prisma.$queryRaw<{ conversationId: string; n: bigint }[]>`
+    SELECT m."conversationId" AS "conversationId", COUNT(*)::bigint AS n
+    FROM "ChatMessage" m
+    LEFT JOIN "ConversationRead" r
+      ON r."conversationId" = m."conversationId" AND r."userId" = ${userId}
+    WHERE m."conversationId" IN (${Prisma.join(conversationIds)})
+      AND m."authorId" <> ${userId}
+      AND m."createdAt" > COALESCE(r."lastReadAt", to_timestamp(0))
+    GROUP BY m."conversationId"
+  `;
+  for (const row of rows) out.set(row.conversationId, Number(row.n));
   return out;
 }
 
@@ -255,6 +259,10 @@ export async function dealerConversationSummaries(dealerId: string, userId: stri
   const all = await prisma.conversation.findMany({
     where: { dealerId },
     orderBy: { lastMessageAt: 'desc' },
+    // Cap the set — a dealer accrues one conversation per deal, and the unread
+    // badge/list shouldn't load an unbounded number (the 200 most-recent threads
+    // are more than enough for the dealer's list view).
+    take: 200,
     include: {
       application: { select: { id: true, applicantFirstName: true, applicantLastName: true } },
       messages: { orderBy: { createdAt: 'desc' }, take: 1, select: { body: true } },

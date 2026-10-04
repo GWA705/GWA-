@@ -36,6 +36,25 @@ source of truth; this file is the human-readable index.
 | Desktop/phone push notifications | ✅ Keys set (2026-09-11, Sean) — confirm with a test | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` set on EB. The client fetches the public key at **runtime** (`GET /api/push/key`) so it survives rebuilds. Reviewers get push on new dealer docs / activity. iOS needs the app installed to the Home Screen. **To confirm:** Account → Enable desktop notifications → Send a test. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### Security hardening — insider DoS batch 1 (2026-10-04)
+From the 2026-10-04 security audit (`docs/SECURITY-AUDIT-2026-10.md`), the
+highest-impact uptime risks (the Oct-2 class: one insider/accidental action
+exhausting the single instance). No behaviour change for normal use.
+- **Chat unread badge no longer fans out (audit #1).** `unreadCounts`
+  (`src/lib/chat.ts`) did one `COUNT` query per conversation in parallel — on an
+  auto-polled badge that meant hundreds of queries per load and could exhaust the
+  DB connection pool. Replaced with a single grouped query (parameterized raw
+  SQL, same semantics). Added a `take: 200` cap to the dealer conversation list.
+- **Heavy render endpoints are rate-limited (audit #2).** Per-user `rateLimit` on
+  the PDF-page and thumbnail routes (`documents/[id]/pages`, `.../thumb`,
+  `mail/attachments/[id]/pages`, `resource-files/[id]/pages`) — these rasterize
+  whole PDFs and had no cap, so a scripted burst could wedge request workers.
+- **Dealer uploads are throttled (audit #6).** Per-user `rateLimit` on the three
+  dealer upload actions (OCR + image processing run on the request path).
+- Deferred to later batches (documented in the audit): render memory/stream
+  (#4), `full-export` streaming (#9), and an explicit Prisma `connection_limit`
+  (an ops/env tweak, noted for Render/EB).
+
 ### Morning catch-up digest (reviewer) (2026-10-04)
 - **A "what happened since you were last here" briefing at the top of the Deals
   queue** (`/staff`). Reads the same live signals as the rest of the staff area
