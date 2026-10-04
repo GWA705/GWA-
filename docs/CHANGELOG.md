@@ -37,6 +37,13 @@ source of truth; this file is the human-readable index.
 | Desktop/phone push notifications | ✅ Keys set (2026-09-11, Sean) — confirm with a test | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` set on EB. The client fetches the public key at **runtime** (`GET /api/push/key`) so it survives rebuilds. Reviewers get push on new dealer docs / activity. iOS needs the app installed to the Home Screen. **To confirm:** Account → Enable desktop notifications → Send a test. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### Fix deal status tracker label overlap (2026-10-04)
+- In the reviewer timeline (and the dealer bar), the step labels (Submitted,
+  Approved, Confirmation, …) rendered at their natural width centred on each icon
+  and **overlapped** neighbours on tighter widths. Bounded each label to its
+  column (`block w-full` + `break-words`) so it wraps inside the column instead of
+  spilling. `src/components/DealProgress.tsx`. No logic change.
+
 ### Fix noisy cron "failure" emails — 504 on long runs (2026-10-04)
 - Render was emailing "Cron job failure … Exited with status 22" for **doc-ocr**
   (and would for **db-backup** / **weekly-funding-report**). Root cause: those

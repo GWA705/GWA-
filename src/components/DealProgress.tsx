@@ -94,10 +94,10 @@ export function DealProgress(props: DealProgressProps) {
                   </div>
                   <div className={`h-[3px] flex-1 ${i === stages.length - 1 ? 'opacity-0' : rightOn ? 'bg-brand-600' : 'bg-gray-200'}`} />
                 </div>
-                <span className={`mt-2 px-0.5 text-center text-[11px] leading-tight sm:text-xs ${state === 'now' ? 'font-bold text-brand-700' : state === 'done' ? 'font-semibold text-gray-800' : 'text-gray-400'}`}>
+                <span className={`mt-2 block w-full px-1 text-center text-[11px] leading-tight break-words hyphens-auto sm:text-xs ${state === 'now' ? 'font-bold text-brand-700' : state === 'done' ? 'font-semibold text-gray-800' : 'text-gray-400'}`}>
                   {st.label}
                 </span>
-                <span className={`text-[10.5px] ${state === 'now' ? 'font-semibold text-brand-600' : 'text-gray-400'}`}>{date ?? ' '}</span>
+                <span className={`block w-full text-center text-[10.5px] ${state === 'now' ? 'font-semibold text-brand-600' : 'text-gray-400'}`}>{date ?? ' '}</span>
               </div>
             );
           })}
@@ -159,7 +159,7 @@ export function DealProgress(props: DealProgressProps) {
         {stages.map((st, i) => (
           <span
             key={st.key}
-            className={`flex-1 text-center text-[11px] leading-tight ${st.done ? 'font-semibold text-gray-800' : i === current ? 'font-bold text-brand-700' : 'text-gray-400'}`}
+            className={`min-w-0 flex-1 break-words px-0.5 text-center text-[11px] leading-tight ${st.done ? 'font-semibold text-gray-800' : i === current ? 'font-bold text-brand-700' : 'text-gray-400'}`}
           >
             {st.label}
           </span>
