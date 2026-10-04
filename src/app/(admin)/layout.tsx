@@ -25,7 +25,7 @@ const NAV_GROUPS: { label: string; keys: string[] }[] = [
   { label: 'Reporting', keys: ['reports', 'report-visibility', 'leads'] },
   { label: 'Dealers', keys: ['dealers', 'directory', 'dealer-documents', 'user-requests', 'support-contacts'] },
   { label: 'Catalog', keys: ['products', 'finance', 'resource-library'] },
-  { label: 'Dealer comms', keys: ['content', 'marketplace', 'announcements', 'alerts', 'reminders', 'note-templates'] },
+  { label: 'Dealer comms', keys: ['content', 'marketplace', 'announcements', 'dashboard-hero', 'login-screen', 'alerts', 'reminders', 'note-templates'] },
   { label: 'People', keys: ['users'] },
   { label: 'System', keys: ['email', 'security', 'system-health', 'costs', 'audit'] },
 ];
