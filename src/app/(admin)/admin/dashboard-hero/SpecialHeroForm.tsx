@@ -45,14 +45,18 @@ export function SpecialHeroForm() {
           </div>
         </div>
         <label className="block">
-          <Lab>Start date</Lab>
-          <input type="date" name="startsOn" className="input" required />
+          <Lab>Start date (optional)</Lab>
+          <input type="date" name="startsOn" className="input" />
         </label>
         <label className="block">
-          <Lab>End date</Lab>
-          <input type="date" name="endsOn" className="input" required />
+          <Lab>End date (optional)</Lab>
+          <input type="date" name="endsOn" className="input" />
         </label>
       </div>
+      <p className="text-[11px] text-gray-500">
+        Set both dates to schedule a window — it turns on and off on its own, then the dashboard goes back to the normal
+        time-of-day heroes. Leave both blank to run it <b>until you turn it off</b>.
+      </p>
       <div className="flex items-center gap-3">
         <Submit />
         {state.error && <span className="text-xs text-red-600">{state.error}</span>}

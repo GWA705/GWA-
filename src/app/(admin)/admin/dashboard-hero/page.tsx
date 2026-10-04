@@ -108,7 +108,7 @@ export default async function DashboardHeroPage() {
                         {!h.active && <span className="badge bg-gray-100 text-gray-600">Off</span>}
                         <span className="badge bg-brand-50 text-brand-700">{h.scope === 'NIGHT' ? 'Nights only' : 'Whole day'}</span>
                       </div>
-                      <div className="mt-1 text-xs tabular-nums text-gray-500">{fmtDate(h.startsOn)} → {fmtDate(h.endsOn)}</div>
+                      <div className="mt-1 text-xs tabular-nums text-gray-500">{h.startsOn && h.endsOn ? `${fmtDate(h.startsOn)} → ${fmtDate(h.endsOn)}` : 'Always on (until turned off)'}</div>
                     </div>
                   </div>
                   <div className="flex flex-none flex-col gap-2">

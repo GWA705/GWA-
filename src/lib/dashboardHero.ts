@@ -28,9 +28,14 @@ function dateOnly(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
-/** Is a special occasion live today (Toronto), inclusive of both endpoints? */
+/**
+ * Is a special occasion showing today (Toronto)? Both dates set → inside the
+ * inclusive window. No dates at all → always on (runs until it's turned off). A
+ * half-set window (only one date) never shows.
+ */
 export function specialIsLive(s: { startsOn: Date | null; endsOn: Date | null }, now: Date = new Date()): boolean {
-  if (!s.startsOn || !s.endsOn) return false;
+  if (!s.startsOn && !s.endsOn) return true; // always-on until turned off
+  if (!s.startsOn || !s.endsOn) return false; // half-set never shows
   const today = torontoDate(now);
   return dateOnly(s.startsOn) <= today && today <= dateOnly(s.endsOn);
 }
@@ -52,7 +57,14 @@ export async function dashboardHeroState(now: Date = new Date()): Promise<Resolv
 
   const liveSpecials = rows
     .filter((r) => r.kind === 'SPECIAL' && specialIsLive(r, now))
-    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    // A scheduled (dated) special in its window beats a standing (always-on) one;
+    // within each group the most recently created wins.
+    .sort((a, b) => {
+      const da = a.startsOn ? 1 : 0;
+      const db = b.startsOn ? 1 : 0;
+      if (da !== db) return db - da;
+      return b.createdAt.getTime() - a.createdAt.getTime();
+    });
   const top = liveSpecials[0];
   const special = top ? { src: heroUrl(top), scope: (top.scope === 'NIGHT' ? 'NIGHT' : 'ALL') as HeroScope } : null;
 

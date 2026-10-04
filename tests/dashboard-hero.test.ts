@@ -15,7 +15,12 @@ describe('specialIsLive', () => {
     expect(specialIsLive(s, at('2026-10-23'))).toBe(false);
     expect(specialIsLive(s, at('2026-11-01'))).toBe(false);
   });
-  it('needs both dates set', () => {
+  it('with no dates at all it is always on (runs until turned off)', () => {
+    expect(specialIsLive({ startsOn: null, endsOn: null }, at('2026-01-01'))).toBe(true);
+    expect(specialIsLive({ startsOn: null, endsOn: null }, at('2026-07-15'))).toBe(true);
+  });
+
+  it('a half-set window (only one date) never shows', () => {
     expect(specialIsLive({ startsOn: null, endsOn: day('2026-10-31') }, at('2026-10-25'))).toBe(false);
     expect(specialIsLive({ startsOn: day('2026-10-24'), endsOn: null }, at('2026-10-25'))).toBe(false);
   });

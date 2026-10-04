@@ -2297,13 +2297,21 @@ export async function clearSlotHeroAction(slotHour: number): Promise<void> {
 export async function createSpecialHeroAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const session = await requireAdminSection('dashboard-hero');
   const name = String(formData.get('name') || '').trim().slice(0, 60) || 'Special occasion';
-  const startStr = String(formData.get('startsOn') || '');
-  const endStr = String(formData.get('endsOn') || '');
   const scope = String(formData.get('scope') || 'ALL') === 'NIGHT' ? 'NIGHT' : 'ALL';
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(startStr) || !/^\d{4}-\d{2}-\d{2}$/.test(endStr)) return { error: 'Choose a start and end date.' };
-  const startsOn = new Date(startStr);
-  const endsOn = new Date(endStr);
-  if (endsOn.getTime() < startsOn.getTime()) return { error: 'The end date is before the start date.' };
+
+  // Dates are optional: set both to schedule a window, or leave both blank to run
+  // until it's turned off. One without the other never shows, so reject that.
+  const startStr = String(formData.get('startsOn') || '').trim();
+  const endStr = String(formData.get('endsOn') || '').trim();
+  if ((startStr && !endStr) || (!startStr && endStr)) return { error: 'Set both a start and end date, or leave both blank to run until you turn it off.' };
+  let startsOn: Date | null = null;
+  let endsOn: Date | null = null;
+  if (startStr && endStr) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(startStr) || !/^\d{4}-\d{2}-\d{2}$/.test(endStr)) return { error: 'Choose valid dates.' };
+    startsOn = new Date(startStr);
+    endsOn = new Date(endStr);
+    if (endsOn.getTime() < startsOn.getTime()) return { error: 'The end date is before the start date.' };
+  }
   const file = formData.get('image') as File | null;
   if (!file || typeof file === 'string' || file.size === 0) return { error: 'Choose an image or GIF.' };
   const stored = await storeHeroImage(file);
@@ -2312,7 +2320,7 @@ export async function createSpecialHeroAction(_prev: ActionState, formData: Form
   const created = await prisma.dashboardHero.create({
     data: { kind: 'SPECIAL', name, startsOn, endsOn, scope, imageStorageKey: stored.key, imageMime: stored.mime, createdById: session.userId },
   });
-  await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'DashboardHero', entityId: created.id, detail: `special "${name}" ${startStr}..${endStr} (${scope})` });
+  await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'DashboardHero', entityId: created.id, detail: `special "${name}" ${startStr && endStr ? `${startStr}..${endStr}` : 'always-on'} (${scope})` });
   revalidatePath('/admin/dashboard-hero');
   revalidatePath('/dealer');
   return { ok: true };

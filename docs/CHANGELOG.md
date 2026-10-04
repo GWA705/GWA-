@@ -37,6 +37,18 @@ source of truth; this file is the human-readable index.
 | Desktop/phone push notifications | ✅ Keys set (2026-09-11, Sean) — confirm with a test | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` set on EB. The client fetches the public key at **runtime** (`GET /api/push/key`) so it survives rebuilds. Reviewers get push on new dealer docs / activity. iOS needs the app installed to the Home Screen. **To confirm:** Account → Enable desktop notifications → Send a test. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### Dashboard hero: special occasions can run "until turned off" (2026-10-04)
+- A special-occasion hero (e.g. a GIF) no longer requires a date window. **Leave
+  both dates blank** and it runs **until you turn it off** (matches how the login
+  screen already works). Set both dates to schedule a window as before; one date
+  without the other is rejected.
+- While a special is live it still **takes over the time-of-day rotation**; when a
+  dated window ends it **falls back on its own** to the normal Morning→Night
+  heroes. A scheduled (dated) special in its window beats a standing always-on one.
+- `specialIsLive` (no dates → always on), `createSpecialHeroAction` (dates
+  optional), `SpecialHeroForm`, the admin list ("Always on"), and
+  `tests/dashboard-hero.test.ts`.
+
 ### Fix deal status tracker label overlap (2026-10-04)
 - In the reviewer timeline (and the dealer bar), the step labels (Submitted,
   Approved, Confirmation, …) rendered at their natural width centred on each icon
