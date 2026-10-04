@@ -23,11 +23,14 @@ async function handle(req: NextRequest) {
   if (!bearer || !secretMatches(bearer, secret)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
-  const result = await sendWeeklyFundingReport().catch((e) => {
-    console.error('[cron] weekly-funding-report failed', e);
-    return null;
-  });
-  return NextResponse.json(result ?? { ran: false });
+  // Fire-and-forget: building + emailing the report can exceed the 30s CloudFront
+  // origin timeout, which would 504 the caller (a false cron failure). Kick it off
+  // and return immediately; the EB server finishes and logs the result. (Same
+  // pattern as new-leads / doc-expiry-reminders.)
+  void sendWeeklyFundingReport()
+    .then((r) => console.log('[cron] weekly-funding-report', r))
+    .catch((e) => console.error('[cron] weekly-funding-report failed', e));
+  return NextResponse.json({ ok: true, started: true });
 }
 
 export async function GET(req: NextRequest) {

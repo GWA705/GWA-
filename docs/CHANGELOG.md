@@ -37,6 +37,23 @@ source of truth; this file is the human-readable index.
 | Desktop/phone push notifications | ✅ Keys set (2026-09-11, Sean) — confirm with a test | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` set on EB. The client fetches the public key at **runtime** (`GET /api/push/key`) so it survives rebuilds. Reviewers get push on new dealer docs / activity. iOS needs the app installed to the Home Screen. **To confirm:** Account → Enable desktop notifications → Send a test. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### Fix noisy cron "failure" emails — 504 on long runs (2026-10-04)
+- Render was emailing "Cron job failure … Exited with status 22" for **doc-ocr**
+  (and would for **db-backup** / **weekly-funding-report**). Root cause: those
+  endpoints **awaited** their work before responding, and a long run exceeds the
+  **30s CloudFront origin-response timeout** → the gateway returns **504** →
+  `curl -f` exits 22 → "failure" email. The work itself usually still completed on
+  the EB server (maxDuration 120–300s); runs with nothing to do returned instantly
+  and succeeded. So: false failures, not real breakage.
+- Fix: made those three endpoints **fire-and-forget** — kick off the work and
+  return `{ ok, started: true }` immediately, so the 30s gateway timeout is never
+  hit. This is the **same pattern `new-leads` and `doc-expiry-reminders` already
+  used** (two of five crons had it; three were missed). Work still runs to
+  completion on the server; OCR docs stay `ocrPending` until processed.
+- Note: the cron now reports "started", not the result — check server logs (or the
+  outcome: a written backup, a sent report, OCR'd docs) to confirm completion.
+  Applies regardless of scheduler, so it still holds after the crons move to AWS.
+
 ### All costs in one place — the Costs hub (2026-10-04)
 - `Admin → Outside costs` is now **`Admin → Costs`**: a single page that totals
   **every** running cost for the month, not just Google + fixed bills.

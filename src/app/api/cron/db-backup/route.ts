@@ -37,17 +37,18 @@ async function handle(req: NextRequest) {
     return NextResponse.json({ ok: true, skipped: 'a backup is already in progress' });
   }
 
+  // Fire-and-forget: a full DB dump easily exceeds the 30s CloudFront origin
+  // timeout, which would 504 the caller (a false cron failure) even though the
+  // backup keeps running. Kick it off and return immediately; the EB server
+  // finishes and logs the result. (Same pattern as new-leads / doc-expiry.)
   running = true;
-  try {
-    const result = await runDatabaseBackup();
-    console.log(`[cron] db-backup wrote ${result.key} (${result.rows} rows, ${result.bytes} bytes)`);
-    return NextResponse.json({ ok: true, ...result });
-  } catch (e) {
-    console.error('[cron] db-backup failed', e);
-    return NextResponse.json({ error: 'Backup failed. See server logs.' }, { status: 500 });
-  } finally {
-    running = false;
-  }
+  void runDatabaseBackup()
+    .then((result) => console.log(`[cron] db-backup wrote ${result.key} (${result.rows} rows, ${result.bytes} bytes)`))
+    .catch((e) => console.error('[cron] db-backup failed', e))
+    .finally(() => {
+      running = false;
+    });
+  return NextResponse.json({ ok: true, started: true });
 }
 
 export async function GET(req: NextRequest) {

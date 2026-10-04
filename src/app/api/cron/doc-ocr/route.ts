@@ -32,16 +32,19 @@ async function handle(req: NextRequest) {
 
   if (running) return NextResponse.json({ ok: true, skipped: 'a run is already in progress' });
 
+  // Fire-and-forget: OCR a batch can take longer than the 30s CloudFront origin
+  // timeout, which would 504 the caller (a false cron failure) even though the
+  // work keeps running on the server. So kick it off and return immediately; the
+  // EB server finishes the batch, and docs stay ocrPending until processed, so
+  // nothing is lost. (Same pattern as new-leads / doc-expiry-reminders.)
   running = true;
-  try {
-    const result = await runPendingOcr(5);
-    return NextResponse.json({ ok: true, ...result });
-  } catch (e) {
-    console.error('[cron] doc-ocr failed', e);
-    return NextResponse.json({ error: 'OCR run failed. See server logs.' }, { status: 500 });
-  } finally {
-    running = false;
-  }
+  void runPendingOcr(5)
+    .then((r) => console.log('[cron] doc-ocr', r))
+    .catch((e) => console.error('[cron] doc-ocr failed', e))
+    .finally(() => {
+      running = false;
+    });
+  return NextResponse.json({ ok: true, started: true });
 }
 
 export async function GET(req: NextRequest) {
