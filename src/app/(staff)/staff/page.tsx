@@ -11,6 +11,8 @@ import { programDisplayLabel, programCategoryLabel } from '@/lib/enumLabels';
 import { getT } from '@/i18n/server';
 import type { TFunction } from '@/i18n/translator';
 import { ReviewerQueue, DealTable, type QueueRow, type Tone, type Lanes, type PriorityBands } from './ReviewerQueue';
+import { MorningCatchUp } from './MorningCatchUp';
+import { buildCatchUp } from '@/lib/catchUp';
 import type { Application, ApplicationStatus, Dealer } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
@@ -183,7 +185,7 @@ function lastActivityAt(a: Deal): number {
 const byRecentActivity = (a: Deal, b: Deal) => lastActivityAt(b) - lastActivityAt(a);
 
 export default async function StaffQueue({ searchParams }: { searchParams: { q?: string; sort?: string } }) {
-  await requireStaffSection('review-queue');
+  const session = await requireStaffSection('review-queue');
   const t = getT();
   const q = (searchParams.q ?? '').trim();
   const search = searchWhere(q);
@@ -259,6 +261,7 @@ export default async function StaffQueue({ searchParams }: { searchParams: { q?:
           <QueueSortControl sort={sort} />
         </div>
       </div>
+      <MorningCatchUp data={await buildCatchUp(session.userId)} />
       <ReviewerQueue lanes={lanes} priority={priority} />
     </div>
   );

@@ -36,6 +36,23 @@ source of truth; this file is the human-readable index.
 | Desktop/phone push notifications | ✅ Keys set (2026-09-11, Sean) — confirm with a test | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` set on EB. The client fetches the public key at **runtime** (`GET /api/push/key`) so it survives rebuilds. Reviewers get push on new dealer docs / activity. iOS needs the app installed to the Home Screen. **To confirm:** Account → Enable desktop notifications → Send a test. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### Morning catch-up digest (reviewer) (2026-10-04)
+- **A "what happened since you were last here" briefing at the top of the Deals
+  queue** (`/staff`). Reads the same live signals as the rest of the staff area
+  and summarises, since the reviewer last cleared it: **office replies on flagged
+  confirmation issues**, **new deals submitted**, **funding packages returned**,
+  and **pending cancellation requests** — four count tiles plus two action lists
+  ("Replies waiting on you", "Needs a decision"), each linking into the deal.
+- **Weekend-proof by design.** `User.catchUpSeenAt` (new nullable column,
+  migration `20261004140000_catch_up_seen`) only advances when the reviewer hits
+  **"Mark caught up"**, so leaving Friday and returning Monday shows everything
+  since Friday — no special-casing. Defaults to a 24h look-back before the first
+  clear, capped at 7 days. `src/lib/catchUp.ts` (+ `tests/catch-up.test.ts`) and
+  `markCaughtUpAction`.
+- Renders nothing when there's nothing new. This is the third piece of the
+  follow-up design, now reading from the same confirmation/follow-up signals as
+  the `/staff/confirmations` worklist, so all three work together.
+
 ### Confirmation calls worklist (reviewer) (2026-10-04)
 - **New reviewer worklist at `/staff/confirmations`** so the confirmation call
   stops falling through. Deals keep advancing (into funding, even Funded) before

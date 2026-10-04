@@ -1970,3 +1970,15 @@ export async function flagDealerIssueAction(
   revalidatePath('/staff/mail');
   return { ok: true, notified };
 }
+
+// --- Morning catch-up digest --------------------------------------------------
+
+/**
+ * "Mark caught up" on the reviewer digest. Stamps the user's catchUpSeenAt to
+ * now, so the next digest only shows what's happened since. Reviewer/admin only.
+ */
+export async function markCaughtUpAction(): Promise<void> {
+  const session = await requireRole('REVIEWER', 'ADMIN');
+  await prisma.user.update({ where: { id: session.userId }, data: { catchUpSeenAt: new Date() } });
+  revalidatePath('/staff');
+}

@@ -548,6 +548,13 @@ model User {
   // lets a user skip the 2FA code for the admin-configured window).
   mfaTrustVersion  Int @default(0)
 
+  // When this reviewer last pressed "Mark caught up" on the morning catch-up
+  // digest. The digest summarises everything that happened since this moment, so
+  // a weekend is handled naturally — leave Friday, come back Monday, and it shows
+  // everything since Friday. Null until they first clear it (then it defaults to
+  // a 24h look-back). Only meaningful for staff.
+  catchUpSeenAt DateTime?
+
   // Dealer users belong to a dealer; internal staff have dealerId = null.
   dealerId String?
   dealer   Dealer? @relation(fields: [dealerId], references: [id])
