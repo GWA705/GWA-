@@ -10,6 +10,11 @@ _Last updated: 2026-10-02_
 
 ## ⭐ Near-term loose ends (opened 2026-10-02)
 
+- **EC2 instance size — revisit when updates slow (cost).** Bumped to t3.medium +
+  50 GB disk on 2026-10-04 for heavy build/deploy days (~$19/mo more). Once active
+  development slows, consider dropping back to **t3.small** to save ~$17/mo —
+  immutable deploys already give a fresh disk every time, so t3.small is safe at a
+  low change-pace. Change on EB → Configuration → Capacity. (See `RELIABILITY.md`.)
 - **Twilio carrier registration** — toll-free verification / A2P 10DLC, so review
   texts actually deliver in Canada (see item 8). *The one blocker for texting.*
 - **Google review link** — paste your Google-review landing-page URL into the

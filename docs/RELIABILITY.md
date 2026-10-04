@@ -48,22 +48,32 @@ These are version-controlled so they're reproducible, not click-ops.
 
 Checklist — none are urgent after the repo fixes deploy, but each adds a layer:
 
-- [ ] **Confirm the SNS alert email.** After the first deploy with the config
-      above, AWS emails sean@ghsbarrie.ca a "Confirm subscription" link — click it.
-- [ ] **Give the instance headroom.** EB → Configuration → **Capacity** →
-      instance type **t3.small → t3.medium** (2 GB → 4 GB RAM). Low risk, one
-      dropdown; removes the memory-pressure half of the outage.
-- [ ] **Grow the disk.** Same screen → **root volume 30 GB → 50 GB** (gp3).
-- [ ] **Verify RDS backups.** RDS → `gwa-portal-db` → Maintenance & backups →
-      **automated backups ON, retention ≥ 7 days** (gives point-in-time restore).
-      We also hold the manual `gwa-before-rebuild` snapshot from the outage.
+- [x] **SNS alert email — ✅ confirmed 2026-10-04 (Sean).** The AWS "Confirm
+      subscription" link for sean@ghsbarrie.ca was clicked, so EB health-change
+      alerts now deliver.
+- [x] **Instance headroom — ✅ 2026-10-04 (Sean).** Bumped t3.small →
+      **t3.medium** (2 → 4 GB RAM) and root volume 30 → **50 GB** gp3, via EB →
+      Configuration → Capacity. Costs **~$19/mo more** (mostly the instance).
+      **💡 Cost note / revisit:** this was sized for heavy build-and-deploy days.
+      Once active development slows, we can drop back to **t3.small** on the same
+      screen to save ~$17/mo — immutable deploys already give a fresh disk every
+      time, so t3.small is safe at a low change-pace. Revisit when updates slow.
+- [x] **RDS backups — ✅ confirmed 2026-10-04.** `gwa-portal-db` automated
+      backups **Enabled, 16-day retention** (point-in-time restore; last restore
+      point Oct 3 21:19), nightly backup window 06:24–06:54 UTC, copy-tags-to-
+      snapshots on, backups stored in ca-central-1. Manual `gwa-before-rebuild`
+      snapshot from the outage is retained. No change needed. *(Note: RDS shows a
+      pending `system-update` OS patch — low priority, let it apply in the
+      maintenance window.)*
 - [ ] **Decide on RDS Multi-AZ.** Off today (single-AZ, cheaper). Multi-AZ adds
       automatic database failover for ~2× the DB cost — worth it once revenue
       depends on uptime. Not required day one.
-- [ ] **External uptime monitor.** Point a free monitor (UptimeRobot / Better
-      Stack) at **https://portal.ghsbarrie.ca/api/health**, 1-min interval,
-      alert by SMS + email. This is the single best "know before customers do"
-      net — it watches from outside AWS.
+- [x] **External uptime monitor — ✅ live 2026-10-04 (Sean).** UptimeRobot
+      account GWA705 watches `portal.ghsbarrie.ca`, HTTP, **5-min interval**,
+      reporting 100% up. Watches from outside AWS = the best "know before
+      customers do" net. *Tune-ups:* point the monitor at `/api/health` (cleaner
+      liveness check than the homepage); add email + the UptimeRobot mobile app
+      as alert contacts, and optionally an SMS contact (25 free credits).
 - [ ] **(Optional) CloudWatch alarms** on disk-used % and memory, emailing the
       same inbox, for early warning before health goes red.
 
