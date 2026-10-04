@@ -36,6 +36,23 @@ source of truth; this file is the human-readable index.
 | Desktop/phone push notifications | ✅ Keys set (2026-09-11, Sean) — confirm with a test | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` set on EB. The client fetches the public key at **runtime** (`GET /api/push/key`) so it survives rebuilds. Reviewers get push on new dealer docs / activity. iOS needs the app installed to the Home Screen. **To confirm:** Account → Enable desktop notifications → Send a test. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### Dashboard hero manager — upload heroes + schedule special occasions (2026-10-04)
+- **New admin page `/admin/dashboard-hero`** (grantable section `dashboard-hero`)
+  so heroes are managed in the portal instead of committing files. Two parts:
+  - **Time of day:** upload an image/GIF for any slot (Morning … Night). An
+    uploaded hero overrides the built-in `public/hero-*.webp` default for that
+    slot; "Remove" reverts to the default.
+  - **Special occasions:** upload a hero (GIF fine), name it, set start/end dates
+    and *whole-day* or *nights-only* — it takes over the dashboard between those
+    dates and **reverts on its own** (Toronto-date window). Turn any on/off manually too.
+- New `DashboardHero` model + additive migration `20261004150000_dashboard_hero`
+  (empty table; file-based heroes keep working until a slot is overridden).
+- Served through an authenticated route (`/api/dashboard-hero/[id]/image`) via the
+  shared image helper — GIFs untouched so they animate. `src/lib/dashboardHero.ts`
+  resolves live slot images + the active special; `src/lib/heroSlots.ts` holds the
+  shared slot list; `HeroBackdrop` now takes resolved slot images + a special
+  override. Tests in `tests/dashboard-hero.test.ts`.
+
 ### Dealer banner (portal sign) supports animated GIF (2026-10-04)
 - The announcement banner upload (Admin → Dealer portal sign) now accepts
   **animated GIF**, and it keeps animating on the dealer dashboard. The upload

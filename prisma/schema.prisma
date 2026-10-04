@@ -638,6 +638,7 @@ model User {
   confirmations       Confirmation[]
   verificationChecks  VerificationCheck[]
   callRecordings      CallRecording[]     @relation("CallRecordingCreator")
+  dashboardHeroes     DashboardHero[]     @relation("DashboardHeroCreator")
   pushSubscriptions   PushSubscription[]
   alertAcks           AlertAck[]
   contentReads        ContentSectionRead[]
@@ -1564,6 +1565,35 @@ model CallRecording {
 
   @@index([applicationId])
   @@index([providerCallSid])
+}
+
+// An admin-uploaded dashboard hero image. Two kinds:
+//  - SLOT: a time-of-day hero for one slot hour (5/12/15/17/19/21/23). Overrides
+//    the file-based public/hero-<hour>.webp default for that slot.
+//  - SPECIAL: a special-occasion hero (e.g. Halloween) shown between startsOn and
+//    endsOn (inclusive, Toronto dates). scope ALL takes over every slot; NIGHT
+//    takes over only the evening/night slots. Reverts on its own after endsOn.
+// Images are stored like other uploads (encrypted) and served through an
+// authenticated route; GIFs are served untouched so they animate.
+model DashboardHero {
+  id        String  @id @default(cuid())
+  kind      String  // 'SLOT' | 'SPECIAL'
+  slotHour  Int?    // SLOT: which slot start hour
+  name      String? // SPECIAL: label (e.g. "Halloween")
+  startsOn  DateTime? // SPECIAL: first day it shows (inclusive)
+  endsOn    DateTime? // SPECIAL: last day it shows (inclusive)
+  scope     String?   // SPECIAL: 'ALL' | 'NIGHT'
+  imageStorageKey String
+  imageMime String
+  active    Boolean @default(true)
+
+  createdById String?
+  createdBy   User?    @relation("DashboardHeroCreator", fields: [createdById], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([kind])
+  @@index([active])
 }
 
 model SerialNumber {

@@ -645,6 +645,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
   { key: 'finance', label: 'Finance companies', href: '/admin/finance-companies' },
   { key: 'products', label: 'Products', href: '/admin/products' },
   { key: 'announcements', label: 'Dealer portal sign', href: '/admin/announcements' },
+  { key: 'dashboard-hero', label: 'Dashboard hero', href: '/admin/dashboard-hero', hint: 'Time-of-day + special-occasion hero images' },
   { key: 'alerts', label: 'Pop-up alerts', href: '/admin/alerts' },
   { key: 'reminders', label: 'Dealer reminders', href: '/admin/reminders' },
   { key: 'note-templates', label: 'Quick notes', href: '/admin/note-templates' },

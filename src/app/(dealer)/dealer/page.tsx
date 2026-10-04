@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { dealerPortalScopeWhere } from '@/lib/rbac';
 import { programDisplayLabel } from '@/lib/enumLabels';
 import { listHeroImages } from '@/lib/heroImage';
+import { dashboardHeroState, mergeSlotImages } from '@/lib/dashboardHero';
 import { DashboardHero } from '@/components/dashboard/DashboardHero';
 import { KpiCard } from '@/components/dashboard/KpiCard';
 import { RecentApplications, type RecentApp } from '@/components/dashboard/RecentApplications';
@@ -131,11 +132,12 @@ export default async function DealerDashboard() {
     }));
 
   const firstName = user.name.split(' ')[0] || user.name;
-  const heroImages = await listHeroImages();
+  const [heroImages, heroState] = await Promise.all([listHeroImages(), dashboardHeroState()]);
+  const slotImages = mergeSlotImages(heroImages, heroState.slotImages);
 
   return (
     <div className="space-y-4">
-      <DashboardHero firstName={firstName} companyName={profile?.businessName ?? null} bgImage="/hero-banner.webp" bgImages={heroImages} />
+      <DashboardHero firstName={firstName} companyName={profile?.businessName ?? null} bgImage="/hero-banner.webp" slotImages={slotImages} special={heroState.special} />
 
       {/* KPI row — compact 2-up on phones so it flows into the list below */}
       <div className="grid grid-cols-2 gap-2.5 sm:gap-3 md:grid-cols-2 xl:grid-cols-4">

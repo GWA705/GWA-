@@ -15,6 +15,7 @@ import crypto from 'crypto';
 import path from 'path';
 import { putDocument, getDocument, deleteDocument } from '@/lib/storage';
 import { ALLOWED_MIME_TYPES, MAX_FILE_BYTES } from '@/lib/constants';
+import { HERO_SLOT_HOURS } from '@/lib/heroSlots';
 import { createUserSchema, updateUserSchema, createDealerSchema, createFinanceCompanySchema, announcementSchema, contentSchema, dealerAlertSchema } from '@/lib/validation';
 import { redirect } from 'next/navigation';
 import { CONTENT_SECTIONS } from '@/lib/constants';
@@ -2240,4 +2241,99 @@ export async function clearStoreLocationAction(storeId: string): Promise<StoreLo
   await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'HomeDepotStore', entityId: storeId, detail: `Cleared store ${store.number} map location` });
   revalidatePath('/admin/dealers/locations');
   return { ok: true };
+}
+
+// --- Dashboard hero manager --------------------------------------------------
+
+// Banners/heroes accept animated GIF (served untouched), unlike deal documents.
+const HERO_IMAGE_MIME = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/gif'];
+
+async function storeHeroImage(file: File): Promise<{ key: string; mime: string } | { error: string }> {
+  if (file.size > MAX_FILE_BYTES) return { error: 'Image is too large (max 15 MB).' };
+  if (!file.type.startsWith('image/') || !HERO_IMAGE_MIME.includes(file.type)) {
+    return { error: 'Hero must be an image (JPG, PNG, WEBP, or GIF).' };
+  }
+  const ext = path.extname(file.name).slice(0, 12).replace(/[^a-zA-Z0-9.]/g, '') || '.img';
+  const key = `dashboard-hero/${crypto.randomBytes(10).toString('hex')}${ext}`;
+  const bytes = Buffer.from(await file.arrayBuffer());
+  await putDocument(key, bytes);
+  return { key, mime: file.type };
+}
+
+/** Upload (or replace) the hero image for one time-of-day slot. */
+export async function uploadSlotHeroAction(slotHour: number, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  const session = await requireAdminSection('dashboard-hero');
+  if (!HERO_SLOT_HOURS.includes(slotHour)) return { error: 'Unknown time slot.' };
+  const file = formData.get('image') as File | null;
+  if (!file || typeof file === 'string' || file.size === 0) return { error: 'Choose an image to upload.' };
+  const stored = await storeHeroImage(file);
+  if ('error' in stored) return stored;
+
+  // One image per slot: keep the newest, remove any previous slot heroes.
+  const old = await prisma.dashboardHero.findMany({ where: { kind: 'SLOT', slotHour }, select: { id: true, imageStorageKey: true } });
+  await prisma.dashboardHero.create({ data: { kind: 'SLOT', slotHour, imageStorageKey: stored.key, imageMime: stored.mime, createdById: session.userId } });
+  for (const o of old) await deleteDocument(o.imageStorageKey).catch(() => {});
+  if (old.length) await prisma.dashboardHero.deleteMany({ where: { id: { in: old.map((o) => o.id) } } });
+
+  await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'DashboardHero', detail: `slot ${slotHour} hero uploaded` });
+  revalidatePath('/admin/dashboard-hero');
+  revalidatePath('/dealer');
+  return { ok: true };
+}
+
+/** Remove a slot's uploaded hero (reverts that slot to the file-based default). */
+export async function clearSlotHeroAction(slotHour: number): Promise<void> {
+  const session = await requireAdminSection('dashboard-hero');
+  const rows = await prisma.dashboardHero.findMany({ where: { kind: 'SLOT', slotHour }, select: { id: true, imageStorageKey: true } });
+  for (const r of rows) await deleteDocument(r.imageStorageKey).catch(() => {});
+  if (rows.length) await prisma.dashboardHero.deleteMany({ where: { id: { in: rows.map((r) => r.id) } } });
+  await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'DashboardHero', detail: `slot ${slotHour} hero cleared` });
+  revalidatePath('/admin/dashboard-hero');
+  revalidatePath('/dealer');
+}
+
+/** Create a special-occasion hero that shows between two dates and reverts on its own. */
+export async function createSpecialHeroAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const session = await requireAdminSection('dashboard-hero');
+  const name = String(formData.get('name') || '').trim().slice(0, 60) || 'Special occasion';
+  const startStr = String(formData.get('startsOn') || '');
+  const endStr = String(formData.get('endsOn') || '');
+  const scope = String(formData.get('scope') || 'ALL') === 'NIGHT' ? 'NIGHT' : 'ALL';
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(startStr) || !/^\d{4}-\d{2}-\d{2}$/.test(endStr)) return { error: 'Choose a start and end date.' };
+  const startsOn = new Date(startStr);
+  const endsOn = new Date(endStr);
+  if (endsOn.getTime() < startsOn.getTime()) return { error: 'The end date is before the start date.' };
+  const file = formData.get('image') as File | null;
+  if (!file || typeof file === 'string' || file.size === 0) return { error: 'Choose an image or GIF.' };
+  const stored = await storeHeroImage(file);
+  if ('error' in stored) return stored;
+
+  const created = await prisma.dashboardHero.create({
+    data: { kind: 'SPECIAL', name, startsOn, endsOn, scope, imageStorageKey: stored.key, imageMime: stored.mime, createdById: session.userId },
+  });
+  await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'DashboardHero', entityId: created.id, detail: `special "${name}" ${startStr}..${endStr} (${scope})` });
+  revalidatePath('/admin/dashboard-hero');
+  revalidatePath('/dealer');
+  return { ok: true };
+}
+
+export async function toggleDashboardHeroActiveAction(id: string): Promise<void> {
+  const session = await requireAdminSection('dashboard-hero');
+  const h = await prisma.dashboardHero.findUnique({ where: { id } });
+  if (!h) return;
+  await prisma.dashboardHero.update({ where: { id }, data: { active: !h.active } });
+  await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'DashboardHero', entityId: id, detail: `active=${!h.active}` });
+  revalidatePath('/admin/dashboard-hero');
+  revalidatePath('/dealer');
+}
+
+export async function deleteDashboardHeroAction(id: string): Promise<void> {
+  const session = await requireAdminSection('dashboard-hero');
+  const h = await prisma.dashboardHero.findUnique({ where: { id } });
+  if (!h) return;
+  await deleteDocument(h.imageStorageKey).catch(() => {});
+  await prisma.dashboardHero.delete({ where: { id } });
+  await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'DashboardHero', entityId: id, detail: 'deleted' });
+  revalidatePath('/admin/dashboard-hero');
+  revalidatePath('/dealer');
 }

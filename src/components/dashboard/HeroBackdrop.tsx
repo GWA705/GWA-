@@ -1,69 +1,53 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { slotForHour, isNightSlot } from '@/lib/heroSlots';
 
 /**
  * Time-of-day dashboard hero background with a seamless crossfade.
  *
- * The day is split at 5, 12, 15, 17, 19, 21 and 23 hours. Name each image in
- * `public/hero/` by its start hour — `05-*.png`, `12-*.png`, `15-*.png`,
- * `17-*.png`, `19-*.png`, `21-*.png`, `23-*.png` — and the dashboard shows the
- * one matching the viewer's local time, crossfading when the slot changes.
- * If several images share a start hour they cycle within that slot. Falls back
- * to any hero image, then the single `fallback`. Decorative (aria-hidden).
+ * The server resolves which image(s) belong to each slot (admin uploads override
+ * the built-in file heroes) and whether a special occasion is taking over right
+ * now. This component just picks the slot for the viewer's local time, applies a
+ * special-occasion override when one is live, and crossfades between images.
+ * Decorative (aria-hidden).
  */
-
-const SLOT_STARTS = [5, 12, 15, 17, 19, 21, 23];
-
-/** Start hour of the slot the given hour falls in (before 5am → the 23 slot). */
-function slotFor(hour: number): number {
-  let start = SLOT_STARTS[SLOT_STARTS.length - 1]; // overnight (23 → 5)
-  for (const s of SLOT_STARTS) if (hour >= s) start = s;
-  return start;
+export interface HeroSpecial {
+  src: string;
+  scope: 'ALL' | 'NIGHT';
 }
 
-function baseName(path: string): string {
-  return path.slice(path.lastIndexOf('/') + 1);
-}
-
-/**
- * The hour a hero image is for, read from its filename. Works for any naming
- * that ends in the hour before the extension: `Hero-12.png`, `hero-05.png`,
- * `12-noon.png`, `12.png` → 12/5/12/12. Returns null when there's no hour.
- */
-function hourOf(path: string): number | null {
-  const stem = baseName(path).replace(/\.[^.]+$/, '');
-  const nums = stem.match(/\d{1,2}/g);
-  if (!nums) return null;
-  const h = parseInt(nums[nums.length - 1], 10);
-  return h >= 0 && h <= 23 ? h : null;
-}
-
-export function HeroBackdrop({ images, fallback = '/hero-banner.webp' }: { images: string[]; fallback?: string }) {
+export function HeroBackdrop({
+  slotImages = {},
+  special = null,
+  fallback = '/hero-banner.webp',
+}: {
+  slotImages?: Record<number, string[]>;
+  special?: HeroSpecial | null;
+  fallback?: string;
+}) {
   const [mounted, setMounted] = useState(false);
   const [slot, setSlot] = useState<number | null>(null);
-  const [idx, setIdx] = useState(0); // rotation within a slot (when >1 image shares the hour)
+  const [idx, setIdx] = useState(0);
   const reduced = useReducedMotion();
 
-  // Compute the slot after mount (client clock) to avoid hydration mismatch,
-  // then re-check every minute so it rolls over at the boundary.
+  // Resolve the slot from the client clock after mount (avoids hydration
+  // mismatch), then re-check each minute so it rolls over at the boundary.
   useEffect(() => {
     setMounted(true);
-    const tick = () => setSlot(slotFor(new Date().getHours()));
+    const tick = () => setSlot(slotForHour(new Date().getHours()));
     tick();
     const t = setInterval(tick, 60_000);
     return () => clearInterval(t);
   }, []);
 
-  // Images for the current slot (the hour in the filename equals the slot start,
-  // e.g. Hero-12.png for the 12:00 slot). No image for a slot → the regular hero
-  // (`fallback`) shows, so /hero-banner.webp is the default for every slot until a
-  // time-specific image is added (e.g. the 5am slot until Hero-05.png exists).
-  const slotImages = slot != null ? images.filter((p) => hourOf(p) === slot) : [];
-  const pool = slotImages.length > 0 ? slotImages : [fallback];
+  // A live special occasion takes over every slot (ALL) or just the night slots
+  // (NIGHT). Otherwise show the slot's own image(s), or the fallback.
+  const specialActive = !!special && slot != null && (special.scope === 'ALL' || (special.scope === 'NIGHT' && isNightSlot(slot)));
+  const slotPool = slot != null ? (slotImages[slot] ?? []) : [];
+  const pool = specialActive && special ? [special.src] : (slotPool.length > 0 ? slotPool : [fallback]);
 
-  // Cycle within a multi-image slot (seamless, slow). Reset when the slot changes.
-  useEffect(() => { setIdx(0); }, [slot]);
+  useEffect(() => { setIdx(0); }, [slot, specialActive]);
   useEffect(() => {
     if (reduced || pool.length <= 1) return;
     const t = setInterval(() => setIdx((i) => (i + 1) % pool.length), 9_000);
