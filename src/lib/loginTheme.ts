@@ -42,7 +42,14 @@ function themeUrl(t: { id: string; updatedAt: Date }): string {
 
 /** Resolve the login theme to show right now, or null for the built-in look. */
 export async function activeLoginTheme(now: Date = new Date()): Promise<ResolvedLoginTheme | null> {
-  const rows = await prisma.loginTheme.findMany({ where: { active: true }, take: 50 });
+  // The sign-in page is the front door — never let a DB hiccup (or a not-yet-run
+  // migration) here break login. Any failure falls back to the built-in look.
+  let rows: Awaited<ReturnType<typeof prisma.loginTheme.findMany>>;
+  try {
+    rows = await prisma.loginTheme.findMany({ where: { active: true }, take: 50 });
+  } catch {
+    return null;
+  }
   const live = rows.filter((r) => loginThemeIsLive(r, now));
   if (live.length === 0) return null;
 
