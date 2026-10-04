@@ -58,6 +58,10 @@ Checklist — none are urgent after the repo fixes deploy, but each adds a layer
       Once active development slows, we can drop back to **t3.small** on the same
       screen to save ~$17/mo — immutable deploys already give a fresh disk every
       time, so t3.small is safe at a low change-pace. Revisit when updates slow.
+      **⚠️ Discrepancy (2026-10-04):** Sean reports the instance is **8 GB** (that
+      would be a **t3.large**, not t3.medium/4 GB as recorded here). The cost
+      calculator now prices 8 GB. **To do:** confirm the actual instance type in
+      EB → Configuration → Capacity and correct whichever line is wrong.
 - [x] **RDS backups — ✅ confirmed 2026-10-04.** `gwa-portal-db` automated
       backups **Enabled, 16-day retention** (point-in-time restore; last restore
       point Oct 3 21:19), nightly backup window 06:24–06:54 UTC, copy-tags-to-

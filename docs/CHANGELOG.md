@@ -40,12 +40,14 @@ source of truth; this file is the human-readable index.
 ### Cost calculator → AWS (Render removed) (2026-10-04)
 - The **Outside costs** calculator (`Admin → Outside costs`) priced hosting as
   **"Render hosting"** — stale since the move to AWS. Replaced the fixed-bill lines
-  with the real setup: **AWS app hosting (EC2 t3.medium + 50 GB disk)**, **CloudFront
+  with the real setup: **AWS app hosting (EC2 8 GB + 50 GB disk)**, **CloudFront
   CDN + WAF**, S3, RDS (ca-central-1), email, domain. New editable keys `awsCompute`
-  / `awsCloudfront` (the `render` key is gone); starting estimates ≈ $38 compute +
+  / `awsCloudfront` (the `render` key is gone); starting estimates ≈ $73 compute +
   $8 CDN/WAF (admins still enter their real bill). `src/lib/costs.ts`,
   `CostsForm.tsx`, `saveCostsAction`, `tests/costs.test.ts`.
-  - Note: the instance is **t3.medium = 4 GB RAM** (8 GB would be t3.large).
+  - Instance is **8 GB** (per Sean) — i.e. a **t3.large** (t3.medium is only 4 GB).
+    ⚠️ `RELIABILITY.md` still records the 2026-10-04 bump as t3.medium/4 GB; confirm
+    the actual instance type in the AWS console and reconcile the two.
 - Render decommission recorded in the Operational status table above — what to
   shut down vs. the cron jobs to keep. Still **one area** to do next: fold the AI,
   Twilio, DeepL and storage meters into this page so every cost is in one place.

@@ -5,7 +5,7 @@ const cfg: CostConfig = {
   googleAutocompletePer1000: 2.83,
   googleDetailsPer1000: 17.0,
   googleFreeCredit: 0,
-  awsCompute: 38,
+  awsCompute: 73,
   awsCloudfront: 8,
   awsS3: 5,
   awsRds: 30,
@@ -13,8 +13,8 @@ const cfg: CostConfig = {
   domain: 2,
 };
 
-// Fixed bills = 38 + 8 + 5 + 30 + 0 + 2 = 83
-const FIXED = 83;
+// Fixed bills = 73 + 8 + 5 + 30 + 0 + 2 = 118
+const FIXED = 118;
 
 describe('buildBreakdown', () => {
   it('prices Google usage per 1,000 and adds the fixed bills', () => {
@@ -43,7 +43,7 @@ describe('buildBreakdown', () => {
 
   it('defaults are self-consistent with the config keys', () => {
     expect(COST_DEFAULTS[COST_KEYS.googleDetailsPer1000]).toBe(17);
-    expect(COST_DEFAULTS[COST_KEYS.awsCompute]).toBe(38);
+    expect(COST_DEFAULTS[COST_KEYS.awsCompute]).toBe(73);
     // Render is gone from the cost model.
     expect((COST_KEYS as Record<string, string>).render).toBeUndefined();
   });

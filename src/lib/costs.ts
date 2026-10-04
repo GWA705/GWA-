@@ -8,8 +8,8 @@ import { API_SERVICES, usageForMonth, monthKey } from './apiUsage';
  *  - USAGE-BASED: the Google address-lookup API. The portal meters every call
  *    (see apiUsage.ts); here we price this month's calls at editable per-1,000
  *    rates. This is the only cost that moves with usage.
- *  - FIXED MONTHLY: AWS hosting (the app runs on Elastic Beanstalk — a t3.medium
- *    EC2 instance + its disk — behind CloudFront + WAF), AWS storage/database,
+ *  - FIXED MONTHLY: AWS hosting (the app runs on Elastic Beanstalk — a single
+ *    8 GB t3 EC2 instance + its disk — behind CloudFront + WAF), AWS storage/db,
  *    email, and domain. These don't change with usage and can't be pulled without
  *    wiring in the providers' billing accounts, so an admin enters their actual
  *    bill amounts. Sensible starting estimates are pre-filled and flagged as such.
@@ -36,13 +36,14 @@ export const COST_KEYS = {
 // Starting estimates. These are guesses to give an immediate ballpark — the
 // admin replaces them with real figures. Google rates reflect standard published
 // list prices (per 1,000 requests) at the time of writing. AWS figures reflect
-// the current setup: a single on-demand t3.medium (4 GB) + 50 GB gp3 in
-// ca-central-1, CloudFront + a WAF web ACL, S3, and a single-AZ RDS instance.
+// the current setup: a single on-demand 8 GB t3 instance (t3.large) + 50 GB gp3
+// in ca-central-1, CloudFront + a WAF web ACL, S3, and a single-AZ RDS instance.
+// These are ballpark — confirm the hosting line against the real AWS bill.
 export const COST_DEFAULTS: Record<string, number> = {
   [COST_KEYS.googleAutocompletePer1000]: 2.83,
   [COST_KEYS.googleDetailsPer1000]: 17.0,
   [COST_KEYS.googleFreeCredit]: 0,
-  [COST_KEYS.awsCompute]: 38, // ~$33 t3.medium on-demand + ~$5 for 50 GB gp3
+  [COST_KEYS.awsCompute]: 73, // ~$68 t3.large (8 GB) on-demand + ~$5 for 50 GB gp3
   [COST_KEYS.awsCloudfront]: 8, // ~$5 WAF web ACL + CloudFront usage
   [COST_KEYS.awsS3]: 5,
   [COST_KEYS.awsRds]: 30,
@@ -181,7 +182,7 @@ export function buildBreakdown(
     lines.push({ label: 'Google free credit', detail: 'Applied to Google usage', amount: -freeCredit, usageBased: true });
   }
   lines.push(
-    { label: 'AWS — app hosting (EC2 t3.medium + 50 GB disk)', detail: 'Fixed monthly', amount: cents(cfg.awsCompute), usageBased: false },
+    { label: 'AWS — app hosting (EC2 8 GB + 50 GB disk)', detail: 'Fixed monthly', amount: cents(cfg.awsCompute), usageBased: false },
     { label: 'AWS — CloudFront CDN + WAF', detail: 'Fixed monthly (estimate)', amount: cents(cfg.awsCloudfront), usageBased: false },
     { label: 'AWS — S3 document storage', detail: 'Fixed monthly (estimate)', amount: cents(cfg.awsS3), usageBased: false },
     { label: 'AWS — RDS database (ca-central-1)', detail: 'Fixed monthly (estimate)', amount: cents(cfg.awsRds), usageBased: false },

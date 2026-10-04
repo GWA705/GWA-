@@ -80,7 +80,7 @@ export function CostsForm({ cfg }: { cfg: CostConfig }) {
           These are estimates to get you a ballpark — enter your real bill amounts.
         </p>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Money name="awsCompute" label="AWS app hosting (EC2 t3.medium + disk)" value={cfg.awsCompute} step="0.01" hint="Elastic Beanstalk instance + its 50 GB disk." />
+          <Money name="awsCompute" label="AWS app hosting (EC2 8 GB + disk)" value={cfg.awsCompute} step="0.01" hint="Elastic Beanstalk instance (8 GB) + its 50 GB disk." />
           <Money name="awsCloudfront" label="AWS CloudFront CDN + WAF" value={cfg.awsCloudfront} step="0.01" />
           <Money name="awsRds" label="AWS database (RDS, ca-central-1)" value={cfg.awsRds} step="0.01" />
           <Money name="awsS3" label="AWS document storage (S3)" value={cfg.awsS3} step="0.01" />
