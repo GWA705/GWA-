@@ -76,6 +76,18 @@ Checklist — none are urgent after the repo fixes deploy, but each adds a layer
       as alert contacts, and optionally an SMS contact (25 free credits).
 - [ ] **(Optional) CloudWatch alarms** on disk-used % and memory, emailing the
       same inbox, for early warning before health goes red.
+- [ ] **Zero-downtime deploys (load balancer + 2nd instance) — discussed
+      2026-10-04, deferred (Sean).** Today the env is **single-instance** with the
+      **Immutable** deploy policy, so every deploy replaces the one instance and
+      there's a **few-second cutover** where an in-flight request can blip (the
+      user retries once; signed-in sessions survive, migrations are additive). To
+      make deploys *never* blip you'd move to a **load-balanced** env (ALB + a 2nd
+      small instance) so EB rolls one instance at a time — roughly **$20–35/mo**
+      more. **Decision:** not now — on 2026-10-04 we deployed the login/hero batch
+      live during the day and accepted the brief cutover (additive migrations +
+      auto-rollback made it low-risk). Revisit if we start deploying often during
+      business hours. Interim no-cost option: hold the auto-deploy and fire it
+      manually (`workflow_dispatch` on *Build & push image to ECR*) at a quiet hour.
 
 ---
 

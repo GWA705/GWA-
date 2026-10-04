@@ -36,6 +36,23 @@ source of truth; this file is the human-readable index.
 | Desktop/phone push notifications | ✅ Keys set (2026-09-11, Sean) — confirm with a test | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` set on EB. The client fetches the public key at **runtime** (`GET /api/push/key`) so it survives rebuilds. Reviewers get push on new dealer docs / activity. iOS needs the app installed to the Home Screen. **To confirm:** Account → Enable desktop notifications → Send a test. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### Deployed: login screen + hero batch (2026-10-04)
+Pushed and deployed live the batch below (11 commits: dealer-banner GIF, dashboard
+hero GIF + overnight, Halloween sign-in skin, Oct-18 start, **dashboard hero
+manager**, **login screen manager**, the new moonlit Halloween background, clearer
+"starts on / back to original on" date labels, and the login front-door hardening).
+- **Deploy call:** done **live during the day**. The env is single-instance
+  (Immutable policy), so a deploy has a few-second cutover where one in-flight
+  request can blip; sessions survive, migrations here are additive (two new empty
+  tables: `DashboardHero`, `LoginTheme`), and EB auto-rolls-back if boot fails.
+  Judged low-risk and accepted. See `RELIABILITY.md` for the zero-downtime
+  (load-balancer) option we discussed and deferred.
+- **Front-door hardening:** `activeLoginTheme()` wraps its DB query in try/catch so
+  a transient DB error (or a not-yet-applied migration) on the public sign-in page
+  can never break login — it falls back to the built-in look. (`src/lib/loginTheme.ts`.)
+- Nothing changes visually for dealers on deploy day: the Halloween skin is
+  date-gated to **Oct 18**, and both managers are admin-only pages.
+
 ### Login screen manager — upload a sign-in look + schedule occasions (2026-10-04)
 - **New admin page `/admin/login-screen`** (grantable section `login-screen`) to
   set the sign-in page's background (and accent colour) from the portal — the same
