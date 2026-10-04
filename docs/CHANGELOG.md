@@ -37,6 +37,21 @@ source of truth; this file is the human-readable index.
 | Desktop/phone push notifications | ✅ Keys set (2026-09-11, Sean) — confirm with a test | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` set on EB. The client fetches the public key at **runtime** (`GET /api/push/key`) so it survives rebuilds. Reviewers get push on new dealer docs / activity. iOS needs the app installed to the Home Screen. **To confirm:** Account → Enable desktop notifications → Send a test. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### All costs in one place — the Costs hub (2026-10-04)
+- `Admin → Outside costs` is now **`Admin → Costs`**: a single page that totals
+  **every** running cost for the month, not just Google + fixed bills.
+- **One grand total (CAD)** now includes the metered services that bill in USD:
+  **AI (Anthropic)** — assistant + lead-card reader, from real token usage — and
+  **texting (Twilio SMS)**. A new editable **USD→CAD rate** (default 1.37) folds
+  them in; each line shows the original USD and the rate.
+- The detailed meters that used to live elsewhere are **gathered on this page**:
+  the AI spend meter (was System health), the Twilio balance/spend card (was Email
+  settings), DeepL translation usage, and the storage meter. The originals keep a
+  one-line link here so nothing's lost. Twilio's live total is best-effort — if the
+  API call fails the page still renders and the line shows "unavailable".
+- `src/lib/costs.ts` gains `usdToCad` + `usdToCadAmount`/`amountInCad` helpers
+  (unit-tested); `tests/costs.test.ts`. Section renamed in `ADMIN_SECTIONS`.
+
 ### Cost calculator → AWS (Render removed) (2026-10-04)
 - The **Outside costs** calculator (`Admin → Outside costs`) priced hosting as
   **"Render hosting"** — stale since the move to AWS. Replaced the fixed-bill lines
@@ -49,8 +64,7 @@ source of truth; this file is the human-readable index.
     ⚠️ `RELIABILITY.md` still records the 2026-10-04 bump as t3.medium/4 GB; confirm
     the actual instance type in the AWS console and reconcile the two.
 - Render decommission recorded in the Operational status table above — what to
-  shut down vs. the cron jobs to keep. Still **one area** to do next: fold the AI,
-  Twilio, DeepL and storage meters into this page so every cost is in one place.
+  shut down vs. the cron jobs to keep.
 
 ### Deployed: login screen + hero batch (2026-10-04)
 Pushed and deployed live the batch below (11 commits: dealer-banner GIF, dashboard

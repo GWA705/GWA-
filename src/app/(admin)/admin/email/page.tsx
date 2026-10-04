@@ -78,6 +78,10 @@ export default async function EmailSettingsPage() {
         <div className="mt-5 border-t border-gray-100 pt-4">
           <h3 className="mb-2 text-sm font-semibold text-gray-900">Texting spend</h3>
           <TwilioUsageCard enabled={smsOn} />
+          <p className="mt-2 text-xs text-gray-500">
+            Texting is also totalled with every other running cost under{' '}
+            <a href="/admin/costs" className="text-sky-600 hover:underline">Admin → Costs</a>.
+          </p>
         </div>
 
         <div className="mt-4 rounded bg-gray-50 p-3 text-xs text-gray-600">

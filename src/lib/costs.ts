@@ -25,12 +25,14 @@ export const COST_KEYS = {
   googleDetailsPer1000: 'cost.googleDetailsPer1000',
   googleFreeCredit: 'cost.googleFreeCredit', // monthly free credit applied to Google, if any
   // Fixed monthly AWS + service bills.
-  awsCompute: 'cost.awsCompute', // Elastic Beanstalk EC2 (t3.medium) + its EBS disk
+  awsCompute: 'cost.awsCompute', // Elastic Beanstalk EC2 (8 GB) + its EBS disk
   awsCloudfront: 'cost.awsCloudfront', // CloudFront CDN + WAF web ACL
   awsS3: 'cost.awsS3',
   awsRds: 'cost.awsRds',
   email: 'cost.email',
   domain: 'cost.domain',
+  // Metered services (AI, Twilio) bill in USD; this rate folds them into the CAD total.
+  usdToCad: 'cost.usdToCad',
 } as const;
 
 // Starting estimates. These are guesses to give an immediate ballpark — the
@@ -49,6 +51,7 @@ export const COST_DEFAULTS: Record<string, number> = {
   [COST_KEYS.awsRds]: 30,
   [COST_KEYS.email]: 0,
   [COST_KEYS.domain]: 2,
+  [COST_KEYS.usdToCad]: 1.37,
 };
 
 export interface CostConfig {
@@ -61,6 +64,7 @@ export interface CostConfig {
   awsRds: number;
   email: number;
   domain: number;
+  usdToCad: number;
 }
 
 function num(v: string | null, fallback: number): number {
@@ -83,6 +87,7 @@ export async function getCostConfig(): Promise<CostConfig> {
     awsRds: g('awsRds'),
     email: g('email'),
     domain: g('domain'),
+    usdToCad: g('usdToCad'),
   };
 }
 
@@ -98,6 +103,7 @@ export async function saveCostConfig(patch: Partial<CostConfig>): Promise<void> 
     ['awsRds', COST_KEYS.awsRds],
     ['email', COST_KEYS.email],
     ['domain', COST_KEYS.domain],
+    ['usdToCad', COST_KEYS.usdToCad],
   ];
   for (const [field, key] of map) {
     const v = patch[field];
@@ -128,6 +134,19 @@ export interface CostBreakdown {
 /** Round to cents. */
 function cents(n: number): number {
   return Math.round(n * 100) / 100;
+}
+
+/** Convert a USD amount to CAD at the configured rate, rounded to cents. */
+export function usdToCadAmount(usd: number, usdToCad: number): number {
+  return cents(usd * usdToCad);
+}
+
+/**
+ * Convert an amount in its own currency to CAD for the combined total: CAD stays
+ * as-is; USD (and anything else, as a best guess) is multiplied by the rate.
+ */
+export function amountInCad(amount: number, currency: string, usdToCad: number): number {
+  return currency.toUpperCase() === 'CAD' ? cents(amount) : cents(amount * usdToCad);
 }
 
 /**

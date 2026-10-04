@@ -89,6 +89,19 @@ export function CostsForm({ cfg }: { cfg: CostConfig }) {
         </div>
       </fieldset>
 
+      <fieldset className="space-y-4">
+        <legend className="text-sm font-semibold text-gray-900">Currency</legend>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Money
+            name="usdToCad"
+            label="USD → CAD rate"
+            value={cfg.usdToCad}
+            step="0.01"
+            hint="AI (Anthropic) and texting (Twilio) bill in USD; this folds them into the CAD total."
+          />
+        </div>
+      </fieldset>
+
       <SaveButton />
     </form>
   );

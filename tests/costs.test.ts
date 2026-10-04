@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildBreakdown, COST_DEFAULTS, COST_KEYS, type CostConfig } from '../src/lib/costs';
+import { buildBreakdown, usdToCadAmount, amountInCad, COST_DEFAULTS, COST_KEYS, type CostConfig } from '../src/lib/costs';
 
 const cfg: CostConfig = {
   googleAutocompletePer1000: 2.83,
@@ -11,6 +11,7 @@ const cfg: CostConfig = {
   awsRds: 30,
   email: 0,
   domain: 2,
+  usdToCad: 1.37,
 };
 
 // Fixed bills = 73 + 8 + 5 + 30 + 0 + 2 = 118
@@ -46,5 +47,18 @@ describe('buildBreakdown', () => {
     expect(COST_DEFAULTS[COST_KEYS.awsCompute]).toBe(73);
     // Render is gone from the cost model.
     expect((COST_KEYS as Record<string, string>).render).toBeUndefined();
+  });
+});
+
+describe('currency conversion for the combined total', () => {
+  it('converts USD to CAD at the configured rate', () => {
+    expect(usdToCadAmount(10, 1.37)).toBeCloseTo(13.7, 2);
+    expect(usdToCadAmount(0, 1.37)).toBe(0);
+  });
+
+  it('leaves CAD amounts untouched and converts USD/other', () => {
+    expect(amountInCad(10, 'CAD', 1.37)).toBeCloseTo(10, 2);
+    expect(amountInCad(10, 'cad', 1.37)).toBeCloseTo(10, 2); // case-insensitive
+    expect(amountInCad(10, 'USD', 1.37)).toBeCloseTo(13.7, 2);
   });
 });

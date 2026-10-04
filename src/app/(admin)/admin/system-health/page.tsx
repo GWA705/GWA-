@@ -135,6 +135,10 @@ export default async function SystemHealthPage() {
           <div className="h-px flex-1 bg-gray-200" />
         </div>
         <AiCostMeter summary={aiUsage} />
+        <p className="text-xs text-gray-500">
+          AI spend is also totalled with every other running cost under{' '}
+          <Link href="/admin/costs" className="text-sky-600 hover:underline">Admin → Costs</Link>.
+        </p>
         <AssistantKnowledge areas={knowledgeAreas} />
         <CollapsibleCard
           title="What dealers are asking"
