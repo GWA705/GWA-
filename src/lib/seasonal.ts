@@ -8,7 +8,7 @@
 // The Halloween look runs from this day of October through Oct 31, and reverts
 // on its own on November 1 (November simply isn't October). Change this one
 // number to start it earlier/later in the month.
-export const SPOOKY_START_DAY = 24;
+export const SPOOKY_START_DAY = 18;
 
 function torontoMonthDay(date: Date): { month: number; day: number } {
   const parts = new Intl.DateTimeFormat('en-CA', {

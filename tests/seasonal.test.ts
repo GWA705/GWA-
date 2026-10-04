@@ -7,14 +7,14 @@ const at = (iso: string) => new Date(`${iso}T12:00:00Z`);
 
 describe('isSpookySeason', () => {
   it('is off before the start day', () => {
-    expect(isSpookySeason(at('2026-10-23'))).toBe(false);
+    expect(isSpookySeason(at('2026-10-17'))).toBe(false);
     expect(isSpookySeason(at('2026-10-01'))).toBe(false);
   });
 
   it('is on from the start day through Halloween', () => {
-    expect(SPOOKY_START_DAY).toBe(24);
+    expect(SPOOKY_START_DAY).toBe(18);
+    expect(isSpookySeason(at('2026-10-18'))).toBe(true);
     expect(isSpookySeason(at('2026-10-24'))).toBe(true);
-    expect(isSpookySeason(at('2026-10-28'))).toBe(true);
     expect(isSpookySeason(at('2026-10-31'))).toBe(true);
   });
 
