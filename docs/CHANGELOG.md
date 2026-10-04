@@ -36,6 +36,20 @@ source of truth; this file is the human-readable index.
 | Desktop/phone push notifications | ✅ Keys set (2026-09-11, Sean) — confirm with a test | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` set on EB. The client fetches the public key at **runtime** (`GET /api/push/key`) so it survives rebuilds. Reviewers get push on new dealer docs / activity. iOS needs the app installed to the Home Screen. **To confirm:** Account → Enable desktop notifications → Send a test. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### Halloween sign-in skin — full-bleed night look (2026-10-04)
+- The sign-in page gets a full seasonal reskin during the spooky season (Oct 18 →
+  Oct 31, reverts Nov 1 — all decided server-side from the Toronto date, so no
+  flicker and no manual switch): a full-bleed night background
+  (`public/halloween-login-bg.webp`), a glass card, and an orange accent on the
+  last word of the title.
+- It only reskins the **chrome**. `SpookyLogin` wraps the real `<LoginForm>`
+  untouched, so the sign-in action, validation, error messages, MFA and the EN/FR
+  toggle all keep working exactly as before — every Halloween style is scoped to
+  `.spooky-login` so nothing leaks to the normal login the rest of the year.
+- Replaces the earlier subtle `SpookyDecor` overlay on the login page.
+  `login/page.tsx`: `if (isSpookySeason()) return <SpookyLogin />;` else the normal
+  login. Responsive + honours `prefers-reduced-motion`.
+
 ### Dashboard hero manager — upload heroes + schedule special occasions (2026-10-04)
 - **New admin page `/admin/dashboard-hero`** (grantable section `dashboard-hero`)
   so heroes are managed in the portal instead of committing files. Two parts:
