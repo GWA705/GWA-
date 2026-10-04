@@ -673,8 +673,11 @@ export default async function StaffApplicationDetail({
     ),
     // 7 · Awaiting funding — the Mark Funded button, but only once the deal has
     // actually reached "in for funding" (not on an earlier phase).
-    funding: app.status === 'FUNDING_REVIEW'
-      ? <FundingStepActions applicationId={app.id} journalCheckedAt={app.journalCheckedAt ? app.journalCheckedAt.toISOString() : null} />
+    // Shown once the deal reaches funding and until it's paid: "Mark Funded"
+    // (only when not already Funded) and "Check journal now" — which reads the
+    // live journal and flips the deal to Paid when it shows OK + a Date Paid.
+    funding: ['FUNDING_SUBMITTED', 'FUNDING_REVIEW', 'FUNDED'].includes(app.status)
+      ? <FundingStepActions applicationId={app.id} journalCheckedAt={app.journalCheckedAt ? app.journalCheckedAt.toISOString() : null} canMarkFunded={app.status !== 'FUNDED'} />
       : null,
     // 8 · Pay dealer. Once a payout has been recorded — which now happens
     // automatically from the sales journal ("Pay to dealer") — there's nothing for

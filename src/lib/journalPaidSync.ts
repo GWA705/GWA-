@@ -1,7 +1,7 @@
 import 'server-only';
 import type { ApplicationStatus } from '@prisma/client';
 import { prisma } from './db';
-import { readDealJournalStatus } from './journal';
+import { readDealJournalStatus, findDealRowByIdentity } from './journal';
 import { notifyStatusChange } from './notify';
 import { audit } from './audit';
 
@@ -48,22 +48,50 @@ export async function syncApplicationFromJournal(applicationId: string, actorId:
   const app = await prisma.application.findUnique({
     where: { id: applicationId },
     select: {
-      id: true, status: true, applicantLastName: true, dateOfSale: true, createdAt: true,
+      id: true, status: true, applicantLastName: true, applicantFirstName: true,
+      hdReference: true, financeItNumber: true, dateOfSale: true, createdAt: true,
       journalTab: true, journalRow: true, journalPaidOn: true,
     },
   });
   if (!app) return { applicationId, ok: false, paid: false, funded: false, skipped: 'not found' };
-  if (!app.journalTab || !app.journalRow) {
-    return { applicationId, ok: false, paid: false, funded: false, skipped: 'not written to journal' };
-  }
 
   const saleYear = (app.dateOfSale ?? app.createdAt).getFullYear();
-  const read = await readDealJournalStatus({
-    knownTab: app.journalTab,
-    knownRow: app.journalRow,
-    lastName: app.applicantLastName,
-    saleYear,
-  });
+
+  // Resolve the deal's journal row. Deals the portal wrote carry a stored tab +
+  // row; deals typed straight into the journal by hand don't — so we locate them
+  // by identity (HD # / loan # / name) and remember the row for next time.
+  let tab = app.journalTab;
+  let row = app.journalRow;
+  if (!tab || !row) {
+    const found = await findDealRowByIdentity({
+      saleYear,
+      when: app.dateOfSale ?? app.createdAt,
+      lastName: app.applicantLastName,
+      firstName: app.applicantFirstName,
+      hdReference: app.hdReference,
+      loanNo: app.financeItNumber,
+    });
+    if (found.error) {
+      await prisma.application.update({ where: { id: app.id }, data: { journalCheckedAt: new Date() } });
+      return { applicationId, ok: false, paid: false, funded: false, error: found.error };
+    }
+    if (!found.match) {
+      await prisma.application.update({ where: { id: app.id }, data: { journalCheckedAt: new Date() } });
+      return {
+        applicationId, ok: false, paid: false, funded: false,
+        reason: 'Couldn’t find this deal in the live journal yet — looked on the sale-month tab by HD Customer # and name. Make sure the journal row has the matching HD # (or the customer’s name) filled in.',
+      };
+    }
+    tab = found.match.tab;
+    row = found.match.row;
+    // Remember where it is so future checks are a single, direct read.
+    await prisma.application.update({ where: { id: app.id }, data: { journalTab: tab, journalRow: row } });
+  }
+
+  const read = await readDealJournalStatus(
+    { knownTab: tab, knownRow: row, lastName: app.applicantLastName, saleYear },
+    { liveOnly: true },
+  );
 
   if (!read.found) {
     await prisma.application.update({ where: { id: app.id }, data: { journalCheckedAt: new Date() } });
@@ -149,16 +177,24 @@ export async function syncApplicationFromJournal(applicationId: string, actorId:
  * Sweep every live, journal-written deal that isn't yet recorded as paid, and
  * sync it. Runs from the cron endpoint (and can be triggered per-deal on demand).
  */
+// Stages where a deal could be in the journal and settling — the sweep only
+// looks at these, so it never scans brand-new (pre-journal) deals.
+const SETTLING: ApplicationStatus[] = ['APPROVED', 'CONDITIONAL', 'DOCS_SENT', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW', 'FUNDED'];
+
 export async function sweepJournalPaid(): Promise<{ checked: number; funded: number; paid: number; errors: number }> {
+  // Includes deals with NO stored journal pointer — those were typed into the
+  // journal by hand and are matched by identity (see syncApplicationFromJournal).
+  // Capped per run to keep Google Sheets reads within quota; once a deal's row is
+  // found it's remembered, so later runs are cheap, and the 2-hourly cadence
+  // works through a backlog.
   const candidates = await prisma.application.findMany({
     where: {
-      journalTab: { not: null },
-      journalRow: { not: null },
       journalPaidOn: null,
-      status: { notIn: TERMINAL },
+      status: { in: SETTLING },
     },
+    orderBy: { updatedAt: 'desc' },
     select: { id: true },
-    take: 500,
+    take: 200,
   });
 
   let funded = 0, paid = 0, errors = 0;

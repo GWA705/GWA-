@@ -14,9 +14,12 @@ import { markFundedAction, syncDealFromJournalAction } from '@/app/(staff)/actio
 export function FundingStepActions({
   applicationId,
   journalCheckedAt,
+  canMarkFunded = true,
 }: {
   applicationId: string;
   journalCheckedAt?: string | null;
+  // Hidden once the deal is already Funded — then only "Check journal now" shows.
+  canMarkFunded?: boolean;
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -57,14 +60,16 @@ export function FundingStepActions({
   return (
     <div>
       <div className="flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          onClick={mark}
-          disabled={pending || checking || marked}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 active:scale-95 disabled:opacity-70"
-        >
-          {marked ? '✓ Funded' : '✓ Mark Funded'}
-        </button>
+        {canMarkFunded && (
+          <button
+            type="button"
+            onClick={mark}
+            disabled={pending || checking || marked}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 active:scale-95 disabled:opacity-70"
+          >
+            {marked ? '✓ Funded' : '✓ Mark Funded'}
+          </button>
+        )}
         <button
           type="button"
           onClick={checkJournal}

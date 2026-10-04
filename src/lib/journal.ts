@@ -431,6 +431,97 @@ export function chooseRow(
   return planRow(layout, deal, mode).row;
 }
 
+// --- Identity match (find a deal's row when the portal never wrote it) -------
+
+/**
+ * Find a deal's row within ONE tab's layout by identity — for the paid read-back
+ * on deals that were typed straight into the journal by hand, so the portal has
+ * no stored row pointer. Deliberately conservative, because the result flips
+ * money-adjacent "paid" state:
+ *   1. HD Ref # exact — and, when the deal has a last name, the row's Last Name
+ *      must match too (so a mistyped HD # landing on another customer can't flip
+ *      the wrong deal).
+ *   2. Loan # exact — same Last Name guard.
+ *   3. Last Name (+ First Name when present) — ONLY when exactly one row matches
+ *      and only when `allowNameMatch` is set (the deal's own sale-month tab); a
+ *      name is never matched across tabs.
+ * Returns the 1-based sheet row, or null when there's no confident match.
+ */
+export function findRowInLayout(
+  layout: JournalLayout,
+  deal: { lastName: string; firstName: string; hdRef: string | null; loanNo: string | null },
+  allowNameMatch: boolean,
+): number | null {
+  const hdCol = layout.columns.hdRef;
+  const loanCol = layout.columns.loanNo;
+  const lnCol = layout.columns.lastName;
+  const fnCol = layout.columns.firstName;
+  const cell = (r1: number, c?: number) => (c != null && c >= 0 ? norm((layout.rows[r1 - 1] || [])[c]) : '');
+  const hd = norm(deal.hdRef ?? '');
+  const loan = norm(deal.loanNo ?? '');
+  const ln = norm(deal.lastName);
+  const fn = norm(deal.firstName);
+
+  // 1 & 2 — a reference match, verified by Last Name when the deal has one.
+  for (let r = layout.firstDataRow; r <= layout.rows.length; r += 1) {
+    const nameOk = !ln || cell(r, lnCol) === ln;
+    if (hd && hdCol != null && cell(r, hdCol) === hd && nameOk) return r;
+    if (loan && loanCol != null && cell(r, loanCol) === loan && nameOk) return r;
+  }
+  // 3 — an unambiguous name match, same-tab only.
+  if (allowNameMatch && ln) {
+    const hits: number[] = [];
+    for (let r = layout.firstDataRow; r <= layout.rows.length; r += 1) {
+      if (cell(r, lnCol) === ln && (!fn || cell(r, fnCol) === fn)) hits.push(r);
+    }
+    if (hits.length === 1) return hits[0];
+  }
+  return null;
+}
+
+/**
+ * Locate a deal's row in the LIVE journal by identity (see findRowInLayout).
+ * Reads the deal's sale-month tab first; for a deal that carries an HD #/loan #
+ * it will also scan the year's other month tabs (a hand-filed deal may sit in a
+ * different month), but a name-only deal is matched on its sale-month tab alone.
+ * Best-effort — any Sheets failure returns a null match with an error, never
+ * throws. Reads the live per-year sheet, independent of the write-mode toggle.
+ */
+export async function findDealRowByIdentity(deal: {
+  saleYear: number;
+  when: Date; // sale date (falls back to created date)
+  lastName: string;
+  firstName: string;
+  hdReference: string | null;
+  loanNo: string | null;
+}): Promise<{ match: { tab: string; row: number } | null; error?: string }> {
+  if (!deal.hdReference && !deal.loanNo && !norm(deal.lastName)) return { match: null };
+  try {
+    const sheets = await sheetsClient();
+    const ssId = liveSheetIdForYear(deal.saleYear);
+    if (!ssId) return { match: null, error: `No live journal is configured for ${deal.saleYear}.` };
+    const meta = await sheets.spreadsheets.get({ spreadsheetId: ssId, fields: 'sheets.properties.title' });
+    const titles = (meta.data.sheets || []).map((s) => s.properties?.title || '').filter(Boolean);
+    const primary = matchTab(titles, deal.when);
+    const order = primary ? [primary, ...titles.filter((t) => t !== primary)] : titles;
+    const hasRef = !!(deal.hdReference || deal.loanNo);
+    for (const tab of order) {
+      const layout = await readLayout(sheets, tab, ssId);
+      const row = findRowInLayout(
+        layout,
+        { lastName: deal.lastName, firstName: deal.firstName, hdRef: deal.hdReference, loanNo: deal.loanNo },
+        tab === primary,
+      );
+      if (row) return { match: { tab, row } };
+      // A name-only deal is only matched on its own sale-month tab; stop there.
+      if (!hasRef) break;
+    }
+    return { match: null };
+  } catch (e) {
+    return { match: null, error: (e as Error).message };
+  }
+}
+
 // --- Public API ------------------------------------------------------------
 
 export interface JournalDeal {
@@ -641,17 +732,26 @@ export interface JournalStatusRead {
  * (lastNameMatches=false) rather than trusted. Best-effort: any failure returns
  * found=false with an error, never throws.
  */
-export async function readDealJournalStatus(deal: {
-  knownTab: string | null;
-  knownRow: number | null;
-  lastName: string;
-  saleYear: number;
-}): Promise<JournalStatusRead> {
+export async function readDealJournalStatus(
+  deal: {
+    knownTab: string | null;
+    knownRow: number | null;
+    lastName: string;
+    saleYear: number;
+  },
+  opts?: { liveOnly?: boolean },
+): Promise<JournalStatusRead> {
   const miss = (error?: string): JournalStatusRead => ({ found: false, lastNameMatches: false, result: null, isOk: false, datePaid: null, payToDealer: null, error });
   if (!deal.knownTab || !deal.knownRow) return miss('not written to the journal');
   try {
     const sheets = await sheetsClient();
-    const ssId = await resolveWriteSheetId(deal.saleYear);
+    // "Paid" is a real-money event that only ever happens in the LIVE journal, so
+    // the read-back can read the live per-year sheet directly (liveOnly) instead
+    // of following the admin test/live write toggle — the same way reporting reads
+    // always use the live journals. Without this, leaving the portal in Test mode
+    // silently pointed the paid read at the sandbox sheet and nothing ever synced.
+    const ssId = opts?.liveOnly ? liveSheetIdForYear(deal.saleYear) : await resolveWriteSheetId(deal.saleYear);
+    if (!ssId) return miss(`No live journal is configured for ${deal.saleYear}.`);
     const res = await sheets.spreadsheets.values.get({
       spreadsheetId: ssId,
       range: `'${deal.knownTab}'!A1:BZ${Math.max(deal.knownRow, 60)}`,

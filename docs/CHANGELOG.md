@@ -36,6 +36,31 @@ source of truth; this file is the human-readable index.
 | Desktop/phone push notifications | ✅ Keys set (2026-09-11, Sean) — confirm with a test | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` set on EB. The client fetches the public key at **runtime** (`GET /api/push/key`) so it survives rebuilds. Reviewers get push on new dealer docs / activity. iOS needs the app installed to the Home Screen. **To confirm:** Account → Enable desktop notifications → Send a test. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### Journal → Paid sync now works for hand-typed rows (2026-10-04)
+The read-back (journal shows **Result "OK" + a Date Paid** → portal marks the deal
+**Funded & Paid**) had never fired in practice. Two reasons, both fixed:
+- **It only worked for deals the portal itself wrote to the journal** (it relied
+  on a stored tab + row). The office types deals straight into the sheet, so there
+  was no stored row and the sweep skipped them entirely. Now the portal **finds
+  the deal's row by identity** — HD Customer # → loan # → an unambiguous
+  name — on the sale-month tab (HD/loan deals also scan the year's other months),
+  remembers the row, and reads its Result/Date Paid. Matching is conservative: a
+  reference match must also agree on the last name, and a name-only match must be
+  the single row with that name, so "paid" can't land on the wrong customer.
+  (`findRowInLayout` / `findDealRowByIdentity` in `src/lib/journal.ts`, with
+  `tests/journalIdentityMatch.test.ts`.)
+- **The read followed the Test/Live write toggle.** "Paid" only ever happens in
+  the live journal, so the read-back now always uses the **live per-year** sheet
+  (`liveOnly`), independent of the write mode — the same way reporting reads do.
+  Leaving the portal in Test mode used to silently point the paid check at the
+  sandbox sheet.
+- The scheduled sweep (every 2h) now includes deals with no stored row (settling
+  statuses, capped per run; rows are remembered so later runs are cheap). The
+  per-deal **"↻ Check journal now"** button now shows on In-funding and Funded
+  deals too (not just "In for funding"), and prints exactly what it found — so a
+  reviewer can confirm a single deal instantly and read the reason if it's not yet
+  marked paid.
+
 ### Security fix — admin privilege boundary (audit #3) (2026-10-04)
 Closes the privilege-escalation path from the audit: a scoped "Users"-section
 admin could reset a **Super Admin's** password (then sign in as them) or change
