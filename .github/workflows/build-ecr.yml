@@ -73,8 +73,8 @@ jobs:
           echo "Pushed to ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest" >> "$GITHUB_STEP_SUMMARY"
           echo "Tag: ${{ github.sha }}" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Package deploy bundle (Dockerrun + .platform)
-        run: zip -r deploy.zip Dockerrun.aws.json .platform
+      - name: Package deploy bundle (Dockerrun + .platform + .ebextensions)
+        run: zip -r deploy.zip Dockerrun.aws.json .platform .ebextensions
 
       - name: Deploy to Elastic Beanstalk
         uses: einaregilsson/beanstalk-deploy@v22
@@ -86,5 +86,11 @@ jobs:
           environment_name: Gwa-portal-env
           version_label: build-${{ github.sha }}
           deployment_package: deploy.zip
-          wait_for_deployment: false
+          # Wait for EB to report the deploy healthy. With the Immutable policy a
+          # bad build is auto-rolled-back and this step then fails — so a broken
+          # deploy shows as a red ❌ here (and a GitHub email) instead of silently
+          # going out while the site is actually down. Immutable deploys take
+          # longer, so allow generous time before giving up.
+          wait_for_deployment: true
+          wait_for_environment_recovery: 300
       

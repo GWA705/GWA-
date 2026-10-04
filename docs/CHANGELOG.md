@@ -69,6 +69,21 @@ source of truth; this file is the human-readable index.
   free-text via DeepL.
 
 ## 2026-10-04
+- **Reliability hardening so the 2026-10-02 outage can't repeat.** Root cause: a
+  single small EB instance filled its disk from piled-up Docker images across a
+  day of deploys and wedged, with no auto-healing, and a manual Rebuild then
+  broke on the DB security-group dependency. Version-controlled fixes (apply on
+  next deploy): **Immutable deploy policy** (a bad build auto-rolls-back with the
+  old instance still serving; fresh disk every deploy) + **app-aware health check
+  at `/api/health`** + **EB health-change email alert** to sean@ghsbarrie.ca +
+  **disk-cleanup postdeploy hook**, all in `.ebextensions/01_resilience.config`
+  and `.platform/hooks/postdeploy/01_docker_prune.sh`; the deploy workflow now
+  **waits for a healthy deploy** (`wait_for_deployment: true`) so a bad one fails
+  loudly. New **`docs/RELIABILITY.md`** (postmortem + the console checklist still
+  to do: confirm the SNS email, bump to t3.medium / 50 GB disk, verify RDS
+  backups, add an external uptime monitor on `/api/health`). ⚠ After the first
+  deploy with this, click the AWS "Confirm subscription" email or alerts won't
+  arrive.
 - **Dealer Mail: confirmation-issue messages now show the FULL customer name + an "Open deal" button.**
   When a confirmer flags an issue to the dealer, the portal Mail used to read
   "Action needed: confirmation issue — Sean K." (first name + last initial), with
