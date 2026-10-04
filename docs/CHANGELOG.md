@@ -68,6 +68,21 @@ source of truth; this file is the human-readable index.
   `testSingleLead()` on a French lead first. Portal display auto-translates lead
   free-text via DeepL.
 
+## 2026-10-04
+- **Dealer Mail: confirmation-issue messages now show the FULL customer name + an "Open deal" button.**
+  When a confirmer flags an issue to the dealer, the portal Mail used to read
+  "Action needed: confirmation issue — Sean K." (first name + last initial), with
+  no way to tell which customer or to jump to the deal. Now: the subject carries
+  the **full customer name** (the deal is the dealer's own customer, so no masking
+  is needed), and the dealer's Mail view shows a prominent **"Open {name}'s deal"**
+  button that deep-links to that exact customer's deal — mirroring the reviewer
+  chat side. Added an optional `Mail.applicationId` link (migration
+  `20261004120000_mail_application_link`, `ON DELETE SET NULL`); the flag-issue
+  action sets it; the dealer mail page renders the button, guarded so a mail can
+  only ever link to a deal belonging to the viewing dealer. New i18n keys
+  (`mail.openCustomerDeal`, `mail.openDeal`). (`src/app/(staff)/actions.ts`,
+  `src/app/(dealer)/dealer/mail/[id]/page.tsx`, `prisma/schema.prisma`.)
+
 ## 2026-10-02
 - **Journal Test/Live write-mode toggle actually takes effect now.**
   The admin Test/Live toggle (`/staff/reports/connection`) could "save" but not

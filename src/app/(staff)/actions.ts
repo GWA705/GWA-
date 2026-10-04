@@ -1931,9 +1931,11 @@ export async function flagDealerIssueAction(
   // "I have read this" button; staff can see who acknowledged at /staff/mail/<id>.
   // The subject carries the "action needed" framing, so the body is just the
   // confirmer's words (which the deal banner also shows).
+  // Full customer name so the dealer immediately knows WHICH customer has the
+  // issue (the deal is their own customer, so no masking is needed here).
   const first = (app.applicantFirstName || '').trim();
-  const lastInitial = (app.applicantLastName || '').trim().charAt(0);
-  const dealName = `${first}${lastInitial ? ` ${lastInitial}.` : ''}`.trim() || 'a deal';
+  const last = (app.applicantLastName || '').trim();
+  const dealName = `${first}${last ? ` ${last}` : ''}`.trim() || 'a deal';
   const mail = await prisma.mail.create({
     data: {
       subject: `Action needed: confirmation issue — ${dealName}`,
@@ -1943,6 +1945,9 @@ export async function flagDealerIssueAction(
       distributorsOnly: false,
       allDealers: false,
       senderId: session.userId,
+      // Link the deal so the dealer can open that exact customer's profile
+      // straight from the message (an "Open deal" button in the mail).
+      applicationId: app.id,
       recipients: { create: [{ dealerId: app.dealerId }] },
     },
   });

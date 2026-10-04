@@ -25,9 +25,22 @@ export default async function DealerMailItem({ params }: { params: { id: string 
 
   const mail = await prisma.mail.findFirst({
     where: { id: params.id, ...mailWhereForDealer(session.userId, session.dealerId, session.isDistributor) },
-    include: { sender: { select: { name: true } }, attachments: { orderBy: { createdAt: 'asc' } } },
+    include: {
+      sender: { select: { name: true } },
+      attachments: { orderBy: { createdAt: 'asc' } },
+      application: { select: { id: true, dealerId: true, applicantFirstName: true, applicantLastName: true } },
+    },
   });
   if (!mail) notFound();
+
+  // When this mail is tied to one of this dealer's deals (e.g. a confirmation
+  // issue), offer a button to open that exact customer's deal. Guarded so a mail
+  // can only ever link to a deal that belongs to the viewing dealer.
+  const linkedDeal =
+    mail.application && mail.application.dealerId === session.dealerId ? mail.application : null;
+  const linkedCustomer = linkedDeal
+    ? `${linkedDeal.applicantFirstName ?? ''} ${linkedDeal.applicantLastName ?? ''}`.trim()
+    : '';
 
   // Record that this user opened the mail (keeps the first-open timestamp), and
   // use the upsert's own return value instead of a second read-back round trip.
@@ -57,6 +70,18 @@ export default async function DealerMailItem({ params }: { params: { id: string 
           {t('mail.fromOn', { sender: mail.senderLabel || REVIEWER_DISPLAY, date: mail.createdAt.toLocaleString('en-CA') })}
         </p>
       </div>
+
+      {linkedDeal && (
+        <Link
+          href={`/dealer/applications/${linkedDeal.id}`}
+          className="btn-primary inline-flex w-fit items-center gap-2"
+        >
+          {linkedCustomer
+            ? t('mail.openCustomerDeal', { name: linkedCustomer })
+            : t('mail.openDeal')}
+          <span aria-hidden>→</span>
+        </Link>
+      )}
 
       <section className="card p-6">
         <div className="whitespace-pre-wrap text-sm leading-relaxed text-gray-800">{mail.body}</div>

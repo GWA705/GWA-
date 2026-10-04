@@ -504,6 +504,8 @@ export const fr: Dictionary = {
     download: 'Télécharger',
     replyTitle: 'Répondre à Georgian Water & Air',
     acknowledged: '✓ Vous avez accusé réception de ce message.',
+    openCustomerDeal: 'Ouvrir le dossier de {name}',
+    openDeal: 'Ouvrir le dossier',
     confirmReadTitle: 'Veuillez confirmer que vous avez lu ceci',
     confirmReadBody: 'Georgian Water & Air demande une confirmation que vous avez lu ce message.',
     iHaveRead: 'J’ai lu ce message',

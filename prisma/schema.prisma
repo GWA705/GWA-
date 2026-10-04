@@ -775,6 +775,11 @@ model Mail {
   // What dealers see as the "From" name. Falls back to the sender's user name
   // for older messages that predate this field.
   senderLabel String?
+  // Optional deep-link to a specific deal (e.g. a confirmation-issue mail), so a
+  // dealer can open that exact customer's deal straight from the message. Null
+  // for broadcast/general mail. SetNull so deleting a deal never drops the mail.
+  applicationId String?
+  application   Application? @relation("MailApplication", fields: [applicationId], references: [id], onDelete: SetNull)
   createdAt  DateTime @default(now())
 
   recipients      MailRecipient[]
@@ -1263,6 +1268,7 @@ model Application {
   dealerReminders DealerReminder[]
   cancellations   DealCancellation[]
   remittanceLines HdRemittanceLine[]
+  linkedMails     Mail[]              @relation("MailApplication")
 
   @@index([dealerId])
   @@index([status])

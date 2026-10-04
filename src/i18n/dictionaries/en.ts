@@ -500,6 +500,8 @@ export const en = {
     download: 'Download',
     replyTitle: 'Reply to Georgian Water & Air',
     acknowledged: '✓ You have acknowledged reading this message.',
+    openCustomerDeal: 'Open {name}’s deal',
+    openDeal: 'Open the deal',
     confirmReadTitle: 'Please confirm you’ve read this',
     confirmReadBody: 'Georgian Water & Air has asked for confirmation that you’ve read this message.',
     iHaveRead: 'I have read this',
