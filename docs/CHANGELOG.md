@@ -49,6 +49,20 @@ source of truth; this file is the human-readable index.
   optional), `SpecialHeroForm`, the admin list ("Always on"), and
   `tests/dashboard-hero.test.ts`.
 
+### Journal → Paid: self-heal stale tab pointers (2026-10-05)
+- **Root cause found for "no deal ever advanced to paid":** many deals carried a
+  stored journal pointer to a month tab that no longer exists in the LIVE sheet
+  (e.g. `Sep.2026` — renamed/recreated by the office, or written to the test sheet
+  while the read is live-only). The read failed with *"Unable to parse range:
+  'Sep.2026'!A1:BZ60"* and there was **no fallback**, so every such deal errored
+  and nothing advanced.
+- **Fix:** when a **stored** tab/row fails to read, `syncApplicationFromJournal`
+  now **drops the dead pointer and re-finds the deal by identity** against the
+  journal's CURRENT tab names, then reads again; if it still can't locate it, the
+  stale pointer is cleared so the next run matches fresh. (`src/lib/journalPaidSync.ts`.)
+- After deploy, the 2-hourly sweep (or a manual Render "Trigger Run") will
+  re-walk the settling backlog and advance any deal the journal shows OK + paid.
+
 ### Journal → Paid sweep is now actually scheduled (2026-10-05)
 - The automatic journal→paid back-check (`/api/cron/journal-paid-sync`,
   `sweepJournalPaid`) existed but **had no scheduler** — only the per-deal "↻ Check

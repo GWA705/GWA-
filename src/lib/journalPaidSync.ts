@@ -60,10 +60,9 @@ export async function syncApplicationFromJournal(applicationId: string, actorId:
   // Resolve the deal's journal row. Deals the portal wrote carry a stored tab +
   // row; deals typed straight into the journal by hand don't — so we locate them
   // by identity (HD # / loan # / name) and remember the row for next time.
-  let tab = app.journalTab;
-  let row = app.journalRow;
-  if (!tab || !row) {
-    const found = await findDealRowByIdentity({
+  // Re-find a deal in the live journal by identity (HD # / loan # / name).
+  const reFind = () =>
+    findDealRowByIdentity({
       saleYear,
       when: app.dateOfSale ?? app.createdAt,
       lastName: app.applicantLastName,
@@ -71,6 +70,12 @@ export async function syncApplicationFromJournal(applicationId: string, actorId:
       hdReference: app.hdReference,
       loanNo: app.financeItNumber,
     });
+
+  let tab = app.journalTab;
+  let row = app.journalRow;
+  const usedStoredPointer = !!(tab && row);
+  if (!tab || !row) {
+    const found = await reFind();
     if (found.error) {
       await prisma.application.update({ where: { id: app.id }, data: { journalCheckedAt: new Date() } });
       return { applicationId, ok: false, paid: false, funded: false, error: found.error };
@@ -88,10 +93,30 @@ export async function syncApplicationFromJournal(applicationId: string, actorId:
     await prisma.application.update({ where: { id: app.id }, data: { journalTab: tab, journalRow: row } });
   }
 
-  const read = await readDealJournalStatus(
+  let read = await readDealJournalStatus(
     { knownTab: tab, knownRow: row, lastName: app.applicantLastName, saleYear },
     { liveOnly: true },
   );
+
+  // Self-heal a STALE stored pointer: a saved tab/row can go bad when the office
+  // renames or recreates the month tab (e.g. "Sep.2026" no longer exists, so the
+  // read fails with "Unable to parse range"). Drop the dead pointer and re-find
+  // the deal by identity against the journal's CURRENT tab names, then read again.
+  if (!read.found && usedStoredPointer) {
+    const found = await reFind();
+    if (found.match) {
+      tab = found.match.tab;
+      row = found.match.row;
+      await prisma.application.update({ where: { id: app.id }, data: { journalTab: tab, journalRow: row } });
+      read = await readDealJournalStatus(
+        { knownTab: tab, knownRow: row, lastName: app.applicantLastName, saleYear },
+        { liveOnly: true },
+      );
+    } else {
+      // Couldn't re-locate it — clear the dead pointer so the next run matches fresh.
+      await prisma.application.update({ where: { id: app.id }, data: { journalTab: null, journalRow: null } });
+    }
+  }
 
   if (!read.found) {
     await prisma.application.update({ where: { id: app.id }, data: { journalCheckedAt: new Date() } });
