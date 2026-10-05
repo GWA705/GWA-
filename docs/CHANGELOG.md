@@ -374,6 +374,24 @@ exhausting the single instance). No behaviour change for normal use.
   `testSingleLead()` on a French lead first. Portal display auto-translates lead
   free-text via DeepL.
 
+## 2026-10-05
+- **Remittance reconciliation — recover missed Home Depot payments.** A
+  remittance line is matched to a deal by HD # at the moment it's ingested; if
+  the deal wasn't in the portal yet (entered later, or its HD # filled in
+  afterwards), the line stayed UNMATCHED forever — the HD money came in but never
+  advanced the deal. Added `reMatchUnmatchedLines()` (`src/lib/hdRemittance.ts`),
+  which re-runs the HD-# match for every stored unmatched, non-chargeback line
+  against the deals in the portal *now*, funds any that have since appeared
+  (reusing the split-payment cumulative rule so a split deal only funds once its
+  total HD payout is reached), and records a status event + audit entry. The
+  staff **Remittances** page now has an "Unmatched lines — reconciliation"
+  section: it shows the total unmatched $ outstanding, a **dry-run preview** of
+  exactly which unmatched lines would now match a deal (and which would fund),
+  and a **"Re-check unmatched against current deals"** button to apply it.
+  Idempotent (recovered lines become MATCHED and aren't re-examined); chargebacks
+  are left alone. This closes the gap behind "some deals match and some don't" —
+  the misses were payments that arrived before their portal deal existed.
+
 ## 2026-10-04
 - **Reliability hardening so the 2026-10-02 outage can't repeat.** Root cause: a
   single small EB instance filled its disk from piled-up Docker images across a

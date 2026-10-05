@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation';
 import { requireStaffSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { audit } from '@/lib/audit';
-import { ingestRemittance, parseHdRemittanceText, type RemittanceLineInput } from '@/lib/hdRemittance';
+import { ingestRemittance, parseHdRemittanceText, reMatchUnmatchedLines, type RemittanceLineInput } from '@/lib/hdRemittance';
 
 /**
  * Delete a remittance record (and its lines, via cascade). For clearing a
@@ -84,6 +84,28 @@ export async function ingestRemittancePdfAction(_prev: RemittanceActionState, fo
   return {
     ok: true,
     summary: `${result.lineCount} lines · ${result.funded} funded · ${result.partial ?? 0} partial · ${result.chargebacks} chargebacks · ${result.unmatched.length} unmatched`,
+  };
+}
+
+/**
+ * Re-check every previously-UNMATCHED remittance line against the deals that are
+ * in the portal NOW, and fund any that have since appeared. Recovers HD payments
+ * that came in before their deal existed in the portal (or before its HD # was
+ * filled in) — those lines stay unmatched forever otherwise.
+ */
+export async function reconcileUnmatchedAction(_prev: RemittanceActionState, _formData?: FormData): Promise<RemittanceActionState> {
+  const session = await requireStaffSection('remittances');
+
+  const res = await reMatchUnmatchedLines({ actorId: session.userId });
+
+  revalidatePath('/staff/remittances');
+  if (res.recovered === 0) {
+    return { ok: true, summary: `Checked ${res.scanned} unmatched line${res.scanned === 1 ? '' : 's'} — none match a portal deal yet.` };
+  }
+  const money = `$${res.amountRecovered.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return {
+    ok: true,
+    summary: `Recovered ${res.recovered} line${res.recovered === 1 ? '' : 's'} (${money}) · ${res.funded} deal${res.funded === 1 ? '' : 's'} funded${res.partial ? ` · ${res.partial} partial` : ''}.`,
   };
 }
 

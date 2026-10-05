@@ -326,6 +326,169 @@ export async function ingestRemittance(input: RemittanceInput): Promise<Remittan
   return { ok: true, remittanceId: remittance.id, lineCount: lines.length, matched, funded, partial, chargebacks, unmatched };
 }
 
+export interface ReMatchResult {
+  scanned: number; // unmatched, non-chargeback lines examined
+  recovered: number; // lines that now match a portal deal
+  funded: number; // deals advanced to FUNDED this run
+  partial: number; // split-payment deals that took a partial payment
+  amountRecovered: number; // $ on the newly matched lines
+  deals: {
+    applicationId: string;
+    customer: string;
+    hdReference: string;
+    amount: number;
+    funded: boolean;
+  }[];
+}
+
+/**
+ * Re-check every UNMATCHED remittance line against the CURRENT portal deals.
+ *
+ * Why this exists: a line is matched to a deal by HD # at the moment its
+ * remittance is ingested. If the deal wasn't in the portal yet (entered later,
+ * or its HD # filled in afterwards), the line stays UNMATCHED forever — the HD
+ * money came in but never advanced the deal. This sweep re-runs the match for
+ * those stored lines and funds any that now have a portal deal, applying the
+ * same split-payment cumulative rule as live ingest.
+ *
+ * Chargebacks are left alone (they're not "missed payments"). Idempotent: once a
+ * line is recovered it's MATCHED and won't be re-examined. `dryRun` reports what
+ * WOULD be recovered without writing — used to size the backlog before acting.
+ */
+export async function reMatchUnmatchedLines(
+  opts: { dryRun?: boolean; actorId?: string | null } = {},
+): Promise<ReMatchResult> {
+  const dryRun = !!opts.dryRun;
+
+  // Oldest first (by invoice date, then creation): cumulative split-payment
+  // totals have to accrue in the order HD actually paid.
+  const lines = await prisma.hdRemittanceLine.findMany({
+    where: { status: 'UNMATCHED', isChargeback: false },
+    orderBy: [{ invoiceDate: 'asc' }, { createdAt: 'asc' }],
+    select: { id: true, hdIdNumber: true, amount: true },
+  });
+
+  const empty: ReMatchResult = { scanned: 0, recovered: 0, funded: 0, partial: 0, amountRecovered: 0, deals: [] };
+  if (lines.length === 0) return empty;
+
+  // Resolve the HD #s that now point at a portal deal (newest deal wins a re-used #).
+  const refs = Array.from(new Set(lines.map((l) => digits(l.hdIdNumber)).filter((r) => r.length >= 8)));
+  if (refs.length === 0) return { ...empty, scanned: lines.length };
+  const apps = await prisma.application.findMany({
+    where: { hdReference: { in: refs } },
+    select: {
+      id: true, hdReference: true, status: true, applicantFirstName: true, applicantLastName: true,
+      isSplitPayment: true, province: true, requestedAmount: true, approvedAmount: true,
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+  const byRef = new Map<string, (typeof apps)[number]>();
+  for (const a of apps) {
+    const k = digits(a.hdReference ?? '');
+    if (k && !byRef.has(k)) byRef.set(k, a);
+  }
+
+  // Cumulative HD dollars already on file per deal (its ALREADY-matched lines),
+  // so a split deal funds only once its total reaches the expected payout.
+  const appIds = Array.from(new Set(Array.from(byRef.values()).map((a) => a.id)));
+  const priorSums = appIds.length
+    ? await prisma.hdRemittanceLine.groupBy({
+        by: ['applicationId'],
+        where: { applicationId: { in: appIds }, isChargeback: false },
+        _sum: { amount: true },
+      })
+    : [];
+  const receivedByApp = new Map<string, number>();
+  for (const g of priorSums) {
+    if (g.applicationId) receivedByApp.set(g.applicationId, Number(g._sum.amount ?? 0));
+  }
+  const expectedPayout = (a: (typeof apps)[number]): number => {
+    const total = Number(a.approvedAmount ?? a.requestedAmount) || 0;
+    return computeDealerPayout(total, a.province).payout;
+  };
+  const isFullyPaid = (received: number, expected: number): boolean =>
+    expected > 0 && received >= expected - Math.max(2, expected * 0.01);
+
+  const result: ReMatchResult = { scanned: lines.length, recovered: 0, funded: 0, partial: 0, amountRecovered: 0, deals: [] };
+
+  for (const l of lines) {
+    const ref = digits(l.hdIdNumber);
+    const app = byRef.get(ref);
+    if (!app) continue; // still no portal deal with this HD #
+
+    const amount = Number(l.amount) || 0;
+    result.recovered += 1;
+    result.amountRecovered += amount;
+
+    const received = (receivedByApp.get(app.id) ?? 0) + amount;
+    receivedByApp.set(app.id, received);
+
+    let willFund = false;
+    if (!TERMINAL.includes(app.status) && app.status !== 'FUNDED') {
+      const fullyPaid = !app.isSplitPayment || isFullyPaid(received, expectedPayout(app));
+      if (fullyPaid) willFund = true;
+      else result.partial += 1;
+    }
+    if (willFund) result.funded += 1;
+
+    result.deals.push({
+      applicationId: app.id,
+      customer: `${app.applicantFirstName} ${app.applicantLastName}`.trim(),
+      hdReference: app.hdReference ?? ref,
+      amount,
+      funded: willFund,
+    });
+
+    if (dryRun) continue;
+
+    // Link the line to the deal.
+    await prisma.hdRemittanceLine.update({
+      where: { id: l.id },
+      data: { status: 'MATCHED', applicationId: app.id, fundedNow: willFund },
+    });
+
+    if (willFund) {
+      await prisma.$transaction([
+        prisma.application.update({ where: { id: app.id }, data: { status: 'FUNDED' } }),
+        prisma.statusEvent.create({
+          data: {
+            applicationId: app.id,
+            from: app.status,
+            to: 'FUNDED',
+            actorId: opts.actorId ?? (await systemActorId()),
+            note: 'Funded — Home Depot payment received',
+          },
+        }),
+      ]);
+      // Keep the in-memory status current so a second line for the same deal in
+      // this same sweep doesn't try to fund it again.
+      app.status = 'FUNDED';
+    } else if (!TERMINAL.includes(app.status) && app.status !== 'FUNDED' && app.isSplitPayment) {
+      const expected = expectedPayout(app);
+      await prisma.note.create({
+        data: {
+          applicationId: app.id,
+          authorId: opts.actorId ?? (await systemActorId()),
+          internal: true,
+          body: `💵 Home Depot PARTIAL payment recovered on this split-payment deal (re-match) — $${received.toFixed(2)} of ~$${expected.toFixed(2)} expected. NOT marked funded yet; awaiting the remaining HD payment.`,
+        },
+      }).catch(() => {});
+    }
+  }
+
+  if (!dryRun && result.recovered > 0) {
+    await audit({
+      actorId: opts.actorId ?? null,
+      action: 'STATUS_CHANGE',
+      entityType: 'HdRemittance',
+      entityId: 'reconcile',
+      detail: `Remittance re-match: ${result.recovered} previously-unmatched lines recovered, ${result.funded} funded, ${result.partial} partial, $${result.amountRecovered.toFixed(2)} total`,
+    });
+  }
+
+  return result;
+}
+
 // A fallback actor for system-driven writes (the webhook has no user). Uses the
 // first active admin; notes/status-events need a non-null authorId/actorId.
 let cachedSystemActor: string | null = null;
