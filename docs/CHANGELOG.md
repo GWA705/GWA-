@@ -32,7 +32,7 @@ source of truth; this file is the human-readable index.
 | Google Maps / Geocoding (address autocomplete + postal fill) | ✅ Live (2026-09-30, Sean) | `GOOGLE_MAPS_API_KEY` on EB is a key in the **"GWA Portal"** Google Cloud project — **not** the "Booking" project's Maps key (they're separate). Powers server-side Places **autocomplete** and the scanned-lead **postal-code fill** (Geocoding API). **Gotcha fixed 2026-09-30:** postal fill returned `REQUEST_DENIED` for every lead because the **Geocoding API wasn't enabled/allowed on this key's project** — Places *was*, so autocomplete kept working while geocoding failed. Fix: in the **GWA Portal** project, enable **Geocoding API** (APIs & Services → Library) and add it to the key's API restrictions (the key now allows Places + Geocoding). If postal fill breaks again, check *this* key/project, and remember the admin tool now prints Google's exact status. |
 | Bell Total Connect voicemail | 📝 Documented, not built here | Guide delivered for the **booking site** (voicemail-to-email + IMAP). Not part of this portal. |
 | Hosting / runtime (AWS) | ✅ **Live on AWS** (cutover 2026-09-06; single t3.medium since 2026-10-04) | App runs on **Elastic Beanstalk** (`Gwa-portal-env`, Docker on AL2023, **single t3.medium / 4 GB** + 50 GB gp3) behind **CloudFront + WAF**; RDS Postgres + S3 in `ca-central-1`; DNS `portal.ghsbarrie.ca` → CloudFront. |
-| Render (old host) | 🗑️ **Decommissioning 2026-10-04 (Sean)** | Portal fully on AWS. **Shut down in the Render dashboard:** the `gwa-portal` web service (**standard ≈ $25/mo** — redundant) and the `gwa-staging-db` Postgres (basic_256mb) + `gwa-portal-staging` (free). **KEEP (or migrate first):** the 5 cron jobs (`GWA-new-leads` 10-min, `gwa-doc-ocr` 30-min, `gwa-doc-expiry-reminders` daily, `gwa-weekly-funding-report`, `gwa-db-backup-weekly`) — they `curl` scheduled endpoints on the live AWS site, so deleting them stops those jobs. Workspace `tea-d9hr2f715fvs739nkkq0`. |
+| Render (old host) | ✅ **Decommissioned 2026-10-05 (Sean)** — ~$31/mo saved | Portal fully on AWS. Done in the Render dashboard: `gwa-portal` web service **suspended** (standard ≈ $25/mo), `gwa-staging-db` Postgres **deleted** (basic_256mb), `gwa-portal-staging` **deleted** (free). **Still running (by design):** the 6 cron jobs — `GWA-new-leads` (10-min), `gwa-doc-ocr` (30-min), `gwa-doc-expiry-reminders` (daily), `gwa-weekly-funding-report` (Mon), `gwa-db-backup-weekly` (Sun), and `gwa-journal-paid-sync` (every 2h, **added 2026-10-05**) — they `curl` scheduled endpoints on the live AWS site. These 6 are the only thing left on Render; migrate to AWS EventBridge to leave Render entirely. Workspace `tea-d9hr2f715fvs739nkkq0`. |
 | Auto-deploy (GitHub → EB) | ✅ **Live** (2026-09-11, Sean) | Every push to the branch builds the image to ECR **and auto-deploys to Elastic Beanstalk** (deploy step in `.github/workflows/build-ecr.yml`, bundles `Dockerrun.aws.json` + `.platform/` nginx fix). IAM user `github-ecr-push` has `AdministratorAccess-AWSElasticBeanstalk`. `wait_for_deployment: false` (the single-instance env flaps Yellow on low traffic, which false-failed the step). No more manual ZIP uploads. |
 | Desktop/phone push notifications | ✅ Keys set (2026-09-11, Sean) — confirm with a test | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` set on EB. The client fetches the public key at **runtime** (`GET /api/push/key`) so it survives rebuilds. Reviewers get push on new dealer docs / activity. iOS needs the app installed to the Home Screen. **To confirm:** Account → Enable desktop notifications → Send a test. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
@@ -48,6 +48,16 @@ source of truth; this file is the human-readable index.
 - `specialIsLive` (no dates → always on), `createSpecialHeroAction` (dates
   optional), `SpecialHeroForm`, the admin list ("Always on"), and
   `tests/dashboard-hero.test.ts`.
+
+### Journal → Paid sweep is now actually scheduled (2026-10-05)
+- The automatic journal→paid back-check (`/api/cron/journal-paid-sync`,
+  `sweepJournalPaid`) existed but **had no scheduler** — only the per-deal "↻ Check
+  journal now" button ever ran it, so paid deals never auto-advanced on their own.
+- Added the missing cron **`gwa-journal-paid-sync`** (Render, every 2h) — confirmed
+  running (first successful run 02:03). Deals showing journal **Result "OK" + Date
+  Paid** now auto-advance to **Funded & Paid** without anyone clicking.
+- Also: **Render decommissioned** (gwa-portal suspended, staging DB + staging web
+  deleted) — ~$31/mo saved; the 6 crons stay. See Operational status table.
 
 ### Funding report: break out "In for funding" (2026-10-05)
 - The funding report lumped everything not-yet-paid into one **"Awaiting payment"**
