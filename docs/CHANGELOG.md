@@ -375,6 +375,22 @@ exhausting the single instance). No behaviour change for normal use.
   free-text via DeepL.
 
 ## 2026-10-05
+- **Find Customer bug fixed — stop showing the wrong person's phone/email for a
+  journal row.** Find Customer showed the same customer with a different phone,
+  address, and even email on each search (e.g. a Riaz deal surfacing
+  mehrdad.smn@gmail.com). Root cause in `customerSearch.ts`: a journal row is
+  linked to its portal deal by the stored tab+row, but that pointer isn't unique
+  (a duplicate deal, or a pointer the journal self-heal moved, can land two deals
+  on one row). The link (a) did no name check — so a mis-pointed deal attached
+  ITS email + contact-override to the row — and (b) used an unordered query with
+  a last-wins Map, so a *different* wrong deal could win each request (hence
+  "different number every time"). Fix: new pure `customerSearchLink.ts`
+  (`pickLinkedApp`/`normLastName`, unit-tested) links a journal row only to a
+  deal whose **last name matches** the row, and picks **deterministically**
+  (newest first) among duplicates. A row with no matching portal deal now shows
+  the journal's own contact info and nothing borrowed. Does not touch journal
+  data; if a customer genuinely has duplicate journal rows, those still need
+  cleaning in the sheet.
 - **Remittance reconciliation — recover missed Home Depot payments.** A
   remittance line is matched to a deal by HD # at the moment it's ingested; if
   the deal wasn't in the portal yet (entered later, or its HD # filled in

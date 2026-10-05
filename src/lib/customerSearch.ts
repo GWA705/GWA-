@@ -13,6 +13,7 @@ import { readJournal, sheetIdFor, EARLIEST_JOURNAL_YEAR } from './reporting/jour
 import { nameTokens, DEALER_ALIASES } from './reporting/dealerSnapshot';
 import { searchOfficeJournalArchive, searchOfficeLiveJournal, type ArchiveMatch } from './journalArchive';
 import { appOverrideKey, rowOverrideKey, getOverrides, overlay } from './customerOverride';
+import { pickLinkedApp, type LinkCandidate } from './customerSearchLink';
 
 interface DealerContact { name: string; phone: string; address: string }
 
@@ -331,15 +332,33 @@ async function searchJournalDeals(query: string): Promise<JournalMatch[]> {
   // Link each row to its portal deal (if any) by the tab+row the portal recorded
   // when it wrote the deal — so edits can also update the portal DB, and email
   // (which the journal has no column for) can be shown/edited.
+  //
+  // A tab+row is NOT guaranteed unique: a row can be pointed at by more than one
+  // Application (a duplicate deal, or a pointer the journal self-heal moved). So
+  // we gather every candidate per row and let pickLinkedApp choose — only a deal
+  // whose last name matches the row's, newest first — instead of trusting
+  // whichever row the DB happened to return last. Without this, a mis-pointed
+  // deal would attach ANOTHER customer's email + contact override to the row, and
+  // a different one each request ("same customer, different number every time").
   const tabs = Array.from(new Set(top.map((m) => m.tab).filter(Boolean)));
   if (tabs.length > 0) {
     const apps = await prisma.application.findMany({
       where: { journalTab: { in: tabs }, journalRow: { not: null } },
-      select: { id: true, journalTab: true, journalRow: true, applicantEmail: true },
+      orderBy: { createdAt: 'desc' }, // newest first → deterministic pick below
+      select: { id: true, journalTab: true, journalRow: true, applicantLastName: true, applicantEmail: true },
     });
-    const byRowKey = new Map(apps.map((a) => [`${a.journalTab}|${a.journalRow}`, a]));
+    const byRowKey = new Map<string, LinkCandidate[]>();
+    for (const a of apps) {
+      const key = `${a.journalTab}|${a.journalRow}`;
+      const arr = byRowKey.get(key);
+      const cand: LinkCandidate = { id: a.id, applicantLastName: a.applicantLastName, applicantEmail: a.applicantEmail };
+      if (arr) arr.push(cand);
+      else byRowKey.set(key, [cand]);
+    }
     for (const m of top) {
-      const a = byRowKey.get(`${m.tab}|${m.row}`);
+      const candidates = byRowKey.get(`${m.tab}|${m.row}`);
+      if (!candidates) continue;
+      const a = pickLinkedApp(candidates, m.lastName);
       if (a) {
         m.applicationId = a.id;
         m.email = a.applicantEmail ?? '';
