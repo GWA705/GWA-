@@ -78,10 +78,11 @@ export default async function DealerFundingPage({ searchParams }: { searchParams
           <div className="text-right text-xs text-gray-400">{t('funding.generated')} {generated}</div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {tile(t('funding.dealsPaid'), String(report.count), periodLabel)}
           {tile(t('funding.paidToYou'), money(report.total))}
-          {tile(t('funding.awaiting'), String(report.pipeline.count), report.pipeline.total > 0 ? money(report.pipeline.total) : undefined)}
+          {tile(t('funding.inForFunding'), String(report.inForFunding.count), report.inForFunding.total > 0 ? money(report.inForFunding.total) : undefined)}
+          {tile(t('funding.awaitingPayout'), String(report.awaitingPayout.count), report.awaitingPayout.total > 0 ? money(report.awaitingPayout.total) : undefined)}
         </div>
 
         {deals.length === 0 ? (
@@ -118,6 +119,41 @@ export default async function DealerFundingPage({ searchParams }: { searchParams
             </table>
           </div>
         )}
+
+        {/* What's genuinely pending — in for funding + funded awaiting payout */}
+        <div className="space-y-2">
+          <h2 className="text-sm font-bold uppercase tracking-wide text-gray-700">{t('funding.pendingTitle')}</h2>
+          {report.pending.length === 0 ? (
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">{t('funding.pendingNone')}</div>
+          ) : (
+            <div className="overflow-x-auto rounded-lg border border-gray-200">
+              <table className="min-w-full text-sm">
+                <thead>
+                  <tr className={reportTheadRow}>
+                    <th className="px-4 py-3">{t('funding.colCustomer')}</th>
+                    <th className="px-4 py-3">{t('funding.colHd')}</th>
+                    <th className="px-4 py-3">{t('funding.colStage')}</th>
+                    <th className="px-4 py-3">{t('funding.colInSince')}</th>
+                    <th className="px-4 py-3 text-right">{t('funding.colValue')}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {report.pending.map((d, i) => (
+                    <tr key={d.applicationId} className={i % 2 ? 'bg-gray-50/40' : ''}>
+                      <td className="px-4 py-2.5 font-medium text-gray-800">
+                        <Link href={`/dealer/applications/${d.applicationId}`} className="hover:underline">{d.customer}</Link>
+                      </td>
+                      <td className="px-4 py-2.5 font-mono text-xs text-gray-500">{d.hdReference ?? '—'}</td>
+                      <td className="px-4 py-2.5 text-gray-600">{d.status === 'FUNDED' ? t('funding.awaitingPayout') : t('funding.inForFunding')}</td>
+                      <td className="px-4 py-2.5 text-gray-600">{dt(d.updatedAt)}</td>
+                      <td className="px-4 py-2.5 text-right font-semibold tabular-nums text-gray-900">{money(d.amount)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
 
         <ReportStamp brand={t('reportStamp.brand')} generated={t('reportStamp.generated', { date: generated })} />
       </div>

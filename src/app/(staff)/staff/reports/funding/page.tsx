@@ -75,7 +75,9 @@ export default async function FundingReportPage({ searchParams }: { searchParams
       <div className="flex flex-wrap gap-3">
         <div className="rounded-xl bg-green-50 px-4 py-3 text-green-800"><div className="text-2xl font-bold">{report.count}</div><div className="text-xs font-medium">Deals paid</div></div>
         <div className="rounded-xl bg-gray-900 px-4 py-3 text-white"><div className="text-2xl font-bold">{money(report.total)}</div><div className="text-xs font-medium">Paid to dealers (actual $)</div></div>
-        <div className="rounded-xl bg-amber-50 px-4 py-3 text-amber-800"><div className="text-2xl font-bold">{report.pipeline.count}</div><div className="text-xs font-medium">Awaiting payment (funded/approved)</div></div>
+        <div className="rounded-xl bg-blue-50 px-4 py-3 text-blue-800"><div className="text-2xl font-bold">{report.inForFunding.count}</div><div className="text-xs font-medium">In for funding</div></div>
+        <div className="rounded-xl bg-indigo-50 px-4 py-3 text-indigo-800"><div className="text-2xl font-bold">{report.awaitingPayout.count}</div><div className="text-xs font-medium">Funded, awaiting payout</div></div>
+        <div className="rounded-xl bg-amber-50 px-4 py-3 text-amber-800"><div className="text-2xl font-bold">{report.pipeline.count}</div><div className="text-xs font-medium">Awaiting payment (all)</div></div>
       </div>
 
       {/* By office */}

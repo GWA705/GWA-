@@ -36,6 +36,22 @@ export interface FundingReportOffice {
   deals: FundingReportRow[];
 }
 
+export interface StageFigure {
+  count: number;
+  total: number; // approved $ of the deals in this stage
+}
+
+/** A deal that's pending payment — in for funding, or funded but not yet paid. */
+export interface PendingDeal {
+  applicationId: string;
+  customer: string;
+  dealerName: string;
+  status: ApplicationStatus;
+  amount: number; // approved (falls back to requested)
+  hdReference: string | null;
+  updatedAt: string; // ISO — how long it's sat at this stage
+}
+
 export interface FundingReport {
   start: string;
   end: string;
@@ -43,7 +59,10 @@ export interface FundingReport {
   count: number;
   total: number;
   offices: FundingReportOffice[];
-  pipeline: { count: number; total: number }; // funded/approved, not yet paid
+  pipeline: { count: number; total: number }; // everything funded/approved, not yet paid
+  inForFunding: StageFigure; // submitted to / in review with the finance company
+  awaitingPayout: StageFigure; // funded, payout not yet recorded
+  pending: PendingDeal[]; // the in-for-funding + funded-unpaid deals, oldest first
 }
 
 function addDays(date: Date, n: number): Date {
@@ -70,8 +89,13 @@ export function monthWindow(offsetMonths = 0, now: Date = new Date()): { start: 
   return { start, end };
 }
 
-// Funded/approved but not yet paid — the "awaiting payment" pipeline.
+// Funded/approved but not yet paid — the whole "awaiting payment" pipeline.
 const PIPELINE: ApplicationStatus[] = ['APPROVED', 'CONDITIONAL', 'DOCS_SENT', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW', 'FUNDED'];
+// The stage the office actually asks about: submitted to / in review with the
+// finance company. This is the real "what's pending at funding" number.
+const IN_FOR_FUNDING: ApplicationStatus[] = ['FUNDING_SUBMITTED', 'FUNDING_REVIEW'];
+// Funded by the finance company but the dealer payout hasn't landed yet.
+const FUNDED_UNPAID: ApplicationStatus[] = ['FUNDED'];
 
 const monthDay = (d: Date) => d.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' });
 
@@ -131,8 +155,11 @@ export async function buildFundingReport(
   for (const o of byDealer.values()) o.deals.sort((a, b) => b.paidOn.localeCompare(a.paidOn));
   const offices = Array.from(byDealer.values()).sort((a, b) => b.total - a.total);
 
-  // Pipeline: funded/approved but not yet paid (no payout on record).
-  const pipeline = await prisma.application.aggregate({
+  // Pipeline, broken out by stage: funded/approved but not yet paid (no payout on
+  // record). Grouped by status so we can show "in for funding" on its own —
+  // that's the number the office actually tracks, not the whole lump.
+  const grouped = await prisma.application.groupBy({
+    by: ['status'],
     where: {
       status: { in: PIPELINE },
       payouts: { none: {} },
@@ -141,6 +168,46 @@ export async function buildFundingReport(
     _count: { _all: true },
     _sum: { approvedAmount: true },
   });
+  const sumStatuses = (sts: ApplicationStatus[]): StageFigure => {
+    let count = 0;
+    let total = 0;
+    for (const g of grouped) {
+      if (sts.includes(g.status)) {
+        count += g._count._all;
+        total += Number(g._sum.approvedAmount ?? 0);
+      }
+    }
+    return { count, total };
+  };
+  const pipeline = sumStatuses(PIPELINE);
+  const inForFunding = sumStatuses(IN_FOR_FUNDING);
+  const awaitingPayout = sumStatuses(FUNDED_UNPAID);
+
+  // The actual deals sitting in those two stages — oldest first, so the ones
+  // stuck longest float to the top. Scoped to the office for the dealer view.
+  const pendingRows = await prisma.application.findMany({
+    where: {
+      status: { in: [...IN_FOR_FUNDING, ...FUNDED_UNPAID] },
+      payouts: { none: {} },
+      ...(opts.dealerId ? { dealerId: opts.dealerId } : {}),
+    },
+    orderBy: { updatedAt: 'asc' },
+    take: 200,
+    select: {
+      id: true, applicantFirstName: true, applicantLastName: true, status: true,
+      approvedAmount: true, requestedAmount: true, hdReference: true, updatedAt: true,
+      dealer: { select: { name: true } },
+    },
+  });
+  const pending: PendingDeal[] = pendingRows.map((a) => ({
+    applicationId: a.id,
+    customer: `${a.applicantFirstName} ${a.applicantLastName}`.trim(),
+    dealerName: a.dealer.name,
+    status: a.status,
+    amount: Number(a.approvedAmount ?? a.requestedAmount ?? 0),
+    hdReference: a.hdReference,
+    updatedAt: a.updatedAt.toISOString(),
+  }));
 
   return {
     start: win.start.toISOString(),
@@ -149,7 +216,10 @@ export async function buildFundingReport(
     count: rows.length,
     total: rows.reduce((s, r) => s + r.amount, 0),
     offices,
-    pipeline: { count: pipeline._count._all, total: Number(pipeline._sum.approvedAmount ?? 0) },
+    pipeline,
+    inForFunding,
+    awaitingPayout,
+    pending,
   };
 }
 
@@ -181,7 +251,7 @@ export async function sendWeeklyFundingReport(now: Date = new Date()): Promise<W
     .map((o) => `<tr><td style="padding:4px 10px;border-bottom:1px solid #eee">${o.dealerName}</td><td style="padding:4px 10px;border-bottom:1px solid #eee;text-align:right">${o.count}</td><td style="padding:4px 10px;border-bottom:1px solid #eee;text-align:right">${money(o.total)}</td></tr>`)
     .join('');
   const bodyHtml =
-    `<p style="margin:0 0 12px;font-size:14px;color:#374151;"><strong>${report.count}</strong> deals paid last week (${report.label}), totalling <strong>${money(report.total)}</strong> paid to dealers. ${report.pipeline.count} deals are funded/approved and awaiting payment.</p>` +
+    `<p style="margin:0 0 12px;font-size:14px;color:#374151;"><strong>${report.count}</strong> deals paid last week (${report.label}), totalling <strong>${money(report.total)}</strong> paid to dealers. <strong>${report.inForFunding.count}</strong> in for funding, ${report.awaitingPayout.count} funded &amp; awaiting payout (${report.pipeline.count} awaiting payment in total).</p>` +
     (officeRows
       ? `<table style="border-collapse:collapse;font-size:13px;margin:0 0 12px"><thead><tr><th style="padding:4px 10px;text-align:left;color:#6b7280">Office</th><th style="padding:4px 10px;text-align:right;color:#6b7280">Deals</th><th style="padding:4px 10px;text-align:right;color:#6b7280">Paid</th></tr></thead><tbody>${officeRows}</tbody></table>`
       : '<p style="font-size:13px;color:#6b7280">No deals were paid last week.</p>');

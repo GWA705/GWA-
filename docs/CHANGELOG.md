@@ -49,6 +49,21 @@ source of truth; this file is the human-readable index.
   optional), `SpecialHeroForm`, the admin list ("Always on"), and
   `tests/dashboard-hero.test.ts`.
 
+### Funding report: break out "In for funding" (2026-10-05)
+- The funding report lumped everything not-yet-paid into one **"Awaiting payment"**
+  number (approved + docs + in-for-funding + funded). Offices actually need the
+  **in-for-funding** figure on its own. Split the pipeline by stage:
+  **In for funding** (`FUNDING_SUBMITTED` + `FUNDING_REVIEW`) and **Funded,
+  awaiting payout** (`FUNDED`), alongside the overall total.
+- **Dealer report** now shows four tiles (Deals paid · Paid to you · **In for
+  funding** · Funded awaiting payout) **plus a list of exactly those pending
+  deals** (customer, HD #, stage, in-since date, value), oldest first so the
+  longest-stuck float up. **Staff report** gains the same In-for-funding /
+  awaiting-payout tiles. Weekly email summary now names the in-for-funding count.
+- `buildFundingReport` returns `inForFunding` / `awaitingPayout` / `pending`
+  (`src/lib/reporting/fundingReport.ts`); bilingual labels added. No data model
+  change — reads existing statuses + payouts.
+
 ### Fix deal status tracker label overlap (2026-10-04)
 - In the reviewer timeline (and the dealer bar), the step labels (Submitted,
   Approved, Confirmation, …) rendered at their natural width centred on each icon
