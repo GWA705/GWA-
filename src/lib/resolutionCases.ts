@@ -116,6 +116,16 @@ export interface CaseDealDoc {
   mime: string;
 }
 
+export interface CaseAttachmentVM {
+  id: string;
+  kind: 'file' | 'link';
+  label: string;
+  mime: string | null;
+  url: string | null; // for links; files are served via /api/resolutions/attachments/<id>
+  addedBy: string;
+  at: string;
+}
+
 export interface CaseDetail {
   id: string;
   caseNumber: string;
@@ -137,6 +147,7 @@ export interface CaseDetail {
   resolutionNote: string | null;
   notes: CaseNoteVM[];
   dealDocs: CaseDealDoc[]; // documents from the linked deal, shown as resources
+  attachments: CaseAttachmentVM[]; // files/links attached directly to the case
 }
 
 export async function loadResolutionCase(id: string): Promise<CaseDetail | null> {
@@ -146,6 +157,7 @@ export async function loadResolutionCase(id: string): Promise<CaseDetail | null>
       openedBy: { select: { name: true } },
       assignedTo: { select: { id: true, name: true } },
       notes: { orderBy: { createdAt: 'desc' }, include: { author: { select: { name: true } } } },
+      attachments: { orderBy: { createdAt: 'desc' }, include: { addedBy: { select: { name: true } } } },
     },
   });
   if (!c) return null;
@@ -187,6 +199,15 @@ export async function loadResolutionCase(id: string): Promise<CaseDetail | null>
       statusTo: n.statusTo,
     })),
     dealDocs: dealDocs.map((d) => ({ id: d.id, label: d.label || d.fileName, mime: d.mimeType })),
+    attachments: c.attachments.map((a) => ({
+      id: a.id,
+      kind: a.kind === 'link' ? 'link' : 'file',
+      label: a.label,
+      mime: a.mimeType,
+      url: a.url,
+      addedBy: a.addedBy?.name ?? '—',
+      at: fmt(a.createdAt),
+    })),
   };
 }
 

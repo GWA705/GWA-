@@ -375,6 +375,16 @@ exhausting the single instance). No behaviour change for normal use.
   free-text via DeepL.
 
 ## 2026-10-06
+- **Resolution case files & links (Phase 3b-1).** An HD resolution case can now
+  hold its **own documents and resources**, not just the linked deal's. Staff can
+  **upload files** (PDF / images — encrypted at rest, MIME-sniffed, 15 MB cap,
+  served through an access-controlled, rate-limited, audited route) and **add
+  resource links** (e.g. a resource-library manual URL), each removable. New
+  `ResolutionAttachment` table (additive migration), `newResolutionStorageKey`,
+  the `/api/resolutions/attachments/[id]` serve route, upload/link/delete actions,
+  and the `CaseAttachments` component on the case detail page. *(Phase 3b-2, the
+  Gmail email-thread link, is next — it needs the Workspace delegation + the
+  "HD Resolution" label.)*
 - **HD Resolution Centre (Phase 3 core).** A new **"HD Resolution"** area in the
   staff nav — a queue for Home Depot resolution-centre problems so they don't get
   lost. Visible to **all internal staff** (reviewers + admins). Each case:

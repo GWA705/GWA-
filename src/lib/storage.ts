@@ -64,6 +64,16 @@ export function newScannedLeadStorageKey(dealerId: string | null, ext: string): 
   return `scanned-leads/${dealerId ?? 'unassigned'}/${year}/${month}/${rand}${e}`;
 }
 
+// Storage key for an HD resolution-case attachment (not tied to a dealer).
+export function newResolutionStorageKey(caseId: string, ext: string): string {
+  const e = ext.replace(/[^a-zA-Z0-9.]/g, '') || '.bin';
+  const now = new Date();
+  const year = now.getUTCFullYear();
+  const month = String(now.getUTCMonth() + 1).padStart(2, '0');
+  const rand = crypto.randomBytes(16).toString('hex');
+  return `resolution-cases/${caseId}/${year}/${month}/${rand}${e}`;
+}
+
 // Storage key for a mail attachment (not tied to a dealer/application).
 export function newMailStorageKey(ext: string): string {
   const e = ext.replace(/[^a-zA-Z0-9.]/g, '') || '.bin';

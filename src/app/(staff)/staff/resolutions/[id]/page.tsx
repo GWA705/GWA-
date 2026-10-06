@@ -7,6 +7,7 @@ import { STATUS_LABEL, statusChipClass } from '@/lib/resolutionStatus';
 import { formatPhoneDisplay } from '@/lib/format';
 import { DocViewer } from '@/components/DocViewer';
 import { CaseControls } from '../CaseControls';
+import { CaseAttachments } from '../CaseAttachments';
 
 export const dynamic = 'force-dynamic';
 
@@ -80,6 +81,12 @@ export default async function CaseDetailPage({ params }: { params: { id: string 
             ))}
           </div>
         )}
+      </div>
+
+      {/* Case files & links (uploaded to the case itself) */}
+      <div className="card p-5">
+        <h2 className="mb-2 text-sm font-semibold text-gray-900 dark:text-slate-100">Case files &amp; links</h2>
+        <CaseAttachments caseId={c.id} attachments={c.attachments} />
       </div>
 
       {/* Controls: status, assign, notify office, add note */}

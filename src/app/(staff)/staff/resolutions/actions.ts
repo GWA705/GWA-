@@ -10,7 +10,25 @@ import { findCardData, CARD_BLOCK_MESSAGE } from '@/lib/cardscan';
 import { nextCaseNumber } from '@/lib/resolutionCases';
 import { isResolutionStatus, STATUS_LABEL, OPEN_STATUSES, PRIORITIES } from '@/lib/resolutionStatus';
 import { normalizeCallPhone } from '@/lib/customerCalls';
+import { putDocument, deleteDocument, newResolutionStorageKey } from '@/lib/storage';
+import { MAX_FILE_BYTES, ALLOWED_MIME_TYPES } from '@/lib/constants';
 import type { ResolutionStatus, Prisma } from '@prisma/client';
+
+// Identify a file by its magic bytes (don't trust the client-declared MIME).
+function sniffMime(buf: Buffer): string | null {
+  if (buf.length >= 4 && buf.toString('latin1', 0, 4) === '%PDF') return 'application/pdf';
+  if (buf.length >= 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return 'image/jpeg';
+  if (buf.length >= 8 && buf.toString('hex', 0, 8) === '89504e470d0a1a0a') return 'image/png';
+  if (buf.length >= 12 && buf.toString('latin1', 0, 4) === 'RIFF' && buf.toString('latin1', 8, 12) === 'WEBP') return 'image/webp';
+  if (buf.length >= 12 && buf.toString('latin1', 4, 8) === 'ftyp') {
+    const brand = buf.toString('latin1', 8, 12).toLowerCase();
+    if (['heic', 'heix', 'hevc', 'hevx', 'mif1', 'msf1', 'heim', 'heis', 'hevm', 'hevs', 'heif'].includes(brand)) return 'image/heic';
+  }
+  return null;
+}
+const EXT_FOR: Record<string, string> = {
+  'application/pdf': '.pdf', 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp', 'image/heic': '.heic',
+};
 
 export interface CaseFormState {
   error?: string;
@@ -139,4 +157,57 @@ export async function notifyOfficeAction(caseId: string, _prev: CaseFormState, f
   await audit({ actorId: user.userId, action: 'STATUS_CHANGE', entityType: 'ResolutionCase', entityId: caseId, detail: 'notified office' });
   revalidatePath(`/staff/resolutions/${caseId}`);
   return { ok: true };
+}
+
+/** Upload a file (photo / PDF) to a case. Encrypted at rest; MIME sniffed. */
+export async function uploadCaseFileAction(caseId: string, _prev: CaseFormState, formData: FormData): Promise<CaseFormState> {
+  const user = await requireRole('REVIEWER', 'ADMIN');
+  const c = await prisma.resolutionCase.findUnique({ where: { id: caseId }, select: { id: true } });
+  if (!c) return { error: 'Case not found.' };
+
+  const file = formData.get('file');
+  if (!(file instanceof File) || file.size === 0) return { error: 'Choose a file to upload.' };
+  if (file.size > MAX_FILE_BYTES) return { error: `File is too large (max ${Math.floor(MAX_FILE_BYTES / 1024 / 1024)} MB).` };
+
+  const buf = Buffer.from(await file.arrayBuffer());
+  const mime = sniffMime(buf);
+  if (!mime || !ALLOWED_MIME_TYPES.includes(mime)) return { error: 'Unsupported file type. Use a PDF or an image (JPG, PNG, HEIC, WebP).' };
+
+  const label = String(formData.get('label') || '').trim() || file.name;
+  const key = newResolutionStorageKey(caseId, EXT_FOR[mime] || '.bin');
+  await putDocument(key, buf);
+  await prisma.resolutionAttachment.create({
+    data: { caseId, kind: 'file', label, fileName: file.name, mimeType: mime, sizeBytes: buf.length, storageKey: key, addedById: user.userId },
+  });
+  await audit({ actorId: user.userId, action: 'STATUS_CHANGE', entityType: 'ResolutionCase', entityId: caseId, detail: `attached file to case` });
+  revalidatePath(`/staff/resolutions/${caseId}`);
+  return { ok: true };
+}
+
+/** Attach a resource LINK (e.g. a resource-library manual URL) to a case. */
+export async function addCaseLinkAction(caseId: string, _prev: CaseFormState, formData: FormData): Promise<CaseFormState> {
+  const user = await requireRole('REVIEWER', 'ADMIN');
+  const c = await prisma.resolutionCase.findUnique({ where: { id: caseId }, select: { id: true } });
+  if (!c) return { error: 'Case not found.' };
+
+  const url = String(formData.get('url') || '').trim();
+  const label = String(formData.get('label') || '').trim();
+  if (!/^https?:\/\/.+/i.test(url)) return { error: 'Enter a full link starting with http:// or https://' };
+  if (!label) return { error: 'Give the link a short label.' };
+
+  await prisma.resolutionAttachment.create({ data: { caseId, kind: 'link', label, url, addedById: user.userId } });
+  revalidatePath(`/staff/resolutions/${caseId}`);
+  return { ok: true };
+}
+
+/** Remove an attachment (and its stored file, if any) from a case. */
+export async function deleteCaseAttachmentAction(attachmentId: string): Promise<void> {
+  await requireRole('REVIEWER', 'ADMIN');
+  const a = await prisma.resolutionAttachment.findUnique({ where: { id: attachmentId }, select: { id: true, caseId: true, storageKey: true } });
+  if (!a) return;
+  if (a.storageKey) {
+    try { await deleteDocument(a.storageKey); } catch { /* best-effort; still remove the row */ }
+  }
+  await prisma.resolutionAttachment.delete({ where: { id: attachmentId } });
+  revalidatePath(`/staff/resolutions/${a.caseId}`);
 }

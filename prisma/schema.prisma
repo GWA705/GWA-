@@ -657,9 +657,10 @@ model User {
   payoutsRecorded     Payout[]
   notesAuthored       Note[]
   customerCallsLogged CustomerCall[]  @relation("CustomerCallLogger")
-  resolutionCasesOpened   ResolutionCase[]     @relation("ResolutionOpenedBy")
-  resolutionCasesAssigned ResolutionCase[]     @relation("ResolutionAssignedTo")
-  resolutionNotesAuthored ResolutionCaseNote[] @relation("ResolutionNoteAuthor")
+  resolutionCasesOpened      ResolutionCase[]       @relation("ResolutionOpenedBy")
+  resolutionCasesAssigned    ResolutionCase[]       @relation("ResolutionAssignedTo")
+  resolutionNotesAuthored    ResolutionCaseNote[]   @relation("ResolutionNoteAuthor")
+  resolutionAttachmentsAdded ResolutionAttachment[] @relation("ResolutionAttachmentAdder")
   chatMessages        ChatMessage[]
   conversationReads   ConversationRead[]
   confirmations       Confirmation[]
@@ -1387,14 +1388,38 @@ model ResolutionCase {
   resolvedAt     DateTime?
   resolutionNote String?   @db.Text
 
-  notes     ResolutionCaseNote[]
-  createdAt DateTime             @default(now())
-  updatedAt DateTime             @updatedAt
+  notes       ResolutionCaseNote[]
+  attachments ResolutionAttachment[]
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
 
   @@index([status])
   @@index([applicationId])
   @@index([customerPhone])
   @@index([createdAt])
+}
+
+// A document or resource link attached to a resolution case (Phase 3b). A 'file'
+// is an uploaded, encrypted-at-rest file served through an access-controlled
+// route; a 'link' is a URL (e.g. a product manual in the resource library).
+model ResolutionAttachment {
+  id         String         @id @default(cuid())
+  caseId     String
+  case       ResolutionCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  kind       String // 'file' | 'link'
+  label      String
+  // file fields
+  fileName   String?
+  mimeType   String?
+  sizeBytes  Int?
+  storageKey String?
+  // link field
+  url        String?
+  addedById  String
+  addedBy    User           @relation("ResolutionAttachmentAdder", fields: [addedById], references: [id])
+  createdAt  DateTime       @default(now())
+
+  @@index([caseId])
 }
 
 model ResolutionCaseNote {
