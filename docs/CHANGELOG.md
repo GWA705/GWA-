@@ -375,6 +375,25 @@ exhausting the single instance). No behaviour change for normal use.
   free-text via DeepL.
 
 ## 2026-10-06
+- **Owner reports now available on the admin side (all admins).** The four
+  owner-only tools that used to live only on the dealer side — **Sales forecast,
+  Sales reps, Custom report builder, and Accounting export** — now have
+  admin-side pages under **Staff → Reports**, each with an **office picker** (any
+  office, or all offices where it makes sense). They reuse the exact same report
+  components and data. Gated to admins (`isAdmin` + reports access). The
+  accounting CSV endpoint was extended to let an internal admin export any office
+  via `?dealerId=` (owners still export only their own). Cause: the owner reports
+  were coded to a dealer-owner login (`canViewOwnerPricingReport`), so no
+  internal/admin account — super admin included — could open them.
+- **Store re-routing now moves already-scanned leads too.** When a Home Depot
+  store is re-pointed to another dealer (Admin → Store routing: reassign, add
+  mapping, or sheet-apply), the **leads already scanned** for that store number
+  are reassigned to the new dealer, not just future scans and the live-attributed
+  reports. Scanned leads snapshot their dealer at scan time, so without this they
+  were left behind — the "all its leads moved with it" message is now actually
+  true. Each move reports how many scanned leads were reassigned and is audited.
+  (`moveScannedLeadsForStore` in admin actions.) This is what lets e.g. **all of
+  store 7030's leads move to Swift** in one reassignment.
 - **One-time UNITS back-fill tool (Admin → Overview).** A two-step maintenance
   button (`BackfillUnitsButton`) fills the journal **UNITS** column on existing
   rows the portal already placed, using each deal's product count (the same

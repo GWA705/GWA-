@@ -167,6 +167,40 @@ export default async function ReportsLandingPage() {
       badge: 'Operations',
       available: true,
     },
+    // Owner tools, previously dealer-side only — now available to admins across
+    // any office (or all offices), with an office picker on each.
+    {
+      href: '/staff/reports/forecast',
+      title: 'Sales forecast',
+      blurb: 'Projected sales for any office (or all offices), based on recent monthly history.',
+      accent: '#1a5fa8',
+      badge: 'Super Admin',
+      available: isAdmin,
+    },
+    {
+      href: '/staff/reports/sales-reps',
+      title: 'Sales reps',
+      blurb: "Per-rep deals, dollars and units sold for an office, from the sales journal.",
+      accent: '#1a2e44',
+      badge: 'Super Admin',
+      available: isAdmin,
+    },
+    {
+      href: '/staff/reports/custom',
+      title: 'Custom report builder',
+      blurb: 'Build an ad-hoc report — pick a measure, dimension, range and office.',
+      accent: '#0b5bd3',
+      badge: 'Super Admin',
+      available: isAdmin,
+    },
+    {
+      href: '/staff/reports/accounting',
+      title: 'Accounting export',
+      blurb: 'Download a CSV with one row per deal and the full EFT payout breakdown, per office.',
+      accent: '#1a7a4a',
+      badge: 'Super Admin',
+      available: isAdmin,
+    },
   ];
 
   const visible = cards.filter((c) => c.available || c.badge === 'Coming soon');

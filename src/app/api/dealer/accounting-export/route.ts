@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { requireDealerAccess } from '@/lib/session';
-import { canViewOwnerPricingReport } from '@/lib/reporting/access';
-import { dealerPortalScopeWhere } from '@/lib/rbac';
+import { getSession } from '@/lib/session';
+import { canViewOwnerPricingReport, canViewReportsArea } from '@/lib/reporting/access';
+import { dealerPortalScopeWhere, isInternal } from '@/lib/rbac';
 import { prisma } from '@/lib/db';
 import { computeDealerPayout } from '@/lib/payoutCalc';
 import { PAYMENT_METHOD_LABELS, STATUS_LABELS, programLabel } from '@/lib/constants';
@@ -31,12 +31,24 @@ function parseDay(v: string | null, end = false): Date | null {
 }
 
 export async function GET(req: Request) {
-  const user = await requireDealerAccess();
-  if (!(await canViewOwnerPricingReport(user)) || !user.dealerId) {
+  const user = await getSession();
+  if (!user) return new NextResponse('Unauthorized', { status: 401 });
+
+  const url = new URL(req.url);
+  const wantDealerId = url.searchParams.get('dealerId');
+
+  // Scope. An internal admin with reports access may export ANY office
+  // (?dealerId=…) or all offices (no dealerId); an office owner exports only
+  // their own office. Anyone else is refused.
+  let scopeWhere: Prisma.ApplicationWhereInput;
+  if (isInternal(user) && (await canViewReportsArea(user))) {
+    scopeWhere = wantDealerId ? { dealerId: wantDealerId } : {};
+  } else if ((await canViewOwnerPricingReport(user)) && user.dealerId) {
+    scopeWhere = dealerPortalScopeWhere(user);
+  } else {
     return new NextResponse('Forbidden', { status: 403 });
   }
 
-  const url = new URL(req.url);
   const from = parseDay(url.searchParams.get('from'));
   const to = parseDay(url.searchParams.get('to'), true);
 
@@ -48,7 +60,7 @@ export async function GET(req: Request) {
   };
 
   const where: Prisma.ApplicationWhereInput = {
-    ...dealerPortalScopeWhere(user),
+    ...scopeWhere,
     status: { not: 'DRAFT' },
     ...(from || to
       ? { OR: [{ dateOfSale: range() }, { dateOfSale: null, createdAt: range() }] }

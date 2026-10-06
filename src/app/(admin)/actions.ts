@@ -1555,6 +1555,27 @@ async function resolveRoutingDealer(
 }
 
 /** Move one Home Depot store to a different dealer (existing, or a new one by name). */
+/**
+ * Move the EXISTING scanned leads for a store number onto a new dealer.
+ *
+ * Applications and the HD leads report attribute live (through the store's
+ * current dealer), so re-pointing a store moves them with no extra work. Scanned
+ * leads are different: each row snapshots its dealerId at scan time (see
+ * resolveDealerIdForStore), so without this sweep the leads already scanned for a
+ * store would stay with the old dealer after the store is re-routed. Matches by
+ * store number so it also claims leads that were unmatched (null dealer) when
+ * they were scanned. Returns how many rows moved.
+ */
+async function moveScannedLeadsForStore(storeNumber: string, newDealerId: string): Promise<number> {
+  const num = (storeNumber ?? '').trim();
+  if (!num) return 0;
+  const res = await prisma.scannedLead.updateMany({
+    where: { storeNumber: num, NOT: { dealerId: newDealerId } },
+    data: { dealerId: newDealerId },
+  });
+  return res.count;
+}
+
 export async function reassignStoreAction(
   storeId: string,
   dealerId: string | null,
@@ -1576,16 +1597,21 @@ export async function reassignStoreAction(
   if (dupe) return { error: `${resolved.name} already has store ${store.number}.` };
 
   await prisma.homeDepotStore.update({ where: { id: storeId }, data: { dealerId: resolved.id } });
+  // Move the leads already scanned for this store onto the new dealer, so the
+  // move is complete (not just future scans and the live-attributed reports).
+  const movedLeads = await moveScannedLeadsForStore(store.number, resolved.id);
   await audit({
     actorId: session.userId,
     action: 'DEALER_UPDATE',
     entityType: 'HomeDepotStore',
     entityId: storeId,
-    detail: `Routing: store ${store.number} (${store.name ?? '—'}) moved ${store.dealer?.name ?? '?'} → ${resolved.name}`,
+    detail: `Routing: store ${store.number} (${store.name ?? '—'}) moved ${store.dealer?.name ?? '?'} → ${resolved.name}; ${movedLeads} scanned lead(s) reassigned`,
   });
   revalidatePath('/admin/dealers/routing');
   revalidatePath('/admin/dealers');
-  return { ok: true, message: `Store ${store.number} now routes to ${resolved.name}. All its leads moved with it.` };
+  revalidatePath('/staff/leads');
+  const leadNote = movedLeads > 0 ? ` ${movedLeads} already-scanned lead${movedLeads === 1 ? '' : 's'} moved too.` : '';
+  return { ok: true, message: `Store ${store.number} now routes to ${resolved.name}. All its leads moved with it.${leadNote}` };
 }
 
 /** Add a new store → dealer mapping (assign a store number to a dealer). */
@@ -1606,16 +1632,20 @@ export async function addStoreMappingAction(
   if (dupe) return { error: `${resolved.name} already has store ${number}.` };
 
   await prisma.homeDepotStore.create({ data: { dealerId: resolved.id, number, name: city.trim() || null } });
+  // Claim any leads already scanned for this number (previously unmatched).
+  const movedLeads = await moveScannedLeadsForStore(number, resolved.id);
   await audit({
     actorId: session.userId,
     action: 'DEALER_UPDATE',
     entityType: 'HomeDepotStore',
     entityId: 'new',
-    detail: `Routing: added store ${number} (${city.trim() || '—'}) → ${resolved.name}`,
+    detail: `Routing: added store ${number} (${city.trim() || '—'}) → ${resolved.name}; ${movedLeads} scanned lead(s) reassigned`,
   });
   revalidatePath('/admin/dealers/routing');
   revalidatePath('/admin/dealers');
-  return { ok: true, message: `Store ${number} added and routed to ${resolved.name}.` };
+  revalidatePath('/staff/leads');
+  const leadNote = movedLeads > 0 ? ` ${movedLeads} already-scanned lead${movedLeads === 1 ? '' : 's'} moved to it.` : '';
+  return { ok: true, message: `Store ${number} added and routed to ${resolved.name}.${leadNote}` };
 }
 
 /** Activate / deactivate a store mapping (inactive stores route nothing). */
@@ -1706,6 +1736,7 @@ export async function applyRoutingFromSheetAction(): Promise<ActionState> {
         if ('error' in dealer) continue;
         if (await prisma.homeDepotStore.findFirst({ where: { dealerId: dealer.id, number: c.number } })) continue;
         await prisma.homeDepotStore.create({ data: { dealerId: dealer.id, number: c.number, name: c.city || null } });
+        await moveScannedLeadsForStore(c.number, dealer.id);
         applied += 1;
       } else if (c.kind === 'move') {
         const s = byNum.get(c.number);
@@ -1714,6 +1745,7 @@ export async function applyRoutingFromSheetAction(): Promise<ActionState> {
         if ('error' in dealer || dealer.id === s.dealerId) continue;
         if (await prisma.homeDepotStore.findFirst({ where: { dealerId: dealer.id, number: c.number } })) continue;
         await prisma.homeDepotStore.update({ where: { id: s.id }, data: { dealerId: dealer.id, ...(c.city ? { name: c.city } : {}) } });
+        await moveScannedLeadsForStore(c.number, dealer.id);
         applied += 1;
       } else {
         const s = byNum.get(c.number);
