@@ -202,6 +202,11 @@ const FIELD_SPECS: FieldSpec[] = [
   { key: 'dealDate', test: (c) => c === 'date' }, // top blank, bottom "Date"
   { key: 'dateInstalled', test: (c, b) => b === 'installed' || c.includes('date installed') },
   { key: 'dateOfSale', test: (c) => c === 'date of sale' },
+  // Unit count (column P, top blank / bottom "UNITS") and the deal-result code
+  // (column Q, top "Deal" / bottom "Result"). These were previously left to the
+  // office to fill by hand; the portal now seeds them on write.
+  { key: 'units', test: (_c, b) => b === 'units' },
+  { key: 'result', test: (c, b) => c === 'deal result' || b === 'result' },
 ];
 
 export interface JournalLayout {
@@ -534,6 +539,8 @@ export interface JournalDeal {
   salesperson: string | null; // → journal "Dealer's Name"
   installer: string | null;
   products: string | null; // comma-joined product names → "Product Sold"
+  units: string | null; // count of products sold → "UNITS" (column P)
+  result: string | null; // deal-result code (e.g. "PE/OK") → "Deal Result" (column Q)
   soap: string | null; // "Yes" / "No" → "SOAP Included"
   payCode: string | null; // "How They Payed" code (HDFINIT / CCHD / …) → column F
   financedAmount: string | null;
@@ -628,6 +635,8 @@ export async function writeDealToJournal(deal: JournalDeal): Promise<JournalResu
     salesperson: deal.salesperson,
     installer: deal.installer,
     products: deal.products,
+    units: deal.units,
+    result: deal.result,
     soap: deal.soap,
     payCode: deal.payCode,
     financedAmount: deal.financedAmount,

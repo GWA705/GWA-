@@ -375,6 +375,15 @@ exhausting the single instance). No behaviour change for normal use.
   free-text via DeepL.
 
 ## 2026-10-06
+- **Journal now seeds UNITS + Deal Result on write.** When the portal writes a
+  deal to the sales journal it now fills two columns the office used to type by
+  hand: **UNITS** (column P) = the number of products on the deal (e.g. a water
+  softener + city-water deal writes `2`), and **Deal Result** (column Q) = the
+  pending code **`PE/OK`**. Both match on the journal's two-row header
+  (`FIELD_SPECS` in `journal.ts`), and like every other portal write they only
+  fill a blank cell — a value the office already typed is never overwritten.
+  `PE/OK` is deliberate: the paid-sync's "OK" test excludes `pe`, so the row
+  still reads as *not yet paid* until the office changes it to `OK` + Date Paid.
 - **Bolder, meaning-mapped status chips.** The old palette gave a near-unique
   colour to each of twelve statuses, mostly in the same blue-green zone, so a
   quick scan couldn't tell them apart. New shared `chipStyle.tsx` maps every

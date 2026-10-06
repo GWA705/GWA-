@@ -1470,6 +1470,13 @@ async function syncApplicationToJournal(
     salesperson: app.salespersonName,
     installer: app.installerName,
     products: journalProducts.length ? journalProducts.join(', ') : null,
+    // Number of units sold = number of products on the deal (e.g. a water
+    // softener + city water deal writes "2").
+    units: journalProducts.length ? String(journalProducts.length) : null,
+    // Seed the Deal Result as pending ("PE/OK"); the office changes it to "OK"
+    // once the deal pays. Note: the paid-sync's OK check excludes "pe", so this
+    // correctly reads as not-yet-paid.
+    result: 'PE/OK',
     soap: soapLabel(app.soapType, app.soapIncluded),
     payCode,
     financedAmount: fmtAmount(financedAmountOf(app)),
