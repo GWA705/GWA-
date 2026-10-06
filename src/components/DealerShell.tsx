@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { logoutAction } from '@/app/(auth)/actions';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { NotificationBell } from '@/components/NotificationBell';
 import { MobileNav } from '@/components/MobileNav';
 import { DealerBottomNav } from '@/components/DealerBottomNav';
 import { useQuickBar } from '@/components/useQuickBar';
@@ -181,6 +182,8 @@ export function DealerShell({
               <span className="hidden lg:inline">{t('shell.reviewer')}</span>
             </Link>
           )}
+
+          <NotificationBell allHref="/dealer/notifications" />
 
           <Link href="/dealer/mail" className="relative text-[#0e2756] dark:text-slate-100 hover:text-blue-700" aria-label={t('shell.mail')}>
             <Bell size={22} />

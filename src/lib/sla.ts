@@ -1,6 +1,7 @@
 import { prisma } from './db';
 import { sendEmail } from './email';
 import { renderEmail } from './email-templates';
+import { recordNotifications } from './notifications';
 
 /**
  * 2-hour "new deal not looked at" alert.
@@ -142,6 +143,13 @@ export async function runAttentionAlerts(now: Date = new Date()): Promise<SlaAle
     });
     if (res.sent) sent += 1;
   }
+
+  await recordNotifications(recipients.map((u) => u.id), {
+    title: heading,
+    body: `${count === 1 ? 'A deal has' : 'Deals have'} been waiting over 2 hours for a reviewer.`,
+    url: '/staff',
+    category: 'attention',
+  });
 
   // Mark these deals as alerted so they don't re-fire until the next window.
   await prisma.application.updateMany({

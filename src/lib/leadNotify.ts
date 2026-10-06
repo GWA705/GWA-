@@ -2,6 +2,7 @@ import 'server-only';
 import { prisma } from './db';
 import { readLeads, leadKeyOf, type Lead } from './leads';
 import { sendPushToUser } from './push';
+import { recordNotifications } from './notifications';
 
 /**
  * New-lead push notifications. When a new HD lead lands in the "HD Leads Log"
@@ -126,6 +127,13 @@ export async function sweepNewLeads(): Promise<SweepResult> {
         console.error('[leadNotify] push failed', e);
       }
     }
+    await recordNotifications(users.map((u) => u.id), {
+      title: payload.title,
+      body: payload.body,
+      url: payload.url,
+      category: 'lead',
+      customerName: (lead.customerName || '').trim() || null,
+    });
     if (delivered) pushed += 1;
   }
 

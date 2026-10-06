@@ -56,6 +56,29 @@ model PushSubscription {
   @@index([userId])
 }
 
+// A durable, per-user in-app notification — the "home" a phone/web push lacks.
+// Written alongside each notification send, so a user can scroll back through
+// what they were alerted about, with a per-item read state. Grouped by customer
+// (applicationId) in the UI; customerName is denormalized for a label without a
+// join. Pruned/capped so it never grows unbounded.
+model Notification {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title         String
+  body          String?
+  url           String? // deep link to the deal / page
+  category      String? // the notification kind (status, note, lead, funding, …)
+  applicationId String? // for grouping by customer; not an FK (keeps a row after a deal is gone)
+  customerName  String? // denormalized label for display/grouping
+  readAt        DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@index([userId, readAt])
+  @@index([userId, createdAt])
+  @@index([applicationId])
+}
+
 // An admin-managed "must-read" pop-up shown to dealers. Unlike the dashboard
 // sign (Announcement), a dealer has to actively dismiss it, and that dismissal
 // is recorded (AlertAck) so admins can see who has read it and it won't nag them
@@ -641,6 +664,7 @@ model User {
   dashboardHeroes     DashboardHero[]     @relation("DashboardHeroCreator")
   loginThemes         LoginTheme[]        @relation("LoginThemeCreator")
   pushSubscriptions   PushSubscription[]
+  notifications       Notification[]
   alertAcks           AlertAck[]
   contentReads        ContentSectionRead[]
   mailsSent           Mail[]              @relation("MailSender")

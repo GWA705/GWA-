@@ -4,9 +4,21 @@ import { sendEmail } from './email';
 import { renderEmail } from './email-templates';
 import { STATUS_LABELS, DOCUMENT_TYPE_LABELS } from './constants';
 import { sendPushToRoles, sendPushToUser } from './push';
+import { recordNotifications } from './notifications';
 
 // Reviewers/admins who should receive activity notifications.
 const STAFF_ROLES: Role[] = ['REVIEWER', 'ADMIN'];
+
+/** Active staff (reviewer/admin) user ids — recipients for the in-app feed. */
+async function staffUserIds(): Promise<string[]> {
+  const rows = await prisma.user.findMany({ where: { role: { in: STAFF_ROLES }, active: true }, select: { id: true } });
+  return rows.map((r) => r.id);
+}
+
+/** Full customer name for the in-app feed label (shown only to authorized users). */
+function customerNameOf(app: { applicantFirstName: string; applicantLastName: string }): string {
+  return `${app.applicantFirstName ?? ''} ${app.applicantLastName ?? ''}`.trim() || 'a customer';
+}
 
 /**
  * Run a notification WITHOUT making the caller wait for it. Staff emails + push
@@ -70,6 +82,14 @@ export async function notifyStatusChange(applicationId: string, toStatus: Applic
         }),
       });
     }
+    await recordNotifications(users.map((u) => u.id), {
+      title: `Deal update: ${label}`,
+      body: `${deal} moved to “${label}”.`,
+      url: `/dealer/applications/${applicationId}`,
+      category: 'status',
+      applicationId,
+      customerName: customerNameOf(app),
+    });
   } catch (e) {
     console.error('[notify] status change failed', e);
   }
@@ -146,6 +166,14 @@ async function flushNewDocuments(applicationId: string, types: DocumentType[]) {
     url: `/staff/applications/${applicationId}`,
     tag: `docs-${applicationId}`,
   });
+  await recordNotifications(staff.map((u) => u.id), {
+    title: heading,
+    body: `${app.dealer.name}: ${labels.join(', ')}`,
+    url: `/staff/applications/${applicationId}`,
+    category: 'documents',
+    applicationId,
+    customerName: customerNameOf(app),
+  });
 }
 
 /**
@@ -187,6 +215,14 @@ export async function notifyNewSubmission(applicationId: string) {
       url: `/staff/applications/${applicationId}`,
       tag: `submit-${applicationId}`,
     });
+    await recordNotifications(staff.map((u) => u.id), {
+      title: 'New deal submitted',
+      body: `${app.dealer.name} submitted a new deal for review.`,
+      url: `/staff/applications/${applicationId}`,
+      category: 'submission',
+      applicationId,
+      customerName: customerNameOf(app),
+    });
   } catch (e) {
     console.error('[notify] new submission failed', e);
   }
@@ -226,6 +262,14 @@ export async function notifyFundingSubmitted(applicationId: string) {
       url: `/staff/applications/${applicationId}`,
       tag: `funding-${applicationId}`,
     });
+    await recordNotifications(staff.map((u) => u.id), {
+      title: 'Funding package submitted',
+      body: `${app.dealer.name} submitted the signed funding package.`,
+      url: `/staff/applications/${applicationId}`,
+      category: 'funding',
+      applicationId,
+      customerName: customerNameOf(app),
+    });
   } catch (e) {
     console.error('[notify] funding submitted failed', e);
   }
@@ -250,7 +294,7 @@ export async function notifyFundingDocsBeforeSend(applicationId: string) {
     const deal = dealLabel(app);
     const staff = await prisma.user.findMany({
       where: { role: { in: STAFF_ROLES }, active: true },
-      select: { email: true, notificationEmail: true },
+      select: { id: true, email: true, notificationEmail: true },
     });
     for (const u of staff) {
       await sendEmail({
@@ -271,6 +315,14 @@ export async function notifyFundingDocsBeforeSend(applicationId: string) {
       body: `${deal} (${app.dealer.name}) — dealer uploaded paperwork while the deal is still Approved (install docs not sent in-portal).`,
       url: `/staff/applications/${applicationId}`,
       tag: `oob-${applicationId}`,
+    });
+    await recordNotifications(staff.map((u) => u.id), {
+      title: 'Paperwork arrived early — needs review',
+      body: `${app.dealer.name} uploaded paperwork while the deal is still Approved (install docs not sent in-portal).`,
+      url: `/staff/applications/${applicationId}`,
+      category: 'funding',
+      applicationId,
+      customerName: customerNameOf(app),
     });
   } catch (e) {
     console.error('[notify] funding docs before send failed', e);
@@ -293,7 +345,7 @@ export async function notifyCancellationRequested(applicationId: string, wasFund
       : 'Review the request and confirm or reject the cancellation.';
     const staff = await prisma.user.findMany({
       where: { role: { in: STAFF_ROLES }, active: true },
-      select: { email: true, notificationEmail: true },
+      select: { id: true, email: true, notificationEmail: true },
     });
     for (const u of staff) {
       await sendEmail({
@@ -313,6 +365,14 @@ export async function notifyCancellationRequested(applicationId: string, wasFund
       body: `${deal} (${app.dealer.name}) — a dealer requested to cancel this deal.`,
       url: `/staff/applications/${applicationId}`,
       tag: `cancel-${applicationId}`,
+    });
+    await recordNotifications(staff.map((u) => u.id), {
+      title: wasFunded ? 'Cancellation — refund needed' : 'Cancellation requested',
+      body: `${app.dealer.name} requested to cancel this deal.`,
+      url: `/staff/applications/${applicationId}`,
+      category: 'cancellation',
+      applicationId,
+      customerName: customerNameOf(app),
     });
   } catch (e) {
     console.error('[notify] cancellation requested failed', e);
@@ -351,6 +411,14 @@ export async function notifyCancellationResolved(applicationId: string, confirme
         tag: `cancel-res-${applicationId}`,
       });
     }
+    await recordNotifications(users.map((u) => u.id), {
+      title: confirmed ? 'Cancellation confirmed' : 'Cancellation declined',
+      body: confirmed ? `${deal} — the deal is now closed.` : `${deal} — the request was declined; the deal remains active.`,
+      url: `/dealer/applications/${applicationId}`,
+      category: 'cancellation',
+      applicationId,
+      customerName: customerNameOf(app),
+    });
   } catch (e) {
     console.error('[notify] cancellation resolved failed', e);
   }
@@ -384,6 +452,14 @@ export async function notifyNewNote(applicationId: string, authorRole: Role) {
         url: `/staff/applications/${applicationId}`,
         tag: `note-${applicationId}`,
       });
+      await recordNotifications(staff.map((u) => u.id), {
+        title: 'New note from a dealer',
+        body: 'A dealer added a note on this deal.',
+        url: `/staff/applications/${applicationId}`,
+        category: 'note',
+        applicationId,
+        customerName: customerNameOf(app),
+      });
     } else {
       const users = await prisma.user.findMany({
         where: { dealerId: app.dealerId, role: 'DEALER_USER', active: true, notifyNewNotes: true },
@@ -400,6 +476,14 @@ export async function notifyNewNote(applicationId: string, authorRole: Role) {
           }),
         });
       }
+      await recordNotifications(users.map((u) => u.id), {
+        title: 'New note from GWA',
+        body: 'The GWA team added a note on your deal.',
+        url: `/dealer/applications/${applicationId}`,
+        category: 'note',
+        applicationId,
+        customerName: customerNameOf(app),
+      });
     }
   } catch (e) {
     console.error('[notify] new note failed', e);
@@ -445,6 +529,14 @@ export async function notifyConfirmationIssue(applicationId: string, mailId: str
         tag: `issue-${mailId}`,
       });
     }
+    await recordNotifications(users.map((u) => u.id), {
+      title: '⚠ Action required on a deal',
+      body: `${deal} — a confirmation issue needs your review and acknowledgement.`,
+      url: `/dealer/mail/${mailId}`,
+      category: 'action-required',
+      applicationId,
+      customerName: customerNameOf(app),
+    });
     return users.length;
   } catch (e) {
     console.error('[notify] confirmation issue failed', e);
@@ -498,6 +590,12 @@ export async function notifyMailReply(
         url: `/staff/mail/${mailId}`,
         tag: `mailreply-${mailId}`,
       });
+      await recordNotifications(staff.map((u) => u.id), {
+        title: 'New mail reply from a dealer',
+        body: subject,
+        url: `/staff/mail/${mailId}`,
+        category: 'mail',
+      });
     } else {
       // Staff replied → tell the dealer's users (only distributors when the
       // original mail was distributors-only).
@@ -527,6 +625,12 @@ export async function notifyMailReply(
           tag: `mailreply-${mailId}`,
         });
       }
+      await recordNotifications(users.map((u) => u.id), {
+        title: 'New reply from GWA',
+        body: subject,
+        url: `/dealer/mail/${mailId}`,
+        category: 'mail',
+      });
     }
   } catch (e) {
     console.error('[notify] mail reply failed', e);
@@ -559,6 +663,12 @@ export async function notifyAdminsUserRequest(requestId: string) {
         }),
       });
     }
+    await recordNotifications(admins.map((a) => a.id), {
+      title: 'New login request',
+      body: `${req.dealer.name} requested ${count} new login${count === 1 ? '' : 's'}.`,
+      url: `/admin/user-requests`,
+      category: 'user-request',
+    });
   } catch (e) {
     console.error('[notify] user request failed', e);
   }
@@ -581,12 +691,26 @@ export async function notifyGiftCardNote(requestId: string, fromDealer: boolean)
         url: '/staff/gift-cards',
         tag: `giftcard-${requestId}`,
       });
+      await recordNotifications(await staffUserIds(), {
+        title: 'Gift card — new message',
+        body: `A dealer updated the gift card for ${who}.`,
+        url: '/staff/gift-cards',
+        category: 'gift-card',
+        customerName: who,
+      });
     } else {
       await sendPushToUser(gc.requestedById, {
         title: 'Gift card — new message',
         body: `An update on the gift card for ${who}. Check your Gift cards area.`,
         url: '/dealer/gift-cards',
         tag: `giftcard-${requestId}`,
+      });
+      await recordNotifications([gc.requestedById], {
+        title: 'Gift card — new message',
+        body: `An update on the gift card for ${who}.`,
+        url: '/dealer/gift-cards',
+        category: 'gift-card',
+        customerName: who,
       });
     }
   } catch (e) {

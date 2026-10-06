@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { logoutAction } from '@/app/(auth)/actions';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { MobileNav } from '@/components/MobileNav';
+import { NotificationBell } from '@/components/NotificationBell';
 import { useT } from '@/i18n/client';
 import {
   FileText, Mail, MessageSquare, Gift, Building2, Users, BarChart3, UserCircle,
@@ -113,6 +114,8 @@ export function StaffShell({
               <span className="hidden lg:inline">{t('staffShell.dealerView')}</span>
             </Link>
           )}
+
+          <NotificationBell allHref="/staff/notifications" />
 
           <Link href="/staff/mail" className="relative text-[#0e2756] dark:text-slate-100 hover:text-blue-700" aria-label={t('shell.mail')}>
             <Bell size={22} />

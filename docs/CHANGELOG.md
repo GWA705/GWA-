@@ -375,6 +375,19 @@ exhausting the single instance). No behaviour change for normal use.
   free-text via DeepL.
 
 ## 2026-10-06
+- **Notifications feed — a durable home for the alerts you get (bell + page).**
+  Until now a phone/web push was fire-and-forget: once dismissed it was gone, with
+  nowhere in the portal to look it up. Added a per-user `Notification` model
+  written alongside every alert (`recordNotifications` in `notifications.ts`,
+  called from `notify.ts`, `leadNotify.ts`, `sla.ts`), a **bell icon with an
+  unread badge** in both the staff and dealer headers (dropdown grouped by
+  customer, mark-one / mark-all read), a **full Notifications page**
+  (`/staff/notifications`, `/dealer/notifications`), and a polled
+  `/api/notifications` endpoint. Per-item read state (like a phone); bundled by
+  customer so bursts collapse; respects the same category prefs as email; pruned
+  to 60 days opportunistically so the table stays bounded. For everyone — staff
+  and dealers. (Phase 2: fold a few email-only alerts in, and surface the feed
+  inside the staff Catch-up page.)
 - **Store routing is now editable in the portal (Admin → Dealers → Store
   routing).** The HD store → dealer mapping was hardcoded (seed-only) with no way
   to reassign a store; now there's a screen that lists every store grouped by the
