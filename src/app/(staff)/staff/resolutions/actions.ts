@@ -12,6 +12,8 @@ import { isResolutionStatus, STATUS_LABEL, OPEN_STATUSES, PRIORITIES } from '@/l
 import { normalizeCallPhone } from '@/lib/customerCalls';
 import { putDocument, deleteDocument, newResolutionStorageKey } from '@/lib/storage';
 import { MAX_FILE_BYTES, ALLOWED_MIME_TYPES } from '@/lib/constants';
+import { gmailResolutionConfigured, searchThreadForRef } from '@/lib/gmailResolution';
+import { syncCaseEmails } from '@/lib/resolutionEmailSync';
 import type { ResolutionStatus, Prisma } from '@prisma/client';
 
 // Identify a file by its magic bytes (don't trust the client-declared MIME).
@@ -65,14 +67,21 @@ export async function createCaseAction(_prev: CaseFormState, formData: FormData)
   }
   if (!customerName) return { error: 'Enter the customer name (or link a deal).' };
 
+  // Optionally link a Gmail thread (from the unlinked-email inbox).
+  const gmailThreadId = String(formData.get('gmailThreadId') || '').trim() || null;
+
   const caseNumber = await nextCaseNumber();
   const created = await prisma.resolutionCase.create({
     data: {
       caseNumber, title, description, priority, applicationId,
       customerName, customerPhone: normalizeCallPhone(customerPhone),
       officeDealerId, hdReference, openedById: user.userId,
+      ...(gmailThreadId ? { gmailThreadId, gmailLinkedAt: new Date() } : {}),
     },
   });
+  if (gmailThreadId) {
+    try { await syncCaseEmails(created.id); } catch { /* best-effort; Sync button retries */ }
+  }
   await audit({ actorId: user.userId, action: 'STATUS_CHANGE', entityType: 'ResolutionCase', entityId: created.id, detail: `Opened HD resolution case ${caseNumber}` });
   revalidatePath('/staff/resolutions');
   redirect(`/staff/resolutions/${created.id}`);
@@ -210,4 +219,48 @@ export async function deleteCaseAttachmentAction(attachmentId: string): Promise<
   }
   await prisma.resolutionAttachment.delete({ where: { id: attachmentId } });
   revalidatePath(`/staff/resolutions/${a.caseId}`);
+}
+
+/** Link this case to its HD email thread by searching Gmail for the ref / case #. */
+export async function linkEmailThreadAction(caseId: string, _prev: CaseFormState, _formData: FormData): Promise<CaseFormState> {
+  await requireRole('REVIEWER', 'ADMIN');
+  if (!gmailResolutionConfigured()) return { error: 'The Gmail email link isn’t set up yet.' };
+  const c = await prisma.resolutionCase.findUnique({ where: { id: caseId }, select: { id: true, hdReference: true, caseNumber: true, gmailThreadId: true } });
+  if (!c) return { error: 'Case not found.' };
+  if (c.gmailThreadId) return { ok: true };
+
+  const ref = (c.hdReference || c.caseNumber || '').trim();
+  if (!ref) return { error: 'Add an HD Ref # to this case first, so we can find the email.' };
+
+  let found: { threadId: string; subject: string } | null = null;
+  try {
+    found = await searchThreadForRef(ref);
+  } catch (e) {
+    console.error('[resolution-email] search failed', e);
+    return { error: 'Couldn’t reach Gmail. Check the email setup and try again.' };
+  }
+  if (!found) return { error: `No HD email found for "${ref}" under the resolution label.` };
+
+  await prisma.resolutionCase.update({ where: { id: caseId }, data: { gmailThreadId: found.threadId, gmailLinkedAt: new Date() } });
+  try { await syncCaseEmails(caseId); } catch { /* best-effort */ }
+  revalidatePath(`/staff/resolutions/${caseId}`);
+  return { ok: true };
+}
+
+/** Pull new replies from the linked email thread now. */
+export async function syncEmailThreadAction(caseId: string): Promise<void> {
+  await requireRole('REVIEWER', 'ADMIN');
+  if (!gmailResolutionConfigured()) return;
+  try { await syncCaseEmails(caseId); } catch (e) { console.error('[resolution-email] manual sync failed', e); }
+  revalidatePath(`/staff/resolutions/${caseId}`);
+}
+
+/** Unlink the email thread and drop its synced messages from this case. */
+export async function unlinkEmailThreadAction(caseId: string): Promise<void> {
+  await requireRole('REVIEWER', 'ADMIN');
+  await prisma.$transaction([
+    prisma.resolutionEmail.deleteMany({ where: { caseId } }),
+    prisma.resolutionCase.update({ where: { id: caseId }, data: { gmailThreadId: null, gmailLinkedAt: null, emailSyncedAt: null } }),
+  ]);
+  revalidatePath(`/staff/resolutions/${caseId}`);
 }

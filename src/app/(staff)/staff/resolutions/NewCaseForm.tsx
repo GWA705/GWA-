@@ -11,14 +11,20 @@ function SubmitBtn() {
 
 export function NewCaseForm({
   prefill,
+  gmailThreadId,
+  prefillTitle,
 }: {
   prefill: { applicationId: string; customerName: string; officeName: string; hdReference: string | null } | null;
+  gmailThreadId?: string;
+  prefillTitle?: string;
 }) {
   const [state, action] = useFormState(createCaseAction, {} as CaseFormState);
 
   return (
     <form action={action} className="card p-5 space-y-3">
       {state.error && <div className="rounded-md bg-red-50 p-2 text-sm text-red-700">{state.error}</div>}
+      {gmailThreadId && <input type="hidden" name="gmailThreadId" value={gmailThreadId} />}
+      {gmailThreadId && <div className="rounded-md bg-sky-50 p-2 text-xs text-sky-700 dark:bg-sky-900/30 dark:text-sky-300">📧 This case will be linked to the selected HD email thread.</div>}
 
       {prefill ? (
         <div className="rounded-lg border border-gray-200 bg-slate-50 p-3 text-sm dark:border-slate-700 dark:bg-slate-700/40">
@@ -46,7 +52,7 @@ export function NewCaseForm({
 
       <div>
         <label className="label" htmlFor="title">Title</label>
-        <input id="title" name="title" required className="input" placeholder="e.g. Leak — RO drinking water system" />
+        <input id="title" name="title" required className="input" placeholder="e.g. Leak — RO drinking water system" defaultValue={prefillTitle ?? ''} />
       </div>
       <div>
         <label className="label" htmlFor="description">Problem</label>

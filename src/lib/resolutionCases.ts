@@ -126,6 +126,13 @@ export interface CaseAttachmentVM {
   at: string;
 }
 
+export interface CaseEmailVM {
+  id: string;
+  fromAddr: string;
+  at: string;
+  snippet: string;
+}
+
 export interface CaseDetail {
   id: string;
   caseNumber: string;
@@ -148,6 +155,9 @@ export interface CaseDetail {
   notes: CaseNoteVM[];
   dealDocs: CaseDealDoc[]; // documents from the linked deal, shown as resources
   attachments: CaseAttachmentVM[]; // files/links attached directly to the case
+  emailLinked: boolean;
+  emailSyncedAt: string | null;
+  emails: CaseEmailVM[];
 }
 
 export async function loadResolutionCase(id: string): Promise<CaseDetail | null> {
@@ -158,6 +168,7 @@ export async function loadResolutionCase(id: string): Promise<CaseDetail | null>
       assignedTo: { select: { id: true, name: true } },
       notes: { orderBy: { createdAt: 'desc' }, include: { author: { select: { name: true } } } },
       attachments: { orderBy: { createdAt: 'desc' }, include: { addedBy: { select: { name: true } } } },
+      emails: { orderBy: [{ sentAt: 'asc' }, { createdAt: 'asc' }] },
     },
   });
   if (!c) return null;
@@ -207,6 +218,14 @@ export async function loadResolutionCase(id: string): Promise<CaseDetail | null>
       url: a.url,
       addedBy: a.addedBy?.name ?? '—',
       at: fmt(a.createdAt),
+    })),
+    emailLinked: !!c.gmailThreadId,
+    emailSyncedAt: c.emailSyncedAt ? fmt(c.emailSyncedAt) : null,
+    emails: c.emails.map((e) => ({
+      id: e.id,
+      fromAddr: e.fromAddr,
+      at: e.sentAt ? fmt(e.sentAt) : fmt(e.createdAt),
+      snippet: e.snippet,
     })),
   };
 }

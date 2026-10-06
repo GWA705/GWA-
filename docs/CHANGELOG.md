@@ -35,6 +35,7 @@ source of truth; this file is the human-readable index.
 | Render (old host) | ✅ **Decommissioned 2026-10-05 (Sean)** — ~$31/mo saved | Portal fully on AWS. Done in the Render dashboard: `gwa-portal` web service **suspended** (standard ≈ $25/mo), `gwa-staging-db` Postgres **deleted** (basic_256mb), `gwa-portal-staging` **deleted** (free). **Still running (by design):** the 6 cron jobs — `GWA-new-leads` (10-min), `gwa-doc-ocr` (30-min), `gwa-doc-expiry-reminders` (daily), `gwa-weekly-funding-report` (Mon), `gwa-db-backup-weekly` (Sun), and `gwa-journal-paid-sync` (every 2h, **added 2026-10-05**) — they `curl` scheduled endpoints on the live AWS site. These 6 are the only thing left on Render; migrate to AWS EventBridge to leave Render entirely. Workspace `tea-d9hr2f715fvs739nkkq0`. |
 | Auto-deploy (GitHub → EB) | ✅ **Live** (2026-09-11, Sean) | Every push to the branch builds the image to ECR **and auto-deploys to Elastic Beanstalk** (deploy step in `.github/workflows/build-ecr.yml`, bundles `Dockerrun.aws.json` + `.platform/` nginx fix). IAM user `github-ecr-push` has `AdministratorAccess-AWSElasticBeanstalk`. `wait_for_deployment: false` (the single-instance env flaps Yellow on low traffic, which false-failed the step). No more manual ZIP uploads. |
 | Desktop/phone push notifications | ✅ Keys set (2026-09-11, Sean) — confirm with a test | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` set on EB. The client fetches the public key at **runtime** (`GET /api/push/key`) so it survives rebuilds. Reviewers get push on new dealer docs / activity. iOS needs the app installed to the Home Screen. **To confirm:** Account → Enable desktop notifications → Send a test. |
+| HD Resolution ↔ Gmail email link | ⏳ Code shipped, not switched on | Read-only Gmail via the existing service account (domain-wide delegation, `gmail.readonly`), impersonating one mailbox and reading one label (`HD Resolution`). Turn on: apply the Gmail label (+ filter), grant the delegation scope, set `GMAIL_RESOLUTION_USER` (+ optional `GMAIL_RESOLUTION_LABEL`) on EB. 30-min sync is `resolution-email-sync.yml` (uses the existing `CRON_SECRET`). Full steps in `HD-RESOLUTION-EMAIL.md`. **Untested against a live mailbox** until configured. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
 ### Dashboard hero: special occasions can run "until turned off" (2026-10-04)
@@ -375,6 +376,22 @@ exhausting the single instance). No behaviour change for normal use.
   free-text via DeepL.
 
 ## 2026-10-06
+- **HD Resolution ↔ Gmail email link (Phase 3b-2) — code shipped, inert until
+  configured.** A case can follow its Home Depot email chain: **Link HD email**
+  (searches the configured Gmail label for the case's HD Ref # / case number and
+  attaches the thread), new replies **sync** in (a per-case *Sync now* button +
+  a **30-min** GitHub Actions cron, `resolution-email-sync.yml`), and an **Email
+  inbox** lists recent **HD Resolution**-labeled threads not yet linked ("Open as
+  case" pre-links the thread). Reuses the **existing Google service account**,
+  **read-only**, impersonating **one mailbox** and reading **one label** only
+  (domain-wide delegation). New `gmailThreadId` on `ResolutionCase` + a
+  `ResolutionEmail` table (additive migration), `src/lib/gmailResolution.ts` /
+  `resolutionEmailSync.ts`, the cron endpoint, and the case/inbox UI.
+  **⏳ Inert until set up** — see `docs/HD-RESOLUTION-EMAIL.md`: apply the Gmail
+  **HD Resolution** label (+ a filter), a Workspace admin grants the service
+  account the `gmail.readonly` scope (domain-wide delegation), and set
+  `GMAIL_RESOLUTION_USER` (+ optional `GMAIL_RESOLUTION_LABEL`) on EB. **Not yet
+  tested against a live mailbox** — verify together once configured.
 - **Resolution case files & links (Phase 3b-1).** An HD resolution case can now
   hold its **own documents and resources**, not just the linked deal's. Staff can
   **upload files** (PDF / images — encrypted at rest, MIME-sniffed, 15 MB cap,

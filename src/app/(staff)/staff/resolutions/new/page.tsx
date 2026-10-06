@@ -5,8 +5,10 @@ import { NewCaseForm } from '../NewCaseForm';
 
 export const dynamic = 'force-dynamic';
 
-export default async function NewCasePage({ searchParams }: { searchParams: { applicationId?: string } }) {
+export default async function NewCasePage({ searchParams }: { searchParams: { applicationId?: string; gmailThreadId?: string; title?: string } }) {
   await requireRole('REVIEWER', 'ADMIN');
+  const gmailThreadId = searchParams.gmailThreadId?.trim() || undefined;
+  const prefillTitle = searchParams.title?.trim() || undefined;
 
   let prefill: { applicationId: string; customerName: string; officeName: string; hdReference: string | null } | null = null;
   const appId = searchParams.applicationId?.trim();
@@ -29,7 +31,7 @@ export default async function NewCasePage({ searchParams }: { searchParams: { ap
     <div className="max-w-2xl space-y-4">
       <Link href="/staff/resolutions" className="text-sm text-gray-500 hover:underline">← Back to the queue</Link>
       <h1 className="text-xl font-semibold text-gray-900 dark:text-slate-100">New HD resolution case</h1>
-      <NewCaseForm prefill={prefill} />
+      <NewCaseForm prefill={prefill} gmailThreadId={gmailThreadId} prefillTitle={prefillTitle} />
     </div>
   );
 }

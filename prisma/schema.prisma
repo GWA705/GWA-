@@ -1388,8 +1388,15 @@ model ResolutionCase {
   resolvedAt     DateTime?
   resolutionNote String?   @db.Text
 
+  // Gmail email-thread link (Phase 3b-2). Once matched, gmailThreadId follows the
+  // whole HD email chain; pulled messages live in ResolutionEmail.
+  gmailThreadId String?
+  gmailLinkedAt DateTime?
+  emailSyncedAt DateTime?
+
   notes       ResolutionCaseNote[]
   attachments ResolutionAttachment[]
+  emails      ResolutionEmail[]
   createdAt   DateTime             @default(now())
   updatedAt   DateTime             @updatedAt
 
@@ -1419,6 +1426,22 @@ model ResolutionAttachment {
   addedBy    User           @relation("ResolutionAttachmentAdder", fields: [addedById], references: [id])
   createdAt  DateTime       @default(now())
 
+  @@index([caseId])
+}
+
+// One synced message from a case's linked Gmail thread (Phase 3b-2). Read-only
+// mirror of the HD email chain — deduped per case by the Gmail message id.
+model ResolutionEmail {
+  id             String         @id @default(cuid())
+  caseId         String
+  case           ResolutionCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  gmailMessageId String
+  fromAddr       String
+  sentAt         DateTime?
+  snippet        String         @db.Text
+  createdAt      DateTime       @default(now())
+
+  @@unique([caseId, gmailMessageId])
   @@index([caseId])
 }
 

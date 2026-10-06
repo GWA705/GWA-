@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { requireRole } from '@/lib/session';
 import { loadResolutionQueue } from '@/lib/resolutionCases';
 import { RESOLUTION_STATUSES, STATUS_LABEL, statusChipClass } from '@/lib/resolutionStatus';
+import { gmailResolutionConfigured } from '@/lib/gmailResolution';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,7 +31,12 @@ export default async function ResolutionQueuePage({
           <h1 className="text-xl font-semibold text-gray-900 dark:text-slate-100">🧰 HD Resolution Centre</h1>
           <p className="mt-0.5 text-sm text-gray-500 dark:text-slate-400">Home Depot resolution-centre problems, tracked to resolved. Open cases turn amber at 3 days, red at 7.</p>
         </div>
-        <Link href="/staff/resolutions/new" className="btn-primary">＋ New case</Link>
+        <div className="flex items-center gap-2">
+          {gmailResolutionConfigured() && (
+            <Link href="/staff/resolutions/inbox" className="btn-secondary">📧 Email inbox</Link>
+          )}
+          <Link href="/staff/resolutions/new" className="btn-primary">＋ New case</Link>
+        </div>
       </div>
 
       {/* Status filter chips */}

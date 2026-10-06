@@ -8,6 +8,8 @@ import { formatPhoneDisplay } from '@/lib/format';
 import { DocViewer } from '@/components/DocViewer';
 import { CaseControls } from '../CaseControls';
 import { CaseAttachments } from '../CaseAttachments';
+import { CaseEmailThread } from '../CaseEmailThread';
+import { gmailResolutionConfigured } from '@/lib/gmailResolution';
 
 export const dynamic = 'force-dynamic';
 
@@ -87,6 +89,18 @@ export default async function CaseDetailPage({ params }: { params: { id: string 
       <div className="card p-5">
         <h2 className="mb-2 text-sm font-semibold text-gray-900 dark:text-slate-100">Case files &amp; links</h2>
         <CaseAttachments caseId={c.id} attachments={c.attachments} />
+      </div>
+
+      {/* HD email thread (Gmail link) */}
+      <div className="card p-5">
+        <h2 className="mb-2 text-sm font-semibold text-gray-900 dark:text-slate-100">📧 HD email thread</h2>
+        <CaseEmailThread
+          caseId={c.id}
+          configured={gmailResolutionConfigured()}
+          linked={c.emailLinked}
+          syncedAt={c.emailSyncedAt}
+          emails={c.emails}
+        />
       </div>
 
       {/* Controls: status, assign, notify office, add note */}
