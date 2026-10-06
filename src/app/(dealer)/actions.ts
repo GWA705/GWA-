@@ -19,7 +19,8 @@ import { applicationSchema, serialNumberSchema } from '@/lib/validation';
 import { mergeProductsSold, addDealerCustomProducts } from '@/lib/products';
 import { parseDealerProfileForm } from '@/lib/dealerProfile';
 import { applyDealerLogo } from '@/lib/dealerLogo';
-import { CONSENT_POLICY_VERSION, CONSENT_TEXT, PAYMENT_METHOD_LABELS, FUNDING_DOCUMENT_TYPES, PACKAGE_RETURN_FUNDING_TYPES, SPLIT_PAYMENT_METHODS, MAX_FILE_BYTES, ALLOWED_MIME_TYPES } from '@/lib/constants';
+import { CONSENT_POLICY_VERSION, CONSENT_TEXT, PAYMENT_METHOD_LABELS, FUNDING_DOCUMENT_TYPES, PACKAGE_RETURN_FUNDING_TYPES, SPLIT_PAYMENT_METHODS, MAX_FILE_BYTES, ALLOWED_MIME_TYPES, fundingDocumentTypesFor } from '@/lib/constants';
+import { fundingPackageReadyToSubmit } from '@/lib/fundingSubmitStatus';
 import { SENT_OR_BEYOND } from '@/lib/outOfBandReturn';
 import { validateSplits } from '@/lib/payments';
 import type { ApplicationStatus, DocumentType, PaymentMethod, Prisma } from '@prisma/client';
@@ -516,6 +517,8 @@ export async function uploadFundingBatchAction(
   if (preSend && (await isOutOfBandUpload(applicationId, storedTypes))) {
     notifyInBackground('funding-before-send', () => notifyFundingDocsBeforeSend(applicationId));
   }
+  // If this upload completes the package, send it for funding automatically.
+  await maybeAutoSubmitFunding(applicationId, session.userId);
   revalidatePath(`/dealer/applications/${applicationId}`);
   return {};
 }
@@ -574,8 +577,55 @@ export async function setProductSerialsAction(
       if (value) await tx.serialNumber.create({ data: { applicationId, value, productLabel: products[i] } });
     }
   });
+  // Entering the last required serial can complete the package — submit if so.
+  await maybeAutoSubmitFunding(applicationId, session.userId);
   revalidatePath(`/dealer/applications/${applicationId}`);
   return { ok: true };
+}
+
+/**
+ * Auto-submit the funding package the moment it's actually complete — every
+ * required funding document is in AND serials are done — so a dealer who uploads
+ * everything but never presses "Submit funding package" no longer strands the
+ * deal at "Documents sent." Mirrors submitFundingAction's effect exactly. Called
+ * after a funding-doc upload or a serial save; a no-op unless the deal is ready.
+ */
+async function maybeAutoSubmitFunding(applicationId: string, actorId: string): Promise<void> {
+  const app = await prisma.application.findUnique({
+    where: { id: applicationId },
+    include: { documents: { where: { stage: 'FUNDING' }, select: { type: true } } },
+  });
+  if (!app) return;
+
+  const serialsComplete = await productSerialsComplete(applicationId);
+  const required = fundingDocumentTypesFor(app.programType, {
+    paymentMethod: app.paymentMethod,
+    isSplitPayment: app.isSplitPayment,
+  });
+  const have = new Set(app.documents.map((d) => d.type));
+  const requiredDocsMissing = required.some((t) => t.required && !have.has(t.type));
+
+  if (!fundingPackageReadyToSubmit({ status: app.status, serialsComplete, requiredDocsMissing, fundingDocCount: app.documents.length })) {
+    return;
+  }
+
+  await prisma.$transaction([
+    prisma.application.update({
+      where: { id: applicationId },
+      data: { status: 'FUNDING_SUBMITTED', lastDealerActionAt: new Date(), lastDealerActionKind: 'FUNDING' },
+    }),
+    prisma.statusEvent.create({
+      data: {
+        applicationId,
+        from: 'DOCS_SENT',
+        to: 'FUNDING_SUBMITTED',
+        actorId,
+        note: 'Funding package submitted automatically — all required documents received',
+      },
+    }),
+  ]);
+  await audit({ actorId, action: 'FUNDING_SUBMIT', entityType: 'Application', entityId: applicationId });
+  await notifyFundingSubmitted(applicationId);
 }
 
 // True when every selected product has a non-empty serial number recorded.

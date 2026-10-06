@@ -375,6 +375,21 @@ exhausting the single instance). No behaviour change for normal use.
   free-text via DeepL.
 
 ## 2026-10-06
+- **Root-cause fix: funding packages now submit themselves when complete.** Deals
+  were stranding at "Documents sent" because the whole flow depended on the dealer
+  remembering to press a separate "Submit funding package" button — upload
+  everything and walk away (or miss the small "serial required" warning) and the
+  deal silently stalled with nobody notified. Now, the moment every required
+  funding document is uploaded AND all serials are entered, the deal advances to
+  "Submitted to finance company" on its own (from the funding upload or the serial
+  save). The manual Submit button stays as a fallback for sending a partial
+  package early. New pure, unit-tested `fundingPackageReadyToSubmit`; the
+  reviewer "why it's stuck" banner stays as the safety net for the rare deal that
+  genuinely can't auto-submit (e.g. a serial still missing).
+- **Gift-card queue: the "Notes" link now opens in view.** Clicking Notes on a
+  card rendered the note thread at the very bottom of the page, so on a long queue
+  it looked like nothing happened. It now opens as a centered overlay wherever you
+  click. Fixes both the staff and admin gift-card pages.
 - **Reviewer now sees WHY a deal is stuck before funding — no more mystery.** When
   a `DOCS_SENT` deal has its signed package back but hasn't moved on, the deal
   shows an amber banner explaining exactly why, mirroring the dealer-side submit

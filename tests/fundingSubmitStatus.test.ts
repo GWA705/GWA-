@@ -1,5 +1,27 @@
 import { describe, it, expect } from 'vitest';
-import { diagnoseFundingSubmit, type FundingSubmitInput } from '../src/lib/fundingSubmitStatus';
+import { diagnoseFundingSubmit, fundingPackageReadyToSubmit, type FundingSubmitInput } from '../src/lib/fundingSubmitStatus';
+
+describe('fundingPackageReadyToSubmit', () => {
+  const ready = { status: 'DOCS_SENT' as const, serialsComplete: true, requiredDocsMissing: false, fundingDocCount: 2 };
+
+  it('is true when docs are in, serials done, and at least one doc uploaded', () => {
+    expect(fundingPackageReadyToSubmit(ready)).toBe(true);
+  });
+  it('is false while a required document is still missing', () => {
+    expect(fundingPackageReadyToSubmit({ ...ready, requiredDocsMissing: true })).toBe(false);
+  });
+  it('is false while a serial is still missing', () => {
+    expect(fundingPackageReadyToSubmit({ ...ready, serialsComplete: false })).toBe(false);
+  });
+  it('is false when nothing has been uploaded yet (nothing to submit)', () => {
+    expect(fundingPackageReadyToSubmit({ ...ready, fundingDocCount: 0 })).toBe(false);
+  });
+  it('only fires from DOCS_SENT (never re-submits a deal already moved on)', () => {
+    expect(fundingPackageReadyToSubmit({ ...ready, status: 'FUNDING_SUBMITTED' })).toBe(false);
+    expect(fundingPackageReadyToSubmit({ ...ready, status: 'APPROVED' })).toBe(false);
+    expect(fundingPackageReadyToSubmit({ ...ready, status: 'FUNDED' })).toBe(false);
+  });
+});
 
 const base: FundingSubmitInput = {
   status: 'DOCS_SENT',

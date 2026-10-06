@@ -31,6 +31,26 @@ export interface FundingSubmitDiagnosis {
   detail: string;
 }
 
+export interface FundingReadyInput {
+  status: ApplicationStatus;
+  serialsComplete: boolean;
+  /** A required funding document type hasn't been uploaded yet. */
+  requiredDocsMissing: boolean;
+  /** How many funding-stage documents the dealer has uploaded. */
+  fundingDocCount: number;
+}
+
+/**
+ * Should the funding package submit itself now? True once the deal is DOCS_SENT,
+ * every required funding document is in, serials are complete, and at least one
+ * document was actually uploaded. Advancing on this removes the dependence on the
+ * dealer remembering to press "Submit funding package" — the root cause of deals
+ * stranding at "Documents sent." The manual button stays for sending early.
+ */
+export function fundingPackageReadyToSubmit(i: FundingReadyInput): boolean {
+  return i.status === 'DOCS_SENT' && i.serialsComplete && !i.requiredDocsMissing && i.fundingDocCount > 0;
+}
+
 const NONE: FundingSubmitDiagnosis = { show: false, missingSerialProducts: [], title: '', detail: '' };
 
 export function diagnoseFundingSubmit(input: FundingSubmitInput): FundingSubmitDiagnosis {
