@@ -656,6 +656,7 @@ model User {
   auditLogs           AuditLog[]
   payoutsRecorded     Payout[]
   notesAuthored       Note[]
+  customerCallsLogged CustomerCall[]  @relation("CustomerCallLogger")
   chatMessages        ChatMessage[]
   conversationReads   ConversationRead[]
   confirmations       Confirmation[]
@@ -1304,6 +1305,7 @@ model Application {
   remittanceLines HdRemittanceLine[]
   linkedMails     Mail[]              @relation("MailApplication")
   callRecordings  CallRecording[]
+  customerCalls   CustomerCall[]
 
   @@index([dealerId])
   @@index([status])
@@ -1313,6 +1315,32 @@ model Application {
   @@index([financeReference])
   @@index([hdReference])
   @@index([financeItNumber])
+}
+
+// ---------------------------------------------------------------------------
+// Customer call log — a short, dated note each time a customer phones the
+// office, powering a "how many times have they called" snapshot. Keyed to the
+// deal (applicationId) and carries a NORMALIZED phone so calls for the same
+// customer across different deals are counted together. officeDealerId and
+// forwardedToOfficeAt are set when a call is also forwarded to the office that
+// owns the customer (reuses the existing office-notify path).
+// ---------------------------------------------------------------------------
+model CustomerCall {
+  id                  String      @id @default(cuid())
+  applicationId       String
+  application         Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  customerName        String
+  customerPhone       String      @default("") // normalized digits (last 10) for cross-deal counting; "" when unknown
+  note                String      @db.Text
+  loggedById          String
+  loggedBy            User        @relation("CustomerCallLogger", fields: [loggedById], references: [id])
+  officeDealerId      String? // the office this call was forwarded to (Phase 2)
+  forwardedToOfficeAt DateTime?
+  createdAt           DateTime    @default(now())
+
+  @@index([applicationId])
+  @@index([customerPhone])
+  @@index([createdAt])
 }
 
 // ---------------------------------------------------------------------------

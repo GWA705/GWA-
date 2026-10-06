@@ -375,6 +375,17 @@ exhausting the single instance). No behaviour change for normal use.
   free-text via DeepL.
 
 ## 2026-10-06
+- **Customer call log (Phase 1 of the calls/resolution build).** On the staff
+  **Find customer** view, a new **📞 Call log** section: a **"Customer called"**
+  button logs a short, **auto-dated** note, and a snapshot shows **how many times
+  this customer has called** (counted across all their deals by normalized phone),
+  **how many were forwarded to their office**, and the last call date. A checkbox
+  lets you **also notify the office** in the same step — reusing the existing
+  office-notify path (dealer-visible note + notification). New `CustomerCall`
+  table (additive migration), `src/lib/customerCalls.ts`, `logCustomerCallAction`,
+  and the `CustomerCallLog` component. Internal/admin only. *(Phase 2 = richer
+  forward-to-office; Phase 3 = the HD Resolution Centre queue — see the design
+  mockup.)*
 - **Recorded two production-hardening reminders** (at Sean's request) at the top
   of `RELIABILITY.md`: (1) change AWS to production settings, and (2) enable RDS
   **Multi-AZ** failover on `gwa-portal-db`. Both are AWS console actions, no

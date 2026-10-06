@@ -13,6 +13,8 @@ import { getOverride, appOverrideKey, overlay } from '@/lib/customerOverride';
 import { decryptOptional } from '@/lib/crypto';
 import { MessageOffice } from '../MessageOffice';
 import { EditCustomerContact } from '../EditCustomerContact';
+import { CustomerCallLog } from '../CustomerCallLog';
+import { loadCustomerCalls } from '@/lib/customerCalls';
 import { DocViewer } from '@/components/DocViewer';
 
 export const dynamic = 'force-dynamic';
@@ -61,6 +63,7 @@ export default async function CustomerAssistPage({ params }: { params: { id: str
   const effEmail = overlay(app.applicantEmail ?? '', ov?.email);
   const effAddress = overlay(origAddress, ov?.address);
 
+  const callLog = await loadCustomerCalls(app.id, effPhone);
   const manuals = await matchManualsForProducts(app.productsSold);
   const p = app.dealer?.profile ?? null;
   const officeName = p?.businessName || app.dealer?.name || 'their office';
@@ -92,6 +95,16 @@ export default async function CustomerAssistPage({ params }: { params: { id: str
           <Link href={`/staff/applications/${app.id}`} className="ml-auto font-medium text-sky-300 hover:underline">{t('staffCustomerDetail.openFullDeal')} →</Link>
         </div>
       </div>
+
+      {/* Call log — snapshot of how many times this customer has phoned the office */}
+      <CustomerCallLog
+        applicationId={app.id}
+        officeName={officeName}
+        total={callLog.total}
+        forwarded={callLog.forwarded}
+        lastAt={callLog.lastAt}
+        calls={callLog.calls}
+      />
 
       {/* Editable customer contact (stored as a correction; original untouched) */}
       <EditCustomerContact
