@@ -892,7 +892,12 @@ export async function moveToInForFundingAction(applicationId: string): Promise<v
     include: { documents: { where: { stage: 'FUNDING' } } },
   });
   if (!app) return;
-  if (app.status !== 'FUNDING_SUBMITTED') {
+  // Advanceable once the signed package is back and confirmed. Normally the deal
+  // is FUNDING_SUBMITTED (dealer returned it through the portal), but a package
+  // can land while it's still DOCS_SENT (uploaded to the wrong box, or by staff),
+  // in which case the status never flipped — accept that too so the deal doesn't
+  // strand at "Review signed documents" with everything confirmed and no way on.
+  if (app.status !== 'FUNDING_SUBMITTED' && app.status !== 'DOCS_SENT') {
     revalidatePath(`/staff/applications/${applicationId}`);
     return;
   }
@@ -915,7 +920,7 @@ export async function moveToInForFundingAction(applicationId: string): Promise<v
     prisma.statusEvent.create({
       data: {
         applicationId,
-        from: 'FUNDING_SUBMITTED',
+        from: app.status,
         to: 'FUNDING_REVIEW',
         actorId: session.userId,
         note: 'All funding documents confirmed — moved to In for funding',

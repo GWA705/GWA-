@@ -63,7 +63,13 @@ export function FundingChecklist({
   const docTypes = fundingDocumentTypesFor(programType, { paymentMethod, isSplitPayment });
   const hasDocs = fundingDocs.length > 0;
   const hasUnverified = fundingDocs.some((d) => !d.verifiedAt);
-  const canMove = status === 'FUNDING_SUBMITTED';
+  // The deal can be advanced from here once the dealer's signed package is back
+  // and confirmed. Normally that's FUNDING_SUBMITTED (the dealer returned it
+  // through the portal), but a package can also land while the deal is still
+  // DOCS_SENT (uploaded to the wrong box, or added by staff) — in that case the
+  // status never flips, so without DOCS_SENT here the deal strands at "Review
+  // signed documents" with everything confirmed and no button to move it on.
+  const canMove = status === 'FUNDING_SUBMITTED' || status === 'DOCS_SENT';
   // The reviewer is the gate: once every uploaded funding document is confirmed
   // (and at least one exists), the deal can move to In for funding. The
   // required-type list above is guidance — a missing type shows red but does not

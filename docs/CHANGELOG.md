@@ -374,6 +374,19 @@ exhausting the single instance). No behaviour change for normal use.
   `testSingleLead()` on a French lead first. Portal display auto-translates lead
   free-text via DeepL.
 
+## 2026-10-06
+- **Fixed deals stranding at "Review signed documents" with no way to advance.**
+  A deal whose signed funding package came back while it was still `DOCS_SENT`
+  (uploaded to the wrong box, or added by staff — so the status never flipped to
+  `FUNDING_SUBMITTED`) reached the "Review signed documents" step and could have
+  every document + funding check confirmed, yet showed **no "Move to In for
+  funding" button** — because that button (and `moveToInForFundingAction`) only
+  accepted `FUNDING_SUBMITTED`. The deal sat there with nothing to click.
+  Fix: the "Move to In for funding" button now also shows for a `DOCS_SENT` deal,
+  and the action accepts it (same guard — every uploaded funding document must be
+  confirmed first). Immediate workaround for any already-stuck deal: the manual
+  **Change status** control on the deal moves it to In for funding (or Funded).
+
 ## 2026-10-05
 - **Find Customer bug fixed — stop showing the wrong person's phone/email for a
   journal row.** Find Customer showed the same customer with a different phone,
