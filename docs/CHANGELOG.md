@@ -375,6 +375,16 @@ exhausting the single instance). No behaviour change for normal use.
   free-text via DeepL.
 
 ## 2026-10-06
+- **Store routing is now editable in the portal (Admin → Dealers → Store
+  routing).** The HD store → dealer mapping was hardcoded (seed-only) with no way
+  to reassign a store; now there's a screen that lists every store grouped by the
+  office it routes to, with a per-store "move to [office]" control (including a
+  "＋ New office…" inline create), an "add a store" form, and activate/deactivate.
+  Because lead attribution is computed live from this mapping, moving a store to a
+  different dealer moves ALL of that store's leads — past and future — to the new
+  office at once (no per-lead migration). New actions: `reassignStoreAction`,
+  `addStoreMappingAction`, `setStoreActiveAction`. (Next: back up / two-way sync
+  this mapping to a Google Sheet in Drive.)
 - **Root-cause fix: funding packages now submit themselves when complete.** Deals
   were stranding at "Documents sent" because the whole flow depended on the dealer
   remembering to press a separate "Submit funding package" button — upload

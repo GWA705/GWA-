@@ -1530,6 +1530,109 @@ export async function importHomeDepotStoresAction(): Promise<ActionState> {
   return { ok: true, message: `Import complete — ${parts.join(', ')}. Re-running is safe (no duplicates).` };
 }
 
+// --- Store → dealer routing (which office a Home Depot store's leads go to) ---
+// Lead attribution is computed live from this mapping, so moving a store to a
+// different dealer moves ALL of that store's leads — past and future — to the
+// new dealer's view at once. No per-lead migration needed.
+
+/** Resolve a dealer by id, or create one from a typed name (for inline "new dealer"). */
+async function resolveRoutingDealer(
+  dealerId: string | null,
+  newDealerName: string | null,
+): Promise<{ id: string; name: string } | { error: string }> {
+  if (dealerId) {
+    const d = await prisma.dealer.findUnique({ where: { id: dealerId }, select: { id: true, name: true } });
+    return d ?? { error: 'That dealer no longer exists.' };
+  }
+  const name = (newDealerName ?? '').trim();
+  if (!name) return { error: 'Pick a dealer, or type a new dealer name.' };
+  const existing = await prisma.dealer.findFirst({ where: { name: { equals: name, mode: 'insensitive' } }, select: { id: true, name: true } });
+  if (existing) return existing;
+  const created = await prisma.dealer.create({ data: { name }, select: { id: true, name: true } });
+  return created;
+}
+
+/** Move one Home Depot store to a different dealer (existing, or a new one by name). */
+export async function reassignStoreAction(
+  storeId: string,
+  dealerId: string | null,
+  newDealerName: string | null,
+): Promise<ActionState> {
+  const session = await requireAdminSection('dealers');
+  const store = await prisma.homeDepotStore.findUnique({
+    where: { id: storeId },
+    include: { dealer: { select: { name: true } } },
+  });
+  if (!store) return { error: 'Store not found.' };
+
+  const resolved = await resolveRoutingDealer(dealerId, newDealerName);
+  if ('error' in resolved) return { error: resolved.error };
+  if (resolved.id === store.dealerId) return { ok: true, message: 'No change — the store already routes there.' };
+
+  // One store number should map to one dealer: block if the target already has it.
+  const dupe = await prisma.homeDepotStore.findFirst({ where: { dealerId: resolved.id, number: store.number } });
+  if (dupe) return { error: `${resolved.name} already has store ${store.number}.` };
+
+  await prisma.homeDepotStore.update({ where: { id: storeId }, data: { dealerId: resolved.id } });
+  await audit({
+    actorId: session.userId,
+    action: 'DEALER_UPDATE',
+    entityType: 'HomeDepotStore',
+    entityId: storeId,
+    detail: `Routing: store ${store.number} (${store.name ?? '—'}) moved ${store.dealer?.name ?? '?'} → ${resolved.name}`,
+  });
+  revalidatePath('/admin/dealers/routing');
+  revalidatePath('/admin/dealers');
+  return { ok: true, message: `Store ${store.number} now routes to ${resolved.name}. All its leads moved with it.` };
+}
+
+/** Add a new store → dealer mapping (assign a store number to a dealer). */
+export async function addStoreMappingAction(
+  rawNumber: string,
+  city: string,
+  dealerId: string | null,
+  newDealerName: string | null,
+): Promise<ActionState> {
+  const session = await requireAdminSection('dealers');
+  const number = (rawNumber.match(/\d{3,}/)?.[0] ?? '').trim();
+  if (!number) return { error: 'Enter a valid Home Depot store number.' };
+
+  const resolved = await resolveRoutingDealer(dealerId, newDealerName);
+  if ('error' in resolved) return { error: resolved.error };
+
+  const dupe = await prisma.homeDepotStore.findFirst({ where: { dealerId: resolved.id, number } });
+  if (dupe) return { error: `${resolved.name} already has store ${number}.` };
+
+  await prisma.homeDepotStore.create({ data: { dealerId: resolved.id, number, name: city.trim() || null } });
+  await audit({
+    actorId: session.userId,
+    action: 'DEALER_UPDATE',
+    entityType: 'HomeDepotStore',
+    entityId: 'new',
+    detail: `Routing: added store ${number} (${city.trim() || '—'}) → ${resolved.name}`,
+  });
+  revalidatePath('/admin/dealers/routing');
+  revalidatePath('/admin/dealers');
+  return { ok: true, message: `Store ${number} added and routed to ${resolved.name}.` };
+}
+
+/** Activate / deactivate a store mapping (inactive stores route nothing). */
+export async function setStoreActiveAction(storeId: string, active: boolean): Promise<ActionState> {
+  const session = await requireAdminSection('dealers');
+  const store = await prisma.homeDepotStore.findUnique({ where: { id: storeId }, select: { number: true } });
+  if (!store) return { error: 'Store not found.' };
+  await prisma.homeDepotStore.update({ where: { id: storeId }, data: { active } });
+  await audit({
+    actorId: session.userId,
+    action: 'DEALER_UPDATE',
+    entityType: 'HomeDepotStore',
+    entityId: storeId,
+    detail: `Routing: store ${store.number} ${active ? 'activated' : 'deactivated'}`,
+  });
+  revalidatePath('/admin/dealers/routing');
+  return { ok: true };
+}
+
 // --- Dealer alerts (forced-acknowledgement pop-ups) ------------------------
 
 export async function createDealerAlertAction(

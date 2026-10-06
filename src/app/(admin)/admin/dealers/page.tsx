@@ -23,6 +23,10 @@ export default async function DealersPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-semibold text-gray-900">Dealers</h1>
         <div className="flex flex-wrap items-center gap-3 text-sm">
+          <Link href="/admin/dealers/routing" className="font-medium text-brand-700 hover:underline">
+            Store routing
+          </Link>
+          <span className="text-gray-300">·</span>
           <Link href="/admin/dealers/locations" className="font-medium text-brand-700 hover:underline">
             Store map locations
           </Link>
