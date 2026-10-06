@@ -889,6 +889,120 @@ export async function updateJournalRowCells(
   };
 }
 
+// --- One-time UNITS back-fill ----------------------------------------------
+
+export interface BackfillUnitsDeal {
+  year: number; // sale year → picks the spreadsheet
+  tab: string; // month tab
+  row: number; // 1-based sheet row
+  units: number; // unit count to write
+  expectLastName: string; // safety: the row's Last Name must still match
+}
+
+export interface BackfillUnitsPlanRow {
+  tab: string;
+  row: number;
+  lastName: string;
+  units: number;
+}
+
+export interface BackfillUnitsResult {
+  filled: number; // UNITS cells written (apply) or that would be written (dry run)
+  plan: BackfillUnitsPlanRow[]; // the rows that got / would get a UNITS value
+  skippedHadValue: number; // UNITS already had a value — left alone
+  skippedMismatch: number; // the row's Last Name no longer matches — not written
+  skippedNoColumn: number; // that tab has no UNITS column
+  errors: string[];
+}
+
+/**
+ * One-time maintenance: fill the UNITS column on existing journal rows the portal
+ * has a unit count for, WITHOUT touching anything else. Only ever writes a BLANK
+ * UNITS cell, and only after re-reading the row's Last Name to confirm it still
+ * matches the deal we expect there (rows can shift), so it can never overwrite a
+ * value or land on the wrong customer. `apply: false` is a dry run — it reads and
+ * plans but writes nothing. Each tab's grid is read once; writes batch per sheet.
+ */
+export async function backfillJournalUnits(
+  deals: BackfillUnitsDeal[],
+  opts: { apply: boolean },
+): Promise<BackfillUnitsResult> {
+  const sheets = await sheetsClient();
+  const result: BackfillUnitsResult = {
+    filled: 0, plan: [], skippedHadValue: 0, skippedMismatch: 0, skippedNoColumn: 0, errors: [],
+  };
+
+  // Group by year (one spreadsheet per year), then by tab (one grid read each).
+  const byYear = new Map<number, BackfillUnitsDeal[]>();
+  for (const d of deals) {
+    const list = byYear.get(d.year) ?? [];
+    list.push(d);
+    byYear.set(d.year, list);
+  }
+
+  for (const [year, yearDeals] of byYear) {
+    let ssId: string;
+    try {
+      ssId = await resolveWriteSheetId(year);
+    } catch (e) {
+      result.errors.push(`No journal sheet for ${year}: ${(e as Error).message}`);
+      continue;
+    }
+
+    const byTab = new Map<string, BackfillUnitsDeal[]>();
+    for (const d of yearDeals) {
+      const list = byTab.get(d.tab) ?? [];
+      list.push(d);
+      byTab.set(d.tab, list);
+    }
+
+    for (const [tab, tabDeals] of byTab) {
+      let layout: JournalLayout;
+      try {
+        layout = await readLayout(sheets, tab, ssId);
+      } catch (e) {
+        result.errors.push(`Could not read tab "${tab}" (${year}): ${(e as Error).message}`);
+        continue;
+      }
+      const unitsCol = layout.columns['units'];
+      if (unitsCol == null) {
+        result.skippedNoColumn += tabDeals.length;
+        continue;
+      }
+      const lastNameCol = layout.columns['lastName'];
+
+      const data: sheets_v4.Schema$ValueRange[] = [];
+      for (const d of tabDeals) {
+        if (!(d.units > 0)) continue; // nothing meaningful to write
+        const target = layout.rows[d.row - 1] || [];
+        // Safety: the row's Last Name must still match the deal we expect there.
+        const rowLast = lastNameCol != null ? norm(target[lastNameCol]) : '';
+        if (!rowLast || rowLast !== norm(d.expectLastName)) {
+          result.skippedMismatch += 1;
+          continue;
+        }
+        // Only fill a blank UNITS cell — never overwrite a value.
+        if (norm(target[unitsCol]) !== '') {
+          result.skippedHadValue += 1;
+          continue;
+        }
+        result.plan.push({ tab, row: d.row, lastName: d.expectLastName, units: d.units });
+        data.push({ range: `'${tab}'!${colLetter(unitsCol)}${d.row}`, values: [[String(d.units)]] });
+      }
+
+      if (opts.apply && data.length > 0) {
+        await sheets.spreadsheets.values.batchUpdate({
+          spreadsheetId: ssId,
+          requestBody: { valueInputOption: 'USER_ENTERED', data },
+        });
+      }
+      result.filled += data.length;
+    }
+  }
+
+  return result;
+}
+
 // --- Re-place a misplaced row ----------------------------------------------
 
 export interface JournalClearResult {

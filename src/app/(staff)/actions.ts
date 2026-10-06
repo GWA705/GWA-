@@ -11,7 +11,7 @@ import { markReviewerAction } from '@/lib/activity';
 import { encryptOptional, decryptOptional } from '@/lib/crypto';
 import { toTitleCase, titleOrNull } from '@/lib/textcase';
 import { mergeProductsSold, journalProductNames } from '@/lib/products';
-import { writeDealToJournal, writeCancellationToJournal, clearJournalRow, journalEnabled, type JournalDeal } from '@/lib/journal';
+import { writeDealToJournal, writeCancellationToJournal, clearJournalRow, journalEnabled, backfillJournalUnits, type JournalDeal, type BackfillUnitsDeal, type BackfillUnitsPlanRow } from '@/lib/journal';
 import { storeFiles } from '@/lib/upload';
 import { deleteDocument, getDocument } from '@/lib/storage';
 import { notifyStatusChange, notifyNewNote, notifyCancellationResolved, notifyConfirmationIssue } from '@/lib/notify';
@@ -1040,6 +1040,91 @@ export async function advanceReadyFundingDealsAction(): Promise<{ moved: number 
   revalidatePath('/admin');
   revalidatePath('/staff');
   return { moved };
+}
+
+export interface BackfillUnitsSummary {
+  matched: number; // portal deals with a recorded journal row + products
+  filled: number; // UNITS cells written (apply) or that would be written (dry run)
+  plan: BackfillUnitsPlanRow[];
+  skippedHadValue: number;
+  skippedMismatch: number;
+  skippedNoColumn: number;
+  errors: string[];
+  applied: boolean;
+}
+
+/**
+ * One-time back-fill of the journal UNITS column on rows the portal already
+ * placed (it recorded the tab + row). The unit count is the number of products
+ * on the deal — identical to what the live writer now stamps on every new deal.
+ * Only ever fills a BLANK UNITS cell and verifies the row's Last Name first, so
+ * it never overwrites a value or the wrong row. `apply: false` is a dry run.
+ */
+export async function backfillJournalUnitsAction(apply: boolean): Promise<BackfillUnitsSummary> {
+  const session = await requireAdminSection('overview');
+  const empty: BackfillUnitsSummary = {
+    matched: 0, filled: 0, plan: [], skippedHadValue: 0, skippedMismatch: 0, skippedNoColumn: 0, errors: [], applied: false,
+  };
+  if (!journalEnabled()) {
+    return { ...empty, errors: ['The sales journal is not configured, so there is nothing to back-fill.'] };
+  }
+
+  // Every deal the portal has placed on the journal (tab + row recorded) that we
+  // have a product list for. The unit count is simply the number of products
+  // (the journal-name mapping is 1:1, so this matches the live writer exactly).
+  const apps = await prisma.application.findMany({
+    where: {
+      journalTab: { not: null },
+      journalRow: { not: null },
+      productsSold: { isEmpty: false },
+    },
+    select: {
+      applicantLastName: true,
+      productsSold: true,
+      journalTab: true,
+      journalRow: true,
+      dateOfSale: true,
+      createdAt: true,
+    },
+  });
+
+  const deals: BackfillUnitsDeal[] = [];
+  for (const a of apps) {
+    const units = a.productsSold.filter((p) => p && p.trim()).length;
+    if (units <= 0) continue;
+    const saleDate = a.dateOfSale ?? a.createdAt;
+    deals.push({
+      year: saleDate.getUTCFullYear(),
+      tab: a.journalTab!,
+      row: a.journalRow!,
+      units,
+      expectLastName: a.applicantLastName,
+    });
+  }
+
+  const res = await backfillJournalUnits(deals, { apply });
+
+  if (apply && res.filled > 0) {
+    await audit({
+      actorId: session.userId,
+      action: 'JOURNAL_WRITE',
+      entityType: 'Journal',
+      entityId: 'units-backfill',
+      detail: `Back-filled UNITS on ${res.filled} journal row(s)`,
+    });
+    revalidatePath('/admin');
+  }
+
+  return {
+    matched: deals.length,
+    filled: res.filled,
+    plan: res.plan,
+    skippedHadValue: res.skippedHadValue,
+    skippedMismatch: res.skippedMismatch,
+    skippedNoColumn: res.skippedNoColumn,
+    errors: res.errors,
+    applied: apply,
+  };
 }
 
 /**

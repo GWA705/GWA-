@@ -375,6 +375,17 @@ exhausting the single instance). No behaviour change for normal use.
   free-text via DeepL.
 
 ## 2026-10-06
+- **One-time UNITS back-fill tool (Admin → Overview).** A two-step maintenance
+  button (`BackfillUnitsButton`) fills the journal **UNITS** column on existing
+  rows the portal already placed, using each deal's product count (the same
+  number the live writer now stamps). **Preview** is a dry run — it reads the
+  sheet, matches portal deals to their recorded tab+row, and shows exactly what
+  it would write without changing anything; **Apply** then writes. It only ever
+  fills a **blank** UNITS cell and re-verifies the row's Last Name first, so it
+  can never overwrite a value or land on the wrong customer. Rows the portal
+  didn't write (pure manual entries with no matching deal) are left as-is.
+  Admin-only; each apply is audited (`backfillJournalUnits` in `journal.ts`,
+  `backfillJournalUnitsAction`).
 - **Journal now seeds UNITS + Deal Result on write.** When the portal writes a
   deal to the sales journal it now fills two columns the office used to type by
   hand: **UNITS** (column P) = the number of products on the deal (e.g. a water

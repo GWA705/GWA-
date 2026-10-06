@@ -6,6 +6,7 @@ import type { ApplicationStatus } from '@prisma/client';
 import { StorageCheck } from './StorageCheck';
 import { StoreImport } from './StoreImport';
 import { AdvanceReadyDealsButton } from './AdvanceReadyDealsButton';
+import { BackfillUnitsButton } from './BackfillUnitsButton';
 import { listStuckFundingDeals } from '@/app/(staff)/actions';
 import { StorageMeter } from './StorageMeter';
 import { getStorageUsage } from '@/lib/storage-usage';
@@ -244,6 +245,7 @@ export default async function AdminOverview() {
         <StorageMeter usage={storageUsage} />
         <StorageCheck />
         <StoreImport />
+        <BackfillUnitsButton />
       </div>
     </div>
   );
