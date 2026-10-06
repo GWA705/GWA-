@@ -375,6 +375,23 @@ exhausting the single instance). No behaviour change for normal use.
   free-text via DeepL.
 
 ## 2026-10-06
+- **HD Resolution Centre (Phase 3 core).** A new **"HD Resolution"** area in the
+  staff nav — a queue for Home Depot resolution-centre problems so they don't get
+  lost. Visible to **all internal staff** (reviewers + admins). Each case:
+  - links to a **customer** (and the deal when there is one) and the **owning
+    office**, and shows up **on the customer's Find-customer page** (two-way), with
+    an **"Open HD case"** button there to create one pre-linked;
+  - moves through **Open → In progress → Waiting on office → Escalated to HD →
+    Resolved**, plus **Closed**; status changes are logged to the activity thread;
+  - **ages amber at 3 days / red at 7 days** (open cases only);
+  - shows the linked deal's **documents & resources**, an **activity thread**
+    (notes), **assign-to**, and a one-way **"Notify office"** (in-portal + email,
+    reusing the proven note/notify path).
+  New `ResolutionCase` + `ResolutionCaseNote` tables and `ResolutionStatus` enum
+  (additive migration), `src/lib/resolutionCases.ts` / `resolutionStatus.ts`, the
+  queue / new / `[id]` pages, and `CaseControls`. *Deferred to Phase 3b: direct
+  file uploads to a case, resource-library links, and the Gmail email-thread link
+  (needs a Google Workspace admin action).*
 - **Call log forward-to-office (Phase 2).** Each logged call that hasn't been
   forwarded now has a **"↗ Forward to {office}"** button in the call history, so
   staff can hand a call to the owning office **after the fact** (Phase 1 only

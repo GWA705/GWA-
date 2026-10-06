@@ -12,6 +12,7 @@ import { canSearchAllCustomers } from '@/lib/customerSearch';
 import { canManageGiftCards, staffHasGiftCardUnread } from '@/lib/giftCardAccess';
 import { totalUnread } from '@/lib/chat';
 import { hasOutstandingConfirmations } from '@/lib/confirmationQueue';
+import { hasOpenResolutions } from '@/lib/resolutionCases';
 
 export default async function StaffLayout({ children }: { children: React.ReactNode }) {
   const user = await requireRole('REVIEWER', 'ADMIN');
@@ -36,6 +37,8 @@ export default async function StaffLayout({ children }: { children: React.ReactN
   if (canMail) nav.push({ href: '/staff/mail', label: 'Mail' });
   if (canDeals) nav.push({ href: '/staff/conversations', label: 'Chat', badge: (await totalUnread(user)) > 0 });
   if (canConfirmations) nav.push({ href: '/staff/confirmations', label: 'Confirmation calls', badge: await hasOutstandingConfirmations() });
+  // HD Resolution Centre — all internal staff (reviewers + admins).
+  nav.push({ href: '/staff/resolutions', label: 'HD Resolution', badge: await hasOpenResolutions() });
   if (await canManageGiftCards(user)) {
     nav.push({ href: '/staff/gift-cards', label: 'Gift cards', badge: await staffHasGiftCardUnread() });
   }

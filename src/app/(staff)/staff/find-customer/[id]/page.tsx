@@ -15,6 +15,8 @@ import { MessageOffice } from '../MessageOffice';
 import { EditCustomerContact } from '../EditCustomerContact';
 import { CustomerCallLog } from '../CustomerCallLog';
 import { loadCustomerCalls } from '@/lib/customerCalls';
+import { openCasesForCustomer } from '@/lib/resolutionCases';
+import { STATUS_LABEL, statusChipClass } from '@/lib/resolutionStatus';
 import { DocViewer } from '@/components/DocViewer';
 
 export const dynamic = 'force-dynamic';
@@ -64,6 +66,7 @@ export default async function CustomerAssistPage({ params }: { params: { id: str
   const effAddress = overlay(origAddress, ov?.address);
 
   const callLog = await loadCustomerCalls(app.id, effPhone);
+  const openCases = await openCasesForCustomer(effPhone);
   const manuals = await matchManualsForProducts(app.productsSold);
   const p = app.dealer?.profile ?? null;
   const officeName = p?.businessName || app.dealer?.name || 'their office';
@@ -105,6 +108,28 @@ export default async function CustomerAssistPage({ params }: { params: { id: str
         lastAt={callLog.lastAt}
         calls={callLog.calls}
       />
+
+      {/* HD Resolution cases for this customer */}
+      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-slate-100">🧰 HD Resolution</h2>
+          <Link href={`/staff/resolutions/new?applicationId=${app.id}`} className="btn-secondary text-sm">＋ Open HD case</Link>
+        </div>
+        {openCases.length === 0 ? (
+          <p className="mt-2 text-sm text-gray-500 dark:text-slate-400">No open cases for this customer.</p>
+        ) : (
+          <ul className="mt-3 space-y-2">
+            {openCases.map((rc) => (
+              <li key={rc.id} className="flex items-center justify-between gap-3">
+                <Link href={`/staff/resolutions/${rc.id}`} className="min-w-0 flex-1 truncate text-sm font-medium text-brand-700 hover:underline dark:text-sky-300">
+                  {rc.caseNumber} · {rc.title}
+                </Link>
+                <span className={statusChipClass(rc.status)}>{STATUS_LABEL[rc.status]}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       {/* Editable customer contact (stored as a correction; original untouched) */}
       <EditCustomerContact

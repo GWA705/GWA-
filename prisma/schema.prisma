@@ -657,6 +657,9 @@ model User {
   payoutsRecorded     Payout[]
   notesAuthored       Note[]
   customerCallsLogged CustomerCall[]  @relation("CustomerCallLogger")
+  resolutionCasesOpened   ResolutionCase[]     @relation("ResolutionOpenedBy")
+  resolutionCasesAssigned ResolutionCase[]     @relation("ResolutionAssignedTo")
+  resolutionNotesAuthored ResolutionCaseNote[] @relation("ResolutionNoteAuthor")
   chatMessages        ChatMessage[]
   conversationReads   ConversationRead[]
   confirmations       Confirmation[]
@@ -1306,6 +1309,7 @@ model Application {
   linkedMails     Mail[]              @relation("MailApplication")
   callRecordings  CallRecording[]
   customerCalls   CustomerCall[]
+  resolutionCases ResolutionCase[] @relation("ApplicationResolutionCases")
 
   @@index([dealerId])
   @@index([status])
@@ -1341,6 +1345,72 @@ model CustomerCall {
   @@index([applicationId])
   @@index([customerPhone])
   @@index([createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// HD Resolution Centre — a queue for Home Depot resolution-centre problems so
+// they don't get lost. Each case links to a customer (and the deal when there
+// is one) and the office that owns them, moves through a small status flow, and
+// carries a notes/activity thread. Barrie runs the case; the office is notified
+// one-way. All internal staff (reviewers + admins) can see and work cases.
+// ---------------------------------------------------------------------------
+enum ResolutionStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING_ON_OFFICE
+  ESCALATED_HD
+  RESOLVED
+  CLOSED
+}
+
+model ResolutionCase {
+  id          String           @id @default(cuid())
+  caseNumber  String           @unique // e.g. "HD-104"
+  title       String
+  description String           @db.Text
+  status      ResolutionStatus @default(OPEN)
+  priority    String           @default("normal") // low | normal | high
+
+  // Who/what it's about. applicationId links the deal when there is one.
+  applicationId  String?
+  application    Application? @relation("ApplicationResolutionCases", fields: [applicationId], references: [id], onDelete: SetNull)
+  customerName   String
+  customerPhone  String       @default("") // normalized (last 10) for lookups
+  officeDealerId String? // the office that owns the customer (notify target)
+  hdReference    String?
+
+  openedById   String
+  openedBy     User    @relation("ResolutionOpenedBy", fields: [openedById], references: [id])
+  assignedToId String?
+  assignedTo   User?   @relation("ResolutionAssignedTo", fields: [assignedToId], references: [id])
+
+  resolvedAt     DateTime?
+  resolutionNote String?   @db.Text
+
+  notes     ResolutionCaseNote[]
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+
+  @@index([status])
+  @@index([applicationId])
+  @@index([customerPhone])
+  @@index([createdAt])
+}
+
+model ResolutionCaseNote {
+  id         String            @id @default(cuid())
+  caseId     String
+  case       ResolutionCase    @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  authorId   String
+  author     User              @relation("ResolutionNoteAuthor", fields: [authorId], references: [id])
+  body       String            @db.Text
+  // When a note accompanies a status change, these record the transition for the
+  // activity timeline (both null for a plain note).
+  statusFrom ResolutionStatus?
+  statusTo   ResolutionStatus?
+  createdAt  DateTime          @default(now())
+
+  @@index([caseId])
 }
 
 // ---------------------------------------------------------------------------
