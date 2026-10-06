@@ -375,6 +375,10 @@ exhausting the single instance). No behaviour change for normal use.
   free-text via DeepL.
 
 ## 2026-10-06
+- **Recorded two production-hardening reminders** (at Sean's request) at the top
+  of `RELIABILITY.md`: (1) change AWS to production settings, and (2) enable RDS
+  **Multi-AZ** failover on `gwa-portal-db`. Both are AWS console actions, no
+  deadline set — tick them off in that doc when done.
 - **Gift-card notes are now always viewable — including after a card is sent.**
   Before, staff could see a request's note thread only while it sat in the
   pending queue; once sent it dropped into History, which showed no notes. Now

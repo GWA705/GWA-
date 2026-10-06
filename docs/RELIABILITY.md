@@ -6,6 +6,25 @@ with `BUILD-FACTS.md` (architecture) and `CHANGELOG.md` (what shipped).
 
 ---
 
+## ⏰ Open reminders — production hardening (Sean to action, no deadline set)
+
+Captured 2026-10-06 at Sean's request. Both are AWS console actions; neither is
+urgent, but tick them off here when done so they're not forgotten.
+
+- [ ] **Change AWS to production settings.** Move the Elastic Beanstalk / AWS
+      configuration from its current development-sized setup to production-grade.
+      Known items to lock in (details in **§3** below): confirm/right-size the
+      instance type (the t3.medium vs t3.large discrepancy in §3), add the
+      optional **CloudWatch disk/memory alarms**, and decide on **zero-downtime
+      (load-balanced) deploys**. *Define the exact "production settings" list
+      with Claude before changing anything.*
+- [ ] **Enable RDS Multi-AZ on `gwa-portal-db`.** Single-AZ today. Multi-AZ adds
+      **automatic database failover** for ~2× the DB cost — the big remaining gap
+      in uptime resilience. Do it once revenue depends on the portal staying up.
+      (Same item as the Multi-AZ checkbox in §3.)
+
+---
+
 ## 1. What happened on 2026-10-02 (postmortem)
 
 - **Symptom:** mid-afternoon the portal went to a load screen then blank, then
