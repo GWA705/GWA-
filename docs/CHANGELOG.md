@@ -375,6 +375,17 @@ exhausting the single instance). No behaviour change for normal use.
   free-text via DeepL.
 
 ## 2026-10-06
+- **Bolder, meaning-mapped status chips.** The old palette gave a near-unique
+  colour to each of twelve statuses, mostly in the same blue-green zone, so a
+  quick scan couldn't tell them apart. New shared `chipStyle.tsx` maps every
+  status (and every reviewer-queue tone) to one of **seven meaning buckets** —
+  urgent / new / on-your-desk / with-the-dealer / money-stage / done / closed —
+  each a distinct, bolder hue. The reviewer-queue **action chip** is now a loud
+  **solid tag with a meaning icon** (System A); **status badges** across the app
+  (`StatusBadge`: dealer, staff, dashboard, search) are a **soft left-bar chip**
+  (System B). Colour carries meaning, the label carries the exact stage, and an
+  icon/shape keeps it readable for colour-blind viewers and in sunlight. (Chosen
+  from the design mockup.)
 - **Dealers can add a co-applicant to an existing deal (no re-submitting).** Co-
   applicant data was only capturable at new-deal creation, so a dealer who needed
   to add one had to start over as a new customer. New "Co-applicant" section on

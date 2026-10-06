@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import type { ProgramType } from '@prisma/client';
 import { ProgramBadge } from '@/components/ProgramBadge';
+import { TONE_BUCKET, solidChipClass, barChipClass, BucketIcon, type ChipBucket } from '@/lib/chipStyle';
 import { useT } from '@/i18n/client';
 
 // A pre-formatted deal row (all display fields computed on the server).
@@ -43,23 +44,18 @@ export interface PriorityBands {
   prog: QueueRow[]; // in progress or waiting on the dealer
 }
 
-const TONE_CLASS: Record<Tone, string> = {
-  new: 'bg-blue-100 text-blue-800',
-  review: 'bg-sky-100 text-sky-800',
-  appr: 'bg-green-100 text-green-800',
-  sent: 'bg-cyan-100 text-cyan-800',
-  fund: 'bg-indigo-100 text-indigo-800',
-  funded: 'bg-emerald-100 text-emerald-800',
-  paid: 'bg-teal-100 text-teal-800',
-  prob: 'bg-red-100 text-red-800',
-  decl: 'bg-gray-100 text-gray-600',
-  note: 'bg-amber-100 text-amber-800',
-};
+const toBucket = (tone: Tone): ChipBucket => TONE_BUCKET[tone] ?? 'wait';
 
-// Status/action chips stay on a single line — a long label should never wrap
-// into a tall oval (the pill is rounded-full). Callers pass short labels.
-function Pill({ tone, label }: { tone: Tone; label: string }) {
-  return <span className={`badge whitespace-nowrap ${TONE_CLASS[tone]}`}>{label}</span>;
+// The loud "what to do" chip (System A: solid fill, white bold text, meaning
+// icon). Used for the action + activity chips a reviewer scans for.
+function ActionPill({ tone, label }: { tone: Tone; label: string }) {
+  const b = toBucket(tone);
+  return <span className={solidChipClass(b)}><BucketIcon bucket={b} />{label}</span>;
+}
+// The calmer "where it is" chip (System B: soft tint + left colour bar). Used for
+// the status column so long lists stay readable.
+function StatusPill({ tone, label }: { tone: Tone; label: string }) {
+  return <span className={barChipClass(toBucket(tone))}>{label}</span>;
 }
 
 type Kind = 'approve' | 'updates' | 'funding' | 'all';
@@ -105,14 +101,14 @@ export function DealTable({ rows, kind }: { rows: QueueRow[]; kind: Kind }) {
               </td>
               <td className="hidden px-3 py-3 text-gray-600 sm:table-cell sm:px-4">{a.dealer}</td>
               {showActivity ? (
-                <td className="px-3 py-3 sm:px-4">{a.activityLabel && a.activityTone ? <Pill tone={a.activityTone} label={a.activityLabel} /> : <span className="text-gray-300">—</span>}</td>
+                <td className="px-3 py-3 sm:px-4">{a.activityLabel && a.activityTone ? <ActionPill tone={a.activityTone} label={a.activityLabel} /> : <span className="text-gray-300">—</span>}</td>
               ) : (
                 <td className="hidden px-3 py-3 sm:table-cell sm:px-4">
                   <ProgramBadge type={a.programType} category={a.programCategory} />
                 </td>
               )}
               {!showActivity && !showDate && <td className="px-3 py-3 tabular-nums sm:px-4">{a.amount}</td>}
-              <td className="px-3 py-3 sm:px-4"><Pill tone={a.tone} label={a.statusLabel} /></td>
+              <td className="px-3 py-3 sm:px-4"><StatusPill tone={a.tone} label={a.statusLabel} /></td>
               <td className={`px-3 py-3 tabular-nums sm:px-4 ${a.waitHot ? 'font-semibold text-red-700' : 'text-gray-500'}`}>
                 {showDate ? a.dateLabel : a.waitLabel}
               </td>
@@ -160,22 +156,19 @@ function PriorityRow({ r }: { r: QueueRow }) {
             Shown on all sizes; wraps under the meta line. */}
         {r.activityLabel && r.activityTone && (
           <div className="mt-1.5">
-            <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ${TONE_CLASS[r.activityTone]}`}>
-              <span className="h-1.5 w-1.5 flex-none rounded-full bg-current opacity-70" aria-hidden />
-              {r.activityLabel}
-            </span>
+            <ActionPill tone={r.activityTone} label={r.activityLabel} />
           </div>
         )}
         {/* On mobile the action chip sits under the meta line so it can never
             collide with the wait/status column on the right (narrow screens
             don't have room for both side by side). */}
         <div className="mt-1.5 sm:hidden">
-          <Pill tone={r.actionTone} label={r.actionLabel} />
+          <ActionPill tone={r.actionTone} label={r.actionLabel} />
         </div>
       </div>
       {/* Action chip — its own column on sm+ only. */}
       <div className="hidden justify-self-end px-2 sm:block">
-        <Pill tone={r.actionTone} label={r.actionLabel} />
+        <ActionPill tone={r.actionTone} label={r.actionLabel} />
       </div>
       {/* Wait time always; the dealer-facing status only where there's room. */}
       <div className="justify-self-end whitespace-nowrap py-3 pr-3 text-right sm:pr-4">
