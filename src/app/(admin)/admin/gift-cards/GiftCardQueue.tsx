@@ -236,16 +236,26 @@ export function GiftCardQueue({ pending }: { pending: PendingCard[] }) {
         </div>
       </form>
 
-      {/* Note thread lives OUTSIDE the mark-sent form (no nested forms). */}
+      {/* Note thread opens as an overlay so it's visible wherever the row was
+          clicked — it used to render at the very bottom of the page, so clicking
+          Notes on a row near the top looked like it did nothing. Lives OUTSIDE
+          the mark-sent form (no nested forms). */}
       {openCard && (
-        <div className="card p-4">
-          <div className="mb-2 flex items-center justify-between">
-            <div className="text-sm font-medium text-gray-900">
-              {openCard.customerName} · <span className="text-gray-500">{openCard.dealerName}</span>
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 sm:items-center"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setOpenId(null)}
+        >
+          <div className="card mt-10 w-full max-w-lg p-4 sm:mt-0" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-2 flex items-center justify-between">
+              <div className="text-sm font-medium text-gray-900">
+                {openCard.customerName} · <span className="text-gray-500">{openCard.dealerName}</span>
+              </div>
+              <button type="button" onClick={() => setOpenId(null)} className="text-xs text-gray-500 underline">close</button>
             </div>
-            <button type="button" onClick={() => setOpenId(null)} className="text-xs text-gray-500 underline">close</button>
+            <GiftCardThread requestId={openCard.id} notes={openCard.notes} side="staff" addAction={addStaffGiftCardNoteAction} />
           </div>
-          <GiftCardThread requestId={openCard.id} notes={openCard.notes} side="staff" addAction={addStaffGiftCardNoteAction} />
         </div>
       )}
     </div>
