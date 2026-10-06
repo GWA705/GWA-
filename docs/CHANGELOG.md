@@ -375,6 +375,17 @@ exhausting the single instance). No behaviour change for normal use.
   free-text via DeepL.
 
 ## 2026-10-06
+- **Reviewer now sees WHY a deal is stuck before funding — no more mystery.** When
+  a `DOCS_SENT` deal has its signed package back but hasn't moved on, the deal
+  shows an amber banner explaining exactly why, mirroring the dealer-side submit
+  gate: either a **serial number is missing** for a product (which silently
+  blocks the dealer's "Submit funding package" when their finance company
+  requires one per product — it names the product), or the dealer **uploaded the
+  docs but never pressed Submit** (with a one-click "Move to In for funding"). New
+  pure `diagnoseFundingSubmit` helper (`fundingSubmitStatus.ts`), unit-tested.
+  Also broadened `advanceDealToInForFundingAction` to accept `DOCS_SENT` so the
+  banner's button works. Follow-up worth doing: make the dealer's Submit button
+  say what's missing instead of silently bouncing.
 - **Fixed deals stranding at "Review signed documents" with no way to advance.**
   A deal whose signed funding package came back while it was still `DOCS_SENT`
   (uploaded to the wrong box, or added by staff — so the status never flipped to

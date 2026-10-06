@@ -1062,6 +1062,9 @@ export async function advanceDealToInForFundingAction(applicationId: string): Pr
   const fundingDocs = a.documents;
   const eligible =
     a.status === 'FUNDING_SUBMITTED' ||
+    // A DOCS_SENT deal whose signed package came back but never flipped to
+    // FUNDING_SUBMITTED (dealer didn't press Submit, or it was added another way).
+    a.status === 'DOCS_SENT' ||
     isOutOfBandReturn({ status: a.status, fundingDocTypes: fundingDocs.map((d) => d.type), statusHistoryTos: a.statusEvents.map((e) => e.to) });
   if (!eligible) return { error: 'This deal is not at a stage that can move to In for funding.' };
   if (fundingDocs.length === 0 || fundingDocs.some((d) => d.verifiedAt === null)) {

@@ -57,6 +57,7 @@ import {
 import { VerifyFinanceNumberButton } from '@/components/VerifyFinanceNumberButton';
 import { STATUS_LABELS, REVIEWER_PAPERWORK_TYPES, applicableVerificationChecks, decisionTone } from '@/lib/constants';
 import { isOutOfBandReturn } from '@/lib/outOfBandReturn';
+import { diagnoseFundingSubmit } from '@/lib/fundingSubmitStatus';
 import { AdvanceToFundingButton } from './AdvanceToFundingButton';
 import { ReviewRequestCard } from './ReviewRequestCard';
 import { FlagDealerIssueCard } from './FlagDealerIssueCard';
@@ -269,6 +270,17 @@ export default async function StaffApplicationDetail({
   // the dealer added anything new since the paperwork was sent — so a return
   // uploaded to the wrong place still advances the flow to "Review".
   const dealerReturnedDocs = hasDealerReturned(app.documents);
+
+  // Make the hold-up visible to the reviewer: when a DOCS_SENT deal has its
+  // signed package back (or a serial is missing), explain why it hasn't moved to
+  // funding — mirrors the dealer-side submit gate so there's no mystery.
+  const fundingSubmitDiagnosis = diagnoseFundingSubmit({
+    status: app.status,
+    requiresSerialPerProduct: !!app.financeCompany?.requiresSerialPerProduct,
+    productsSold: app.productsSold,
+    serialProductLabels: app.serialNumbers.filter((s) => s.value.trim()).map((s) => s.productLabel ?? ''),
+    hasReturnedDocs: dealerReturnedDocs,
+  });
 
   // Per-stage completion dates for the reviewer timeline (best-effort, from the
   // status history + records already loaded). Missing ones just render blank.
@@ -1002,6 +1014,19 @@ export default async function StaffApplicationDetail({
           </p>
           <DocumentList documents={lateDealerDocs} deleteAction={deleteDocumentAction} />
         </section>
+      )}
+
+      {fundingSubmitDiagnosis.show && !packageReturnedEarly && (
+        <div className="mb-4 flex items-start gap-3 rounded-lg border-2 border-amber-300 bg-amber-50 p-4">
+          <span className="mt-0.5 flex h-6 w-6 flex-none items-center justify-center rounded-full bg-amber-500 text-sm font-bold text-white" aria-hidden>i</span>
+          <div className="text-sm text-amber-900">
+            <p className="font-semibold">{fundingSubmitDiagnosis.title}</p>
+            <p className="mt-0.5">{fundingSubmitDiagnosis.detail}</p>
+            {fundingSubmitDiagnosis.missingSerialProducts.length === 0 && (
+              <div className="mt-2"><AdvanceToFundingButton applicationId={app.id} ready={fundingDocsReady} /></div>
+            )}
+          </div>
+        </div>
       )}
 
       {packageReturnedEarly && (
