@@ -24,13 +24,29 @@ export async function addStaffGiftCardNoteAction(_prev: GiftCardAdminState, form
 
   await prisma.giftCardRequest.update({
     where: { id },
-    data: { dealerUnread: true, notes: { create: { authorId: session.userId, fromDealer: false, body } } },
+    // Staff replying is also staff having reviewed it → clear the staff-unread flag.
+    data: { dealerUnread: true, staffUnread: false, notes: { create: { authorId: session.userId, fromDealer: false, body } } },
   });
   void notifyGiftCardNote(id, false);
   revalidatePath('/admin/gift-cards');
   revalidatePath('/staff/gift-cards');
   revalidatePath('/dealer/gift-cards');
   return { ok: true, message: 'Reply sent to the dealer.' };
+}
+
+/**
+ * Mark one request as reviewed — clears the staff-unread flag without replying.
+ * Lets staff clear a note on an already-sent card (so it leaves "Needs
+ * attention") once they've read it, even when no reply is needed.
+ */
+export async function markGiftCardReviewedAction(id: string): Promise<void> {
+  await requireGiftCardAccess(); // access enforced; throws if not allowed
+  if (!id) return;
+  const gc = await prisma.giftCardRequest.findUnique({ where: { id }, select: { id: true, staffUnread: true } });
+  if (!gc || !gc.staffUnread) return;
+  await prisma.giftCardRequest.update({ where: { id }, data: { staffUnread: false } });
+  revalidatePath('/admin/gift-cards');
+  revalidatePath('/staff/gift-cards');
 }
 
 /**

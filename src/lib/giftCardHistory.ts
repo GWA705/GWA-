@@ -22,6 +22,19 @@ export interface GiftCardBrowseParams {
  * Filtered, sorted, paginated gift-card requests, plus the list of months that
  * have requests (for the month dropdown). Built to scale to hundreds a month.
  */
+/** Format a request's notes for the shared GiftCardThread view (preformatted time). */
+export function giftCardNotesVM(
+  notes: { id: string; body: string; fromDealer: boolean; createdAt: Date; author: { name: string | null } | null }[],
+): { id: string; body: string; fromDealer: boolean; author: string; at: string }[] {
+  return notes.map((n) => ({
+    id: n.id,
+    body: n.body,
+    fromDealer: n.fromDealer,
+    author: n.author?.name ?? '—',
+    at: n.createdAt.toLocaleString('en-CA', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }),
+  }));
+}
+
 export async function queryGiftCards(p: GiftCardBrowseParams) {
   const status = STATUSES.includes(p.status ?? '') ? (p.status as GiftCardStatus) : '';
   const sort: 'newest' | 'oldest' = p.sort === 'oldest' ? 'oldest' : 'newest';

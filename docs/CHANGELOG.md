@@ -375,6 +375,22 @@ exhausting the single instance). No behaviour change for normal use.
   free-text via DeepL.
 
 ## 2026-10-06
+- **Gift-card notes are now always viewable — including after a card is sent.**
+  Before, staff could see a request's note thread only while it sat in the
+  pending queue; once sent it dropped into History, which showed no notes. Now
+  **every row in the gift-card History has a "💬 notes" button** that opens the
+  full two-way thread (and lets staff reply) on any card, no matter how old.
+  Two companion fixes so a dealer note on an **already-sent / old customer**
+  surfaces for review and doesn't get lost: (1) the staff-unread flag is **no
+  longer blanket-cleared on page load** — only pending cards clear; a note on a
+  sent card stays in **"Needs attention"** (and shows a red "new" marker in
+  History) until staff actually open its thread, reply, or hit the new **"Mark
+  reviewed"** button; (2) a staff reply now also clears the flag. Dealers could
+  already message/correct a sent card (`addGiftCardNoteAction` isn't gated by
+  status) — this makes sure the team always sees it. (`HistoryNotesButton`,
+  `markGiftCardReviewedAction`, `giftCardNotesVM`.) *Note: in-store lead-generator
+  corrections that come through the booking site are a separate system; this
+  covers the portal's gift-card note thread.*
 - **Owner reports now available on the admin side (all admins).** The four
   owner-only tools that used to live only on the dealer side — **Sales forecast,
   Sales reps, Custom report builder, and Accounting export** — now have

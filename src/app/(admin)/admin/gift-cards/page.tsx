@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { requireAdminSection } from '@/lib/session';
 import { loadGiftCardQueue } from '@/lib/giftCardQueueData';
-import { queryGiftCards, monthLabel } from '@/lib/giftCardHistory';
+import { queryGiftCards, monthLabel, giftCardNotesVM } from '@/lib/giftCardHistory';
 import { GiftCardQueue } from './GiftCardQueue';
 import { StaffFlaggedGiftCards } from './StaffFlaggedGiftCards';
 import { GiftCardHistory, type HistoryRow } from './GiftCardHistory';
@@ -19,7 +19,7 @@ export default async function AdminGiftCardsPage({
   const admin = await requireAdminSection('gift-cards');
   const [{ pending, flagged }, history] = await Promise.all([
     loadGiftCardQueue(),
-    queryGiftCards({ ...searchParams }),
+    queryGiftCards({ ...searchParams, includeNotes: true }),
   ]);
 
   const rows: HistoryRow[] = history.rows.map((r) => ({
@@ -31,6 +31,8 @@ export default async function AdminGiftCardsPage({
     amount: Number(r.amount),
     status: r.status,
     at: stamp(r.createdAt),
+    notes: giftCardNotesVM((r as unknown as { notes?: Parameters<typeof giftCardNotesVM>[0] }).notes ?? []),
+    staffUnread: (r as { staffUnread?: boolean }).staffUnread ?? false,
   }));
   const months = history.months.map((m) => ({ value: m, label: monthLabel(m) }));
 

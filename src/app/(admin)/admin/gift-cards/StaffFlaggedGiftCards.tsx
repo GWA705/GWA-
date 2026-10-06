@@ -2,7 +2,7 @@
 
 import { useFormStatus } from 'react-dom';
 import { GiftCardThread, type GiftCardNoteVM } from '@/components/GiftCardThread';
-import { addStaffGiftCardNoteAction, unsendGiftCardAction } from './actions';
+import { addStaffGiftCardNoteAction, unsendGiftCardAction, markGiftCardReviewedAction } from './actions';
 
 export interface FlaggedCard {
   id: string;
@@ -21,6 +21,15 @@ function ReopenBtn() {
   return (
     <button type="submit" className="btn-secondary text-xs" disabled={pending}>
       {pending ? 'Reopening…' : '↩ Reopen to re-send'}
+    </button>
+  );
+}
+
+function MarkReviewedBtn() {
+  const { pending } = useFormStatus();
+  return (
+    <button type="submit" className="text-xs font-medium text-gray-500 hover:underline" disabled={pending}>
+      {pending ? 'Clearing…' : '✓ Mark reviewed'}
     </button>
   );
 }
@@ -55,12 +64,17 @@ export function StaffFlaggedGiftCards({ flagged }: { flagged: FlaggedCard[] }) {
             <div className="mt-2 border-t border-gray-100 pt-2">
               <GiftCardThread requestId={c.id} notes={c.notes} side="staff" addAction={addStaffGiftCardNoteAction} />
             </div>
-            {c.status === 'SENT' && (
-              <form action={unsendGiftCardAction.bind(null, c.id)} className="mt-2">
-                <ReopenBtn />
-                <span className="ml-2 text-[11px] text-gray-400">Puts it back in the pending queue so you can re-send in Guusto.</span>
+            <div className="mt-2 flex flex-wrap items-center gap-3">
+              {c.status === 'SENT' && (
+                <form action={unsendGiftCardAction.bind(null, c.id)} className="flex items-center gap-2">
+                  <ReopenBtn />
+                  <span className="text-[11px] text-gray-400">Puts it back in the pending queue so you can re-send in Guusto.</span>
+                </form>
+              )}
+              <form action={markGiftCardReviewedAction.bind(null, c.id)}>
+                <MarkReviewedBtn />
               </form>
-            )}
+            </div>
           </li>
         ))}
       </ul>

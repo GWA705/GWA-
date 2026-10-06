@@ -1,5 +1,7 @@
 import { GiftCardBrowseControls } from '@/components/GiftCardBrowseControls';
 import { GiftCardPager } from '@/components/GiftCardPager';
+import type { GiftCardNoteVM } from '@/components/GiftCardThread';
+import { HistoryNotesButton } from './HistoryNotesButton';
 
 export interface HistoryRow {
   id: string;
@@ -10,6 +12,8 @@ export interface HistoryRow {
   amount: number;
   status: string;
   at: string;
+  notes: GiftCardNoteVM[];
+  staffUnread: boolean;
 }
 
 function StatusPill({ status }: { status: string }) {
@@ -80,18 +84,19 @@ export function GiftCardHistory({
               <th className="px-4 py-3 text-right">Amount</th>
               <th className="px-4 py-3">Status</th>
               <th className="px-4 py-3">Requested</th>
+              <th className="px-4 py-3">Notes</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
+                <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
                   {filtered ? 'No requests match your search or filters.' : 'No gift-card requests yet.'}
                 </td>
               </tr>
             ) : (
               rows.map((r) => (
-                <tr key={r.id}>
+                <tr key={r.id} className={r.staffUnread ? 'bg-red-50/40' : ''}>
                   <td className="px-4 py-3 font-medium text-gray-900">{r.customerName}</td>
                   <td className="px-4 py-3 text-gray-600">
                     <div>{r.customerEmail}</div>
@@ -101,6 +106,15 @@ export function GiftCardHistory({
                   <td className="px-4 py-3 text-right tabular-nums">${r.amount}</td>
                   <td className="px-4 py-3"><StatusPill status={r.status} /></td>
                   <td className="px-4 py-3 text-gray-500">{r.at}</td>
+                  <td className="px-4 py-3">
+                    <HistoryNotesButton
+                      id={r.id}
+                      customerName={r.customerName}
+                      dealerName={r.dealerName}
+                      notes={r.notes}
+                      staffUnread={r.staffUnread}
+                    />
+                  </td>
                 </tr>
               ))
             )}

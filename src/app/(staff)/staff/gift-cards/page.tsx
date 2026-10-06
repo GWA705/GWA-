@@ -1,7 +1,7 @@
 import { requireGiftCardAccess } from '@/lib/giftCardAccess';
 import { SectionHero } from '@/components/SectionHero';
 import { loadGiftCardQueue } from '@/lib/giftCardQueueData';
-import { queryGiftCards, monthLabel } from '@/lib/giftCardHistory';
+import { queryGiftCards, monthLabel, giftCardNotesVM } from '@/lib/giftCardHistory';
 import { GiftCardQueue } from '@/app/(admin)/admin/gift-cards/GiftCardQueue';
 import { StaffFlaggedGiftCards } from '@/app/(admin)/admin/gift-cards/StaffFlaggedGiftCards';
 import { GiftCardHistory, type HistoryRow } from '@/app/(admin)/admin/gift-cards/GiftCardHistory';
@@ -19,7 +19,7 @@ export default async function StaffGiftCardsPage({
   await requireGiftCardAccess();
   const [{ pending, flagged }, history] = await Promise.all([
     loadGiftCardQueue(),
-    queryGiftCards({ ...searchParams }),
+    queryGiftCards({ ...searchParams, includeNotes: true }),
   ]);
 
   const rows: HistoryRow[] = history.rows.map((r) => ({
@@ -31,6 +31,8 @@ export default async function StaffGiftCardsPage({
     amount: Number(r.amount),
     status: r.status,
     at: stamp(r.createdAt),
+    notes: giftCardNotesVM((r as unknown as { notes?: Parameters<typeof giftCardNotesVM>[0] }).notes ?? []),
+    staffUnread: (r as { staffUnread?: boolean }).staffUnread ?? false,
   }));
   const months = history.months.map((m) => ({ value: m, label: monthLabel(m) }));
 

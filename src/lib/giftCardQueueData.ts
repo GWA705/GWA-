@@ -68,8 +68,16 @@ export async function loadGiftCardQueue() {
     sentBy: r.sentBy?.name ?? '',
   }));
 
-  if (pendingRows.some((r) => r.staffUnread) || flaggedRows.length > 0) {
-    await prisma.giftCardRequest.updateMany({ where: { staffUnread: true }, data: { staffUnread: false } });
+  // Clear the staff-unread flag only for PENDING cards — those are shown inline
+  // in the queue below, so loading the page = staff have seen them. A note on an
+  // already-SENT card (the "Needs attention" list) must PERSIST until staff
+  // actually review it (open its thread / reply / mark reviewed), so it can't
+  // vanish on a page refresh. See markGiftCardReviewedAction.
+  if (pendingRows.some((r) => r.staffUnread)) {
+    await prisma.giftCardRequest.updateMany({
+      where: { staffUnread: true, status: 'PENDING' },
+      data: { staffUnread: false },
+    });
   }
 
   return { pending, flagged, sent };
