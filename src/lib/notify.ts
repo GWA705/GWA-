@@ -717,3 +717,51 @@ export async function notifyGiftCardNote(requestId: string, fromDealer: boolean)
     console.error('[notify] gift-card note failed', e);
   }
 }
+
+/**
+ * A dealer added a co-applicant to an existing deal. This changes the credit
+ * application, so reviewers/admins are told to re-check credit with both
+ * applicants (the deal is moved back to review by the caller).
+ */
+export async function notifyCoApplicantAdded(applicationId: string, coName: string, wasReset: boolean) {
+  try {
+    const app = await prisma.application.findUnique({ where: { id: applicationId }, include: { dealer: true } });
+    if (!app) return;
+    const deal = dealLabel(app);
+    const staff = await prisma.user.findMany({
+      where: { role: { in: STAFF_ROLES }, active: true },
+      select: { id: true, email: true, notificationEmail: true },
+    });
+    const resetLine = wasReset
+      ? 'The deal has been moved back to review so credit can be re-checked with both applicants.'
+      : 'Review the deal with both applicants.';
+    for (const u of staff) {
+      await sendEmail({
+        to: recipientEmail(u),
+        subject: `Co-applicant added — re-check credit (${deal})`,
+        html: renderEmail({
+          heading: 'A co-applicant was added to a deal',
+          intro: `${app.dealer.name} added a co-applicant (${coName}) to the deal for ${deal}. ${resetLine}`,
+          ctaLabel: 'Open deal',
+          ctaUrl: `${appUrl()}/staff/applications/${applicationId}`,
+        }),
+      });
+    }
+    await sendPushToRoles(STAFF_ROLES, {
+      title: 'Co-applicant added — re-check credit',
+      body: `${deal} (${app.dealer.name}) — a co-applicant was added.`,
+      url: `/staff/applications/${applicationId}`,
+      tag: `coapp-${applicationId}`,
+    });
+    await recordNotifications(staff.map((u) => u.id), {
+      title: 'Co-applicant added — re-check credit',
+      body: `${app.dealer.name} added a co-applicant${wasReset ? '; the deal is back in review.' : '.'}`,
+      url: `/staff/applications/${applicationId}`,
+      category: 'co-applicant',
+      applicationId,
+      customerName: customerNameOf(app),
+    });
+  } catch (e) {
+    console.error('[notify] co-applicant added failed', e);
+  }
+}

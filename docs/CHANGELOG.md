@@ -375,6 +375,16 @@ exhausting the single instance). No behaviour change for normal use.
   free-text via DeepL.
 
 ## 2026-10-06
+- **Dealers can add a co-applicant to an existing deal (no re-submitting).** Co-
+  applicant data was only capturable at new-deal creation, so a dealer who needed
+  to add one had to start over as a new customer. New "Co-applicant" section on
+  the dealer deal page: shows the one on file, or an **"Add a co-applicant"** form
+  (same fields as the new-deal form; SIN/DOB/address/ID encrypted) available on
+  any live deal that isn't funded/declined/withdrawn. Because a co-applicant
+  changes the credit application, adding one on a post-decision deal sends it
+  **back to "In review"** and alerts staff to **re-check credit** (new
+  `notifyCoApplicantAdded` → email + push + feed). New `addCoApplicantAction`
+  (upserts the loan record) + `addCoApplicantSchema`.
 - **Notifications feed — a durable home for the alerts you get (bell + page).**
   Until now a phone/web push was fire-and-forget: once dismissed it was gone, with
   nowhere in the portal to look it up. Added a per-user `Notification` model

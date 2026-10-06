@@ -9,6 +9,7 @@ import { PaperworkCards } from '@/components/PaperworkCards';
 import { PayoutReceipt } from '@/components/PayoutReceipt';
 import { ConfirmationBadge } from '@/components/ConfirmationBadge';
 import { ConfirmationIssueBanner } from '@/components/ConfirmationIssueBanner';
+import { AddCoApplicantForm } from './AddCoApplicantForm';
 import { loadConfirmationIssue } from '@/lib/confirmationIssue';
 import { ConfirmationView } from '@/components/ConfirmationView';
 import { DealProgress } from '@/components/DealProgress';
@@ -61,6 +62,13 @@ export default async function DealerApplicationDetail({
     },
   });
   if (!app || !canAccessAsDealer(user, app.dealerId)) notFound();
+
+  // Co-applicant: show the one on file, or let the dealer add one to this deal.
+  const coName = (app.coApplicantName
+    || [app.loanApplication?.coFirstName, app.loanApplication?.coLastName].filter(Boolean).join(' ')).trim();
+  const hasCoApplicant = coName.length > 0;
+  const coAddBlocked = ['FUNDED', 'DECLINED', 'WITHDRAWN'].includes(app.status);
+  const coWillReset = ['CONDITIONAL', 'APPROVED', 'DOCS_SENT', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW'].includes(app.status);
 
   // Flagged confirmation issue → top banner the office must acknowledge.
   const confirmationIssue = await loadConfirmationIssue(app.confirmationIssueMailId);
@@ -209,6 +217,22 @@ export default async function DealerApplicationDetail({
       />
 
       {confirmationIssue && <ConfirmationIssueBanner side="dealer" issue={confirmationIssue} />}
+
+      {/* Co-applicant — add one to an existing deal (no need to start over), or
+          show the one already on file. */}
+      <section className="card p-5">
+        <h2 className="mb-1 text-base font-semibold text-gray-900">Co-applicant</h2>
+        {hasCoApplicant ? (
+          <p className="text-sm text-gray-600">On file: <span className="font-medium text-gray-900">{coName}</span>. To change their details, add a note or contact Georgian Water &amp; Air.</p>
+        ) : coAddBlocked ? (
+          <p className="text-sm text-gray-500">This deal is funded or closed. Adding a co-applicant changes the credit application — please start a new application, or contact Georgian Water &amp; Air.</p>
+        ) : (
+          <>
+            <p className="mb-3 text-sm text-gray-500">No co-applicant on this deal yet — you can add one here without starting a new application.</p>
+            <AddCoApplicantForm applicationId={app.id} willReset={coWillReset} />
+          </>
+        )}
+      </section>
 
       {/* What's needed from you — a self-serve "why is this stuck?" summary,
           shown only while the ball is in the dealer's court. */}

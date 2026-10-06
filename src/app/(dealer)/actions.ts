@@ -14,8 +14,8 @@ import { storeFiles } from '@/lib/upload';
 import { rateLimit } from '@/lib/ratelimit';
 import { deleteDocument } from '@/lib/storage';
 import { markDealerAction } from '@/lib/activity';
-import { notifyNewDocuments, notifyNewNote, notifyNewSubmission, notifyFundingSubmitted, notifyAdminsUserRequest, notifyCancellationRequested, notifyInBackground, notifyFundingDocsBeforeSend } from '@/lib/notify';
-import { applicationSchema, serialNumberSchema } from '@/lib/validation';
+import { notifyNewDocuments, notifyNewNote, notifyNewSubmission, notifyFundingSubmitted, notifyAdminsUserRequest, notifyCancellationRequested, notifyInBackground, notifyFundingDocsBeforeSend, notifyCoApplicantAdded } from '@/lib/notify';
+import { applicationSchema, serialNumberSchema, addCoApplicantSchema } from '@/lib/validation';
 import { mergeProductsSold, addDealerCustomProducts } from '@/lib/products';
 import { parseDealerProfileForm } from '@/lib/dealerProfile';
 import { applyDealerLogo } from '@/lib/dealerLogo';
@@ -672,6 +672,120 @@ export async function submitFundingAction(applicationId: string): Promise<void> 
   await audit({ actorId: session.userId, action: 'FUNDING_SUBMIT', entityType: 'Application', entityId: applicationId });
   await notifyFundingSubmitted(applicationId);
   redirect(`/dealer/applications/${applicationId}`);
+}
+
+// Adding a co-applicant changes the credit application, so it's blocked once the
+// deal is funded or closed (that would be a new credit evaluation). On every
+// other live status the dealer can add one; if the deal is past review it's sent
+// back so credit is re-checked with both applicants.
+const CO_APP_BLOCKED: ApplicationStatus[] = ['FUNDED', 'DECLINED', 'WITHDRAWN'];
+const CO_APP_RESET: ApplicationStatus[] = ['CONDITIONAL', 'APPROVED', 'DOCS_SENT', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW'];
+
+/**
+ * Dealer self-serve: add a co-applicant to an existing deal. Writes the same
+ * co-applicant fields the new-deal form collects (sensitive ones encrypted), and
+ * — because a co-applicant changes who the finance company is lending to —
+ * sends a post-decision deal back to review and alerts staff to re-check credit.
+ */
+export async function addCoApplicantAction(
+  applicationId: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const session = await requireDealerAccess();
+  const app = await prisma.application.findUnique({
+    where: { id: applicationId },
+    select: { id: true, dealerId: true, status: true },
+  });
+  if (!app || !canAccessAsDealer(session, app.dealerId)) return { error: 'Not found.' };
+  if (CO_APP_BLOCKED.includes(app.status)) {
+    return {
+      error:
+        'This deal is already funded or closed. Adding a co-applicant changes the credit application — please start a new application, or contact Georgian Water & Air.',
+    };
+  }
+
+  const parsed = addCoApplicantSchema.safeParse(Object.fromEntries(formData.entries()));
+  if (!parsed.success) {
+    const fieldErrors: Record<string, string> = {};
+    for (const issue of parsed.error.issues) {
+      const k = issue.path.join('.');
+      if (!fieldErrors[k]) fieldErrors[k] = issue.message;
+    }
+    return { error: 'Please correct the highlighted fields.', fieldErrors };
+  }
+  const d = parsed.data;
+  const coApplicantName = titleOrNull([d.coFirstName, d.coLastName].filter(Boolean).join(' ').trim());
+
+  const coLoanData = {
+    coFirstName: d.coFirstName,
+    coLastName: d.coLastName,
+    coMiddleName: d.coMiddleName || null,
+    coRelationship: d.coRelationship || null,
+    coMaritalStatus: d.coMaritalStatus || null,
+    coDobEnc: encryptOptional(d.coDob),
+    coEmail: d.coEmail || null,
+    coPhone: d.coPhone || null,
+    coHomePhone: d.coHomePhone || null,
+    coAddressEnc: encryptOptional(d.coAddress),
+    coCity: d.coCity || null,
+    coProvince: d.coProvince || null,
+    coPostal: d.coPostal || null,
+    coIdType: d.coIdType || null,
+    coGovIdNumberEnc: encryptOptional(d.coGovIdNumber),
+    coIdProvince: d.coIdProvince || null,
+    coIdExpiry: d.coIdExpiry ? new Date(d.coIdExpiry) : null,
+    coBusinessName: d.coBusinessName || null,
+    coPositionTitle: d.coPositionTitle || null,
+    coEmployerAddressEnc: encryptOptional(d.coEmployerAddress),
+    coEmployerPhone: d.coEmployerPhone || null,
+    coGrossMonthlyIncomeEnc: encryptOptional(d.coGrossMonthlyIncome != null ? String(d.coGrossMonthlyIncome) : null),
+    coTimeAtJobYears: d.coTimeAtJobYears ?? null,
+    coEmploymentStatus: d.coEmploymentStatus ?? null,
+  };
+
+  const willReset = CO_APP_RESET.includes(app.status);
+
+  await prisma.$transaction(async (tx) => {
+    await tx.application.update({
+      where: { id: applicationId },
+      data: {
+        coApplicantName,
+        // Only overwrite the SIN when one was entered, so re-adding doesn't wipe it.
+        ...(d.coApplicantSin ? { coApplicantSinEnc: encryptOptional(d.coApplicantSin) } : {}),
+        ...(willReset ? { status: 'UNDER_REVIEW' } : {}),
+      },
+    });
+    await tx.loanApplication.upsert({
+      where: { applicationId },
+      create: { applicationId, ...coLoanData },
+      update: coLoanData,
+    });
+    if (willReset) {
+      await tx.statusEvent.create({
+        data: {
+          applicationId,
+          from: app.status,
+          to: 'UNDER_REVIEW',
+          actorId: session.userId,
+          note: `Co-applicant added (${coApplicantName ?? 'co-applicant'}) — back to review to re-check credit`,
+        },
+      });
+    }
+  });
+
+  await markDealerAction(applicationId, 'NOTE');
+  await audit({
+    actorId: session.userId,
+    action: 'STATUS_CHANGE',
+    entityType: 'Application',
+    entityId: applicationId,
+    detail: `Dealer added co-applicant${willReset ? ' — reset to In review for credit re-check' : ''}`,
+  });
+  notifyInBackground('co-applicant-added', () => notifyCoApplicantAdded(applicationId, coApplicantName ?? 'co-applicant', willReset));
+  revalidatePath(`/dealer/applications/${applicationId}`);
+  revalidatePath(`/staff/applications/${applicationId}`);
+  return { ok: true };
 }
 
 // Statuses where a dealer can no longer request a cancellation (already closed).

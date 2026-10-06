@@ -253,6 +253,43 @@ export const applicationSchema = z.object({
 
 export type ApplicationInput = z.infer<typeof applicationSchema>;
 
+// Adding a co-applicant to an EXISTING deal (dealer self-serve). The same
+// co-applicant fields as the full form, but standalone — first + last name are
+// required (you can't add a co-applicant with no name), everything else matches
+// the main application's co-* fields so it writes through the same mapping.
+export const addCoApplicantSchema = z.object({
+  coFirstName: z.string().trim().min(1, 'First name is required').max(80),
+  coLastName: z.string().trim().min(1, 'Last name is required').max(80),
+  coMiddleName: optName(80),
+  coRelationship: str(60),
+  coMaritalStatus: str(30),
+  coDob: z.string().optional(),
+  coApplicantSin: z
+    .string()
+    .optional()
+    .refine((v) => !v || sinRegex.test(v), 'Co-applicant SIN must be 9 digits'),
+  coEmail: z.preprocess(blankToUndef, z.string().email().max(160).optional()),
+  coPhone: str(30),
+  coHomePhone: str(30),
+  coAddress: str(300),
+  coCity: str(80),
+  coProvince: str(40),
+  coPostal: str(10),
+  coIdType: str(60),
+  coGovIdNumber: str(80),
+  coIdProvince: str(40),
+  coIdExpiry: optionalDate,
+  coBusinessName: str(160),
+  coPositionTitle: str(120),
+  coEmployerAddress: str(200),
+  coEmployerPhone: str(30),
+  coGrossMonthlyIncome: optionalNumber,
+  coTimeAtJobYears: optionalInt,
+  coEmploymentStatus: z.preprocess(blankToUndef, z.enum(['EMPLOYED', 'SELF_EMPLOYED', 'RETIRED', 'OTHER']).optional()),
+});
+
+export type AddCoApplicantInput = z.infer<typeof addCoApplicantSchema>;
+
 // Reviewer/admin edit of an existing deal — full applicant + deal details
 // (everything except the encrypted consent record). Core fields that are
 // non-null on the Application are required; the rest are optional.
