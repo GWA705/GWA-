@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { requireAdminSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { StoreRoutingEditor } from './StoreRoutingEditor';
+import { SheetSyncPanel } from './SheetSyncPanel';
+import { routingSheetConfigured } from '@/lib/storeRoutingSheet';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,6 +38,8 @@ export default async function StoreRoutingPage() {
           once. No per-lead migration needed.
         </p>
       </div>
+
+      <SheetSyncPanel configured={routingSheetConfigured()} />
 
       <StoreRoutingEditor dealers={dealers} stores={storeItems} />
     </div>

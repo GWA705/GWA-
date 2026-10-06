@@ -16,6 +16,8 @@ import path from 'path';
 import { putDocument, getDocument, deleteDocument } from '@/lib/storage';
 import { ALLOWED_MIME_TYPES, MAX_FILE_BYTES } from '@/lib/constants';
 import { HERO_SLOT_HOURS } from '@/lib/heroSlots';
+import { backupRoutingToSheet, readRoutingFromSheet, routingSheetConfigured } from '@/lib/storeRoutingSheet';
+import { diffRouting, describeChange, type RoutingRow, type RoutingChange } from '@/lib/storeRoutingDiff';
 import { createUserSchema, updateUserSchema, createDealerSchema, createFinanceCompanySchema, announcementSchema, contentSchema, dealerAlertSchema } from '@/lib/validation';
 import { redirect } from 'next/navigation';
 import { CONTENT_SECTIONS } from '@/lib/constants';
@@ -1631,6 +1633,104 @@ export async function setStoreActiveAction(storeId: string, active: boolean): Pr
   });
   revalidatePath('/admin/dealers/routing');
   return { ok: true };
+}
+
+// --- Routing ↔ Google Sheet (backup + reviewed two-way control) --------------
+
+async function loadRoutingRowsFromDb(): Promise<RoutingRow[]> {
+  const stores = await prisma.homeDepotStore.findMany({
+    select: { number: true, name: true, active: true, dealer: { select: { name: true } } },
+    orderBy: [{ dealer: { name: 'asc' } }, { number: 'asc' }],
+  });
+  return stores.map((s) => ({ number: s.number, city: s.name ?? '', dealerName: s.dealer?.name ?? '', active: s.active }));
+}
+
+/** Write the portal's current routing out to the Google Sheet (the backup). */
+export async function backupRoutingToSheetAction(): Promise<ActionState> {
+  const session = await requireAdminSection('dealers');
+  if (!routingSheetConfigured()) return { error: 'The routing sheet isn’t set up yet — ask to configure MAPPING_SHEET_ID.' };
+  try {
+    const rows = await loadRoutingRowsFromDb();
+    const { wrote, title } = await backupRoutingToSheet(rows);
+    await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'HomeDepotStore', entityId: 'routing-backup', detail: `Backed up ${wrote} store routings to the sheet` });
+    return { ok: true, message: `Backed up ${wrote} store${wrote === 1 ? '' : 's'} to “${title}”.` };
+  } catch (e) {
+    return { error: (e as Error).message || 'Could not write to the sheet.' };
+  }
+}
+
+export interface RoutingPreviewResult {
+  error?: string;
+  changes?: { kind: RoutingChange['kind']; text: string }[];
+}
+
+/** Read the sheet and show what WOULD change — no writes. */
+export async function previewRoutingFromSheetAction(): Promise<RoutingPreviewResult> {
+  await requireAdminSection('dealers');
+  if (!routingSheetConfigured()) return { error: 'The routing sheet isn’t set up yet — ask to configure MAPPING_SHEET_ID.' };
+  try {
+    const [db, sheet] = await Promise.all([loadRoutingRowsFromDb(), readRoutingFromSheet()]);
+    const changes = diffRouting(db, sheet);
+    return { changes: changes.map((c) => ({ kind: c.kind, text: describeChange(c) })) };
+  } catch (e) {
+    return { error: (e as Error).message || 'Could not read the sheet.' };
+  }
+}
+
+/** Apply the sheet's edits to the portal — re-reads + re-diffs server-side. */
+export async function applyRoutingFromSheetAction(): Promise<ActionState> {
+  const session = await requireAdminSection('dealers');
+  if (!routingSheetConfigured()) return { error: 'The routing sheet isn’t set up yet — ask to configure MAPPING_SHEET_ID.' };
+  try {
+    const [stores, sheet] = await Promise.all([
+      prisma.homeDepotStore.findMany({
+        select: { id: true, number: true, name: true, active: true, dealerId: true, dealer: { select: { name: true } } },
+      }),
+      readRoutingFromSheet(),
+    ]);
+    const db: RoutingRow[] = stores.map((s) => ({ number: s.number, city: s.name ?? '', dealerName: s.dealer?.name ?? '', active: s.active }));
+    const changes = diffRouting(db, sheet);
+    if (changes.length === 0) return { ok: true, message: 'Already in sync — nothing to apply.' };
+
+    const digits = (x: string) => x.match(/\d{3,}/)?.[0] ?? '';
+    const byNum = new Map<string, (typeof stores)[number]>();
+    for (const s of stores) {
+      const k = digits(s.number);
+      if (k && (!byNum.has(k) || s.active)) byNum.set(k, s);
+    }
+
+    let applied = 0;
+    for (const c of changes) {
+      if (c.kind === 'add') {
+        const dealer = await resolveRoutingDealer(null, c.to);
+        if ('error' in dealer) continue;
+        if (await prisma.homeDepotStore.findFirst({ where: { dealerId: dealer.id, number: c.number } })) continue;
+        await prisma.homeDepotStore.create({ data: { dealerId: dealer.id, number: c.number, name: c.city || null } });
+        applied += 1;
+      } else if (c.kind === 'move') {
+        const s = byNum.get(c.number);
+        if (!s) continue;
+        const dealer = await resolveRoutingDealer(null, c.to);
+        if ('error' in dealer || dealer.id === s.dealerId) continue;
+        if (await prisma.homeDepotStore.findFirst({ where: { dealerId: dealer.id, number: c.number } })) continue;
+        await prisma.homeDepotStore.update({ where: { id: s.id }, data: { dealerId: dealer.id, ...(c.city ? { name: c.city } : {}) } });
+        applied += 1;
+      } else {
+        const s = byNum.get(c.number);
+        if (!s) continue;
+        const active = c.kind === 'activate';
+        if (s.active === active) continue;
+        await prisma.homeDepotStore.update({ where: { id: s.id }, data: { active } });
+        applied += 1;
+      }
+    }
+    await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'HomeDepotStore', entityId: 'routing-sync', detail: `Applied ${applied} routing change(s) from the sheet` });
+    revalidatePath('/admin/dealers/routing');
+    revalidatePath('/admin/dealers');
+    return { ok: true, message: `Applied ${applied} change${applied === 1 ? '' : 's'} from the sheet.` };
+  } catch (e) {
+    return { error: (e as Error).message || 'Could not apply the sheet.' };
+  }
 }
 
 // --- Dealer alerts (forced-acknowledgement pop-ups) ------------------------

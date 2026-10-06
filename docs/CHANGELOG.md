@@ -383,8 +383,17 @@ exhausting the single instance). No behaviour change for normal use.
   Because lead attribution is computed live from this mapping, moving a store to a
   different dealer moves ALL of that store's leads — past and future — to the new
   office at once (no per-lead migration). New actions: `reassignStoreAction`,
-  `addStoreMappingAction`, `setStoreActiveAction`. (Next: back up / two-way sync
-  this mapping to a Google Sheet in Drive.)
+  `addStoreMappingAction`, `setStoreActiveAction`.
+- **Store routing — Google Sheet backup & reviewed two-way control.** On the Store
+  routing screen: **"Back up to sheet"** writes the live mapping to a "Dealer ↔ HD
+  Store Routing" sheet in Drive (one row per store: Store # · City · Office ·
+  Active), and **"Pull from sheet (preview)"** reads sheet edits and shows every
+  change — e.g. "Store 7030 (Newmarket): Georgian → Swift" — that you confirm
+  before anything applies (portal stays the live master; removals deactivate,
+  never hard-delete). New `storeRoutingSheet.ts` (service-account read/write, same
+  as the journal) + pure, unit-tested `storeRoutingDiff.ts`. Setup: share the
+  sheet with the service account and set `MAPPING_SHEET_ID` (same pattern as the
+  journal sheets).
 - **Root-cause fix: funding packages now submit themselves when complete.** Deals
   were stranding at "Documents sent" because the whole flow depended on the dealer
   remembering to press a separate "Submit funding package" button — upload
