@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { useRouter } from 'next/navigation';
-import { logCustomerCallAction, type CallState } from './actions';
+import { logCustomerCallAction, forwardCustomerCallAction, type CallState } from './actions';
 import type { CustomerCallVM } from '@/lib/customerCalls';
 
 function SaveBtn() {
@@ -39,6 +39,20 @@ export function CustomerCallLog({
   const [open, setOpen] = useState(false);
   const [state, action] = useFormState(logCustomerCallAction.bind(null, applicationId), {} as CallState);
   const formRef = useRef<HTMLFormElement>(null);
+  const [fwdId, setFwdId] = useState<string | null>(null);
+  const [fwdErr, setFwdErr] = useState<{ id: string; msg: string } | null>(null);
+  const [, startFwd] = useTransition();
+
+  function forward(id: string) {
+    setFwdErr(null);
+    setFwdId(id);
+    startFwd(async () => {
+      const res = await forwardCustomerCallAction(id);
+      setFwdId(null);
+      if (res?.error) setFwdErr({ id, msg: res.error });
+      else router.refresh();
+    });
+  }
 
   useEffect(() => {
     if (state.ok) {
@@ -105,13 +119,23 @@ export function CustomerCallLog({
               <div className="mb-0.5 flex flex-wrap items-center gap-2 text-xs text-gray-500 dark:text-slate-400">
                 <span>🕑 {c.at}</span>
                 <span>· {c.loggedBy}</span>
-                {c.forwarded && (
+                {c.forwarded ? (
                   <span className="rounded border-l-2 border-green-600 bg-green-50 px-1.5 py-0.5 font-semibold text-green-700 dark:bg-green-900/30 dark:text-green-300">
-                    ↗ Forwarded
+                    ↗ Forwarded to {officeName}
                   </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => forward(c.id)}
+                    disabled={fwdId === c.id}
+                    className="rounded border border-sky-300 px-1.5 py-0.5 font-semibold text-sky-700 hover:bg-sky-50 disabled:opacity-60 dark:border-sky-700 dark:text-sky-300"
+                  >
+                    {fwdId === c.id ? 'Sending…' : `↗ Forward to ${officeName}`}
+                  </button>
                 )}
               </div>
               <div className="text-sm text-gray-800 dark:text-slate-100">{c.note}</div>
+              {fwdErr?.id === c.id && <div className="mt-1 text-xs text-red-600">{fwdErr.msg}</div>}
             </div>
           ))
         )}

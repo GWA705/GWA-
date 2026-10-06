@@ -375,6 +375,12 @@ exhausting the single instance). No behaviour change for normal use.
   free-text via DeepL.
 
 ## 2026-10-06
+- **Call log forward-to-office (Phase 2).** Each logged call that hasn't been
+  forwarded now has a **"↗ Forward to {office}"** button in the call history, so
+  staff can hand a call to the owning office **after the fact** (Phase 1 only
+  forwarded at log time). It reaches the office by in-portal notification **and
+  email** (reuses `notifyNewNote`), stamps the call as forwarded (so the snapshot
+  count updates), and is idempotent. Card-data-guarded. `forwardCustomerCallAction`.
 - **Customer call log (Phase 1 of the calls/resolution build).** On the staff
   **Find customer** view, a new **📞 Call log** section: a **"Customer called"**
   button logs a short, **auto-dated** note, and a snapshot shows **how many times

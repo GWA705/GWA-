@@ -116,3 +116,36 @@ export async function logCustomerCallAction(applicationId: string, _prev: CallSt
   revalidatePath(`/staff/find-customer/${applicationId}`);
   return { ok: true };
 }
+
+/**
+ * Forward an ALREADY-logged call to the office that owns the customer — the
+ * after-the-fact version of the "also notify the office" checkbox. Reaches the
+ * office by in-portal notification + email (notifyNewNote), stamps the call as
+ * forwarded, and is idempotent (a second click is a no-op).
+ */
+export async function forwardCustomerCallAction(callId: string): Promise<CallState> {
+  const user = await requireRole('REVIEWER', 'ADMIN');
+  if (!(await isGlobalSearchEnabled()) || !(await canSearchAllCustomers(user))) return { error: 'You don’t have access to do this.' };
+
+  const call = await prisma.customerCall.findUnique({
+    where: { id: callId },
+    select: { id: true, note: true, applicationId: true, forwardedToOfficeAt: true, application: { select: { dealerId: true } } },
+  });
+  if (!call) return { error: 'Call not found.' };
+  if (call.forwardedToOfficeAt) return { ok: true }; // already forwarded
+
+  const card = findCardData(call.note);
+  if (card.blocked) {
+    await audit({ actorId: user.userId, action: 'CARD_DATA_BLOCKED', entityType: 'Application', entityId: call.applicationId, detail: 'Customer-call forward blocked — card data detected' });
+    return { error: CARD_BLOCK_MESSAGE };
+  }
+
+  await prisma.$transaction([
+    prisma.note.create({ data: { applicationId: call.applicationId, authorId: user.userId, body: `📞 Customer called GWA — ${call.note}`, internal: false } }),
+    prisma.customerCall.update({ where: { id: callId }, data: { forwardedToOfficeAt: new Date(), officeDealerId: call.application.dealerId } }),
+  ]);
+  await notifyNewNote(call.applicationId, 'REVIEWER');
+  await audit({ actorId: user.userId, action: 'CUSTOMER_SEARCH', entityType: 'Application', entityId: call.applicationId, detail: 'forwarded a logged customer call to the office' });
+  revalidatePath(`/staff/find-customer/${call.applicationId}`);
+  return { ok: true };
+}
