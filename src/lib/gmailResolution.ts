@@ -63,6 +63,36 @@ export function parseHdCaseNumber(subject: string): string | null {
   return m ? m[1] : null;
 }
 
+export interface HdSubjectParts {
+  caseNumber: string | null; // HD resolution CASE #
+  hdRef: string | null; // HD customer / LEAD # (the 800… number)
+  lastName: string | null; // customer last name
+  store: string | null; // HD store number (e.g. "7133")
+}
+
+/**
+ * Parse everything useful out of an HD resolution subject so a new case can be
+ * pre-filled. HD's subjects are highly structured, e.g.:
+ *   "CASE #08210415 ON DUPRE 7133 LEAD #800254246 WATER TREATMENT SYSTEM …"
+ * → caseNumber 08210415, lastName DUPRE, store 7133, hdRef 800254246.
+ * Any part that isn't present comes back null (some subjects omit the name/lead).
+ */
+export function parseHdSubject(subject: string): HdSubjectParts {
+  const s = subject || '';
+  // HD customer / LEAD # — always an 800-prefixed 9-digit number (order numbers
+  // like 611544165 are NOT 800-prefixed, so they're correctly ignored).
+  const hdRef = (/\b(800\d{6})\b/.exec(s) || [])[1] ?? null;
+  // "<2-letter code> <LASTNAME> <4-digit store>" — the code is the preposition
+  // "ON"/a province code; the name is the token before the store number.
+  const nm = /\b(?:ON|AB|BC|SK|MB|QC|NS|NB|NL|PE|NT|NU|YT)\s+([A-Za-z][A-Za-z'’\-]{1,30})\s+(\d{4})\b/i.exec(s);
+  return {
+    caseNumber: parseHdCaseNumber(s),
+    hdRef,
+    lastName: nm ? nm[1] : null,
+    store: nm ? nm[2] : null,
+  };
+}
+
 export interface GmailThreadSummary {
   threadId: string;
   subject: string;

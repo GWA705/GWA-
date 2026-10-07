@@ -35,7 +35,7 @@ source of truth; this file is the human-readable index.
 | Render (old host) | ✅ **Decommissioned 2026-10-05 (Sean)** — ~$31/mo saved | Portal fully on AWS. Done in the Render dashboard: `gwa-portal` web service **suspended** (standard ≈ $25/mo), `gwa-staging-db` Postgres **deleted** (basic_256mb), `gwa-portal-staging` **deleted** (free). **Still running (by design):** the 6 cron jobs — `GWA-new-leads` (10-min), `gwa-doc-ocr` (30-min), `gwa-doc-expiry-reminders` (daily), `gwa-weekly-funding-report` (Mon), `gwa-db-backup-weekly` (Sun), and `gwa-journal-paid-sync` (every 2h, **added 2026-10-05**) — they `curl` scheduled endpoints on the live AWS site. These 6 are the only thing left on Render; migrate to AWS EventBridge to leave Render entirely. Workspace `tea-d9hr2f715fvs739nkkq0`. |
 | Auto-deploy (GitHub → EB) | ✅ **Live** (2026-09-11, Sean) | Every push to the branch builds the image to ECR **and auto-deploys to Elastic Beanstalk** (deploy step in `.github/workflows/build-ecr.yml`, bundles `Dockerrun.aws.json` + `.platform/` nginx fix). IAM user `github-ecr-push` has `AdministratorAccess-AWSElasticBeanstalk`. `wait_for_deployment: false` (the single-instance env flaps Yellow on low traffic, which false-failed the step). No more manual ZIP uploads. |
 | Desktop/phone push notifications | ✅ Keys set (2026-09-11, Sean) — confirm with a test | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` set on EB. The client fetches the public key at **runtime** (`GET /api/push/key`) so it survives rebuilds. Reviewers get push on new dealer docs / activity. iOS needs the app installed to the Home Screen. **To confirm:** Account → Enable desktop notifications → Send a test. |
-| HD Resolution ↔ Gmail email link | ⏳ Setup in progress (2026-10-07, Sean) | Read-only Gmail via the existing service account (`gwa-journal-writer@gwa-portal-504012…`, project **"GWA Portal"** `gwa-portal-504012`), impersonating one mailbox + one label (`HD Resolution`). **Done:** Gmail label `HD Resolution` + filter live in `sean@ghsbarrie.ca` (confirmed 19 threads/190 msgs of real `resolutions_canada@homedepot.com` mail), **Gmail API enabled** on the GWA Portal project. **Remaining (Sean's consoles):** (1) Workspace Admin domain-wide delegation — service-account Unique ID + scope `…/auth/gmail.readonly`; (2) set `GMAIL_RESOLUTION_USER=sean@ghsbarrie.ca` on EB + restart. Inert until that env var is set. 30-min sync `resolution-email-sync.yml` (reuses `CRON_SECRET`). Steps: `HD-RESOLUTION-EMAIL.md` / facts in `BUILD-FACTS.md`. |
+| HD Resolution ↔ Gmail email link | ✅ **Live & verified** (2026-10-07, Sean) | Read-only Gmail via the existing service account (`gwa-journal-writer@gwa-portal-504012…`, project **"GWA Portal"** `gwa-portal-504012`, Unique ID `100470797238569934976`), impersonating `sean@ghsbarrie.ca` + the `HD Resolution` label. All switches done: Gmail API enabled, Workspace domain-wide delegation (`…/auth/gmail.readonly`), `GMAIL_RESOLUTION_USER=sean@ghsbarrie.ca` on EB. **Verified end-to-end** — the Email inbox lists real HD threads and "Open as case" links the thread + auto-fills. 30-min sync `resolution-email-sync.yml` (reuses `CRON_SECRET`). Steps/facts: `HD-RESOLUTION-EMAIL.md`, `BUILD-FACTS.md`. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
 ### Direct sale — Georgian Water & Air walk-in entry (2026-10-07)
@@ -63,6 +63,25 @@ source of truth; this file is the human-readable index.
   new `directSaleSchema`, `src/lib/directSaleAccess.ts`, `/direct-sale` pages +
   `createDirectSaleAction`; `tests/directSale.test.ts`. Journal "Date Paid" write
   is inert for every other deal (only written when a deal carries a paid date).
+
+### HD Resolution: Gmail link LIVE + smart case pre-fill from the email (2026-10-07)
+- **The Gmail email link is live and verified** (see Operational status). Read-only,
+  one mailbox (`sean@ghsbarrie.ca`), one label (`HD Resolution`).
+- **"Open as case" now pre-fills the whole case from the HD subject.** HD subjects
+  are structured — `CASE #08210415 ON DUPRE 7133 LEAD #800254246 WATER TREATMENT…`
+  — so `parseHdSubject` pulls the **case #, customer last name, store #, and HD Ref #
+  (the 800… lead)** and fills the new-case form (name + HD Ref # + case #), on top of
+  the existing title + thread link.
+- **Auto-matches an existing deal.** The parsed HD Ref # is looked up against
+  Applications; on a match the case is **linked to that deal** (its office +
+  documents come with it) and the customer name/phone fill from the deal. A green
+  "✓ Linked to …'s deal" banner shows, with an **Unlink** toggle.
+- **Everything stays editable.** The pre-filled name/phone/HD Ref # are normal
+  inputs (no locked card) so staff can correct them; `createCaseAction` now treats
+  a linked deal's values as **fallbacks** (typed edits win) instead of overwriting.
+- `parseHdSubject` in `gmailResolution.ts` (+ `tests/gmailResolution.test.ts`);
+  `new/page.tsx` HD-Ref deal lookup; `NewCaseForm` always-editable + linked-deal
+  banner; `inbox` "Open as case" passes the parsed fields.
 
 ### HD Resolution: match emails by HD Case # + "awaiting your reply" flag (2026-10-07)
 - **Match by HD's CASE #, not just the HD Ref #.** HD's resolution emails are keyed

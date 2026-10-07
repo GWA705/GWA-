@@ -91,6 +91,10 @@ credential). Lets an HD Resolution case follow its Home Depot email chain.
   Its **Unique ID / Client ID** (used for domain-wide delegation) is
   **`100470797238569934976`** (recorded 2026-10-07). Not a secret — it's the
   service account's public identifier.
+- **Status: ✅ LIVE & verified (2026-10-07).** All switches done (Gmail API
+  enabled, Workspace domain-wide delegation with `gmail.readonly`, and
+  `GMAIL_RESOLUTION_USER=sean@ghsbarrie.ca` set on EB). The Email inbox lists real
+  HD threads; "Open as case" links the thread and auto-fills from the subject.
 - **Gmail API:** **Enabled** on the GWA Portal project (2026-10-07, Sean).
 - **Gmail label + filter:** label **`HD Resolution`** exists in `sean@ghsbarrie.ca`
   (Gmail label id `Label_6`); a filter auto-labels the HD resolution-centre mail.

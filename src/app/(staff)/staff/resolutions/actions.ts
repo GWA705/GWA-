@@ -61,8 +61,10 @@ export async function createCaseAction(_prev: CaseFormState, formData: FormData)
       select: { applicantFirstName: true, applicantLastName: true, applicantPhone: true, hdReference: true, dealerId: true },
     });
     if (!app) return { error: 'Linked deal not found.' };
-    customerName = `${app.applicantFirstName} ${app.applicantLastName}`.trim();
-    customerPhone = app.applicantPhone ?? '';
+    // Deal values FILL BLANKS only — a staff member's typed edits win, so they can
+    // correct the auto-filled name/phone before opening the case.
+    customerName = customerName || `${app.applicantFirstName} ${app.applicantLastName}`.trim();
+    customerPhone = customerPhone || app.applicantPhone || '';
     hdReference = hdReference || app.hdReference || null;
     officeDealerId = app.dealerId;
   }

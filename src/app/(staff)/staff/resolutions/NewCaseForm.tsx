@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { createCaseAction, type CaseFormState } from './actions';
 import { PRIORITIES } from '@/lib/resolutionStatus';
@@ -10,17 +11,28 @@ function SubmitBtn() {
 }
 
 export function NewCaseForm({
-  prefill,
+  linkedDeal,
   gmailThreadId,
   prefillTitle,
   prefillHdCase,
+  prefillCustomerName,
+  prefillCustomerPhone,
+  prefillHdRef,
 }: {
-  prefill: { applicationId: string; customerName: string; officeName: string; hdReference: string | null } | null;
+  // A matched existing deal (by HD Ref #) — its documents/office come with it.
+  linkedDeal: { applicationId: string; customerName: string; officeName: string } | null;
   gmailThreadId?: string;
   prefillTitle?: string;
   prefillHdCase?: string;
+  // Editable field pre-fills (from the matched deal, or parsed from the email).
+  prefillCustomerName?: string;
+  prefillCustomerPhone?: string;
+  prefillHdRef?: string;
 }) {
   const [state, action] = useFormState(createCaseAction, {} as CaseFormState);
+  // The deal link is kept by default, but can be removed (the case is then not
+  // tied to that customer's file).
+  const [keepLink, setKeepLink] = useState(true);
 
   return (
     <form action={action} className="card p-5 space-y-3">
@@ -28,29 +40,41 @@ export function NewCaseForm({
       {gmailThreadId && <input type="hidden" name="gmailThreadId" value={gmailThreadId} />}
       {gmailThreadId && <div className="rounded-md bg-sky-50 p-2 text-xs text-sky-700 dark:bg-sky-900/30 dark:text-sky-300">📧 This case will be linked to the selected HD email thread.</div>}
 
-      {prefill ? (
-        <div className="rounded-lg border border-gray-200 bg-slate-50 p-3 text-sm dark:border-slate-700 dark:bg-slate-700/40">
-          <input type="hidden" name="applicationId" value={prefill.applicationId} />
-          <div className="font-semibold text-gray-900 dark:text-slate-100">{prefill.customerName}</div>
-          <div className="text-gray-600 dark:text-slate-300">🏬 {prefill.officeName}{prefill.hdReference ? ` · HD #${prefill.hdReference}` : ''}</div>
-          <div className="mt-1 text-xs text-gray-500 dark:text-slate-400">Linked to this customer&apos;s deal — the office is set automatically.</div>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <div>
-            <label className="label" htmlFor="customerName">Customer name</label>
-            <input id="customerName" name="customerName" required className="input" placeholder="Jane Smith" />
-          </div>
-          <div>
-            <label className="label" htmlFor="customerPhone">Customer phone</label>
-            <input id="customerPhone" name="customerPhone" className="input" placeholder="705-555-0148" />
-          </div>
-          <div>
-            <label className="label" htmlFor="hdReference">HD Ref #</label>
-            <input id="hdReference" name="hdReference" className="input" placeholder="800255118" />
-          </div>
+      {/* Matched deal — linked for its office + documents, but you can unlink. */}
+      {linkedDeal && (
+        <div className="rounded-md bg-emerald-50 p-2 text-xs dark:bg-emerald-900/30">
+          {keepLink && <input type="hidden" name="applicationId" value={linkedDeal.applicationId} />}
+          {keepLink ? (
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-emerald-800 dark:text-emerald-200">
+                ✓ Linked to <strong>{linkedDeal.customerName}</strong>&apos;s deal · 🏬 {linkedDeal.officeName} — its office &amp; documents come with the case.
+              </span>
+              <button type="button" onClick={() => setKeepLink(false)} className="shrink-0 font-medium text-emerald-700 underline hover:no-underline dark:text-emerald-300">Unlink</button>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-gray-600 dark:text-slate-300">Deal link removed — this case won&apos;t be tied to the customer&apos;s file.</span>
+              <button type="button" onClick={() => setKeepLink(true)} className="shrink-0 font-medium text-emerald-700 underline hover:no-underline dark:text-emerald-300">Re-link</button>
+            </div>
+          )}
         </div>
       )}
+
+      {/* Customer details — always editable; pre-filled from the deal or the email. */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div>
+          <label className="label" htmlFor="customerName">Customer name</label>
+          <input id="customerName" name="customerName" required className="input" placeholder="Jane Smith" defaultValue={prefillCustomerName ?? ''} />
+        </div>
+        <div>
+          <label className="label" htmlFor="customerPhone">Customer phone</label>
+          <input id="customerPhone" name="customerPhone" className="input" placeholder="705-555-0148" defaultValue={prefillCustomerPhone ?? ''} />
+        </div>
+        <div>
+          <label className="label" htmlFor="hdReference">HD Ref #</label>
+          <input id="hdReference" name="hdReference" className="input" placeholder="800255118" defaultValue={prefillHdRef ?? ''} />
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>

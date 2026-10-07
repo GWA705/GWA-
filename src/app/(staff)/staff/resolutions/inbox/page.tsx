@@ -1,9 +1,21 @@
 import Link from 'next/link';
 import { requireRole } from '@/lib/session';
 import { prisma } from '@/lib/db';
-import { gmailResolutionConfigured, listUnlinkedThreads, resolutionLabel, parseHdCaseNumber, type GmailThreadSummary } from '@/lib/gmailResolution';
+import { gmailResolutionConfigured, listUnlinkedThreads, resolutionLabel, parseHdSubject, type GmailThreadSummary } from '@/lib/gmailResolution';
 
 export const dynamic = 'force-dynamic';
+
+// Build the "Open as case" link, pre-filling everything we can parse from the
+// email subject: the thread link, title, HD Case #, HD Ref #, and customer name.
+// The new-case page uses the HD Ref # to match an existing deal (and auto-link it).
+function openAsCaseHref(threadId: string, subject: string): string {
+  const p = parseHdSubject(subject);
+  const params = new URLSearchParams({ gmailThreadId: threadId, title: subject });
+  if (p.caseNumber) params.set('hdCase', p.caseNumber);
+  if (p.hdRef) params.set('hdRef', p.hdRef);
+  if (p.lastName) params.set('name', p.lastName);
+  return `/staff/resolutions/new?${params.toString()}`;
+}
 
 export default async function ResolutionInboxPage() {
   await requireRole('REVIEWER', 'ADMIN');
@@ -52,7 +64,7 @@ export default async function ResolutionInboxPage() {
                 {t.snippet && <div className="mt-0.5 truncate text-xs text-gray-400 dark:text-slate-500">{t.snippet}</div>}
               </div>
               <Link
-                href={`/staff/resolutions/new?gmailThreadId=${encodeURIComponent(t.threadId)}&title=${encodeURIComponent(t.subject)}${parseHdCaseNumber(t.subject) ? `&hdCase=${encodeURIComponent(parseHdCaseNumber(t.subject)!)}` : ''}`}
+                href={openAsCaseHref(t.threadId, t.subject)}
                 className="btn-secondary shrink-0 text-sm"
               >
                 ＋ Open as case
