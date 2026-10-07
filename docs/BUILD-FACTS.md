@@ -81,6 +81,33 @@ N/A).
 - **Admin → System health** verifies every connection (DB, S3, email, service
   account, journals, leads) live, and shows the service-account share address.
 
+## HD Resolution — Gmail email link (read-only)
+Reuses the **same** Google Cloud project + service account as Sheets (no new
+credential). Lets an HD Resolution case follow its Home Depot email chain.
+- **Google Cloud project:** **"GWA Portal"** — Project ID `gwa-portal-504012`,
+  project number `736448322505`, org `georgianwaterandair.ca`.
+- **Service account (shared with Sheets):**
+  `gwa-journal-writer@gwa-portal-504012.iam.gserviceaccount.com`.
+  Its **Unique ID / Client ID** is the number used for domain-wide delegation
+  (Google Cloud → IAM & Admin → Service Accounts → this account → "Unique ID",
+  or `client_id` in the service-account JSON). **[TO RECORD once copied]**
+- **Gmail API:** **Enabled** on the GWA Portal project (2026-10-07, Sean).
+- **Gmail label + filter:** label **`HD Resolution`** exists in `sean@ghsbarrie.ca`
+  (Gmail label id `Label_6`); a filter auto-labels the HD resolution-centre mail.
+  Confirmed live 2026-10-07 — **19 threads / 190 messages**, real cases from
+  `resolutions_canada@homedepot.com` (+ escalations like `christine_e_brown@…`),
+  subjects in the `CASE #######...` form the portal parses.
+- **Still to switch ON (external consoles — can't be done from the repo):**
+  1. **Workspace Admin** (admin.google.com → Security → API controls →
+     Domain-wide delegation → Add new): Client ID = the service account's Unique
+     ID above; OAuth scope `https://www.googleapis.com/auth/gmail.readonly`.
+  2. **Elastic Beanstalk** (`Gwa-portal-env`): set `GMAIL_RESOLUTION_USER`
+     = `sean@ghsbarrie.ca` (and optionally `GMAIL_RESOLUTION_LABEL` = `HD Resolution`,
+     the default), then restart.
+  The portal is **inert until `GMAIL_RESOLUTION_USER` is set**
+  (`gmailResolutionConfigured()`). Code + 30-min sync (`resolution-email-sync.yml`,
+  reuses `CRON_SECRET`) already shipped. Full steps: `docs/HD-RESOLUTION-EMAIL.md`.
+
 ## Journal archive & office customer search (DON'T rebuild — it exists)
 - **Goal:** every office searches its OWN historical Home Depot customers in the
   portal, fast and reliably — without reading Google Sheets on every search.
