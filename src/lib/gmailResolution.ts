@@ -149,6 +149,47 @@ export async function fetchThreadMessages(threadId: string): Promise<GmailMessag
     });
 }
 
+// --- First-message body (for the AI problem summary) -----------------------
+
+function decodeB64Url(data: string): string {
+  return Buffer.from(data.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8');
+}
+/** Find the first part of a given MIME type anywhere in the part tree. */
+function findPart(part: gmail_v1.Schema$MessagePart, mime: string): gmail_v1.Schema$MessagePart | null {
+  if (part.mimeType === mime && part.body?.data) return part;
+  for (const p of part.parts ?? []) {
+    const found = findPart(p, mime);
+    if (found) return found;
+  }
+  return null;
+}
+function extractBodyText(payload: gmail_v1.Schema$MessagePart | undefined): string {
+  if (!payload) return '';
+  const plain = findPart(payload, 'text/plain');
+  if (plain?.body?.data) return decodeB64Url(plain.body.data);
+  const html = findPart(payload, 'text/html');
+  if (html?.body?.data) return decodeB64Url(html.body.data).replace(/<[^>]+>/g, ' ').replace(/&nbsp;/gi, ' ');
+  if (payload.body?.data) return decodeB64Url(payload.body.data);
+  return '';
+}
+
+/**
+ * The plain-text body of the FIRST message in a thread — what the case is about.
+ * Strips quoted reply history and collapses whitespace; falls back to the
+ * snippet. Used to feed the AI problem-summary. Null when unavailable.
+ */
+export async function fetchFirstMessageText(threadId: string): Promise<string | null> {
+  const res = await gmailClient().users.threads.get({ userId: 'me', id: threadId, format: 'full' });
+  const first = (res.data.messages || [])[0];
+  if (!first) return null;
+  const raw = extractBodyText(first.payload).trim() || (first.snippet || '').trim();
+  if (!raw) return null;
+  // Drop quoted history / original-message blocks so the summary focuses on the
+  // new content, then collapse blank runs.
+  const cut = raw.split(/\n\s*(?:On .+wrote:|-{3,}\s*Original Message|_{10,})/)[0] ?? raw;
+  return cut.replace(/\r/g, '').replace(/\n{3,}/g, '\n\n').trim().slice(0, 8000) || null;
+}
+
 /**
  * Recent threads under the label, newest-first, excluding any already linked to a
  * case — the "unlinked HD emails" inbox. Best-effort; returns [] if unconfigured.

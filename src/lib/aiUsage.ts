@@ -16,6 +16,7 @@ import { dayKey, monthKey } from './apiUsage';
 export const AI_SERVICES = {
   cardScan: 'ai_card_scan',
   assistant: 'ai_assistant',
+  resolutionSummary: 'ai_resolution_summary',
 } as const;
 
 export type AiService = (typeof AI_SERVICES)[keyof typeof AI_SERVICES];
@@ -23,6 +24,7 @@ export type AiService = (typeof AI_SERVICES)[keyof typeof AI_SERVICES];
 const SERVICE_LABELS: Record<string, string> = {
   [AI_SERVICES.cardScan]: 'Lead-card reader',
   [AI_SERVICES.assistant]: 'Support assistant',
+  [AI_SERVICES.resolutionSummary]: 'HD resolution summary',
 };
 
 /**

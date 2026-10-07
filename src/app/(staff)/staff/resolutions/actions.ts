@@ -12,7 +12,8 @@ import { isResolutionStatus, STATUS_LABEL, OPEN_STATUSES, PRIORITIES } from '@/l
 import { normalizeCallPhone } from '@/lib/customerCalls';
 import { putDocument, deleteDocument, newResolutionStorageKey } from '@/lib/storage';
 import { MAX_FILE_BYTES, ALLOWED_MIME_TYPES } from '@/lib/constants';
-import { gmailResolutionConfigured, searchThreadForRef } from '@/lib/gmailResolution';
+import { gmailResolutionConfigured, searchThreadForRef, fetchFirstMessageText } from '@/lib/gmailResolution';
+import { summarizeResolutionEmail, aiConfigured } from '@/lib/ai';
 import { syncCaseEmails } from '@/lib/resolutionEmailSync';
 import type { ResolutionStatus, Prisma } from '@prisma/client';
 
@@ -88,6 +89,32 @@ export async function createCaseAction(_prev: CaseFormState, formData: FormData)
   await audit({ actorId: user.userId, action: 'STATUS_CHANGE', entityType: 'ResolutionCase', entityId: created.id, detail: `Opened HD resolution case ${caseNumber}` });
   revalidatePath('/staff/resolutions');
   redirect(`/staff/resolutions/${created.id}`);
+}
+
+/**
+ * Read the first HD email of a thread and summarize it into a problem statement
+ * (for the "✨ Summarize the HD email" button on the new-case form). Read-only;
+ * returns the summary text or a friendly error. Does not create anything.
+ */
+export async function summarizeEmailAction(gmailThreadId: string): Promise<{ text?: string; error?: string }> {
+  await requireRole('REVIEWER', 'ADMIN');
+  const threadId = (gmailThreadId || '').trim();
+  if (!threadId) return { error: 'No email thread selected.' };
+  if (!gmailResolutionConfigured()) return { error: 'The Gmail email link isn’t set up yet.' };
+  if (!aiConfigured()) return { error: 'The AI summary isn’t available (no AI key configured).' };
+
+  let body: string | null = null;
+  try {
+    body = await fetchFirstMessageText(threadId);
+  } catch (e) {
+    console.error('[resolution-email] body fetch failed', e);
+    return { error: 'Couldn’t read the email from Gmail. Try again.' };
+  }
+  if (!body) return { error: 'Couldn’t find any text in that email to summarize.' };
+
+  const summary = await summarizeResolutionEmail(body);
+  if (!summary) return { error: 'The AI couldn’t summarize this one — paste the key points by hand.' };
+  return { text: summary };
 }
 
 /** Add a plain note to a case's activity thread. */

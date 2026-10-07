@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
-import { createCaseAction, type CaseFormState } from './actions';
+import { createCaseAction, summarizeEmailAction, type CaseFormState } from './actions';
 import { PRIORITIES } from '@/lib/resolutionStatus';
 
 function SubmitBtn() {
@@ -13,6 +13,7 @@ function SubmitBtn() {
 export function NewCaseForm({
   linkedDeal,
   gmailThreadId,
+  aiAvailable,
   prefillTitle,
   prefillHdCase,
   prefillCustomerName,
@@ -22,6 +23,7 @@ export function NewCaseForm({
   // A matched existing deal (by HD Ref #) — its documents/office come with it.
   linkedDeal: { applicationId: string; customerName: string; officeName: string } | null;
   gmailThreadId?: string;
+  aiAvailable?: boolean; // AI configured — show the "Summarize" button
   prefillTitle?: string;
   prefillHdCase?: string;
   // Editable field pre-fills (from the matched deal, or parsed from the email).
@@ -33,6 +35,25 @@ export function NewCaseForm({
   // The deal link is kept by default, but can be removed (the case is then not
   // tied to that customer's file).
   const [keepLink, setKeepLink] = useState(true);
+  // The Problem box is controlled so the AI summary can be dropped in.
+  const [description, setDescription] = useState('');
+  const [summarizing, setSummarizing] = useState(false);
+  const [sumErr, setSumErr] = useState<string | null>(null);
+
+  async function summarize() {
+    if (!gmailThreadId) return;
+    setSummarizing(true);
+    setSumErr(null);
+    try {
+      const r = await summarizeEmailAction(gmailThreadId);
+      if (r.error) setSumErr(r.error);
+      else setDescription(r.text ?? '');
+    } catch {
+      setSumErr('Couldn’t summarize right now — try again.');
+    } finally {
+      setSummarizing(false);
+    }
+  }
 
   return (
     <form action={action} className="card p-5 space-y-3">
@@ -86,10 +107,32 @@ export function NewCaseForm({
           <input id="hdCaseNumber" name="hdCaseNumber" className="input" placeholder="08210415" defaultValue={prefillHdCase ?? ''} />
         </div>
       </div>
+
       <div>
-        <label className="label" htmlFor="description">Problem</label>
-        <textarea id="description" name="description" rows={4} required className="input" placeholder="What did Home Depot / the customer report? What needs to happen?" />
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <label className="label" htmlFor="description">Problem</label>
+          {gmailThreadId && aiAvailable && (
+            <button type="button" onClick={summarize} disabled={summarizing} className="text-xs font-medium text-brand-700 hover:underline disabled:opacity-50 dark:text-sky-300">
+              {summarizing ? '✨ Summarizing…' : '✨ Summarize the HD email'}
+            </button>
+          )}
+        </div>
+        <textarea
+          id="description"
+          name="description"
+          rows={5}
+          required
+          className="input"
+          placeholder="What did Home Depot / the customer report? What needs to happen?"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+        />
+        {sumErr && <p className="mt-1 text-xs text-amber-600">{sumErr}</p>}
+        {gmailThreadId && aiAvailable && !sumErr && (
+          <p className="mt-1 text-xs text-gray-400">Tip: “Summarize the HD email” drafts this from the first email — then edit as needed.</p>
+        )}
       </div>
+
       <div className="max-w-[200px]">
         <label className="label" htmlFor="priority">Priority</label>
         <select id="priority" name="priority" defaultValue="normal" className="input">

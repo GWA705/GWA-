@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { requireRole } from '@/lib/session';
 import { prisma } from '@/lib/db';
+import { aiConfigured } from '@/lib/ai';
 import { NewCaseForm } from '../NewCaseForm';
 
 export const dynamic = 'force-dynamic';
@@ -40,9 +41,25 @@ export default async function NewCasePage({
     ? { applicationId: app.id, customerName: `${app.applicantFirstName} ${app.applicantLastName}`.trim(), officeName: app.dealer?.name ?? '—' }
     : null;
 
-  // Editable pre-fills: prefer the matched deal, else what we parsed from the email.
-  const prefillCustomerName = linkedDeal?.customerName ?? (parsedName ? titleCase(parsedName) : undefined);
-  const prefillCustomerPhone = app?.applicantPhone ?? undefined;
+  // No live portal deal? Fall back to the JOURNAL ARCHIVE (older HD customers who
+  // predate the portal still have a journal row) to fill the phone + name, matched
+  // on the HD Ref #. This is fill-only — there's no Application to link.
+  const journalRec = !app && hdRef
+    ? await prisma.journalRecord.findFirst({
+        where: { hdRef },
+        orderBy: { saleDate: 'desc' },
+        select: { phone: true, customerName: true, firstName: true, lastName: true },
+      })
+    : null;
+  const journalName = journalRec
+    ? (journalRec.customerName.trim() || `${journalRec.firstName} ${journalRec.lastName}`.trim()) || undefined
+    : undefined;
+  const journalPhone = journalRec?.phone.trim() || undefined;
+
+  // Editable pre-fills: prefer the matched deal, then the journal, then the email.
+  const prefillCustomerName =
+    linkedDeal?.customerName ?? (journalName ? titleCase(journalName) : undefined) ?? (parsedName ? titleCase(parsedName) : undefined);
+  const prefillCustomerPhone = app?.applicantPhone ?? journalPhone ?? undefined;
   const prefillHdRef = app?.hdReference ?? hdRef ?? undefined;
 
   return (
@@ -52,6 +69,7 @@ export default async function NewCasePage({
       <NewCaseForm
         linkedDeal={linkedDeal}
         gmailThreadId={gmailThreadId}
+        aiAvailable={aiConfigured()}
         prefillTitle={prefillTitle}
         prefillHdCase={prefillHdCase}
         prefillCustomerName={prefillCustomerName}

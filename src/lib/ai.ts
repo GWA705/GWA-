@@ -149,6 +149,72 @@ export async function generateSupportReply(
   }
 }
 
+/**
+ * Summarize a Home Depot resolution email into a short, action-oriented problem
+ * statement for a new HD Resolution case. Returns null when the AI isn't
+ * configured or the call fails (the caller then leaves the Problem box for the
+ * staffer to write by hand). Read-only summarization — no customer data leaves
+ * beyond the email text already in the staffer's inbox.
+ */
+export async function summarizeResolutionEmail(emailText: string): Promise<string | null> {
+  const key = process.env.ANTHROPIC_API_KEY;
+  if (!key) return null;
+  const body = (emailText || '').trim().slice(0, 8000); // cap input; emails are short
+  if (body.length < 20) return null;
+
+  const system =
+    'You summarize a Home Depot "Resolutions Canada" email for an internal case tracker at ' +
+    'Georgian Water & Air (a Home Depot water-treatment dealer). Write a tight problem ' +
+    'statement a staffer can act on: what Home Depot / the customer is reporting and what we ' +
+    'need to do. Use short bullet points for distinct asks or action items; one line each. ' +
+    'No greeting, no sign-off, no preamble like "Summary:". Keep it factual and under 120 words. ' +
+    'Do not invent details that are not in the email.';
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20_000);
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+      body: JSON.stringify({
+        model: process.env.ANTHROPIC_MODEL || DEFAULT_MODEL,
+        max_tokens: 400,
+        system,
+        messages: [{ role: 'user', content: `Summarize this HD resolution email as a problem statement:\n\n${body}` }],
+      }),
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    if (!res.ok) {
+      const detail = await res.text().catch(() => '');
+      console.error(`[ai] resolution summary ${res.status}: ${detail.slice(0, 300)}`);
+      return null;
+    }
+    const data = (await res.json()) as {
+      content?: Array<{ type: string; text?: string }>;
+      model?: string;
+      usage?: { input_tokens?: number; output_tokens?: number };
+    };
+    if (data.usage) {
+      void recordAiUsage({
+        service: AI_SERVICES.resolutionSummary,
+        model: data.model || process.env.ANTHROPIC_MODEL || DEFAULT_MODEL,
+        inputTokens: data.usage.input_tokens ?? 0,
+        outputTokens: data.usage.output_tokens ?? 0,
+      });
+    }
+    const text = (data.content ?? [])
+      .filter((b) => b.type === 'text' && b.text)
+      .map((b) => b.text!.trim())
+      .join('\n')
+      .trim();
+    return text || null;
+  } catch (e) {
+    console.error('[ai] resolution summary failed:', e instanceof Error ? e.message : e);
+    return null;
+  }
+}
+
 export interface AiPing {
   ok: boolean;
   /** HTTP status (0 = network/timeout, never reached Anthropic). */

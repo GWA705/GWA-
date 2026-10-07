@@ -82,6 +82,16 @@ source of truth; this file is the human-readable index.
 - `parseHdSubject` in `gmailResolution.ts` (+ `tests/gmailResolution.test.ts`);
   `new/page.tsx` HD-Ref deal lookup; `NewCaseForm` always-editable + linked-deal
   banner; `inbox` "Open as case" passes the parsed fields.
+- **Phone + name also fill from the JOURNAL ARCHIVE.** When there's no live portal
+  deal, the new-case page falls back to `JournalRecord` (matched on the HD Ref #)
+  for the customer's phone + name — so older HD customers who predate the portal
+  still auto-fill. Fill-only (no deal to link).
+- **✨ "Summarize the HD email" button** on the new-case form (shown when a thread
+  is linked and AI is configured). Reads the FIRST email's full body (`fetchFirstMessageText`
+  — strips quoted history) and has Claude write a short, bulleted problem statement
+  into the Problem box (`summarizeResolutionEmail` in `ai.ts`, metered under the new
+  `ai_resolution_summary` service). On-demand (one click) so AI tokens are only spent
+  when wanted; the Problem field is editable after. Action: `summarizeEmailAction`.
 
 ### HD Resolution: match emails by HD Case # + "awaiting your reply" flag (2026-10-07)
 - **Match by HD's CASE #, not just the HD Ref #.** HD's resolution emails are keyed
