@@ -88,9 +88,9 @@ credential). Lets an HD Resolution case follow its Home Depot email chain.
   project number `736448322505`, org `georgianwaterandair.ca`.
 - **Service account (shared with Sheets):**
   `gwa-journal-writer@gwa-portal-504012.iam.gserviceaccount.com`.
-  Its **Unique ID / Client ID** is the number used for domain-wide delegation
-  (Google Cloud → IAM & Admin → Service Accounts → this account → "Unique ID",
-  or `client_id` in the service-account JSON). **[TO RECORD once copied]**
+  Its **Unique ID / Client ID** (used for domain-wide delegation) is
+  **`100470797238569934976`** (recorded 2026-10-07). Not a secret — it's the
+  service account's public identifier.
 - **Gmail API:** **Enabled** on the GWA Portal project (2026-10-07, Sean).
 - **Gmail label + filter:** label **`HD Resolution`** exists in `sean@ghsbarrie.ca`
   (Gmail label id `Label_6`); a filter auto-labels the HD resolution-centre mail.
