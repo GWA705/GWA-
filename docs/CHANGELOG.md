@@ -38,6 +38,32 @@ source of truth; this file is the human-readable index.
 | HD Resolution ↔ Gmail email link | ⏳ Code shipped, not switched on | Read-only Gmail via the existing service account (domain-wide delegation, `gmail.readonly`), impersonating one mailbox and reading one label (`HD Resolution`). Turn on: apply the Gmail label (+ filter), grant the delegation scope, set `GMAIL_RESOLUTION_USER` (+ optional `GMAIL_RESOLUTION_LABEL`) on EB. 30-min sync is `resolution-email-sync.yml` (uses the existing `CRON_SECRET`). Full steps in `HD-RESOLUTION-EMAIL.md`. **Untested against a live mailbox** until configured. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### Direct sale — Georgian Water & Air walk-in entry (2026-10-07)
+- **New screen at `/direct-sale`** for entering a Georgian Water & Air in-store
+  walk-in sale and completing it **straight to Funded + Paid** — no docs/funding
+  round-trip. Enter the customer + sale, pick how it was paid, attach the **bill
+  of sale** (required), and "Complete direct sale" sets the deal **FUNDED**, the
+  **paid date = the sale date**, and writes the sales-journal row as **settled**
+  (Result **"OK"** + **Date Paid**, UNITS = product count) so it matches the paid
+  read-back immediately.
+- **Scope: the GWA team only — never dealers.** Internal staff (Reviewer/Admin)
+  get it automatically (link in the staff nav). A new per-user grant
+  **`canEnterDirectSale`** (Admin → Users → "Direct sale access") lets you hand it
+  to a specific Georgian Water office person — even a store login — **without
+  opening it to dealers generally**; a granted store login gets a Direct sale tab
+  in their own portal. It is deliberately **not** on the shared dealer new-deal
+  form. The route guards itself (`requireDirectSaleAccess`) so a direct URL can't
+  bypass the grant.
+- Payment source gate matches funding: a GWA-program cash sale needs no reference
+  numbers; an HD-program sale needs the HD Customer #; a financed sale needs the
+  finance company + financing deal number (surfaced as a friendly error).
+- `EntryMethod.DIRECT` + `User.canEnterDirectSale` (additive migration
+  `20261007020000_direct_sale`); shared journal writer extracted to
+  `src/lib/journalSync.ts` (now writes Date Paid + "OK" for an already-paid deal);
+  new `directSaleSchema`, `src/lib/directSaleAccess.ts`, `/direct-sale` pages +
+  `createDirectSaleAction`; `tests/directSale.test.ts`. Journal "Date Paid" write
+  is inert for every other deal (only written when a deal carries a paid date).
+
 ### HD Resolution: match emails by HD Case # + "awaiting your reply" flag (2026-10-07)
 - **Match by HD's CASE #, not just the HD Ref #.** HD's resolution emails are keyed
   by a **CASE #** (e.g. `CASE #08210415 ON …`), which is the reliable thing in the

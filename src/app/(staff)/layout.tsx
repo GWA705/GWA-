@@ -10,6 +10,7 @@ import { canViewReportsArea } from '@/lib/reporting/access';
 import { isGlobalSearchEnabled } from '@/lib/settings';
 import { canSearchAllCustomers } from '@/lib/customerSearch';
 import { canManageGiftCards, staffHasGiftCardUnread } from '@/lib/giftCardAccess';
+import { canEnterDirectSale } from '@/lib/directSaleAccess';
 import { totalUnread } from '@/lib/chat';
 import { hasOutstandingConfirmations } from '@/lib/confirmationQueue';
 import { hasOpenResolutions } from '@/lib/resolutionCases';
@@ -41,6 +42,10 @@ export default async function StaffLayout({ children }: { children: React.ReactN
   nav.push({ href: '/staff/resolutions', label: 'HD Resolution', badge: await hasOpenResolutions() });
   if (await canManageGiftCards(user)) {
     nav.push({ href: '/staff/gift-cards', label: 'Gift cards', badge: await staffHasGiftCardUnread() });
+  }
+  // Direct sale — Georgian Water & Air walk-in entry (all internal staff).
+  if (await canEnterDirectSale(user)) {
+    nav.push({ href: '/direct-sale', label: 'Direct sale' });
   }
 
   // Directory, customer search, leads and reports collapse into one "Tools"

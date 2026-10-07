@@ -616,6 +616,13 @@ model User {
   // implicitly; this lets a reviewer/admin work the queue without those.
   canManageGiftCards Boolean @default(false)
 
+  // Per-user grant for the "Direct sale" screen — enter a Georgian Water & Air
+  // in-store walk-in sale and complete it straight to Funded + Paid. Internal
+  // staff (REVIEWER/ADMIN) have it implicitly; this flag lets a specific GWA
+  // office person (even a DEALER_USER at a GWA store) enter direct sales WITHOUT
+  // opening the feature to dealers generally. Dealers never get it by default.
+  canEnterDirectSale Boolean @default(false)
+
   // Profile & notification preferences
   phone             String?
   notificationEmail String? // where notifications go; falls back to `email`
@@ -950,6 +957,7 @@ enum EntryMethod {
   TYPED // entered directly into the site (full loan application)
   PHOTO // uploaded a photo of the paper credit application
   FINANCEIT // Express: payment already arranged / approved (see paymentMethod)
+  DIRECT // Georgian Water & Air in-store walk-in sale, entered + funded by GWA staff
 }
 
 // How the customer paid on an Express (payment-arranged) deal. FINANCEIT means

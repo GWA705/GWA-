@@ -365,6 +365,53 @@ export const editDealSchema = z.object({
 
 export type EditDealInput = z.infer<typeof editDealSchema>;
 
+// Georgian Water & Air "Direct sale": a walk-in in-store sale entered by GWA
+// staff and completed straight to Funded + Paid. Leaner than editDealSchema (no
+// extended loan-application section — a direct sale has no credit app), but it
+// DOES require the paid date (the sale date) and a marked payment source, and
+// the action separately requires a bill-of-sale upload.
+export const directSaleSchema = z.object({
+  // Owning office. For internal staff this is a picker; for a granted GWA-store
+  // (DEALER_USER) grantee the action overrides it with their own dealer.
+  dealerId: z.string().min(1, 'Choose the Georgian Water & Air office'),
+  province: z.enum(PROVINCE_VALUES),
+  programType: z.enum(['HD', 'GWA']),
+  programCategory: z.enum(['WATER', 'AIR', 'SMELL_BUSTERS', 'HVAC']),
+  requestedAmount: z.coerce.number().positive('Amount must be greater than 0').max(1_000_000),
+
+  applicantFirstName: z.string().min(1, 'First name is required').max(80).transform(formatPersonName),
+  applicantLastName: z.string().min(1, 'Last name is required').max(80).transform(formatPersonName),
+  applicantEmail: z.string().email('Enter a valid email').max(160),
+  applicantPhone: z.string().min(7, 'Enter a valid phone').max(30),
+  applicantAddress: z.string().max(300).optional(),
+  city: str(80),
+  postalCode: str(10),
+
+  // The sale date — also the paid date for a direct sale. Required (it decides
+  // the journal month tab and the Date Paid written to the sheet).
+  dateOfSale: z.string().min(1, 'Enter the sale date').refine((v) => !Number.isNaN(Date.parse(v)), 'Invalid date'),
+  installationDate: optionalDate,
+
+  // Payment source — required. Finance company + numbers are conditionally
+  // required by the action's reference gate (HD program → HD #, financed →
+  // financing deal #), surfaced as a friendly error there.
+  paymentMethod: z.preprocess(
+    blankToUndef,
+    z.enum(['FINANCEIT', 'FINANCE_COMPANY', 'CASH', 'CHEQUE', 'E_TRANSFER', 'CREDIT_CARD', 'HD_CREDIT_CARD']),
+  ),
+  financeCompanyId: z.preprocess(blankToUndef, z.string().max(60).optional()),
+  financeItNumber: z.string().trim().max(80).optional(),
+  hdReference: z.string().trim().max(80).optional(),
+
+  // Sales-journal detail fields. productsSold is multi-value and read via
+  // formData.getAll(), not through this object schema.
+  salespersonName: optName(120),
+  installerName: optName(120),
+  soapIncluded: z.preprocess(blankToUndef, z.enum(['NO', 'NV', 'PS', 'OTHER']).optional()),
+});
+
+export type DirectSaleInput = z.infer<typeof directSaleSchema>;
+
 export const decisionSchema = z.object({
   applicationId: z.string().min(1),
   type: z.enum(['APPROVE', 'DECLINE', 'CONDITIONAL', 'REQUEST_DOCS', 'FUND']),

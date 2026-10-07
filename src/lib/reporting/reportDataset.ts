@@ -4,7 +4,7 @@ import { programLabel, STATUS_LABELS, PAYMENT_METHOD_LABELS } from '@/lib/consta
 import type { ApplicationStatus, EntryMethod, Prisma } from '@prisma/client';
 
 const APPROVED_SET: ApplicationStatus[] = ['CONDITIONAL', 'APPROVED', 'DOCS_SENT', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW', 'FUNDED'];
-const ENTRY_LABELS: Record<EntryMethod, string> = { FINANCEIT: 'Express', TYPED: 'Priority', PHOTO: 'Standard' };
+const ENTRY_LABELS: Record<EntryMethod, string> = { FINANCEIT: 'Express', TYPED: 'Priority', PHOTO: 'Standard', DIRECT: 'Direct sale' };
 
 /**
  * A flat, per-deal dataset the custom report builder runs on entirely in the

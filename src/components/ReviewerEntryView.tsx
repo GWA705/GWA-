@@ -247,7 +247,7 @@ export function ReviewerEntryView({
         <Field label="Installer" value={nonEmpty(app.installerName)} />
         <Field label="Financing deal number" value={nonEmpty(app.financeItNumber)} mono />
         <Field label="HD Customer #" value={nonEmpty(app.hdReference)} mono />
-        <Field label="Entry method" value={app.entryMethod === 'TYPED' ? 'Typed in' : app.entryMethod === 'PHOTO' ? 'Photo upload' : 'FinanceIT #'} />
+        <Field label="Entry method" value={app.entryMethod === 'TYPED' ? 'Typed in' : app.entryMethod === 'PHOTO' ? 'Photo upload' : app.entryMethod === 'DIRECT' ? 'Direct sale' : 'FinanceIT #'} />
         <Field label="Approved by" value={app.approvedBy?.name ?? null} />
       </Group>
 

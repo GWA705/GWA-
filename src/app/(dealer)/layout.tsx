@@ -11,6 +11,7 @@ import { hasCalculatorAccess } from '@/lib/calculatorAccess';
 import { hasDealerReportAccess, canViewAllLeads } from '@/lib/reporting/access';
 import { isGlobalSearchEnabled } from '@/lib/settings';
 import { dealerHasGiftCardUnread } from '@/lib/giftCardAccess';
+import { canEnterDirectSale } from '@/lib/directSaleAccess';
 import { prisma } from '@/lib/db';
 import { stopViewAsAction } from '@/app/(admin)/actions';
 
@@ -43,7 +44,7 @@ export default async function DealerLayout({ children }: { children: React.React
   }
 
   // Attention dots: content sections with something new, and unread mail.
-  const [freshSections, unreadMail, calcAccess, reportAccess, leadsAccess, searchEnabled, giftCardUnread, dealerProfile] = await Promise.all([
+  const [freshSections, unreadMail, calcAccess, reportAccess, leadsAccess, searchEnabled, giftCardUnread, directSaleAccess, dealerProfile] = await Promise.all([
     newContentSectionsForUser(user.userId),
     user.dealerId ? unreadMailCountForUser(user.userId, user.dealerId, user.isDistributor) : Promise.resolve(0),
     hasCalculatorAccess(user),
@@ -51,6 +52,9 @@ export default async function DealerLayout({ children }: { children: React.React
     canViewAllLeads(user),
     isGlobalSearchEnabled(),
     user.dealerId ? dealerHasGiftCardUnread(user.dealerId) : Promise.resolve(false),
+    // Direct sale is a granted GWA-team tool; a store login only sees it when
+    // specifically granted (never all dealers).
+    canEnterDirectSale(user),
     user.dealerId
       ? prisma.dealerProfile.findUnique({ where: { dealerId: user.dealerId }, select: { logoStorageKey: true, updatedAt: true, businessName: true } })
       : Promise.resolve(null),
@@ -96,6 +100,9 @@ export default async function DealerLayout({ children }: { children: React.React
           { href: '/dealer', label: 'Home', labelKey: 'nav.home' },
           { href: '/dealer/applications', label: 'Applications', labelKey: 'nav.applications' },
           { href: '/dealer/applications/new', label: 'New customer', labelKey: 'nav.newCustomer' },
+          // Direct sale — only for a specifically-granted Georgian Water office
+          // login, never surfaced to dealers generally.
+          ...(directSaleAccess ? [{ href: '/direct-sale', label: 'Direct sale' }] : []),
           { href: '/dealer/mail', label: 'Mail', labelKey: 'nav.mail', badge: unreadMail > 0 },
           // Lookups & calculators — only the ones this office has access to. The
           // group is hidden entirely when the dealer has none of them.

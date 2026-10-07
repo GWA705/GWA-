@@ -261,6 +261,12 @@ async function readLayout(
     }
   }
 
+  // The settlement "Date Paid" column (the one at/after "Result" — NOT the blank
+  // AMEX one). We only WRITE it for an already-paid deal; reuse the read-back's
+  // locator so the write targets the same column the read-back trusts.
+  const paidCol = locateStatusColumns(top, bottom).paidCol;
+  if (paidCol >= 0 && !used.has(paidCol)) columns.datePaid = paidCol;
+
   return {
     headerBottomRow: headerBottom + 1,
     firstDataRow: headerBottom + 2,
@@ -554,6 +560,11 @@ export interface JournalDeal {
   dealDate: string | null;
   dateInstalled: string | null;
   dateOfSale: string | null;
+  // The settlement "Date Paid" (col right after "Result"). Normally the office
+  // fills this by hand and we only READ it back; the portal writes it for an
+  // already-paid deal (e.g. a Direct sale) so the row is complete + consistent
+  // with the paid read-back. Null leaves the cell untouched.
+  datePaid: string | null;
   saleDate: Date; // used to pick the month tab
   knownTab: string | null;
   knownRow: number | null;
@@ -650,6 +661,7 @@ export async function writeDealToJournal(deal: JournalDeal): Promise<JournalResu
     dealDate: deal.dealDate,
     dateInstalled: deal.dateInstalled,
     dateOfSale: deal.dateOfSale,
+    datePaid: deal.datePaid,
   };
 
   const data: sheets_v4.Schema$ValueRange[] = [];

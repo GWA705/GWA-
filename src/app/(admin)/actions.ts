@@ -405,6 +405,7 @@ export async function updateUserAction(
     canViewDealerSnapshot: boolean;
     canViewAllLeads: boolean;
     canManageGiftCards: boolean;
+    canEnterDirectSale: boolean;
     passwordHash?: string;
     passwordChangedAt?: Date | null;
     tokenVersion?: { increment: number };
@@ -433,6 +434,10 @@ export async function updateUserAction(
     canViewAllLeads: formData.get('canViewAllLeads') === 'on',
     // Per-user grant to work the water-test gift-card queue. Internal only.
     canManageGiftCards: d.role !== 'DEALER_USER' && formData.get('canManageGiftCards') === 'on',
+    // Direct sale entry. Internal staff have it implicitly (the flag still lets
+    // you record it), and it is grantable to a specific GWA store (DEALER_USER)
+    // person — so it is role-agnostic, like leads oversight.
+    canEnterDirectSale: formData.get('canEnterDirectSale') === 'on',
   };
 
   // Demoting an administrator also strips Super-Admin + section grants, so an
