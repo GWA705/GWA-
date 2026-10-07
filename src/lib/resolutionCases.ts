@@ -37,6 +37,7 @@ export interface CaseRowVM {
   age: AgeLevel;
   updatedAt: string;
   openedDay: string;
+  awaitingReplyDays: number | null; // HD sent the last email N days ago, no reply yet
 }
 
 export interface ResolutionQueue {
@@ -83,6 +84,23 @@ export async function loadResolutionQueue(filters: { status?: string; q?: string
   const counts = Object.fromEntries(RESOLUTION_STATUSES.map((s) => [s, 0])) as Record<ResolutionStatus, number>;
   for (const g of grouped) counts[g.status] = g._count._all;
 
+  // "Awaiting our reply": the latest email per case, if it's from HD. One query;
+  // first occurrence of each caseId (ordered newest-first) is its latest message.
+  const awaiting = new Map<string, number>();
+  if (rows.length) {
+    const latest = await prisma.resolutionEmail.findMany({
+      where: { caseId: { in: rows.map((r) => r.id) } },
+      orderBy: [{ sentAt: 'desc' }, { createdAt: 'desc' }],
+      select: { caseId: true, inbound: true, sentAt: true, createdAt: true },
+    });
+    const seen = new Set<string>();
+    for (const e of latest) {
+      if (seen.has(e.caseId)) continue;
+      seen.add(e.caseId);
+      if (e.inbound) awaiting.set(e.caseId, daysSince(e.sentAt ?? e.createdAt));
+    }
+  }
+
   return {
     rows: rows.map((r) => ({
       id: r.id,
@@ -94,6 +112,7 @@ export async function loadResolutionQueue(filters: { status?: string; q?: string
       age: ageLevel(r.createdAt, r.status),
       updatedAt: fmt(r.updatedAt),
       openedDay: fmtDay(r.createdAt),
+      awaitingReplyDays: awaiting.get(r.id) ?? null,
     })),
     counts,
     status: statusFilter,
@@ -155,10 +174,15 @@ export interface CaseDetail {
   notes: CaseNoteVM[];
   dealDocs: CaseDealDoc[]; // documents from the linked deal, shown as resources
   attachments: CaseAttachmentVM[]; // files/links attached directly to the case
+  hdCaseNumber: string | null;
   emailLinked: boolean;
   emailSyncedAt: string | null;
   emails: CaseEmailVM[];
+  /** Days since the last email, when that last email is from HD (we owe a reply). Null otherwise. */
+  awaitingReplyDays: number | null;
 }
+
+const daysSince = (d: Date): number => Math.max(0, Math.floor((Date.now() - d.getTime()) / 86_400_000));
 
 export async function loadResolutionCase(id: string): Promise<CaseDetail | null> {
   const c = await prisma.resolutionCase.findUnique({
@@ -219,6 +243,7 @@ export async function loadResolutionCase(id: string): Promise<CaseDetail | null>
       addedBy: a.addedBy?.name ?? '—',
       at: fmt(a.createdAt),
     })),
+    hdCaseNumber: c.hdCaseNumber,
     emailLinked: !!c.gmailThreadId,
     emailSyncedAt: c.emailSyncedAt ? fmt(c.emailSyncedAt) : null,
     emails: c.emails.map((e) => ({
@@ -227,6 +252,10 @@ export async function loadResolutionCase(id: string): Promise<CaseDetail | null>
       at: e.sentAt ? fmt(e.sentAt) : fmt(e.createdAt),
       snippet: e.snippet,
     })),
+    awaitingReplyDays: (() => {
+      const last = c.emails[c.emails.length - 1]; // emails ordered oldest→newest
+      return last && last.inbound ? daysSince(last.sentAt ?? last.createdAt) : null;
+    })(),
   };
 }
 

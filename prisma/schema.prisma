@@ -1378,7 +1378,8 @@ model ResolutionCase {
   customerName   String
   customerPhone  String       @default("") // normalized (last 10) for lookups
   officeDealerId String? // the office that owns the customer (notify target)
-  hdReference    String?
+  hdReference    String? // the HD Customer # (800… / 701…) on the deal
+  hdCaseNumber   String? // HD's resolution CASE # (e.g. "08210415") — what their emails are keyed by
 
   openedById   String
   openedBy     User    @relation("ResolutionOpenedBy", fields: [openedById], references: [id])
@@ -1439,6 +1440,7 @@ model ResolutionEmail {
   fromAddr       String
   sentAt         DateTime?
   snippet        String         @db.Text
+  inbound        Boolean        @default(true) // true = from HD / not us (drives "awaiting our reply")
   createdAt      DateTime       @default(now())
 
   @@unique([caseId, gmailMessageId])

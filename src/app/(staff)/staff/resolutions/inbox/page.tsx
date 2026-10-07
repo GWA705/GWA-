@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { requireRole } from '@/lib/session';
 import { prisma } from '@/lib/db';
-import { gmailResolutionConfigured, listUnlinkedThreads, resolutionLabel, type GmailThreadSummary } from '@/lib/gmailResolution';
+import { gmailResolutionConfigured, listUnlinkedThreads, resolutionLabel, parseHdCaseNumber, type GmailThreadSummary } from '@/lib/gmailResolution';
 
 export const dynamic = 'force-dynamic';
 
@@ -52,7 +52,7 @@ export default async function ResolutionInboxPage() {
                 {t.snippet && <div className="mt-0.5 truncate text-xs text-gray-400 dark:text-slate-500">{t.snippet}</div>}
               </div>
               <Link
-                href={`/staff/resolutions/new?gmailThreadId=${encodeURIComponent(t.threadId)}&title=${encodeURIComponent(t.subject)}`}
+                href={`/staff/resolutions/new?gmailThreadId=${encodeURIComponent(t.threadId)}&title=${encodeURIComponent(t.subject)}${parseHdCaseNumber(t.subject) ? `&hdCase=${encodeURIComponent(parseHdCaseNumber(t.subject)!)}` : ''}`}
                 className="btn-secondary shrink-0 text-sm"
               >
                 ＋ Open as case

@@ -46,6 +46,21 @@ export interface GmailMessage {
   fromAddr: string;
   sentAt: Date | null;
   snippet: string;
+  inbound: boolean; // from HD / not us — drives "awaiting our reply"
+}
+
+/** Our own mail domain — a message from it is a reply we sent (not awaiting us). */
+export function ourMailDomain(): string {
+  return (process.env.GMAIL_RESOLUTION_OUR_DOMAIN || 'ghsbarrie.ca').toLowerCase();
+}
+function isInbound(fromAddr: string): boolean {
+  return !fromAddr.toLowerCase().includes(ourMailDomain());
+}
+
+/** Pull HD's CASE # out of a subject, e.g. "CASE #08210415 ON …" → "08210415". */
+export function parseHdCaseNumber(subject: string): string | null {
+  const m = /case\s*#?\s*(\d{5,})/i.exec(subject || '');
+  return m ? m[1] : null;
 }
 
 export interface GmailThreadSummary {
@@ -92,12 +107,16 @@ export async function fetchThreadMessages(threadId: string): Promise<GmailMessag
   const msgs = res.data.messages || [];
   return msgs
     .filter((m) => m.id)
-    .map((m) => ({
-      gmailMessageId: m.id!,
-      fromAddr: header(m.payload, 'From') || '(unknown sender)',
-      sentAt: parseDate(header(m.payload, 'Date')),
-      snippet: (m.snippet || '').trim(),
-    }));
+    .map((m) => {
+      const fromAddr = header(m.payload, 'From') || '(unknown sender)';
+      return {
+        gmailMessageId: m.id!,
+        fromAddr,
+        sentAt: parseDate(header(m.payload, 'Date')),
+        snippet: (m.snippet || '').trim(),
+        inbound: isInbound(fromAddr),
+      };
+    });
 }
 
 /**

@@ -43,10 +43,16 @@ export default async function CaseDetailPage({ params }: { params: { id: string 
               {c.customerPhone && <> · 📱 {formatPhoneDisplay(c.customerPhone)}</>}
               {' · '}🏬 {c.officeName}
               {c.hdReference && <> · HD #{c.hdReference}</>}
+              {c.hdCaseNumber && <> · Case #{c.hdCaseNumber}</>}
             </div>
           </div>
           <div className="text-right">
             <span className={statusChipClass(c.status)}>{STATUS_LABEL[c.status]}</span>
+            {c.awaitingReplyDays != null && (
+              <div className={`mt-1 text-xs font-semibold ${c.awaitingReplyDays >= 5 ? 'text-red-600' : 'text-amber-600'}`}>
+                ⏳ Awaiting your reply · {c.awaitingReplyDays} day{c.awaitingReplyDays === 1 ? '' : 's'}
+              </div>
+            )}
             {c.age === 'red' && <div className="mt-1 text-xs font-semibold text-red-600">● aging ({'>'}7 days)</div>}
             {c.age === 'amber' && <div className="mt-1 text-xs font-semibold text-amber-600">● ageing ({'>'}3 days)</div>}
             {c.priority === 'high' && <div className="mt-1 text-xs font-semibold text-red-700">High priority</div>}

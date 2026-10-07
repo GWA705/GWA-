@@ -52,6 +52,7 @@ export async function createCaseAction(_prev: CaseFormState, formData: FormData)
   let customerName = String(formData.get('customerName') || '').trim();
   let customerPhone = String(formData.get('customerPhone') || '').trim();
   let hdReference = String(formData.get('hdReference') || '').trim() || null;
+  const hdCaseNumber = String(formData.get('hdCaseNumber') || '').trim() || null;
   let officeDealerId: string | null = null;
 
   if (applicationId) {
@@ -75,7 +76,7 @@ export async function createCaseAction(_prev: CaseFormState, formData: FormData)
     data: {
       caseNumber, title, description, priority, applicationId,
       customerName, customerPhone: normalizeCallPhone(customerPhone),
-      officeDealerId, hdReference, openedById: user.userId,
+      officeDealerId, hdReference, hdCaseNumber, openedById: user.userId,
       ...(gmailThreadId ? { gmailThreadId, gmailLinkedAt: new Date() } : {}),
     },
   });
@@ -225,12 +226,14 @@ export async function deleteCaseAttachmentAction(attachmentId: string): Promise<
 export async function linkEmailThreadAction(caseId: string, _prev: CaseFormState, _formData: FormData): Promise<CaseFormState> {
   await requireRole('REVIEWER', 'ADMIN');
   if (!gmailResolutionConfigured()) return { error: 'The Gmail email link isn’t set up yet.' };
-  const c = await prisma.resolutionCase.findUnique({ where: { id: caseId }, select: { id: true, hdReference: true, caseNumber: true, gmailThreadId: true } });
+  const c = await prisma.resolutionCase.findUnique({ where: { id: caseId }, select: { id: true, hdCaseNumber: true, hdReference: true, caseNumber: true, gmailThreadId: true } });
   if (!c) return { error: 'Case not found.' };
   if (c.gmailThreadId) return { ok: true };
 
-  const ref = (c.hdReference || c.caseNumber || '').trim();
-  if (!ref) return { error: 'Add an HD Ref # to this case first, so we can find the email.' };
+  // HD keys their emails by the CASE # (in the subject), so match on that first;
+  // fall back to the HD Customer # or our own case number.
+  const ref = (c.hdCaseNumber || c.hdReference || c.caseNumber || '').trim();
+  if (!ref) return { error: 'Add the HD Case # to this case first, so we can find the email.' };
 
   let found: { threadId: string; subject: string } | null = null;
   try {

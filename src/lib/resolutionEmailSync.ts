@@ -13,7 +13,7 @@ export async function syncCaseEmails(caseId: string): Promise<{ added: number }>
   let added = 0;
   if (msgs.length) {
     const res = await prisma.resolutionEmail.createMany({
-      data: msgs.map((m) => ({ caseId, gmailMessageId: m.gmailMessageId, fromAddr: m.fromAddr, sentAt: m.sentAt, snippet: m.snippet })),
+      data: msgs.map((m) => ({ caseId, gmailMessageId: m.gmailMessageId, fromAddr: m.fromAddr, sentAt: m.sentAt, snippet: m.snippet, inbound: m.inbound })),
       skipDuplicates: true,
     });
     added = res.count;

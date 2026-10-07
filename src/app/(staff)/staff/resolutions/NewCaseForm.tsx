@@ -13,10 +13,12 @@ export function NewCaseForm({
   prefill,
   gmailThreadId,
   prefillTitle,
+  prefillHdCase,
 }: {
   prefill: { applicationId: string; customerName: string; officeName: string; hdReference: string | null } | null;
   gmailThreadId?: string;
   prefillTitle?: string;
+  prefillHdCase?: string;
 }) {
   const [state, action] = useFormState(createCaseAction, {} as CaseFormState);
 
@@ -50,9 +52,15 @@ export function NewCaseForm({
         </div>
       )}
 
-      <div>
-        <label className="label" htmlFor="title">Title</label>
-        <input id="title" name="title" required className="input" placeholder="e.g. Leak — RO drinking water system" defaultValue={prefillTitle ?? ''} />
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div>
+          <label className="label" htmlFor="title">Title</label>
+          <input id="title" name="title" required className="input" placeholder="e.g. Leak — RO drinking water system" defaultValue={prefillTitle ?? ''} />
+        </div>
+        <div>
+          <label className="label" htmlFor="hdCaseNumber">HD Case # <span className="font-normal text-gray-400">(for the email link)</span></label>
+          <input id="hdCaseNumber" name="hdCaseNumber" className="input" placeholder="08210415" defaultValue={prefillHdCase ?? ''} />
+        </div>
       </div>
       <div>
         <label className="label" htmlFor="description">Problem</label>

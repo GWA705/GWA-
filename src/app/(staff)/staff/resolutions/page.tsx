@@ -89,6 +89,11 @@ export default async function ResolutionQueuePage({
                       <span className={statusChipClass(r.status)}>{STATUS_LABEL[r.status]}</span>
                       {r.age === 'red' && <span className="ml-2 text-xs font-semibold text-red-600">● aging</span>}
                       {r.age === 'amber' && <span className="ml-2 text-xs font-semibold text-amber-600">● ageing</span>}
+                      {r.awaitingReplyDays != null && (
+                        <div className={`mt-1 text-xs font-semibold ${r.awaitingReplyDays >= 5 ? 'text-red-600' : 'text-amber-600'}`}>
+                          ⏳ Awaiting your reply · {r.awaitingReplyDays}d
+                        </div>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-gray-500 dark:text-slate-400">{r.openedDay}</td>
                   </tr>

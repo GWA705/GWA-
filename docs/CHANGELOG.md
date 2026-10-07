@@ -38,6 +38,24 @@ source of truth; this file is the human-readable index.
 | HD Resolution ↔ Gmail email link | ⏳ Code shipped, not switched on | Read-only Gmail via the existing service account (domain-wide delegation, `gmail.readonly`), impersonating one mailbox and reading one label (`HD Resolution`). Turn on: apply the Gmail label (+ filter), grant the delegation scope, set `GMAIL_RESOLUTION_USER` (+ optional `GMAIL_RESOLUTION_LABEL`) on EB. 30-min sync is `resolution-email-sync.yml` (uses the existing `CRON_SECRET`). Full steps in `HD-RESOLUTION-EMAIL.md`. **Untested against a live mailbox** until configured. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### HD Resolution: match emails by HD Case # + "awaiting your reply" flag (2026-10-07)
+- **Match by HD's CASE #, not just the HD Ref #.** HD's resolution emails are keyed
+  by a **CASE #** (e.g. `CASE #08210415 ON …`), which is the reliable thing in the
+  subject line — the HD customer/LEAD # isn't always present. A case now carries an
+  optional **HD Case #** (new field on the new-case form), and linking the email
+  thread searches by **HD Case # → HD Ref # → portal case #** in that order. Opening
+  an unlinked email as a case **auto-fills the HD Case #** parsed from its subject.
+- **"⏳ Awaiting your reply · N days".** Each synced email is tagged **inbound** (from
+  HD) vs. ours (from `ghsbarrie.ca`). When the **latest** email on a case is from HD,
+  the case shows an "awaiting your reply" flag — **amber**, turning **red at ≥5 days**
+  to match HD's own 5-day reminder. Shown on both the queue rows and the case header,
+  so an unanswered HD email can't quietly sit.
+- `ResolutionCase.hdCaseNumber` + `ResolutionEmail.inbound` (additive migration
+  `20261007010000_resolution_email_reply`); `parseHdCaseNumber` / `isInbound` /
+  `ourMailDomain` in `gmailResolution.ts` (override the domain with
+  `GMAIL_RESOLUTION_OUR_DOMAIN`); `awaitingReplyDays` on the queue + case detail;
+  `tests/gmailResolution.test.ts`. Still inert until the Gmail link is switched on.
+
 ### Dashboard hero: special occasions can run "until turned off" (2026-10-04)
 - A special-occasion hero (e.g. a GIF) no longer requires a date window. **Leave
   both dates blank** and it runs **until you turn it off** (matches how the login
