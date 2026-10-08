@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { prisma } from '@/lib/db';
 import { requireDirectSaleAccess } from '@/lib/directSaleAccess';
+import { STATUS_LABELS } from '@/lib/constants';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,6 +22,7 @@ export default async function DirectSalesPage() {
     select: {
       id: true, applicantFirstName: true, applicantLastName: true,
       requestedAmount: true, dateOfSale: true, journalSyncedAt: true,
+      status: true, datePaid: true,
       dealer: { select: { name: true } },
     },
   });
@@ -33,7 +35,7 @@ export default async function DirectSalesPage() {
         <div>
           <h1 className="text-xl font-semibold text-gray-900 dark:text-slate-100">🧾 Direct sales</h1>
           <p className="mt-0.5 text-sm text-gray-500 dark:text-slate-400">
-            Georgian Water &amp; Air in-store walk-in sales, entered and completed to Funded + Paid.
+            Georgian Water &amp; Air in-store walk-in sales. Entered <strong>In funding</strong> → marked <strong>Funded</strong> on the deal → <strong>Paid</strong> when the journal updates.
           </p>
         </div>
         <Link href="/direct-sale/new" className="btn-primary">＋ New direct sale</Link>
@@ -48,12 +50,13 @@ export default async function DirectSalesPage() {
                 {internal && <th className="px-4 py-3">Office</th>}
                 <th className="px-4 py-3">Amount</th>
                 <th className="px-4 py-3">Sale date</th>
+                <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Journal</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
               {sales.length === 0 ? (
-                <tr><td colSpan={internal ? 5 : 4} className="px-4 py-8 text-center text-gray-500 dark:text-slate-400">No direct sales yet. Use <strong>New direct sale</strong> to enter one.</td></tr>
+                <tr><td colSpan={internal ? 6 : 5} className="px-4 py-8 text-center text-gray-500 dark:text-slate-400">No direct sales yet. Use <strong>New direct sale</strong> to enter one.</td></tr>
               ) : (
                 sales.map((s) => (
                   <tr key={s.id}>
@@ -65,6 +68,9 @@ export default async function DirectSalesPage() {
                     {internal && <td className="px-4 py-3 text-gray-600 dark:text-slate-300">{s.dealer?.name ?? '—'}</td>}
                     <td className="px-4 py-3 tabular-nums text-gray-800 dark:text-slate-200">{fmtMoney(s.requestedAmount)}</td>
                     <td className="px-4 py-3 text-gray-500 dark:text-slate-400">{fmtDay(s.dateOfSale)}</td>
+                    <td className="px-4 py-3 text-xs">
+                      <span className="font-medium text-gray-700 dark:text-slate-200">{s.datePaid ? 'Paid' : STATUS_LABELS[s.status]}</span>
+                    </td>
                     <td className="px-4 py-3 text-xs">
                       {s.journalSyncedAt
                         ? <span className="font-semibold text-green-600">✓ written</span>

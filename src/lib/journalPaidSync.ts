@@ -186,7 +186,8 @@ export async function syncApplicationFromJournal(applicationId: string, actorId:
             amount: read.payToDealer,
             paidOn: read.datePaid!,
             method: 'EFT',
-            note: 'Auto-filled from the sales journal (Pay to dealer)',
+            // Note intentionally left blank (the audit log still records the
+            // journal auto-fill below).
             createdById,
           },
         });

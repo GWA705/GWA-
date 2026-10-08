@@ -18,7 +18,7 @@ function SubmitBtn() {
   const { pending } = useFormStatus();
   return (
     <button type="submit" className="btn-primary" disabled={pending}>
-      {pending ? 'Completing…' : 'Complete direct sale'}
+      {pending ? 'Saving…' : 'Save direct sale → In funding'}
     </button>
   );
 }
@@ -37,11 +37,13 @@ function Err({ errors, field }: { errors?: Record<string, string>; field: string
 export function DirectSaleForm({
   offices,
   fixedOffice,
+  defaultDealerId,
   products,
   financeCompanies,
 }: {
   offices: Office[];
   fixedOffice: Office | null;
+  defaultDealerId?: string;
   products: ProductOption[];
   financeCompanies: FinanceCo[];
 }) {
@@ -66,7 +68,7 @@ export function DirectSaleForm({
         ) : (
           <div className="max-w-sm">
             <label className="label" htmlFor="dealerId">Georgian Water &amp; Air office</label>
-            <select id="dealerId" name="dealerId" required defaultValue="" className="input">
+            <select id="dealerId" name="dealerId" required defaultValue={defaultDealerId ?? ''} className="input">
               <option value="" disabled>Choose an office…</option>
               {offices.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
             </select>
@@ -238,7 +240,7 @@ export function DirectSaleForm({
       </section>
 
       <div className="flex items-center justify-end gap-3 border-t border-gray-100 pt-4 dark:border-slate-700">
-        <p className="mr-auto text-xs text-gray-500 dark:text-slate-400">Completing records the sale as <strong>Funded + Paid</strong> and writes the journal row.</p>
+        <p className="mr-auto text-xs text-gray-500 dark:text-slate-400">Saving records the sale <strong>In funding</strong> and writes the journal row. Mark it funded on the deal; it turns Paid when the journal updates.</p>
         <SubmitBtn />
       </div>
     </form>

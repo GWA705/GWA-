@@ -115,7 +115,11 @@ export async function createDirectSaleAction(
     data: {
       dealerId,
       createdById: session.userId,
-      status: 'FUNDED',
+      // A direct sale enters the funnel already in funding — it skips the
+      // application/approval/docs round-trip. Staff then "Mark funded" on the
+      // deal, and the journal read-back turns it Paid once the sheet shows OK +
+      // Date Paid. (It is NOT auto-marked funded/paid here.)
+      status: 'FUNDING_REVIEW',
       entryMethod: 'DIRECT',
       paymentMethod: d.paymentMethod,
       financeCompanyId: financed ? d.financeCompanyId ?? null : null,
@@ -125,15 +129,11 @@ export async function createDirectSaleAction(
       programType: d.programType,
       programCategory: d.programCategory,
       requestedAmount: d.requestedAmount,
-      // A completed walk-in sale: the approved amount is the amount sold.
+      // A real walk-in sale: the approved amount is the amount sold.
       approvedAmount: d.requestedAmount,
       approvedById: session.userId,
       dateOfSale: saleDate,
       installationDate: d.installationDate ? new Date(d.installationDate) : null,
-      // Paid, on the sale date — drives the portal's Paid state and the journal
-      // "OK" + Date Paid write.
-      datePaid: saleDate,
-      journalPaidOn: saleDate,
       salespersonName: d.salespersonName ?? null,
       installerName: d.installerName ?? null,
       soapIncluded: d.soapIncluded ? d.soapIncluded !== 'NO' : null,
@@ -146,23 +146,24 @@ export async function createDirectSaleAction(
       applicantEmail: d.applicantEmail,
       applicantPhone: d.applicantPhone,
       applicantAddressEnc: encryptOptional(d.applicantAddress),
-      lastReviewerActionAt: new Date(),
+      // Surfaces it in the funding queue as needing attention.
+      lastDealerActionAt: new Date(),
+      lastDealerActionKind: 'FUNDING',
       statusEvents: {
         create: {
-          to: 'FUNDED',
+          to: 'FUNDING_REVIEW',
           actorId: session.userId,
-          note: 'Direct sale — entered and completed (Funded + Paid)',
+          note: 'Direct sale — entered, sent to funding',
         },
       },
     },
   });
 
   await audit({ actorId: session.userId, action: 'APPLICATION_CREATE', entityType: 'Application', entityId: app.id, detail: 'Direct sale' });
-  await audit({ actorId: session.userId, action: 'STATUS_CHANGE', entityType: 'Application', entityId: app.id, detail: 'Direct sale — marked Funded + Paid' });
+  await audit({ actorId: session.userId, action: 'STATUS_CHANGE', entityType: 'Application', entityId: app.id, detail: 'Direct sale — entered (In funding)' });
 
-  // Store the bill of sale. The deal is already created + funded, so a storage
-  // failure here must not undo the sale — log it; it can be re-uploaded on the
-  // deal page.
+  // Store the bill of sale. The deal is already created, so a storage failure
+  // here must not undo it — log it; it can be re-uploaded on the deal page.
   const stored = await storeFiles({
     application: { id: app.id, dealerId, applicantFirstName: app.applicantFirstName, applicantLastName: app.applicantLastName, dateOfSale: saleDate },
     files: [bill],
@@ -173,7 +174,9 @@ export async function createDirectSaleAction(
   });
   if (stored.error) console.error('[directSale] bill-of-sale store failed', stored.error);
 
-  // Write the settled row to the sales journal (best-effort — OK + Date Paid).
+  // Seed the sales-journal row (best-effort). It writes as pending ("PE/OK", no
+  // Date Paid) since the deal isn't paid yet; the office/read-back fills OK + Date
+  // Paid when it settles.
   await syncApplicationToJournal(app.id, session.userId);
 
   redirect(internal ? `/staff/applications/${app.id}` : `/dealer/applications/${app.id}`);

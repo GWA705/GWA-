@@ -38,6 +38,23 @@ source of truth; this file is the human-readable index.
 | HD Resolution ↔ Gmail email link | ✅ **Live & verified** (2026-10-07, Sean) | Read-only Gmail via the existing service account (`gwa-journal-writer@gwa-portal-504012…`, project **"GWA Portal"** `gwa-portal-504012`, Unique ID `100470797238569934976`), impersonating `sean@ghsbarrie.ca` + the `HD Resolution` label. All switches done: Gmail API enabled, Workspace domain-wide delegation (`…/auth/gmail.readonly`), `GMAIL_RESOLUTION_USER=sean@ghsbarrie.ca` on EB. **Verified end-to-end** — the Email inbox lists real HD threads and "Open as case" links the thread + auto-fills. 30-min sync `resolution-email-sync.yml` (reuses `CRON_SECRET`). Steps/facts: `HD-RESOLUTION-EMAIL.md`, `BUILD-FACTS.md`. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### Direct sale: lands "In funding" + GWA office default; blank journal payout note (2026-10-08)
+- **Direct sale now enters "In funding" (`FUNDING_REVIEW`)**, not straight to
+  Funded + Paid. The flow is: enter the sale (bill of sale + payment source still
+  required) → it seeds the journal row (pending `PE/OK`) and lands **In funding** →
+  staff press **✓ Mark Funded** on the deal (the existing funding-step button) →
+  it turns **Paid** when the journal shows OK + Date Paid (the read-back). So the
+  deal progresses through the normal funnel instead of being auto-completed.
+- **Office defaults to Georgian Water & Air.** The new-sale form pre-selects the
+  GWA office (matched by name) since it's the only office that enters direct sales
+  (still changeable). The Direct sales list now shows a **Status** column
+  (In funding → Funded → Paid).
+- **Journal-sourced payouts no longer carry a note.** The paid-sync used to stamp
+  "Auto-filled from the sales journal (Pay to dealer)" on each auto-created payout;
+  it now leaves the Notes blank (the journal auto-fill is still in the audit log).
+  One-time migration `20261008010000_blank_journal_payout_note` clears the note on
+  payouts already written.
+
 ### Direct sale — Georgian Water & Air walk-in entry (2026-10-07)
 - **New screen at `/direct-sale`** for entering a Georgian Water & Air in-store
   walk-in sale and completing it **straight to Funded + Paid** — no docs/funding
