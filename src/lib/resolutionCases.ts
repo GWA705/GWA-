@@ -2,8 +2,32 @@ import 'server-only';
 import { prisma } from './db';
 import type { ResolutionStatus, Prisma } from '@prisma/client';
 import { RESOLUTION_STATUSES, OPEN_STATUSES, isResolutionStatus, ageLevel, type AgeLevel } from './resolutionStatus';
+import { decryptOptional } from './crypto';
+import { decodeEntities } from './htmlEntities';
 
 export * from './resolutionStatus';
+
+/** An ad-hoc extra contact captured on a case (e.g. a spouse's number given on a call). */
+export interface ExtraContact {
+  name: string;
+  role: string;
+  phone: string;
+  email: string;
+}
+
+/** Parse the ResolutionCase.extraContacts JSON into a clean, capped array. */
+export function parseExtraContacts(raw: unknown): ExtraContact[] {
+  if (!Array.isArray(raw)) return [];
+  const out: ExtraContact[] = [];
+  for (const r of raw as Record<string, unknown>[]) {
+    if (!r || typeof r !== 'object') continue;
+    const str = (v: unknown, max: number) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
+    const c = { name: str(r.name, 80), role: str(r.role, 60), phone: str(r.phone, 40), email: str(r.email, 160) };
+    if (c.name || c.phone || c.email) out.push(c);
+    if (out.length >= 12) break;
+  }
+  return out;
+}
 
 const fmt = (d: Date) =>
   d.toLocaleString('en-CA', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
@@ -147,6 +171,7 @@ export interface CaseAttachmentVM {
 
 export interface CaseEmailVM {
   id: string;
+  gmailMessageId: string; // for fetching the full body on demand
   fromAddr: string;
   at: string;
   snippet: string;
@@ -180,6 +205,16 @@ export interface CaseDetail {
   emails: CaseEmailVM[];
   /** Days since the last email, when that last email is from HD (we owe a reply). Null otherwise. */
   awaitingReplyDays: number | null;
+  // Contact card — customer + spouse + HD rep + ad-hoc extra contacts. Customer
+  // email/address default from the linked deal; the case fields override.
+  customerEmail: string | null;
+  customerAddress: string | null;
+  spouseName: string | null;
+  spousePhone: string | null;
+  hdRepName: string | null;
+  hdRepPhone: string | null;
+  hdRepEmail: string | null;
+  extraContacts: ExtraContact[];
 }
 
 const daysSince = (d: Date): number => Math.max(0, Math.floor((Date.now() - d.getTime()) / 86_400_000));
@@ -193,6 +228,7 @@ export async function loadResolutionCase(id: string): Promise<CaseDetail | null>
       notes: { orderBy: { createdAt: 'desc' }, include: { author: { select: { name: true } } } },
       attachments: { orderBy: { createdAt: 'desc' }, include: { addedBy: { select: { name: true } } } },
       emails: { orderBy: [{ sentAt: 'asc' }, { createdAt: 'asc' }] },
+      application: { select: { applicantEmail: true, applicantAddressEnc: true } },
     },
   });
   if (!c) return null;
@@ -248,14 +284,24 @@ export async function loadResolutionCase(id: string): Promise<CaseDetail | null>
     emailSyncedAt: c.emailSyncedAt ? fmt(c.emailSyncedAt) : null,
     emails: c.emails.map((e) => ({
       id: e.id,
+      gmailMessageId: e.gmailMessageId,
       fromAddr: e.fromAddr,
       at: e.sentAt ? fmt(e.sentAt) : fmt(e.createdAt),
-      snippet: e.snippet,
+      snippet: decodeEntities(e.snippet),
     })),
     awaitingReplyDays: (() => {
       const last = c.emails[c.emails.length - 1]; // emails ordered oldest→newest
       return last && last.inbound ? daysSince(last.sentAt ?? last.createdAt) : null;
     })(),
+    // Contact card: case value wins, else the linked deal's.
+    customerEmail: c.customerEmail ?? c.application?.applicantEmail ?? null,
+    customerAddress: c.customerAddress ?? decryptOptional(c.application?.applicantAddressEnc ?? null) ?? null,
+    spouseName: c.spouseName,
+    spousePhone: c.spousePhone,
+    hdRepName: c.hdRepName,
+    hdRepPhone: c.hdRepPhone,
+    hdRepEmail: c.hdRepEmail,
+    extraContacts: parseExtraContacts(c.extraContacts),
   };
 }
 

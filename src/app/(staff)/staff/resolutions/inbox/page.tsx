@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { requireRole } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { gmailResolutionConfigured, listUnlinkedThreads, resolutionLabel, parseHdSubject, type GmailThreadSummary } from '@/lib/gmailResolution';
+import { decodeEntities } from '@/lib/htmlEntities';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,7 +11,7 @@ export const dynamic = 'force-dynamic';
 // The new-case page uses the HD Ref # to match an existing deal (and auto-link it).
 function openAsCaseHref(threadId: string, subject: string): string {
   const p = parseHdSubject(subject);
-  const params = new URLSearchParams({ gmailThreadId: threadId, title: subject });
+  const params = new URLSearchParams({ gmailThreadId: threadId, title: decodeEntities(subject) });
   if (p.caseNumber) params.set('hdCase', p.caseNumber);
   if (p.hdRef) params.set('hdRef', p.hdRef);
   if (p.lastName) params.set('name', p.lastName);
@@ -59,9 +60,9 @@ export default async function ResolutionInboxPage() {
           {threads.map((t) => (
             <li key={t.threadId} className="card flex flex-wrap items-center justify-between gap-3 p-3">
               <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-medium text-gray-900 dark:text-slate-100">{t.subject}</div>
+                <div className="truncate text-sm font-medium text-gray-900 dark:text-slate-100">{decodeEntities(t.subject)}</div>
                 <div className="truncate text-xs text-gray-500 dark:text-slate-400">✉️ {t.fromAddr}{t.sentAt ? ` · ${t.sentAt.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })}` : ''}</div>
-                {t.snippet && <div className="mt-0.5 truncate text-xs text-gray-400 dark:text-slate-500">{t.snippet}</div>}
+                {t.snippet && <div className="mt-0.5 truncate text-xs text-gray-400 dark:text-slate-500">{decodeEntities(t.snippet)}</div>}
               </div>
               <Link
                 href={openAsCaseHref(t.threadId, t.subject)}

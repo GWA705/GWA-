@@ -9,6 +9,7 @@ import { DocViewer } from '@/components/DocViewer';
 import { CaseControls } from '../CaseControls';
 import { CaseAttachments } from '../CaseAttachments';
 import { CaseEmailThread } from '../CaseEmailThread';
+import { CaseContactCard } from '../CaseContactCard';
 import { HdReplyDrafter } from '../HdReplyDrafter';
 import { gmailResolutionConfigured } from '@/lib/gmailResolution';
 import { aiConfigured } from '@/lib/ai';
@@ -61,6 +62,22 @@ export default async function CaseDetailPage({ params }: { params: { id: string 
           </div>
         </div>
       </div>
+
+      {/* Contact card — customer + HD rep, editable */}
+      <CaseContactCard
+        caseId={c.id}
+        applicationId={c.applicationId}
+        customerName={c.customerName}
+        customerPhone={c.customerPhone}
+        customerEmail={c.customerEmail}
+        customerAddress={c.customerAddress}
+        spouseName={c.spouseName}
+        spousePhone={c.spousePhone}
+        hdRepName={c.hdRepName}
+        hdRepPhone={c.hdRepPhone}
+        hdRepEmail={c.hdRepEmail}
+        extraContacts={c.extraContacts}
+      />
 
       {/* Problem */}
       <div className="card p-5">

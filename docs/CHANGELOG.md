@@ -38,6 +38,22 @@ source of truth; this file is the human-readable index.
 | HD Resolution ↔ Gmail email link | ✅ **Live & verified** (2026-10-07, Sean) | Read-only Gmail via the existing service account (`gwa-journal-writer@gwa-portal-504012…`, project **"GWA Portal"** `gwa-portal-504012`, Unique ID `100470797238569934976`), impersonating `sean@ghsbarrie.ca` + the `HD Resolution` label. All switches done: Gmail API enabled, Workspace domain-wide delegation (`…/auth/gmail.readonly`), `GMAIL_RESOLUTION_USER=sean@ghsbarrie.ca` on EB. **Verified end-to-end** — the Email inbox lists real HD threads and "Open as case" links the thread + auto-fills. 30-min sync `resolution-email-sync.yml` (reuses `CRON_SECRET`). Steps/facts: `HD-RESOLUTION-EMAIL.md`, `BUILD-FACTS.md`. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### HD Resolution: contact card, read-full-email, decoded snippets (2026-10-08)
+- **Contact card at the top of every case** — two panels, both editable inline:
+  **Customer** (name, phone, email, address, spouse name/phone) and **Home Depot
+  contact** (the rep on the case — Brooke/Sandra/Dennis — with phone + email). Plus
+  an **"＋ Add contact"** list for ad-hoc numbers given on a call (e.g. the spouse's
+  cell). Phone/email are tap-to-call / tap-to-email, and the customer name links to
+  their file. Customer email/address default from the linked deal; everything saves
+  on the case (`updateCaseContactAction`). New fields on `ResolutionCase`
+  (migration `20261008020000_resolution_contact_card`).
+- **"Read full message"** on each HD email — pulls the whole email from Gmail on
+  demand (not just the snippet). `fetchMessageText` + `fetchEmailBodyAction` (guarded
+  so only a message already synced to that case can be fetched).
+- **Decoded email text** — Gmail snippets/subjects were showing raw HTML entities
+  (`you&#39;re`, `Hi Sean &amp; JJ`). Now decoded everywhere they're shown (thread,
+  inbox, case title) via `decodeEntities` (+ `tests/htmlEntities.test.ts`).
+
 ### New application: products sold now support quantity (two of the same) (2026-10-08)
 - The "Product(s) sold" picker lets you sell **two or more of the same product**.
   Tap a product to add it, tap again for another — a **×N badge** shows the count

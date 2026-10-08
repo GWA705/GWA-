@@ -1388,6 +1388,19 @@ model ResolutionCase {
   hdReference    String? // the HD Customer # (800… / 701…) on the deal
   hdCaseNumber   String? // HD's resolution CASE # (e.g. "08210415") — what their emails are keyed by
 
+  // Contact card (shown at the top of the case). Customer email/address default
+  // from the linked deal but can be overridden here; spouse + ad-hoc extra
+  // contacts and the HD rep for this case are captured here. Staff-only view.
+  customerEmail   String? // overrides the deal's email on the card when set
+  customerAddress String? // display address for quick contact (deal address is the default)
+  spouseName      String?
+  spousePhone     String?
+  hdRepName       String? // the HD Resolutions rep on this case (Brooke / Sandra / Dennis…)
+  hdRepPhone      String?
+  hdRepEmail      String?
+  // Ad-hoc extra contacts captured during calls: [{ name, role, phone, email }].
+  extraContacts   Json?
+
   openedById   String
   openedBy     User    @relation("ResolutionOpenedBy", fields: [openedById], references: [id])
   assignedToId String?

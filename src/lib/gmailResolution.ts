@@ -191,6 +191,18 @@ export async function fetchFirstMessageText(threadId: string): Promise<string | 
 }
 
 /**
+ * The plain-text body of one message by id — for "read the full message" in the
+ * portal. Quoted history is kept here (unlike the summary helpers) so staff see
+ * the whole email. Null when unavailable.
+ */
+export async function fetchMessageText(messageId: string): Promise<string | null> {
+  const res = await gmailClient().users.messages.get({ userId: 'me', id: messageId, format: 'full' });
+  const raw = extractBodyText(res.data.payload).trim() || (res.data.snippet || '').trim();
+  if (!raw) return null;
+  return raw.replace(/\r/g, '').replace(/\n{3,}/g, '\n\n').trim().slice(0, 20000) || null;
+}
+
+/**
  * The plain-text body of the LATEST INBOUND message in a thread — HD's most
  * recent email to us (not our own replies). Used to give the AI reply-drafter the
  * message we're responding to. Falls back to the latest message's snippet, then

@@ -12,8 +12,9 @@ import { isResolutionStatus, STATUS_LABEL, OPEN_STATUSES, PRIORITIES } from '@/l
 import { normalizeCallPhone } from '@/lib/customerCalls';
 import { putDocument, deleteDocument, newResolutionStorageKey } from '@/lib/storage';
 import { MAX_FILE_BYTES, ALLOWED_MIME_TYPES } from '@/lib/constants';
-import { gmailResolutionConfigured, searchThreadForRef, fetchFirstMessageText, fetchLatestInboundText } from '@/lib/gmailResolution';
+import { gmailResolutionConfigured, searchThreadForRef, fetchFirstMessageText, fetchLatestInboundText, fetchMessageText } from '@/lib/gmailResolution';
 import { summarizeResolutionEmail, draftHdReply, aiConfigured } from '@/lib/ai';
+import { decodeEntities } from '@/lib/htmlEntities';
 import { syncCaseEmails } from '@/lib/resolutionEmailSync';
 import type { ResolutionStatus, Prisma } from '@prisma/client';
 
@@ -167,6 +168,57 @@ export async function addCaseNoteAction(caseId: string, _prev: CaseFormState, fo
   return { ok: true };
 }
 
+/**
+ * Save the contact card — customer + spouse + HD rep + ad-hoc extra contacts.
+ * Customer name is kept if left blank (it's required); everything else can be
+ * cleared. Extra contacts come in as parallel arrays (extraName/Role/Phone/Email).
+ */
+export async function updateCaseContactAction(caseId: string, _prev: CaseFormState, formData: FormData): Promise<CaseFormState> {
+  const user = await requireRole('REVIEWER', 'ADMIN');
+  const c = await prisma.resolutionCase.findUnique({ where: { id: caseId }, select: { id: true } });
+  if (!c) return { error: 'Case not found.' };
+
+  const opt = (k: string, max = 200): string | null => {
+    const v = String(formData.get(k) || '').trim();
+    return v ? v.slice(0, max) : null;
+  };
+
+  // Ad-hoc extra contacts (parallel arrays), empties dropped, capped at 12.
+  const names = formData.getAll('extraName').map(String);
+  const roles = formData.getAll('extraRole').map(String);
+  const phones = formData.getAll('extraPhone').map(String);
+  const emails = formData.getAll('extraEmail').map(String);
+  const extra: { name: string; role: string; phone: string; email: string }[] = [];
+  for (let i = 0; i < names.length; i += 1) {
+    const name = (names[i] || '').trim().slice(0, 80);
+    const role = (roles[i] || '').trim().slice(0, 60);
+    const phone = (phones[i] || '').trim().slice(0, 40);
+    const email = (emails[i] || '').trim().slice(0, 160);
+    if (name || phone || email) extra.push({ name, role, phone, email });
+    if (extra.length >= 12) break;
+  }
+
+  const data: Prisma.ResolutionCaseUpdateInput = {
+    customerEmail: opt('customerEmail', 160),
+    customerAddress: opt('customerAddress', 300),
+    spouseName: opt('spouseName', 120),
+    spousePhone: opt('spousePhone', 40),
+    hdRepName: opt('hdRepName', 120),
+    hdRepPhone: opt('hdRepPhone', 40),
+    hdRepEmail: opt('hdRepEmail', 160),
+    extraContacts: extra,
+  };
+  const customerName = opt('customerName', 120);
+  if (customerName) data.customerName = customerName; // required — only overwrite when given
+  const phoneRaw = String(formData.get('customerPhone') || '').trim();
+  if (phoneRaw) data.customerPhone = normalizeCallPhone(phoneRaw); // keep normalized for lookups
+
+  await prisma.resolutionCase.update({ where: { id: caseId }, data });
+  await audit({ actorId: user.userId, action: 'STATUS_CHANGE', entityType: 'ResolutionCase', entityId: caseId, detail: 'updated contact card' });
+  revalidatePath(`/staff/resolutions/${caseId}`);
+  return { ok: true };
+}
+
 /** Move a case to a new status; records the transition on the activity thread. */
 export async function updateCaseStatusAction(caseId: string, status: string): Promise<void> {
   const user = await requireRole('REVIEWER', 'ADMIN');
@@ -314,6 +366,23 @@ export async function linkEmailThreadAction(caseId: string, _prev: CaseFormState
   try { await syncCaseEmails(caseId); } catch { /* best-effort */ }
   revalidatePath(`/staff/resolutions/${caseId}`);
   return { ok: true };
+}
+
+/** Read one linked email's FULL body in the portal ("read full message"). */
+export async function fetchEmailBodyAction(caseId: string, gmailMessageId: string): Promise<{ text?: string; error?: string }> {
+  await requireRole('REVIEWER', 'ADMIN');
+  if (!gmailResolutionConfigured()) return { error: 'The Gmail email link isn’t set up.' };
+  // Only a message already synced to THIS case can be fetched.
+  const row = await prisma.resolutionEmail.findFirst({ where: { caseId, gmailMessageId }, select: { id: true } });
+  if (!row) return { error: 'Message not found on this case.' };
+  try {
+    const body = await fetchMessageText(gmailMessageId);
+    if (!body) return { error: 'Couldn’t load the full message — open it in Gmail.' };
+    return { text: decodeEntities(body) };
+  } catch (e) {
+    console.error('[resolution-email] full-body fetch failed', e);
+    return { error: 'Couldn’t reach Gmail. Try again.' };
+  }
 }
 
 /** Pull new replies from the linked email thread now. */
