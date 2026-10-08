@@ -215,6 +215,84 @@ export async function summarizeResolutionEmail(emailText: string): Promise<strin
   }
 }
 
+/**
+ * Draft a professional email reply to Home Depot's Resolutions team on behalf of
+ * Georgian Water & Air, built from the staffer's internal case notes plus (when
+ * available) HD's latest email. The draft is for REVIEW — nothing is sent. Null
+ * when AI isn't configured, the call fails, or there's nothing to work from.
+ */
+export async function draftHdReply(params: {
+  notes: string; // the internal case notes (the substance of our response)
+  latestEmail?: string | null; // HD's most recent email, if we have it
+  customerName?: string | null;
+  hdRepName?: string | null; // the HD rep to address (Brooke / Sandra / Dennis…)
+}): Promise<string | null> {
+  const key = process.env.ANTHROPIC_API_KEY;
+  if (!key) return null;
+  const notes = (params.notes || '').trim();
+  if (notes.length < 5) return null; // need something to say
+
+  const system =
+    'You draft a professional email reply from Georgian Water & Air (a Home Depot ' +
+    'water-treatment dealer) to Home Depot\'s "Resolutions Canada" team about a customer ' +
+    'case. You are given our INTERNAL NOTES (the substance of what we want to convey) and, ' +
+    'when available, HD\'s latest email. Turn the notes into a courteous, clear, ready-to-send ' +
+    'reply that addresses HD\'s points. Open with a greeting to the HD rep by name when one is ' +
+    'given (else "Hi there,"). Keep it concise and professional, no marketing language, and do ' +
+    'NOT invent facts, dates, dollar amounts or commitments beyond what the notes state. End ' +
+    'with a simple sign-off "Thank you,\\nGeorgian Water & Air". Output only the email body.';
+
+  const parts: string[] = [];
+  if (params.customerName) parts.push(`Customer: ${params.customerName}`);
+  if (params.hdRepName) parts.push(`HD rep to address: ${params.hdRepName}`);
+  if (params.latestEmail && params.latestEmail.trim()) parts.push(`HD's latest email:\n${params.latestEmail.trim().slice(0, 4000)}`);
+  parts.push(`Our internal notes (what to convey):\n${notes.slice(0, 4000)}`);
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20_000);
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+      body: JSON.stringify({
+        model: process.env.ANTHROPIC_MODEL || DEFAULT_MODEL,
+        max_tokens: 700,
+        system,
+        messages: [{ role: 'user', content: parts.join('\n\n') }],
+      }),
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    if (!res.ok) {
+      const detail = await res.text().catch(() => '');
+      console.error(`[ai] HD reply draft ${res.status}: ${detail.slice(0, 300)}`);
+      return null;
+    }
+    const data = (await res.json()) as {
+      content?: Array<{ type: string; text?: string }>;
+      model?: string;
+      usage?: { input_tokens?: number; output_tokens?: number };
+    };
+    if (data.usage) {
+      void recordAiUsage({
+        service: AI_SERVICES.resolutionReply,
+        model: data.model || process.env.ANTHROPIC_MODEL || DEFAULT_MODEL,
+        inputTokens: data.usage.input_tokens ?? 0,
+        outputTokens: data.usage.output_tokens ?? 0,
+      });
+    }
+    const text = (data.content ?? [])
+      .filter((b) => b.type === 'text' && b.text)
+      .map((b) => b.text!.trim())
+      .join('\n')
+      .trim();
+    return text || null;
+  } catch (e) {
+    console.error('[ai] HD reply draft failed:', e instanceof Error ? e.message : e);
+    return null;
+  }
+}
+
 export interface AiPing {
   ok: boolean;
   /** HTTP status (0 = network/timeout, never reached Anthropic). */

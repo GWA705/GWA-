@@ -9,7 +9,9 @@ import { DocViewer } from '@/components/DocViewer';
 import { CaseControls } from '../CaseControls';
 import { CaseAttachments } from '../CaseAttachments';
 import { CaseEmailThread } from '../CaseEmailThread';
+import { HdReplyDrafter } from '../HdReplyDrafter';
 import { gmailResolutionConfigured } from '@/lib/gmailResolution';
+import { aiConfigured } from '@/lib/ai';
 
 export const dynamic = 'force-dynamic';
 
@@ -108,6 +110,9 @@ export default async function CaseDetailPage({ params }: { params: { id: string 
           emails={c.emails}
         />
       </div>
+
+      {/* AI draft reply to HD (from the case notes) */}
+      {aiConfigured() && <HdReplyDrafter caseId={c.id} />}
 
       {/* Controls: status, assign, notify office, add note */}
       <CaseControls

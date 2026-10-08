@@ -38,6 +38,17 @@ source of truth; this file is the human-readable index.
 | HD Resolution ↔ Gmail email link | ✅ **Live & verified** (2026-10-07, Sean) | Read-only Gmail via the existing service account (`gwa-journal-writer@gwa-portal-504012…`, project **"GWA Portal"** `gwa-portal-504012`, Unique ID `100470797238569934976`), impersonating `sean@ghsbarrie.ca` + the `HD Resolution` label. All switches done: Gmail API enabled, Workspace domain-wide delegation (`…/auth/gmail.readonly`), `GMAIL_RESOLUTION_USER=sean@ghsbarrie.ca` on EB. **Verified end-to-end** — the Email inbox lists real HD threads and "Open as case" links the thread + auto-fills. 30-min sync `resolution-email-sync.yml` (reuses `CRON_SECRET`). Steps/facts: `HD-RESOLUTION-EMAIL.md`, `BUILD-FACTS.md`. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### HD Resolution: ✨ AI "Draft reply to HD" from case notes (2026-10-08)
+- New **"✉️ Draft reply to HD"** card on a resolution case: one click turns the
+  case's **notes** (+ HD's latest email when the thread is linked) into a
+  professional, ready-to-send reply you **review and edit**, then copy into Gmail.
+  Nothing is sent from the portal (Gmail access is read-only) — a "send from the
+  portal" path would need a Gmail send scope, a later add-on.
+- `draftHdReply` in `ai.ts` (metered as `ai_resolution_reply`),
+  `fetchLatestInboundText` in `gmailResolution.ts` (HD's most recent message, not
+  our replies), `draftHdReplyAction`, and the `HdReplyDrafter` client card. The
+  reply uses notes written on the case, which already log who wrote them + when.
+
 ### Direct sale locked to Georgian Water internal team only (2026-10-08)
 - Per Sean: Direct sale is used **only at Georgian Water, nowhere else** — **no dealer
   should ever have it.** `canEnterDirectSale` is now **internal-staff-only**

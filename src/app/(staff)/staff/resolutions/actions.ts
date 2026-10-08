@@ -12,8 +12,8 @@ import { isResolutionStatus, STATUS_LABEL, OPEN_STATUSES, PRIORITIES } from '@/l
 import { normalizeCallPhone } from '@/lib/customerCalls';
 import { putDocument, deleteDocument, newResolutionStorageKey } from '@/lib/storage';
 import { MAX_FILE_BYTES, ALLOWED_MIME_TYPES } from '@/lib/constants';
-import { gmailResolutionConfigured, searchThreadForRef, fetchFirstMessageText } from '@/lib/gmailResolution';
-import { summarizeResolutionEmail, aiConfigured } from '@/lib/ai';
+import { gmailResolutionConfigured, searchThreadForRef, fetchFirstMessageText, fetchLatestInboundText } from '@/lib/gmailResolution';
+import { summarizeResolutionEmail, draftHdReply, aiConfigured } from '@/lib/ai';
 import { syncCaseEmails } from '@/lib/resolutionEmailSync';
 import type { ResolutionStatus, Prisma } from '@prisma/client';
 
@@ -115,6 +115,43 @@ export async function summarizeEmailAction(gmailThreadId: string): Promise<{ tex
   const summary = await summarizeResolutionEmail(body);
   if (!summary) return { error: 'The AI couldn’t summarize this one — paste the key points by hand.' };
   return { text: summary };
+}
+
+/**
+ * Draft a professional reply to the HD rep from the case's notes (+ HD's latest
+ * email when the thread is linked). For REVIEW — returns the draft text, sends
+ * nothing. The portal's Gmail access is read-only, so the draft is copied into
+ * Gmail to send.
+ */
+export async function draftHdReplyAction(caseId: string): Promise<{ text?: string; error?: string }> {
+  await requireRole('REVIEWER', 'ADMIN');
+  if (!aiConfigured()) return { error: 'The AI drafter isn’t available (no AI key configured).' };
+  const c = await prisma.resolutionCase.findUnique({
+    where: { id: caseId },
+    select: {
+      customerName: true, description: true, gmailThreadId: true,
+      notes: { where: { statusTo: null }, orderBy: { createdAt: 'asc' }, select: { body: true } },
+    },
+  });
+  if (!c) return { error: 'Case not found.' };
+
+  const noteLines = c.notes.map((n) => (n.body || '').trim()).filter(Boolean);
+  const notesBlob = [
+    c.description?.trim() ? `Problem:\n${c.description.trim()}` : '',
+    noteLines.length ? `Notes:\n${noteLines.map((l) => `- ${l}`).join('\n')}` : '',
+  ].filter(Boolean).join('\n\n');
+  if (notesBlob.replace(/\s/g, '').length < 5) {
+    return { error: 'Add a note about what you want to say first, then draft the reply.' };
+  }
+
+  let latestEmail: string | null = null;
+  if (c.gmailThreadId && gmailResolutionConfigured()) {
+    try { latestEmail = await fetchLatestInboundText(c.gmailThreadId); } catch { /* best-effort */ }
+  }
+
+  const draft = await draftHdReply({ notes: notesBlob, latestEmail, customerName: c.customerName, hdRepName: null });
+  if (!draft) return { error: 'The AI couldn’t draft a reply — try again or write it by hand.' };
+  return { text: draft };
 }
 
 /** Add a plain note to a case's activity thread. */

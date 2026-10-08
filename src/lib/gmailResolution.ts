@@ -191,6 +191,29 @@ export async function fetchFirstMessageText(threadId: string): Promise<string | 
 }
 
 /**
+ * The plain-text body of the LATEST INBOUND message in a thread — HD's most
+ * recent email to us (not our own replies). Used to give the AI reply-drafter the
+ * message we're responding to. Falls back to the latest message's snippet, then
+ * null.
+ */
+export async function fetchLatestInboundText(threadId: string): Promise<string | null> {
+  const res = await gmailClient().users.threads.get({
+    userId: 'me', id: threadId, format: 'full',
+  });
+  const msgs = res.data.messages || [];
+  for (let i = msgs.length - 1; i >= 0; i -= 1) {
+    const m = msgs[i];
+    const from = header(m.payload, 'From') || '';
+    if (!isInbound(from)) continue; // skip our own sent replies
+    const raw = extractBodyText(m.payload).trim() || (m.snippet || '').trim();
+    if (!raw) return null;
+    const cut = raw.split(/\n\s*(?:On .+wrote:|-{3,}\s*Original Message|_{10,})/)[0] ?? raw;
+    return cut.replace(/\r/g, '').replace(/\n{3,}/g, '\n\n').trim().slice(0, 6000) || null;
+  }
+  return null;
+}
+
+/**
  * Recent threads under the label, newest-first, excluding any already linked to a
  * case — the "unlinked HD emails" inbox. Best-effort; returns [] if unconfigured.
  */
