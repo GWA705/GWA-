@@ -12,15 +12,16 @@ export interface ProductPickerOption {
 }
 
 /**
- * The "Product(s) sold" picker: a searchable grid of tap-to-toggle chips plus a
- * free-text "Other" box. Each chip shows the full product name with its short
- * journal code as a small badge. Selections post as `productsSold` checkboxes and
- * `productsSoldOther` text — the same field names the old checkbox grid used, so
- * form validation and the server action are unchanged.
+ * The "Product(s) sold" picker: a searchable grid of tap-to-add tiles plus a
+ * free-text "Other" box. Tap a tile to add it; tap again to add another of the
+ * same (a ×N badge shows the count, and a small − removes one) — so a deal with
+ * two of the same product is captured, and the journal UNITS count is right.
  *
- * A search box appears once the list is long enough to warrant it, so a growing
- * catalogue stays quick to pick from on a phone. Filtering only hides chips;
- * a chip that's checked and then filtered out stays checked and still submits.
+ * Each chosen unit posts as its own `productsSold` hidden input (so two softeners
+ * post the name twice), plus a `productsSoldOther` text field and, when the
+ * catalogue is non-empty, a `productsSoldAvailable` marker the form uses to tell
+ * "nothing picked yet" from "no catalogue". Field names match the old grid, so
+ * the server action is unchanged (it reads getAll('productsSold')).
  */
 export function ProductPicker({
   products,
@@ -36,7 +37,13 @@ export function ProductPicker({
   allowAddToList?: boolean;
 }) {
   const t = useT();
-  const [chosen, setChosen] = useState<Set<string>>(() => new Set(selected));
+  // name -> quantity. Seeded from `selected`, which may list the same product
+  // more than once (that's the quantity when editing an existing deal).
+  const [qty, setQty] = useState<Map<string, number>>(() => {
+    const m = new Map<string, number>();
+    for (const n of selected) m.set(n, (m.get(n) ?? 0) + 1);
+    return m;
+  });
   const [q, setQ] = useState('');
   const [other, setOther] = useState(otherDefault);
   const otherNames = other.split(',').map((s) => s.trim()).filter(Boolean);
@@ -49,19 +56,33 @@ export function ProductPicker({
     );
   }, [products, norm]);
 
-  function toggle(name: string) {
-    setChosen((prev) => {
-      const next = new Set(prev);
-      if (next.has(name)) next.delete(name);
-      else next.add(name);
+  function add(name: string) {
+    setQty((prev) => new Map(prev).set(name, (prev.get(name) ?? 0) + 1));
+  }
+  function remove(name: string) {
+    setQty((prev) => {
+      const next = new Map(prev);
+      const n = (next.get(name) ?? 0) - 1;
+      if (n <= 0) next.delete(name);
+      else next.set(name, n);
       return next;
     });
   }
 
   const showSearch = products.length > 6;
 
+  // One hidden input per unit, so getAll('productsSold') returns the quantity.
+  const hiddenUnits: string[] = [];
+  for (const [name, n] of qty) for (let i = 0; i < n; i += 1) hiddenUnits.push(name);
+
   return (
     <div>
+      {/* Submitted values (hidden). Tiles below only drive the UI. */}
+      {products.length > 0 && <input type="hidden" name="productsSoldAvailable" value="1" />}
+      {hiddenUnits.map((name, i) => (
+        <input key={`${name}-${i}`} type="hidden" name="productsSold" value={name} />
+      ))}
+
       {showSearch && (
         <input
           type="search"
@@ -74,24 +95,29 @@ export function ProductPicker({
       )}
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
         {filtered.map((p) => {
-          const on = chosen.has(p.name);
+          const n = qty.get(p.name) ?? 0;
+          const on = n > 0;
           return (
-            <label
+            <div
               key={p.id}
-              className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm transition ${
+              role="button"
+              tabIndex={0}
+              aria-pressed={on}
+              onClick={() => add(p.name)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); add(p.name); } }}
+              className={`relative flex cursor-pointer select-none items-center gap-2 rounded-lg border px-3 py-2 text-sm transition ${
                 on
                   ? 'border-brand-500 bg-brand-50 ring-1 ring-brand-500'
                   : 'border-gray-200 hover:border-brand-300 hover:bg-gray-50'
               }`}
             >
-              <input
-                type="checkbox"
-                name="productsSold"
-                value={p.name}
-                checked={on}
-                onChange={() => toggle(p.name)}
-                className="h-4 w-4 flex-none"
-              />
+              {on ? (
+                <span className="flex h-5 min-w-[1.25rem] flex-none items-center justify-center rounded-full bg-brand-600 px-1 text-[11px] font-bold tabular-nums text-white">
+                  {n}
+                </span>
+              ) : (
+                <span className="h-4 w-4 flex-none rounded border border-gray-300" aria-hidden />
+              )}
               <span className="min-w-0 flex-1 truncate">{p.name}</span>
               {p.journalName && (
                 <span className="badge flex-none bg-white font-mono text-[10px] text-gray-500 ring-1 ring-inset ring-gray-200">
@@ -101,7 +127,17 @@ export function ProductPicker({
               {p.promoted && !p.journalName && (
                 <span className="badge flex-none bg-amber-50 text-[10px] text-amber-700">{t('productPicker.yours')}</span>
               )}
-            </label>
+              {on && (
+                <button
+                  type="button"
+                  aria-label={`Remove one ${p.name}`}
+                  onClick={(e) => { e.stopPropagation(); remove(p.name); }}
+                  className="flex h-6 w-6 flex-none items-center justify-center rounded-md border border-brand-200 bg-white text-base leading-none text-brand-700 hover:bg-brand-100"
+                >
+                  −
+                </button>
+              )}
+            </div>
           );
         })}
         {filtered.length === 0 && (
@@ -110,6 +146,7 @@ export function ProductPicker({
           </p>
         )}
       </div>
+      <p className="mt-1 text-xs text-gray-400">Tap a product to add it · tap again for another · − removes one</p>
       <div className="mt-2">
         <label className="flex flex-col gap-1 rounded-lg border border-dashed border-gray-300 px-3 py-2 text-sm">
           <span className="font-medium text-gray-700">{t('productPicker.otherLabel')}</span>

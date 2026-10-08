@@ -38,6 +38,16 @@ source of truth; this file is the human-readable index.
 | HD Resolution ↔ Gmail email link | ✅ **Live & verified** (2026-10-07, Sean) | Read-only Gmail via the existing service account (`gwa-journal-writer@gwa-portal-504012…`, project **"GWA Portal"** `gwa-portal-504012`, Unique ID `100470797238569934976`), impersonating `sean@ghsbarrie.ca` + the `HD Resolution` label. All switches done: Gmail API enabled, Workspace domain-wide delegation (`…/auth/gmail.readonly`), `GMAIL_RESOLUTION_USER=sean@ghsbarrie.ca` on EB. **Verified end-to-end** — the Email inbox lists real HD threads and "Open as case" links the thread + auto-fills. 30-min sync `resolution-email-sync.yml` (reuses `CRON_SECRET`). Steps/facts: `HD-RESOLUTION-EMAIL.md`, `BUILD-FACTS.md`. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### New application: products sold now support quantity (two of the same) (2026-10-08)
+- The "Product(s) sold" picker lets you sell **two or more of the same product**.
+  Tap a product to add it, tap again for another — a **×N badge** shows the count
+  and a small **−** removes one. The 23-item grid stays as compact as before (no
+  per-row steppers), and it works one-tap on a phone. Search + "Other" unchanged.
+- The journal **UNITS** count is now correct (it's the total quantity). Each unit
+  posts as its own `productsSold` value; `mergeProductsSold` keeps duplicate picks
+  (the quantity) while still de-duping the free-text "Other" field. Shared
+  `ProductPicker` so the dealer new-deal form AND the reviewer edit form both get it.
+
 ### HD Resolution: ✨ AI "Draft reply to HD" from case notes (2026-10-08)
 - New **"✉️ Draft reply to HD"** card on a resolution case: one click turns the
   case's **notes** (+ HD's latest email when the thread is linked) into a

@@ -470,12 +470,14 @@ export function NewApplicationForm({
       const empty = f.checkbox ? !(el as HTMLInputElement).checked : !(el.value || '').trim();
       if (empty) errs[f.name] = 'required';
     }
-    // Products: require at least one — a checked box or a typed "Other" entry.
-    const productBoxes = form.querySelectorAll('input[name="productsSold"]');
+    // Products: require at least one unit, or a typed "Other" entry. The picker
+    // posts one hidden `productsSold` input per unit, so its count is the quantity;
+    // `productsSoldAvailable` marks that the catalogue has products to pick from.
+    const unitCount = form.querySelectorAll('input[name="productsSold"]').length;
+    const hasCatalog = !!form.querySelector('input[name="productsSoldAvailable"]');
     const otherEl = form.elements.namedItem('productsSoldOther') as HTMLInputElement | null;
-    const anyChecked = Array.from(productBoxes).some((el) => (el as HTMLInputElement).checked);
     const anyOther = !!(otherEl?.value || '').trim();
-    if (productBoxes.length > 0 && !anyChecked && !anyOther) {
+    if (hasCatalog && unitCount === 0 && !anyOther) {
       errs['productsSold'] = 'required';
     }
     // Scan verification: any section a scan filled must be confirmed correct. The

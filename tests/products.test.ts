@@ -10,8 +10,14 @@ describe('mergeProductsSold', () => {
     expect(mergeProductsSold(['  WS  '], '  , Foo  Bar ,')).toEqual(['WS', 'Foo Bar']);
   });
 
-  it('de-duplicates case-insensitively', () => {
+  it('de-duplicates the free-text Other field case-insensitively', () => {
     expect(mergeProductsSold(['Angel'], 'angel, ANGEL, New One')).toEqual(['Angel', 'New One']);
+  });
+
+  it('KEEPS duplicate picked products (two of the same = quantity 2)', () => {
+    expect(mergeProductsSold(['WS', 'WS', 'City'], null)).toEqual(['WS', 'WS', 'City']);
+    // the quantity drives the journal UNITS count (3 here)
+    expect(mergeProductsSold(['UV12', 'UV12'], 'UV12')).toEqual(['UV12', 'UV12']); // Other dup is ignored, picked dups kept
   });
 
   it('handles a missing Other field', () => {

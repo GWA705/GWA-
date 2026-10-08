@@ -103,21 +103,30 @@ export async function journalProductNames(names: string[], dealerId?: string | n
 }
 
 /**
- * Merge the checkbox selections with the free-text "Other" field into the final
- * productsSold list. Custom entries are comma-separated, trimmed, de-duplicated
- * case-insensitively against each other, and capped.
+ * Merge the picked products with the free-text "Other" field into the final
+ * productsSold list. The `selected` array may contain the SAME product more than
+ * once — that's the quantity (two of the same product = two entries), so its
+ * duplicates are preserved and the journal UNITS count reflects the total. The
+ * free-text "Other" side is still comma-separated, trimmed, and de-duplicated
+ * case-insensitively (against itself and against what's already picked), so a
+ * typo like "Angel, ANGEL" doesn't accidentally inflate the count. Capped at 50.
  */
 export function mergeProductsSold(selected: string[], other: string | null | undefined): string[] {
+  const norm = (raw: string) => raw.replace(/\s+/g, ' ').trim();
   const out: string[] = [];
-  const seen = new Set<string>();
-  const push = (raw: string) => {
-    const name = raw.replace(/\s+/g, ' ').trim();
+  // Picked tiles: keep duplicates — they are the quantity.
+  for (const raw of selected) {
+    const name = norm(raw);
+    if (name) out.push(name);
+  }
+  // Free text: de-dupe against itself and against what's already picked.
+  const seen = new Set(out.map((n) => n.toLowerCase()));
+  for (const raw of (other ?? '').split(',')) {
+    const name = norm(raw);
     const key = name.toLowerCase();
-    if (!name || seen.has(key)) return;
+    if (!name || seen.has(key)) continue;
     seen.add(key);
     out.push(name);
-  };
-  selected.forEach(push);
-  (other ?? '').split(',').forEach(push);
+  }
   return out.slice(0, 50);
 }
