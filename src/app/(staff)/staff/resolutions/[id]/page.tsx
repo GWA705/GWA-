@@ -10,6 +10,7 @@ import { CaseControls } from '../CaseControls';
 import { CaseAttachments } from '../CaseAttachments';
 import { CaseEmailThread } from '../CaseEmailThread';
 import { CaseContactCard } from '../CaseContactCard';
+import { LinkDealControl } from '../LinkDealControl';
 import { HdReplyDrafter } from '../HdReplyDrafter';
 import { gmailResolutionConfigured } from '@/lib/gmailResolution';
 import { aiConfigured } from '@/lib/ai';
@@ -62,6 +63,9 @@ export default async function CaseDetailPage({ params }: { params: { id: string 
           </div>
         </div>
       </div>
+
+      {/* Link to a deal — enables Notify office + the deal's documents. */}
+      {!c.applicationId && <LinkDealControl caseId={c.id} />}
 
       {/* Contact card — customer + HD rep, editable */}
       <CaseContactCard

@@ -38,6 +38,26 @@ source of truth; this file is the human-readable index.
 | HD Resolution ↔ Gmail email link | ✅ **Live & verified** (2026-10-07, Sean) | Read-only Gmail via the existing service account (`gwa-journal-writer@gwa-portal-504012…`, project **"GWA Portal"** `gwa-portal-504012`, Unique ID `100470797238569934976`), impersonating `sean@ghsbarrie.ca` + the `HD Resolution` label. All switches done: Gmail API enabled, Workspace domain-wide delegation (`…/auth/gmail.readonly`), `GMAIL_RESOLUTION_USER=sean@ghsbarrie.ca` on EB. **Verified end-to-end** — the Email inbox lists real HD threads and "Open as case" links the thread + auto-fills. 30-min sync `resolution-email-sync.yml` (reuses `CRON_SECRET`). Steps/facts: `HD-RESOLUTION-EMAIL.md`, `BUILD-FACTS.md`. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### HD Resolution: link-to-deal control + contacts auto-follow; product picker − N + stepper (2026-10-08)
+- **Link an existing case to a deal, from the case page.** The *Notify office* and
+  *Documents & resources* sections said "Link this case to the customer's deal…"
+  but there was **no way to actually do it** once a case existed unlinked — a dead
+  end. New **"🔗 Link to a deal"** card (shown only when a case isn't linked):
+  auto-suggests the customer's deals (matched by **phone** + **name**), plus a
+  search box to find any deal by name/phone. Linking backfills the office, HD Ref #
+  and phone, so Notify office + the deal's documents switch on immediately.
+  New `findDealsForCaseAction` / `linkCaseToDealAction` / `unlinkCaseFromDealAction`
+  + `LinkDealControl`.
+- **Contacts follow the customer.** Opening a new case for a customer we've dealt
+  with before **pre-fills the contact card** (email, address, spouse, HD rep,
+  extra contacts) from their most recent prior case, matched by phone. Saves
+  re-typing the same numbers on every new HD case for a repeat customer.
+- **Product picker now shows a proper `− N +` stepper** on each selected tile
+  (minus, count, plus) — matching the approved mock-up. The earlier build only
+  showed a count badge + a single `−` (tap-the-tile to add more), which wasn't
+  obvious. Tapping the tile still adds one; the hidden-input-per-unit + journal
+  UNITS logic is unchanged.
+
 ### HD Resolution: contact card, read-full-email, decoded snippets (2026-10-08)
 - **Contact card at the top of every case** — two panels, both editable inline:
   **Customer** (name, phone, email, address, spouse name/phone) and **Home Depot

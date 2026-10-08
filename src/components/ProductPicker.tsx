@@ -13,9 +13,10 @@ export interface ProductPickerOption {
 
 /**
  * The "Product(s) sold" picker: a searchable grid of tap-to-add tiles plus a
- * free-text "Other" box. Tap a tile to add it; tap again to add another of the
- * same (a ×N badge shows the count, and a small − removes one) — so a deal with
- * two of the same product is captured, and the journal UNITS count is right.
+ * free-text "Other" box. Tap a tile to add it; a selected tile shows a − N +
+ * stepper so you can set how many of the same product (tapping the tile again
+ * also adds one) — so a deal with two of the same product is captured, and the
+ * journal UNITS count is right.
  *
  * Each chosen unit posts as its own `productsSold` hidden input (so two softeners
  * post the name twice), plus a `productsSoldOther` text field and, when the
@@ -111,13 +112,14 @@ export function ProductPicker({
                   : 'border-gray-200 hover:border-brand-300 hover:bg-gray-50'
               }`}
             >
-              {on ? (
-                <span className="flex h-5 min-w-[1.25rem] flex-none items-center justify-center rounded-full bg-brand-600 px-1 text-[11px] font-bold tabular-nums text-white">
-                  {n}
-                </span>
-              ) : (
-                <span className="h-4 w-4 flex-none rounded border border-gray-300" aria-hidden />
-              )}
+              <span
+                className={`flex h-4 w-4 flex-none items-center justify-center rounded border text-[10px] font-bold leading-none ${
+                  on ? 'border-brand-600 bg-brand-600 text-white' : 'border-gray-300'
+                }`}
+                aria-hidden
+              >
+                {on ? '✓' : ''}
+              </span>
               <span className="min-w-0 flex-1 truncate">{p.name}</span>
               {p.journalName && (
                 <span className="badge flex-none bg-white font-mono text-[10px] text-gray-500 ring-1 ring-inset ring-gray-200">
@@ -128,14 +130,26 @@ export function ProductPicker({
                 <span className="badge flex-none bg-amber-50 text-[10px] text-amber-700">{t('productPicker.yours')}</span>
               )}
               {on && (
-                <button
-                  type="button"
-                  aria-label={`Remove one ${p.name}`}
-                  onClick={(e) => { e.stopPropagation(); remove(p.name); }}
-                  className="flex h-6 w-6 flex-none items-center justify-center rounded-md border border-brand-200 bg-white text-base leading-none text-brand-700 hover:bg-brand-100"
-                >
-                  −
-                </button>
+                /* − N +  stepper: visible count with explicit add/remove. */
+                <span className="flex flex-none items-center overflow-hidden rounded-md border border-brand-300 bg-white">
+                  <button
+                    type="button"
+                    aria-label={`Remove one ${p.name}`}
+                    onClick={(e) => { e.stopPropagation(); remove(p.name); }}
+                    className="flex h-6 w-6 items-center justify-center text-base leading-none text-brand-700 hover:bg-brand-100"
+                  >
+                    −
+                  </button>
+                  <span className="min-w-[1.5rem] px-0.5 text-center text-xs font-bold tabular-nums text-brand-800">{n}</span>
+                  <button
+                    type="button"
+                    aria-label={`Add one ${p.name}`}
+                    onClick={(e) => { e.stopPropagation(); add(p.name); }}
+                    className="flex h-6 w-6 items-center justify-center text-base leading-none text-brand-700 hover:bg-brand-100"
+                  >
+                    +
+                  </button>
+                </span>
               )}
             </div>
           );
@@ -146,7 +160,7 @@ export function ProductPicker({
           </p>
         )}
       </div>
-      <p className="mt-1 text-xs text-gray-400">Tap a product to add it · tap again for another · − removes one</p>
+      <p className="mt-1 text-xs text-gray-400">Tap a product to add it · use − / + to set how many</p>
       <div className="mt-2">
         <label className="flex flex-col gap-1 rounded-lg border border-dashed border-gray-300 px-3 py-2 text-sm">
           <span className="font-medium text-gray-700">{t('productPicker.otherLabel')}</span>

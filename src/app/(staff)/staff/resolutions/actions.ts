@@ -11,7 +11,7 @@ import { nextCaseNumber } from '@/lib/resolutionCases';
 import { isResolutionStatus, STATUS_LABEL, OPEN_STATUSES, PRIORITIES } from '@/lib/resolutionStatus';
 import { normalizeCallPhone } from '@/lib/customerCalls';
 import { putDocument, deleteDocument, newResolutionStorageKey } from '@/lib/storage';
-import { MAX_FILE_BYTES, ALLOWED_MIME_TYPES } from '@/lib/constants';
+import { MAX_FILE_BYTES, ALLOWED_MIME_TYPES, STATUS_LABELS } from '@/lib/constants';
 import { gmailResolutionConfigured, searchThreadForRef, fetchFirstMessageText, fetchLatestInboundText, fetchMessageText } from '@/lib/gmailResolution';
 import { summarizeResolutionEmail, draftHdReply, aiConfigured } from '@/lib/ai';
 import { decodeEntities } from '@/lib/htmlEntities';
@@ -75,12 +75,38 @@ export async function createCaseAction(_prev: CaseFormState, formData: FormData)
   // Optionally link a Gmail thread (from the unlinked-email inbox).
   const gmailThreadId = String(formData.get('gmailThreadId') || '').trim() || null;
 
+  // Contacts follow the customer: pre-fill the contact card from their most
+  // recent prior case (matched by normalized phone), so spouse / HD rep / extra
+  // contacts and any corrected email/address carry forward instead of being
+  // re-entered each time. Each new case carries from the previous, so edits
+  // propagate to future cases.
+  const normPhone = normalizeCallPhone(customerPhone);
+  const prior = normPhone
+    ? await prisma.resolutionCase.findFirst({
+        where: { customerPhone: normPhone },
+        orderBy: { createdAt: 'desc' },
+        select: {
+          customerEmail: true, customerAddress: true, spouseName: true, spousePhone: true,
+          hdRepName: true, hdRepPhone: true, hdRepEmail: true, extraContacts: true,
+        },
+      })
+    : null;
+
   const caseNumber = await nextCaseNumber();
   const created = await prisma.resolutionCase.create({
     data: {
       caseNumber, title, description, priority, applicationId,
-      customerName, customerPhone: normalizeCallPhone(customerPhone),
+      customerName, customerPhone: normPhone,
       officeDealerId, hdReference, hdCaseNumber, openedById: user.userId,
+      // Carried-forward contacts (null when there's no prior case).
+      customerEmail: prior?.customerEmail ?? null,
+      customerAddress: prior?.customerAddress ?? null,
+      spouseName: prior?.spouseName ?? null,
+      spousePhone: prior?.spousePhone ?? null,
+      hdRepName: prior?.hdRepName ?? null,
+      hdRepPhone: prior?.hdRepPhone ?? null,
+      hdRepEmail: prior?.hdRepEmail ?? null,
+      ...(prior?.extraContacts != null ? { extraContacts: prior.extraContacts as Prisma.InputJsonValue } : {}),
       ...(gmailThreadId ? { gmailThreadId, gmailLinkedAt: new Date() } : {}),
     },
   });
@@ -283,6 +309,126 @@ export async function notifyOfficeAction(caseId: string, _prev: CaseFormState, f
   await notifyNewNote(c.applicationId, 'REVIEWER');
   await prisma.resolutionCaseNote.create({ data: { caseId, authorId: user.userId, body: `Notified the office: ${message}` } });
   await audit({ actorId: user.userId, action: 'STATUS_CHANGE', entityType: 'ResolutionCase', entityId: caseId, detail: 'notified office' });
+  revalidatePath(`/staff/resolutions/${caseId}`);
+  return { ok: true };
+}
+
+export interface DealCandidate {
+  applicationId: string;
+  name: string;
+  office: string;
+  statusLabel: string;
+  reference: string;
+  date: string;
+}
+
+async function dealCandidatesByIds(ids: string[]): Promise<DealCandidate[]> {
+  if (ids.length === 0) return [];
+  const apps = await prisma.application.findMany({
+    where: { id: { in: ids } },
+    orderBy: { createdAt: 'desc' },
+    select: {
+      id: true, applicantFirstName: true, applicantLastName: true,
+      status: true, hdReference: true, createdAt: true,
+      dealer: { select: { name: true } },
+    },
+  });
+  return apps.map((a) => ({
+    applicationId: a.id,
+    name: `${a.applicantFirstName} ${a.applicantLastName}`.trim(),
+    office: a.dealer?.name ?? '—',
+    statusLabel: STATUS_LABELS[a.status] ?? a.status,
+    reference: a.hdReference ?? '',
+    date: a.createdAt.toLocaleDateString('en-CA', { year: 'numeric', month: 'short', day: 'numeric' }),
+  }));
+}
+
+/**
+ * Find candidate deals to link this case to. With no query, auto-matches the
+ * customer by phone (same person) and by the case's customer name; with a query,
+ * searches deals by name and/or phone. Internal only; returns up to a dozen.
+ */
+export async function findDealsForCaseAction(caseId: string, query?: string): Promise<{ deals?: DealCandidate[]; error?: string }> {
+  await requireRole('REVIEWER', 'ADMIN');
+  const c = await prisma.resolutionCase.findUnique({ where: { id: caseId }, select: { customerName: true, customerPhone: true } });
+  if (!c) return { error: 'Case not found.' };
+
+  const raw = (query || '').trim();
+  const ids = new Set<string>();
+
+  // Phone match — normalize both sides to digits and compare the last 10.
+  const phoneSource = raw || c.customerPhone || '';
+  const digits = phoneSource.replace(/\D/g, '');
+  if (digits.length >= 7) {
+    const last10 = digits.slice(-10);
+    const rows = await prisma.$queryRaw<{ id: string }[]>`
+      SELECT "id" FROM "Application"
+      WHERE right(regexp_replace("applicantPhone", '[^0-9]', '', 'g'), 10) = ${last10}
+      ORDER BY "createdAt" DESC
+      LIMIT 10`;
+    for (const r of rows) ids.add(r.id);
+  }
+
+  // Name match — each token (≥2 letters) must hit the first or last name.
+  const nameSource = raw || c.customerName || '';
+  const tokens = nameSource.split(/\s+/).map((t) => t.trim()).filter((t) => t.length >= 2 && !/^\d+$/.test(t));
+  if (tokens.length) {
+    const apps = await prisma.application.findMany({
+      where: {
+        AND: tokens.map((tok) => ({
+          OR: [
+            { applicantFirstName: { contains: tok, mode: 'insensitive' as const } },
+            { applicantLastName: { contains: tok, mode: 'insensitive' as const } },
+          ],
+        })),
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+      select: { id: true },
+    });
+    for (const a of apps) ids.add(a.id);
+  }
+
+  return { deals: await dealCandidatesByIds([...ids].slice(0, 12)) };
+}
+
+/**
+ * Link an existing case to a customer's deal. Backfills the office, HD Ref # and
+ * phone (when blank) so Notify office and the linked documents start working.
+ */
+export async function linkCaseToDealAction(caseId: string, applicationId: string): Promise<CaseFormState> {
+  const user = await requireRole('REVIEWER', 'ADMIN');
+  const c = await prisma.resolutionCase.findUnique({ where: { id: caseId }, select: { id: true, caseNumber: true, hdReference: true, customerPhone: true } });
+  if (!c) return { error: 'Case not found.' };
+  const app = await prisma.application.findUnique({
+    where: { id: applicationId },
+    select: { id: true, dealerId: true, hdReference: true, applicantPhone: true },
+  });
+  if (!app) return { error: 'That deal no longer exists.' };
+
+  await prisma.resolutionCase.update({
+    where: { id: caseId },
+    data: {
+      applicationId: app.id,
+      officeDealerId: app.dealerId,
+      hdReference: c.hdReference || app.hdReference || null,
+      customerPhone: c.customerPhone || normalizeCallPhone(app.applicantPhone) || '',
+    },
+  });
+  await prisma.resolutionCaseNote.create({ data: { caseId, authorId: user.userId, body: 'Linked this case to the customer’s deal.' } });
+  await audit({ actorId: user.userId, action: 'STATUS_CHANGE', entityType: 'ResolutionCase', entityId: caseId, detail: `Linked case ${c.caseNumber} to deal ${app.id}` });
+  revalidatePath(`/staff/resolutions/${caseId}`);
+  return { ok: true };
+}
+
+/** Unlink a case from its deal (e.g. it was linked to the wrong one). */
+export async function unlinkCaseFromDealAction(caseId: string): Promise<CaseFormState> {
+  const user = await requireRole('REVIEWER', 'ADMIN');
+  const c = await prisma.resolutionCase.findUnique({ where: { id: caseId }, select: { id: true, caseNumber: true, applicationId: true } });
+  if (!c) return { error: 'Case not found.' };
+  if (!c.applicationId) return { ok: true };
+  await prisma.resolutionCase.update({ where: { id: caseId }, data: { applicationId: null } });
+  await audit({ actorId: user.userId, action: 'STATUS_CHANGE', entityType: 'ResolutionCase', entityId: caseId, detail: `Unlinked case ${c.caseNumber} from its deal` });
   revalidatePath(`/staff/resolutions/${caseId}`);
   return { ok: true };
 }
