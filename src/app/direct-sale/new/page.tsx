@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function NewDirectSalePage() {
   const user = await requireDirectSaleAccess();
-  const internal = user.role === 'REVIEWER' || user.role === 'ADMIN';
+  const internal = (user.role === 'REVIEWER' || user.role === 'ADMIN') && !user.impersonating;
 
   // Internal staff choose the office; a granted store user is locked to theirs.
   const offices = internal

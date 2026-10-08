@@ -10,7 +10,10 @@ const fmtMoney = (a: unknown) => (a == null ? '—' : `$${Number(a).toLocaleStri
 
 export default async function DirectSalesPage() {
   const user = await requireDirectSaleAccess();
-  const internal = user.role === 'REVIEWER' || user.role === 'ADMIN';
+  // Impersonation ("view as dealer") is excluded — the guard already blocks it,
+  // but this keeps the scoping correct as defense in depth.
+  const internal = (user.role === 'REVIEWER' || user.role === 'ADMIN') && !user.impersonating;
+  const homeHref = internal ? '/staff' : '/dealer';
 
   // Internal staff see every office's direct sales; a granted store user sees
   // only their own office's.
@@ -31,6 +34,7 @@ export default async function DirectSalesPage() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-5 px-4 py-6">
+      <Link href={homeHref} className="text-sm text-gray-500 hover:underline">← Back to portal</Link>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold text-gray-900 dark:text-slate-100">🧾 Direct sales</h1>

@@ -17,6 +17,11 @@ import { requireSession, type SessionUser } from './session';
  * user gets it.
  */
 export async function canEnterDirectSale(user: SessionUser): Promise<boolean> {
+  // While an admin is "viewing as" a dealer, they see the DEALER'S own view —
+  // Direct sale is an internal GWA-team tool, so it must NOT appear (and must not
+  // leak GWA direct sales into the dealer's scoped view). The internal role is
+  // ignored during impersonation.
+  if (user.impersonating) return false;
   if (isInternal(user)) return true;
   const me = await prisma.user.findUnique({
     where: { id: user.userId },
