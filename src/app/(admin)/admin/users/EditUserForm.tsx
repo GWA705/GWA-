@@ -32,7 +32,6 @@ export function EditUserForm({
     canViewDealerSnapshot: boolean;
     canViewAllLeads: boolean;
     canManageGiftCards: boolean;
-    canEnterDirectSale: boolean;
   };
   dealers: { id: string; name: string }[];
 }) {
@@ -185,19 +184,6 @@ export function EditUserForm({
             </label>
           </div>
         )}
-        <div className="sm:col-span-2">
-          <label className="flex items-start gap-2 text-sm text-gray-700">
-            <input type="checkbox" name="canEnterDirectSale" defaultChecked={user.canEnterDirectSale} className="mt-0.5 rounded border-gray-300" />
-            <span>
-              Give this person <strong>Direct sale access</strong>
-              <span className="block text-xs text-gray-400">
-                Enter a Georgian Water &amp; Air in-store walk-in sale and complete it to Funded + Paid (Direct sale).
-                Internal staff already have it; grant it to a specific Georgian Water office person — even a store
-                login — without opening it to dealers generally.
-              </span>
-            </span>
-          </label>
-        </div>
         <div className="sm:col-span-2">
           <label className="label" htmlFor="newPassword">New temporary password <span className="font-normal text-gray-400">(leave blank to keep current)</span></label>
           <input id="newPassword" name="newPassword" type="text" className="input" placeholder="Only fill this to reset their password" />

@@ -38,6 +38,15 @@ source of truth; this file is the human-readable index.
 | HD Resolution ↔ Gmail email link | ✅ **Live & verified** (2026-10-07, Sean) | Read-only Gmail via the existing service account (`gwa-journal-writer@gwa-portal-504012…`, project **"GWA Portal"** `gwa-portal-504012`, Unique ID `100470797238569934976`), impersonating `sean@ghsbarrie.ca` + the `HD Resolution` label. All switches done: Gmail API enabled, Workspace domain-wide delegation (`…/auth/gmail.readonly`), `GMAIL_RESOLUTION_USER=sean@ghsbarrie.ca` on EB. **Verified end-to-end** — the Email inbox lists real HD threads and "Open as case" links the thread + auto-fills. 30-min sync `resolution-email-sync.yml` (reuses `CRON_SECRET`). Steps/facts: `HD-RESOLUTION-EMAIL.md`, `BUILD-FACTS.md`. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### Direct sale locked to Georgian Water internal team only (2026-10-08)
+- Per Sean: Direct sale is used **only at Georgian Water, nowhere else** — **no dealer
+  should ever have it.** `canEnterDirectSale` is now **internal-staff-only**
+  (REVIEWER/ADMIN), with no per-user grant path and impersonation excluded. The
+  dealer-portal nav entry and the **Admin → Users "Direct sale access" grant were
+  removed entirely**, so there is no way to turn it on for a dealer. The
+  `User.canEnterDirectSale` column is kept but **deprecated/unread** (no destructive
+  migration).
+
 ### Fix: Direct sale leaked into "view as dealer" + no way back (2026-10-08)
 - **Tenant-isolation fix.** When an admin was "viewing as" a dealer (impersonation),
   the Direct sale tool still treated them as internal — because impersonation keeps

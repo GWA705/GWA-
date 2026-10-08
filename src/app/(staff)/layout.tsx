@@ -43,8 +43,8 @@ export default async function StaffLayout({ children }: { children: React.ReactN
   if (await canManageGiftCards(user)) {
     nav.push({ href: '/staff/gift-cards', label: 'Gift cards', badge: await staffHasGiftCardUnread() });
   }
-  // Direct sale — Georgian Water & Air walk-in entry (all internal staff).
-  if (await canEnterDirectSale(user)) {
+  // Direct sale — Georgian Water & Air internal team only.
+  if (canEnterDirectSale(user)) {
     nav.push({ href: '/direct-sale', label: 'Direct sale' });
   }
 
