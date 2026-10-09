@@ -367,14 +367,17 @@ export const FUNDING_DOCUMENT_TYPES: {
   { type: 'VOID_CHEQUE_OR_PAP', label: 'Void cheque or PAP form', required: false },
   { type: 'INSTALL_PHOTO', label: 'Pictures of installed products', required: true },
   { type: 'SIGNED_HD_DOCUMENT', label: 'Signed Home Depot documents', required: true },
-  { type: 'HD_WAIVER', label: 'Signed & completed Home Depot waiver', required: true },
+  // HD_WAIVER is intentionally NOT in the upload checklist: the Home Depot
+  // Customer Approval Waiver is the same standard form on every HD deal, so the
+  // portal attaches it automatically (public/hd-customer-approval-waiver.pdf,
+  // shown on the deal for the dealer and the review team). Dealers no longer
+  // upload it. The HD_WAIVER document type is kept for historical uploads.
   { type: 'OTHER', label: 'Other supporting documents', required: false },
 ];
 
-// The two funding items that only apply to Home Depot program deals. On a GWA
-// program deal there is no HD paperwork or HD waiver, so these drop off the
-// checklist entirely.
-const HD_ONLY_FUNDING_TYPES: DocumentType[] = ['SIGNED_HD_DOCUMENT', 'HD_WAIVER'];
+// The HD paperwork item that only applies to Home Depot program deals. On a GWA
+// program deal there is no HD paperwork, so it drops off the checklist entirely.
+const HD_ONLY_FUNDING_TYPES: DocumentType[] = ['SIGNED_HD_DOCUMENT'];
 
 // Funding docs that mean the dealer is returning the completed, signed package —
 // as opposed to an early void cheque / PAP or a misc "other" file, which a dealer

@@ -418,6 +418,8 @@ export const en = {
     email: 'Email',
     financingDealNumber: 'Financing deal number',
     hdCustomerNumber: 'HD Customer #',
+    hdWaiverTitle: 'Home Depot Customer Approval Waiver',
+    hdWaiverHint: 'Attached automatically to every Home Depot deal — view or download it. You don’t need to upload this.',
     financingNoteLabel: 'Financing note: ',
     reviewDecisions: 'Review decisions',
     confirmation: 'Confirmation',

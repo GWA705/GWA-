@@ -4,6 +4,7 @@ import { requireDealerAccess } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { canAccessAsDealer } from '@/lib/rbac';
 import { decryptOptional } from '@/lib/crypto';
+import { HdWaiverCard } from '@/components/HdWaiverCard';
 import { StatusBadge } from '@/components/StatusBadge';
 import { DocumentList } from '@/components/DocumentList';
 import { PaperworkCards } from '@/components/PaperworkCards';
@@ -341,6 +342,15 @@ export default async function DealerApplicationDetail({
           <p className="text-sm text-gray-500">{t('dealDetail.notConfirmedYet')}</p>
         )}
       </section>
+
+      {/* HD Customer Approval Waiver — attached automatically to every Home Depot
+          deal (no upload needed). Dealer can view / download it here. */}
+      {app.programType === 'HD' && (
+        <section className="card p-6">
+          <h2 className="mb-3 border-l-4 border-brand-500 pl-2.5 text-lg font-bold text-gray-900">{t('dealDetail.hdWaiverTitle')}</h2>
+          <HdWaiverCard title={t('dealDetail.hdWaiverTitle')} hint={t('dealDetail.hdWaiverHint')} />
+        </section>
+      )}
 
       {/* Documents for approval — collapses to a summary once approved + docs in. */}
       <CollapsibleSection

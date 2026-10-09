@@ -422,6 +422,8 @@ export const fr: Dictionary = {
     email: 'Courriel',
     financingDealNumber: 'Numéro de dossier de financement',
     hdCustomerNumber: 'Nº de client HD',
+    hdWaiverTitle: 'Dispense d’approbation du client Home Depot',
+    hdWaiverHint: 'Jointe automatiquement à chaque transaction Home Depot — à consulter ou à télécharger. Vous n’avez pas à la téléverser.',
     financingNoteLabel: 'Note de financement : ',
     reviewDecisions: 'Décisions de révision',
     confirmation: 'Confirmation',

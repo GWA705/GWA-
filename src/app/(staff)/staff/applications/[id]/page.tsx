@@ -8,6 +8,7 @@ import { audit } from '@/lib/audit';
 import { StatusBadge } from '@/components/StatusBadge';
 import { DocumentList } from '@/components/DocumentList';
 import { DownloadButton } from '@/components/DownloadButton';
+import { HdWaiverCard } from '@/components/HdWaiverCard';
 import { FundingChecklist } from '@/components/FundingChecklist';
 import { VerificationChecklist, type VerificationState } from '@/components/VerificationChecklist';
 import { ReviewerEntryView } from '@/components/ReviewerEntryView';
@@ -627,6 +628,16 @@ export default async function StaffApplicationDetail({
                 </li>
               ))}
             </ul>
+          </div>
+        )}
+        {app.programType === 'HD' && (
+          <div>
+            <h3 className="mb-1 text-sm font-medium text-gray-700">Home Depot Customer Approval Waiver</h3>
+            <p className="mb-2 text-xs text-gray-500">Attached automatically to every HD deal — the dealer no longer uploads it.</p>
+            <HdWaiverCard
+              title="Home Depot Customer Approval Waiver"
+              hint="Standard form, attached automatically to this HD deal."
+            />
           </div>
         )}
         <FundingChecklist fundingDocs={fundingDocs} applicationId={app.id} status={app.status} programType={app.programType} paymentMethod={app.paymentMethod} isSplitPayment={app.isSplitPayment} />
