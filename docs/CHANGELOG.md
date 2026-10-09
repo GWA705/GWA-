@@ -38,6 +38,15 @@ source of truth; this file is the human-readable index.
 | HD Resolution ↔ Gmail email link | ✅ **Live & verified** (2026-10-07, Sean) | Read-only Gmail via the existing service account (`gwa-journal-writer@gwa-portal-504012…`, project **"GWA Portal"** `gwa-portal-504012`, Unique ID `100470797238569934976`), impersonating `sean@ghsbarrie.ca` + the `HD Resolution` label. All switches done: Gmail API enabled, Workspace domain-wide delegation (`…/auth/gmail.readonly`), `GMAIL_RESOLUTION_USER=sean@ghsbarrie.ca` on EB. **Verified end-to-end** — the Email inbox lists real HD threads and "Open as case" links the thread + auto-fills. 30-min sync `resolution-email-sync.yml` (reuses `CRON_SECRET`). Steps/facts: `HD-RESOLUTION-EMAIL.md`, `BUILD-FACTS.md`. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### Fix: HD waiver "View" stranded you on the PDF on mobile (2026-10-09)
+- Tapping **View** on the auto-attached Home Depot waiver opened the raw PDF in a
+  new tab — in the installed app / on mobile there was **no way back**. View now
+  opens the in-app **DocViewer** overlay (full-screen, with a Close button that
+  clears the iOS notch), the same viewer the deal documents use. It shows a
+  rendered page image (`public/hd-customer-approval-waiver.png`, generated from the
+  PDF with the app's own `pdf-to-img` renderer) so it displays reliably on iOS;
+  **Download** still hands over the printable PDF.
+
 ### Fix: header showed two bell icons (Mail link used the Bell icon) (2026-10-09)
 - The top bar rendered the notification bell and, right beside it, the **Mail**
   link — but the Mail link was drawn with the **Bell** icon, so it looked like two
