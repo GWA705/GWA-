@@ -26,6 +26,7 @@ import { sendSms, smsEnabled, toE164 } from '@/lib/sms';
 import { getTwilioUsage, type TwilioUsage } from '@/lib/twilioUsage';
 import { buildInviteEmail } from '@/lib/email-templates';
 import { setSetting, EMAIL_SETTING_KEYS, BANNER_SETTING_KEYS, SECURITY_SETTING_KEYS, MFA_TRUST_DAY_OPTIONS, DEFAULT_MFA_TRUST_DAYS, type MfaRequirement } from '@/lib/settings';
+import { LEAD_TEXT_KEYS, renderLeadTextBody, leadTextConfig, pickSender, type LeadTextSource } from '@/lib/leadText';
 import { parseDealerProfileForm, readExtraContacts, type OfficeContact } from '@/lib/dealerProfile';
 import type { Prisma } from '@prisma/client';
 import { applyDealerLogo, applySupportContactLogo } from '@/lib/dealerLogo';
@@ -214,6 +215,73 @@ export async function sendTestSmsAction(
   else if (/^http_(400|403|21)/.test(reason)) hint = ' → Twilio rejected the request — often the From number isn’t a valid/owned Twilio number (use E.164, e.g. +17055550123) or isn’t registered to text Canada yet.';
   else if (reason === 'bad-number') hint = ' → That number didn’t look like a valid 10-digit number.';
   return { error: `Could not send: ${reason}${hint}` };
+}
+
+// Save the new-lead customer auto-text settings (all AppSetting-backed, no
+// redeploy). Validates the test number, the sender map JSON and the quiet hours.
+export async function saveLeadTextSettingsAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const session = await requireAdminSection('lead-texting');
+
+  const enabled = formData.get('enabled') === 'on';
+  const testMode = formData.get('testMode') === 'on';
+  const testNumberRaw = String(formData.get('testNumber') || '').trim();
+  const mediaUrl = String(formData.get('mediaUrl') || '').trim();
+  const senderMapRaw = String(formData.get('senderMap') || '').trim();
+  const quietStart = Number(formData.get('quietStart'));
+  const quietEnd = Number(formData.get('quietEnd'));
+
+  let testNumber = '';
+  if (testNumberRaw) {
+    const e = toE164(testNumberRaw);
+    if (!e) return { error: 'Test number isn’t a valid 10-digit North American number.' };
+    testNumber = e;
+  }
+  if (enabled && testMode && !testNumber) {
+    return { error: 'Test mode is on, so enter a test number — that’s where every text will go until you turn test mode off.' };
+  }
+  if (senderMapRaw) {
+    try {
+      const parsed = JSON.parse(senderMapRaw);
+      if (typeof parsed !== 'object' || Array.isArray(parsed) || parsed === null) throw new Error('not an object');
+    } catch {
+      return { error: 'Sender numbers must be JSON like {"default":"+18665550123","ON":"+17055550123"}.' };
+    }
+  }
+  if (!Number.isInteger(quietStart) || !Number.isInteger(quietEnd) || quietStart < 0 || quietEnd > 24 || quietStart >= quietEnd) {
+    return { error: 'Daytime window must be whole hours 0–24 with start before end (e.g. 8 to 21).' };
+  }
+
+  await setSetting(LEAD_TEXT_KEYS.enabled, enabled ? 'true' : 'false');
+  await setSetting(LEAD_TEXT_KEYS.testMode, testMode ? 'true' : 'false');
+  await setSetting(LEAD_TEXT_KEYS.testNumber, testNumber);
+  await setSetting(LEAD_TEXT_KEYS.mediaUrl, mediaUrl);
+  await setSetting(LEAD_TEXT_KEYS.senderMap, senderMapRaw);
+  await setSetting(LEAD_TEXT_KEYS.quietStart, String(quietStart));
+  await setSetting(LEAD_TEXT_KEYS.quietEnd, String(quietEnd));
+
+  await audit({ actorId: session.userId, action: 'USER_UPDATE', entityType: 'User', entityId: session.userId, detail: `Lead auto-text settings saved (enabled=${enabled}, testMode=${testMode})` });
+  return { ok: true, message: enabled ? (testMode ? 'Saved. Test mode is ON — texts go only to your test number.' : 'Saved. LIVE — new leads will be texted.') : 'Saved. Auto-text is OFF.' };
+}
+
+// Send one sample auto-text right now (to the test number), using the configured
+// image + sender, so you can see exactly what a customer receives.
+export async function sendLeadTextTestAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdminSection('lead-texting');
+  const cfg = await leadTextConfig();
+  const to = cfg.testNumber;
+  if (!to) return { error: 'Set and save a test number first.' };
+  if (!smsEnabled()) return { error: 'Texting isn’t switched on yet (set the TWILIO_ env vars on Elastic Beanstalk).' };
+
+  const source = (String(formData.get('source') || 'SCANNED') as LeadTextSource);
+  const province = String(formData.get('province') || 'ON').toUpperCase() || null;
+  const body = renderLeadTextBody(source, province);
+  const from = pickSender(province, cfg.senderMap);
+
+  let result = await sendSms({ to, body, mediaUrl: cfg.mediaUrl || undefined, from });
+  if (!result.sent && cfg.mediaUrl) result = await sendSms({ to, body, from });
+
+  if (result.sent) return { ok: true, message: `Sample ${result.channel ?? 'text'} sent to your test number (${to}).` };
+  return { error: `Could not send: ${result.reason || 'unknown error'}. If the number isn’t verified for Canada yet, carriers will block it.` };
 }
 
 /**

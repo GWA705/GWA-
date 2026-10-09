@@ -76,6 +76,25 @@ source of truth; this file is the human-readable index.
   The `HD_WAIVER` document type is kept for historical uploads. Updated
   `fundingDocumentTypesFor` + `tests/fundingDocTypes.test.ts`.
 
+### New-lead customer auto-text (MMS + SMS) — built, OFF by default (2026-10-09)
+- When a new lead comes in (in-store scanned card, mail-in card, or online HD
+  Leads Log), the customer gets **one** text: "Home Depot Home Services (serviced
+  by Georgian Water & Air) — we received your in-home water assessment request; a
+  team member will call within 24–48 hrs. Reply STOP to opt out." **MMS with a
+  branded image first, SMS fallback.** Deduped (one per lead, same leadKey as the
+  push sweep), sent only within the customer's **local daytime window** (8am–9pm
+  by province), **French** to Quebec.
+- **Off by default + test mode** (texts only a test number) so it can't blast real
+  customers. Admin → **Lead auto-text**: enable, test mode + number, EN/FR preview,
+  MMS image URL, per-province sender map, daytime window, recent sends + opt-outs,
+  and a "send sample" button.
+- New `LeadTextOutbox` + `SmsOptOut` models (migration `20261009010000`),
+  `src/lib/leadText.ts`, MMS support in `sms.ts`, enqueue wired into
+  `scanActions` + `leadNotify.sweepNewLeads`, cron `/api/cron/lead-text-sweep`,
+  inbound STOP webhook `/api/sms/inbound`, 11 tests. **To go live:** verify a
+  toll-free number for Canada, set the Twilio env + webhook + cron, add the MMS
+  image, then flip test mode off. Full steps: `docs/LEAD-AUTOTEXT.md`.
+
 ### Reviewer: HD waiver card moved to "Produce install documents" (2026-10-09)
 - The auto-attached Home Depot Customer Approval Waiver card was showing under
   step 4 "Review signed documents" on the reviewer side; it belongs under step 2
