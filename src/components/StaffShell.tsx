@@ -9,7 +9,7 @@ import { NotificationBell } from '@/components/NotificationBell';
 import { useT } from '@/i18n/client';
 import {
   FileText, Mail, MessageSquare, Gift, Building2, Users, BarChart3, UserCircle,
-  ShieldCheck, Wrench, Search, Bell, LogOut, Droplets, ArrowLeftRight, Phone, type LucideIcon,
+  ShieldCheck, Wrench, Search, LogOut, Droplets, ArrowLeftRight, Phone, type LucideIcon,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -118,7 +118,7 @@ export function StaffShell({
           <NotificationBell allHref="/staff/notifications" />
 
           <Link href="/staff/mail" className="relative text-[#0e2756] dark:text-slate-100 hover:text-blue-700" aria-label={t('shell.mail')}>
-            <Bell size={22} />
+            <Mail size={22} />
             {mailUnread > 0 && (
               <span className="absolute -right-2 -top-2 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
                 {mailUnread > 9 ? '9+' : mailUnread}

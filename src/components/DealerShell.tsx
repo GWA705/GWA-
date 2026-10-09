@@ -14,7 +14,7 @@ import { useT } from '@/i18n/client';
 import { I18N_UI_ENABLED } from '@/i18n/config';
 import {
   Home, FileText, UserPlus, Mail, Users, ShoppingCart, Gift, BookOpen, BarChart3,
-  Building2, Headphones, Wrench, Search, Bell, LogOut, Droplets, ArrowLeftRight,
+  Building2, Headphones, Wrench, Search, LogOut, Droplets, ArrowLeftRight,
   Calculator, CreditCard, Megaphone, GraduationCap, UserCircle, PanelLeftClose,
   PanelLeftOpen, Plus, type LucideIcon,
 } from 'lucide-react';
@@ -186,7 +186,7 @@ export function DealerShell({
           <NotificationBell allHref="/dealer/notifications" />
 
           <Link href="/dealer/mail" className="relative text-[#0e2756] dark:text-slate-100 hover:text-blue-700" aria-label={t('shell.mail')}>
-            <Bell size={22} />
+            <Mail size={22} />
             {mailUnread > 0 && (
               <span className="absolute -right-2 -top-2 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
                 {mailUnread > 9 ? '9+' : mailUnread}
