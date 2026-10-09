@@ -31,6 +31,24 @@ _Last updated: 2026-10-02_
 
 ---
 
+## ⭐ Requested features — queued to build
+
+- **Zoom recordings download section (dealer portal).** A place where GWA posts
+  Zoom meeting recordings (training sessions, etc.) and **all dealers can watch /
+  download them themselves**, instead of Sean sending each recording out
+  individually. (Requested 2026-10-09, Sean.)
+  - *Shape:* an admin posts a recording (title, date, optional description) + the
+    **Zoom share/download link**; it shows in a new dealer-portal section (like the
+    Resource library) where dealers view or download. Dormant/empty until posts
+    exist.
+  - *Open decisions for when we build it:* (1) **Manual link posting** vs
+    **auto-sync from the Zoom API** (a Zoom connector is available — it could pull
+    new cloud recordings automatically; "auto upload links" suggests Sean may want
+    this). (2) **Who sees them** — all dealers, or scoped/tagged. (3) **Download vs
+    stream-only** (and whether to mirror the file into our S3 so links don't expire,
+    since Zoom share links can be passworded / time-limited). (4) Where it lives in
+    the nav.
+
 ## A. Needs something only you can provide (accounts, keys, real data)
 
 1. ✅ **DONE — Persistent document storage (S3).** Live on Render with an S3
