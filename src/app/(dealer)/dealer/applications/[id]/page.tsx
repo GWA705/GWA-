@@ -284,9 +284,9 @@ export default async function DealerApplicationDetail({
           <div><dt className="text-gray-500">{t('dealDetail.installationDate')}</dt><dd className="font-medium">{app.installationDate ? app.installationDate.toLocaleDateString('en-CA') : '—'}</dd></div>
           <div><dt className="text-gray-500">{t('dealDetail.hdStore')}</dt><dd className="font-medium">{app.homeDepotStore ? app.homeDepotStore.number : '—'}</dd></div>
           <div className="col-span-2 sm:col-span-3"><dt className="text-gray-500">{t('dealDetail.address')}</dt><dd className="font-medium">{customerAddress || '—'}</dd></div>
-          <div><dt className="text-gray-500">{t('dealDetail.city')}</dt><dd className="font-medium">{app.loanApplication?.city ?? '—'}</dd></div>
+          <div><dt className="text-gray-500">{t('dealDetail.city')}</dt><dd className="font-medium">{app.loanApplication?.city ?? app.applicantCity ?? '—'}</dd></div>
           <div><dt className="text-gray-500">{t('dealDetail.province')}</dt><dd className="font-medium">{app.province}</dd></div>
-          <div><dt className="text-gray-500">{t('dealDetail.postalCode')}</dt><dd className="font-medium">{app.loanApplication?.postalCode ?? '—'}</dd></div>
+          <div><dt className="text-gray-500">{t('dealDetail.postalCode')}</dt><dd className="font-medium">{app.loanApplication?.postalCode ?? app.applicantPostal ?? '—'}</dd></div>
           <div><dt className="text-gray-500">{t('dealDetail.phone')}</dt><dd className="font-medium">{app.applicantPhone}</dd></div>
           <div><dt className="text-gray-500">{t('dealDetail.email')}</dt><dd className="font-medium">{app.applicantEmail}</dd></div>
           <div><dt className="text-gray-500">{t('dealDetail.financingDealNumber')}</dt><dd className="font-medium">{app.financeItNumber ?? '—'}</dd></div>

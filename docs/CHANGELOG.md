@@ -76,6 +76,24 @@ source of truth; this file is the human-readable index.
   The `HD_WAIVER` document type is kept for historical uploads. Updated
   `fundingDocumentTypesFor` + `tests/fundingDocTypes.test.ts`.
 
+### Reviewer queue: Approved deals stay a to-do ("Produce documents") (2026-10-09)
+- An **Approved** HD deal still needs the reviewer to **produce & send the install
+  documents**, but approving it set the reviewer's last-action time, so
+  `needsAttention` went false and the deal dropped to the **bottom of "in
+  progress"** (and was mislabelled "Awaiting install — ball with the dealer"),
+  where it got missed. Now an **Approved** deal counts as a reviewer to-do: it
+  sits in the **Attention band at the top** (longest-waiting first, with the SLA
+  timer) and shows **"Produce documents"**, and only leaves when the docs are
+  sent (→ Docs sent). `src/app/(staff)/staff/page.tsx` (`needsAttention`,
+  `actionFor`, `activityFor`).
+
+### Dealer snapshot: show City & Postal code for HD/photo deals (2026-10-09)
+- City and Postal code showed "—" on HD/photo deals because the snapshot read
+  them only from the typed loan application. Now they fall back to the
+  `Application.applicantCity` / `applicantPostal` fields (plaintext, same source
+  the journal/search use) so they display. No reveal gate — the dealer already
+  sees the street address, phone and email on their own customer.
+
 ### Dealer deal page: customer street address back in the snapshot (2026-10-09)
 - Per Sean: the **street address is shown again** in the dealer-facing **Customer
   snapshot** (on `/dealer/applications/[id]`). It had been left out, which made it
