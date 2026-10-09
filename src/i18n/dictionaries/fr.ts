@@ -124,6 +124,7 @@ export const fr: Dictionary = {
     giftCards: 'Cartes-cadeaux',
     resources: 'Ressources',
     productLibrary: 'Bibliothèque de produits',
+    recordings: 'Enregistrements',
     hdPromotions: 'Promotions HD',
     hdCreditCard: 'Carte de crédit HD',
     tutorial: 'Tutoriel',

@@ -76,6 +76,23 @@ source of truth; this file is the human-readable index.
   The `HD_WAIVER` document type is kept for historical uploads. Updated
   `fundingDocumentTypesFor` + `tests/fundingDocTypes.test.ts`.
 
+### Zoom recordings → dealer portal (auto-sync + review/publish) — OFF by default (2026-10-09)
+- GWA's Zoom cloud recordings **auto-sync** into the portal and land in a **review
+  queue**; an admin **publishes** the ones that go live, and **all dealers** see
+  them under a new **Recordings** tab with a **Watch/Download** link (opens Zoom)
+  + passcode. No more sending recordings out one by one. Dealers never see pending
+  or hidden ones; the tab appears only once something is published.
+- **Delivery = link to Zoom** (share URL + passcode; video stays on Zoom, no
+  storage cost). Admin can edit the dealer-facing title/description/passcode and
+  hide/unpublish.
+- New `ZoomRecording` model (migration `20261009020000`), `src/lib/zoom.ts`
+  (server-to-server OAuth + list recordings), `zoomSync.ts`, cron
+  `/api/cron/zoom-sync`, admin page (new `zoom-recordings` section) + dealer page,
+  tests. **Dormant until Zoom creds are set** — create a Zoom Server-to-Server
+  OAuth app (`recording:read:admin`) and set `ZOOM_ACCOUNT_ID` / `ZOOM_CLIENT_ID`
+  / `ZOOM_CLIENT_SECRET` on EB, then add the cron. Full steps:
+  `docs/ZOOM-RECORDINGS.md`.
+
 ### New-lead customer auto-text (MMS + SMS) — built, OFF by default (2026-10-09)
 - When a new lead comes in (in-store scanned card, mail-in card, or online HD
   Leads Log), the customer gets **one** text: "Home Depot Home Services (serviced

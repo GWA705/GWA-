@@ -119,6 +119,7 @@ export const en = {
     giftCards: 'Gift cards',
     resources: 'Resources',
     productLibrary: 'Product library',
+    recordings: 'Recordings',
     hdPromotions: 'HD Promotions',
     hdCreditCard: 'HD Credit Card',
     tutorial: 'Tutorial',

@@ -43,7 +43,7 @@ export default async function DealerLayout({ children }: { children: React.React
   }
 
   // Attention dots: content sections with something new, and unread mail.
-  const [freshSections, unreadMail, calcAccess, reportAccess, leadsAccess, searchEnabled, giftCardUnread, dealerProfile] = await Promise.all([
+  const [freshSections, unreadMail, calcAccess, reportAccess, leadsAccess, searchEnabled, giftCardUnread, dealerProfile, recordingsCount] = await Promise.all([
     newContentSectionsForUser(user.userId),
     user.dealerId ? unreadMailCountForUser(user.userId, user.dealerId, user.isDistributor) : Promise.resolve(0),
     hasCalculatorAccess(user),
@@ -54,6 +54,8 @@ export default async function DealerLayout({ children }: { children: React.React
     user.dealerId
       ? prisma.dealerProfile.findUnique({ where: { dealerId: user.dealerId }, select: { logoStorageKey: true, updatedAt: true, businessName: true } })
       : Promise.resolve(null),
+    // Show the Recordings tab only once something is actually published.
+    prisma.zoomRecording.count({ where: { status: 'PUBLISHED' } }),
   ]);
   // The dealer's own uploaded logo (falls back to the Georgian wordmark in the
   // header when none is set). Cache-busted on profile update.
@@ -109,6 +111,7 @@ export default async function DealerLayout({ children }: { children: React.React
           })(),
           // Ordering gear, HD leads, and water-test gift cards — top-level tabs.
           { href: '/dealer/resources/library', label: 'Product library', labelKey: 'nav.productLibrary' },
+          ...(recordingsCount > 0 ? [{ href: '/dealer/recordings', label: 'Recordings', labelKey: 'nav.recordings' }] : []),
           { href: '/dealer/marketplace', label: 'Marketplace', labelKey: 'nav.marketplace' },
           { href: '/dealer/leads', label: 'Leads', labelKey: 'nav.leads' },
           { href: '/dealer/gift-cards', label: 'Gift cards', labelKey: 'nav.giftCards', badge: giftCardUnread },

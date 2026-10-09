@@ -27,6 +27,7 @@ import { getTwilioUsage, type TwilioUsage } from '@/lib/twilioUsage';
 import { buildInviteEmail } from '@/lib/email-templates';
 import { setSetting, EMAIL_SETTING_KEYS, BANNER_SETTING_KEYS, SECURITY_SETTING_KEYS, MFA_TRUST_DAY_OPTIONS, DEFAULT_MFA_TRUST_DAYS, type MfaRequirement } from '@/lib/settings';
 import { LEAD_TEXT_KEYS, renderLeadTextBody, leadTextConfig, pickSender, type LeadTextSource } from '@/lib/leadText';
+import { syncZoomRecordings } from '@/lib/zoomSync';
 import { parseDealerProfileForm, readExtraContacts, type OfficeContact } from '@/lib/dealerProfile';
 import type { Prisma } from '@prisma/client';
 import { applyDealerLogo, applySupportContactLogo } from '@/lib/dealerLogo';
@@ -282,6 +283,50 @@ export async function sendLeadTextTestAction(_prev: ActionState, formData: FormD
 
   if (result.sent) return { ok: true, message: `Sample ${result.channel ?? 'text'} sent to your test number (${to}).` };
   return { error: `Could not send: ${result.reason || 'unknown error'}. If the number isn’t verified for Canada yet, carriers will block it.` };
+}
+
+// Pull recent Zoom cloud recordings into the review queue now.
+export async function syncZoomNowAction(): Promise<ActionState> {
+  await requireAdminSection('zoom-recordings');
+  const r = await syncZoomRecordings();
+  if (!r.configured) return { error: 'Zoom isn’t connected yet. Set ZOOM_ACCOUNT_ID, ZOOM_CLIENT_ID and ZOOM_CLIENT_SECRET on the environment.' };
+  if (r.error) return { error: r.error };
+  revalidatePath('/admin/zoom-recordings');
+  return { ok: true, message: `Synced. ${r.added ?? 0} new recording(s) queued for review (${r.seen ?? 0} seen).` };
+}
+
+// Publish / hide / re-queue a recording. Published ones show to all dealers.
+export async function setZoomRecordingStatusAction(id: string, status: string): Promise<ActionState> {
+  const session = await requireAdminSection('zoom-recordings');
+  if (!['PENDING', 'PUBLISHED', 'HIDDEN'].includes(status)) return { error: 'Bad status.' };
+  await prisma.zoomRecording.update({
+    where: { id },
+    data: {
+      status,
+      publishedAt: status === 'PUBLISHED' ? new Date() : null,
+      publishedById: status === 'PUBLISHED' ? session.userId : null,
+    },
+  });
+  revalidatePath('/admin/zoom-recordings');
+  revalidatePath('/dealer/recordings');
+  return { ok: true };
+}
+
+// Edit a recording's dealer-facing display (title, description, passcode).
+export async function updateZoomRecordingAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdminSection('zoom-recordings');
+  const id = String(formData.get('id') || '');
+  if (!id) return { error: 'Missing recording.' };
+  const title = String(formData.get('title') || '').trim().slice(0, 200);
+  const description = String(formData.get('description') || '').trim().slice(0, 4000);
+  const passcode = String(formData.get('passcode') || '').trim().slice(0, 100);
+  await prisma.zoomRecording.update({
+    where: { id },
+    data: { title: title || null, description: description || null, passcode: passcode || null },
+  });
+  revalidatePath('/admin/zoom-recordings');
+  revalidatePath('/dealer/recordings');
+  return { ok: true, message: 'Saved.' };
 }
 
 /**

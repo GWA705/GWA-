@@ -2184,6 +2184,34 @@ model SmsOptOut {
   createdAt DateTime @default(now())
 }
 
+/// A Zoom cloud recording synced from the Zoom API. New recordings land as
+/// PENDING (review queue); an admin PUBLISHes the ones that go live, and dealers
+/// see the published ones in the portal with a "Watch on Zoom" link + passcode.
+/// Deduped by the Zoom meeting UUID. Dormant until Zoom credentials are set.
+model ZoomRecording {
+  id          String   @id @default(cuid())
+  uuid        String   @unique // Zoom meeting UUID (dedupe key)
+  meetingId   String? // Zoom meeting id (numeric, as string)
+  topic       String // Zoom's meeting topic (the raw name)
+  title       String? // admin display-name override (falls back to topic)
+  description String?  @db.Text
+  startTime   DateTime // meeting start
+  durationMin Int      @default(0)
+  shareUrl    String // Zoom share/play URL
+  passcode    String? // recording passcode (auto if Zoom returns it, else admin enters)
+  fileCount   Int      @default(0)
+  totalSize   BigInt   @default(0) // bytes, informational
+
+  status        String    @default("PENDING") // PENDING | PUBLISHED | HIDDEN
+  publishedAt   DateTime?
+  publishedById String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, startTime])
+}
+
 /// A handwritten water-test lead card a rep collected at a Home Depot store,
 /// photographed and read by the AI scanner (see lib/leadScanner.ts), then
 /// confirmed and saved by a dealer or GWA staff. Separate from the HD Leads Log
