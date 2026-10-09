@@ -38,6 +38,16 @@ source of truth; this file is the human-readable index.
 | HD Resolution ↔ Gmail email link | ✅ **Live & verified** (2026-10-07, Sean) | Read-only Gmail via the existing service account (`gwa-journal-writer@gwa-portal-504012…`, project **"GWA Portal"** `gwa-portal-504012`, Unique ID `100470797238569934976`), impersonating `sean@ghsbarrie.ca` + the `HD Resolution` label. All switches done: Gmail API enabled, Workspace domain-wide delegation (`…/auth/gmail.readonly`), `GMAIL_RESOLUTION_USER=sean@ghsbarrie.ca` on EB. **Verified end-to-end** — the Email inbox lists real HD threads and "Open as case" links the thread + auto-fills. 30-min sync `resolution-email-sync.yml` (reuses `CRON_SECRET`). Steps/facts: `HD-RESOLUTION-EMAIL.md`, `BUILD-FACTS.md`. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### Dealer deal page: customer street address back in the snapshot (2026-10-09)
+- Per Sean: the **street address is shown again** in the dealer-facing **Customer
+  snapshot** (on `/dealer/applications/[id]`). It had been left out, which made it
+  hard to recall/route a customer from the snapshot. Now a full-width **Address**
+  row sits above City/Province/Postal. Sourced from the encrypted
+  `applicantAddressEnc` via `decryptOptional` (same field the HD case card and
+  journal sync already read); shows "—" when none is on file. Dealer only sees
+  their own office's deals (unchanged `canAccessAsDealer` guard) — this just
+  un-hides a field on deals they already have access to. EN/FR label added.
+
 ### HD Resolution: link-to-deal control + contacts auto-follow; product picker − N + stepper (2026-10-08)
 - **Link an existing case to a deal, from the case page.** The *Notify office* and
   *Documents & resources* sections said "Link this case to the customer's deal…"

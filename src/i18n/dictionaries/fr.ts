@@ -414,6 +414,7 @@ export const fr: Dictionary = {
     dateOfSale: 'Date de la vente',
     installationDate: 'Date d’installation',
     hdStore: 'Magasin HD',
+    address: 'Adresse',
     city: 'Ville',
     province: 'Province',
     postalCode: 'Code postal',

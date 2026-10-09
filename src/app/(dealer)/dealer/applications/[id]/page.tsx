@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { requireDealerAccess } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { canAccessAsDealer } from '@/lib/rbac';
+import { decryptOptional } from '@/lib/crypto';
 import { StatusBadge } from '@/components/StatusBadge';
 import { DocumentList } from '@/components/DocumentList';
 import { PaperworkCards } from '@/components/PaperworkCards';
@@ -62,6 +63,10 @@ export default async function DealerApplicationDetail({
     },
   });
   if (!app || !canAccessAsDealer(user, app.dealerId)) notFound();
+
+  // Customer's street address (stored encrypted) — shown back in the snapshot so
+  // the dealer can recall/route the customer. City/province/postal are below it.
+  const customerAddress = decryptOptional(app.applicantAddressEnc);
 
   // Co-applicant: show the one on file, or let the dealer add one to this deal.
   const coName = (app.coApplicantName
@@ -277,6 +282,7 @@ export default async function DealerApplicationDetail({
           <div><dt className="text-gray-500">{t('dealDetail.dateOfSale')}</dt><dd className="font-medium">{app.dateOfSale ? app.dateOfSale.toLocaleDateString('en-CA') : '—'}</dd></div>
           <div><dt className="text-gray-500">{t('dealDetail.installationDate')}</dt><dd className="font-medium">{app.installationDate ? app.installationDate.toLocaleDateString('en-CA') : '—'}</dd></div>
           <div><dt className="text-gray-500">{t('dealDetail.hdStore')}</dt><dd className="font-medium">{app.homeDepotStore ? app.homeDepotStore.number : '—'}</dd></div>
+          <div className="col-span-2 sm:col-span-3"><dt className="text-gray-500">{t('dealDetail.address')}</dt><dd className="font-medium">{customerAddress || '—'}</dd></div>
           <div><dt className="text-gray-500">{t('dealDetail.city')}</dt><dd className="font-medium">{app.loanApplication?.city ?? '—'}</dd></div>
           <div><dt className="text-gray-500">{t('dealDetail.province')}</dt><dd className="font-medium">{app.province}</dd></div>
           <div><dt className="text-gray-500">{t('dealDetail.postalCode')}</dt><dd className="font-medium">{app.loanApplication?.postalCode ?? '—'}</dd></div>

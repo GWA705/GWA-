@@ -410,6 +410,7 @@ export const en = {
     dateOfSale: 'Date of sale',
     installationDate: 'Installation date',
     hdStore: 'HD store',
+    address: 'Address',
     city: 'City',
     province: 'Province',
     postalCode: 'Postal code',
