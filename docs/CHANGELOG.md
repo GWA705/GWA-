@@ -119,6 +119,18 @@ source of truth; this file is the human-readable index.
   paperwork). Moved it there, as an info card ("attached automatically — no need
   to upload/send it"). Removed from the review-signed step.
 
+### CI fix: base image from AWS ECR Public (no more Docker Hub 429 deploy failures) (2026-10-09)
+- The "Build & push image to ECR" workflow was intermittently failing at the
+  Docker build step with `node:20-bookworm-slim … 429 Too Many Requests` —
+  Docker Hub's **anonymous pull rate limit**, shared across all GitHub runners.
+  The deploy didn't auto-recover; a plain re-run hit the same limit.
+- Fix: the Dockerfile now pulls the base image from **AWS ECR Public's mirror** of
+  the Docker Official Images (`public.ecr.aws/docker/library/node:20-bookworm-slim`,
+  same image/tag) instead of `docker.io`. ECR Public isn't subject to Docker
+  Hub's anonymous limit, needs **no new secrets**, and the deploy pipeline is
+  otherwise unchanged. If a 429 ever recurs elsewhere, the next step is an
+  authenticated ECR Public login (needs IAM `ecr-public:GetAuthorizationToken`).
+
 ### Fix: E-Transfer deals couldn't submit; journal "How they paid" now fills every method (2026-10-09)
 - **E-Transfer (and Finance company) deals were blocked** on submit with
   "Payment type — required": the main `applicationSchema.paymentMethod` enum was
