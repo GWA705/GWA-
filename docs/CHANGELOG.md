@@ -119,6 +119,19 @@ source of truth; this file is the human-readable index.
   paperwork). Moved it there, as an info card ("attached automatically — no need
   to upload/send it"). Removed from the review-signed step.
 
+### Fix: E-Transfer deals couldn't submit; journal "How they paid" now fills every method (2026-10-09)
+- **E-Transfer (and Finance company) deals were blocked** on submit with
+  "Payment type — required": the main `applicationSchema.paymentMethod` enum was
+  missing `E_TRANSFER` / `FINANCE_COMPANY` (the other two payment schemas had
+  them). Added both; regression test covers every method the UI offers.
+- **Journal "How they paid" column now reflects every payment option.** It was
+  left blank for Cash / Cheque / E-Transfer and for finance companies without a
+  known short code. Now: FinanceIt keeps `HDFINIT`/`GHSFINIT`, Enercare/UEI keep
+  their coded form, cards keep `HDCC`/`CCHD`, **Cash→"Cash", Cheque→"Cheque",
+  E-Transfer→"E-Transfer"**, and a **different finance company → that company's
+  name**. `journalPayCode` in `src/lib/payments.ts` (+ tests). The reviewer deal
+  page already shows the exact method in its "Payment" row.
+
 ### Reviewer queue: revert Approved-attention change; in-progress sorts recent-first (2026-10-09)
 - Earlier today Approved deals were made to count as a reviewer to-do ("Produce
   documents") so they'd sit in the Attention band. Per Sean this wasn't the

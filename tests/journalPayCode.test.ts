@@ -31,9 +31,15 @@ describe('journalPayCode — "How They Payed" column', () => {
     expect(code).toBe('HDFINIT');
   });
 
-  it('cash / cheque get no code (null → writer leaves the cell)', () => {
-    expect(journalPayCode({ programType: 'HD', paymentMethod: 'CASH', financeCompanyName: null, hasFinancedPortion: false })).toBeNull();
-    expect(journalPayCode({ programType: 'HD', paymentMethod: 'CHEQUE', financeCompanyName: null, hasFinancedPortion: false })).toBeNull();
+  it('every non-financed method reflects the chosen payment option', () => {
+    expect(journalPayCode({ programType: 'HD', paymentMethod: 'CASH', financeCompanyName: null, hasFinancedPortion: false })).toBe('Cash');
+    expect(journalPayCode({ programType: 'HD', paymentMethod: 'CHEQUE', financeCompanyName: null, hasFinancedPortion: false })).toBe('Cheque');
+    expect(journalPayCode({ programType: 'HD', paymentMethod: 'E_TRANSFER', financeCompanyName: null, hasFinancedPortion: false })).toBe('E-Transfer');
+  });
+
+  it('a different finance company puts its name in the journal', () => {
+    expect(journalPayCode({ programType: 'HD', paymentMethod: 'FINANCE_COMPANY', financeCompanyName: 'Fairstone', hasFinancedPortion: true })).toBe('Fairstone');
+    expect(journalPayCode({ programType: 'GWA', paymentMethod: 'FINANCE_COMPANY', financeCompanyName: 'Snap Financial', hasFinancedPortion: true })).toBe('Snap Financial');
   });
 });
 

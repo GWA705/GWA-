@@ -150,13 +150,24 @@ export function journalPayCode(deal: {
   if (deal.hasFinancedPortion) {
     const isFinanceIt =
       deal.paymentMethod === 'FINANCEIT' || (deal.splitMethods ?? []).includes('FINANCEIT');
-    const suffix = isFinanceIt ? 'FINIT' : financeCodeSuffix(deal.financeCompanyName);
-    return suffix ? `${prefix}${suffix}` : null;
+    if (isFinanceIt) return `${prefix}FINIT`;
+    const suffix = financeCodeSuffix(deal.financeCompanyName);
+    if (suffix) return `${prefix}${suffix}`;
+    // A different finance company we have no short code for → use its name.
+    return deal.financeCompanyName?.trim() || null;
   }
 
-  if (deal.paymentMethod === 'HD_CREDIT_CARD') return 'HDCC';
-  if (deal.paymentMethod === 'CREDIT_CARD') return 'CCHD';
-  return null;
+  // Every non-financed method reflects the payment option that was chosen.
+  switch (deal.paymentMethod) {
+    case 'HD_CREDIT_CARD': return 'HDCC';
+    case 'CREDIT_CARD': return 'CCHD';
+    case 'CASH': return 'Cash';
+    case 'CHEQUE': return 'Cheque';
+    case 'E_TRANSFER': return 'E-Transfer';
+    // A finance-company deal with no financed portion flagged — still name it.
+    case 'FINANCE_COMPANY': return deal.financeCompanyName?.trim() || 'Financed';
+    default: return null;
+  }
 }
 
 /** Map a finance company's free-text name to its journal code suffix. */
