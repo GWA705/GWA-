@@ -72,13 +72,17 @@ export function DocViewer({
         // viewport, never a transformed ancestor (a `transform` on any parent —
         // e.g. a card hover effect — would otherwise trap `fixed` inside that card
         // and shrink the viewer to that little box).
-        <div className="fixed inset-0 z-[60] flex flex-col bg-black/80" role="dialog" aria-modal="true" aria-label={fileName}>
+        // Clicking the dark backdrop (anywhere that isn't the header or the
+        // document itself) closes the viewer — the document/header stop the
+        // click from bubbling up here.
+        <div className="fixed inset-0 z-[60] flex flex-col bg-black/80" role="dialog" aria-modal="true" aria-label={fileName} onClick={() => setOpen(false)}>
           {/* The header must clear the iOS status bar / notch in the installed PWA
               (standalone, no browser chrome) — without this the Close button sits
               UNDER the status bar and reviewers can't tap it, i.e. get stuck on the
               file. env(safe-area-inset-*) pads the white bar down past the notch. */}
           <div
             className="flex flex-none items-center gap-2 bg-white px-2 py-2 shadow"
+            onClick={(e) => e.stopPropagation()}
             style={{
               paddingTop: 'calc(env(safe-area-inset-top) + 0.5rem)',
               paddingLeft: 'calc(env(safe-area-inset-left) + 0.5rem)',
@@ -108,12 +112,12 @@ export function DocViewer({
             {isImage ? (
               <div className="flex min-h-full items-center justify-center p-3">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={src} alt={fileName} className="max-h-full max-w-full object-contain" />
+                <img src={src} alt={fileName} className="max-h-full max-w-full object-contain" onClick={(e) => e.stopPropagation()} />
               </div>
             ) : isPdf ? (
               <PdfPages pagesUrl={`${src}/pages`} fileUrl={src} fileName={fileName} />
             ) : (
-              <iframe src={src} title={fileName} className="h-full w-full border-0 bg-white" />
+              <iframe src={src} title={fileName} className="h-full w-full border-0 bg-white" onClick={(e) => e.stopPropagation()} />
             )}
           </div>
         </div>,
@@ -153,6 +157,7 @@ function PdfPages({ pagesUrl, fileUrl, fileName }: { pagesUrl: string; fileUrl: 
           src={pagesUrl}
           alt={fileName}
           className={`w-full rounded bg-white shadow-lg ${state === 'loading' ? 'hidden' : ''}`}
+          onClick={(e) => e.stopPropagation()}
           onLoad={() => setState('ok')}
           onError={() => setState('error')}
         />
