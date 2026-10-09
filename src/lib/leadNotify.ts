@@ -1,8 +1,9 @@
 import 'server-only';
 import { prisma } from './db';
-import { readLeads, leadKeyOf, type Lead } from './leads';
+import { readLeads, leadKeyOf, parseLeadAddress, type Lead } from './leads';
 import { sendPushToUser } from './push';
 import { recordNotifications } from './notifications';
+import { enqueueLeadText } from './leadText';
 
 /**
  * New-lead push notifications. When a new HD lead lands in the "HD Leads Log"
@@ -112,6 +113,23 @@ export async function sweepNewLeads(): Promise<SweepResult> {
     if (!recent) continue;
 
     const dealerId = lead.storeNumber ? storeToDealer.get(lead.storeNumber.trim()) : undefined;
+
+    // Queue the customer "we received your request" auto-text (inert until the
+    // feature is enabled; deduped by the same leadKey). Done for every recent
+    // online HD lead, even one whose store isn't mapped to an office yet.
+    try {
+      await enqueueLeadText({
+        leadKey: key,
+        source: 'HD_SHEET',
+        phone: lead.phone,
+        customerName: lead.customerName,
+        province: parseLeadAddress(lead.address).province || null,
+        dealerId: dealerId ?? null,
+      });
+    } catch (e) {
+      console.error('[leadText] enqueue (hd-sheet) failed', e);
+    }
+
     if (!dealerId) continue;
 
     const users = await usersFor(dealerId);

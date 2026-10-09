@@ -8,6 +8,7 @@ import { audit } from '@/lib/audit';
 import { putDocument, newScannedLeadStorageKey } from '@/lib/storage';
 import { resolveDealerIdForStore, getScannedLeadForViewer } from '@/lib/scannedLeads';
 import { pushLeadToBooking, pushScannedStatusToBooking, coarseFromScannedStatus } from '@/lib/bookingPush';
+import { enqueueLeadText, provinceFromPostalCode } from '@/lib/leadText';
 
 export interface ScanSaveState { ok?: boolean; error?: string; id?: string }
 
@@ -120,6 +121,22 @@ export async function createScannedLeadAction(_prev: ScanSaveState, fd: FormData
   // Hand the confirmed lead to the booking system so it lands on a booker's
   // calling screen. Fail-safe and inert until configured — never blocks the save.
   await pushLeadToBooking(lead);
+
+  // Queue the customer "we received your request" auto-text. Inert until the
+  // feature is enabled; a texting hiccup must never lose the lead. A card GWA
+  // staff uploaded = mailed-in request; an office scanning its own = in-store.
+  try {
+    await enqueueLeadText({
+      leadKey: `s:${lead.id}`,
+      source: lead.uploadedByGwa ? 'MAILIN' : 'SCANNED',
+      phone: lead.phone,
+      customerName: lead.customerName,
+      province: provinceFromPostalCode(lead.postalCode),
+      dealerId: lead.dealerId,
+    });
+  } catch (e) {
+    console.error('[leadText] enqueue (scanned) failed', e);
+  }
 
   revalidatePath('/dealer/leads');
   revalidatePath('/staff/leads');
