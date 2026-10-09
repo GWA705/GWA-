@@ -2152,6 +2152,38 @@ model LeadNotified {
   createdAt DateTime @default(now())
 }
 
+/// Customer "we received your request" auto-text queue + dedupe ledger. One row
+/// per lead, keyed by the SAME leadKey the push-notify sweep uses, so a customer
+/// is texted at most once. The sweep sends due rows that fall within the
+/// customer's local daytime window (MMS with a branded image, falling back to
+/// SMS). Everything is OFF until the feature is enabled in settings.
+model LeadTextOutbox {
+  leadKey      String    @id
+  source       String // 'HD_SHEET' | 'SCANNED' | 'MAILIN'
+  dealerId     String?
+  province     String? // 2-letter code (ON/QC/…), for timezone + sender pick
+  phone        String // E.164
+  customerName String?
+  status       String    @default("PENDING") // PENDING | SENT | FAILED | SKIPPED | OPTED_OUT
+  channel      String? // 'MMS' | 'SMS' — what actually sent
+  scheduledFor DateTime // earliest send time (sweep still gates on the daytime window)
+  attempts     Int       @default(0)
+  twilioSid    String?
+  error        String?
+  sentAt       DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([status, scheduledFor])
+}
+
+/// Customers who replied STOP / ARRÊT. Checked before every auto-text send and
+/// updated by the inbound-SMS webhook. CASL requires honouring opt-outs.
+model SmsOptOut {
+  phone     String   @id // E.164
+  source    String? // 'STOP' | 'manual'
+  createdAt DateTime @default(now())
+}
+
 /// A handwritten water-test lead card a rep collected at a Home Depot store,
 /// photographed and read by the AI scanner (see lib/leadScanner.ts), then
 /// confirmed and saved by a dealer or GWA staff. Separate from the HD Leads Log

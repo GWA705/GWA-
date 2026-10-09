@@ -42,23 +42,37 @@ export function toE164(raw: string | null | undefined): string | null {
 
 export interface SendSmsResult {
   sent: boolean;
+  channel?: 'SMS' | 'MMS';
+  sid?: string;
   reason?: string; // 'not-configured' | 'bad-number' | an error message
 }
 
-export async function sendSms(args: { to: string; body: string }): Promise<SendSmsResult> {
+/**
+ * Send a text. Pass `mediaUrl` to send an MMS (a publicly reachable image URL
+ * Twilio can fetch); omit it for a plain SMS. `from` overrides the default
+ * TWILIO_FROM_NUMBER (used to pick a per-province sending number); it may be a
+ * plain E.164 number or a Messaging Service SID (MG…).
+ */
+export async function sendSms(args: {
+  to: string;
+  body: string;
+  mediaUrl?: string | null;
+  from?: string | null;
+}): Promise<SendSmsResult> {
   const to = toE164(args.to);
   if (!to) return { sent: false, reason: 'bad-number' };
 
   if (!smsEnabled()) {
     // Mask the number so no PII lands in logs while SMS is off.
     const masked = to.replace(/^(\+\d{2})\d+(\d{2})$/, '$1***$2');
-    console.log(`[sms:not-configured] would text ${masked} (${args.body.length} chars)`);
+    console.log(`[sms:not-configured] would text ${masked} (${args.body.length} chars${args.mediaUrl ? ', +media' : ''})`);
     return { sent: false, reason: 'not-configured' };
   }
 
   const sid = process.env.TWILIO_ACCOUNT_SID!;
   const token = process.env.TWILIO_AUTH_TOKEN!;
-  const from = process.env.TWILIO_FROM_NUMBER!;
+  const from = (args.from && args.from.trim()) || process.env.TWILIO_FROM_NUMBER!;
+  const isMms = !!(args.mediaUrl && args.mediaUrl.trim());
 
   const form = new URLSearchParams();
   form.set('To', to);
@@ -67,6 +81,7 @@ export async function sendSms(args: { to: string; body: string }): Promise<SendS
   if (from.startsWith('MG')) form.set('MessagingServiceSid', from);
   else form.set('From', from);
   form.set('Body', args.body);
+  if (isMms) form.append('MediaUrl', args.mediaUrl!.trim());
 
   try {
     const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`, {
@@ -80,9 +95,10 @@ export async function sendSms(args: { to: string; body: string }): Promise<SendS
     if (!res.ok) {
       const detail = await res.text().catch(() => '');
       console.error('[sms] send failed', res.status, detail.slice(0, 300));
-      return { sent: false, reason: `http_${res.status}` };
+      return { sent: false, channel: isMms ? 'MMS' : 'SMS', reason: `http_${res.status}` };
     }
-    return { sent: true };
+    const json = (await res.json().catch(() => null)) as { sid?: string } | null;
+    return { sent: true, channel: isMms ? 'MMS' : 'SMS', sid: json?.sid };
   } catch (err) {
     console.error('[sms] send error', err);
     return { sent: false, reason: err instanceof Error ? err.message : 'error' };
