@@ -555,6 +555,16 @@ export default async function StaffApplicationDetail({
           </div>
         ) : (
           <>
+            {app.programType === 'HD' && (
+              <div className="mb-4">
+                <h3 className="mb-1 text-sm font-medium text-gray-700">Home Depot Customer Approval Waiver</h3>
+                <p className="mb-2 text-xs text-gray-500">Attached automatically to this HD deal — no need to upload or send it; the dealer already has it on their deal. View or download it here.</p>
+                <HdWaiverCard
+                  title="Home Depot Customer Approval Waiver"
+                  hint="Standard form, attached automatically to this HD deal."
+                />
+              </div>
+            )}
             <p className="mb-4 text-xs text-gray-500">Upload paperwork the dealer can view and download — send as many as you need, now or later. Files are converted to PDF.</p>
             <div className="mb-4">
               <DocumentList documents={reviewerDocs} deleteAction={deleteDocumentAction} />
@@ -628,16 +638,6 @@ export default async function StaffApplicationDetail({
                 </li>
               ))}
             </ul>
-          </div>
-        )}
-        {app.programType === 'HD' && (
-          <div>
-            <h3 className="mb-1 text-sm font-medium text-gray-700">Home Depot Customer Approval Waiver</h3>
-            <p className="mb-2 text-xs text-gray-500">Attached automatically to every HD deal — the dealer no longer uploads it.</p>
-            <HdWaiverCard
-              title="Home Depot Customer Approval Waiver"
-              hint="Standard form, attached automatically to this HD deal."
-            />
           </div>
         )}
         <FundingChecklist fundingDocs={fundingDocs} applicationId={app.id} status={app.status} programType={app.programType} paymentMethod={app.paymentMethod} isSplitPayment={app.isSplitPayment} />

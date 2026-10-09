@@ -76,6 +76,13 @@ source of truth; this file is the human-readable index.
   The `HD_WAIVER` document type is kept for historical uploads. Updated
   `fundingDocumentTypesFor` + `tests/fundingDocTypes.test.ts`.
 
+### Reviewer: HD waiver card moved to "Produce install documents" (2026-10-09)
+- The auto-attached Home Depot Customer Approval Waiver card was showing under
+  step 4 "Review signed documents" on the reviewer side; it belongs under step 2
+  **"Produce install documents"** (where the reviewer sends the dealer their
+  paperwork). Moved it there, as an info card ("attached automatically — no need
+  to upload/send it"). Removed from the review-signed step.
+
 ### Reviewer queue: Approved deals stay a to-do ("Produce documents") (2026-10-09)
 - An **Approved** HD deal still needs the reviewer to **produce & send the install
   documents**, but approving it set the reviewer's last-action time, so
