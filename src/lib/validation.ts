@@ -88,7 +88,10 @@ export const applicationSchema = z.object({
   entryMethod: z.enum(['TYPED', 'PHOTO', 'FINANCEIT']).optional().default('TYPED'),
   paymentMethod: z.preprocess(
     blankToUndef,
-    z.enum(['FINANCEIT', 'CASH', 'CHEQUE', 'CREDIT_CARD', 'HD_CREDIT_CARD']).optional(),
+    // Must list every PaymentMethod the UI offers — E_TRANSFER / FINANCE_COMPANY
+    // were missing, so picking "E-Transfer" failed validation as if no payment
+    // type was chosen ("Payment type — required") and the deal couldn't submit.
+    z.enum(['FINANCEIT', 'FINANCE_COMPANY', 'CASH', 'CHEQUE', 'E_TRANSFER', 'CREDIT_CARD', 'HD_CREDIT_CARD']).optional(),
   ),
   province: z.enum(PROVINCE_VALUES),
   programType: z.enum(['HD', 'GWA']),

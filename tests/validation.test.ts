@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { applicationSchema, formatPersonName } from '@/lib/validation';
+import { PAYMENT_METHODS } from '@/lib/constants';
 
 // Minimal valid TYPED submission as the form actually posts it: every optional
 // field present but blank (empty <select> options post "", empty inputs post "").
@@ -164,5 +165,27 @@ describe('minimum applicant age', () => {
 
   it('still accepts a blank birthdate (optional on some paths)', () => {
     expect(applicationSchema.safeParse({ ...baseForm, applicantDob: '' }).success).toBe(true);
+  });
+});
+
+describe('applicationSchema — Express payment methods', () => {
+  // Regression: the paymentMethod enum was missing E_TRANSFER / FINANCE_COMPANY,
+  // so picking "E-Transfer" failed validation ("Payment type — required") and the
+  // deal couldn't submit. Every method the UI offers must be accepted.
+  it('accepts every payment method the UI offers', () => {
+    for (const pm of PAYMENT_METHODS) {
+      const r = applicationSchema.safeParse({
+        ...baseForm,
+        entryMethod: 'FINANCEIT',
+        paymentMethod: pm.value,
+        financeItNumber: pm.value === 'FINANCEIT' ? 'FIT-123456' : '',
+      });
+      expect(r.success, `payment method ${pm.value} should be accepted`).toBe(true);
+    }
+  });
+
+  it('still requires a payment type when none is chosen on an Express deal', () => {
+    const r = applicationSchema.safeParse({ ...baseForm, entryMethod: 'FINANCEIT', paymentMethod: '' });
+    expect(r.success).toBe(false);
   });
 });
