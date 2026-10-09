@@ -51,11 +51,6 @@ function sortDeals(list: Deal[], sort: string): Deal[] {
 function needsAttention(a: Deal): boolean {
   if (a.status === 'PROBLEM') return true;
   if (TERMINAL.includes(a.status)) return false;
-  // Approved = the reviewer still has to produce & send the install documents.
-  // That's a reviewer to-do, and it stays one until the docs go out (Docs sent) —
-  // so keep it flagged even though approving the deal set lastReviewerActionAt
-  // (otherwise it silently drops to the bottom of "in progress" and gets missed).
-  if (a.status === 'APPROVED') return true;
   if (!a.lastDealerActionAt) return a.status === 'SUBMITTED' || a.status === 'FUNDING_SUBMITTED';
   return !a.lastReviewerActionAt || a.lastDealerActionAt > a.lastReviewerActionAt;
 }
@@ -100,7 +95,6 @@ function toneFor(status: ApplicationStatus): Tone {
 function activityFor(a: Deal): { label: string; tone: Tone } | null {
   if (!needsAttention(a)) return null;
   if (a.status === 'PROBLEM') return { label: 'Problem', tone: 'prob' };
-  if (a.status === 'APPROVED') return { label: 'Produce documents', tone: 'review' };
   switch (a.lastDealerActionKind) {
     case 'FUNDING': return { label: 'Funding ready', tone: 'fund' };
     case 'DOCUMENT': return { label: 'New document', tone: 'review' };
@@ -122,9 +116,6 @@ function actionFor(a: Deal): { label: string; tone: Tone } {
   if (a.status === 'PROBLEM') return { label: 'Fix problem', tone: 'prob' };
   if (NEW_STATUSES.includes(a.status)) return { label: 'Approve', tone: 'new' };
   if (needsAttention(a)) {
-    // Approved but docs not sent yet — the reviewer's job is to produce & send
-    // the install documents. Name that explicitly (not a generic "Review").
-    if (a.status === 'APPROVED') return { label: 'Produce documents', tone: 'review' };
     switch (a.lastDealerActionKind) {
       case 'DOCUMENT': return { label: 'Review docs', tone: 'review' };
       case 'NOTE': return { label: 'Reply', tone: 'note' };
@@ -138,6 +129,7 @@ function actionFor(a: Deal): { label: string; tone: Tone } {
   // Not on the reviewer's desk right now — name the actual stage instead of a
   // generic "Awaiting dealer" on every row.
   switch (a.status) {
+    case 'APPROVED':
     case 'CONDITIONAL':
     case 'DOCS_SENT':
       return { label: 'Awaiting install', tone: 'decl' }; // ball is with the dealer
@@ -240,7 +232,9 @@ export default async function StaffQueue({ searchParams }: { searchParams: { q?:
   const lanes: Lanes = {
     needsApproval: apps.filter((a) => NEW_STATUSES.includes(a.status)).sort(byWaiting).map((a) => toRow(a, t)),
     updates: apps.filter((a) => needsAttention(a) && !NEW_STATUSES.includes(a.status)).sort(byWaiting).map((a) => toRow(a, t)),
-    inFunding: apps.filter((a) => FUNDING_STATUSES.includes(a.status) && !isPaid(a)).sort(byWaiting).map((a) => toRow(a, t)),
+    // In-progress / funding deals: most recently touched first, so a deal you
+    // just handled lands at the TOP of the list, not the bottom.
+    inFunding: apps.filter((a) => FUNDING_STATUSES.includes(a.status) && !isPaid(a)).sort(byRecentActivity).map((a) => toRow(a, t)),
     all: sortDeals(apps, sort).map((a) => toRow(a, t)),
   };
 

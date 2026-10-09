@@ -119,16 +119,17 @@ source of truth; this file is the human-readable index.
   paperwork). Moved it there, as an info card ("attached automatically — no need
   to upload/send it"). Removed from the review-signed step.
 
-### Reviewer queue: Approved deals stay a to-do ("Produce documents") (2026-10-09)
-- An **Approved** HD deal still needs the reviewer to **produce & send the install
-  documents**, but approving it set the reviewer's last-action time, so
-  `needsAttention` went false and the deal dropped to the **bottom of "in
-  progress"** (and was mislabelled "Awaiting install — ball with the dealer"),
-  where it got missed. Now an **Approved** deal counts as a reviewer to-do: it
-  sits in the **Attention band at the top** (longest-waiting first, with the SLA
-  timer) and shows **"Produce documents"**, and only leaves when the docs are
-  sent (→ Docs sent). `src/app/(staff)/staff/page.tsx` (`needsAttention`,
-  `actionFor`, `activityFor`).
+### Reviewer queue: revert Approved-attention change; in-progress sorts recent-first (2026-10-09)
+- Earlier today Approved deals were made to count as a reviewer to-do ("Produce
+  documents") so they'd sit in the Attention band. Per Sean this wasn't the
+  wanted behaviour, so it was **reverted** — `needsAttention` / `actionFor` /
+  `activityFor` in `src/app/(staff)/staff/page.tsx` are back to the original:
+  Approved is **"Awaiting install"** and sits in the in-progress lane as before.
+  (Do not re-introduce the APPROVED→attention change.)
+- Instead, per Sean's actual ask: a deal he just handled should land at the **top**
+  of the in-progress list, not the bottom. The **In funding** lane now sorts
+  **most-recently-touched first** (`byRecentActivity`, matching the priority view's
+  "In progress" band) instead of longest-waiting-first.
 
 ### Dealer snapshot: show City & Postal code for HD/photo deals (2026-10-09)
 - City and Postal code showed "—" on HD/photo deals because the snapshot read
