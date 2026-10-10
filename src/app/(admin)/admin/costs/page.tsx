@@ -71,11 +71,12 @@ export default async function CostsPage() {
         </p>
       </div>
 
-      {/* Headline total */}
-      <div className="card bg-brand-600 p-6 text-white">
-        <p className="text-sm font-medium text-brand-100">Estimated total — {monthLabel(breakdown.month)}</p>
-        <p className="mt-1 text-4xl font-bold tracking-tight">{money(grandTotal)}</p>
-        <p className="mt-2 text-xs text-brand-100">
+      {/* Headline total — a deliberate dark tile so it reads in both themes (the
+          brand utility didn't paint a background, leaving white-on-white). */}
+      <div className="rounded-lg bg-gray-900 p-6 text-white shadow-sm ring-1 ring-gray-800 dark:bg-slate-800 dark:ring-slate-700">
+        <p className="text-sm font-medium text-gray-300">Estimated total — {monthLabel(breakdown.month)}</p>
+        <p className="mt-1 text-4xl font-bold tracking-tight text-white">{money(grandTotal)}</p>
+        <p className="mt-2 text-xs text-gray-400">
           Google, AI and texting are counted so far this month; the fixed bills are the amounts you enter below. AI and
           texting are billed in USD and converted at {cfg.usdToCad} (editable).
         </p>
