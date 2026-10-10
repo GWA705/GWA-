@@ -677,6 +677,16 @@ exhausting the single instance). No behaviour change for normal use.
   `testSingleLead()` on a French lead first. Portal display auto-translates lead
   free-text via DeepL.
 
+## 2026-10-10
+- **Direct sales now carry the HD store.** On an **HD-program** direct sale the
+  entry form now shows a required **HD store** picker (next to the HD Customer #),
+  listing the owning office's Home Depot stores; it's hidden for GWA-program
+  sales (not a Home Depot deal). The store is verified server-side to belong to
+  the chosen office and saved on the deal (`homeDepotStoreId`), so it shows in the
+  **Customer snapshot** instead of "—" and flows to the **sales journal** (the
+  journal sync already reads `homeDepotStore`). Files: `direct-sale/DirectSaleForm.tsx`,
+  `direct-sale/actions.ts`, `direct-sale/new/page.tsx`, `validation.ts` (+ tests).
+
 ## 2026-10-06
 - **HD Resolution ↔ Gmail email link (Phase 3b-2) — code shipped, inert until
   configured.** A case can follow its Home Depot email chain: **Link HD email**

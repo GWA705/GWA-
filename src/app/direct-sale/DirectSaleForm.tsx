@@ -8,6 +8,7 @@ import type { ProductOption } from '@/lib/products';
 
 interface Office { id: string; name: string }
 interface FinanceCo { id: string; name: string }
+interface Store { id: string; number: string; name: string | null; dealerId: string }
 
 // Payment methods, in the order they appear on the Direct sale form.
 const PAY_METHODS = ['CASH', 'CHEQUE', 'E_TRANSFER', 'CREDIT_CARD', 'HD_CREDIT_CARD', 'FINANCEIT', 'FINANCE_COMPANY'] as const;
@@ -40,18 +41,24 @@ export function DirectSaleForm({
   defaultDealerId,
   products,
   financeCompanies,
+  stores,
 }: {
   offices: Office[];
   fixedOffice: Office | null;
   defaultDealerId?: string;
   products: ProductOption[];
   financeCompanies: FinanceCo[];
+  stores: Store[];
 }) {
   const [state, action] = useFormState(createDirectSaleAction, {} as DirectSaleState);
   const [programType, setProgramType] = useState('GWA');
   const [paymentMethod, setPaymentMethod] = useState('CASH');
+  // Track the chosen office so the HD store picker lists only that office's
+  // stores. A locked grantee has no picker — seed it from the fixed office.
+  const [dealerId, setDealerId] = useState(fixedOffice?.id ?? defaultDealerId ?? '');
   const showFinance = FINANCED.has(paymentMethod);
   const showHdRef = programType === 'HD';
+  const officeStores = stores.filter((s) => s.dealerId === dealerId);
 
   return (
     <form action={action} className="card space-y-5 p-5">
@@ -68,7 +75,7 @@ export function DirectSaleForm({
         ) : (
           <div className="max-w-sm">
             <label className="label" htmlFor="dealerId">Georgian Water &amp; Air office</label>
-            <select id="dealerId" name="dealerId" required defaultValue={defaultDealerId ?? ''} className="input">
+            <select id="dealerId" name="dealerId" required value={dealerId} onChange={(e) => setDealerId(e.target.value)} className="input">
               <option value="" disabled>Choose an office…</option>
               {offices.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
             </select>
@@ -208,10 +215,34 @@ export function DirectSaleForm({
             </select>
           </div>
           {showHdRef && (
-            <div>
-              <label className="label" htmlFor="hdReference">HD Customer #</label>
-              <input id="hdReference" name="hdReference" className="input" placeholder="800255118" />
-            </div>
+            <>
+              <div>
+                <label className="label" htmlFor="hdReference">HD Customer #</label>
+                <input id="hdReference" name="hdReference" className="input" placeholder="800255118" />
+              </div>
+              <div>
+                <label className="label" htmlFor="homeDepotStoreId">HD store</label>
+                {/* key on dealerId so switching office resets any stale selection */}
+                <select
+                  key={dealerId}
+                  id="homeDepotStoreId"
+                  name="homeDepotStoreId"
+                  required
+                  defaultValue=""
+                  disabled={officeStores.length === 0}
+                  className="input"
+                >
+                  <option value="" disabled>{officeStores.length === 0 ? 'No stores for this office' : 'Choose a store…'}</option>
+                  {officeStores.map((s) => (
+                    <option key={s.id} value={s.id}>{s.number}{s.name ? ` — ${s.name}` : ''}</option>
+                  ))}
+                </select>
+                {officeStores.length === 0 && (
+                  <p className="mt-1 text-xs text-gray-400">No HD stores assigned to this office — ask an admin to add one.</p>
+                )}
+                <Err errors={state.fieldErrors} field="homeDepotStoreId" />
+              </div>
+            </>
           )}
           {showFinance && (
             <>

@@ -405,6 +405,10 @@ export const directSaleSchema = z.object({
   financeCompanyId: z.preprocess(blankToUndef, z.string().max(60).optional()),
   financeItNumber: z.string().trim().max(80).optional(),
   hdReference: z.string().trim().max(80).optional(),
+  // The Home Depot store the sale belongs to. Required for an HD-program direct
+  // sale (enforced in the action, where the owning office is known); a GWA
+  // direct sale is not a Home Depot deal, so it carries no store.
+  homeDepotStoreId: z.preprocess(blankToUndef, z.string().max(60).optional()),
 
   // Sales-journal detail fields. productsSold is multi-value and read via
   // formData.getAll(), not through this object schema.

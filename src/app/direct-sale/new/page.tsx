@@ -21,9 +21,17 @@ export default async function NewDirectSalePage() {
   // the picker to it (still changeable). Match on the office name.
   const defaultDealerId = offices.find((o) => /georgian water/i.test(o.name))?.id;
 
-  const [products, financeCompanies] = await Promise.all([
+  // HD stores for the store picker (shown on HD-program direct sales). Internal
+  // staff can pick any office, so pass every active store (the form filters to
+  // the chosen office by dealerId); a locked grantee gets only their office's.
+  const [products, financeCompanies, stores] = await Promise.all([
     productChecklistOptions(internal ? null : user.dealerId),
     prisma.financeCompany.findMany({ where: { active: true }, orderBy: { name: 'asc' }, select: { id: true, name: true } }),
+    prisma.homeDepotStore.findMany({
+      where: { active: true, ...(internal ? { dealer: { active: true } } : { dealerId: user.dealerId ?? '__none__' }) },
+      orderBy: { number: 'asc' },
+      select: { id: true, number: true, name: true, dealerId: true },
+    }),
   ]);
 
   return (
@@ -37,7 +45,7 @@ export default async function NewDirectSalePage() {
           funded on the deal when it&apos;s funded; it turns Paid when the journal updates.
         </p>
       </div>
-      <DirectSaleForm offices={offices} fixedOffice={fixedOffice} defaultDealerId={defaultDealerId} products={products} financeCompanies={financeCompanies} />
+      <DirectSaleForm offices={offices} fixedOffice={fixedOffice} defaultDealerId={defaultDealerId} products={products} financeCompanies={financeCompanies} stores={stores} />
     </div>
   );
 }

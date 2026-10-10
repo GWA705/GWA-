@@ -61,6 +61,23 @@ describe('directSaleSchema', () => {
     if (!r.success) expect(r.error.issues.some((i) => i.path[0] === 'paymentMethod')).toBe(true);
   });
 
+  it('carries the HD store id on an HD-program sale', () => {
+    const r = directSaleSchema.safeParse({
+      ...base,
+      programType: 'HD',
+      hdReference: '800255118',
+      homeDepotStoreId: 'store_7247',
+    });
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data.homeDepotStoreId).toBe('store_7247');
+  });
+
+  it('treats an empty HD store as undefined (the action enforces it for HD)', () => {
+    const r = directSaleSchema.safeParse({ ...base, homeDepotStoreId: '' });
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data.homeDepotStoreId).toBeUndefined();
+  });
+
   it('accepts a financed sale with a finance company + deal number', () => {
     const r = directSaleSchema.safeParse({
       ...base,
