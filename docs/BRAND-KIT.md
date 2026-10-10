@@ -24,11 +24,17 @@ verified against the live site at georgianwaterandair.ca.
 | Standard display name | Georgian Water & Air |
 | In running prose (alt) | Georgian Water and Air |
 | Short form / internal | GWA |
-| Legal entity | 1311852 Ontario Ltd. |
-| Legal form on contracts | 1311852 Ontario Ltd. o/a Georgian Water and Air |
+| Legal entity | **[TO CONFIRM]** — see standing flag below |
 | Entity on sales agreements | Georgian Health and Safety |
-| HST / Business Number | 764489076RT0001 |
+| HST / Business Number | **[TO CONFIRM]** — see standing flag below |
 | Sub-brand / product line | PuraCO2 |
+
+> **⛔ Standing flag — do NOT use "1311852 Ontario Ltd." (2026-10-10, Sean).**
+> 1311852 Ontario Ltd. is **not** the company that owns Georgian Water & Air. It
+> must **never** appear on any document, invoice, agreement, footer, or anywhere
+> else, and must not be reintroduced. The HST number `764489076RT0001` was paired
+> with that entity, so treat it as **unconfirmed** and do not print it until the
+> correct owning entity and its HST/Business Number are supplied by Sean.
 
 > **Open item — "GHS" is ambiguous.** Sales Agreement letterhead reads
 > **Georgian Health and Safety**. A separate domain, georgianhomeservice.com, is

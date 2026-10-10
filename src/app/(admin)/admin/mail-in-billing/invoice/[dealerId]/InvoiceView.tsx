@@ -17,7 +17,7 @@ export function InvoiceView({
   leads,
   rates,
 }: {
-  gwa: Party & { legal: string; contact: string[] };
+  gwa: Party & { legal?: string; contact: string[] };
   billTo: Party;
   invoiceNo: string;
   invoiceDate: string;
@@ -64,7 +64,7 @@ export function InvoiceView({
             <div className="mt-1.5 space-y-0.5 text-xs text-gray-500">
               {gwa.contact.map((l, i) => <div key={i}>{l}</div>)}
             </div>
-            <div className="mt-1 text-[11px] text-gray-400">{gwa.legal}</div>
+            {gwa.legal ? <div className="mt-1 text-[11px] text-gray-400">{gwa.legal}</div> : null}
           </div>
           <div className="text-right">
             <div className="text-2xl font-bold tracking-tight text-gray-800">INVOICE</div>

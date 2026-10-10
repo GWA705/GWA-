@@ -12,7 +12,6 @@ export const dynamic = 'force-dynamic';
 // print formatting (dot separators). See docs/BRAND-KIT.md.
 const GWA = {
   name: 'Georgian Water & Air',
-  legal: '1311852 Ontario Ltd. o/a Georgian Water and Air · HST 764489076RT0001',
   lines: ['10 - 11 King Street', 'Barrie, Ontario  L4N 6B5'],
   contact: ['Toll-Free: 1.866.840.2789 · Tel: 705.812.0320', 'info@georgianwaterandair.ca · georgianwaterandair.ca'],
 };
