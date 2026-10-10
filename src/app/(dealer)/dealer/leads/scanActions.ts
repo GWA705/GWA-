@@ -8,7 +8,7 @@ import { audit } from '@/lib/audit';
 import { putDocument, newScannedLeadStorageKey } from '@/lib/storage';
 import { resolveDealerIdForStore, getScannedLeadForViewer } from '@/lib/scannedLeads';
 import { pushLeadToBooking, pushScannedStatusToBooking, coarseFromScannedStatus } from '@/lib/bookingPush';
-import { enqueueLeadText, provinceFromPostalCode } from '@/lib/leadText';
+import { enqueueLeadText, provinceFromPostalCode, cancelLeadFollowups } from '@/lib/leadText';
 
 export interface ScanSaveState { ok?: boolean; error?: string; id?: string }
 
@@ -200,6 +200,9 @@ export async function setScannedLeadStatusAction(id: string, status: string): Pr
   const lead = await getScannedLeadForViewer(id, user);
   if (!lead) return { error: 'Not found.' };
   await prisma.scannedLead.update({ where: { id }, data: { status } });
+  // Once a lead is worked (contacted or marked no-good), cancel its pending
+  // follow-up texts so we never nudge a customer a booker already reached.
+  if (status !== 'NEW') await cancelLeadFollowups(`s:${id}`);
   // Reflect the office's status onto the booker's screen (fail-safe, inert until
   // configured; booking applies it with guardrails so it never downgrades a
   // booker's own progress).

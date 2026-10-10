@@ -29,9 +29,15 @@ export const LEAD_TEXT_KEYS = {
   senderMap: 'leadText.senderMap',
   quietStart: 'leadText.quietStart',
   quietEnd: 'leadText.quietEnd',
+  // Follow-up sequence (scanned/mail-in leads only).
+  followups: 'leadText.followups',
+  day1Hours: 'leadText.day1Hours',
+  missHours: 'leadText.missHours',
 } as const;
 
 export type LeadTextSource = 'HD_SHEET' | 'SCANNED' | 'MAILIN';
+// Which message in the sequence this row is.
+export type LeadTextKind = 'CONFIRM' | 'DAY1' | 'MISSED_WINDOW';
 
 export interface LeadTextConfig {
   enabled: boolean;
@@ -41,6 +47,9 @@ export interface LeadTextConfig {
   senderMap: Record<string, string>;
   quietStart: number; // local hour, inclusive
   quietEnd: number; // local hour, exclusive
+  followups: boolean; // schedule the DAY1 + MISSED_WINDOW follow-ups
+  day1Hours: number; // hours after the confirm to send the day-1 reminder
+  missHours: number; // hours after the confirm to send the missed-window text
 }
 
 export async function leadTextConfig(): Promise<LeadTextConfig> {
@@ -54,6 +63,8 @@ export async function leadTextConfig(): Promise<LeadTextConfig> {
   }
   const qs = Number(s[LEAD_TEXT_KEYS.quietStart]);
   const qe = Number(s[LEAD_TEXT_KEYS.quietEnd]);
+  const d1 = Number(s[LEAD_TEXT_KEYS.day1Hours]);
+  const mw = Number(s[LEAD_TEXT_KEYS.missHours]);
   return {
     enabled: s[LEAD_TEXT_KEYS.enabled] === 'true',
     // Default to test mode unless explicitly turned off — safest default.
@@ -63,6 +74,10 @@ export async function leadTextConfig(): Promise<LeadTextConfig> {
     senderMap,
     quietStart: Number.isFinite(qs) ? qs : 8,
     quietEnd: Number.isFinite(qe) ? qe : 21,
+    // Follow-ups on by default once the feature itself is enabled.
+    followups: s[LEAD_TEXT_KEYS.followups] !== 'false',
+    day1Hours: Number.isFinite(d1) && d1 > 0 ? d1 : 24,
+    missHours: Number.isFinite(mw) && mw > 0 ? mw : 48,
   };
 }
 
@@ -122,8 +137,33 @@ export function leadTextLang(province?: string | null): 'en' | 'fr' {
  * guillemets/em-dashes) so the SMS fallback stays to as few segments as possible.
  * Source changes only the "how we received it" phrase.
  */
-export function renderLeadTextBody(source: LeadTextSource, province?: string | null): string {
-  if (leadTextLang(province) === 'fr') {
+export function renderLeadTextBody(source: LeadTextSource, province?: string | null, kind: LeadTextKind = 'CONFIRM'): string {
+  const fr = leadTextLang(province) === 'fr';
+
+  if (kind === 'DAY1') {
+    // ~24h reminder, sent only if the lead hasn't been contacted/booked yet.
+    return fr
+      ? `Home Depot Home Services (service assure par Georgian Water & Air): petit rappel au sujet de votre evaluation ` +
+          `de l'eau a domicile. Un membre de l'equipe vous appellera bientot - ou repondez avec un jour et une heure qui ` +
+          `vous conviennent et nous appellerons a ce moment. L'appel s'affichera "HD Home Services". Repondez STOP pour vous desabonner.`
+      : `Home Depot Home Services (serviced by Georgian Water & Air): a quick reminder about your in-home water assessment. ` +
+          `A team member will call you soon to schedule - or reply with a day and time that works and we'll call then. ` +
+          `Our call will show as "HD Home Services". Reply STOP to opt out.`;
+  }
+
+  if (kind === 'MISSED_WINDOW') {
+    // ~48h: we missed the 24-48h promise. Acknowledge and re-set a keepable window.
+    return fr
+      ? `Home Depot Home Services (service assure par Georgian Water & Air): nous sommes desoles de ne pas vous avoir ` +
+          `encore joint au sujet de votre evaluation de l'eau a domicile gratuite. Nous vous rappellerons d'ici 36 heures. ` +
+          `Si un jour ou une heure vous convient mieux, repondez simplement. Repondez STOP pour vous desabonner.`
+      : `Home Depot Home Services (serviced by Georgian Water & Air): we're sorry we haven't reached you yet about your ` +
+          `free in-home water assessment. We'll call you again within 36 hours. If a specific day or time is easier, just ` +
+          `reply and we'll work around you. Reply STOP to opt out.`;
+  }
+
+  // CONFIRM — on landing.
+  if (fr) {
     const via =
       source === 'MAILIN'
         ? 'votre demande envoyee par la poste'
@@ -179,23 +219,76 @@ export async function enqueueLeadText(input: {
   const opted = await prisma.smsOptOut.findUnique({ where: { phone } });
   if (opted) return { queued: false, reason: 'opted-out' };
 
+  const province = (input.province || '').toUpperCase() || null;
+  const customerName = input.customerName?.trim() || null;
+
   try {
     await prisma.leadTextOutbox.create({
       data: {
         leadKey: input.leadKey,
         source: input.source,
+        kind: 'CONFIRM',
         dealerId: input.dealerId ?? null,
-        province: (input.province || '').toUpperCase() || null,
+        province,
         phone,
-        customerName: input.customerName?.trim() || null,
+        customerName,
         scheduledFor: new Date(),
         status: 'PENDING',
       },
     });
-    return { queued: true };
   } catch {
     // Unique leadKey violation → already queued. That's the dedupe working.
     return { queued: false, reason: 'duplicate' };
+  }
+
+  // Schedule the follow-up sequence. Only for leads the portal tracks a status
+  // on (scanned + mail-in) so the sweep can cancel them once the lead is worked;
+  // HD-sheet online leads get the confirmation only. Best-effort — a failure here
+  // must never undo the confirmation that already queued.
+  if (cfg.followups && (input.source === 'SCANNED' || input.source === 'MAILIN')) {
+    const now = Date.now();
+    const followups: { suffix: string; kind: LeadTextKind; hours: number }[] = [
+      { suffix: '#d1', kind: 'DAY1', hours: cfg.day1Hours },
+      { suffix: '#mw', kind: 'MISSED_WINDOW', hours: cfg.missHours },
+    ];
+    for (const f of followups) {
+      try {
+        await prisma.leadTextOutbox.create({
+          data: {
+            leadKey: `${input.leadKey}${f.suffix}`,
+            source: input.source,
+            kind: f.kind,
+            dealerId: input.dealerId ?? null,
+            province,
+            phone,
+            customerName,
+            scheduledFor: new Date(now + f.hours * 60 * 60 * 1000),
+            status: 'PENDING',
+          },
+        });
+      } catch {
+        // Already scheduled (dedupe) — fine.
+      }
+    }
+  }
+
+  return { queued: true };
+}
+
+/**
+ * Cancel the pending follow-up texts for a lead once it's been worked (contacted,
+ * booked, or marked no-good). The confirmation (if still pending) is left alone —
+ * the customer should still get their "we received it" acknowledgement. Keyed by
+ * the lead's base key (e.g. "s:<id>"); cancels its "#d1"/"#mw" rows.
+ */
+export async function cancelLeadFollowups(baseLeadKey: string): Promise<void> {
+  try {
+    await prisma.leadTextOutbox.updateMany({
+      where: { leadKey: { in: [`${baseLeadKey}#d1`, `${baseLeadKey}#mw`] }, status: 'PENDING' },
+      data: { status: 'CANCELLED' },
+    });
+  } catch (e) {
+    console.error('[leadText] cancelLeadFollowups failed', e);
   }
 }
 
@@ -239,6 +332,23 @@ export async function processDueLeadTexts(limit = 200): Promise<SweepCounts> {
       continue;
     }
 
+    // Follow-up guard: never send a DAY1/MISSED_WINDOW text if the lead has since
+    // been worked (contacted, booked, or marked no-good) or deleted — cancel it.
+    // This backstops the cancellation hooks so a missed hook can't text a customer
+    // a booker already reached.
+    if (row.kind === 'DAY1' || row.kind === 'MISSED_WINDOW') {
+      const leadId = row.leadKey.match(/^s:([^#]+)/)?.[1];
+      if (leadId) {
+        const lead = await prisma.scannedLead.findUnique({ where: { id: leadId }, select: { status: true, bookingStatus: true } });
+        const worked = !lead || lead.status !== 'NEW' || !!lead.bookingStatus;
+        if (worked) {
+          await prisma.leadTextOutbox.update({ where: { leadKey: row.leadKey }, data: { status: 'CANCELLED' } });
+          counts.skipped += 1;
+          continue;
+        }
+      }
+    }
+
     const to = cfg.testMode ? cfg.testNumber : row.phone;
     if (!to) {
       // Test mode with no test number configured — don't send anything.
@@ -246,7 +356,7 @@ export async function processDueLeadTexts(limit = 200): Promise<SweepCounts> {
       continue;
     }
 
-    const body = renderLeadTextBody(row.source as LeadTextSource, row.province);
+    const body = renderLeadTextBody(row.source as LeadTextSource, row.province, row.kind as LeadTextKind);
     const from = pickSender(row.province, cfg.senderMap);
 
     let result = await sendSms({ to, body, mediaUrl: cfg.mediaUrl || undefined, from });

@@ -39,6 +39,39 @@ describe('lead auto-text message', () => {
   });
 });
 
+describe('follow-up message kinds', () => {
+  it('day-1 reminder is branded, references the assessment, and carries STOP', () => {
+    const m = renderLeadTextBody('SCANNED', 'ON', 'DAY1');
+    expect(m).toContain('Georgian Water & Air');
+    expect(m.toLowerCase()).toContain('reminder');
+    expect(m.toUpperCase()).toContain('STOP');
+    expect(m).not.toMatch(/[«»“”’—]/);
+  });
+
+  it('missed-window text promises a call again within 36 hours', () => {
+    const m = renderLeadTextBody('SCANNED', 'ON', 'MISSED_WINDOW');
+    expect(m).toContain('36 hours');
+    expect(m.toLowerCase()).toContain('sorry');
+    expect(m.toUpperCase()).toContain('STOP');
+    expect(m).not.toMatch(/[«»“”’—]/);
+  });
+
+  it('follow-ups localize to French for Quebec and stay GSM-7 friendly', () => {
+    const d1 = renderLeadTextBody('SCANNED', 'QC', 'DAY1');
+    const mw = renderLeadTextBody('SCANNED', 'QC', 'MISSED_WINDOW');
+    expect(d1).toMatch(/rappel/i);
+    expect(mw).toContain('36 heures');
+    for (const m of [d1, mw]) {
+      expect(m).toContain('STOP');
+      expect(m).not.toMatch(/[«»“”’—]/);
+    }
+  });
+
+  it('defaults to the confirmation body when no kind is given', () => {
+    expect(renderLeadTextBody('SCANNED', 'ON')).toContain('24-48');
+  });
+});
+
 describe('province helpers', () => {
   it('maps a postal code first letter to a province', () => {
     expect(provinceFromPostalCode('T5A 0A1')).toBe('AB');

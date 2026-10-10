@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { peerToken, bearerMatches } from '@/lib/portalPeer';
+import { cancelLeadFollowups } from '@/lib/leadText';
 
 export const dynamic = 'force-dynamic';
 
@@ -46,6 +47,10 @@ export async function POST(req: Request) {
     where: { id: applicationId },
     data: { bookingStatus: status, bookingStatusAt: new Date() },
   });
+
+  // A booker working the lead means it's handled — cancel any pending follow-up
+  // texts so the customer isn't nudged after the booker has them.
+  if (res.count > 0) await cancelLeadFollowups(`s:${applicationId}`);
 
   return NextResponse.json({ ok: true, updated: res.count }, { headers: { 'Cache-Control': 'no-store' } });
 }

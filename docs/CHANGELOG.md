@@ -678,6 +678,19 @@ exhausting the single instance). No behaviour change for normal use.
   free-text via DeepL.
 
 ## 2026-10-10
+- **Lead pipeline Phase 1a — follow-up text sequence.** Building on the plan in
+  `LEAD-PIPELINE-PLAN` (deep-research): the lead auto-text is now a short sequence
+  for **scanned + mail-in** leads — the existing confirmation, then a **day-1
+  reminder** (~24h) and a **missed-window** text (~48h) that says "we'll call you
+  again within 36 hours." Each follow-up **cancels automatically** the moment the
+  lead is marked contacted/no-good (dealer action), a booker moves it (booking-status
+  intake), or the customer opts out; the sweep also backstops this (never texts a
+  lead that's since been worked). HD online-log leads get the confirmation only
+  (no portal status to cancel against). Admin → Lead auto-text has a **follow-ups
+  on/off toggle + tunable 24h/48h timing**, previews of the new messages, and a
+  Message column in the log. All CASL-compliant (co-brand sender ID, STOP, daytime
+  window). Additive schema: `kind` on LeadTextOutbox (migration `20261010020000`).
+  Files: `leadText.ts`, `scanActions.ts`, `api/intake/booking-status`, admin page/form (+ tests).
 - **Portal Usage report (admin-only) — what gets used most + per-user drill-down.**
   New **Admin → Reporting → Portal usage** (`/admin/usage`, section key `usage`),
   built entirely from the existing audit log (no new tracking). Over a 7/30/90-day

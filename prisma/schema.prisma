@@ -2160,11 +2160,16 @@ model LeadNotified {
 model LeadTextOutbox {
   leadKey      String    @id
   source       String // 'HD_SHEET' | 'SCANNED' | 'MAILIN'
+  // Which message in the sequence: CONFIRM (on landing), DAY1 (~24h reminder),
+  // MISSED_WINDOW (~48h "we'll call again within 36h"). Follow-ups are scheduled
+  // only for SCANNED/MAILIN leads (the portal can tell when they've been worked)
+  // and are cancelled the moment the lead is contacted/booked/opted-out.
+  kind         String    @default("CONFIRM")
   dealerId     String?
   province     String? // 2-letter code (ON/QC/…), for timezone + sender pick
   phone        String // E.164
   customerName String?
-  status       String    @default("PENDING") // PENDING | SENT | FAILED | SKIPPED | OPTED_OUT
+  status       String    @default("PENDING") // PENDING | SENT | FAILED | SKIPPED | OPTED_OUT | CANCELLED
   channel      String? // 'MMS' | 'SMS' — what actually sent
   scheduledFor DateTime // earliest send time (sweep still gates on the daytime window)
   attempts     Int       @default(0)

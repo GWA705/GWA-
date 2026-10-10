@@ -230,6 +230,9 @@ export async function saveLeadTextSettingsAction(_prev: ActionState, formData: F
   const senderMapRaw = String(formData.get('senderMap') || '').trim();
   const quietStart = Number(formData.get('quietStart'));
   const quietEnd = Number(formData.get('quietEnd'));
+  const followups = formData.get('followups') === 'on';
+  const day1Hours = Number(formData.get('day1Hours'));
+  const missHours = Number(formData.get('missHours'));
 
   let testNumber = '';
   if (testNumberRaw) {
@@ -251,6 +254,9 @@ export async function saveLeadTextSettingsAction(_prev: ActionState, formData: F
   if (!Number.isInteger(quietStart) || !Number.isInteger(quietEnd) || quietStart < 0 || quietEnd > 24 || quietStart >= quietEnd) {
     return { error: 'Daytime window must be whole hours 0–24 with start before end (e.g. 8 to 21).' };
   }
+  if (followups && (!Number.isFinite(day1Hours) || !Number.isFinite(missHours) || day1Hours < 1 || missHours <= day1Hours || missHours > 168)) {
+    return { error: 'Follow-up timing must be hours with the missed-window after the day-1 reminder (e.g. 24 then 48), up to 168.' };
+  }
 
   await setSetting(LEAD_TEXT_KEYS.enabled, enabled ? 'true' : 'false');
   await setSetting(LEAD_TEXT_KEYS.testMode, testMode ? 'true' : 'false');
@@ -259,6 +265,9 @@ export async function saveLeadTextSettingsAction(_prev: ActionState, formData: F
   await setSetting(LEAD_TEXT_KEYS.senderMap, senderMapRaw);
   await setSetting(LEAD_TEXT_KEYS.quietStart, String(quietStart));
   await setSetting(LEAD_TEXT_KEYS.quietEnd, String(quietEnd));
+  await setSetting(LEAD_TEXT_KEYS.followups, followups ? 'true' : 'false');
+  if (Number.isFinite(day1Hours) && day1Hours >= 1) await setSetting(LEAD_TEXT_KEYS.day1Hours, String(Math.round(day1Hours)));
+  if (Number.isFinite(missHours) && missHours >= 1) await setSetting(LEAD_TEXT_KEYS.missHours, String(Math.round(missHours)));
 
   await audit({ actorId: session.userId, action: 'USER_UPDATE', entityType: 'User', entityId: session.userId, detail: `Lead auto-text settings saved (enabled=${enabled}, testMode=${testMode})` });
   return { ok: true, message: enabled ? (testMode ? 'Saved. Test mode is ON — texts go only to your test number.' : 'Saved. LIVE — new leads will be texted.') : 'Saved. Auto-text is OFF.' };

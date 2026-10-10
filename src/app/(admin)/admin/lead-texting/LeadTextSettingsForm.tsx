@@ -12,6 +12,9 @@ interface Config {
   senderMap: string;
   quietStart: number;
   quietEnd: number;
+  followups: boolean;
+  day1Hours: number;
+  missHours: number;
 }
 
 function SaveBtn() {
@@ -88,6 +91,31 @@ export function LeadTextSettingsForm({ config }: { config: Config }) {
           </label>
         </div>
         <p className="-mt-2 text-xs text-gray-400">In the customer’s provincial time zone. Default 8 to 21 (8am–9pm). Overnight leads wait for morning.</p>
+
+        <div className="border-t border-gray-100 pt-5">
+          <label className="flex items-start gap-3">
+            <input type="checkbox" name="followups" defaultChecked={config.followups} className="mt-0.5 h-4 w-4" />
+            <span>
+              <span className="font-medium text-gray-900">Send follow-up texts</span>
+              <span className="block text-xs text-gray-500">
+                For scanned &amp; mail-in leads: a day-1 reminder, then a &ldquo;sorry, we&rsquo;ll call again within 36 hours&rdquo;
+                message if the window is missed. Each one cancels automatically the moment the lead is marked contacted, booked, or opts out.
+                HD online-log leads get the confirmation only.
+              </span>
+            </span>
+          </label>
+          <div className="mt-3 grid gap-4 sm:grid-cols-2">
+            <label className="block">
+              <span className="label">Day-1 reminder after (hours)</span>
+              <input name="day1Hours" type="number" min={1} max={168} defaultValue={config.day1Hours} className="input" />
+            </label>
+            <label className="block">
+              <span className="label">Missed-window text after (hours)</span>
+              <input name="missHours" type="number" min={2} max={168} defaultValue={config.missHours} className="input" />
+            </label>
+          </div>
+          <p className="mt-1 text-xs text-gray-400">Default 24 then 48 hours — matching the 24–48 hr call promise. The missed-window text must come after the day-1 one.</p>
+        </div>
 
         <SaveBtn />
       </form>

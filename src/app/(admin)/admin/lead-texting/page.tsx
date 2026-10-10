@@ -13,7 +13,10 @@ const STATUS_STYLE: Record<string, string> = {
   FAILED: 'bg-red-100 text-red-700',
   OPTED_OUT: 'bg-gray-200 text-gray-600',
   SKIPPED: 'bg-gray-100 text-gray-500',
+  CANCELLED: 'bg-gray-100 text-gray-500',
 };
+
+const KIND_LABEL: Record<string, string> = { CONFIRM: 'Confirm', DAY1: 'Day 1', MISSED_WINDOW: 'Missed-window' };
 
 function maskPhone(e164: string): string {
   return e164.replace(/^(\+\d{2})\d+(\d{2})$/, '$1•••$2');
@@ -30,10 +33,13 @@ export default async function LeadTextingAdminPage() {
 
   // Sample messages (what the customer receives), rendered server-side.
   const previews = [
-    { label: 'In-store card (EN)', text: renderLeadTextBody('SCANNED', 'ON') },
-    { label: 'Mail-in card (EN)', text: renderLeadTextBody('MAILIN', 'ON') },
-    { label: 'Online HD lead (EN)', text: renderLeadTextBody('HD_SHEET', 'ON') },
-    { label: 'Quebec (FR)', text: renderLeadTextBody('HD_SHEET', 'QC') },
+    { label: 'Confirmation — in-store card (EN)', text: renderLeadTextBody('SCANNED', 'ON') },
+    { label: 'Confirmation — mail-in card (EN)', text: renderLeadTextBody('MAILIN', 'ON') },
+    { label: 'Confirmation — online HD lead (EN)', text: renderLeadTextBody('HD_SHEET', 'ON') },
+    { label: 'Day-1 reminder (EN)', text: renderLeadTextBody('SCANNED', 'ON', 'DAY1') },
+    { label: 'Missed-window — call again in 36h (EN)', text: renderLeadTextBody('SCANNED', 'ON', 'MISSED_WINDOW') },
+    { label: 'Confirmation — Quebec (FR)', text: renderLeadTextBody('HD_SHEET', 'QC') },
+    { label: 'Missed-window — Quebec (FR)', text: renderLeadTextBody('SCANNED', 'QC', 'MISSED_WINDOW') },
   ];
 
   return (
@@ -68,6 +74,9 @@ export default async function LeadTextingAdminPage() {
             senderMap: cfg.senderMap && Object.keys(cfg.senderMap).length ? JSON.stringify(cfg.senderMap, null, 2) : '',
             quietStart: cfg.quietStart,
             quietEnd: cfg.quietEnd,
+            followups: cfg.followups,
+            day1Hours: cfg.day1Hours,
+            missHours: cfg.missHours,
           }}
         />
       </div>
@@ -100,6 +109,7 @@ export default async function LeadTextingAdminPage() {
                 <tr className="border-b border-gray-100 text-xs uppercase tracking-wide text-gray-400">
                   <th className="py-1.5 pr-3">Customer</th>
                   <th className="py-1.5 pr-3">Phone</th>
+                  <th className="py-1.5 pr-3">Message</th>
                   <th className="py-1.5 pr-3">Source</th>
                   <th className="py-1.5 pr-3">Status</th>
                   <th className="py-1.5">When</th>
@@ -110,6 +120,7 @@ export default async function LeadTextingAdminPage() {
                   <tr key={r.leadKey} className="border-b border-gray-50">
                     <td className="py-1.5 pr-3 text-gray-800">{r.customerName || '—'}</td>
                     <td className="py-1.5 pr-3 font-mono text-xs text-gray-500">{maskPhone(r.phone)}</td>
+                    <td className="py-1.5 pr-3 text-xs text-gray-500">{KIND_LABEL[r.kind] ?? r.kind}</td>
                     <td className="py-1.5 pr-3 text-gray-500">{r.source}{r.province ? ` · ${r.province}` : ''}</td>
                     <td className="py-1.5 pr-3">
                       <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${STATUS_STYLE[r.status] ?? 'bg-gray-100 text-gray-600'}`}>
