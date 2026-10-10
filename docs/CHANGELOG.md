@@ -678,6 +678,15 @@ exhausting the single instance). No behaviour change for normal use.
   free-text via DeepL.
 
 ## 2026-10-10
+- **Portal Usage report (admin-only) — what gets used most + per-user drill-down.**
+  New **Admin → Reporting → Portal usage** (`/admin/usage`, section key `usage`),
+  built entirely from the existing audit log (no new tracking). Over a 7/30/90-day
+  window: KPI tiles (active users, actions logged, logins, busiest time),
+  most-used features, most-active offices, most-active people (each **links to that
+  person's own stats page** — their top actions, daily trend, and recent activity),
+  an activity-over-time trend, and busiest-times-of-day (Ontario time). All charts
+  are server-rendered SVG/CSS (no client JS); aggregation is parameterized SQL over
+  AuditLog. Lib: `reporting/portalUsage.ts`. Mockup approved by Sean first.
 - **Zoom recordings: manual add (link or uploaded file) + auto-sync schedule.**
   The admin Zoom recordings page now has an **"Add a recording manually"** card for
   recordings that aren't in Zoom's cloud: **paste a share link** (Zoom/Drive/YouTube)

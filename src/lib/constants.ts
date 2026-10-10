@@ -636,6 +636,7 @@ export interface AdminSection {
 export const ADMIN_SECTIONS: AdminSection[] = [
   { key: 'overview', label: 'Overview', href: '/admin', hint: 'Dashboard KPIs' },
   { key: 'reports', label: 'Reports', href: '/staff/reports', hint: 'Performance reporting' },
+  { key: 'usage', label: 'Portal usage', href: '/admin/usage', hint: 'What gets used most + per-user activity' },
   { key: 'report-visibility', label: 'Report visibility', href: '/admin/report-visibility', hint: 'Who can see each report (Super Admin)' },
   { key: 'leads', label: 'Leads', href: '/staff/leads', hint: 'HD leads (all offices)' },
   { key: 'customer-search', label: 'Find customer', href: '/staff/find-customer', hint: 'Search all customers + sales journals' },
