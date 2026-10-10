@@ -74,6 +74,59 @@ export function newResolutionStorageKey(caseId: string, ext: string): string {
   return `resolution-cases/${caseId}/${year}/${month}/${rand}${e}`;
 }
 
+// Storage key for a manually-uploaded meeting recording video (not tied to a
+// dealer). Stored in S3 and served via a short-lived presigned link — these are
+// large and NOT application-encrypted (unlike documents), so the bytes stream
+// and seek natively. Training recordings, not customer PII.
+export function newRecordingStorageKey(ext: string): string {
+  const e = ext.replace(/[^a-zA-Z0-9.]/g, '') || '.bin';
+  const now = new Date();
+  const year = now.getUTCFullYear();
+  const month = String(now.getUTCMonth() + 1).padStart(2, '0');
+  const rand = crypto.randomBytes(16).toString('hex');
+  return `recordings/${year}/${month}/${rand}${e}`;
+}
+
+/**
+ * A presigned S3 PUT URL for a direct browser upload (bytes never touch the app
+ * server, so there's no request-size limit and no in-memory buffering). S3 only.
+ * The object is stored as-is (bucket default encryption applies); callers use
+ * this for large media, never for customer documents.
+ */
+export async function presignRecordingUpload(key: string, contentType: string, expiresSec = 900): Promise<string> {
+  if (driver() !== 's3') throw new Error('File uploads need S3 storage (STORAGE_DRIVER=s3).');
+  const { PutObjectCommand } = await import('@aws-sdk/client-s3');
+  const { getSignedUrl } = await import('@aws-sdk/s3-request-presigner');
+  const client = await s3Client();
+  return getSignedUrl(
+    client,
+    new PutObjectCommand({ Bucket: s3Bucket(), Key: key, ContentType: contentType }),
+    { expiresIn: expiresSec },
+  );
+}
+
+/** A short-lived presigned S3 GET URL so a viewer can stream/download a recording. */
+export async function presignRecordingDownload(key: string, filename?: string, expiresSec = 3600): Promise<string> {
+  if (driver() !== 's3') throw new Error('File downloads need S3 storage (STORAGE_DRIVER=s3).');
+  const { GetObjectCommand } = await import('@aws-sdk/client-s3');
+  const { getSignedUrl } = await import('@aws-sdk/s3-request-presigner');
+  const client = await s3Client();
+  const safe = (filename || '').replace(/[^a-zA-Z0-9._ -]/g, '_').slice(0, 120);
+  return getSignedUrl(
+    client,
+    new GetObjectCommand({
+      Bucket: s3Bucket(),
+      Key: key,
+      ...(safe ? { ResponseContentDisposition: `inline; filename="${safe}"` } : {}),
+    }),
+    { expiresIn: expiresSec },
+  );
+}
+
+export function storageIsS3(): boolean {
+  return driver() === 's3';
+}
+
 // Storage key for a mail attachment (not tied to a dealer/application).
 export function newMailStorageKey(ext: string): string {
   const e = ext.replace(/[^a-zA-Z0-9.]/g, '') || '.bin';

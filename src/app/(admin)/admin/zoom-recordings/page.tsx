@@ -1,13 +1,15 @@
 import { requireAdminSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { zoomConfigured, formatBytes } from '@/lib/zoom';
-import { ZoomSyncBar, ZoomAdminRow, type ZoomRow } from './ZoomAdmin';
+import { storageIsS3 } from '@/lib/storage';
+import { ZoomSyncBar, ZoomAdminRow, ManualAddCard, type ZoomRow } from './ZoomAdmin';
 
 export const dynamic = 'force-dynamic';
 
 export default async function ZoomRecordingsAdminPage() {
   await requireAdminSection('zoom-recordings');
   const configured = zoomConfigured();
+  const canUpload = storageIsS3();
 
   const all = await prisma.zoomRecording.findMany({ orderBy: { startTime: 'desc' }, take: 300 });
   const toRow = (r: (typeof all)[number]): ZoomRow => ({
@@ -21,6 +23,8 @@ export default async function ZoomRecordingsAdminPage() {
     shareUrl: r.shareUrl,
     passcode: r.passcode ?? '',
     status: r.status,
+    source: r.source,
+    hasFile: !!r.fileKey,
   });
 
   const pending = all.filter((r) => r.status === 'PENDING').map(toRow);
@@ -47,6 +51,8 @@ export default async function ZoomRecordingsAdminPage() {
       )}
 
       <ZoomSyncBar configured={configured} />
+
+      <ManualAddCard canUpload={canUpload} />
 
       <Section title={`To review${pending.length ? ` · ${pending.length}` : ''}`} empty="Nothing waiting for review." rows={pending} />
       <Section title={`Published${published.length ? ` · ${published.length}` : ''}`} empty="Nothing published yet." rows={published} />

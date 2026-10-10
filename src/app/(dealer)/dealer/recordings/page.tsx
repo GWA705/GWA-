@@ -46,7 +46,7 @@ export default async function DealerRecordingsPage() {
                   )}
                 </div>
                 <a
-                  href={r.shareUrl}
+                  href={r.fileKey ? `/api/recordings/${r.id}/file` : r.shareUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="btn-primary shrink-0 text-sm"

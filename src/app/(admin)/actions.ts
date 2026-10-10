@@ -329,6 +329,100 @@ export async function updateZoomRecordingAction(_prev: ActionState, formData: Fo
   return { ok: true, message: 'Saved.' };
 }
 
+// Parse the shared fields of a manual recording add (title, date, description,
+// passcode). Returns the cleaned values or an error message.
+function parseManualRecordingCommon(formData: FormData):
+  | { ok: true; title: string; startTime: Date; description: string | null; passcode: string | null }
+  | { ok: false; error: string } {
+  const title = String(formData.get('title') || '').trim().slice(0, 200);
+  if (!title) return { ok: false, error: 'Enter a title for the recording.' };
+  const dateStr = String(formData.get('date') || '').trim();
+  const startTime = dateStr ? new Date(dateStr) : null;
+  if (!startTime || Number.isNaN(startTime.getTime())) return { ok: false, error: 'Enter a valid date.' };
+  const description = String(formData.get('description') || '').trim().slice(0, 4000) || null;
+  const passcode = String(formData.get('passcode') || '').trim().slice(0, 100) || null;
+  return { ok: true, title, startTime, description, passcode };
+}
+
+// Manually add a recording by pasting a share link (Zoom cloud, Google Drive,
+// YouTube, …). Lands in the review queue like a synced one.
+export async function createManualLinkRecordingAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const session = await requireAdminSection('zoom-recordings');
+  const common = parseManualRecordingCommon(formData);
+  if (!common.ok) return { error: common.error };
+  const shareUrl = String(formData.get('shareUrl') || '').trim();
+  if (!/^https?:\/\/\S+$/i.test(shareUrl)) return { error: 'Enter a valid link (starting with http:// or https://).' };
+
+  const rec = await prisma.zoomRecording.create({
+    data: {
+      uuid: `manual-${crypto.randomUUID()}`,
+      source: 'MANUAL',
+      topic: common.title,
+      title: common.title,
+      description: common.description,
+      startTime: common.startTime,
+      shareUrl,
+      passcode: common.passcode,
+      status: 'PENDING',
+    },
+  });
+  await audit({ actorId: session.userId, action: 'CONTENT_CREATE', entityType: 'ZoomRecording', entityId: rec.id, detail: 'Manual recording (link)' });
+  revalidatePath('/admin/zoom-recordings');
+  return { ok: true, message: 'Added. Publish it to show dealers.' };
+}
+
+// Finish a manual file upload: the browser has already PUT the video straight to
+// S3 (see /api/admin/recordings/presign); this records the row pointing at it.
+export async function createManualFileRecordingAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const session = await requireAdminSection('zoom-recordings');
+  const common = parseManualRecordingCommon(formData);
+  if (!common.ok) return { error: common.error };
+  const fileKey = String(formData.get('fileKey') || '').trim();
+  const fileType = String(formData.get('fileType') || '').trim().slice(0, 100) || null;
+  const sizeBytes = Math.max(0, Math.round(Number(formData.get('sizeBytes')) || 0));
+  if (!/^recordings\/\d{4}\/\d{2}\/[a-f0-9]{32}\.[a-zA-Z0-9]+$/.test(fileKey)) {
+    return { error: 'The upload didn’t complete — try again.' };
+  }
+
+  const rec = await prisma.zoomRecording.create({
+    data: {
+      uuid: `manual-${crypto.randomUUID()}`,
+      source: 'MANUAL',
+      topic: common.title,
+      title: common.title,
+      description: common.description,
+      startTime: common.startTime,
+      shareUrl: '',
+      passcode: common.passcode,
+      fileKey,
+      fileType,
+      totalSize: BigInt(sizeBytes),
+      fileCount: 1,
+      status: 'PENDING',
+    },
+  });
+  await audit({ actorId: session.userId, action: 'CONTENT_CREATE', entityType: 'ZoomRecording', entityId: rec.id, detail: 'Manual recording (uploaded file)' });
+  revalidatePath('/admin/zoom-recordings');
+  return { ok: true, message: 'Uploaded. Publish it to show dealers.' };
+}
+
+// Permanently delete a recording row (and its uploaded video, if any). For
+// removing a mistaken manual add; synced rows can also be deleted (they'll
+// reappear on the next sync if still within the window — hide those instead).
+export async function deleteZoomRecordingAction(id: string): Promise<ActionState> {
+  const session = await requireAdminSection('zoom-recordings');
+  const rec = await prisma.zoomRecording.findUnique({ where: { id }, select: { id: true, fileKey: true } });
+  if (!rec) return { error: 'Recording not found.' };
+  if (rec.fileKey) {
+    try { await deleteDocument(rec.fileKey); } catch (e) { console.error('[zoom] delete file failed', e); }
+  }
+  await prisma.zoomRecording.delete({ where: { id } });
+  await audit({ actorId: session.userId, action: 'DOCUMENT_DELETE', entityType: 'ZoomRecording', entityId: id, detail: 'Recording deleted' });
+  revalidatePath('/admin/zoom-recordings');
+  revalidatePath('/dealer/recordings');
+  return { ok: true, message: 'Deleted.' };
+}
+
 /**
  * Read-only Twilio cost meter: current balance + SMS spend this month and today.
  * Admin-only. Returns an error string the card can show when texting is off or

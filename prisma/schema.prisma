@@ -2190,17 +2190,24 @@ model SmsOptOut {
 /// Deduped by the Zoom meeting UUID. Dormant until Zoom credentials are set.
 model ZoomRecording {
   id          String   @id @default(cuid())
-  uuid        String   @unique // Zoom meeting UUID (dedupe key)
+  uuid        String   @unique // Zoom meeting UUID (dedupe key); synthetic "manual-…" for manual adds
   meetingId   String? // Zoom meeting id (numeric, as string)
   topic       String // Zoom's meeting topic (the raw name)
   title       String? // admin display-name override (falls back to topic)
   description String?  @db.Text
   startTime   DateTime // meeting start
   durationMin Int      @default(0)
-  shareUrl    String // Zoom share/play URL
+  shareUrl    String // Zoom share/play URL (or a pasted link for a MANUAL link add; empty for a MANUAL file upload)
   passcode    String? // recording passcode (auto if Zoom returns it, else admin enters)
   fileCount   Int      @default(0)
   totalSize   BigInt   @default(0) // bytes, informational
+
+  // Manual adds (recordings that aren't in Zoom's cloud): a pasted link, or a
+  // video uploaded straight to S3. source distinguishes them from synced rows so
+  // the Zoom sync never touches them; fileKey/fileType are set for an uploaded file.
+  source   String  @default("ZOOM") // ZOOM | MANUAL
+  fileKey  String? // S3 object key when a video was uploaded (served via a presigned link)
+  fileType String? // the uploaded video's content-type (e.g. video/mp4)
 
   status        String    @default("PENDING") // PENDING | PUBLISHED | HIDDEN
   publishedAt   DateTime?

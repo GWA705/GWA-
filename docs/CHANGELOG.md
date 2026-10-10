@@ -678,6 +678,22 @@ exhausting the single instance). No behaviour change for normal use.
   free-text via DeepL.
 
 ## 2026-10-10
+- **Zoom recordings: manual add (link or uploaded file) + auto-sync schedule.**
+  The admin Zoom recordings page now has an **"Add a recording manually"** card for
+  recordings that aren't in Zoom's cloud: **paste a share link** (Zoom/Drive/YouTube)
+  or **upload a video file** (MP4/MOV/WEBM/MKV/AVI, up to 3 GB). Uploads go **straight
+  to S3 via a presigned PUT** (bytes never hit the app server — no size limit, no
+  OOM) and stream back to dealers through a short-lived presigned GET
+  (`/api/recordings/<id>/file`, range/seek native). Manual rows are `source=MANUAL`
+  so the Zoom sync never touches them, and get a **Delete** (removes the S3 file too).
+  Also added the missing **scheduled sync** (`.github/workflows/zoom-sync.yml`, every
+  2 h) so cloud recordings flow in automatically. Schema: additive
+  `source`/`fileKey`/`fileType` on ZoomRecording (migration `20261010010000`).
+  Files: `storage.ts` (presign helpers), `api/admin/recordings/presign`,
+  `api/recordings/[id]/file`, `(admin)/actions.ts`, `ZoomAdmin.tsx`, dealer recordings page.
+- **Admin nav: surfaced Zoom recordings, Lead auto-text, Confirmation calls, Mail-in
+  billing** — they existed but had no menu link (not in any nav group). Added to
+  Dealer comms / Deals / System groups.
 - **Direct sales now carry the HD store.** On an **HD-program** direct sale the
   entry form now shows a required **HD store** picker (next to the HD Customer #),
   listing the owning office's Home Depot stores; it's hidden for GWA-program
