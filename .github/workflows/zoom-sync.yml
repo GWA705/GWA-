@@ -1,0 +1,56 @@
+name: Zoom recordings sync (cron)
+
+# Pulls new Zoom cloud recordings into the portal's review queue, a few times a
+# day. The app runs NO scheduler, so this workflow is what actually calls
+# src/app/api/cron/zoom-sync/route.ts in production. It is inert (the endpoint
+# returns ok with configured:false) until the Zoom Server-to-Server OAuth
+# credentials are set on Elastic Beanstalk (ZOOM_ACCOUNT_ID / ZOOM_CLIENT_ID /
+# ZOOM_CLIENT_SECRET).
+#
+# Setup (one-time):
+#   1. Repo secret CRON_SECRET (Settings -> Secrets and variables -> Actions) must
+#      match the CRON_SECRET env var on Elastic Beanstalk (same one the journal
+#      and resolution-email syncs use). If they differ the endpoint returns 401.
+#   2. (Optional) Repo variable PORTAL_BASE_URL to override the production URL.
+#
+# Run on demand any time from the Actions tab -> "Zoom recordings sync (cron)".
+
+on:
+  schedule:
+    - cron: '0 */2 * * *'   # every 2 hours (UTC)
+  workflow_dispatch: {}
+
+concurrency:
+  group: zoom-sync
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call zoom-sync endpoint
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          BASE_URL: ${{ vars.PORTAL_BASE_URL || 'https://portal.ghsbarrie.ca' }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "::error::CRON_SECRET repo secret is not set. Add it under Settings -> Secrets and variables -> Actions. It must match the CRON_SECRET env var on Elastic Beanstalk."
+            exit 1
+          fi
+          url="${BASE_URL%/}/api/cron/zoom-sync"
+          echo "POST $url"
+          code=$(curl -sS -o /tmp/body.txt -w '%{http_code}' -X POST "$url" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            --retry 3 --retry-delay 5 --max-time 120 || echo "000")
+          echo "HTTP status: $code"
+          echo "Response body: $(cat /tmp/body.txt 2>/dev/null)"
+          case "$code" in
+            200) echo "Sync ran (or skipped — inert until Zoom credentials are set on EB)." ;;
+            401) echo "::error::401 Unauthorized - CRON_SECRET repo secret does not match the one on Elastic Beanstalk."; exit 1 ;;
+            503) echo "::error::503 - CRON_SECRET is not configured on the Elastic Beanstalk environment."; exit 1 ;;
+            000) echo "::error::Could not reach $url (network/DNS/timeout). Check PORTAL_BASE_URL."; exit 1 ;;
+            *)   echo "::error::zoom-sync returned HTTP $code"; exit 1 ;;
+          esac
