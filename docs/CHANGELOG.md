@@ -678,6 +678,14 @@ exhausting the single instance). No behaviour change for normal use.
   free-text via DeepL.
 
 ## 2026-10-10
+- **Lead pipeline Phase 1b — lead response SLA tracker.** Scanned/mail-in leads now
+  carry a visible **call-SLA** on the leads lists (dealer AND staff/booker views):
+  an amber **"Due soon · Nh"** badge at 24–48 hrs and a red **"Overdue · Nd"** badge
+  past 48 hrs, measured from when the lead landed against the 24–48 hr call promise.
+  The clock stops the moment the lead is worked — marked contacted/no-good, or taken
+  by a booker (bookingStatus set). The dealer leads list also shows a **roll-up banner**
+  ("N overdue · M due soon — call these first"). Pure helper `leadSla.ts` (shared
+  server+client), badge in `ScannedLeadRowItem`, banner in `ScannedLeadsList` (+ tests).
 - **Lead pipeline Phase 1a — follow-up text sequence.** Building on the plan in
   `LEAD-PIPELINE-PLAN` (deep-research): the lead auto-text is now a short sequence
   for **scanned + mail-in** leads — the existing confirmation, then a **day-1

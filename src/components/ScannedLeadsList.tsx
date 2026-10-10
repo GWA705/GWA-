@@ -7,6 +7,7 @@ import { LeadCallTracker } from './LeadCallTracker';
 import { ScannedLeadEditForm } from './ScannedLeadEditForm';
 import type { LeadCallRow } from '@/lib/leadCalls';
 import { scannedLeadKey } from '@/lib/scannedLeadKey';
+import { leadSla } from '@/lib/leadSla';
 
 export interface ScannedLeadRow {
   id: string;
@@ -127,6 +128,7 @@ export function ScannedLeadRowItem({ lead, calls, showOffice, typeTag }: { lead:
     .filter(Boolean).join(' · ');
   const badge = deriveBadge(lead.status, calls);
   const bkg = bookingBadge(lead.bookingStatus);
+  const sla = leadSla({ createdAt: lead.createdAt, status: lead.status, bookingStatus: lead.bookingStatus });
   const sub = [lead.storeNumber && `Store ${lead.storeNumber}`, lead.city, lead.collectedOn && `collected ${lead.collectedOn}`].filter(Boolean).join(' · ');
 
   function setStatus(status: string) {
@@ -152,6 +154,7 @@ export function ScannedLeadRowItem({ lead, calls, showOffice, typeTag }: { lead:
           <span className="mt-0.5 block truncate text-xs text-gray-500">{sub || 'Mail-in test card'}</span>
         </span>
         <span className="hidden shrink-0 text-xs text-gray-500 md:inline">{lead.phone}</span>
+        {sla && <span className={`badge shrink-0 ${CHIP[sla.tone]}`} title="Call SLA — time since the lead came in, against the 24-48 hr promise">⏱ {sla.label}</span>}
         {bkg && <span className={`badge hidden shrink-0 sm:inline ${CHIP[bkg.tone]}`} title="Status in the booking system">{bkg.label}</span>}
         <span className={`badge shrink-0 ${CHIP[badge.tone]}`}>{badge.label}</span>
         <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-gray-200 text-[11px] text-gray-400 transition group-hover:border-gray-300 group-hover:text-gray-600 group-open:rotate-180" aria-hidden>▾</span>
@@ -219,8 +222,27 @@ export function ScannedLeadsList({
   if (leads.length === 0) {
     return <p className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-5 text-center text-sm text-gray-500">No HD Mail In Test cards yet. Use “Add HD Mail In Test” above to scan one.</p>;
   }
+
+  // SLA roll-up — how many open leads are approaching or past the 24-48 hr call
+  // promise, so bookers/dealers see at a glance if any are slipping.
+  let overdue = 0;
+  let dueSoon = 0;
+  for (const l of leads) {
+    const s = leadSla({ createdAt: l.createdAt, status: l.status, bookingStatus: l.bookingStatus });
+    if (s?.state === 'OVERDUE') overdue += 1;
+    else if (s?.state === 'DUE_SOON') dueSoon += 1;
+  }
+
   return (
     <div className="space-y-2">
+      {(overdue > 0 || dueSoon > 0) && (
+        <div className={`flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl border px-4 py-2.5 text-sm ${overdue > 0 ? 'border-red-200 bg-red-50 text-red-800' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
+          <span className="font-semibold">⏱ Call SLA</span>
+          {overdue > 0 && <span><strong>{overdue}</strong> overdue (past 48 hrs, no call)</span>}
+          {dueSoon > 0 && <span><strong>{dueSoon}</strong> due soon (24–48 hrs)</span>}
+          <span className="text-xs opacity-80">Call these first — the clock stops when the lead is marked contacted or a booker takes it.</span>
+        </div>
+      )}
       {leads.map((l) => <ScannedLeadRowItem key={l.id} lead={l} calls={callsByKey[scannedLeadKey(l.id)] ?? []} showOffice={showOffice} />)}
     </div>
   );
