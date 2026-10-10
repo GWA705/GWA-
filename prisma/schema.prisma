@@ -2289,6 +2289,16 @@ model ScannedLead {
   bookingStatus   String? // e.g. WORKING | BOOKED | CONFIRMED | SOLD | DEAD
   bookingStatusAt DateTime?
 
+  // Customer self-booking (Phase 2). The confirmation/follow-up texts can carry a
+  // tokenized link to a public page where the customer requests their preferred
+  // time (a booker still confirms it). bookingToken keys that public page.
+  bookingToken       String?   @unique // unguessable token for the public /book/<token> page
+  bookingRequestedAt DateTime? // when the customer submitted a preferred time
+  bookingPreferredDay String?  // the day they'd like, as 'YYYY-MM-DD'
+  bookingWindow      String?   // MORNING | AFTERNOON | EVENING | ANYTIME
+  bookingCallNow     Boolean   @default(false) // they asked to be called ASAP
+  bookingNote        String?   @db.Text // optional note from the customer
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

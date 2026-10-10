@@ -77,6 +77,7 @@ export default async function LeadTextingAdminPage() {
             followups: cfg.followups,
             day1Hours: cfg.day1Hours,
             missHours: cfg.missHours,
+            bookingLink: cfg.bookingLink,
           }}
         />
       </div>

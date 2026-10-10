@@ -66,6 +66,8 @@ export default async function StaffLeadsPage({
     storeNumber: l.storeNumber, collectedOn: l.collectedOn, ownsHome: l.ownsHome, waterSource: l.waterSource,
     waterQuality: l.waterQuality, conditions: l.conditions, householdSize: l.householdSize, waterNotes: l.waterNotes, note: l.note,
     generatorName: l.generatorName, confidence: l.confidence, status: l.status, bookingStatus: l.bookingStatus, hasPhoto: !!l.photoStorageKey,
+    bookingRequestedAt: l.bookingRequestedAt?.toISOString() ?? null, bookingCallNow: l.bookingCallNow,
+    bookingPreferredDay: l.bookingPreferredDay, bookingWindow: l.bookingWindow, bookingNote: l.bookingNote,
     scannedByName: l.scannedByName, officeName: l.dealerId ? nameById.get(l.dealerId) ?? null : null, createdAt: l.createdAt.toISOString(),
   }));
   // Staff see all offices' mail-in cards — no office scope on the call read.

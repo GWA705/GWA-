@@ -2,6 +2,7 @@ import 'server-only';
 import { prisma } from './db';
 import { getSettings } from './settings';
 import { toE164, sendSms } from './sms';
+import { bookingUrlFor } from './leadBooking';
 
 /**
  * Customer "we received your request" auto-text.
@@ -33,6 +34,8 @@ export const LEAD_TEXT_KEYS = {
   followups: 'leadText.followups',
   day1Hours: 'leadText.day1Hours',
   missHours: 'leadText.missHours',
+  // Include a self-booking link in the follow-up texts (Phase 2).
+  bookingLink: 'leadText.bookingLink',
 } as const;
 
 export type LeadTextSource = 'HD_SHEET' | 'SCANNED' | 'MAILIN';
@@ -50,6 +53,7 @@ export interface LeadTextConfig {
   followups: boolean; // schedule the DAY1 + MISSED_WINDOW follow-ups
   day1Hours: number; // hours after the confirm to send the day-1 reminder
   missHours: number; // hours after the confirm to send the missed-window text
+  bookingLink: boolean; // append a self-booking link to the follow-up texts
 }
 
 export async function leadTextConfig(): Promise<LeadTextConfig> {
@@ -78,6 +82,8 @@ export async function leadTextConfig(): Promise<LeadTextConfig> {
     followups: s[LEAD_TEXT_KEYS.followups] !== 'false',
     day1Hours: Number.isFinite(d1) && d1 > 0 ? d1 : 24,
     missHours: Number.isFinite(mw) && mw > 0 ? mw : 48,
+    // Self-booking link is opt-in (off until the booking page is ready to share).
+    bookingLink: s[LEAD_TEXT_KEYS.bookingLink] === 'true',
   };
 }
 
@@ -137,29 +143,42 @@ export function leadTextLang(province?: string | null): 'en' | 'fr' {
  * guillemets/em-dashes) so the SMS fallback stays to as few segments as possible.
  * Source changes only the "how we received it" phrase.
  */
-export function renderLeadTextBody(source: LeadTextSource, province?: string | null, kind: LeadTextKind = 'CONFIRM'): string {
+export function renderLeadTextBody(
+  source: LeadTextSource,
+  province?: string | null,
+  kind: LeadTextKind = 'CONFIRM',
+  opts?: { bookingUrl?: string | null },
+): string {
   const fr = leadTextLang(province) === 'fr';
+  // Self-booking line, inserted before the STOP opt-out when a link is provided.
+  const book = opts?.bookingUrl
+    ? fr
+      ? ` Ou reservez une heure vous-meme: ${opts.bookingUrl}.`
+      : ` Or pick a time yourself: ${opts.bookingUrl}.`
+    : '';
+  const stop = fr ? ' Repondez STOP pour vous desabonner.' : ' Reply STOP to opt out.';
 
   if (kind === 'DAY1') {
     // ~24h reminder, sent only if the lead hasn't been contacted/booked yet.
-    return fr
+    const base = fr
       ? `Home Depot Home Services (service assure par Georgian Water & Air): petit rappel au sujet de votre evaluation ` +
           `de l'eau a domicile. Un membre de l'equipe vous appellera bientot - ou repondez avec un jour et une heure qui ` +
-          `vous conviennent et nous appellerons a ce moment. L'appel s'affichera "HD Home Services". Repondez STOP pour vous desabonner.`
+          `vous conviennent et nous appellerons a ce moment.`
       : `Home Depot Home Services (serviced by Georgian Water & Air): a quick reminder about your in-home water assessment. ` +
-          `A team member will call you soon to schedule - or reply with a day and time that works and we'll call then. ` +
-          `Our call will show as "HD Home Services". Reply STOP to opt out.`;
+          `A team member will call you soon to schedule - or reply with a day and time that works and we'll call then.`;
+    return base + book + stop;
   }
 
   if (kind === 'MISSED_WINDOW') {
     // ~48h: we missed the 24-48h promise. Acknowledge and re-set a keepable window.
-    return fr
+    const base = fr
       ? `Home Depot Home Services (service assure par Georgian Water & Air): nous sommes desoles de ne pas vous avoir ` +
           `encore joint au sujet de votre evaluation de l'eau a domicile gratuite. Nous vous rappellerons d'ici 36 heures. ` +
-          `Si un jour ou une heure vous convient mieux, repondez simplement. Repondez STOP pour vous desabonner.`
+          `Si un jour ou une heure vous convient mieux, repondez simplement.`
       : `Home Depot Home Services (serviced by Georgian Water & Air): we're sorry we haven't reached you yet about your ` +
           `free in-home water assessment. We'll call you again within 36 hours. If a specific day or time is easier, just ` +
-          `reply and we'll work around you. Reply STOP to opt out.`;
+          `reply and we'll work around you.`;
+    return base + book + stop;
   }
 
   // CONFIRM — on landing.
@@ -335,17 +354,19 @@ export async function processDueLeadTexts(limit = 200): Promise<SweepCounts> {
     // Follow-up guard: never send a DAY1/MISSED_WINDOW text if the lead has since
     // been worked (contacted, booked, or marked no-good) or deleted — cancel it.
     // This backstops the cancellation hooks so a missed hook can't text a customer
-    // a booker already reached.
+    // a booker already reached. Also grab the self-booking link for the message.
+    let bookingUrl: string | null = null;
     if (row.kind === 'DAY1' || row.kind === 'MISSED_WINDOW') {
       const leadId = row.leadKey.match(/^s:([^#]+)/)?.[1];
       if (leadId) {
-        const lead = await prisma.scannedLead.findUnique({ where: { id: leadId }, select: { status: true, bookingStatus: true } });
+        const lead = await prisma.scannedLead.findUnique({ where: { id: leadId }, select: { status: true, bookingStatus: true, bookingToken: true } });
         const worked = !lead || lead.status !== 'NEW' || !!lead.bookingStatus;
         if (worked) {
           await prisma.leadTextOutbox.update({ where: { leadKey: row.leadKey }, data: { status: 'CANCELLED' } });
           counts.skipped += 1;
           continue;
         }
+        if (cfg.bookingLink && lead.bookingToken) bookingUrl = bookingUrlFor(lead.bookingToken);
       }
     }
 
@@ -356,7 +377,7 @@ export async function processDueLeadTexts(limit = 200): Promise<SweepCounts> {
       continue;
     }
 
-    const body = renderLeadTextBody(row.source as LeadTextSource, row.province, row.kind as LeadTextKind);
+    const body = renderLeadTextBody(row.source as LeadTextSource, row.province, row.kind as LeadTextKind, { bookingUrl });
     const from = pickSender(row.province, cfg.senderMap);
 
     let result = await sendSms({ to, body, mediaUrl: cfg.mediaUrl || undefined, from });

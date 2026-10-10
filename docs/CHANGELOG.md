@@ -678,6 +678,20 @@ exhausting the single instance). No behaviour change for normal use.
   free-text via DeepL.
 
 ## 2026-10-10
+- **Lead pipeline Phase 2 — customer self-booking link.** Each scanned/mail-in lead
+  gets an unguessable token and a **public, no-login page `/book/<token>`** where the
+  customer picks a **preferred day + time window** (or taps **"call me as soon as
+  possible"**) for their free in-home water assessment — a booker still confirms the
+  exact time (the request-a-time hybrid from the plan). Submitting records it on the
+  lead, cancels the pending follow-up texts, and is rate-limited + token-gated (no
+  lead data exposed). Bookers & dealers see it on the leads list: a **teal
+  "📅 Self-booked: Tue · PM"** badge (or red **"📞 Asked us to call ASAP"**) plus the
+  full request + customer note in the expanded row. The follow-up texts can carry
+  the link (Admin → Lead auto-text → "include a book-a-time link", **off by
+  default**). Public route is outside the auth-guarded groups (middleware guards
+  only /dealer /staff /admin). Additive schema: self-booking fields on ScannedLead
+  (migration `20261010030000`). Files: `leadBooking.ts`, `bookingWindows.ts`,
+  `app/book/*`, `leadText.ts`, `ScannedLeadsList.tsx`, admin form (+ tests).
 - **Lead pipeline Phase 1b — lead response SLA tracker.** Scanned/mail-in leads now
   carry a visible **call-SLA** on the leads lists (dealer AND staff/booker views):
   an amber **"Due soon · Nh"** badge at 24–48 hrs and a red **"Overdue · Nd"** badge

@@ -15,6 +15,7 @@ interface Config {
   followups: boolean;
   day1Hours: number;
   missHours: number;
+  bookingLink: boolean;
 }
 
 function SaveBtn() {
@@ -115,6 +116,17 @@ export function LeadTextSettingsForm({ config }: { config: Config }) {
             </label>
           </div>
           <p className="mt-1 text-xs text-gray-400">Default 24 then 48 hours — matching the 24–48 hr call promise. The missed-window text must come after the day-1 one.</p>
+
+          <label className="mt-4 flex items-start gap-3">
+            <input type="checkbox" name="bookingLink" defaultChecked={config.bookingLink} className="mt-0.5 h-4 w-4" />
+            <span>
+              <span className="font-medium text-gray-900">Include a &ldquo;book a time yourself&rdquo; link in the follow-ups</span>
+              <span className="block text-xs text-gray-500">
+                Adds a link to the customer self-booking page to the day-1 and missed-window texts, so a customer can request
+                their preferred time 24/7 instead of waiting for a call. Leave off until you&rsquo;re ready to field self-bookings.
+              </span>
+            </span>
+          </label>
         </div>
 
         <SaveBtn />

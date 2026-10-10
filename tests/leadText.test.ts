@@ -70,6 +70,19 @@ describe('follow-up message kinds', () => {
   it('defaults to the confirmation body when no kind is given', () => {
     expect(renderLeadTextBody('SCANNED', 'ON')).toContain('24-48');
   });
+
+  it('appends the self-booking link to follow-ups, before the STOP line', () => {
+    const d1 = renderLeadTextBody('SCANNED', 'ON', 'DAY1', { bookingUrl: 'https://portal.ghsbarrie.ca/book/abc123' });
+    expect(d1).toContain('/book/abc123');
+    expect(d1.toLowerCase()).toContain('pick a time yourself');
+    expect(d1.indexOf('/book/abc123')).toBeLessThan(d1.toUpperCase().lastIndexOf('STOP'));
+    expect(d1).not.toMatch(/[«»“”’—]/);
+  });
+
+  it('omits the booking link when no url is provided, and never on the confirmation', () => {
+    expect(renderLeadTextBody('SCANNED', 'ON', 'DAY1')).not.toContain('/book/');
+    expect(renderLeadTextBody('SCANNED', 'ON', 'CONFIRM', { bookingUrl: 'https://x/book/zzz' })).not.toContain('/book/');
+  });
 });
 
 describe('province helpers', () => {

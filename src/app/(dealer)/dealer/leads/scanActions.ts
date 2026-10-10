@@ -9,6 +9,7 @@ import { putDocument, newScannedLeadStorageKey } from '@/lib/storage';
 import { resolveDealerIdForStore, getScannedLeadForViewer } from '@/lib/scannedLeads';
 import { pushLeadToBooking, pushScannedStatusToBooking, coarseFromScannedStatus } from '@/lib/bookingPush';
 import { enqueueLeadText, provinceFromPostalCode, cancelLeadFollowups } from '@/lib/leadText';
+import { newBookingToken } from '@/lib/leadBooking';
 
 export interface ScanSaveState { ok?: boolean; error?: string; id?: string }
 
@@ -108,6 +109,8 @@ export async function createScannedLeadAction(_prev: ScanSaveState, fd: FormData
       photoStorageKey,
       photoMime,
       note: str(fd, 'note'),
+      // Unguessable token for the customer self-booking link (/book/<token>).
+      bookingToken: newBookingToken(),
     },
   });
 

@@ -29,6 +29,12 @@ export interface ScannedLeadRow {
   confidence: number | null;
   status: string;
   bookingStatus?: string | null; // booking system's status for this lead, mirrored back
+  // Customer self-booking (Phase 2) — a request the customer made themselves.
+  bookingRequestedAt?: string | null; // ISO
+  bookingCallNow?: boolean;
+  bookingPreferredDay?: string | null;
+  bookingWindow?: string | null;
+  bookingNote?: string | null;
   hasPhoto: boolean;
   scannedByName: string | null;
   officeName?: string | null; // staff view only
@@ -87,6 +93,23 @@ function titleCase(s: string): string {
   return s.toLowerCase().replace(/\b\p{L}/gu, (m) => m.toUpperCase());
 }
 
+// Customer self-booking (Phase 2). A short label for what the customer requested.
+const WIN_SHORT: Record<string, string> = { MORNING: 'AM', AFTERNOON: 'PM', EVENING: 'Eve', ANYTIME: 'Any' };
+function selfBookLabel(day?: string | null, win?: string | null): string {
+  let d = '';
+  if (day) {
+    const dt = new Date(`${day}T00:00:00`);
+    if (!Number.isNaN(dt.getTime())) d = dt.toLocaleDateString('en-CA', { weekday: 'short', month: 'short', day: 'numeric' });
+  }
+  const w = win ? WIN_SHORT[win] ?? win : '';
+  return [d, w].filter(Boolean).join(' · ') || 'a time';
+}
+function selfBookBadge(lead: ScannedLeadRow): { tone: string; label: string } | null {
+  if (lead.bookingCallNow) return { tone: 'red', label: '📞 Asked us to call ASAP' };
+  if (lead.bookingRequestedAt) return { tone: 'teal', label: `📅 Self-booked: ${selfBookLabel(lead.bookingPreferredDay, lead.bookingWindow)}` };
+  return null;
+}
+
 // In-app photo viewer with a proper close button (opening the photo in a new tab
 // left mobile users stuck with no way back).
 function PhotoLightbox({ id, onClose }: { id: string; onClose: () => void }) {
@@ -129,6 +152,7 @@ export function ScannedLeadRowItem({ lead, calls, showOffice, typeTag }: { lead:
   const badge = deriveBadge(lead.status, calls);
   const bkg = bookingBadge(lead.bookingStatus);
   const sla = leadSla({ createdAt: lead.createdAt, status: lead.status, bookingStatus: lead.bookingStatus });
+  const selfBook = selfBookBadge(lead);
   const sub = [lead.storeNumber && `Store ${lead.storeNumber}`, lead.city, lead.collectedOn && `collected ${lead.collectedOn}`].filter(Boolean).join(' · ');
 
   function setStatus(status: string) {
@@ -154,6 +178,7 @@ export function ScannedLeadRowItem({ lead, calls, showOffice, typeTag }: { lead:
           <span className="mt-0.5 block truncate text-xs text-gray-500">{sub || 'Mail-in test card'}</span>
         </span>
         <span className="hidden shrink-0 text-xs text-gray-500 md:inline">{lead.phone}</span>
+        {selfBook && <span className={`badge shrink-0 ${CHIP[selfBook.tone]}`} title="The customer requested a time on the self-booking page">{selfBook.label}</span>}
         {sla && <span className={`badge shrink-0 ${CHIP[sla.tone]}`} title="Call SLA — time since the lead came in, against the 24-48 hr promise">⏱ {sla.label}</span>}
         {bkg && <span className={`badge hidden shrink-0 sm:inline ${CHIP[bkg.tone]}`} title="Status in the booking system">{bkg.label}</span>}
         <span className={`badge shrink-0 ${CHIP[badge.tone]}`}>{badge.label}</span>
@@ -164,6 +189,16 @@ export function ScannedLeadRowItem({ lead, calls, showOffice, typeTag }: { lead:
         <div className="mb-2 text-sm text-gray-700">
           {lead.phone ? <a href={`tel:${lead.phone}`} className="font-semibold text-brand-700 hover:underline">📞 {lead.phone}</a> : <span className="text-gray-400">No phone on card</span>}
         </div>
+
+        {(lead.bookingRequestedAt || lead.bookingCallNow) && (
+          <div className={`mb-2 rounded-lg border p-2.5 text-sm ${lead.bookingCallNow ? 'border-red-200 bg-red-50 text-red-800' : 'border-teal-200 bg-teal-50 text-teal-800'}`}>
+            <div className="font-semibold">
+              {lead.bookingCallNow ? '📞 Customer asked us to call as soon as possible' : `📅 Customer requested: ${selfBookLabel(lead.bookingPreferredDay, lead.bookingWindow)}`}
+            </div>
+            {lead.bookingNote && <div className="mt-0.5 text-xs italic">“{lead.bookingNote}”</div>}
+            {lead.bookingRequestedAt && <div className="mt-0.5 text-[11px] opacity-75">via the booking link · {new Date(lead.bookingRequestedAt).toLocaleString('en-CA')}</div>}
+          </div>
+        )}
         <dl className="space-y-0.5 text-sm text-gray-600">
           {addr && <div>{addr}</div>}
           {water && <div className="text-xs text-gray-500">{water}</div>}
