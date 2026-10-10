@@ -21,13 +21,13 @@ interface NavItem {
 // key from ADMIN_SECTIONS; unauthorized keys are filtered out and empty groups
 // are dropped.
 const NAV_GROUPS: { label: string; keys: string[] }[] = [
-  { label: 'Deals', keys: ['review-queue', 'cancellations', 'remittances', 'customer-search'] },
+  { label: 'Deals', keys: ['review-queue', 'confirmations', 'cancellations', 'remittances', 'customer-search'] },
   { label: 'Reporting', keys: ['reports', 'report-visibility', 'leads'] },
   { label: 'Dealers', keys: ['dealers', 'directory', 'dealer-documents', 'user-requests', 'support-contacts'] },
   { label: 'Catalog', keys: ['products', 'finance', 'resource-library'] },
-  { label: 'Dealer comms', keys: ['content', 'marketplace', 'announcements', 'dashboard-hero', 'login-screen', 'alerts', 'reminders', 'note-templates'] },
+  { label: 'Dealer comms', keys: ['content', 'marketplace', 'announcements', 'dashboard-hero', 'login-screen', 'alerts', 'reminders', 'note-templates', 'lead-texting', 'zoom-recordings'] },
   { label: 'People', keys: ['users'] },
-  { label: 'System', keys: ['email', 'security', 'system-health', 'costs', 'audit'] },
+  { label: 'System', keys: ['email', 'security', 'system-health', 'costs', 'mail-in-billing', 'audit'] },
 ];
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
