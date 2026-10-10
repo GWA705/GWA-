@@ -3,6 +3,7 @@
 import { useFormState, useFormStatus } from 'react-dom';
 import { saveLeadTextSettingsAction, sendLeadTextTestAction } from '@/app/(admin)/actions';
 import type { ActionState } from '@/app/(admin)/actions';
+import { WEEKDAYS } from '@/lib/businessDays';
 
 interface Config {
   enabled: boolean;
@@ -15,6 +16,8 @@ interface Config {
   followups: boolean;
   day1Hours: number;
   missHours: number;
+  followupWorkdaysOnly: boolean;
+  workdays: number[];
   bookingLink: boolean;
   reactivation: boolean;
   reactivationDays: number;
@@ -119,6 +122,30 @@ export function LeadTextSettingsForm({ config }: { config: Config }) {
             </label>
           </div>
           <p className="mt-1 text-xs text-gray-400">Default 24 then 48 hours — matching the 24–48 hr call promise. The missed-window text must come after the day-1 one.</p>
+
+          <div className="mt-4 rounded-md border border-dashed border-gray-200 bg-slate-50/60 p-4">
+            <label className="flex items-start gap-3">
+              <input type="checkbox" name="followupWorkdaysOnly" defaultChecked={config.followupWorkdaysOnly} className="mt-0.5 h-4 w-4" />
+              <span>
+                <span className="font-medium text-gray-900">Only send reminders on working days</span>
+                <span className="block text-xs text-gray-500">
+                  The welcome text still goes out right away, any day. But the day-1 reminder, missed-window and
+                  reactivation texts wait for the next working day you pick below — so leads that come in Friday
+                  through Sunday aren&rsquo;t nudged until your bookers are back. Two reminders for the same customer
+                  won&rsquo;t land on the same day.
+                </span>
+              </span>
+            </label>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {WEEKDAYS.map((w) => (
+                <label key={w.n} className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-sm text-gray-700">
+                  <input type="checkbox" name="workdays" value={w.n} defaultChecked={config.workdays.includes(w.n)} className="h-4 w-4" />
+                  {w.short}
+                </label>
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-gray-400">Default Mon–Fri. Uncheck any day you have no booking staff in.</p>
+          </div>
 
           <label className="mt-4 flex items-start gap-3">
             <input type="checkbox" name="bookingLink" defaultChecked={config.bookingLink} className="mt-0.5 h-4 w-4" />

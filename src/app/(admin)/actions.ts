@@ -27,6 +27,7 @@ import { getTwilioUsage, type TwilioUsage } from '@/lib/twilioUsage';
 import { buildInviteEmail } from '@/lib/email-templates';
 import { setSetting, EMAIL_SETTING_KEYS, BANNER_SETTING_KEYS, SECURITY_SETTING_KEYS, MFA_TRUST_DAY_OPTIONS, DEFAULT_MFA_TRUST_DAYS, type MfaRequirement } from '@/lib/settings';
 import { LEAD_TEXT_KEYS, renderLeadTextBody, leadTextConfig, pickSender, type LeadTextSource } from '@/lib/leadText';
+import { serializeWorkdays, DEFAULT_WORKDAYS } from '@/lib/businessDays';
 import { VOICE_KEYS } from '@/lib/voice';
 import { syncZoomRecordings } from '@/lib/zoomSync';
 import { parseDealerProfileForm, readExtraContacts, type OfficeContact } from '@/lib/dealerProfile';
@@ -235,6 +236,11 @@ export async function saveLeadTextSettingsAction(_prev: ActionState, formData: F
   const followups = formData.get('followups') === 'on';
   const day1Hours = Number(formData.get('day1Hours'));
   const missHours = Number(formData.get('missHours'));
+  const followupWorkdaysOnly = formData.get('followupWorkdaysOnly') === 'on';
+  const workdaysSel = formData
+    .getAll('workdays')
+    .map((v) => parseInt(String(v), 10))
+    .filter((n) => Number.isInteger(n) && n >= 0 && n <= 6);
   const bookingLink = formData.get('bookingLink') === 'on';
   const reactivation = formData.get('reactivation') === 'on';
   const reactivationDays = Number(formData.get('reactivationDays'));
@@ -263,6 +269,9 @@ export async function saveLeadTextSettingsAction(_prev: ActionState, formData: F
   if (followups && (!Number.isFinite(day1Hours) || !Number.isFinite(missHours) || day1Hours < 1 || missHours <= day1Hours || missHours > 168)) {
     return { error: 'Follow-up timing must be hours with the missed-window after the day-1 reminder (e.g. 24 then 48), up to 168.' };
   }
+  if (followupWorkdaysOnly && workdaysSel.length === 0) {
+    return { error: 'Pick at least one working day for the reminder texts, or turn “only on working days” off.' };
+  }
 
   await setSetting(LEAD_TEXT_KEYS.enabled, enabled ? 'true' : 'false');
   await setSetting(LEAD_TEXT_KEYS.testMode, testMode ? 'true' : 'false');
@@ -274,6 +283,8 @@ export async function saveLeadTextSettingsAction(_prev: ActionState, formData: F
   await setSetting(LEAD_TEXT_KEYS.followups, followups ? 'true' : 'false');
   if (Number.isFinite(day1Hours) && day1Hours >= 1) await setSetting(LEAD_TEXT_KEYS.day1Hours, String(Math.round(day1Hours)));
   if (Number.isFinite(missHours) && missHours >= 1) await setSetting(LEAD_TEXT_KEYS.missHours, String(Math.round(missHours)));
+  await setSetting(LEAD_TEXT_KEYS.followupWorkdaysOnly, followupWorkdaysOnly ? 'true' : 'false');
+  await setSetting(LEAD_TEXT_KEYS.followupWorkdays, serializeWorkdays(workdaysSel.length ? workdaysSel : DEFAULT_WORKDAYS));
   await setSetting(LEAD_TEXT_KEYS.bookingLink, bookingLink ? 'true' : 'false');
   await setSetting(LEAD_TEXT_KEYS.reactivation, reactivation ? 'true' : 'false');
   if (Number.isFinite(reactivationDays) && reactivationDays >= 1) await setSetting(LEAD_TEXT_KEYS.reactivationDays, String(Math.round(reactivationDays)));

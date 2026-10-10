@@ -3,6 +3,7 @@ import { prisma } from './db';
 import { getSettings } from './settings';
 import { toE164, sendSms } from './sms';
 import { bookingUrlFor } from './leadBooking';
+import { parseWorkdays, isWorkday } from './businessDays';
 
 /**
  * Customer "we received your request" auto-text.
@@ -34,6 +35,10 @@ export const LEAD_TEXT_KEYS = {
   followups: 'leadText.followups',
   day1Hours: 'leadText.day1Hours',
   missHours: 'leadText.missHours',
+  // Only send the reminder/missed-window/reactivation texts on working days
+  // (the welcome/confirm text is never gated — it always goes out).
+  followupWorkdaysOnly: 'leadText.followupWorkdaysOnly',
+  followupWorkdays: 'leadText.followupWorkdays',
   // Include a self-booking link in the follow-up texts (Phase 2).
   bookingLink: 'leadText.bookingLink',
   // Aged-lead reactivation (Phase 2).
@@ -57,6 +62,8 @@ export interface LeadTextConfig {
   followups: boolean; // schedule the DAY1 + MISSED_WINDOW follow-ups
   day1Hours: number; // hours after the confirm to send the day-1 reminder
   missHours: number; // hours after the confirm to send the missed-window text
+  followupWorkdaysOnly: boolean; // hold reminders until a working day
+  followupWorkdays: Set<number>; // which weekdays reminders may send (0=Sun..6=Sat)
   bookingLink: boolean; // append a self-booking link to the follow-up texts
   reactivation: boolean; // text aged, still-unworked leads once more
   reactivationDays: number; // a lead must be at least this old to be reactivated
@@ -89,6 +96,9 @@ export async function leadTextConfig(): Promise<LeadTextConfig> {
     followups: s[LEAD_TEXT_KEYS.followups] !== 'false',
     day1Hours: Number.isFinite(d1) && d1 > 0 ? d1 : 24,
     missHours: Number.isFinite(mw) && mw > 0 ? mw : 48,
+    // Working-days gate for reminders is opt-in; default day set is Mon–Fri.
+    followupWorkdaysOnly: s[LEAD_TEXT_KEYS.followupWorkdaysOnly] === 'true',
+    followupWorkdays: parseWorkdays(s[LEAD_TEXT_KEYS.followupWorkdays]),
     // Self-booking link is opt-in (off until the booking page is ready to share).
     bookingLink: s[LEAD_TEXT_KEYS.bookingLink] === 'true',
     // Reactivation is opt-in. Default window: 7 days old, up to 150 days (well
@@ -422,6 +432,34 @@ export async function processDueLeadTexts(limit = 200): Promise<SweepCounts> {
     if (!inDaytimeWindow(now, row.province, cfg.quietStart, cfg.quietEnd)) {
       counts.held += 1;
       continue; // leave PENDING; a later sweep in-window picks it up
+    }
+
+    // Working-days gate — reminders only (the CONFIRM welcome text is never held).
+    // A lead that lands Fri–Sun still gets its welcome right away, but the day-1,
+    // missed-window and reactivation texts wait for the next configured working day,
+    // so we don't nudge customers when no bookers are in to call.
+    const isFollowup = row.kind === 'DAY1' || row.kind === 'MISSED_WINDOW' || row.kind === 'REACTIVATION';
+    if (isFollowup && cfg.followupWorkdaysOnly) {
+      if (!isWorkday(now, provinceTimezone(row.province), cfg.followupWorkdays)) {
+        counts.held += 1;
+        continue; // not a working day in the customer's zone — try a later sweep
+      }
+      // Don't bombard: if a weekend hold has bunched two reminders for the same
+      // lead onto one day, send only the earlier one now and leave the next for
+      // tomorrow (a ~12h floor between reminders to the same customer).
+      const base = row.leadKey.replace(/#(d1|mw|re)$/, '');
+      const recentSibling = await prisma.leadTextOutbox.findFirst({
+        where: {
+          leadKey: { in: [`${base}#d1`, `${base}#mw`, `${base}#re`], not: row.leadKey },
+          status: 'SENT',
+          sentAt: { gte: new Date(now.getTime() - 12 * 60 * 60 * 1000) },
+        },
+        select: { leadKey: true },
+      });
+      if (recentSibling) {
+        counts.held += 1;
+        continue;
+      }
     }
 
     const opted = await prisma.smsOptOut.findUnique({ where: { phone: row.phone } });

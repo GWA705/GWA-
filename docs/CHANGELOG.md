@@ -38,6 +38,21 @@ source of truth; this file is the human-readable index.
 | HD Resolution ↔ Gmail email link | ✅ **Live & verified** (2026-10-07, Sean) | Read-only Gmail via the existing service account (`gwa-journal-writer@gwa-portal-504012…`, project **"GWA Portal"** `gwa-portal-504012`, Unique ID `100470797238569934976`), impersonating `sean@ghsbarrie.ca` + the `HD Resolution` label. All switches done: Gmail API enabled, Workspace domain-wide delegation (`…/auth/gmail.readonly`), `GMAIL_RESOLUTION_USER=sean@ghsbarrie.ca` on EB. **Verified end-to-end** — the Email inbox lists real HD threads and "Open as case" links the thread + auto-fills. 30-min sync `resolution-email-sync.yml` (reuses `CRON_SECRET`). Steps/facts: `HD-RESOLUTION-EMAIL.md`, `BUILD-FACTS.md`. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### Lead reminders: "only on working days" so weekends don't nudge customers (2026-10-10)
+- New option on **Admin → Lead auto-text**: **Only send reminders on working days**,
+  with a Mon–Sun day picker (default **Mon–Fri**). When on, the day-1 reminder,
+  missed-window and reactivation texts are **held** until the next working day in the
+  customer's own timezone. The **welcome/confirmation text is never gated** — it still
+  goes out right away, any day — so a lead that lands Fri/Sat/Sun is acknowledged
+  immediately but not reminded until bookers are back.
+- Anti-bombard: when a weekend hold bunches two reminders for the same lead onto one
+  day, only the earlier sends; the next waits (a ~12h floor between reminders to the
+  same customer).
+- Reuses the sweep's existing "hold outside the daytime window" pattern — no new cron.
+  Pure helper `src/lib/businessDays.ts` (+ `tests/businessDays.test.ts`); config keys
+  `leadText.followupWorkdaysOnly` / `leadText.followupWorkdays` in AppSetting. Opt-in
+  (off until the box is ticked) so no behaviour change on its own.
+
 ### Document viewer: tap outside the file to close it (2026-10-09)
 - In the full-screen document viewer (deal docs, mail attachments, resource files,
   the HD waiver — anything opened with `DocViewer`), **clicking/tapping the dark

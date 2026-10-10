@@ -81,6 +81,8 @@ export default async function LeadTextingAdminPage() {
             followups: cfg.followups,
             day1Hours: cfg.day1Hours,
             missHours: cfg.missHours,
+            followupWorkdaysOnly: cfg.followupWorkdaysOnly,
+            workdays: Array.from(cfg.followupWorkdays),
             bookingLink: cfg.bookingLink,
             reactivation: cfg.reactivation,
             reactivationDays: cfg.reactivationDays,
