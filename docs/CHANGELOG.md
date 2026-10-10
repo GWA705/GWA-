@@ -678,6 +678,18 @@ exhausting the single instance). No behaviour change for normal use.
   free-text via DeepL.
 
 ## 2026-10-10
+- **Mail-in billing — per-office invoices with adjustable rates.** Admin → Mail-in
+  billing now generates a printable **invoice per office** for the selected month:
+  Georgian Water & Air's canonical header block (from the brand kit) at the top, the
+  office's "bill to" (name + address + contact from its dealer profile), and line
+  items — **$ per lead × billable leads** and **$ per envelope × envelopes** (plus an
+  optional HST line). **Rates are editable** on the page (per-lead, per-envelope, HST %
+  — stored in AppSetting, no redeploy), and the **envelope count is adjustable on each
+  invoice** before printing (defaults to one per lead). The billable table shows each
+  office's dollar amount + a "View / print" link; the invoice page has a Print / Save-
+  as-PDF button with print-only CSS (drops the portal chrome). Pure math in
+  `billingMath.ts` (tested). Files: `billing.ts`, `billingMath.ts`,
+  `mail-in-billing/*`, `(admin)/actions.ts`.
 - **Lead pipeline Phase 2 — customer self-booking link.** Each scanned/mail-in lead
   gets an unguessable token and a **public, no-login page `/book/<token>`** where the
   customer picks a **preferred day + time window** (or taps **"call me as soon as

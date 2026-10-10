@@ -1,6 +1,9 @@
+import Link from 'next/link';
 import { requireAdminSection } from '@/lib/session';
 import { LeadsSelect } from '@/components/LeadsSelect';
 import { mailInLeadsReport, monthWindow, recentMonthKeys } from '@/lib/reporting/mailInLeads';
+import { getBillingConfig, computeInvoice, money } from '@/lib/billing';
+import { BillingRatesForm } from './BillingRatesForm';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,6 +33,9 @@ export default async function MailInBillingPage({ searchParams }: { searchParams
       : months.find((m) => m.value === monthParam)?.label ?? monthParam;
 
   const billableRows = report.rows.filter((r) => r.billable > 0);
+  const cfg = await getBillingConfig();
+  // Default envelopes = one per lead; adjustable on each invoice before printing.
+  const grandTotal = billableRows.reduce((s, r) => s + computeInvoice(r.billable, r.billable, cfg).total, 0);
 
   return (
     <div className="max-w-4xl space-y-6">
@@ -59,6 +65,13 @@ export default async function MailInBillingPage({ searchParams }: { searchParams
         <Tile label="Total mail-in leads" value={report.totals.total} />
       </div>
 
+      {/* Billing rates (editable) */}
+      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        <h2 className="mb-1 text-sm font-semibold text-gray-900">Billing rates</h2>
+        <p className="mb-3 text-xs text-gray-500">What each office is charged. Used on every invoice. Change here anytime — no redeploy.</p>
+        <BillingRatesForm leadRate={cfg.leadRate} envelopeRate={cfg.envelopeRate} hstPercent={cfg.hstPercent} />
+      </section>
+
       {/* Report A — Billable */}
       <section className="rounded-2xl border border-gray-200 bg-white shadow-sm">
         <div className="border-b border-gray-100 px-5 py-3">
@@ -68,26 +81,43 @@ export default async function MailInBillingPage({ searchParams }: { searchParams
         {billableRows.length === 0 ? (
           <p className="px-5 py-6 text-sm text-gray-400">No billable mail-in leads for {periodLabel.toLowerCase()}.</p>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100 text-left text-[11px] uppercase tracking-wide text-gray-400">
-                <th className="py-2 pl-5 pr-2 font-medium">Office</th>
-                <th className="py-2 px-5 text-right font-medium">Billable leads</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {billableRows.map((r) => (
-                <tr key={r.dealerId ?? 'unassigned'}>
-                  <td className="py-2.5 pl-5 pr-2 font-medium text-gray-900">{r.officeName}</td>
-                  <td className="py-2.5 px-5 text-right font-bold tabular-nums text-emerald-700">{nf(r.billable)}</td>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[520px] text-sm">
+              <thead>
+                <tr className="border-b border-gray-100 text-left text-[11px] uppercase tracking-wide text-gray-400">
+                  <th className="py-2 pl-5 pr-2 font-medium">Office</th>
+                  <th className="py-2 px-2 text-right font-medium">Billable leads</th>
+                  <th className="py-2 px-2 text-right font-medium">Amount</th>
+                  <th className="py-2 px-5 text-right font-medium">Invoice</th>
                 </tr>
-              ))}
-              <tr className="bg-gray-50 font-semibold">
-                <td className="py-2.5 pl-5 pr-2 text-gray-900">Total billable</td>
-                <td className="py-2.5 px-5 text-right tabular-nums text-emerald-700">{nf(report.totals.billable)}</td>
-              </tr>
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {billableRows.map((r) => {
+                  const amt = computeInvoice(r.billable, r.billable, cfg);
+                  return (
+                    <tr key={r.dealerId ?? 'unassigned'}>
+                      <td className="py-2.5 pl-5 pr-2 font-medium text-gray-900">{r.officeName}</td>
+                      <td className="py-2.5 px-2 text-right font-bold tabular-nums text-emerald-700">{nf(r.billable)}</td>
+                      <td className="py-2.5 px-2 text-right tabular-nums text-gray-900">{money(amt.total)}</td>
+                      <td className="py-2.5 px-5 text-right">
+                        {r.dealerId ? (
+                          <Link href={`/admin/mail-in-billing/invoice/${r.dealerId}?month=${monthParam}`} className="font-medium text-sky-700 hover:underline">View / print →</Link>
+                        ) : (
+                          <span className="text-xs text-gray-400" title="No office matched — assign the store to an office to invoice it">unassigned</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+                <tr className="bg-gray-50 font-semibold">
+                  <td className="py-2.5 pl-5 pr-2 text-gray-900">Total billable</td>
+                  <td className="py-2.5 px-2 text-right tabular-nums text-emerald-700">{nf(report.totals.billable)}</td>
+                  <td className="py-2.5 px-2 text-right tabular-nums text-gray-900">{money(grandTotal)}</td>
+                  <td className="py-2.5 px-5" />
+                </tr>
+              </tbody>
+            </table>
+          </div>
         )}
       </section>
 
@@ -136,7 +166,8 @@ export default async function MailInBillingPage({ searchParams }: { searchParams
 
       <p className="text-[11px] text-gray-400">
         Billing starts counting from when the &ldquo;uploaded by&rdquo; flag shipped — leads scanned before then show as
-        office-uploaded. A per-lead billing rate can be added here when you&rsquo;re ready to invoice.
+        office-uploaded. Each invoice defaults to one envelope per lead; adjust the envelope count on the invoice before
+        printing. An office needs an address (Admin → Dealers) for its invoice to show a &ldquo;bill to&rdquo; block.
       </p>
     </div>
   );

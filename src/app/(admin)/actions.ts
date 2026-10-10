@@ -32,6 +32,7 @@ import { parseDealerProfileForm, readExtraContacts, type OfficeContact } from '@
 import type { Prisma } from '@prisma/client';
 import { applyDealerLogo, applySupportContactLogo } from '@/lib/dealerLogo';
 import { saveCostConfig, type CostConfig } from '@/lib/costs';
+import { saveBillingConfig } from '@/lib/billing';
 import { geocodeOSM } from '@/lib/osmGeocode';
 import { wipeDeals, wipeMail } from '@/lib/goLiveReset';
 import { ONBOARD_CODE_KEY } from '@/lib/onboard';
@@ -294,6 +295,22 @@ export async function sendLeadTextTestAction(_prev: ActionState, formData: FormD
 
   if (result.sent) return { ok: true, message: `Sample ${result.channel ?? 'text'} sent to your test number (${to}).` };
   return { error: `Could not send: ${result.reason || 'unknown error'}. If the number isn’t verified for Canada yet, carriers will block it.` };
+}
+
+// Save the mail-in billing rates (per lead, per envelope, HST %). Editable
+// without a redeploy; drives the per-office invoices.
+export async function saveBillingRatesAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdminSection('mail-in-billing');
+  const leadRate = Number(formData.get('leadRate'));
+  const envelopeRate = Number(formData.get('envelopeRate'));
+  const hstPercent = Number(formData.get('hstPercent'));
+  if (![leadRate, envelopeRate, hstPercent].every((n) => Number.isFinite(n) && n >= 0)) {
+    return { error: 'Rates must be zero or more.' };
+  }
+  if (hstPercent > 100) return { error: 'HST % looks too high.' };
+  await saveBillingConfig({ leadRate, envelopeRate, hstPercent });
+  revalidatePath('/admin/mail-in-billing');
+  return { ok: true, message: 'Rates saved.' };
 }
 
 // Pull recent Zoom cloud recordings into the review queue now.
