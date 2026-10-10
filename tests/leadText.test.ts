@@ -79,6 +79,15 @@ describe('follow-up message kinds', () => {
     expect(d1).not.toMatch(/[«»“”’—]/);
   });
 
+  it('reactivation is a friendly "still available" nudge with STOP', () => {
+    const m = renderLeadTextBody('SCANNED', 'ON', 'REACTIVATION');
+    expect(m).toContain('Georgian Water & Air');
+    expect(m.toLowerCase()).toContain('still available');
+    expect(m.toUpperCase()).toContain('STOP');
+    expect(m).not.toMatch(/[«»“”’—]/);
+    expect(renderLeadTextBody('SCANNED', 'QC', 'REACTIVATION')).toMatch(/toujours disponible/i);
+  });
+
   it('omits the booking link when no url is provided, and never on the confirmation', () => {
     expect(renderLeadTextBody('SCANNED', 'ON', 'DAY1')).not.toContain('/book/');
     expect(renderLeadTextBody('SCANNED', 'ON', 'CONFIRM', { bookingUrl: 'https://x/book/zzz' })).not.toContain('/book/');

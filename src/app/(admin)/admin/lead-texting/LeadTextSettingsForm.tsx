@@ -16,6 +16,9 @@ interface Config {
   day1Hours: number;
   missHours: number;
   bookingLink: boolean;
+  reactivation: boolean;
+  reactivationDays: number;
+  reactivationMaxDays: number;
 }
 
 function SaveBtn() {
@@ -127,6 +130,30 @@ export function LeadTextSettingsForm({ config }: { config: Config }) {
               </span>
             </span>
           </label>
+        </div>
+
+        <div className="border-t border-gray-100 pt-5">
+          <label className="flex items-start gap-3">
+            <input type="checkbox" name="reactivation" defaultChecked={config.reactivation} className="mt-0.5 h-4 w-4" />
+            <span>
+              <span className="font-medium text-gray-900">Reactivate aged leads</span>
+              <span className="block text-xs text-gray-500">
+                Send one more &ldquo;still available?&rdquo; text to scanned/mail-in leads that are still new (never contacted
+                or booked) after the follow-ups ran. Sent once per lead, within the age window below.
+              </span>
+            </span>
+          </label>
+          <div className="mt-3 grid gap-4 sm:grid-cols-2">
+            <label className="block">
+              <span className="label">Reactivate after (days old)</span>
+              <input name="reactivationDays" type="number" min={1} max={180} defaultValue={config.reactivationDays} className="input" />
+            </label>
+            <label className="block">
+              <span className="label">…but not older than (days)</span>
+              <input name="reactivationMaxDays" type="number" min={2} max={180} defaultValue={config.reactivationMaxDays} className="input" />
+            </label>
+          </div>
+          <p className="mt-1 text-xs text-gray-400">Default 7 to 150 days. The cap keeps reactivation inside CASL&rsquo;s 6-month implied-consent window for an inquiry.</p>
         </div>
 
         <SaveBtn />

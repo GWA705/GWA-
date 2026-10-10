@@ -36,11 +36,15 @@ export const LEAD_TEXT_KEYS = {
   missHours: 'leadText.missHours',
   // Include a self-booking link in the follow-up texts (Phase 2).
   bookingLink: 'leadText.bookingLink',
+  // Aged-lead reactivation (Phase 2).
+  reactivation: 'leadText.reactivation',
+  reactivationDays: 'leadText.reactivationDays',
+  reactivationMaxDays: 'leadText.reactivationMaxDays',
 } as const;
 
 export type LeadTextSource = 'HD_SHEET' | 'SCANNED' | 'MAILIN';
 // Which message in the sequence this row is.
-export type LeadTextKind = 'CONFIRM' | 'DAY1' | 'MISSED_WINDOW';
+export type LeadTextKind = 'CONFIRM' | 'DAY1' | 'MISSED_WINDOW' | 'REACTIVATION';
 
 export interface LeadTextConfig {
   enabled: boolean;
@@ -54,6 +58,9 @@ export interface LeadTextConfig {
   day1Hours: number; // hours after the confirm to send the day-1 reminder
   missHours: number; // hours after the confirm to send the missed-window text
   bookingLink: boolean; // append a self-booking link to the follow-up texts
+  reactivation: boolean; // text aged, still-unworked leads once more
+  reactivationDays: number; // a lead must be at least this old to be reactivated
+  reactivationMaxDays: number; // and no older than this (stays within implied consent)
 }
 
 export async function leadTextConfig(): Promise<LeadTextConfig> {
@@ -84,6 +91,11 @@ export async function leadTextConfig(): Promise<LeadTextConfig> {
     missHours: Number.isFinite(mw) && mw > 0 ? mw : 48,
     // Self-booking link is opt-in (off until the booking page is ready to share).
     bookingLink: s[LEAD_TEXT_KEYS.bookingLink] === 'true',
+    // Reactivation is opt-in. Default window: 7 days old, up to 150 days (well
+    // inside CASL's 6-month implied-consent window for an inquiry).
+    reactivation: s[LEAD_TEXT_KEYS.reactivation] === 'true',
+    reactivationDays: (() => { const n = Number(s[LEAD_TEXT_KEYS.reactivationDays]); return Number.isFinite(n) && n >= 1 ? n : 7; })(),
+    reactivationMaxDays: (() => { const n = Number(s[LEAD_TEXT_KEYS.reactivationMaxDays]); return Number.isFinite(n) && n >= 2 ? n : 150; })(),
   };
 }
 
@@ -178,6 +190,16 @@ export function renderLeadTextBody(
       : `Home Depot Home Services (serviced by Georgian Water & Air): we're sorry we haven't reached you yet about your ` +
           `free in-home water assessment. We'll call you again within 36 hours. If a specific day or time is easier, just ` +
           `reply and we'll work around you.`;
+    return base + book + stop;
+  }
+
+  if (kind === 'REACTIVATION') {
+    // An aged, still-unworked lead — one friendly "still available" nudge.
+    const base = fr
+      ? `Home Depot Home Services (service assure par Georgian Water & Air): votre evaluation de l'eau a domicile gratuite ` +
+          `est toujours disponible quand vous etes pret. Repondez OUI et nous vous appellerons pour planifier.`
+      : `Home Depot Home Services (serviced by Georgian Water & Air): your free in-home water assessment is still available ` +
+          `whenever you're ready. Reply YES and we'll call to book.`;
     return base + book + stop;
   }
 
@@ -303,12 +325,65 @@ export async function enqueueLeadText(input: {
 export async function cancelLeadFollowups(baseLeadKey: string): Promise<void> {
   try {
     await prisma.leadTextOutbox.updateMany({
-      where: { leadKey: { in: [`${baseLeadKey}#d1`, `${baseLeadKey}#mw`] }, status: 'PENDING' },
+      where: { leadKey: { in: [`${baseLeadKey}#d1`, `${baseLeadKey}#mw`, `${baseLeadKey}#re`] }, status: 'PENDING' },
       data: { status: 'CANCELLED' },
     });
   } catch (e) {
     console.error('[leadText] cancelLeadFollowups failed', e);
   }
+}
+
+/**
+ * Queue a one-time "still available?" reactivation text for aged, still-unworked
+ * scanned/mail-in leads (status NEW, no booking activity, within the configured
+ * age window). Deduped by the "#re" key so each lead is reactivated at most once.
+ * Best-effort; returns how many were queued.
+ */
+export async function enqueueReactivationTexts(limit = 300): Promise<number> {
+  const cfg = await leadTextConfig();
+  if (!cfg.enabled || !cfg.reactivation) return 0;
+
+  const now = Date.now();
+  const olderThan = new Date(now - cfg.reactivationDays * 24 * 60 * 60 * 1000);
+  const notOlderThan = new Date(now - cfg.reactivationMaxDays * 24 * 60 * 60 * 1000);
+
+  const leads = await prisma.scannedLead.findMany({
+    where: {
+      status: 'NEW',
+      bookingStatus: null,
+      phone: { not: null },
+      createdAt: { lte: olderThan, gte: notOlderThan },
+    },
+    select: { id: true, phone: true, customerName: true, postalCode: true, dealerId: true, uploadedByGwa: true },
+    take: limit,
+  });
+
+  let queued = 0;
+  for (const l of leads) {
+    const phone = toE164(l.phone);
+    if (!phone) continue;
+    const opted = await prisma.smsOptOut.findUnique({ where: { phone } });
+    if (opted) continue;
+    try {
+      await prisma.leadTextOutbox.create({
+        data: {
+          leadKey: `s:${l.id}#re`,
+          source: l.uploadedByGwa ? 'MAILIN' : 'SCANNED',
+          kind: 'REACTIVATION',
+          dealerId: l.dealerId,
+          province: provinceFromPostalCode(l.postalCode),
+          phone,
+          customerName: l.customerName,
+          scheduledFor: new Date(),
+          status: 'PENDING',
+        },
+      });
+      queued += 1;
+    } catch {
+      // Already reactivated (dedupe on the #re key) — skip.
+    }
+  }
+  return queued;
 }
 
 export interface SweepCounts {
@@ -328,6 +403,11 @@ export async function processDueLeadTexts(limit = 200): Promise<SweepCounts> {
   const cfg = await leadTextConfig();
   const counts: SweepCounts = { sent: 0, failed: 0, skipped: 0, held: 0 };
   if (!cfg.enabled) return counts;
+
+  // First, queue any aged-lead reactivations due this run (best-effort).
+  if (cfg.reactivation) {
+    try { await enqueueReactivationTexts(); } catch (e) { console.error('[leadText] reactivation enqueue failed', e); }
+  }
 
   const now = new Date();
   const due = await prisma.leadTextOutbox.findMany({
@@ -356,7 +436,7 @@ export async function processDueLeadTexts(limit = 200): Promise<SweepCounts> {
     // This backstops the cancellation hooks so a missed hook can't text a customer
     // a booker already reached. Also grab the self-booking link for the message.
     let bookingUrl: string | null = null;
-    if (row.kind === 'DAY1' || row.kind === 'MISSED_WINDOW') {
+    if (row.kind === 'DAY1' || row.kind === 'MISSED_WINDOW' || row.kind === 'REACTIVATION') {
       const leadId = row.leadKey.match(/^s:([^#]+)/)?.[1];
       if (leadId) {
         const lead = await prisma.scannedLead.findUnique({ where: { id: leadId }, select: { status: true, bookingStatus: true, bookingToken: true } });

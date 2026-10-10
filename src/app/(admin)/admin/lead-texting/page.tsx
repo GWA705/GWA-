@@ -16,7 +16,7 @@ const STATUS_STYLE: Record<string, string> = {
   CANCELLED: 'bg-gray-100 text-gray-500',
 };
 
-const KIND_LABEL: Record<string, string> = { CONFIRM: 'Confirm', DAY1: 'Day 1', MISSED_WINDOW: 'Missed-window' };
+const KIND_LABEL: Record<string, string> = { CONFIRM: 'Confirm', DAY1: 'Day 1', MISSED_WINDOW: 'Missed-window', REACTIVATION: 'Reactivation' };
 
 function maskPhone(e164: string): string {
   return e164.replace(/^(\+\d{2})\d+(\d{2})$/, '$1•••$2');
@@ -38,6 +38,7 @@ export default async function LeadTextingAdminPage() {
     { label: 'Confirmation — online HD lead (EN)', text: renderLeadTextBody('HD_SHEET', 'ON') },
     { label: 'Day-1 reminder (EN)', text: renderLeadTextBody('SCANNED', 'ON', 'DAY1') },
     { label: 'Missed-window — call again in 36h (EN)', text: renderLeadTextBody('SCANNED', 'ON', 'MISSED_WINDOW') },
+    { label: 'Reactivation — still available? (EN)', text: renderLeadTextBody('SCANNED', 'ON', 'REACTIVATION') },
     { label: 'Confirmation — Quebec (FR)', text: renderLeadTextBody('HD_SHEET', 'QC') },
     { label: 'Missed-window — Quebec (FR)', text: renderLeadTextBody('SCANNED', 'QC', 'MISSED_WINDOW') },
   ];
@@ -78,6 +79,9 @@ export default async function LeadTextingAdminPage() {
             day1Hours: cfg.day1Hours,
             missHours: cfg.missHours,
             bookingLink: cfg.bookingLink,
+            reactivation: cfg.reactivation,
+            reactivationDays: cfg.reactivationDays,
+            reactivationMaxDays: cfg.reactivationMaxDays,
           }}
         />
       </div>

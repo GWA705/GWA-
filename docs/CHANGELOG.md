@@ -678,6 +678,13 @@ exhausting the single instance). No behaviour change for normal use.
   free-text via DeepL.
 
 ## 2026-10-10
+- **Lead pipeline Phase 2 — aged-lead reactivation.** A one-time "your free in-home
+  water assessment is still available — reply YES" text to scanned/mail-in leads that
+  are still **new** (never contacted or booked) after the follow-ups ran. A sweep pass
+  finds leads in the age window (default **7–150 days** old — the cap keeps it inside
+  CASL's 6-month implied-consent window) and queues one reactivation each (deduped by
+  a `#re` key), cancelled like the other follow-ups the moment the lead is worked or
+  opts out. Admin → Lead auto-text: toggle + age window + preview. Off by default.
 - **Mail-in billing — per-office invoices with adjustable rates.** Admin → Mail-in
   billing now generates a printable **invoice per office** for the selected month:
   Georgian Water & Air's canonical header block (from the brand kit) at the top, the
