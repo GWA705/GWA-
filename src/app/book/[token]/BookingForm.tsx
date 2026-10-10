@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { submitBookingRequestAction, type BookingState } from '../actions';
 import { BOOKING_WINDOW_LABEL } from '@/lib/bookingWindows';
@@ -37,9 +38,32 @@ function CallNowBtn() {
   );
 }
 
-export function BookingForm({ token, firstName }: { token: string; firstName: string }) {
+export function BookingForm({ token, firstName, canCallNow }: { token: string; firstName: string; canCallNow: boolean }) {
   const [state, action] = useFormState(submitBookingRequestAction, {} as BookingState);
   const days = nextDays(14);
+
+  // Live "connect me to a booker now" — only when staffed hours + voice is on.
+  const [call, setCall] = useState<'idle' | 'calling' | 'connected' | 'failed'>('idle');
+  async function liveCall() {
+    setCall('calling');
+    try {
+      const r = await fetch('/api/book/call', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token }) });
+      const j = await r.json().catch(() => ({ ok: false }));
+      setCall(j.ok ? 'connected' : 'failed');
+    } catch {
+      setCall('failed');
+    }
+  }
+
+  if (call === 'connected') {
+    return (
+      <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-5 text-center">
+        <div className="text-2xl">📞</div>
+        <h2 className="mt-2 text-base font-semibold text-gray-900">Calling you now</h2>
+        <p className="mt-1 text-sm text-gray-600">Your phone will ring in a moment — a Georgian Water &amp; Air booker is on the line. You can close this page.</p>
+      </div>
+    );
+  }
 
   if (state.ok) {
     return (
@@ -89,7 +113,21 @@ export function BookingForm({ token, firstName }: { token: string; firstName: st
       <div className="space-y-2 pt-1">
         <RequestBtn />
         <div className="flex items-center gap-3 text-xs text-gray-400"><span className="h-px flex-1 bg-gray-200" />or<span className="h-px flex-1 bg-gray-200" /></div>
-        <CallNowBtn />
+        {canCallNow && call !== 'failed' ? (
+          <button
+            type="button"
+            onClick={liveCall}
+            disabled={call === 'calling'}
+            className="w-full rounded-lg border border-gray-900 bg-gray-900 px-4 py-3 text-sm font-semibold text-white hover:bg-gray-800 disabled:opacity-50"
+          >
+            {call === 'calling' ? 'Connecting…' : '📞 Talk to a booker now'}
+          </button>
+        ) : (
+          <>
+            {call === 'failed' && <p className="text-center text-xs text-gray-500">Couldn’t connect a call right now — we’ll call you instead.</p>}
+            <CallNowBtn />
+          </>
+        )}
       </div>
     </form>
   );

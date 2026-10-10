@@ -3,7 +3,9 @@ import { requireAdminSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { smsEnabled } from '@/lib/sms';
 import { leadTextConfig, renderLeadTextBody } from '@/lib/leadText';
+import { clickToCallConfig, twilioVoiceCredsPresent } from '@/lib/voice';
 import { LeadTextSettingsForm } from './LeadTextSettingsForm';
+import { VoiceSettingsForm } from './VoiceSettingsForm';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,6 +27,7 @@ function maskPhone(e164: string): string {
 export default async function LeadTextingAdminPage() {
   await requireAdminSection('lead-texting');
   const cfg = await leadTextConfig();
+  const vcfg = await clickToCallConfig();
   const [recent, optOutCount, pendingCount] = await Promise.all([
     prisma.leadTextOutbox.findMany({ orderBy: { createdAt: 'desc' }, take: 20 }),
     prisma.smsOptOut.count(),
@@ -83,6 +86,24 @@ export default async function LeadTextingAdminPage() {
             reactivationDays: cfg.reactivationDays,
             reactivationMaxDays: cfg.reactivationMaxDays,
           }}
+        />
+      </div>
+
+      <div className="card p-6">
+        <h2 className="mb-1 text-base font-semibold text-gray-900">Live call — &ldquo;talk to a booker now&rdquo;</h2>
+        <p className="mb-4 text-xs text-gray-500">
+          On the customer self-booking page, offer a live connect during staffed hours: the portal rings your bookers&rsquo;
+          line, then dials the customer and bridges them. Only the number already on the lead is ever called.
+        </p>
+        <VoiceSettingsForm
+          config={{
+            clickToCall: vcfg.clickToCall,
+            bookingLine: vcfg.bookingLine ?? '',
+            fromNumber: vcfg.fromNumber ?? '',
+            hoursStart: vcfg.hoursStart,
+            hoursEnd: vcfg.hoursEnd,
+          }}
+          credsPresent={twilioVoiceCredsPresent()}
         />
       </div>
 

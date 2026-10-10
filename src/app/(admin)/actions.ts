@@ -27,6 +27,7 @@ import { getTwilioUsage, type TwilioUsage } from '@/lib/twilioUsage';
 import { buildInviteEmail } from '@/lib/email-templates';
 import { setSetting, EMAIL_SETTING_KEYS, BANNER_SETTING_KEYS, SECURITY_SETTING_KEYS, MFA_TRUST_DAY_OPTIONS, DEFAULT_MFA_TRUST_DAYS, type MfaRequirement } from '@/lib/settings';
 import { LEAD_TEXT_KEYS, renderLeadTextBody, leadTextConfig, pickSender, type LeadTextSource } from '@/lib/leadText';
+import { VOICE_KEYS } from '@/lib/voice';
 import { syncZoomRecordings } from '@/lib/zoomSync';
 import { parseDealerProfileForm, readExtraContacts, type OfficeContact } from '@/lib/dealerProfile';
 import type { Prisma } from '@prisma/client';
@@ -301,6 +302,41 @@ export async function sendLeadTextTestAction(_prev: ActionState, formData: FormD
 
   if (result.sent) return { ok: true, message: `Sample ${result.channel ?? 'text'} sent to your test number (${to}).` };
   return { error: `Could not send: ${result.reason || 'unknown error'}. If the number isn’t verified for Canada yet, carriers will block it.` };
+}
+
+// Save the live-agent "click to call" settings (bookers' line, caller ID, hours).
+export async function saveVoiceSettingsAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdminSection('lead-texting');
+  const clickToCall = formData.get('clickToCall') === 'on';
+  const bookingLineRaw = String(formData.get('bookingLine') || '').trim();
+  const fromRaw = String(formData.get('fromNumber') || '').trim();
+  const hoursStart = Number(formData.get('hoursStart'));
+  const hoursEnd = Number(formData.get('hoursEnd'));
+
+  let bookingLine = '';
+  if (bookingLineRaw) {
+    const e = toE164(bookingLineRaw);
+    if (!e) return { error: 'The bookers’ line isn’t a valid phone number.' };
+    bookingLine = e;
+  }
+  let fromNumber = '';
+  if (fromRaw) {
+    const e = toE164(fromRaw);
+    if (!e) return { error: 'The caller-ID number isn’t valid.' };
+    fromNumber = e;
+  }
+  if (clickToCall && !bookingLine) return { error: 'Add the bookers’ line before turning live call on.' };
+  if (!Number.isInteger(hoursStart) || !Number.isInteger(hoursEnd) || hoursStart < 0 || hoursEnd > 24 || hoursStart >= hoursEnd) {
+    return { error: 'Call hours must be whole hours 0–24 with start before end.' };
+  }
+
+  await setSetting(VOICE_KEYS.clickToCall, clickToCall ? 'true' : 'false');
+  await setSetting(VOICE_KEYS.bookingLine, bookingLine);
+  await setSetting(VOICE_KEYS.fromNumber, fromNumber);
+  await setSetting(VOICE_KEYS.hoursStart, String(hoursStart));
+  await setSetting(VOICE_KEYS.hoursEnd, String(hoursEnd));
+  revalidatePath('/admin/lead-texting');
+  return { ok: true, message: clickToCall ? 'Saved. Live call is ON.' : 'Saved. Live call is OFF.' };
 }
 
 // Save the mail-in billing rates (per lead, per envelope, HST %). Editable

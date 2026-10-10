@@ -1,5 +1,7 @@
 import { prisma } from '@/lib/db';
 import { bookingRequestLabel } from '@/lib/leadBooking';
+import { provinceFromPostalCode } from '@/lib/leadText';
+import { clickToCallAvailable } from '@/lib/voice';
 import { BookingForm } from './BookingForm';
 
 export const dynamic = 'force-dynamic';
@@ -27,7 +29,7 @@ export default async function BookingPage({ params }: { params: { token: string 
   const lead = await prisma.scannedLead.findUnique({
     where: { bookingToken: params.token },
     select: {
-      id: true, customerName: true, status: true, bookingStatus: true,
+      id: true, customerName: true, status: true, bookingStatus: true, postalCode: true,
       bookingRequestedAt: true, bookingCallNow: true, bookingPreferredDay: true, bookingWindow: true,
     },
   });
@@ -64,6 +66,7 @@ export default async function BookingPage({ params }: { params: { token: string 
 
   const firstName = firstNameOf(lead.customerName);
   const alreadyRequested = !!lead.bookingRequestedAt;
+  const canCallNow = await clickToCallAvailable(provinceFromPostalCode(lead.postalCode));
 
   return (
     <Shell>
@@ -82,7 +85,7 @@ export default async function BookingPage({ params }: { params: { token: string 
         </div>
       )}
 
-      <BookingForm token={params.token} firstName={firstName} />
+      <BookingForm token={params.token} firstName={firstName} canCallNow={canCallNow} />
     </Shell>
   );
 }

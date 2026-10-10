@@ -678,6 +678,18 @@ exhausting the single instance). No behaviour change for normal use.
   free-text via DeepL.
 
 ## 2026-10-10
+- **Lead pipeline Phase 2 — live-agent "talk to a booker now" (click-to-call).** On
+  the customer self-booking page, during staffed hours the "call me" option becomes
+  a **live connect**: the portal rings the **bookers' line** first (a Twilio Voice
+  call), and when a booker answers it **dials the customer and bridges them** — a
+  human is always on before the customer's phone rings. Token-gated + rate-limited,
+  and it **only ever dials the number already on the lead** (never a number from the
+  public page), so it can't ring arbitrary people. Outside hours / when off, it
+  falls back to the existing call-back request. Admin → Lead auto-text has a new
+  **Live call** card (toggle + bookers' line + caller ID + hours); reuses the
+  existing Twilio account. Off by default. Files: `voice.ts` (click-to-call added
+  alongside the recording groundwork), `api/book/call`, `book/[token]/BookingForm.tsx`,
+  `(admin)/actions.ts`, lead-texting admin page/form.
 - **Lead pipeline Phase 2 — aged-lead reactivation.** A one-time "your free in-home
   water assessment is still available — reply YES" text to scanned/mail-in leads that
   are still **new** (never contacted or booked) after the follow-ups ran. A sweep pass
