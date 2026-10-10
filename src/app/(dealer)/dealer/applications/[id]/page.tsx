@@ -344,8 +344,11 @@ export default async function DealerApplicationDetail({
       </section>
 
       {/* HD Customer Approval Waiver — attached automatically to every Home Depot
-          deal (no upload needed). Dealer can view / download it here. */}
-      {app.programType === 'HD' && (
+          deal (no upload needed), as a convenience in the early application/approval
+          phase. Once the deal reaches "produce install documents" (DOCS_SENT) and
+          beyond, the reviewer's waiver shows under "Paperwork for Customer", so this
+          standalone card is hidden to avoid showing the waiver twice. */}
+      {app.programType === 'HD' && ['DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'CONDITIONAL', 'APPROVED', 'PROBLEM'].includes(app.status) && (
         <section className="card p-6">
           <h2 className="mb-3 border-l-4 border-brand-500 pl-2.5 text-lg font-bold text-gray-900">{t('dealDetail.hdWaiverTitle')}</h2>
           <HdWaiverCard title={t('dealDetail.hdWaiverTitle')} hint={t('dealDetail.hdWaiverHint')} />
