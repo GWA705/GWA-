@@ -38,6 +38,19 @@ source of truth; this file is the human-readable index.
 | HD Resolution ↔ Gmail email link | ✅ **Live & verified** (2026-10-07, Sean) | Read-only Gmail via the existing service account (`gwa-journal-writer@gwa-portal-504012…`, project **"GWA Portal"** `gwa-portal-504012`, Unique ID `100470797238569934976`), impersonating `sean@ghsbarrie.ca` + the `HD Resolution` label. All switches done: Gmail API enabled, Workspace domain-wide delegation (`…/auth/gmail.readonly`), `GMAIL_RESOLUTION_USER=sean@ghsbarrie.ca` on EB. **Verified end-to-end** — the Email inbox lists real HD threads and "Open as case" links the thread + auto-fills. 30-min sync `resolution-email-sync.yml` (reuses `CRON_SECRET`). Steps/facts: `HD-RESOLUTION-EMAIL.md`, `BUILD-FACTS.md`. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### Marketplace: auto-rotating "New Arrivals" showcase (2026-10-11)
+- The New Arrivals strip now curates itself so it never goes stale and nobody has to
+  mind it. Each week it shows: genuinely new items (added within the fresh window,
+  auto-"New" badge), any items an admin marked **Featured** (always pinned), then a
+  **weekly-rotating** fill from the back catalogue so different products get their turn.
+- Deterministic by ISO week — same for every dealer within a week, changes on its own
+  at the week boundary (Monday). Computed at render: **no cron, no DB writes**, can't
+  drift or fail silently. Newly uploaded items appear immediately (not only at the week flip).
+- Admin → Marketplace has a **New Arrivals showcase** card: on/off, how many items to
+  show, and how long a product counts as "new". Off = back to showing only Featured items.
+- Pure `src/lib/marketplaceSpotlight.ts` (+ tests); `src/lib/marketplace.ts` config;
+  dealer page computes the set and the existing grid follows it; admin form + action.
+
 ### CASL: program-info/opt-out page, in-message info link, HELP auto-reply (2026-10-11)
 - New public page **`/sms`** — the text-message program info + opt-out page: who's
   texting (Georgian Water & Air for Home Depot Home Services), why, what to expect,

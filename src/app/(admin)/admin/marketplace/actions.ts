@@ -8,6 +8,8 @@ import { toTitleCase, sentenceOrNull } from '@/lib/textcase';
 import { MARKETPLACE_TAG_KEYS } from '@/lib/constants';
 import { audit } from '@/lib/audit';
 import { setSetting, MARKETPLACE_SETTING_KEYS } from '@/lib/settings';
+import { saveSpotlightConfig } from '@/lib/marketplace';
+import { SPOTLIGHT_DEFAULTS } from '@/lib/marketplaceSpotlight';
 import { putDocument, deleteDocument } from '@/lib/storage';
 import { normalizeProductImage } from '@/lib/image';
 import { MAX_FILE_BYTES, MARKETPLACE_FILE_MIME_TYPES } from '@/lib/constants';
@@ -243,5 +245,21 @@ export async function saveOrderEmailAction(_prev: { ok?: boolean }, formData: Fo
   await setSetting(MARKETPLACE_SETTING_KEYS.orderEmail, (formData.get('orderEmail') ?? '').toString());
   await audit({ actorId: session.userId, action: 'CONTENT_UPDATE', entityType: 'AppSetting', entityId: MARKETPLACE_SETTING_KEYS.orderEmail });
   revalidatePath('/admin/marketplace');
+  return { ok: true };
+}
+
+export async function saveSpotlightSettingsAction(_prev: { ok?: boolean }, formData: FormData): Promise<{ ok?: boolean }> {
+  const session = await requireAdminSection('marketplace');
+  const enabled = formData.get('enabled') === 'on';
+  const targetCount = Number(formData.get('targetCount'));
+  const freshDays = Number(formData.get('freshDays'));
+  await saveSpotlightConfig({
+    enabled,
+    targetCount: Number.isFinite(targetCount) ? targetCount : SPOTLIGHT_DEFAULTS.targetCount,
+    freshDays: Number.isFinite(freshDays) ? freshDays : SPOTLIGHT_DEFAULTS.freshDays,
+  });
+  await audit({ actorId: session.userId, action: 'CONTENT_UPDATE', entityType: 'AppSetting', entityId: MARKETPLACE_SETTING_KEYS.spotlightEnabled });
+  revalidatePath('/admin/marketplace');
+  revalidatePath('/dealer/marketplace');
   return { ok: true };
 }

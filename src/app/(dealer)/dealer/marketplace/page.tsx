@@ -1,5 +1,7 @@
 import { requireDealerAccess } from '@/lib/session';
 import { prisma } from '@/lib/db';
+import { getSpotlightConfig } from '@/lib/marketplace';
+import { pickSpotlight } from '@/lib/marketplaceSpotlight';
 import { MarketplaceOrderForm } from './MarketplaceOrderForm';
 import { SectionHero } from '@/components/SectionHero';
 import { getT } from '@/i18n/server';
@@ -10,7 +12,7 @@ export const dynamic = 'force-dynamic';
 export default async function DealerMarketplace({ searchParams }: { searchParams: { ok?: string } }) {
   await requireDealerAccess();
   const t = getT();
-  const [categories, rows] = await Promise.all([
+  const [categories, rows, spotlightCfg] = await Promise.all([
     prisma.marketplaceCategory.findMany({
       where: { active: true },
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
@@ -19,9 +21,19 @@ export default async function DealerMarketplace({ searchParams }: { searchParams
     prisma.marketplaceItem.findMany({
       where: { active: true },
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
-      select: { id: true, name: true, description: true, options: true, imageStorageKey: true, updatedAt: true, categoryId: true, kind: true, fileStorageKey: true, fileName: true, featured: true, tags: true },
+      select: { id: true, name: true, description: true, options: true, imageStorageKey: true, createdAt: true, updatedAt: true, categoryId: true, kind: true, fileStorageKey: true, fileName: true, featured: true, tags: true },
     }),
+    getSpotlightConfig(),
   ]);
+
+  // Auto-rotate the "New Arrivals" showcase so it never goes stale and nobody has
+  // to curate it: fresh items + admin pins + a weekly-rotating fill. Computed here
+  // so the existing form (which reads `featured` + `tags`) just follows it.
+  const spot = pickSpotlight(
+    rows.map((r) => ({ id: r.id, createdAt: r.createdAt, featured: r.featured, tags: r.tags })),
+    new Date(),
+    spotlightCfg,
+  );
   const items = rows.map((r) => ({
     id: r.id,
     name: r.name,
@@ -33,8 +45,9 @@ export default async function DealerMarketplace({ searchParams }: { searchParams
     kind: r.kind,
     hasFile: !!r.fileStorageKey,
     fileName: r.fileName,
-    featured: r.featured,
-    tags: r.tags,
+    featured: spot.ids.has(r.id),
+    // A freshly-added item gets an automatic "New" badge for the fresh window.
+    tags: spot.autoNew.has(r.id) ? ['NEW', ...r.tags.filter((x) => x !== 'NEW')] : r.tags,
   }));
 
   return (

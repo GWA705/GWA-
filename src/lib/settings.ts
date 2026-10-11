@@ -46,6 +46,10 @@ export async function getMfaTrustDays(): Promise<number> {
 // Where marketplace order emails go. When unset, orders email all admins.
 export const MARKETPLACE_SETTING_KEYS = {
   orderEmail: 'marketplace.orderEmail',
+  // "New Arrivals" auto-rotation (see src/lib/marketplaceSpotlight.ts).
+  spotlightEnabled: 'marketplace.spotlight.enabled',
+  spotlightCount: 'marketplace.spotlight.count',
+  spotlightFreshDays: 'marketplace.spotlight.freshDays',
 } as const;
 
 // The "leave us a review" destination the customer review request links to

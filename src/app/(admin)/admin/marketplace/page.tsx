@@ -1,10 +1,12 @@
 import { requireAdminSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { getSetting, MARKETPLACE_SETTING_KEYS } from '@/lib/settings';
+import { getSpotlightConfig } from '@/lib/marketplace';
 import { MARKETPLACE_TAGS } from '@/lib/constants';
 import { ItemForm } from './ItemForm';
 import { ItemRowActions } from './ItemRowActions';
 import { OrderEmailForm } from './OrderEmailForm';
+import { SpotlightSettingsForm } from './SpotlightSettingsForm';
 import { CategoryForm } from './CategoryForm';
 import { CategoryRowActions } from './CategoryRowActions';
 
@@ -13,8 +15,9 @@ export const dynamic = 'force-dynamic';
 export default async function AdminMarketplace() {
   await requireAdminSection('marketplace');
 
-  const [orderEmail, categories, items, orders] = await Promise.all([
+  const [orderEmail, spotlightCfg, categories, items, orders] = await Promise.all([
     getSetting(MARKETPLACE_SETTING_KEYS.orderEmail),
+    getSpotlightConfig(),
     prisma.marketplaceCategory.findMany({ orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }] }),
     prisma.marketplaceItem.findMany({ orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }] }),
     prisma.order.findMany({
@@ -46,6 +49,12 @@ export default async function AdminMarketplace() {
         <h2 className="mb-1 text-base font-semibold text-gray-900">Where orders go</h2>
         <p className="mb-3 text-sm text-gray-500">The email that receives each order. Leave blank to email all admins.</p>
         <OrderEmailForm current={orderEmail ?? ''} />
+      </section>
+
+      <section className="card p-6">
+        <h2 className="mb-1 text-base font-semibold text-gray-900">New Arrivals showcase</h2>
+        <p className="mb-3 text-sm text-gray-500">Automatically rotates what&rsquo;s highlighted so the strip stays fresh without anyone minding it.</p>
+        <SpotlightSettingsForm config={spotlightCfg} />
       </section>
 
       <section className="card p-6">
