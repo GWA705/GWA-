@@ -98,3 +98,32 @@ Privacy considerations for sign-off before enabling in production:
   the whole feature is behind an **admin master toggle**.
 - Internal staff (reviewer/admin) get a full search that only surfaces data they
   can already access.
+
+## Privacy features added in the portal (2026-10-11)
+
+These move several items from the "requires human work" list into software (the
+legal wording and organizational roles still need a human):
+
+- **Public privacy policy page** at **`/privacy`** — a PIPEDA-oriented DRAFT with
+  `[TO CONFIRM]` passages for counsel (Privacy Officer name/contact, effective
+  date, consent wording, retention schedule, Québec Law 25 cross-border
+  disclosure). Publish-ready as a placeholder; have a lawyer finalize it.
+- **Data retention / auto-purge for lead-text data** (`purgeLeadTextRetention` in
+  `src/lib/leadText.ts`, run once/day from the sweep): inbound **reply content is
+  cleared after 90 days** (the reply count is kept for stats), and finished
+  outbox rows are deleted after ~13 months. This satisfies PIPEDA data
+  minimization for the newest personal data we store (customer replies).
+- **Subject access / erasure tool** at **Admin → Security → Customer data
+  requests** (`src/lib/customerData.ts`): look up everything held for a phone
+  number, and erase the customer's **texting + marketing-lead** data on request,
+  keeping a do-not-contact (opt-out) suppression record. **Funded deals and HD
+  cases are NOT auto-deleted** — they are retained under financing/tax law (a
+  PIPEDA-recognized exception) and shown read-only for a human to handle
+  separately. Every lookup (`DATA_ACCESS`) and erasure (`DATA_ERASURE`) is
+  written to the audit log.
+
+Still organizational (not code): name the **Privacy Officer** + publish the
+contact, finalize the **privacy policy** and **consent** wording with counsel,
+document the **breach-response plan** and the **retention schedule** for the
+other data stores (leads, deals, documents), and complete **carrier
+registration** (Twilio toll-free / A2P) for reliable SMS delivery.

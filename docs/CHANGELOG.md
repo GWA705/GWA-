@@ -38,6 +38,20 @@ source of truth; this file is the human-readable index.
 | HD Resolution ↔ Gmail email link | ✅ **Live & verified** (2026-10-07, Sean) | Read-only Gmail via the existing service account (`gwa-journal-writer@gwa-portal-504012…`, project **"GWA Portal"** `gwa-portal-504012`, Unique ID `100470797238569934976`), impersonating `sean@ghsbarrie.ca` + the `HD Resolution` label. All switches done: Gmail API enabled, Workspace domain-wide delegation (`…/auth/gmail.readonly`), `GMAIL_RESOLUTION_USER=sean@ghsbarrie.ca` on EB. **Verified end-to-end** — the Email inbox lists real HD threads and "Open as case" links the thread + auto-fills. 30-min sync `resolution-email-sync.yml` (reuses `CRON_SECRET`). Steps/facts: `HD-RESOLUTION-EMAIL.md`, `BUILD-FACTS.md`. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### PIPEDA: privacy policy page, retention purge, data-erasure tool (2026-10-11)
+- **Public privacy policy** at `/privacy` — PIPEDA-oriented draft with `[TO CONFIRM]`
+  passages for counsel (Privacy Officer, effective date, consent/retention/Law-25 wording).
+- **Data retention / auto-purge** for lead-text data (`purgeLeadTextRetention`, run once/day
+  from the sweep): reply content cleared after 90 days (reply count kept for stats), finished
+  outbox rows deleted after ~13 months — PIPEDA data minimization for the newest stored data.
+- **Subject access / erasure tool** — Admin → Security → Customer data requests
+  (`src/lib/customerData.ts`): look up everything held for a phone, erase the texting +
+  marketing-lead data on request (keeps a do-not-contact suppression record). Funded deals
+  and HD cases are retained under financing/tax law (PIPEDA exception) and shown read-only.
+  Every lookup (`DATA_ACCESS`) and erasure (`DATA_ERASURE`) is audit-logged.
+- `docs/COMPLIANCE.md` updated; new **`docs/GO-LIVE-HARDENING.md`** — one checklist to confirm
+  every feature is tightened up and switched on correctly in production.
+
 ### Security audit of this session's features + fixes (2026-10-11)
 - Audited all new/changed code (lead-texting engine/editor/AI/report, HD case file +
   watch-emails + Gmail sync, marketplace rotation, confirmation-calls, `/sms`, SMS webhook).

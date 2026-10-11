@@ -44,7 +44,9 @@ export type AuditAction =
   | 'CARD_DATA_BLOCKED'
   | 'SETTING_UPDATE'
   | 'CUSTOMER_SEARCH'
-  | 'DATA_EXPORT';
+  | 'DATA_EXPORT'
+  | 'DATA_ACCESS'
+  | 'DATA_ERASURE';
 
 interface AuditInput {
   actorId?: string | null;

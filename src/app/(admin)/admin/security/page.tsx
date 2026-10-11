@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { requireAdminSection } from '@/lib/session';
 import { isSuperAdmin } from '@/lib/rbac';
 import { prisma } from '@/lib/db';
@@ -50,6 +51,16 @@ export default async function SecurityPage() {
           customer&apos;s address or deal details. Off by default; every search is logged.
         </p>
         <GlobalSearchToggle enabled={searchEnabled} />
+      </div>
+
+      <div className="card p-6">
+        <h2 className="mb-1 text-base font-semibold text-gray-900">Customer data requests (access &amp; erasure)</h2>
+        <p className="mb-4 text-sm text-gray-500">
+          Handle a customer&rsquo;s PIPEDA access or deletion request: look up what we hold for a phone number and
+          erase their texting &amp; marketing-lead data (keeping a do-not-contact record). Funded deals and HD cases
+          are retained under financing/tax law and shown read-only. Every lookup and erasure is logged.
+        </p>
+        <Link href="/admin/security/data-request" className="btn-secondary text-sm">Open data-request tool →</Link>
       </div>
 
       {superAdmin && (

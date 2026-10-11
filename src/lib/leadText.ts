@@ -1,6 +1,6 @@
 import 'server-only';
 import { prisma } from './db';
-import { getSettings } from './settings';
+import { getSettings, setSetting } from './settings';
 import { toE164, sendSms } from './sms';
 import { bookingUrlFor } from './leadBooking';
 import { parseWorkdays, isWorkday } from './businessDays';
@@ -405,6 +405,45 @@ export async function enqueueReactivationTexts(limit = 300): Promise<number> {
   return queued;
 }
 
+// Data-retention windows (PIPEDA data minimization — keep personal data only as
+// long as needed). Reply CONTENT is cleared after 90 days (the reply count stays
+// for aggregate stats); finished text records are deleted after ~13 months (past
+// the 12-month performance report window).
+const REPLY_TEXT_RETENTION_DAYS = 90;
+const OUTBOX_RETENTION_DAYS = 400;
+
+/**
+ * Purge aged lead-text personal data: clear stored reply snippets older than the
+ * retention window, and delete finished outbox rows past the longer window.
+ * Best-effort; returns how much was purged.
+ */
+export async function purgeLeadTextRetention(): Promise<{ replyContentCleared: number; rowsDeleted: number }> {
+  const now = Date.now();
+  const replyCut = new Date(now - REPLY_TEXT_RETENTION_DAYS * 86_400_000);
+  const rowCut = new Date(now - OUTBOX_RETENTION_DAYS * 86_400_000);
+  const cleared = await prisma.leadTextOutbox.updateMany({
+    where: { replyText: { not: null }, repliedAt: { lt: replyCut } },
+    data: { replyText: null },
+  });
+  const deleted = await prisma.leadTextOutbox.deleteMany({
+    where: { createdAt: { lt: rowCut }, status: { in: ['SENT', 'FAILED', 'OPTED_OUT', 'CANCELLED', 'SKIPPED'] } },
+  });
+  return { replyContentCleared: cleared.count, rowsDeleted: deleted.count };
+}
+
+// Run the retention purge at most once a day (the sweep runs far more often).
+async function maybePurgeLeadTextRetention(): Promise<void> {
+  const KEY = 'leadText.lastPurgeAt';
+  const s = await getSettings([KEY]);
+  const last = Number(s[KEY]);
+  if (Number.isFinite(last) && Date.now() - last < 20 * 60 * 60 * 1000) return;
+  try {
+    await purgeLeadTextRetention();
+  } finally {
+    await setSetting(KEY, String(Date.now()));
+  }
+}
+
 export interface SweepCounts {
   sent: number;
   failed: number;
@@ -427,6 +466,9 @@ export async function processDueLeadTexts(limit = 200): Promise<SweepCounts> {
   if (cfg.reactivation) {
     try { await enqueueReactivationTexts(); } catch (e) { console.error('[leadText] reactivation enqueue failed', e); }
   }
+
+  // Data-retention purge (once/day) — drop aged reply content + old text records.
+  try { await maybePurgeLeadTextRetention(); } catch (e) { console.error('[leadText] retention purge failed', e); }
 
   const now = new Date();
   const due = await prisma.leadTextOutbox.findMany({
