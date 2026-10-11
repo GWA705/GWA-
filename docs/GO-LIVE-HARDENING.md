@@ -89,6 +89,13 @@ Shipped 2026-10-11: full customer-file case page, watch extra emails, calls/text
 - [ ] **YOU** RDS automated backups on (confirmed 2026-10-04); monitoring/alerting in place.
 - [ ] **YOU** `CRON_SECRET` set so the scheduled endpoints (`/api/cron/*`) stay protected.
 - [ ] **YOU** An **independent security review / penetration test** before relying on it at scale.
+- [ ] **YOU** **Fix the `gwa-doc-expiry-reminders` Render cron build** (2026-10-11). It is set to
+      `npm install; npm run build` on a 512 MB box and **randomly runs out of memory** (JS heap OOM),
+      which fires a "build failed" email on most commits. The cron's start command is just a `curl`
+      to the portal — it never needs the build. Dashboard → **gwa-doc-expiry-reminders → Settings →
+      Build Command** → change to **`echo skip`** (matches the other five crons). The daily reminder
+      keeps running; this only stops the wasted rebuild + failure emails. (Not an outage — the
+      13:00 UTC run on 2026-10-11 completed successfully.)
 
 ---
 
