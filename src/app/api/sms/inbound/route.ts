@@ -71,8 +71,10 @@ export async function POST(req: NextRequest) {
       // Only re-enable texts on a verified request.
       await removeOptOut(from);
       await recordLeadReply(from, body); // a positive reply — count it
-    } else if (kind === 'other') {
+    } else if (kind === 'other' && verified) {
       // A genuine reply (not STOP/HELP) — record it for the performance report.
+      // Gated on signature verification: recording a reply writes attacker-
+      // influenced data, so (unlike STOP) it must be a trusted Twilio request.
       await recordLeadReply(from, body);
     }
   } catch (e) {

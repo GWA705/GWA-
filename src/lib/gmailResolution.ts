@@ -156,8 +156,9 @@ export async function fetchThreadMessages(threadId: string): Promise<GmailMessag
  */
 export async function fetchMessagesForAddress(addr: string, limit = 15): Promise<GmailMessage[]> {
   const clean = (addr || '').replace(/["\s<>]/g, '').trim().toLowerCase();
-  if (!clean || !clean.includes('@')) return [];
-  const q = `(from:${clean} OR to:${clean}) newer_than:1y`;
+  // Strict email shape only — defends the search query from stray operators/chars.
+  if (!/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/.test(clean)) return [];
+  const q = `(from:"${clean}" OR to:"${clean}") newer_than:1y`;
   const res = await gmailClient().users.messages.list({ userId: 'me', q, maxResults: Math.min(Math.max(1, limit), 25) });
   const ids = (res.data.messages || []).map((m) => m.id).filter((x): x is string => !!x);
   const out: GmailMessage[] = [];

@@ -550,7 +550,7 @@ export async function saveWatchEmailsAction(_prev: { ok?: boolean; error?: strin
   const raw = String(formData.get('watchEmails') || '');
   // Accept comma / newline / space separated; keep only valid-looking addresses.
   const emails = Array.from(new Set(
-    raw.split(/[\s,;]+/).map((s) => s.trim().toLowerCase()).filter((s) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(s)),
+    raw.split(/[\s,;]+/).map((s) => s.trim().toLowerCase()).filter((s) => /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/.test(s)),
   )).slice(0, 10);
   await prisma.resolutionCase.update({ where: { id: caseId }, data: { watchEmails: emails } });
   if (gmailResolutionConfigured()) {
