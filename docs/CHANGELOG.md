@@ -62,6 +62,11 @@ source of truth; this file is the human-readable index.
   people land on: the customer SMS-program page (`/sms`), the customer self-booking page
   (`/book/[token]`), the staff/dealer login screen, and the app-wide footer (`AppShell`). No
   login needed to read it; it was already public but unlinked.
+- **Privacy policy finalized** (paralegal-approved per Sean) — removed the draft banner and
+  resolved every `[TO CONFIRM]`: effective date **October 11, 2026**; **Privacy Officer = Sean
+  Jaiko (Owner)**, info@georgianwaterandair.ca, 1-866-840-2789; consent, retention and
+  cross-border/Québec-Law-25 wording finalized. `GO-LIVE-HARDENING.md` privacy items ticked.
+  (The `docs/BREACH-RESPONSE-PLAN.md` SOP still has its own `[TO CONFIRM]` roles/contacts.)
 
 ### Security audit of this session's features + fixes (2026-10-11)
 - Audited all new/changed code (lead-texting engine/editor/AI/report, HD case file +

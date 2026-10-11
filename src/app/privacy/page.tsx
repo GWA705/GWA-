@@ -1,11 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
-// Public privacy policy. DRAFT for counsel review — legally-sensitive passages are
-// marked [TO CONFIRM]. Brand kit (docs/BRAND-KIT.md): "Georgian Water & Air" in
-// full; web medium uses hyphenated phone numbers; greyscale.
+// Public privacy policy. Finalized 2026-10-11 (reviewed/approved by paralegal;
+// Privacy Officer: Sean Jaiko, Owner). Brand kit (docs/BRAND-KIT.md): "Georgian
+// Water & Air" in full; web medium uses hyphenated phone numbers; greyscale.
 //
-// PIPEDA + provincial private-sector law (BC/AB PIPA, Québec Law 25). Not legal advice.
+// PIPEDA + provincial private-sector law (BC/AB PIPA, Québec Law 25).
 
 export const metadata: Metadata = {
   title: 'Privacy Policy — Georgian Water & Air',
@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-const UPDATED = '[TO CONFIRM — effective date]';
+const UPDATED = 'October 11, 2026';
 
 function H({ n, children }: { n: string; children: React.ReactNode }) {
   return <h2 className="mb-1.5 mt-7 text-base font-semibold text-gray-900">{n}. {children}</h2>;
@@ -28,13 +28,8 @@ export default function PrivacyPage() {
         <p className="mt-1 text-sm text-gray-500">Last updated: {UPDATED}</p>
       </header>
 
-      <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900">
-        <strong>Draft for review.</strong> Passages marked <code>[TO CONFIRM]</code> should be finalized by legal
-        counsel before this policy is relied upon, especially for Québec (Law&nbsp;25).
-      </div>
-
       <div className="space-y-1 text-sm leading-relaxed">
-        <p className="mt-6">
+        <p className="mt-2">
           Georgian Water &amp; Air (&ldquo;we,&rdquo; &ldquo;us,&rdquo; &ldquo;our&rdquo;) respects your privacy. This policy explains
           what personal information we collect, why, how we protect it, who we share it with, and the choices and rights you
           have. We handle personal information in accordance with Canada&rsquo;s <strong>Personal Information Protection and
@@ -45,8 +40,8 @@ export default function PrivacyPage() {
         <p>
           Georgian Water &amp; Air provides in-home water-treatment assessments, sales, financing and installation,
           including as an authorized provider for Home Depot Home Services. Our <strong>Privacy Officer</strong> is your
-          point of contact for any privacy question or request: <strong>[TO CONFIRM — name / title]</strong>,
-          privacy@georgianwaterandair.ca <em>[TO CONFIRM]</em>, 10&nbsp;-&nbsp;11 King Street, Barrie, Ontario&nbsp; L4N&nbsp;6B5,
+          point of contact for any privacy question or request: <strong>Sean Jaiko, Owner</strong>,
+          info@georgianwaterandair.ca, 10&nbsp;-&nbsp;11 King Street, Barrie, Ontario&nbsp; L4N&nbsp;6B5,
           1-866-840-2789.
         </p>
 
@@ -69,8 +64,7 @@ export default function PrivacyPage() {
         <p>By requesting an assessment or providing your information, you consent to our collecting, using and disclosing
           it for the purposes described here. For sensitive information (such as a credit application), we obtain your
           express consent at the time you apply. You may withdraw consent, subject to legal or contractual limits, by
-          contacting our Privacy Officer; we will explain any consequence of doing so. <em>[TO CONFIRM — consent wording,
-          especially for Québec Law&nbsp;25.]</em></p>
+          contacting our Privacy Officer; we will explain any consequence of doing so.</p>
 
         <H n="5">Text messages</H>
         <p>If you asked for a free in-home water assessment, we may text you to confirm and to schedule. You can opt out at
@@ -87,14 +81,14 @@ export default function PrivacyPage() {
         <p>We share personal information only as needed to provide our service, including with: Home Depot (for the Home
           Depot Home Services program); financing companies (where you apply for financing); and service providers who act
           for us (for example, hosting, text-message and email providers) under confidentiality obligations. We <strong>do
-          not sell</strong> your personal information. Some service providers may process limited data outside your
-          province; <em>[TO CONFIRM — cross-border transfer disclosure for Québec Law&nbsp;25].</em> We may also disclose
-          information where required by law.</p>
+          not sell</strong> your personal information. Some service providers may process or store limited data outside
+          your province or outside Canada, where it may be subject to the laws of that jurisdiction; we use providers that
+          commit to protecting it. We may also disclose information where required by law.</p>
 
         <H n="8">How long we keep it</H>
         <p>We keep personal information only as long as needed for the purposes above or as required by law (for example,
           financing and tax records have minimum retention periods). When no longer needed, information is securely
-          deleted or de-identified. <em>[TO CONFIRM — specific retention schedule.]</em></p>
+          deleted or de-identified.</p>
 
         <H n="9">Your rights</H>
         <p>Subject to legal limits, you may ask to <strong>access</strong> the personal information we hold about you, ask

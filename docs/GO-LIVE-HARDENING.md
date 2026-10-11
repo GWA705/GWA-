@@ -47,9 +47,11 @@ working-days, CASL pieces, and a performance report.
 
 ## 3. Privacy (PIPEDA)
 
-- [ ] **LEGAL** Finalize the **privacy policy** at `/privacy` — replace every `[TO CONFIRM]`
-      (effective date, Privacy Officer name/contact, consent + retention + cross-border wording).
-- [ ] **YOU** **Name a Privacy Officer** and publish the contact (used on `/privacy` and `/sms`).
+- [x] **LEGAL** **Privacy policy finalized** at `/privacy` (2026-10-11) — paralegal-approved; all
+      `[TO CONFIRM]` passages resolved (effective date, consent, retention, cross-border wording),
+      draft banner removed.
+- [x] **YOU** **Privacy Officer named** — Sean Jaiko (Owner), info@georgianwaterandair.ca,
+      1-866-840-2789; published on `/privacy`.
 - [x] **CODE** **Data retention** — lead-text reply content purges after 90 days; old text
       records after ~13 months (runs daily from the sweep).
 - [x] **CODE** **Access/erasure tool** — Admin → Security → Customer data requests (logged).
