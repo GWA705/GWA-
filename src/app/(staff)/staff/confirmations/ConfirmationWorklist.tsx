@@ -5,6 +5,7 @@ import Link from 'next/link';
 import type { ProgramType } from '@prisma/client';
 import { ProgramBadge } from '@/components/ProgramBadge';
 import type { ConfirmationWorkState } from '@/lib/confirmationWork';
+import { Phone, Clock, Check, AlertTriangle, Flag, Loader, Search, ListChecks, ChevronRight } from 'lucide-react';
 
 // A pre-formatted worklist row — every display string is computed on the server
 // so this component only filters, groups and renders.
@@ -30,43 +31,26 @@ export interface CallRow {
 
 type StateMeta = { label: string; pill: string; stripe: string; heading: string; desc: string };
 const STATE_META: Record<ConfirmationWorkState, StateMeta> = {
-  NEEDS_CALL: {
-    label: 'Needs a call',
-    pill: 'bg-amber-100 text-amber-800',
-    stripe: 'bg-amber-400',
-    heading: 'Needs a call',
-    desc: 'Signed docs are back — the confirmation call hasn’t been made yet',
-  },
-  IN_PROGRESS: {
-    label: 'In progress',
-    pill: 'bg-blue-100 text-blue-800',
-    stripe: 'bg-blue-500',
-    heading: 'In progress',
-    desc: 'The call was started — some of the six checks are still open',
-  },
-  ISSUE: {
-    label: 'Issue · follow-up',
-    pill: 'bg-red-100 text-red-700',
-    stripe: 'bg-red-500',
-    heading: 'Issues · follow-up',
-    desc: 'A flagged issue — office replies waiting on a reviewer surface here',
-  },
-  DONE: {
-    label: 'Confirmed',
-    pill: 'bg-green-100 text-green-800',
-    stripe: 'bg-green-500',
-    heading: 'Confirmed today',
-    desc: 'Completed calls from today',
-  },
+  NEEDS_CALL: { label: 'Needs a call', pill: 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300', stripe: 'bg-amber-400', heading: 'Needs a call', desc: 'Signed docs are back — the confirmation call hasn’t been made yet' },
+  IN_PROGRESS: { label: 'In progress', pill: 'bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-300', stripe: 'bg-blue-500', heading: 'In progress', desc: 'The call was started — some of the six checks are still open' },
+  ISSUE: { label: 'Issue · follow-up', pill: 'bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-300', stripe: 'bg-red-500', heading: 'Issues · follow-up', desc: 'A flagged issue — office replies waiting on a reviewer surface here' },
+  DONE: { label: 'Confirmed', pill: 'bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-300', stripe: 'bg-green-500', heading: 'Confirmed today', desc: 'Completed calls from today' },
 };
 
 const ORDER: ConfirmationWorkState[] = ['NEEDS_CALL', 'IN_PROGRESS', 'ISSUE', 'DONE'];
+const STACK_CAP = 12;
+type Filter = 'ALL' | 'OVERDUE' | ConfirmationWorkState;
+type ViewMode = 'worklist' | 'list' | 'stacked';
+
+function initials(name: string): string {
+  return name.split(/\s+/).filter(Boolean).map((w) => w[0]).slice(0, 2).join('').toUpperCase() || '?';
+}
 
 function Meter({ done, total }: { done: number; total: number }) {
   return (
     <span className="inline-flex items-center gap-0.5 align-middle" aria-label={`${done} of ${total} confirmed`}>
       {Array.from({ length: total }).map((_, i) => (
-        <span key={i} className={`h-1.5 w-3 rounded-sm ${i < done ? 'bg-blue-500' : 'bg-gray-200'}`} />
+        <span key={i} className={`h-1.5 w-3 rounded-sm ${i < done ? 'bg-blue-500' : 'bg-gray-200 dark:bg-slate-600'}`} />
       ))}
     </span>
   );
@@ -76,250 +60,196 @@ function CallCard({ r }: { r: CallRow }) {
   const meta = STATE_META[r.state];
   const stripe = r.overdue ? 'bg-red-500' : meta.stripe;
   const done = r.state === 'DONE';
+  const cta = done ? 'View' : r.state === 'ISSUE' ? 'Open' : 'Open call';
   return (
     <Link
       href={`/staff/applications/${r.id}`}
-      className={`card grid grid-cols-[5px_minmax(0,1fr)_auto] items-stretch overflow-hidden p-0 transition hover:ring-2 hover:ring-brand-500 ${done ? 'opacity-75' : ''}`}
+      className={`grid grid-cols-[4px_auto_minmax(0,1fr)_auto] items-center overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition hover:border-brand-400 dark:border-slate-700 dark:bg-slate-800 ${done ? 'opacity-80' : ''}`}
     >
-      <div className={stripe} aria-hidden />
-      <div className="min-w-0 py-3 pl-3 pr-2 sm:pl-4">
-        <div className="flex flex-wrap items-center gap-2">
+      <div className={`self-stretch ${stripe}`} aria-hidden />
+      <div className="ml-3 grid h-9 w-9 place-items-center rounded-lg bg-brand-50 text-xs font-semibold text-brand-700 dark:bg-sky-950/40 dark:text-sky-300" aria-hidden>
+        {initials(r.applicant)}
+      </div>
+      <div className="min-w-0 px-3 py-2.5">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <ProgramBadge type={r.programType} />
-          <span className="truncate font-medium text-brand-700">{r.applicant}</span>
-          <span className="text-xs text-gray-500">· {r.office}</span>
-          <span className="badge bg-gray-100 text-gray-600 whitespace-nowrap">{r.stageLabel}</span>
-          <span className={`badge whitespace-nowrap ${meta.pill}`}>
+          <span className="truncate font-semibold text-gray-900 dark:text-slate-100">{r.applicant}</span>
+          <span className="rounded-md border border-gray-200 bg-slate-50 px-1.5 py-0.5 text-xs text-gray-500 dark:border-slate-600 dark:bg-slate-700/40 dark:text-slate-300">{r.office}</span>
+          <span className="rounded-md border border-gray-200 bg-slate-50 px-1.5 py-0.5 text-xs text-gray-500 dark:border-slate-600 dark:bg-slate-700/40 dark:text-slate-300">{r.stageLabel}</span>
+          <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${meta.pill}`}>
             {r.state === 'IN_PROGRESS' ? (
-              <span className="inline-flex items-center gap-1.5">
-                {r.checked} of {r.checkTotal} <Meter done={r.checked} total={r.checkTotal} />
-              </span>
-            ) : r.state === 'ISSUE' && r.issueAwaitingReviewer ? (
-              'Issue · office replied'
-            ) : (
-              meta.label
-            )}
+              <span className="inline-flex items-center gap-1.5">{r.checked} of {r.checkTotal} <Meter done={r.checked} total={r.checkTotal} /></span>
+            ) : r.state === 'ISSUE' && r.issueAwaitingReviewer ? 'Issue · office replied' : meta.label}
           </span>
         </div>
 
         {r.state === 'ISSUE' && r.issuePreview && (
-          <p className="mt-1.5 line-clamp-2 rounded-md bg-gray-50 px-2.5 py-1.5 text-[13px] text-gray-700">
-            “{r.issuePreview}”
-          </p>
+          <p className="mt-1.5 line-clamp-2 rounded-md bg-gray-50 px-2.5 py-1.5 text-[13px] text-gray-700 dark:bg-slate-700/40 dark:text-slate-200">“{r.issuePreview}”</p>
         )}
 
-        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500">
-          {r.state === 'DONE' && r.doneByLabel ? (
-            <span>Confirmed by {r.doneByLabel}</span>
-          ) : (
-            <span className={r.overdue ? 'font-semibold text-red-700' : ''}>{r.waitLabel}</span>
-          )}
-          {r.state === 'IN_PROGRESS' && r.remaining && (
-            <>
-              <span className="text-gray-300" aria-hidden>·</span>
-              <span>Left: {r.remaining}</span>
-            </>
-          )}
-          {r.hdRef && (
-            <>
-              <span className="text-gray-300" aria-hidden>·</span>
-              <span className="tabular-nums">HD {r.hdRef}</span>
-            </>
-          )}
+        <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-gray-500 dark:text-slate-400">
+          <span className={`inline-flex items-center gap-1 ${r.overdue ? 'font-semibold text-red-600 dark:text-red-400' : ''}`}>
+            {done ? <Check size={13} /> : <Clock size={13} />}
+            {done && r.doneByLabel ? `Confirmed by ${r.doneByLabel}` : r.waitLabel}
+          </span>
+          {r.state === 'IN_PROGRESS' && r.remaining && (<><span className="text-gray-300 dark:text-slate-600" aria-hidden>·</span><span>Left: {r.remaining}</span></>)}
+          {r.hdRef && (<><span className="text-gray-300 dark:text-slate-600" aria-hidden>·</span><span className="font-mono tabular-nums">HD {r.hdRef}</span></>)}
         </div>
       </div>
-      <div className="flex items-center justify-self-end px-3 text-sm font-medium text-brand-700">
-        {done ? 'View →' : r.state === 'ISSUE' ? 'Open →' : 'Open call →'}
-      </div>
+      <span className={`inline-flex items-center gap-0.5 whitespace-nowrap px-3.5 text-sm font-semibold ${done ? 'text-green-700 dark:text-green-400' : 'text-brand-700 dark:text-sky-300'}`}>
+        {cta} <ChevronRight size={15} />
+      </span>
     </Link>
   );
 }
 
-function Band({ state, rows }: { state: ConfirmationWorkState; rows: CallRow[] }) {
-  const meta = STATE_META[state];
+function Band({ heading, desc, rows }: { heading: string; desc: string; rows: CallRow[] }) {
   if (rows.length === 0) return null;
   return (
     <section>
       <div className="mb-2 flex items-baseline gap-2.5">
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-700">{meta.heading}</h2>
-        <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-bold text-gray-600 tabular-nums">{rows.length}</span>
-        <span className="ml-auto hidden text-xs text-gray-400 sm:block">{meta.desc}</span>
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-700 dark:text-slate-300">{heading}</h2>
+        <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-bold tabular-nums text-gray-600 dark:bg-slate-700 dark:text-slate-300">{rows.length}</span>
+        <span className="ml-auto hidden text-xs text-gray-400 sm:block dark:text-slate-500">{desc}</span>
       </div>
-      <div className="flex flex-col gap-2">
-        {rows.map((r) => (
-          <CallCard key={r.id} r={r} />
-        ))}
-      </div>
+      <div className="flex flex-col gap-2">{rows.map((r) => <CallCard key={r.id} r={r} />)}</div>
     </section>
   );
 }
 
-type ViewMode = 'worklist' | 'tabs' | 'stacked';
-type TabKey = ConfirmationWorkState | 'ALL';
-const STACK_CAP = 12;
+function Kpi({ active, onClick, n, label, icon: Icon, tone }: {
+  active: boolean; onClick: () => void; n: number; label: string;
+  icon: typeof Phone; tone: string;
+}) {
+  return (
+    <button
+      type="button" aria-pressed={active} onClick={onClick}
+      className={`rounded-xl border bg-white p-3 text-left shadow-sm transition dark:bg-slate-800 ${active ? 'border-brand-500 ring-1 ring-brand-500' : 'border-gray-200 hover:border-gray-300 dark:border-slate-700'}`}
+    >
+      <div className={`text-2xl font-bold tabular-nums ${tone}`}>{n}</div>
+      <div className="mt-1 flex items-center gap-1 text-[11px] text-gray-500 dark:text-slate-400"><Icon size={13} /> {label}</div>
+    </button>
+  );
+}
 
 export function ConfirmationWorklist({
-  rows,
-  counts,
+  rows, counts,
 }: {
   rows: CallRow[];
   counts: Record<ConfirmationWorkState, number>;
 }) {
   const [view, setView] = useState<ViewMode>('worklist');
-  const [tab, setTab] = useState<TabKey>('NEEDS_CALL');
+  const [filter, setFilter] = useState<Filter>('ALL');
   const [q, setQ] = useState('');
 
   useEffect(() => {
     try {
       const saved = window.localStorage.getItem('confirmView');
-      if (saved === 'worklist' || saved === 'tabs' || saved === 'stacked') setView(saved);
-    } catch {
-      /* storage blocked — use the default */
-    }
+      if (saved === 'worklist' || saved === 'list' || saved === 'stacked') setView(saved);
+    } catch { /* storage blocked — use the default */ }
   }, []);
   useEffect(() => {
-    try {
-      window.localStorage.setItem('confirmView', view);
-    } catch {
-      /* ignore */
-    }
+    try { window.localStorage.setItem('confirmView', view); } catch { /* ignore */ }
   }, [view]);
+
+  const overdueCount = useMemo(() => rows.filter((r) => r.overdue).length, [rows]);
+  const outstanding = counts.NEEDS_CALL + counts.IN_PROGRESS + counts.ISSUE;
+  const term = q.trim().toLowerCase();
+
+  const filtered = useMemo(() => {
+    return rows.filter((r) => {
+      const passFilter = filter === 'ALL' ? true : filter === 'OVERDUE' ? r.overdue : r.state === filter;
+      return passFilter && (!term || r.searchText.includes(term));
+    });
+  }, [rows, filter, term]);
 
   const byState = useMemo(() => {
     const m: Record<ConfirmationWorkState, CallRow[]> = { NEEDS_CALL: [], IN_PROGRESS: [], ISSUE: [], DONE: [] };
-    for (const r of rows) m[r.state].push(r);
+    for (const r of filtered) m[r.state].push(r);
     return m;
-  }, [rows]);
+  }, [filtered]);
 
-  const outstanding = counts.NEEDS_CALL + counts.IN_PROGRESS + counts.ISSUE;
-  const overdueCount = useMemo(() => rows.filter((r) => r.overdue).length, [rows]);
-
-  const term = q.trim().toLowerCase();
-  const tabRows = useMemo(() => {
-    const base = tab === 'ALL' ? rows : byState[tab];
-    if (!term) return base;
-    return base.filter((r) => r.searchText.includes(term));
-  }, [tab, rows, byState, term]);
-
-  const allCount = rows.length;
+  const KPIS: { key: Filter; n: number; label: string; icon: typeof Phone; tone: string }[] = [
+    { key: 'ALL', n: outstanding, label: 'Outstanding', icon: ListChecks, tone: 'text-gray-900 dark:text-slate-100' },
+    { key: 'OVERDUE', n: overdueCount, label: 'Overdue', icon: AlertTriangle, tone: 'text-red-600 dark:text-red-400' },
+    { key: 'NEEDS_CALL', n: counts.NEEDS_CALL, label: 'Needs a call', icon: Phone, tone: 'text-amber-600 dark:text-amber-400' },
+    { key: 'IN_PROGRESS', n: counts.IN_PROGRESS, label: 'In progress', icon: Loader, tone: 'text-blue-600 dark:text-blue-400' },
+    { key: 'ISSUE', n: counts.ISSUE, label: 'Issues', icon: Flag, tone: 'text-red-600 dark:text-red-400' },
+    { key: 'DONE', n: counts.DONE, label: 'Confirmed', icon: Check, tone: 'text-green-600 dark:text-green-400' },
+  ];
 
   return (
     <div>
-      {/* Layout toggle — same three views as the reviewer Deals queue. */}
+      {/* KPI summary — click to filter */}
+      <div className="mb-4 grid grid-cols-3 gap-2.5 sm:grid-cols-6">
+        {KPIS.map((k) => (
+          <Kpi key={k.key} active={filter === k.key} onClick={() => setFilter(filter === k.key ? 'ALL' : k.key)} n={k.n} label={k.label} icon={k.icon} tone={k.tone} />
+        ))}
+      </div>
+
+      {/* Layout toggle + search */}
       <div className="mb-4 flex flex-wrap items-center gap-2 text-sm">
-        <span className="text-gray-400">View</span>
-        <div className="inline-flex rounded-full bg-white p-1 ring-1 ring-inset ring-gray-200">
-          {([
-            ['worklist', 'Worklist'],
-            ['tabs', 'Tabs'],
-            ['stacked', 'Stacked'],
-          ] as const).map(([v, label]) => (
-            <button
-              key={v}
-              type="button"
-              onClick={() => setView(v)}
-              className={`rounded-full px-3.5 py-1 text-sm font-medium ${view === v ? 'bg-brand-600 text-white' : 'text-gray-600 hover:bg-gray-50'}`}
-            >
+        <div className="inline-flex rounded-full bg-white p-1 ring-1 ring-inset ring-gray-200 dark:bg-slate-800 dark:ring-slate-700">
+          {([['worklist', 'Worklist'], ['list', 'List'], ['stacked', 'Stacked']] as const).map(([v, label]) => (
+            <button key={v} type="button" onClick={() => setView(v)}
+              className={`rounded-full px-3.5 py-1 text-sm font-medium ${view === v ? 'bg-brand-600 text-white' : 'text-gray-600 hover:bg-gray-50 dark:text-slate-300 dark:hover:bg-slate-700'}`}>
               {label}
             </button>
           ))}
         </div>
-        <span className="ml-auto text-xs text-gray-500">
-          <span className="font-semibold text-gray-700 tabular-nums">{outstanding}</span> outstanding
-        </span>
+        <div className="ml-auto flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-gray-400 dark:border-slate-700 dark:bg-slate-800">
+          <Search size={15} />
+          <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name, office, HD ref…" aria-label="Search confirmations"
+            className="w-40 border-0 bg-transparent p-0 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:ring-0 dark:text-slate-100 sm:w-56" />
+        </div>
       </div>
+
+      {/* Overdue prompt (only when not already filtered to overdue) */}
+      {filter !== 'OVERDUE' && overdueCount > 0 && (
+        <button type="button" onClick={() => setFilter('OVERDUE')}
+          className="mb-5 flex w-full items-center gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-left transition hover:border-red-300 dark:border-red-900/50 dark:bg-red-950/30">
+          <span className="text-3xl font-extrabold leading-none tabular-nums text-red-600">{overdueCount}</span>
+          <div className="flex-1">
+            <div className="text-sm font-semibold text-red-700 dark:text-red-300">overdue — needs attention</div>
+            <div className="text-xs text-gray-500 dark:text-slate-400">Calls ready 3+ days, or office replies waiting 2+ days. Tap to see just these.</div>
+          </div>
+          <ChevronRight size={18} className="text-red-400" />
+        </button>
+      )}
 
       {view === 'worklist' ? (
         <div className="space-y-7">
-          {overdueCount > 0 && (
-            <div className="flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 p-4">
-              <span className="text-3xl font-extrabold leading-none text-red-600 tabular-nums">{overdueCount}</span>
-              <div>
-                <div className="text-sm font-semibold text-red-700">overdue — needs attention</div>
-                <div className="text-xs text-gray-500">Calls ready 3+ days, or office replies waiting 2+ days.</div>
-              </div>
-            </div>
-          )}
-          <Band state="NEEDS_CALL" rows={byState.NEEDS_CALL} />
-          <Band state="IN_PROGRESS" rows={byState.IN_PROGRESS} />
-          <Band state="ISSUE" rows={byState.ISSUE} />
-          <Band state="DONE" rows={byState.DONE} />
-          {outstanding === 0 && byState.DONE.length === 0 && (
-            <div className="card p-8 text-center text-sm text-gray-500">No confirmation calls outstanding. 🎉</div>
-          )}
+          {ORDER.map((s) => <Band key={s} heading={STATE_META[s].heading} desc={STATE_META[s].desc} rows={byState[s]} />)}
+          {filtered.length === 0 && <div className="rounded-xl border border-gray-200 bg-white p-8 text-center text-sm text-gray-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">{term || filter !== 'ALL' ? 'Nothing matches this filter.' : 'No confirmation calls outstanding. 🎉'}</div>}
         </div>
-      ) : view === 'tabs' ? (
-        <>
-          <div className="mb-3 flex flex-wrap items-center gap-2">
-            {([
-              ['NEEDS_CALL', 'Needs a call', counts.NEEDS_CALL],
-              ['IN_PROGRESS', 'In progress', counts.IN_PROGRESS],
-              ['ISSUE', 'Issues · follow-up', counts.ISSUE],
-              ['DONE', 'Confirmed today', counts.DONE],
-              ['ALL', 'All', allCount],
-            ] as const).map(([k, label, n]) => (
-              <button
-                key={k}
-                type="button"
-                onClick={() => setTab(k)}
-                className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm ${
-                  tab === k ? 'border-brand-600 bg-brand-50 font-semibold text-brand-800' : 'border-gray-200 text-gray-600 hover:border-gray-300'
-                }`}
-              >
-                {label}
-                <span className={`rounded-full px-1.5 text-xs font-bold tabular-nums ${tab === k ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-500'}`}>{n}</span>
-              </button>
-            ))}
-            <input
-              type="search"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Search name, office, HD ref…"
-              aria-label="Search confirmations"
-              className="input h-9 w-full min-w-0 py-1 sm:ml-auto sm:w-64"
-            />
-          </div>
-          {tabRows.length === 0 ? (
-            <div className="card p-8 text-center text-sm text-gray-500">
-              {term ? `No confirmations match “${q}”.` : 'Nothing here right now.'}
-            </div>
-          ) : (
-            <div className="flex flex-col gap-2">
-              {tabRows.map((r) => (
-                <CallCard key={r.id} r={r} />
-              ))}
-            </div>
-          )}
-        </>
+      ) : view === 'list' ? (
+        filtered.length === 0 ? (
+          <div className="rounded-xl border border-gray-200 bg-white p-8 text-center text-sm text-gray-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">Nothing matches this filter.</div>
+        ) : (
+          <div className="flex flex-col gap-2">{filtered.map((r) => <CallCard key={r.id} r={r} />)}</div>
+        )
       ) : (
         <div className="space-y-8">
-          {ORDER.map((state) => {
-            const list = byState[state];
+          {ORDER.map((s) => {
+            const list = byState[s];
             if (list.length === 0) return null;
             const capped = list.slice(0, STACK_CAP);
             return (
-              <section key={state}>
+              <section key={s}>
                 <div className="mb-2 flex items-baseline gap-2.5">
-                  <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-700">{STATE_META[state].heading}</h2>
-                  <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-bold text-gray-600 tabular-nums">{list.length}</span>
+                  <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-700 dark:text-slate-300">{STATE_META[s].heading}</h2>
+                  <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-bold tabular-nums text-gray-600 dark:bg-slate-700 dark:text-slate-300">{list.length}</span>
                 </div>
-                <div className="flex flex-col gap-2">
-                  {capped.map((r) => (
-                    <CallCard key={r.id} r={r} />
-                  ))}
-                </div>
+                <div className="flex flex-col gap-2">{capped.map((r) => <CallCard key={r.id} r={r} />)}</div>
                 {list.length > capped.length && (
                   <div className="mt-2 text-right text-sm">
-                    <button type="button" onClick={() => { setView('tabs'); setTab(state); }} className="text-brand-700 hover:underline">
-                      See all {list.length} →
-                    </button>
+                    <button type="button" onClick={() => { setView('list'); setFilter(s); }} className="font-medium text-brand-700 hover:underline dark:text-sky-300">See all {list.length} →</button>
                   </div>
                 )}
               </section>
             );
           })}
-          {rows.length === 0 && (
-            <div className="card p-8 text-center text-sm text-gray-500">No confirmation calls outstanding. 🎉</div>
-          )}
+          {filtered.length === 0 && <div className="rounded-xl border border-gray-200 bg-white p-8 text-center text-sm text-gray-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">Nothing matches this filter.</div>}
         </div>
       )}
     </div>
