@@ -345,3 +345,81 @@ export async function pingAi(): Promise<AiPing | null> {
     return { ok: false, status: 0, error: e instanceof Error ? e.message : 'network error', model };
   }
 }
+
+/**
+ * Draft or rewrite a lead-text SMS template from a short instruction. Returns the
+ * new template body (keeping {{merge_fields}} intact), or null when AI isn't
+ * configured or the call fails. Kept GSM-7-friendly and personalization-aware so
+ * the result drops straight into the message editor. The admin always reviews
+ * before saving.
+ */
+export async function writeLeadTextTemplate(params: {
+  current: string;
+  instruction: string; // e.g. "make it friendlier", "shorter", "draft a confirmation"
+  lang: 'en' | 'fr';
+  tokens: string[]; // allowed merge fields, e.g. ["{{first_name}}", ...]
+}): Promise<string | null> {
+  const key = process.env.ANTHROPIC_API_KEY;
+  if (!key) return null;
+  const { current, instruction, lang, tokens } = params;
+
+  const system = `You write short SMS templates for Home Depot Home Services (serviced by Georgian Water & Air), a Canadian in-home water-treatment provider. The texts go to customers who requested a free in-home water assessment.
+
+Rules:
+- Write in ${lang === 'fr' ? 'French (Canadian), WITHOUT accents (GSM-7 safe: use "a" not "à", "e" not "é")' : 'English'}.
+- GSM-7 only: straight quotes, hyphens. No curly quotes, no guillemets, no em-dashes, no emoji.
+- Keep it short and warm, in short blocks separated by a blank line so it reads well on a phone.
+- You MAY use only these merge fields, written exactly: ${tokens.join(', ')}. Keep the ones that fit; never invent new fields.
+- Always identify the sender ("Home Depot Home Services"), keep a STOP opt-out line, and keep the "Info: {{info_link}}" line (CASL). Follow-ups should keep "Book yourself: {{booking_link}}".
+- Output ONLY the finished template text — no preamble, no quotes around it, no explanation.`;
+
+  const user = `Current template:\n"""\n${current}\n"""\n\nRewrite it: ${instruction}`;
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20_000);
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+      body: JSON.stringify({
+        model: process.env.ANTHROPIC_MODEL || DEFAULT_MODEL,
+        max_tokens: 600,
+        system,
+        messages: [{ role: 'user', content: user }],
+      }),
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    if (!res.ok) {
+      const detail = await res.text().catch(() => '');
+      console.error(`[ai] lead-text ${res.status}: ${detail.slice(0, 200)}`);
+      return null;
+    }
+    const data = (await res.json()) as {
+      content?: Array<{ type: string; text?: string }>;
+      model?: string;
+      usage?: { input_tokens?: number; output_tokens?: number };
+    };
+    if (data.usage) {
+      void recordAiUsage({
+        service: AI_SERVICES.leadText,
+        model: data.model || process.env.ANTHROPIC_MODEL || DEFAULT_MODEL,
+        inputTokens: data.usage.input_tokens ?? 0,
+        outputTokens: data.usage.output_tokens ?? 0,
+      });
+    }
+    const text = (data.content ?? [])
+      .filter((b) => b.type === 'text' && b.text)
+      .map((b) => b.text!.trim())
+      .join('\n')
+      .trim()
+      // Strip any accidental wrapping quotes/code fences.
+      .replace(/^```[a-z]*\n?|\n?```$/g, '')
+      .replace(/^"+|"+$/g, '')
+      .trim();
+    return text || null;
+  } catch (e) {
+    console.error('[ai] lead-text request failed:', e instanceof Error ? e.message : e);
+    return null;
+  }
+}

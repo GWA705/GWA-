@@ -25,8 +25,9 @@ import { sendEmail, emailEnabled } from '@/lib/email';
 import { sendSms, smsEnabled, toE164 } from '@/lib/sms';
 import { getTwilioUsage, type TwilioUsage } from '@/lib/twilioUsage';
 import { buildInviteEmail } from '@/lib/email-templates';
-import { setSetting, EMAIL_SETTING_KEYS, BANNER_SETTING_KEYS, SECURITY_SETTING_KEYS, MFA_TRUST_DAY_OPTIONS, DEFAULT_MFA_TRUST_DAYS, type MfaRequirement } from '@/lib/settings';
-import { LEAD_TEXT_KEYS, renderLeadTextBody, leadTextConfig, pickSender, type LeadTextSource } from '@/lib/leadText';
+import { setSetting, getSettings, EMAIL_SETTING_KEYS, BANNER_SETTING_KEYS, SECURITY_SETTING_KEYS, MFA_TRUST_DAY_OPTIONS, DEFAULT_MFA_TRUST_DAYS, type MfaRequirement } from '@/lib/settings';
+import { LEAD_TEXT_KEYS, renderLeadTextBody, leadTextConfig, pickSender, leadTextTemplateKey, DEFAULT_LEAD_TEXTS, type LeadTextSource, type LeadTextKind } from '@/lib/leadText';
+import { writeLeadTextTemplate } from '@/lib/ai';
 import { serializeWorkdays, DEFAULT_WORKDAYS } from '@/lib/businessDays';
 import { VOICE_KEYS } from '@/lib/voice';
 import { syncZoomRecordings } from '@/lib/zoomSync';
@@ -2939,4 +2940,54 @@ export async function deleteLoginThemeAction(id: string): Promise<void> {
   await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'LoginTheme', entityId: id, detail: 'deleted' });
   revalidatePath('/admin/login-screen');
   revalidatePath('/login');
+}
+
+// ── Lead auto-text message templates (editable + AI assist) ────────────────
+
+const LEAD_TEXT_KIND_SET = new Set<LeadTextKind>(['CONFIRM', 'DAY1', 'MISSED_WINDOW', 'REACTIVATION']);
+const LEAD_TEXT_TOKEN_LIST = ['{{first_name}}', '{{at_address}}', '{{street}}', '{{city}}', '{{booking_link}}', '{{info_link}}'];
+
+function parseKindLang(formData: FormData): { kind: LeadTextKind; lang: 'en' | 'fr' } | null {
+  const kind = String(formData.get('kind') || '') as LeadTextKind;
+  const lang = String(formData.get('lang') || '');
+  if (!LEAD_TEXT_KIND_SET.has(kind) || (lang !== 'en' && lang !== 'fr')) return null;
+  return { kind, lang };
+}
+
+export async function saveLeadTextTemplateAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const session = await requireAdminSection('lead-texting');
+  const kl = parseKindLang(formData);
+  if (!kl) return { error: 'Pick a valid message and language.' };
+  const body = String(formData.get('body') || '').replace(/\r\n/g, '\n').trim();
+  if (!body) return { error: 'The message cannot be empty.' };
+  if (body.length > 1200) return { error: 'That message is very long — keep it under ~1200 characters.' };
+  if (/[«»“”‘’—]/.test(body)) return { error: 'Use straight quotes and hyphens only (no curly quotes or em-dashes) so texts stay to fewer segments.' };
+  if (!/stop/i.test(body)) return { error: 'Keep a STOP opt-out in the message (required by CASL).' };
+  // Matches the built-in default → store nothing (clean revert).
+  const isDefault = body === DEFAULT_LEAD_TEXTS[kl.kind][kl.lang].trim();
+  await setSetting(leadTextTemplateKey(kl.kind, kl.lang), isDefault ? '' : body);
+  await audit({ actorId: session.userId, action: 'CONTENT_UPDATE', entityType: 'AppSetting', entityId: leadTextTemplateKey(kl.kind, kl.lang) });
+  revalidatePath('/admin/lead-texting');
+  return { ok: true, message: isDefault ? 'Saved — this message is back to the default.' : 'Message saved. New leads get this version.' };
+}
+
+export async function resetLeadTextTemplateAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const session = await requireAdminSection('lead-texting');
+  const kl = parseKindLang(formData);
+  if (!kl) return { error: 'Pick a valid message and language.' };
+  await setSetting(leadTextTemplateKey(kl.kind, kl.lang), '');
+  await audit({ actorId: session.userId, action: 'CONTENT_UPDATE', entityType: 'AppSetting', entityId: leadTextTemplateKey(kl.kind, kl.lang) });
+  revalidatePath('/admin/lead-texting');
+  return { ok: true, message: 'Reset to the default message.' };
+}
+
+export async function aiWriteLeadTextAction(formData: FormData): Promise<{ text?: string; error?: string }> {
+  await requireAdminSection('lead-texting');
+  const lang = String(formData.get('lang') || 'en') === 'fr' ? 'fr' : 'en';
+  const current = String(formData.get('current') || '');
+  const instruction = String(formData.get('instruction') || '').trim();
+  if (!instruction) return { error: 'Say what the AI should change (e.g. "make it friendlier").' };
+  const text = await writeLeadTextTemplate({ current, instruction, lang, tokens: LEAD_TEXT_TOKEN_LIST });
+  if (!text) return { error: 'The AI writer isn’t available right now. Edit by hand or try again.' };
+  return { text };
 }

@@ -2,10 +2,12 @@ import Link from 'next/link';
 import { requireAdminSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { smsEnabled } from '@/lib/sms';
-import { leadTextConfig, renderLeadTextBody, smsInfoUrl } from '@/lib/leadText';
+import { leadTextConfig, smsInfoUrl, getLeadTemplatesForEditor } from '@/lib/leadText';
 import { clickToCallConfig, twilioVoiceCredsPresent } from '@/lib/voice';
+import { aiConfigured } from '@/lib/ai';
 import { LeadTextSettingsForm } from './LeadTextSettingsForm';
 import { VoiceSettingsForm } from './VoiceSettingsForm';
+import { MessageTemplatesEditor } from './MessageTemplatesEditor';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,22 +36,8 @@ export default async function LeadTextingAdminPage() {
     prisma.leadTextOutbox.count({ where: { status: 'PENDING' } }),
   ]);
 
-  // Sample messages (what the customer receives), rendered server-side. The
-  // program-info/opt-out link (CASL) is appended to every message.
   const info = smsInfoUrl();
-  // Sample customer so previews show real personalization + spacing.
-  const en = { infoUrl: info, bookingUrl: 'https://portal.ghsbarrie.ca/book/sample', firstName: 'Robyn Scott', street: '118 Scott St', city: 'Barrie' };
-  const qc = { infoUrl: info, bookingUrl: 'https://portal.ghsbarrie.ca/book/sample', firstName: 'Marc Tremblay', street: '12 Rue Principale', city: 'Gatineau' };
-  const previews = [
-    { label: 'Confirmation — in-store card (EN)', text: renderLeadTextBody('SCANNED', 'ON', 'CONFIRM', en) },
-    { label: 'Confirmation — mail-in card (EN)', text: renderLeadTextBody('MAILIN', 'ON', 'CONFIRM', en) },
-    { label: 'Confirmation — online HD lead (EN)', text: renderLeadTextBody('HD_SHEET', 'ON', 'CONFIRM', en) },
-    { label: 'Day-1 reminder (EN)', text: renderLeadTextBody('SCANNED', 'ON', 'DAY1', en) },
-    { label: 'Missed-window — call again in 36h (EN)', text: renderLeadTextBody('SCANNED', 'ON', 'MISSED_WINDOW', en) },
-    { label: 'Reactivation — still available? (EN)', text: renderLeadTextBody('SCANNED', 'ON', 'REACTIVATION', en) },
-    { label: 'Confirmation — Quebec (FR)', text: renderLeadTextBody('HD_SHEET', 'QC', 'CONFIRM', qc) },
-    { label: 'Missed-window — Quebec (FR)', text: renderLeadTextBody('SCANNED', 'QC', 'MISSED_WINDOW', qc) },
-  ];
+  const templates = await getLeadTemplatesForEditor();
 
   return (
     <div className="max-w-3xl space-y-6">
@@ -115,23 +103,23 @@ export default async function LeadTextingAdminPage() {
       </div>
 
       <div className="card p-6">
-        <h2 className="mb-1 text-base font-semibold text-gray-900">What the customer gets</h2>
-        <p className="mb-2 text-xs text-gray-500">MMS (with your image) is sent first; if it fails it falls back to a plain SMS of this text.</p>
+        <h2 className="mb-1 text-base font-semibold text-gray-900">The messages</h2>
+        <p className="mb-2 text-xs text-gray-500">
+          Edit any message, drop in the customer&rsquo;s name or street, and see exactly how it lands on their phone.
+          MMS (with your image) is tried first, falling back to plain SMS.
+        </p>
         <p className="mb-4 rounded-md border border-gray-200 bg-slate-50/60 p-2.5 text-xs text-gray-500">
           <span className="font-medium text-gray-700">CASL:</span> every message identifies the sender, carries a STOP
           opt-out, and links to the public program-info &amp; opt-out page at{' '}
           <Link href="/sms" className="underline" target="_blank">/sms</Link>. Texting HELP returns our name and contact
-          details automatically. (This link is also what Twilio asks for during toll-free verification.)
+          details automatically.
         </p>
-        <div className="space-y-3">
-          {previews.map((p) => (
-            <div key={p.label} className="rounded-lg border border-gray-200 bg-slate-50/60 p-3">
-              <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-400">{p.label}</div>
-              <p className="whitespace-pre-wrap text-sm text-gray-800">{p.text}</p>
-              <div className="mt-1 text-[11px] text-gray-400">{p.text.length} characters</div>
-            </div>
-          ))}
-        </div>
+        <MessageTemplatesEditor
+          templates={templates}
+          aiAvailable={aiConfigured()}
+          bookingSample="https://portal.ghsbarrie.ca/book/sample"
+          infoUrl={info}
+        />
       </div>
 
       <div className="card p-6">

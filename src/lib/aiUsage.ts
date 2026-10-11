@@ -18,6 +18,7 @@ export const AI_SERVICES = {
   assistant: 'ai_assistant',
   resolutionSummary: 'ai_resolution_summary',
   resolutionReply: 'ai_resolution_reply',
+  leadText: 'ai_lead_text',
 } as const;
 
 export type AiService = (typeof AI_SERVICES)[keyof typeof AI_SERVICES];
@@ -27,6 +28,7 @@ const SERVICE_LABELS: Record<string, string> = {
   [AI_SERVICES.assistant]: 'Support assistant',
   [AI_SERVICES.resolutionSummary]: 'HD resolution summary',
   [AI_SERVICES.resolutionReply]: 'HD resolution reply draft',
+  [AI_SERVICES.leadText]: 'Lead-text message writer',
 };
 
 /**

@@ -38,6 +38,21 @@ source of truth; this file is the human-readable index.
 | HD Resolution ↔ Gmail email link | ✅ **Live & verified** (2026-10-07, Sean) | Read-only Gmail via the existing service account (`gwa-journal-writer@gwa-portal-504012…`, project **"GWA Portal"** `gwa-portal-504012`, Unique ID `100470797238569934976`), impersonating `sean@ghsbarrie.ca` + the `HD Resolution` label. All switches done: Gmail API enabled, Workspace domain-wide delegation (`…/auth/gmail.readonly`), `GMAIL_RESOLUTION_USER=sean@ghsbarrie.ca` on EB. **Verified end-to-end** — the Email inbox lists real HD threads and "Open as case" links the thread + auto-fills. 30-min sync `resolution-email-sync.yml` (reuses `CRON_SECRET`). Steps/facts: `HD-RESOLUTION-EMAIL.md`, `BUILD-FACTS.md`. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### Lead auto-text: editable messages + AI assist (part 2) (2026-10-11)
+- Admin → Lead auto-text now has a **message editor** (replacing the read-only previews):
+  pick a message (Confirmation / Day-1 / Missed-window / Reactivation) and a language,
+  edit the text, drop in merge fields with one click, and see a **live phone preview**
+  (with a sample customer) and the segment count update as you type.
+- **AI assist** (when `ANTHROPIC_API_KEY` is set): Make friendlier / Make shorter / Fix
+  spacing / Translate — Claude rewrites the template keeping the merge fields, STOP and
+  the info link; the admin always reviews before saving. (`writeLeadTextTemplate` in ai.ts,
+  metered under a new `ai_lead_text` service.)
+- Saved per message + language in AppSetting (`leadText.tmpl.<KIND>.<lang>`); saving the
+  default text clears the override. Validates GSM-7 (no curly quotes/em-dashes) and that a
+  STOP line is kept (CASL). The sweep composes from the override or the default.
+- Pure template logic extracted to `src/lib/leadTextTemplate.ts` so the client editor and
+  the server sender share one implementation.
+
 ### Confirmation calls page redesigned (KPI summary + cleaner cards) (2026-10-11)
 - `/staff/confirmations` worklist rebuilt to match the new high-level look:
   - **KPI summary row** — six clickable tiles (Outstanding, Overdue, Needs a call,
