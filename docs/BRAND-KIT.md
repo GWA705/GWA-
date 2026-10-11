@@ -143,6 +143,13 @@ it as supplied, never rebuild or restyle it.
 Placement convention: GWA at top-left, Home Depot Home Services centred, entity
 and contact details right-aligned.
 
+> **Confirmed 2026-10-11 (Sean):** Home Depot is OK with us using the name
+> **"Home Depot Home Services"** in customer-facing messaging — this is the name the
+> lead auto-text program identifies with ("Home Depot Home Services, serviced by
+> Georgian Water & Air"). This covers the naming/"on behalf of" question for the SMS
+> program. (Consent records — lead source + date — are still kept per lead; a
+> counsel review before go-live remains recommended. Not legal advice.)
+
 ### 3.3 Association & partner marks
 
 Appearing in the Sales Agreement footer: **FLAVOUR**, **Dockside Publishing**,
