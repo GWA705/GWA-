@@ -94,6 +94,7 @@ export async function computeCycleTimes(since: Date | null): Promise<CycleTimesR
   const apps = await prisma.application.findMany({
     where: {
       status: { not: 'DRAFT' },
+      journalSourced: false,
       ...(since ? { createdAt: { gte: since } } : {}),
     },
     select: {

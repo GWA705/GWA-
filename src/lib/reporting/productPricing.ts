@@ -86,7 +86,7 @@ function statFrom(key: string, label: string, rows: Row[]): PriceStat {
 }
 
 export async function productPricing(opts: { dealerIds?: string[]; since?: Date } = {}): Promise<ProductPricingResult> {
-  const where: Prisma.ApplicationWhereInput = { status: { not: 'DRAFT' } };
+  const where: Prisma.ApplicationWhereInput = { status: { not: 'DRAFT' }, journalSourced: false };
   if (opts.dealerIds) where.dealerId = { in: opts.dealerIds };
   if (opts.since) where.createdAt = { gte: opts.since };
 

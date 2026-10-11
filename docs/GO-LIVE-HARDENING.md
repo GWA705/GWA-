@@ -68,6 +68,13 @@ Shipped 2026-10-11: full customer-file case page, watch extra emails, calls/text
       install photos and verified-documents checklist show.
 - [x] **CODE** Watched-email addresses are strict-validated and quoted in the Gmail query (hardened 2026-10-11).
 - [x] **CODE** Install photos/documents still stream through the authenticated, audited routes (no IDOR).
+- [x] **CODE** Link-to-deal search also finds customers in the **sales journal** and can
+      materialize a journal-sourced deal to populate the case (2026-10-11). These deals are flagged
+      `journalSourced`, kept out of pipeline/reports, and never written back to the journal.
+- [ ] **YOU** For journal-link to work, the journal must be readable by the service account
+      (same `GOOGLE_SERVICE_ACCOUNT_JSON` + `JOURNAL_SHEET_ID_<year>` the reporting area uses —
+      already live). If a reviewer sees no journal matches, confirm the sheets are shared with the
+      service-account email (Admin → journal connection).
 
 ## 5. Marketplace
 

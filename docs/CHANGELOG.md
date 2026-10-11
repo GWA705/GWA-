@@ -38,6 +38,26 @@ source of truth; this file is the human-readable index.
 | HD Resolution ↔ Gmail email link | ✅ **Live & verified** (2026-10-07, Sean) | Read-only Gmail via the existing service account (`gwa-journal-writer@gwa-portal-504012…`, project **"GWA Portal"** `gwa-portal-504012`, Unique ID `100470797238569934976`), impersonating `sean@ghsbarrie.ca` + the `HD Resolution` label. All switches done: Gmail API enabled, Workspace domain-wide delegation (`…/auth/gmail.readonly`), `GMAIL_RESOLUTION_USER=sean@ghsbarrie.ca` on EB. **Verified end-to-end** — the Email inbox lists real HD threads and "Open as case" links the thread + auto-fills. 30-min sync `resolution-email-sync.yml` (reuses `CRON_SECRET`). Steps/facts: `HD-RESOLUTION-EMAIL.md`, `BUILD-FACTS.md`. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### HD cases: link a customer from the sales journal (2026-10-11)
+- The **"Link this case to a deal"** search on an HD Resolution case now also searches the
+  **sales journal** (current + two prior years), so a customer who was **typed straight into the
+  journal** — and never became a portal deal — is found instead of showing "No deals found".
+- A journal match gets a **"Create & link"** button: it **materializes a portal deal from that
+  journal row** and links the case, which turns on **Notify office + the documents panel** and
+  **populates the customer file** for the reviewer with everything the journal holds — name,
+  phone, address, HD ref + store, product, salesperson, sale/paid dates, result, financing and
+  amounts (gross/net), plus a link to the journal row (added as a case note).
+- These deals are flagged **`journalSourced`** (new `Application.journalSourced` column + additive
+  migration) and are **excluded from the pipeline/review queues and the Application-based reports**
+  (funding report, custom report builder, product pricing, cycle times, catch-up, confirmation
+  queue, office summary). **Money reports are unaffected** — they read the journal directly, which
+  stays the single source of truth — and these deals are **never written back** to the journal
+  (the paid-sync sweep skips them), so no row is ever duplicated.
+- New: `src/lib/journalDealMap.ts` (pure match/map helpers + 16 tests), `src/lib/journalCaseLink.ts`
+  (server search + create-and-link, reuses the reporting journal reader + dealer matcher), two new
+  server actions and the journal section in `LinkDealControl.tsx`. Office is resolved by HD store
+  number → location name → the case's office → the Georgian Water & Air house office.
+
 ### Breach response plan (2026-10-11)
 - New `docs/BREACH-RESPONSE-PLAN.md` — a PIPEDA + Québec Law 25 breach response SOP tailored to
   the portal/AWS stack: roles, 5-phase response (detect → contain → assess RRSH → notify → record),

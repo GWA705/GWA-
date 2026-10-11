@@ -1251,6 +1251,16 @@ model Application {
   journalRow      Int?
   journalSyncedAt DateTime?
 
+  // TRUE for deals that were materialized FROM an existing journal row (a sale
+  // typed straight into the sheet that never became a real credit application),
+  // so an HD Resolution reviewer can link the customer's file. These are NOT
+  // real applications: they carry no financing/credit data and must be EXCLUDED
+  // from the pipeline/review queues and the Application-based reports (money
+  // reports already read the journal, which is their one source, so these never
+  // affect dollar totals — and we never sync them back to the journal). Default
+  // false; see src/lib/journalCaseLink.ts.
+  journalSourced  Boolean  @default(false)
+
   // Read-BACK from the journal (the reverse of the write above). A scheduled/
   // on-demand sync reads the deal's journal row and reflects its settlement:
   // when Result becomes "OK" and a Date Paid is present, the deal is paid — we

@@ -16,7 +16,10 @@ import { gmailResolutionConfigured, searchThreadForRef, fetchFirstMessageText, f
 import { summarizeResolutionEmail, draftHdReply, aiConfigured } from '@/lib/ai';
 import { decodeEntities } from '@/lib/htmlEntities';
 import { syncCaseEmails } from '@/lib/resolutionEmailSync';
+import { searchJournalForCase, createDealFromJournalRow, type JournalMatchVM } from '@/lib/journalCaseLink';
 import type { ResolutionStatus, Prisma } from '@prisma/client';
+
+export type { JournalMatchVM };
 
 // Identify a file by its magic bytes (don't trust the client-declared MIME).
 function sniffMime(buf: Buffer): string | null {
@@ -417,6 +420,45 @@ export async function linkCaseToDealAction(caseId: string, applicationId: string
   });
   await prisma.resolutionCaseNote.create({ data: { caseId, authorId: user.userId, body: 'Linked this case to the customer’s deal.' } });
   await audit({ actorId: user.userId, action: 'STATUS_CHANGE', entityType: 'ResolutionCase', entityId: caseId, detail: `Linked case ${c.caseNumber} to deal ${app.id}` });
+  revalidatePath(`/staff/resolutions/${caseId}`);
+  return { ok: true };
+}
+
+/**
+ * Search the sales journal for this customer (for sales typed straight into the
+ * sheet that never became a portal deal). Separate from findDealsForCaseAction so
+ * the slower Google Sheets read runs in parallel and never delays the DB search.
+ */
+export async function findJournalMatchesForCaseAction(
+  caseId: string,
+  query?: string,
+): Promise<{ matches?: JournalMatchVM[]; error?: string }> {
+  await requireRole('REVIEWER', 'ADMIN');
+  const c = await prisma.resolutionCase.findUnique({
+    where: { id: caseId },
+    select: { customerName: true, customerPhone: true },
+  });
+  if (!c) return { error: 'Case not found.' };
+  try {
+    const matches = await searchJournalForCase({ query, caseName: c.customerName, casePhone: c.customerPhone });
+    return { matches };
+  } catch {
+    return { error: 'Couldn’t reach the sales journal — try again.' };
+  }
+}
+
+/**
+ * Create a portal deal from a journal row and link this case to it. Turns on
+ * Notify office + the documents panel and populates the customer file from the
+ * journal. The deal is flagged journal-sourced (kept out of pipeline/reports).
+ */
+export async function createJournalDealForCaseAction(
+  caseId: string,
+  key: string,
+): Promise<CaseFormState> {
+  const user = await requireRole('REVIEWER', 'ADMIN');
+  const r = await createDealFromJournalRow({ caseId, key, userId: user.userId });
+  if (r.error) return { error: r.error };
   revalidatePath(`/staff/resolutions/${caseId}`);
   return { ok: true };
 }

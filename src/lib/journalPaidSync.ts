@@ -217,6 +217,8 @@ export async function sweepJournalPaid(): Promise<{ checked: number; funded: num
     where: {
       journalPaidOn: null,
       status: { in: SETTLING },
+      // Journal-sourced deals ARE the journal row — never sync them back from it.
+      journalSourced: false,
     },
     orderBy: { updatedAt: 'desc' },
     select: { id: true },

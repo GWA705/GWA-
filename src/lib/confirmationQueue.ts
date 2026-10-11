@@ -18,6 +18,7 @@ import { prisma } from '@/lib/db';
 export async function hasOutstandingConfirmations(): Promise<boolean> {
   const n = await prisma.application.count({
     where: {
+      journalSourced: false,
       OR: [
         { confirmationStatus: 'ISSUE' },
         { confirmationStatus: 'PENDING', status: { in: ['FUNDING_SUBMITTED', 'FUNDING_REVIEW', 'FUNDED'] } },

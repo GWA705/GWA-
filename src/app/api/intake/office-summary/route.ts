@@ -61,12 +61,12 @@ export async function GET(req: Request) {
     cancellations, cancellationsN,
     replies, repliesN,
   ] = await Promise.all([
-    prisma.application.findMany({ where: { status: { in: [...TO_REVIEW] } }, orderBy: { createdAt: 'asc' }, take: TAKE, select: appSelect }),
-    prisma.application.count({ where: { status: { in: [...TO_REVIEW] } } }),
-    prisma.application.findMany({ where: { status: { in: [...FUNDING] } }, orderBy: { createdAt: 'asc' }, take: TAKE, select: appSelect }),
-    prisma.application.count({ where: { status: { in: [...FUNDING] } } }),
-    prisma.application.findMany({ where: { status: 'PROBLEM' }, orderBy: { updatedAt: 'desc' }, take: TAKE, select: appSelect }),
-    prisma.application.count({ where: { status: 'PROBLEM' } }),
+    prisma.application.findMany({ where: { status: { in: [...TO_REVIEW] }, journalSourced: false }, orderBy: { createdAt: 'asc' }, take: TAKE, select: appSelect }),
+    prisma.application.count({ where: { status: { in: [...TO_REVIEW] }, journalSourced: false } }),
+    prisma.application.findMany({ where: { status: { in: [...FUNDING] }, journalSourced: false }, orderBy: { createdAt: 'asc' }, take: TAKE, select: appSelect }),
+    prisma.application.count({ where: { status: { in: [...FUNDING] }, journalSourced: false } }),
+    prisma.application.findMany({ where: { status: 'PROBLEM', journalSourced: false }, orderBy: { updatedAt: 'desc' }, take: TAKE, select: appSelect }),
+    prisma.application.count({ where: { status: 'PROBLEM', journalSourced: false } }),
     prisma.dealCancellation.findMany({
       where: { status: 'PENDING' }, orderBy: { createdAt: 'asc' }, take: TAKE,
       select: {

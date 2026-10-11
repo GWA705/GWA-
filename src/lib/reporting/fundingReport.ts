@@ -163,6 +163,7 @@ export async function buildFundingReport(
     where: {
       status: { in: PIPELINE },
       payouts: { none: {} },
+      journalSourced: false,
       ...(opts.dealerId ? { dealerId: opts.dealerId } : {}),
     },
     _count: { _all: true },
@@ -189,6 +190,7 @@ export async function buildFundingReport(
     where: {
       status: { in: [...IN_FOR_FUNDING, ...FUNDED_UNPAID] },
       payouts: { none: {} },
+      journalSourced: false,
       ...(opts.dealerId ? { dealerId: opts.dealerId } : {}),
     },
     orderBy: { updatedAt: 'asc' },

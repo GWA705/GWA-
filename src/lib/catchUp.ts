@@ -65,8 +65,8 @@ export async function buildCatchUp(userId: string): Promise<CatchUp> {
 
   // Counts (cheap, indexed).
   const [newDeals, fundingIn, cancellationCount] = await Promise.all([
-    prisma.application.count({ where: { status: { in: ['SUBMITTED', 'UNDER_REVIEW'] }, createdAt: { gte: since } } }),
-    prisma.application.count({ where: { status: 'FUNDING_SUBMITTED', lastDealerActionAt: { gte: since } } }),
+    prisma.application.count({ where: { status: { in: ['SUBMITTED', 'UNDER_REVIEW'] }, journalSourced: false, createdAt: { gte: since } } }),
+    prisma.application.count({ where: { status: 'FUNDING_SUBMITTED', journalSourced: false, lastDealerActionAt: { gte: since } } }),
     prisma.dealCancellation.count({ where: { status: 'PENDING', createdAt: { gte: since } } }),
   ]);
 

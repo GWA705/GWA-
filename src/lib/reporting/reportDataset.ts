@@ -27,7 +27,7 @@ export interface ReportRow {
 }
 
 export async function reportDataset(opts: { dealerIds?: string[] } = {}): Promise<ReportRow[]> {
-  const where: Prisma.ApplicationWhereInput = { status: { not: 'DRAFT' } };
+  const where: Prisma.ApplicationWhereInput = { status: { not: 'DRAFT' }, journalSourced: false };
   if (opts.dealerIds) where.dealerId = { in: opts.dealerIds };
 
   const apps = await prisma.application.findMany({
