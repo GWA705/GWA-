@@ -177,6 +177,30 @@ export interface CaseEmailVM {
   snippet: string;
 }
 
+/** Linked-deal summary shown on the case so HD sees the full transaction. */
+export interface CaseDealVM {
+  program: string;
+  productsSummary: string | null;
+  saleDate: string | null;
+  installDate: string | null;
+  amount: string | null;
+  financeCompany: string | null;
+  financeNumber: string | null;
+  storeLabel: string | null;
+  status: string;
+  financingVerified: boolean;
+}
+
+export interface CaseInstallPhotoVM { id: string; label: string; mime: string | null; }
+export interface CaseDocCheckVM { label: string; present: boolean; verified: boolean; }
+
+/** The whole customer file pulled from the linked deal (null when unlinked). */
+export interface CaseFileVM {
+  deal: CaseDealVM | null;
+  installPhotos: CaseInstallPhotoVM[];
+  docChecklist: CaseDocCheckVM[];
+}
+
 export interface CaseDetail {
   id: string;
   caseNumber: string;
@@ -198,6 +222,7 @@ export interface CaseDetail {
   resolutionNote: string | null;
   notes: CaseNoteVM[];
   dealDocs: CaseDealDoc[]; // documents from the linked deal, shown as resources
+  file: CaseFileVM; // the whole customer file (deal, install photos, doc checklist)
   attachments: CaseAttachmentVM[]; // files/links attached directly to the case
   hdCaseNumber: string | null;
   emailLinked: boolean;
@@ -219,6 +244,76 @@ export interface CaseDetail {
 
 const daysSince = (d: Date): number => Math.max(0, Math.floor((Date.now() - d.getTime()) / 86_400_000));
 
+// Documents HD expects to see on a completed install deal, in display order.
+const DOC_CHECKLIST: { type: string; label: string }[] = [
+  { type: 'SIGNED_CONTRACT', label: 'Signed install agreement' },
+  { type: 'VOID_CHEQUE_OR_PAP', label: 'Void cheque / PAP' },
+  { type: 'INSTALL_PHOTO', label: 'Install photos' },
+  { type: 'HD_WAIVER', label: 'HD waiver' },
+  { type: 'GOVERNMENT_ID', label: 'Government ID' },
+  { type: 'PROOF_OF_HOMEOWNERSHIP', label: 'Proof of homeownership' },
+];
+
+function money(d: unknown): string | null {
+  if (d == null) return null;
+  const n = Number(d);
+  if (!Number.isFinite(n) || n === 0) return null;
+  return n.toLocaleString('en-CA', { style: 'currency', currency: 'CAD', maximumFractionDigits: 2 });
+}
+
+function titleize(s: string | null | undefined): string {
+  return (s || '').replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (ch) => ch.toUpperCase());
+}
+
+type AppForFile = {
+  programType: string;
+  status: string;
+  requestedAmount: unknown;
+  approvedAmount: unknown;
+  financedAmount: unknown;
+  dateOfSale: Date | null;
+  installationDate: Date | null;
+  loanReference: string | null;
+  financeReference: string | null;
+  financeItNumber: string | null;
+  financeNumberVerifiedAt: Date | null;
+  productsSold: string[];
+  financeCompany: { name: string } | null;
+  homeDepotStore: { number: string; name: string | null } | null;
+} | null;
+
+type DocForFile = { id: string; label: string | null; fileName: string; mimeType: string; type: string; verifiedAt: Date | null };
+
+/** Assemble the customer file (deal summary, install photos, doc checklist). */
+function buildCaseFile(app: AppForFile, docs: DocForFile[]): CaseFileVM {
+  const installPhotos = docs
+    .filter((d) => d.type === 'INSTALL_PHOTO')
+    .map((d) => ({ id: d.id, label: d.label || d.fileName, mime: d.mimeType }));
+  const docChecklist = DOC_CHECKLIST.map((r) => ({
+    label: r.label,
+    present: docs.some((d) => d.type === r.type),
+    verified: docs.some((d) => d.type === r.type && !!d.verifiedAt),
+  }));
+  if (!app) return { deal: null, installPhotos, docChecklist };
+
+  const store = app.homeDepotStore
+    ? `#${app.homeDepotStore.number}${app.homeDepotStore.name ? ` ${app.homeDepotStore.name}` : ''}`
+    : null;
+  const deal: CaseDealVM = {
+    program: titleize(app.programType),
+    productsSummary: app.productsSold.length ? app.productsSold.join(', ') : null,
+    saleDate: app.dateOfSale ? fmtDay(app.dateOfSale) : null,
+    installDate: app.installationDate ? fmtDay(app.installationDate) : null,
+    amount: money(app.financedAmount) ?? money(app.approvedAmount) ?? money(app.requestedAmount),
+    financeCompany: app.financeCompany?.name ?? null,
+    financeNumber: app.financeItNumber || app.loanReference || app.financeReference || null,
+    storeLabel: store,
+    status: titleize(app.status),
+    financingVerified: !!app.financeNumberVerifiedAt,
+  };
+  return { deal, installPhotos, docChecklist };
+}
+
 export async function loadResolutionCase(id: string): Promise<CaseDetail | null> {
   const c = await prisma.resolutionCase.findUnique({
     where: { id },
@@ -228,19 +323,34 @@ export async function loadResolutionCase(id: string): Promise<CaseDetail | null>
       notes: { orderBy: { createdAt: 'desc' }, include: { author: { select: { name: true } } } },
       attachments: { orderBy: { createdAt: 'desc' }, include: { addedBy: { select: { name: true } } } },
       emails: { orderBy: [{ sentAt: 'asc' }, { createdAt: 'asc' }] },
-      application: { select: { applicantEmail: true, applicantAddressEnc: true } },
+      application: {
+        select: {
+          applicantEmail: true, applicantAddressEnc: true,
+          programType: true, status: true,
+          requestedAmount: true, approvedAmount: true, financedAmount: true,
+          dateOfSale: true, installationDate: true,
+          loanReference: true, financeReference: true, financeItNumber: true,
+          financeNumberVerifiedAt: true, productsSold: true,
+          financeCompany: { select: { name: true } },
+          homeDepotStore: { select: { number: true, name: true } },
+        },
+      },
     },
   });
   if (!c) return null;
 
   const names = await dealerNames([c.officeDealerId]);
-  const dealDocs = c.applicationId
+  const docs = c.applicationId
     ? await prisma.document.findMany({
         where: { applicationId: c.applicationId },
         orderBy: { createdAt: 'desc' },
-        select: { id: true, label: true, fileName: true, mimeType: true },
+        select: { id: true, label: true, fileName: true, mimeType: true, type: true, verifiedAt: true },
       })
     : [];
+  const dealDocs = docs;
+
+  // The whole customer file, assembled from the linked deal.
+  const file: CaseFileVM = buildCaseFile(c.application, docs);
 
   return {
     id: c.id,
@@ -270,6 +380,7 @@ export async function loadResolutionCase(id: string): Promise<CaseDetail | null>
       statusTo: n.statusTo,
     })),
     dealDocs: dealDocs.map((d) => ({ id: d.id, label: d.label || d.fileName, mime: d.mimeType })),
+    file,
     attachments: c.attachments.map((a) => ({
       id: a.id,
       kind: a.kind === 'link' ? 'link' : 'file',

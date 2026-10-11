@@ -38,6 +38,25 @@ source of truth; this file is the human-readable index.
 | HD Resolution ↔ Gmail email link | ✅ **Live & verified** (2026-10-07, Sean) | Read-only Gmail via the existing service account (`gwa-journal-writer@gwa-portal-504012…`, project **"GWA Portal"** `gwa-portal-504012`, Unique ID `100470797238569934976`), impersonating `sean@ghsbarrie.ca` + the `HD Resolution` label. All switches done: Gmail API enabled, Workspace domain-wide delegation (`…/auth/gmail.readonly`), `GMAIL_RESOLUTION_USER=sean@ghsbarrie.ca` on EB. **Verified end-to-end** — the Email inbox lists real HD threads and "Open as case" links the thread + auto-fills. 30-min sync `resolution-email-sync.yml` (reuses `CRON_SECRET`). Steps/facts: `HD-RESOLUTION-EMAIL.md`, `BUILD-FACTS.md`. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### HD Resolution case page redesigned as a full customer file (2026-10-11)
+- The case detail page (`/staff/resolutions/[id]`) is rebuilt for a high-level,
+  HD-facing look and **full transparency** — it now opens the whole customer file,
+  not just the case notes:
+  - **Header band** (navy) with case #, HD ref, HD case #, customer, office, install
+    date, product, deal status — as clean labeled chips, replacing the emoji/dot line.
+  - **Two-column layout**: the file on the left, a **Status & SLA** sidebar on the right
+    (status pill, awaiting-reply day count, assignee/office/priority) plus the manage-case controls.
+  - **The deal & financing** (program, product, sale/install dates, amount, finance
+    company + number, HD store, "financing verified") pulled from the linked application.
+  - **Install photos** gallery (thumbnails via `/api/documents/[id]/thumb`, click to view).
+  - **Documents on file** checklist — signed agreement, void cheque/PAP, install photos,
+    HD waiver, government ID, proof of homeownership — each shown Verified / On file / Not on file.
+  - Professional **lucide icons** throughout (no emoji), a real **activity timeline**, and the
+    HD email thread, AI reply drafter, contacts and case files reorganized into the new layout.
+- `loadResolutionCase` extended with a `file` view-model (deal summary, install photos,
+  doc checklist); no schema change. Next: calls/texts history on the case, and additional
+  watched email addresses (e.g. the customer's personal email) parsed into the thread.
+
 ### Marketplace: auto-rotating "New Arrivals" showcase (2026-10-11)
 - The New Arrivals strip now curates itself so it never goes stale and nobody has to
   mind it. Each week it shows: genuinely new items (added within the fresh window,
