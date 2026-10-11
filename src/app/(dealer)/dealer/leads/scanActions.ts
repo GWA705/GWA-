@@ -136,6 +136,8 @@ export async function createScannedLeadAction(_prev: ScanSaveState, fd: FormData
       customerName: lead.customerName,
       province: provinceFromPostalCode(lead.postalCode),
       dealerId: lead.dealerId,
+      street: lead.address,
+      city: lead.city,
     });
   } catch (e) {
     console.error('[leadText] enqueue (scanned) failed', e);

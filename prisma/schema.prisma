@@ -2174,6 +2174,8 @@ model LeadTextOutbox {
   province     String? // 2-letter code (ON/QC/…), for timezone + sender pick
   phone        String // E.164
   customerName String?
+  street       String? // street name for message personalization ("Scott St")
+  city         String? // city for message personalization ("Barrie")
   status       String    @default("PENDING") // PENDING | SENT | FAILED | SKIPPED | OPTED_OUT | CANCELLED
   channel      String? // 'MMS' | 'SMS' — what actually sent
   scheduledFor DateTime // earliest send time (sweep still gates on the daytime window)

@@ -19,10 +19,8 @@ describe('lead auto-text message', () => {
     expect(m.toUpperCase()).toContain('STOP');
   });
 
-  it('adapts the wording to the lead source', () => {
-    expect(renderLeadTextBody('MAILIN', 'ON')).toContain('mail-in');
-    expect(renderLeadTextBody('SCANNED', 'ON')).toContain('Home Depot store');
-    expect(renderLeadTextBody('HD_SHEET', 'ON')).toContain('Home Depot water assessment request');
+  it('reads in short blocks with blank-line spacing (phone-friendly)', () => {
+    expect(renderLeadTextBody('HD_SHEET', 'ON')).toContain('\n\n');
   });
 
   it('sends French to Quebec', () => {
@@ -41,17 +39,18 @@ describe('lead auto-text message', () => {
 });
 
 describe('follow-up message kinds', () => {
-  it('day-1 reminder is branded, references the assessment, and carries STOP', () => {
+  it('day-1 reminder is branded, references the test, and carries STOP', () => {
     const m = renderLeadTextBody('SCANNED', 'ON', 'DAY1');
-    expect(m).toContain('Georgian Water & Air');
+    expect(m).toContain('Home Depot Home Services');
     expect(m.toLowerCase()).toContain('reminder');
     expect(m.toUpperCase()).toContain('STOP');
     expect(m).not.toMatch(/[«»“”’—]/);
   });
 
-  it('missed-window text promises a call again within 36 hours', () => {
+  it('missed-window text identifies the sender and promises a call within 36 hrs', () => {
     const m = renderLeadTextBody('SCANNED', 'ON', 'MISSED_WINDOW');
-    expect(m).toContain('36 hours');
+    expect(m).toContain('Home Depot Home Services');
+    expect(m).toContain('36 hrs');
     expect(m.toLowerCase()).toContain('sorry');
     expect(m.toUpperCase()).toContain('STOP');
     expect(m).not.toMatch(/[«»“”’—]/);
@@ -61,7 +60,7 @@ describe('follow-up message kinds', () => {
     const d1 = renderLeadTextBody('SCANNED', 'QC', 'DAY1');
     const mw = renderLeadTextBody('SCANNED', 'QC', 'MISSED_WINDOW');
     expect(d1).toMatch(/rappel/i);
-    expect(mw).toContain('36 heures');
+    expect(mw).toContain('36 h');
     for (const m of [d1, mw]) {
       expect(m).toContain('STOP');
       expect(m).not.toMatch(/[«»“”’—]/);
@@ -72,42 +71,69 @@ describe('follow-up message kinds', () => {
     expect(renderLeadTextBody('SCANNED', 'ON')).toContain('24-48');
   });
 
-  it('appends the self-booking link to follow-ups, before the STOP line', () => {
+  it('includes the self-booking link on follow-ups when provided, before STOP', () => {
     const d1 = renderLeadTextBody('SCANNED', 'ON', 'DAY1', { bookingUrl: 'https://portal.ghsbarrie.ca/book/abc123' });
     expect(d1).toContain('/book/abc123');
-    expect(d1.toLowerCase()).toContain('pick a time yourself');
+    expect(d1.toLowerCase()).toContain('book yourself');
     expect(d1.indexOf('/book/abc123')).toBeLessThan(d1.toUpperCase().lastIndexOf('STOP'));
     expect(d1).not.toMatch(/[«»“”’—]/);
   });
 
   it('reactivation is a friendly "still available" nudge with STOP', () => {
     const m = renderLeadTextBody('SCANNED', 'ON', 'REACTIVATION');
-    expect(m).toContain('Georgian Water & Air');
+    expect(m).toContain('Home Depot Home Services');
     expect(m.toLowerCase()).toContain('still available');
     expect(m.toUpperCase()).toContain('STOP');
     expect(m).not.toMatch(/[«»“”’—]/);
     expect(renderLeadTextBody('SCANNED', 'QC', 'REACTIVATION')).toMatch(/toujours disponible/i);
   });
 
-  it('omits the booking link when no url is provided, and never on the confirmation', () => {
+  it('drops the booking line when no url is provided, and the confirmation has none', () => {
     expect(renderLeadTextBody('SCANNED', 'ON', 'DAY1')).not.toContain('/book/');
+    expect(renderLeadTextBody('SCANNED', 'ON', 'DAY1')).not.toContain('Book yourself');
     expect(renderLeadTextBody('SCANNED', 'ON', 'CONFIRM', { bookingUrl: 'https://x/book/zzz' })).not.toContain('/book/');
+  });
+});
+
+describe('personalization + fallbacks', () => {
+  const INFO = 'https://portal.ghsbarrie.ca/sms';
+  it('greets by first name and names the street + city', () => {
+    const m = renderLeadTextBody('SCANNED', 'ON', 'CONFIRM', { firstName: 'Robyn Scott', street: '118 Scott St', city: 'Barrie', infoUrl: INFO });
+    expect(m).toContain('Hi Robyn,');
+    expect(m).toContain('at Scott St in Barrie');
+  });
+  it('falls back gracefully when name/address are missing', () => {
+    const m = renderLeadTextBody('SCANNED', 'ON', 'CONFIRM', { infoUrl: INFO });
+    expect(m).toContain('Hi there,');
+    expect(m).not.toMatch(/Hi\s{2,},/); // never an empty "Hi ,"
+    expect(m).not.toContain(' at  in ');
+  });
+  it('drops the house number, keeping the street name', () => {
+    const m = renderLeadTextBody('SCANNED', 'ON', 'DAY1', { firstName: 'Dale', street: '12-440 Dunlop St W', city: 'Barrie' });
+    expect(m).toContain('at Dunlop St W in Barrie');
+    expect(m).not.toContain('440');
+  });
+  it('French greeting + address clause, GSM-7 friendly', () => {
+    const m = renderLeadTextBody('SCANNED', 'QC', 'CONFIRM', { firstName: 'Marc', street: '5 Rue Principale', city: 'Gatineau', infoUrl: INFO });
+    expect(m).toContain('Bonjour Marc,');
+    expect(m).toContain('a Rue Principale, Gatineau');
+    expect(m).not.toMatch(/[«»“”’—]/);
   });
 });
 
 describe('CASL program-info link (every message)', () => {
   const INFO = 'https://portal.ghsbarrie.ca/sms';
 
-  it('appends the info/opt-out link on the confirmation and keeps STOP last', () => {
+  it('includes the info link on the confirmation, after the STOP line', () => {
     const m = renderLeadTextBody('HD_SHEET', 'ON', 'CONFIRM', { infoUrl: INFO });
     expect(m).toContain(INFO);
-    expect(m).toContain('Info/opt-out');
-    // The link comes before the final STOP line.
-    expect(m.indexOf(INFO)).toBeLessThan(m.toUpperCase().lastIndexOf('STOP'));
+    expect(m).toContain('Info:');
+    // STOP comes before the info link (STOP is the prominent opt-out).
+    expect(m.toUpperCase().indexOf('STOP')).toBeLessThan(m.indexOf(INFO));
     expect(m).not.toMatch(/[«»“”’—]/);
   });
 
-  it('appends it to every follow-up kind too', () => {
+  it('includes it on every follow-up kind too', () => {
     for (const kind of ['DAY1', 'MISSED_WINDOW', 'REACTIVATION'] as const) {
       expect(renderLeadTextBody('SCANNED', 'ON', kind, { infoUrl: INFO })).toContain(INFO);
     }
@@ -116,12 +142,14 @@ describe('CASL program-info link (every message)', () => {
   it('uses a French label in Quebec and stays GSM-7 friendly', () => {
     const m = renderLeadTextBody('HD_SHEET', 'QC', 'CONFIRM', { infoUrl: INFO });
     expect(m).toContain(INFO);
-    expect(m).toContain('Infos/desabo');
+    expect(m).toContain('Infos:');
     expect(m).not.toMatch(/[«»“”’—]/);
   });
 
-  it('omits the link when no infoUrl is given (keeps old tests/behaviour)', () => {
-    expect(renderLeadTextBody('HD_SHEET', 'ON')).not.toContain('/sms');
+  it('drops the info line when no infoUrl is given', () => {
+    const m = renderLeadTextBody('HD_SHEET', 'ON');
+    expect(m).not.toContain('/sms');
+    expect(m).not.toContain('Info:');
   });
 });
 

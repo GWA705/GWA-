@@ -37,15 +37,18 @@ export default async function LeadTextingAdminPage() {
   // Sample messages (what the customer receives), rendered server-side. The
   // program-info/opt-out link (CASL) is appended to every message.
   const info = smsInfoUrl();
+  // Sample customer so previews show real personalization + spacing.
+  const en = { infoUrl: info, bookingUrl: 'https://portal.ghsbarrie.ca/book/sample', firstName: 'Robyn Scott', street: '118 Scott St', city: 'Barrie' };
+  const qc = { infoUrl: info, bookingUrl: 'https://portal.ghsbarrie.ca/book/sample', firstName: 'Marc Tremblay', street: '12 Rue Principale', city: 'Gatineau' };
   const previews = [
-    { label: 'Confirmation — in-store card (EN)', text: renderLeadTextBody('SCANNED', 'ON', 'CONFIRM', { infoUrl: info }) },
-    { label: 'Confirmation — mail-in card (EN)', text: renderLeadTextBody('MAILIN', 'ON', 'CONFIRM', { infoUrl: info }) },
-    { label: 'Confirmation — online HD lead (EN)', text: renderLeadTextBody('HD_SHEET', 'ON', 'CONFIRM', { infoUrl: info }) },
-    { label: 'Day-1 reminder (EN)', text: renderLeadTextBody('SCANNED', 'ON', 'DAY1', { infoUrl: info }) },
-    { label: 'Missed-window — call again in 36h (EN)', text: renderLeadTextBody('SCANNED', 'ON', 'MISSED_WINDOW', { infoUrl: info }) },
-    { label: 'Reactivation — still available? (EN)', text: renderLeadTextBody('SCANNED', 'ON', 'REACTIVATION', { infoUrl: info }) },
-    { label: 'Confirmation — Quebec (FR)', text: renderLeadTextBody('HD_SHEET', 'QC', 'CONFIRM', { infoUrl: info }) },
-    { label: 'Missed-window — Quebec (FR)', text: renderLeadTextBody('SCANNED', 'QC', 'MISSED_WINDOW', { infoUrl: info }) },
+    { label: 'Confirmation — in-store card (EN)', text: renderLeadTextBody('SCANNED', 'ON', 'CONFIRM', en) },
+    { label: 'Confirmation — mail-in card (EN)', text: renderLeadTextBody('MAILIN', 'ON', 'CONFIRM', en) },
+    { label: 'Confirmation — online HD lead (EN)', text: renderLeadTextBody('HD_SHEET', 'ON', 'CONFIRM', en) },
+    { label: 'Day-1 reminder (EN)', text: renderLeadTextBody('SCANNED', 'ON', 'DAY1', en) },
+    { label: 'Missed-window — call again in 36h (EN)', text: renderLeadTextBody('SCANNED', 'ON', 'MISSED_WINDOW', en) },
+    { label: 'Reactivation — still available? (EN)', text: renderLeadTextBody('SCANNED', 'ON', 'REACTIVATION', en) },
+    { label: 'Confirmation — Quebec (FR)', text: renderLeadTextBody('HD_SHEET', 'QC', 'CONFIRM', qc) },
+    { label: 'Missed-window — Quebec (FR)', text: renderLeadTextBody('SCANNED', 'QC', 'MISSED_WINDOW', qc) },
   ];
 
   return (

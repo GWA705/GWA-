@@ -118,13 +118,16 @@ export async function sweepNewLeads(): Promise<SweepResult> {
     // feature is enabled; deduped by the same leadKey). Done for every recent
     // online HD lead, even one whose store isn't mapped to an office yet.
     try {
+      const parsedAddr = parseLeadAddress(lead.address);
       await enqueueLeadText({
         leadKey: key,
         source: 'HD_SHEET',
         phone: lead.phone,
         customerName: lead.customerName,
-        province: parseLeadAddress(lead.address).province || null,
+        province: parsedAddr.province || null,
         dealerId: dealerId ?? null,
+        street: parsedAddr.street || null,
+        city: parsedAddr.city || null,
       });
     } catch (e) {
       console.error('[leadText] enqueue (hd-sheet) failed', e);

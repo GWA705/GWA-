@@ -182,86 +182,144 @@ export function leadTextLang(province?: string | null): 'en' | 'fr' {
   return (province || '').toUpperCase() === 'QC' ? 'fr' : 'en';
 }
 
+// ---------------------------------------------------------------------------
+// Message templates (editable) + personalization
+// ---------------------------------------------------------------------------
+
+// Merge fields an admin can drop into a template. Kept short + obvious.
+export const LEAD_TEXT_TOKENS: { token: string; label: string; hint: string }[] = [
+  { token: '{{first_name}}', label: 'First name', hint: "The customer's first name (falls back to a friendly greeting)" },
+  { token: '{{at_address}}', label: 'At their address', hint: 'e.g. " at Scott St in Barrie" — the whole clause, or nothing if unknown' },
+  { token: '{{street}}', label: 'Street', hint: 'Just the street name, e.g. "Scott St"' },
+  { token: '{{city}}', label: 'City', hint: 'e.g. "Barrie"' },
+  { token: '{{booking_link}}', label: 'Booking link', hint: 'Self-booking page link (its line is dropped if no link)' },
+  { token: '{{info_link}}', label: 'Info/opt-out link', hint: 'The /sms program-info page (CASL)' },
+];
+
+/** The customer's first name from a full name ("Robyn Scott" → "Robyn"). */
+export function firstNameOf(name?: string | null): string {
+  return (name || '').trim().split(/\s+/)[0] || '';
+}
+
+/** The street NAME from a full address ("118 Scott St" → "Scott St"), dropping a
+ *  leading house/unit number. Falls back to the input when nothing is left. */
+export function streetNameOf(address?: string | null): string {
+  const s = (address || '').trim();
+  if (!s) return '';
+  const stripped = s.replace(/^[\s#.\-]*\d+[A-Za-z]?(?:\s*-\s*\d+[A-Za-z]?)?\s+/, '').trim();
+  return stripped || s;
+}
+
+export interface LeadTextVarsInput {
+  firstName?: string | null; // full name is fine — the first word is used
+  street?: string | null; // street name (or a full address — handled)
+  city?: string | null;
+  bookingUrl?: string | null;
+  infoUrl?: string | null;
+}
+
+/** Resolve merge-field values (with graceful fallbacks) for a language. */
+export function leadTextVars(input: LeadTextVarsInput, lang: 'en' | 'fr'): Record<string, string> {
+  const fr = lang === 'fr';
+  const first = firstNameOf(input.firstName);
+  const street = streetNameOf(input.street);
+  const city = (input.city || '').trim();
+  let at = '';
+  if (street && city) at = fr ? ` a ${street}, ${city}` : ` at ${street} in ${city}`;
+  else if (street) at = fr ? ` a ${street}` : ` at ${street}`;
+  else if (city) at = fr ? ` a ${city}` : ` in ${city}`;
+  return {
+    // No name → "Hi there," (EN) / "Bonjour," (FR, trailing comma tidied up).
+    first_name: first || (fr ? '' : 'there'),
+    at_address: at,
+    street: street || (fr ? 'votre adresse' : 'your place'),
+    city: city || (fr ? 'votre secteur' : 'your area'),
+    booking_link: input.bookingUrl || '',
+    info_link: input.infoUrl || '',
+  };
+}
+
+// Link tokens whose whole line is removed when they have no value (so we never
+// text "Book yourself:" or "Info:" with nothing after). Keep each on its own line.
+const LINE_STRIP_IF_EMPTY = new Set(['booking_link', 'info_link']);
+
+/** Fill a template's {{tokens}} and tidy spacing/punctuation. GSM-7 friendly in,
+ *  GSM-7 friendly out. */
+export function renderLeadTextTemplate(body: string, vars: Record<string, string>): string {
+  let out = body;
+  for (const [name, val] of Object.entries(vars)) {
+    const token = `{{${name}}}`;
+    if (val === '' && LINE_STRIP_IF_EMPTY.has(name)) {
+      out = out.split('\n').filter((line) => !line.includes(token)).join('\n');
+    } else {
+      out = out.split(token).join(val);
+    }
+  }
+  return out
+    .replace(/[ \t]+([,.;!?])/g, '$1') // "Bonjour ," → "Bonjour,"
+    .replace(/[ \t]{2,}/g, ' ')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 /**
- * The customer message. Kept GSM-7-friendly (straight quotes, hyphens, no
- * guillemets/em-dashes) so the SMS fallback stays to as few segments as possible.
- * Source changes only the "how we received it" phrase.
+ * The built-in message templates — friendly, personalized, and spaced into short
+ * blocks that read well on a phone. Kept GSM-7-friendly (straight quotes, hyphens,
+ * no accents/guillemets) so the SMS fallback stays to as few segments as possible.
+ * Admins can override any of these (stored per kind + language); these are the
+ * defaults and the fallback.
+ */
+export const DEFAULT_LEAD_TEXTS: Record<LeadTextKind, Record<'en' | 'fr', string>> = {
+  CONFIRM: {
+    en: `Hi {{first_name}}, it's Home Depot Home Services (serviced by Georgian Water & Air).\n\nWe got your request for a free in-home water test{{at_address}}.\n\nA team member will call within 24-48 hrs to book a time. Our call shows as "HD Home Services". Msg & data rates may apply.\n\nReply STOP to opt out.\nInfo: {{info_link}}`,
+    fr: `Bonjour {{first_name}}, ici Home Depot Home Services (service assure par Georgian Water & Air).\n\nNous avons recu votre demande d'evaluation de l'eau a domicile gratuite{{at_address}}.\n\nUn membre de l'equipe vous appellera d'ici 24-48 h pour planifier. Des frais peuvent s'appliquer.\n\nRepondez STOP pour vous desabonner.\nInfos: {{info_link}}`,
+  },
+  DAY1: {
+    en: `Hi {{first_name}}, a quick reminder from Home Depot Home Services about your free in-home water test{{at_address}}.\n\nWe'll call soon to book - or reply with a day and time that works and we'll call then.\n\nBook yourself: {{booking_link}}\nReply STOP to opt out.\nInfo: {{info_link}}`,
+    fr: `Bonjour {{first_name}}, petit rappel de Home Depot Home Services au sujet de votre evaluation de l'eau a domicile{{at_address}}.\n\nNous vous appellerons bientot - ou repondez avec un jour et une heure qui vous conviennent.\n\nReservez: {{booking_link}}\nRepondez STOP pour vous desabonner.\nInfos: {{info_link}}`,
+  },
+  MISSED_WINDOW: {
+    en: `Hi {{first_name}}, it's Home Depot Home Services - sorry we haven't connected yet about your free water test{{at_address}}.\n\nWe'll try again within 36 hrs. If a certain day or time is easier, just reply.\n\nBook yourself: {{booking_link}}\nReply STOP to opt out.\nInfo: {{info_link}}`,
+    fr: `Bonjour {{first_name}}, ici Home Depot Home Services - desole de ne pas vous avoir joint au sujet de votre evaluation de l'eau{{at_address}}.\n\nNous reessaierons d'ici 36 h. Si un jour ou une heure vous convient mieux, repondez.\n\nReservez: {{booking_link}}\nRepondez STOP pour vous desabonner.\nInfos: {{info_link}}`,
+  },
+  REACTIVATION: {
+    en: `Hi {{first_name}}, it's Home Depot Home Services - your free in-home water test{{at_address}} is still available whenever you're ready.\n\nReply YES and we'll call to book.\nReply STOP to opt out.\nInfo: {{info_link}}`,
+    fr: `Bonjour {{first_name}}, ici Home Depot Home Services - votre evaluation de l'eau a domicile gratuite{{at_address}} est toujours disponible.\n\nRepondez OUI et nous vous appellerons.\nRepondez STOP pour vous desabonner.\nInfos: {{info_link}}`,
+  },
+};
+
+/** AppSetting key holding an admin's override for one template. */
+export function leadTextTemplateKey(kind: LeadTextKind, lang: 'en' | 'fr'): string {
+  return `leadText.tmpl.${kind}.${lang}`;
+}
+
+/**
+ * Render a customer message from the (possibly overridden) template for its kind +
+ * language, with personalization merged in. Async because it reads the override.
+ */
+export async function composeLeadText(opts: LeadTextVarsInput & { kind: LeadTextKind; province?: string | null }): Promise<string> {
+  const lang = leadTextLang(opts.province);
+  const key = leadTextTemplateKey(opts.kind, lang);
+  const s = await getSettings([key]);
+  const body = (s[key] || '').trim() || DEFAULT_LEAD_TEXTS[opts.kind][lang];
+  return renderLeadTextTemplate(body, leadTextVars(opts, lang));
+}
+
+/**
+ * Pure render from the BUILT-IN default template (no DB override) — used for the
+ * admin previews and tests. `source` is accepted for signature compatibility but
+ * no longer changes the body (the templates are source-agnostic now).
  */
 export function renderLeadTextBody(
   source: LeadTextSource,
   province?: string | null,
   kind: LeadTextKind = 'CONFIRM',
-  opts?: { bookingUrl?: string | null; infoUrl?: string | null },
+  opts?: LeadTextVarsInput,
 ): string {
-  const fr = leadTextLang(province) === 'fr';
-  // Self-booking line, inserted before the STOP opt-out when a link is provided.
-  const book = opts?.bookingUrl
-    ? fr
-      ? ` Ou reservez une heure vous-meme: ${opts.bookingUrl}.`
-      : ` Or pick a time yourself: ${opts.bookingUrl}.`
-    : '';
-  // CASL identification/contact link to the program-info + opt-out page.
-  const info = opts?.infoUrl ? (fr ? ` Infos/desabo: ${opts.infoUrl}` : ` Info/opt-out: ${opts.infoUrl}`) : '';
-  const stop = fr ? ' Repondez STOP pour vous desabonner.' : ' Reply STOP to opt out.';
-
-  if (kind === 'DAY1') {
-    // ~24h reminder, sent only if the lead hasn't been contacted/booked yet.
-    const base = fr
-      ? `Home Depot Home Services (service assure par Georgian Water & Air): petit rappel au sujet de votre evaluation ` +
-          `de l'eau a domicile. Un membre de l'equipe vous appellera bientot - ou repondez avec un jour et une heure qui ` +
-          `vous conviennent et nous appellerons a ce moment.`
-      : `Home Depot Home Services (serviced by Georgian Water & Air): a quick reminder about your in-home water assessment. ` +
-          `A team member will call you soon to schedule - or reply with a day and time that works and we'll call then.`;
-    return base + book + info + stop;
-  }
-
-  if (kind === 'MISSED_WINDOW') {
-    // ~48h: we missed the 24-48h promise. Acknowledge and re-set a keepable window.
-    const base = fr
-      ? `Home Depot Home Services (service assure par Georgian Water & Air): nous sommes desoles de ne pas vous avoir ` +
-          `encore joint au sujet de votre evaluation de l'eau a domicile gratuite. Nous vous rappellerons d'ici 36 heures. ` +
-          `Si un jour ou une heure vous convient mieux, repondez simplement.`
-      : `Home Depot Home Services (serviced by Georgian Water & Air): we're sorry we haven't reached you yet about your ` +
-          `free in-home water assessment. We'll call you again within 36 hours. If a specific day or time is easier, just ` +
-          `reply and we'll work around you.`;
-    return base + book + info + stop;
-  }
-
-  if (kind === 'REACTIVATION') {
-    // An aged, still-unworked lead — one friendly "still available" nudge.
-    const base = fr
-      ? `Home Depot Home Services (service assure par Georgian Water & Air): votre evaluation de l'eau a domicile gratuite ` +
-          `est toujours disponible quand vous etes pret. Repondez OUI et nous vous appellerons pour planifier.`
-      : `Home Depot Home Services (serviced by Georgian Water & Air): your free in-home water assessment is still available ` +
-          `whenever you're ready. Reply YES and we'll call to book.`;
-    return base + book + info + stop;
-  }
-
-  // CONFIRM — on landing.
-  if (fr) {
-    const via =
-      source === 'MAILIN'
-        ? 'votre demande envoyee par la poste'
-        : source === 'SCANNED'
-          ? 'votre demande faite en magasin Home Depot'
-          : 'votre demande Home Depot';
-    return (
-      `Home Depot Home Services (service assure par Georgian Water & Air): Nous avons recu ${via} ` +
-      `pour une evaluation de l'eau a domicile. Un membre de l'equipe vous appellera d'ici 24-48 h pour planifier. ` +
-      `Notre appel s'affichera "HD Home Services". Des frais peuvent s'appliquer.` + info + stop
-    );
-  }
-  const via =
-    source === 'MAILIN'
-      ? 'your mail-in request'
-      : source === 'SCANNED'
-        ? 'the request you made at your Home Depot store'
-        : 'your Home Depot water assessment request';
-  return (
-    `Home Depot Home Services (serviced by Georgian Water & Air): We received ${via} for an in-home water assessment. ` +
-    `A team member will call you within 24-48 hrs to schedule. Our call will show as "HD Home Services". ` +
-    `Msg & data rates may apply.` + info + stop
-  );
+  const lang = leadTextLang(province);
+  void source;
+  return renderLeadTextTemplate(DEFAULT_LEAD_TEXTS[kind][lang], leadTextVars(opts ?? {}, lang));
 }
 
 // province → sending number; falls back to the "default" entry, else undefined
@@ -284,6 +342,8 @@ export async function enqueueLeadText(input: {
   customerName?: string | null;
   province?: string | null;
   dealerId?: string | null;
+  street?: string | null; // street (name or full address) for personalization
+  city?: string | null;
 }): Promise<{ queued: boolean; reason?: string }> {
   const cfg = await leadTextConfig();
   if (!cfg.enabled) return { queued: false, reason: 'disabled' };
@@ -296,6 +356,8 @@ export async function enqueueLeadText(input: {
 
   const province = (input.province || '').toUpperCase() || null;
   const customerName = input.customerName?.trim() || null;
+  const street = streetNameOf(input.street) || null;
+  const city = input.city?.trim() || null;
 
   try {
     await prisma.leadTextOutbox.create({
@@ -307,6 +369,8 @@ export async function enqueueLeadText(input: {
         province,
         phone,
         customerName,
+        street,
+        city,
         scheduledFor: new Date(),
         status: 'PENDING',
       },
@@ -337,6 +401,8 @@ export async function enqueueLeadText(input: {
             province,
             phone,
             customerName,
+            street,
+            city,
             scheduledFor: new Date(now + f.hours * 60 * 60 * 1000),
             status: 'PENDING',
           },
@@ -388,7 +454,7 @@ export async function enqueueReactivationTexts(limit = 300): Promise<number> {
       phone: { not: null },
       createdAt: { lte: olderThan, gte: notOlderThan },
     },
-    select: { id: true, phone: true, customerName: true, postalCode: true, dealerId: true, uploadedByGwa: true },
+    select: { id: true, phone: true, customerName: true, address: true, city: true, postalCode: true, dealerId: true, uploadedByGwa: true },
     take: limit,
   });
 
@@ -408,6 +474,8 @@ export async function enqueueReactivationTexts(limit = 300): Promise<number> {
           province: provinceFromPostalCode(l.postalCode),
           phone,
           customerName: l.customerName,
+          street: streetNameOf(l.address) || null,
+          city: l.city?.trim() || null,
           scheduledFor: new Date(),
           status: 'PENDING',
         },
@@ -519,7 +587,15 @@ export async function processDueLeadTexts(limit = 200): Promise<SweepCounts> {
       continue;
     }
 
-    const body = renderLeadTextBody(row.source as LeadTextSource, row.province, row.kind as LeadTextKind, { bookingUrl, infoUrl: smsInfoUrl() });
+    const body = await composeLeadText({
+      kind: row.kind as LeadTextKind,
+      province: row.province,
+      firstName: row.customerName,
+      street: row.street,
+      city: row.city,
+      bookingUrl,
+      infoUrl: smsInfoUrl(),
+    });
     const from = pickSender(row.province, cfg.senderMap);
 
     let result = await sendSms({ to, body, mediaUrl: cfg.mediaUrl || undefined, from });
