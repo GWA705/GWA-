@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 
 // Public SMS program-info + opt-out page. CASL requires each commercial message
 // to identify the sender and give valid contact info; where it isn't practical to
@@ -94,7 +95,8 @@ export default function SmsInfoPage() {
       </div>
 
       <footer className="mt-10 border-t border-gray-100 pt-4 text-xs text-gray-400">
-        Last updated {UPDATED}. Home Depot Home Services, serviced by Georgian Water &amp; Air.
+        Last updated {UPDATED}. Home Depot Home Services, serviced by Georgian Water &amp; Air. ·{' '}
+        <Link href="/privacy" className="underline">Privacy Policy</Link>
       </footer>
     </main>
   );

@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { prisma } from '@/lib/db';
 import { bookingRequestLabel } from '@/lib/leadBooking';
 import { provinceFromPostalCode } from '@/lib/leadText';
@@ -20,6 +21,8 @@ function Shell({ children }: { children: React.ReactNode }) {
       <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">{children}</div>
       <p className="mt-4 text-center text-[11px] text-gray-400">
         Booking your free in-home water assessment. If you didn’t request this, you can ignore this page.
+        <br />
+        <Link href="/privacy" className="underline">Privacy Policy</Link>
       </p>
     </main>
   );

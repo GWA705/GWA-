@@ -58,6 +58,10 @@ source of truth; this file is the human-readable index.
   Every lookup (`DATA_ACCESS`) and erasure (`DATA_ERASURE`) is audit-logged.
 - `docs/COMPLIANCE.md` updated; new **`docs/GO-LIVE-HARDENING.md`** — one checklist to confirm
   every feature is tightened up and switched on correctly in production.
+- **Privacy policy made discoverable** — the `/privacy` page is now linked from every surface
+  people land on: the customer SMS-program page (`/sms`), the customer self-booking page
+  (`/book/[token]`), the staff/dealer login screen, and the app-wide footer (`AppShell`). No
+  login needed to read it; it was already public but unlinked.
 
 ### Security audit of this session's features + fixes (2026-10-11)
 - Audited all new/changed code (lead-texting engine/editor/AI/report, HD case file +

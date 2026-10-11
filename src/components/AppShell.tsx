@@ -81,7 +81,8 @@ export function AppShell({
       <main className="mx-auto max-w-6xl overflow-x-clip px-4 py-8">{children}</main>
       <footer className="mx-auto max-w-6xl px-4 py-8 text-xs text-gray-400">
         GWA Dealer Portal · Handles personal information under PIPEDA and provincial privacy law.
-        Access is logged.
+        Access is logged. ·{' '}
+        <Link href="/privacy" className="underline">Privacy Policy</Link>
       </footer>
     </div>
   );

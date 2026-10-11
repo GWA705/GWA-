@@ -33,7 +33,10 @@ export default async function LoginPage() {
         <div className="card p-6">
           <LoginForm />
         </div>
-        <p className="mt-4 text-center text-xs text-gray-400">{t('auth.authorizedNotice')}</p>
+        <p className="mt-4 text-center text-xs text-gray-400">
+          {t('auth.authorizedNotice')} ·{' '}
+          <a href="/privacy" className="underline">Privacy Policy</a>
+        </p>
       </div>
     </div>
   );
