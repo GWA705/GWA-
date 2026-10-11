@@ -149,6 +149,34 @@ export async function fetchThreadMessages(threadId: string): Promise<GmailMessag
     });
 }
 
+/**
+ * Recent mailbox messages to/from a specific email address (newest-first, capped),
+ * regardless of label. Used to pull a customer's own emails — or an extra HD
+ * contact's — into a case, so information they send us lands in the file.
+ */
+export async function fetchMessagesForAddress(addr: string, limit = 15): Promise<GmailMessage[]> {
+  const clean = (addr || '').replace(/["\s<>]/g, '').trim().toLowerCase();
+  if (!clean || !clean.includes('@')) return [];
+  const q = `(from:${clean} OR to:${clean}) newer_than:1y`;
+  const res = await gmailClient().users.messages.list({ userId: 'me', q, maxResults: Math.min(Math.max(1, limit), 25) });
+  const ids = (res.data.messages || []).map((m) => m.id).filter((x): x is string => !!x);
+  const out: GmailMessage[] = [];
+  for (const id of ids) {
+    const meta = await gmailClient().users.messages.get({
+      userId: 'me', id, format: 'metadata', metadataHeaders: ['From', 'Date'],
+    });
+    const fromAddr = header(meta.data.payload, 'From') || '(unknown sender)';
+    out.push({
+      gmailMessageId: id,
+      fromAddr,
+      sentAt: parseDate(header(meta.data.payload, 'Date')),
+      snippet: (meta.data.snippet || '').trim(),
+      inbound: isInbound(fromAddr),
+    });
+  }
+  return out;
+}
+
 // --- First-message body (for the AI problem summary) -----------------------
 
 function decodeB64Url(data: string): string {

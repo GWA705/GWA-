@@ -1,13 +1,14 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import {
-  ArrowLeft, User, CreditCard, Camera, Flag, Clock,
-  CheckCircle2, Check, Circle, FileText, ShieldCheck, Mail, Paperclip,
+  ArrowLeft, User, CreditCard, Camera, Flag, Clock, Phone,
+  CheckCircle2, Check, Circle, FileText, ShieldCheck, Mail, Paperclip, MessageSquare,
   type LucideIcon,
 } from 'lucide-react';
 import { requireRole } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { loadResolutionCase } from '@/lib/resolutionCases';
+import { loadCustomerCalls } from '@/lib/customerCalls';
 import { STATUS_LABEL, statusChipClass } from '@/lib/resolutionStatus';
 import { formatPhoneDisplay } from '@/lib/format';
 import { DocViewer } from '@/components/DocViewer';
@@ -17,8 +18,13 @@ import { CaseEmailThread } from '../CaseEmailThread';
 import { CaseContactCard } from '../CaseContactCard';
 import { LinkDealControl } from '../LinkDealControl';
 import { HdReplyDrafter } from '../HdReplyDrafter';
+import { WatchEmailsControl } from '../WatchEmailsControl';
 import { gmailResolutionConfigured } from '@/lib/gmailResolution';
 import { aiConfigured } from '@/lib/ai';
+
+const TEXT_KIND_LABEL: Record<string, string> = {
+  CONFIRM: 'Confirmation text', DAY1: 'Day-1 reminder', MISSED_WINDOW: 'Missed-window text', REACTIVATION: 'Reactivation text',
+};
 
 export const dynamic = 'force-dynamic';
 
@@ -63,6 +69,21 @@ export default async function CaseDetailPage({ params }: { params: { id: string 
     orderBy: { name: 'asc' },
     select: { id: true, name: true },
   });
+
+  // Calls & texts history for this customer (by deal + normalized phone).
+  const last10 = (c.customerPhone || '').replace(/\D/g, '').slice(-10);
+  const [callSnap, texts] = await Promise.all([
+    c.applicationId ? loadCustomerCalls(c.applicationId, c.customerPhone) : Promise.resolve(null),
+    last10
+      ? prisma.leadTextOutbox.findMany({
+          where: { phone: { endsWith: last10 }, status: 'SENT' },
+          orderBy: { sentAt: 'desc' },
+          take: 8,
+          select: { leadKey: true, kind: true, channel: true, sentAt: true },
+        })
+      : Promise.resolve([]),
+  ]);
+  const hasComms = (callSnap && callSnap.calls.length > 0) || texts.length > 0;
 
   const { deal, installPhotos, docChecklist } = c.file;
   const facts: { label: string; value: React.ReactNode }[] = [
@@ -209,7 +230,7 @@ export default async function CaseDetailPage({ params }: { params: { id: string 
           />
 
           {/* HD email thread */}
-          <Section icon={Mail} title="Home Depot email thread" meta={c.emailSyncedAt ? `Synced ${c.emailSyncedAt}` : undefined}>
+          <Section icon={Mail} title="Email thread" meta={c.emailSyncedAt ? `Synced ${c.emailSyncedAt}` : undefined}>
             <CaseEmailThread
               caseId={c.id}
               configured={gmailResolutionConfigured()}
@@ -217,7 +238,41 @@ export default async function CaseDetailPage({ params }: { params: { id: string 
               syncedAt={c.emailSyncedAt}
               emails={c.emails}
             />
+            {gmailResolutionConfigured() && (
+              <WatchEmailsControl caseId={c.id} watchEmails={c.watchEmails} customerEmail={c.customerEmail} />
+            )}
           </Section>
+
+          {/* Calls & texts history */}
+          {hasComms && (
+            <Section icon={Phone} title="Calls & texts"
+              meta={callSnap && callSnap.total > 0 ? `${callSnap.total} call${callSnap.total === 1 ? '' : 's'} on record` : undefined}>
+              <div className="divide-y divide-gray-100 dark:divide-slate-700">
+                {callSnap?.calls.map((call) => (
+                  <div key={call.id} className="flex items-start gap-3 py-2.5">
+                    <Phone size={16} className="mt-0.5 shrink-0 text-brand-600 dark:text-sky-400" />
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm text-gray-800 dark:text-slate-100">{call.note}</div>
+                      <div className="text-xs text-gray-400 dark:text-slate-500">{call.at} · {call.loggedBy}</div>
+                    </div>
+                    {call.forwarded && <span className="shrink-0 rounded-full bg-green-50 px-2 py-0.5 text-[11px] font-medium text-green-700 dark:bg-green-950/40 dark:text-green-300">Forwarded to office</span>}
+                  </div>
+                ))}
+                {texts.map((tx) => (
+                  <div key={tx.leadKey} className="flex items-start gap-3 py-2.5">
+                    <MessageSquare size={16} className="mt-0.5 shrink-0 text-brand-600 dark:text-sky-400" />
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm text-gray-800 dark:text-slate-100">{TEXT_KIND_LABEL[tx.kind] ?? tx.kind}</div>
+                      <div className="text-xs text-gray-400 dark:text-slate-500">
+                        {tx.sentAt ? tx.sentAt.toLocaleString('en-CA', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—'}
+                        {tx.channel ? ` · ${tx.channel}` : ''} · delivered
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Section>
+          )}
 
           {/* AI draft reply to HD (renders its own card) */}
           {aiConfigured() && <HdReplyDrafter caseId={c.id} />}

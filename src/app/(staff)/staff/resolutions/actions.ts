@@ -539,6 +539,27 @@ export async function syncEmailThreadAction(caseId: string): Promise<void> {
   revalidatePath(`/staff/resolutions/${caseId}`);
 }
 
+/**
+ * Save the extra email addresses to parse into this case (customer personal email,
+ * a second HD contact, etc.), then pull any matching messages in now.
+ */
+export async function saveWatchEmailsAction(_prev: { ok?: boolean; error?: string }, formData: FormData): Promise<{ ok?: boolean; error?: string }> {
+  await requireRole('REVIEWER', 'ADMIN');
+  const caseId = String(formData.get('caseId') || '');
+  if (!caseId) return { error: 'Missing case.' };
+  const raw = String(formData.get('watchEmails') || '');
+  // Accept comma / newline / space separated; keep only valid-looking addresses.
+  const emails = Array.from(new Set(
+    raw.split(/[\s,;]+/).map((s) => s.trim().toLowerCase()).filter((s) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(s)),
+  )).slice(0, 10);
+  await prisma.resolutionCase.update({ where: { id: caseId }, data: { watchEmails: emails } });
+  if (gmailResolutionConfigured()) {
+    try { await syncCaseEmails(caseId); } catch (e) { console.error('[resolution-email] watch sync failed', e); }
+  }
+  revalidatePath(`/staff/resolutions/${caseId}`);
+  return { ok: true };
+}
+
 /** Unlink the email thread and drop its synced messages from this case. */
 export async function unlinkEmailThreadAction(caseId: string): Promise<void> {
   await requireRole('REVIEWER', 'ADMIN');

@@ -1414,6 +1414,11 @@ model ResolutionCase {
   gmailThreadId String?
   gmailLinkedAt DateTime?
   emailSyncedAt DateTime?
+  // Extra email addresses to also parse into this case (e.g. the customer's
+  // personal email, a second HD contact). The sync pulls recent mailbox messages
+  // to/from each, on top of the linked HD thread. The customer's own email is
+  // always watched automatically and need not be listed here.
+  watchEmails   String[]  @default([])
 
   notes       ResolutionCaseNote[]
   attachments ResolutionAttachment[]

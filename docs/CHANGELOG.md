@@ -38,6 +38,19 @@ source of truth; this file is the human-readable index.
 | HD Resolution ↔ Gmail email link | ✅ **Live & verified** (2026-10-07, Sean) | Read-only Gmail via the existing service account (`gwa-journal-writer@gwa-portal-504012…`, project **"GWA Portal"** `gwa-portal-504012`, Unique ID `100470797238569934976`), impersonating `sean@ghsbarrie.ca` + the `HD Resolution` label. All switches done: Gmail API enabled, Workspace domain-wide delegation (`…/auth/gmail.readonly`), `GMAIL_RESOLUTION_USER=sean@ghsbarrie.ca` on EB. **Verified end-to-end** — the Email inbox lists real HD threads and "Open as case" links the thread + auto-fills. 30-min sync `resolution-email-sync.yml` (reuses `CRON_SECRET`). Steps/facts: `HD-RESOLUTION-EMAIL.md`, `BUILD-FACTS.md`. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### HD cases: watch extra emails + calls/texts history on the file (2026-10-11)
+- **Parse from additional email addresses.** A case now has `watchEmails` — extra
+  addresses (a customer's personal email, a second HD contact) whose recent mailbox
+  messages (to/from, last year, capped) are pulled into the case thread on top of the
+  linked HD thread. **The customer's own email is always watched automatically**, so if
+  they email us information it lands in the file. Managed from a control under the email
+  thread; the ~30-min sweep now also covers open cases that have watched addresses.
+  (`gmailResolution.fetchMessagesForAddress`, `resolutionEmailSync.syncCaseEmails` extended,
+  `saveWatchEmailsAction`, `WatchEmailsControl`, migration adds `ResolutionCase.watchEmails`.)
+- **Calls & texts history on the case.** The case file now shows the customer's recorded
+  call log (from the shared call log, by deal + normalized phone) and the auto-texts sent
+  to them (confirmation/reminders), so the whole communication history is in one place.
+
 ### HD Resolution case page redesigned as a full customer file (2026-10-11)
 - The case detail page (`/staff/resolutions/[id]`) is rebuilt for a high-level,
   HD-facing look and **full transparency** — it now opens the whole customer file,

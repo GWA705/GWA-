@@ -240,6 +240,7 @@ export interface CaseDetail {
   hdRepPhone: string | null;
   hdRepEmail: string | null;
   extraContacts: ExtraContact[];
+  watchEmails: string[]; // extra addresses parsed into the thread (customer email is auto)
 }
 
 const daysSince = (d: Date): number => Math.max(0, Math.floor((Date.now() - d.getTime()) / 86_400_000));
@@ -413,6 +414,7 @@ export async function loadResolutionCase(id: string): Promise<CaseDetail | null>
     hdRepPhone: c.hdRepPhone,
     hdRepEmail: c.hdRepEmail,
     extraContacts: parseExtraContacts(c.extraContacts),
+    watchEmails: c.watchEmails ?? [],
   };
 }
 
