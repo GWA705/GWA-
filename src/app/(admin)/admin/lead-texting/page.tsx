@@ -8,6 +8,7 @@ import { aiConfigured } from '@/lib/ai';
 import { LeadTextSettingsForm } from './LeadTextSettingsForm';
 import { VoiceSettingsForm } from './VoiceSettingsForm';
 import { MessageTemplatesEditor } from './MessageTemplatesEditor';
+import { LeadTextTabs } from './LeadTextTabs';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,15 +40,125 @@ export default async function LeadTextingAdminPage() {
   const info = smsInfoUrl();
   const templates = await getLeadTemplatesForEditor();
 
+  const messagesPanel = (
+    <div className="card p-6">
+      <h2 className="mb-1 text-base font-semibold text-gray-900">The messages</h2>
+      <p className="mb-2 text-xs text-gray-500">
+        Edit any message, drop in the customer&rsquo;s name or street, and see exactly how it lands on their phone.
+        MMS (with your image) is tried first, falling back to plain SMS.
+      </p>
+      <p className="mb-4 rounded-md border border-gray-200 bg-slate-50/60 p-2.5 text-xs text-gray-500">
+        <span className="font-medium text-gray-700">CASL:</span> every message identifies the sender, carries a STOP
+        opt-out, and links to the public program-info &amp; opt-out page at{' '}
+        <Link href="/sms" className="underline" target="_blank">/sms</Link>. Texting HELP returns our name and contact
+        details automatically.
+      </p>
+      <MessageTemplatesEditor
+        templates={templates}
+        aiAvailable={aiConfigured()}
+        bookingSample="https://portal.ghsbarrie.ca/book/sample"
+        infoUrl={info}
+      />
+    </div>
+  );
+
+  const settingsPanel = (
+    <div className="card p-6">
+      <h2 className="mb-4 text-base font-semibold text-gray-900">Settings</h2>
+      <LeadTextSettingsForm
+        config={{
+          enabled: cfg.enabled,
+          testMode: cfg.testMode,
+          testNumber: cfg.testNumber ?? '',
+          mediaUrl: cfg.mediaUrl ?? '',
+          senderMap: cfg.senderMap && Object.keys(cfg.senderMap).length ? JSON.stringify(cfg.senderMap, null, 2) : '',
+          quietStart: cfg.quietStart,
+          quietEnd: cfg.quietEnd,
+          followups: cfg.followups,
+          day1Hours: cfg.day1Hours,
+          missHours: cfg.missHours,
+          followupWorkdaysOnly: cfg.followupWorkdaysOnly,
+          workdays: Array.from(cfg.followupWorkdays),
+          bookingLink: cfg.bookingLink,
+          reactivation: cfg.reactivation,
+          reactivationDays: cfg.reactivationDays,
+          reactivationMaxDays: cfg.reactivationMaxDays,
+        }}
+      />
+    </div>
+  );
+
+  const liveCallPanel = (
+    <div className="card p-6">
+      <h2 className="mb-1 text-base font-semibold text-gray-900">Live call — &ldquo;talk to a booker now&rdquo;</h2>
+      <p className="mb-4 text-xs text-gray-500">
+        On the customer self-booking page, offer a live connect during staffed hours: the portal rings your bookers&rsquo;
+        line, then dials the customer and bridges them. Only the number already on the lead is ever called.
+      </p>
+      <VoiceSettingsForm
+        config={{
+          clickToCall: vcfg.clickToCall,
+          bookingLine: vcfg.bookingLine ?? '',
+          fromNumber: vcfg.fromNumber ?? '',
+          hoursStart: vcfg.hoursStart,
+          hoursEnd: vcfg.hoursEnd,
+        }}
+        credsPresent={twilioVoiceCredsPresent()}
+      />
+    </div>
+  );
+
+  const activityPanel = (
+    <div className="card p-6">
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-base font-semibold text-gray-900">Recent</h2>
+        <div className="text-xs text-gray-500">{pendingCount} queued · {optOutCount} opted out</div>
+      </div>
+      {recent.length === 0 ? (
+        <p className="text-sm text-gray-500">Nothing queued yet.</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead>
+              <tr className="border-b border-gray-100 text-xs uppercase tracking-wide text-gray-400">
+                <th className="py-1.5 pr-3">Customer</th>
+                <th className="py-1.5 pr-3">Phone</th>
+                <th className="py-1.5 pr-3">Message</th>
+                <th className="py-1.5 pr-3">Source</th>
+                <th className="py-1.5 pr-3">Status</th>
+                <th className="py-1.5">When</th>
+              </tr>
+            </thead>
+            <tbody>
+              {recent.map((r) => (
+                <tr key={r.leadKey} className="border-b border-gray-50">
+                  <td className="py-1.5 pr-3 text-gray-800">{r.customerName || '—'}</td>
+                  <td className="py-1.5 pr-3 font-mono text-xs text-gray-500">{maskPhone(r.phone)}</td>
+                  <td className="py-1.5 pr-3 text-xs text-gray-500">{KIND_LABEL[r.kind] ?? r.kind}</td>
+                  <td className="py-1.5 pr-3 text-gray-500">{r.source}{r.province ? ` · ${r.province}` : ''}</td>
+                  <td className="py-1.5 pr-3">
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${STATUS_STYLE[r.status] ?? 'bg-gray-100 text-gray-600'}`}>
+                      {r.status}{r.channel ? ` · ${r.channel}` : ''}
+                    </span>
+                  </td>
+                  <td className="py-1.5 text-xs text-gray-400">{(r.sentAt ?? r.createdAt).toLocaleString('en-CA')}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+
   return (
-    <div className="max-w-3xl space-y-6">
+    <div className="max-w-4xl space-y-5">
       <div>
         <h1 className="text-xl font-semibold text-gray-900">Lead auto-text</h1>
         <p className="mt-1 text-sm text-gray-500">
           When a new lead comes in (an in-store card, a mail-in card, or an online Home Depot lead), the
-          customer gets one text letting them know we received their in-home water assessment request and a
-          team member will call within 24–48 hours. Deduped so each customer is texted once, only within
-          their local daytime window, with a STOP opt-out.
+          customer gets one personalized text letting them know we received their request and a team member
+          will call within 24–48 hours. Deduped, only within their local daytime window, with a STOP opt-out.
         </p>
       </div>
 
@@ -60,108 +171,14 @@ export default async function LeadTextingAdminPage() {
         </div>
       )}
 
-      <div className="card p-6">
-        <h2 className="mb-4 text-base font-semibold text-gray-900">Settings</h2>
-        <LeadTextSettingsForm
-          config={{
-            enabled: cfg.enabled,
-            testMode: cfg.testMode,
-            testNumber: cfg.testNumber ?? '',
-            mediaUrl: cfg.mediaUrl ?? '',
-            senderMap: cfg.senderMap && Object.keys(cfg.senderMap).length ? JSON.stringify(cfg.senderMap, null, 2) : '',
-            quietStart: cfg.quietStart,
-            quietEnd: cfg.quietEnd,
-            followups: cfg.followups,
-            day1Hours: cfg.day1Hours,
-            missHours: cfg.missHours,
-            followupWorkdaysOnly: cfg.followupWorkdaysOnly,
-            workdays: Array.from(cfg.followupWorkdays),
-            bookingLink: cfg.bookingLink,
-            reactivation: cfg.reactivation,
-            reactivationDays: cfg.reactivationDays,
-            reactivationMaxDays: cfg.reactivationMaxDays,
-          }}
-        />
-      </div>
-
-      <div className="card p-6">
-        <h2 className="mb-1 text-base font-semibold text-gray-900">Live call — &ldquo;talk to a booker now&rdquo;</h2>
-        <p className="mb-4 text-xs text-gray-500">
-          On the customer self-booking page, offer a live connect during staffed hours: the portal rings your bookers&rsquo;
-          line, then dials the customer and bridges them. Only the number already on the lead is ever called.
-        </p>
-        <VoiceSettingsForm
-          config={{
-            clickToCall: vcfg.clickToCall,
-            bookingLine: vcfg.bookingLine ?? '',
-            fromNumber: vcfg.fromNumber ?? '',
-            hoursStart: vcfg.hoursStart,
-            hoursEnd: vcfg.hoursEnd,
-          }}
-          credsPresent={twilioVoiceCredsPresent()}
-        />
-      </div>
-
-      <div className="card p-6">
-        <h2 className="mb-1 text-base font-semibold text-gray-900">The messages</h2>
-        <p className="mb-2 text-xs text-gray-500">
-          Edit any message, drop in the customer&rsquo;s name or street, and see exactly how it lands on their phone.
-          MMS (with your image) is tried first, falling back to plain SMS.
-        </p>
-        <p className="mb-4 rounded-md border border-gray-200 bg-slate-50/60 p-2.5 text-xs text-gray-500">
-          <span className="font-medium text-gray-700">CASL:</span> every message identifies the sender, carries a STOP
-          opt-out, and links to the public program-info &amp; opt-out page at{' '}
-          <Link href="/sms" className="underline" target="_blank">/sms</Link>. Texting HELP returns our name and contact
-          details automatically.
-        </p>
-        <MessageTemplatesEditor
-          templates={templates}
-          aiAvailable={aiConfigured()}
-          bookingSample="https://portal.ghsbarrie.ca/book/sample"
-          infoUrl={info}
-        />
-      </div>
-
-      <div className="card p-6">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-gray-900">Recent</h2>
-          <div className="text-xs text-gray-500">{pendingCount} queued · {optOutCount} opted out</div>
-        </div>
-        {recent.length === 0 ? (
-          <p className="text-sm text-gray-500">Nothing queued yet.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-gray-100 text-xs uppercase tracking-wide text-gray-400">
-                  <th className="py-1.5 pr-3">Customer</th>
-                  <th className="py-1.5 pr-3">Phone</th>
-                  <th className="py-1.5 pr-3">Message</th>
-                  <th className="py-1.5 pr-3">Source</th>
-                  <th className="py-1.5 pr-3">Status</th>
-                  <th className="py-1.5">When</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recent.map((r) => (
-                  <tr key={r.leadKey} className="border-b border-gray-50">
-                    <td className="py-1.5 pr-3 text-gray-800">{r.customerName || '—'}</td>
-                    <td className="py-1.5 pr-3 font-mono text-xs text-gray-500">{maskPhone(r.phone)}</td>
-                    <td className="py-1.5 pr-3 text-xs text-gray-500">{KIND_LABEL[r.kind] ?? r.kind}</td>
-                    <td className="py-1.5 pr-3 text-gray-500">{r.source}{r.province ? ` · ${r.province}` : ''}</td>
-                    <td className="py-1.5 pr-3">
-                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${STATUS_STYLE[r.status] ?? 'bg-gray-100 text-gray-600'}`}>
-                        {r.status}{r.channel ? ` · ${r.channel}` : ''}
-                      </span>
-                    </td>
-                    <td className="py-1.5 text-xs text-gray-400">{(r.sentAt ?? r.createdAt).toLocaleString('en-CA')}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      <LeadTextTabs
+        tabs={[
+          { key: 'messages', label: 'Messages', content: messagesPanel },
+          { key: 'settings', label: 'Settings', content: settingsPanel },
+          { key: 'call', label: 'Live call', content: liveCallPanel },
+          { key: 'activity', label: 'Activity', content: activityPanel },
+        ]}
+      />
     </div>
   );
 }
