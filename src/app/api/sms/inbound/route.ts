@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
-import { classifyInboundSms, recordOptOut, removeOptOut } from '@/lib/leadText';
+import { classifyInboundSms, recordOptOut, removeOptOut, helpReplyBody } from '@/lib/leadText';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -8,6 +8,12 @@ export const runtime = 'nodejs';
 const EMPTY_TWIML = '<?xml version="1.0" encoding="UTF-8"?><Response></Response>';
 function twiml(body = EMPTY_TWIML) {
   return new NextResponse(body, { status: 200, headers: { 'Content-Type': 'text/xml' } });
+}
+
+// Reply with a single outbound SMS (used for the HELP auto-response).
+function twimlMessage(text: string) {
+  const esc = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return `<?xml version="1.0" encoding="UTF-8"?><Response><Message>${esc}</Message></Response>`;
 }
 
 /**
@@ -67,6 +73,12 @@ export async function POST(req: NextRequest) {
     }
   } catch (e) {
     console.error('[sms-inbound] handling failed', e);
+  }
+
+  // HELP/AIDE/INFO → reply with who we are + contact + opt-out (CASL contact info
+  // on demand). Carrier-level auto-replies may also fire; this is a backstop.
+  if (kind === 'help') {
+    return twiml(twimlMessage(helpReplyBody()));
   }
 
   return twiml();

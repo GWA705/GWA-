@@ -7,6 +7,7 @@ import {
   leadTextLang,
   pickSender,
   classifyInboundSms,
+  helpReplyBody,
 } from '@/lib/leadText';
 
 describe('lead auto-text message', () => {
@@ -91,6 +92,59 @@ describe('follow-up message kinds', () => {
   it('omits the booking link when no url is provided, and never on the confirmation', () => {
     expect(renderLeadTextBody('SCANNED', 'ON', 'DAY1')).not.toContain('/book/');
     expect(renderLeadTextBody('SCANNED', 'ON', 'CONFIRM', { bookingUrl: 'https://x/book/zzz' })).not.toContain('/book/');
+  });
+});
+
+describe('CASL program-info link (every message)', () => {
+  const INFO = 'https://portal.ghsbarrie.ca/sms';
+
+  it('appends the info/opt-out link on the confirmation and keeps STOP last', () => {
+    const m = renderLeadTextBody('HD_SHEET', 'ON', 'CONFIRM', { infoUrl: INFO });
+    expect(m).toContain(INFO);
+    expect(m).toContain('Info/opt-out');
+    // The link comes before the final STOP line.
+    expect(m.indexOf(INFO)).toBeLessThan(m.toUpperCase().lastIndexOf('STOP'));
+    expect(m).not.toMatch(/[«»“”’—]/);
+  });
+
+  it('appends it to every follow-up kind too', () => {
+    for (const kind of ['DAY1', 'MISSED_WINDOW', 'REACTIVATION'] as const) {
+      expect(renderLeadTextBody('SCANNED', 'ON', kind, { infoUrl: INFO })).toContain(INFO);
+    }
+  });
+
+  it('uses a French label in Quebec and stays GSM-7 friendly', () => {
+    const m = renderLeadTextBody('HD_SHEET', 'QC', 'CONFIRM', { infoUrl: INFO });
+    expect(m).toContain(INFO);
+    expect(m).toContain('Infos/desabo');
+    expect(m).not.toMatch(/[«»“”’—]/);
+  });
+
+  it('omits the link when no infoUrl is given (keeps old tests/behaviour)', () => {
+    expect(renderLeadTextBody('HD_SHEET', 'ON')).not.toContain('/sms');
+  });
+});
+
+describe('inbound keyword handling', () => {
+  it('classifies STOP, START and HELP words (EN + FR)', () => {
+    expect(classifyInboundSms('STOP')).toBe('stop');
+    expect(classifyInboundSms('arret')).toBe('stop');
+    expect(classifyInboundSms('start')).toBe('start');
+    expect(classifyInboundSms('oui')).toBe('start');
+    expect(classifyInboundSms('HELP')).toBe('help');
+    expect(classifyInboundSms('aide')).toBe('help');
+    expect(classifyInboundSms('info')).toBe('help');
+    expect(classifyInboundSms('what time?')).toBe('other');
+  });
+
+  it('HELP reply identifies the sender and gives contact + opt-out, GSM-7 friendly', () => {
+    const en = helpReplyBody('ON');
+    expect(en).toContain('Georgian Water & Air');
+    expect(en).toContain('1-866-840-2789');
+    expect(en).toContain('info@georgianwaterandair.ca');
+    expect(en.toUpperCase()).toContain('STOP');
+    expect(en).not.toMatch(/[«»“”’—]/);
+    expect(helpReplyBody('QC')).toMatch(/Aide/);
   });
 });
 

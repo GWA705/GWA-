@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { requireAdminSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { smsEnabled } from '@/lib/sms';
-import { leadTextConfig, renderLeadTextBody } from '@/lib/leadText';
+import { leadTextConfig, renderLeadTextBody, smsInfoUrl } from '@/lib/leadText';
 import { clickToCallConfig, twilioVoiceCredsPresent } from '@/lib/voice';
 import { LeadTextSettingsForm } from './LeadTextSettingsForm';
 import { VoiceSettingsForm } from './VoiceSettingsForm';
@@ -34,16 +34,18 @@ export default async function LeadTextingAdminPage() {
     prisma.leadTextOutbox.count({ where: { status: 'PENDING' } }),
   ]);
 
-  // Sample messages (what the customer receives), rendered server-side.
+  // Sample messages (what the customer receives), rendered server-side. The
+  // program-info/opt-out link (CASL) is appended to every message.
+  const info = smsInfoUrl();
   const previews = [
-    { label: 'Confirmation — in-store card (EN)', text: renderLeadTextBody('SCANNED', 'ON') },
-    { label: 'Confirmation — mail-in card (EN)', text: renderLeadTextBody('MAILIN', 'ON') },
-    { label: 'Confirmation — online HD lead (EN)', text: renderLeadTextBody('HD_SHEET', 'ON') },
-    { label: 'Day-1 reminder (EN)', text: renderLeadTextBody('SCANNED', 'ON', 'DAY1') },
-    { label: 'Missed-window — call again in 36h (EN)', text: renderLeadTextBody('SCANNED', 'ON', 'MISSED_WINDOW') },
-    { label: 'Reactivation — still available? (EN)', text: renderLeadTextBody('SCANNED', 'ON', 'REACTIVATION') },
-    { label: 'Confirmation — Quebec (FR)', text: renderLeadTextBody('HD_SHEET', 'QC') },
-    { label: 'Missed-window — Quebec (FR)', text: renderLeadTextBody('SCANNED', 'QC', 'MISSED_WINDOW') },
+    { label: 'Confirmation — in-store card (EN)', text: renderLeadTextBody('SCANNED', 'ON', 'CONFIRM', { infoUrl: info }) },
+    { label: 'Confirmation — mail-in card (EN)', text: renderLeadTextBody('MAILIN', 'ON', 'CONFIRM', { infoUrl: info }) },
+    { label: 'Confirmation — online HD lead (EN)', text: renderLeadTextBody('HD_SHEET', 'ON', 'CONFIRM', { infoUrl: info }) },
+    { label: 'Day-1 reminder (EN)', text: renderLeadTextBody('SCANNED', 'ON', 'DAY1', { infoUrl: info }) },
+    { label: 'Missed-window — call again in 36h (EN)', text: renderLeadTextBody('SCANNED', 'ON', 'MISSED_WINDOW', { infoUrl: info }) },
+    { label: 'Reactivation — still available? (EN)', text: renderLeadTextBody('SCANNED', 'ON', 'REACTIVATION', { infoUrl: info }) },
+    { label: 'Confirmation — Quebec (FR)', text: renderLeadTextBody('HD_SHEET', 'QC', 'CONFIRM', { infoUrl: info }) },
+    { label: 'Missed-window — Quebec (FR)', text: renderLeadTextBody('SCANNED', 'QC', 'MISSED_WINDOW', { infoUrl: info }) },
   ];
 
   return (
@@ -111,7 +113,13 @@ export default async function LeadTextingAdminPage() {
 
       <div className="card p-6">
         <h2 className="mb-1 text-base font-semibold text-gray-900">What the customer gets</h2>
-        <p className="mb-4 text-xs text-gray-500">MMS (with your image) is sent first; if it fails it falls back to a plain SMS of this text.</p>
+        <p className="mb-2 text-xs text-gray-500">MMS (with your image) is sent first; if it fails it falls back to a plain SMS of this text.</p>
+        <p className="mb-4 rounded-md border border-gray-200 bg-slate-50/60 p-2.5 text-xs text-gray-500">
+          <span className="font-medium text-gray-700">CASL:</span> every message identifies the sender, carries a STOP
+          opt-out, and links to the public program-info &amp; opt-out page at{' '}
+          <Link href="/sms" className="underline" target="_blank">/sms</Link>. Texting HELP returns our name and contact
+          details automatically. (This link is also what Twilio asks for during toll-free verification.)
+        </p>
         <div className="space-y-3">
           {previews.map((p) => (
             <div key={p.label} className="rounded-lg border border-gray-200 bg-slate-50/60 p-3">

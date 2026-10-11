@@ -38,6 +38,23 @@ source of truth; this file is the human-readable index.
 | HD Resolution ↔ Gmail email link | ✅ **Live & verified** (2026-10-07, Sean) | Read-only Gmail via the existing service account (`gwa-journal-writer@gwa-portal-504012…`, project **"GWA Portal"** `gwa-portal-504012`, Unique ID `100470797238569934976`), impersonating `sean@ghsbarrie.ca` + the `HD Resolution` label. All switches done: Gmail API enabled, Workspace domain-wide delegation (`…/auth/gmail.readonly`), `GMAIL_RESOLUTION_USER=sean@ghsbarrie.ca` on EB. **Verified end-to-end** — the Email inbox lists real HD threads and "Open as case" links the thread + auto-fills. 30-min sync `resolution-email-sync.yml` (reuses `CRON_SECRET`). Steps/facts: `HD-RESOLUTION-EMAIL.md`, `BUILD-FACTS.md`. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### CASL: program-info/opt-out page, in-message info link, HELP auto-reply (2026-10-11)
+- New public page **`/sms`** — the text-message program info + opt-out page: who's
+  texting (Georgian Water & Air for Home Depot Home Services), why, what to expect,
+  STOP/HELP/START instructions, full **mailing address + toll-free + tel + email**,
+  and a privacy note. This is the CASL-required sender identification + contact info,
+  on a readily-accessible web page (also the URL Twilio wants for toll-free verification).
+- **Every lead text now links to it** — a short `Info/opt-out: …/sms` tail (FR: `Infos/desabo`)
+  is appended to the confirmation and all follow-ups, before the STOP line, GSM-7 friendly.
+- **HELP / AIDE / INFO** inbound now auto-replies with our name + contact + opt-out
+  (`helpReplyBody`), so contact info is available on demand. STOP/START unchanged.
+- `src/app/sms/page.tsx`; `leadText.ts` (`smsInfoUrl`, `helpReplyBody`, `infoUrl` on
+  `renderLeadTextBody`, HELP in `classifyInboundSms`, sweep passes the link); inbound
+  webhook replies to HELP; admin page shows a CASL note + the `/sms` link. Tests added.
+- **Not legal advice** — the software now carries ID + contact + opt-out on every message;
+  consent records (lead source + date) and the Home Depot "on behalf of" sign-off remain
+  business items, and a counsel review before go-live is recommended.
+
 ### Lead reminders: "only on working days" so weekends don't nudge customers (2026-10-10)
 - New option on **Admin → Lead auto-text**: **Only send reminders on working days**,
   with a Mon–Sun day picker (default **Mon–Fri**). When on, the day-1 reminder,

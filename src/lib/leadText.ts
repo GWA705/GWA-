@@ -132,6 +132,28 @@ export function provinceTimezone(province?: string | null): string {
   return (province && PROVINCE_TZ[province.toUpperCase()]) || DEFAULT_TZ;
 }
 
+/**
+ * Public link to the SMS program-info / opt-out page (/sms). CASL requires each
+ * commercial message to identify the sender and give valid contact info; when it
+ * isn't practical to put the full mailing address in a text, the regs let that
+ * live on a readily-accessible web page linked from the message. This is that link.
+ */
+export function smsInfoUrl(): string {
+  const base = (process.env.APP_URL || 'https://portal.ghsbarrie.ca').replace(/\/$/, '');
+  return `${base}/sms`;
+}
+
+/**
+ * On-demand HELP reply — the identification + contact info a customer gets back
+ * if they text HELP/AIDE/INFO. Kept GSM-7-friendly and short.
+ */
+export function helpReplyBody(province?: string | null): string {
+  const fr = leadTextLang(province) === 'fr';
+  return fr
+    ? `Home Depot Home Services (service assure par Georgian Water & Air). Aide: 1-866-840-2789 ou info@georgianwaterandair.ca. Repondez STOP pour vous desabonner.`
+    : `Home Depot Home Services (serviced by Georgian Water & Air). Help: 1-866-840-2789 or info@georgianwaterandair.ca. Reply STOP to opt out.`;
+}
+
 export function localHour(now: Date, tz: string): number {
   const h = new Intl.DateTimeFormat('en-US', { timeZone: tz, hour: 'numeric', hour12: false }).format(now);
   // "24" at midnight on some platforms → mod 24.
@@ -169,7 +191,7 @@ export function renderLeadTextBody(
   source: LeadTextSource,
   province?: string | null,
   kind: LeadTextKind = 'CONFIRM',
-  opts?: { bookingUrl?: string | null },
+  opts?: { bookingUrl?: string | null; infoUrl?: string | null },
 ): string {
   const fr = leadTextLang(province) === 'fr';
   // Self-booking line, inserted before the STOP opt-out when a link is provided.
@@ -178,6 +200,8 @@ export function renderLeadTextBody(
       ? ` Ou reservez une heure vous-meme: ${opts.bookingUrl}.`
       : ` Or pick a time yourself: ${opts.bookingUrl}.`
     : '';
+  // CASL identification/contact link to the program-info + opt-out page.
+  const info = opts?.infoUrl ? (fr ? ` Infos/desabo: ${opts.infoUrl}` : ` Info/opt-out: ${opts.infoUrl}`) : '';
   const stop = fr ? ' Repondez STOP pour vous desabonner.' : ' Reply STOP to opt out.';
 
   if (kind === 'DAY1') {
@@ -188,7 +212,7 @@ export function renderLeadTextBody(
           `vous conviennent et nous appellerons a ce moment.`
       : `Home Depot Home Services (serviced by Georgian Water & Air): a quick reminder about your in-home water assessment. ` +
           `A team member will call you soon to schedule - or reply with a day and time that works and we'll call then.`;
-    return base + book + stop;
+    return base + book + info + stop;
   }
 
   if (kind === 'MISSED_WINDOW') {
@@ -200,7 +224,7 @@ export function renderLeadTextBody(
       : `Home Depot Home Services (serviced by Georgian Water & Air): we're sorry we haven't reached you yet about your ` +
           `free in-home water assessment. We'll call you again within 36 hours. If a specific day or time is easier, just ` +
           `reply and we'll work around you.`;
-    return base + book + stop;
+    return base + book + info + stop;
   }
 
   if (kind === 'REACTIVATION') {
@@ -210,7 +234,7 @@ export function renderLeadTextBody(
           `est toujours disponible quand vous etes pret. Repondez OUI et nous vous appellerons pour planifier.`
       : `Home Depot Home Services (serviced by Georgian Water & Air): your free in-home water assessment is still available ` +
           `whenever you're ready. Reply YES and we'll call to book.`;
-    return base + book + stop;
+    return base + book + info + stop;
   }
 
   // CONFIRM — on landing.
@@ -224,7 +248,7 @@ export function renderLeadTextBody(
     return (
       `Home Depot Home Services (service assure par Georgian Water & Air): Nous avons recu ${via} ` +
       `pour une evaluation de l'eau a domicile. Un membre de l'equipe vous appellera d'ici 24-48 h pour planifier. ` +
-      `Notre appel s'affichera "HD Home Services". Des frais peuvent s'appliquer. Repondez STOP pour vous desabonner.`
+      `Notre appel s'affichera "HD Home Services". Des frais peuvent s'appliquer.` + info + stop
     );
   }
   const via =
@@ -236,7 +260,7 @@ export function renderLeadTextBody(
   return (
     `Home Depot Home Services (serviced by Georgian Water & Air): We received ${via} for an in-home water assessment. ` +
     `A team member will call you within 24-48 hrs to schedule. Our call will show as "HD Home Services". ` +
-    `Msg & data rates may apply. Reply STOP to opt out.`
+    `Msg & data rates may apply.` + info + stop
   );
 }
 
@@ -495,7 +519,7 @@ export async function processDueLeadTexts(limit = 200): Promise<SweepCounts> {
       continue;
     }
 
-    const body = renderLeadTextBody(row.source as LeadTextSource, row.province, row.kind as LeadTextKind, { bookingUrl });
+    const body = renderLeadTextBody(row.source as LeadTextSource, row.province, row.kind as LeadTextKind, { bookingUrl, infoUrl: smsInfoUrl() });
     const from = pickSender(row.province, cfg.senderMap);
 
     let result = await sendSms({ to, body, mediaUrl: cfg.mediaUrl || undefined, from });
@@ -540,13 +564,15 @@ export async function removeOptOut(phoneRaw: string): Promise<boolean> {
   return true;
 }
 
-// STOP / START keyword detection (EN + FR), used by the inbound webhook.
+// STOP / START / HELP keyword detection (EN + FR), used by the inbound webhook.
 const STOP_WORDS = new Set(['stop', 'stopall', 'unsubscribe', 'cancel', 'end', 'quit', 'arret', 'arrete', 'desabonner']);
 const START_WORDS = new Set(['start', 'unstop', 'yes', 'oui']);
+const HELP_WORDS = new Set(['help', 'info', 'aide']);
 
-export function classifyInboundSms(body: string): 'stop' | 'start' | 'other' {
+export function classifyInboundSms(body: string): 'stop' | 'start' | 'help' | 'other' {
   const w = (body || '').trim().toLowerCase().replace(/[^a-z]/g, '');
   if (STOP_WORDS.has(w)) return 'stop';
   if (START_WORDS.has(w)) return 'start';
+  if (HELP_WORDS.has(w)) return 'help';
   return 'other';
 }
