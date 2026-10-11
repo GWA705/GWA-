@@ -53,8 +53,8 @@ working-days, CASL pieces, and a performance report.
 - [x] **CODE** **Data retention** — lead-text reply content purges after 90 days; old text
       records after ~13 months (runs daily from the sweep).
 - [x] **CODE** **Access/erasure tool** — Admin → Security → Customer data requests (logged).
-- [ ] **YOU** Document a **breach-response plan** (PIPEDA "real risk of significant harm" → OPC
-      + affected individuals; Québec Law 25 obligations).
+- [x] **CODE/YOU** **Breach-response plan** drafted — `docs/BREACH-RESPONSE-PLAN.md`. Fill in the
+      `[TO CONFIRM]` roles/contacts and have counsel review.
 - [ ] **YOU** Define the **retention schedule** for the other stores (leads, deals, documents).
 
 ## 4. HD Resolution (case file + email watching)
