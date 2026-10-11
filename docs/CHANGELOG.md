@@ -38,6 +38,16 @@ source of truth; this file is the human-readable index.
 | HD Resolution ↔ Gmail email link | ✅ **Live & verified** (2026-10-07, Sean) | Read-only Gmail via the existing service account (`gwa-journal-writer@gwa-portal-504012…`, project **"GWA Portal"** `gwa-portal-504012`, Unique ID `100470797238569934976`), impersonating `sean@ghsbarrie.ca` + the `HD Resolution` label. All switches done: Gmail API enabled, Workspace domain-wide delegation (`…/auth/gmail.readonly`), `GMAIL_RESOLUTION_USER=sean@ghsbarrie.ca` on EB. **Verified end-to-end** — the Email inbox lists real HD threads and "Open as case" links the thread + auto-fills. 30-min sync `resolution-email-sync.yml` (reuses `CRON_SECRET`). Steps/facts: `HD-RESOLUTION-EMAIL.md`, `BUILD-FACTS.md`. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### Lead auto-text: performance report (replies + bookings) (2026-10-11)
+- New **Performance** tab on Admin → Lead auto-text: per message (and overall) it shows
+  texts sent, **reply rate**, and **booking rate**, with 30-day / 90-day / 12-month views
+  and a recent-replies list — so you can see which messages actually get responses and bookings.
+- **Reply tracking:** the inbound SMS webhook now records a customer reply (anything that
+  isn't STOP/HELP) against the most recent text sent to that number — `LeadTextOutbox.repliedAt`
+  + a short `replyText` snippet (migration). Booking rate joins the lead's booking status
+  (scanned/mail-in leads; online HD leads count toward replies only). `recordLeadReply` in
+  leadText.ts; `getLeadTextPerformance` in leadTextReport.ts. Access is logged (PIPEDA).
+
 ### Lead auto-text: tabbed layout (2026-10-11)
 - The page is now organized into tabs — **Messages** (the editor, default), **Settings**,
   **Live call**, **Activity** — instead of one long scroll, matching the approved mockup.

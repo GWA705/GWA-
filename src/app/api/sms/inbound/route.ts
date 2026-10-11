@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
-import { classifyInboundSms, recordOptOut, removeOptOut, helpReplyBody } from '@/lib/leadText';
+import { classifyInboundSms, recordOptOut, removeOptOut, recordLeadReply, helpReplyBody } from '@/lib/leadText';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -70,6 +70,10 @@ export async function POST(req: NextRequest) {
     } else if (kind === 'start' && verified) {
       // Only re-enable texts on a verified request.
       await removeOptOut(from);
+      await recordLeadReply(from, body); // a positive reply — count it
+    } else if (kind === 'other') {
+      // A genuine reply (not STOP/HELP) — record it for the performance report.
+      await recordLeadReply(from, body);
     }
   } catch (e) {
     console.error('[sms-inbound] handling failed', e);

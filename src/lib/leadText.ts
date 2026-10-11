@@ -549,6 +549,25 @@ export async function recordOptOut(phoneRaw: string, source = 'STOP'): Promise<b
   return true;
 }
 
+/**
+ * Record that a customer texted back (anything that isn't STOP/HELP) by marking
+ * the most recent text we sent them as replied — powers the performance report's
+ * reply rate. Stores a short snippet only; best-effort.
+ */
+export async function recordLeadReply(phoneRaw: string, body: string): Promise<void> {
+  const phone = toE164(phoneRaw);
+  if (!phone) return;
+  const snippet = (body || '').trim().replace(/\s+/g, ' ').slice(0, 200);
+  const since = new Date(Date.now() - 30 * 86_400_000);
+  const row = await prisma.leadTextOutbox.findFirst({
+    where: { phone, status: 'SENT', sentAt: { gte: since } },
+    orderBy: { sentAt: 'desc' },
+    select: { leadKey: true, repliedAt: true },
+  });
+  if (!row || row.repliedAt) return; // nothing recent, or already counted
+  await prisma.leadTextOutbox.update({ where: { leadKey: row.leadKey }, data: { repliedAt: new Date(), replyText: snippet || null } });
+}
+
 /** Undo an opt-out (e.g. the customer replies START). */
 export async function removeOptOut(phoneRaw: string): Promise<boolean> {
   const phone = toE164(phoneRaw);

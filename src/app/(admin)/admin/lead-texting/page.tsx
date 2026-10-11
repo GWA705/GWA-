@@ -3,6 +3,8 @@ import { requireAdminSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { smsEnabled } from '@/lib/sms';
 import { leadTextConfig, smsInfoUrl, getLeadTemplatesForEditor } from '@/lib/leadText';
+import { getLeadTextPerformance } from '@/lib/leadTextReport';
+import { LeadTextPerformance } from './LeadTextPerformance';
 import { clickToCallConfig, twilioVoiceCredsPresent } from '@/lib/voice';
 import { aiConfigured } from '@/lib/ai';
 import { LeadTextSettingsForm } from './LeadTextSettingsForm';
@@ -27,8 +29,9 @@ function maskPhone(e164: string): string {
   return e164.replace(/^(\+\d{2})\d+(\d{2})$/, '$1•••$2');
 }
 
-export default async function LeadTextingAdminPage() {
+export default async function LeadTextingAdminPage({ searchParams }: { searchParams: { days?: string } }) {
   await requireAdminSection('lead-texting');
+  const days = [30, 90, 365].includes(Number(searchParams.days)) ? Number(searchParams.days) : 90;
   const cfg = await leadTextConfig();
   const vcfg = await clickToCallConfig();
   const [recent, optOutCount, pendingCount] = await Promise.all([
@@ -39,6 +42,7 @@ export default async function LeadTextingAdminPage() {
 
   const info = smsInfoUrl();
   const templates = await getLeadTemplatesForEditor();
+  const perf = await getLeadTextPerformance(days);
 
   const messagesPanel = (
     <div className="card p-6">
@@ -174,6 +178,7 @@ export default async function LeadTextingAdminPage() {
       <LeadTextTabs
         tabs={[
           { key: 'messages', label: 'Messages', content: messagesPanel },
+          { key: 'performance', label: 'Performance', content: <LeadTextPerformance perf={perf} /> },
           { key: 'settings', label: 'Settings', content: settingsPanel },
           { key: 'call', label: 'Live call', content: liveCallPanel },
           { key: 'activity', label: 'Activity', content: activityPanel },

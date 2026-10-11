@@ -2176,6 +2176,10 @@ model LeadTextOutbox {
   customerName String?
   street       String? // street name for message personalization ("Scott St")
   city         String? // city for message personalization ("Barrie")
+  // Performance tracking: set when the customer texts back after this message
+  // (not STOP/HELP). replyText is a short snippet for the admin report.
+  repliedAt    DateTime?
+  replyText    String?
   status       String    @default("PENDING") // PENDING | SENT | FAILED | SKIPPED | OPTED_OUT | CANCELLED
   channel      String? // 'MMS' | 'SMS' — what actually sent
   scheduledFor DateTime // earliest send time (sweep still gates on the daytime window)
