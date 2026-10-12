@@ -227,14 +227,14 @@ export default async function DealerApplicationDetail({
       {/* Co-applicant — add one to an existing deal (no need to start over), or
           show the one already on file. */}
       <section className="card p-5">
-        <h2 className="mb-1 text-base font-semibold text-gray-900">Co-applicant</h2>
+        <h2 className="mb-1 text-base font-semibold text-gray-900">{t('coApp.title')}</h2>
         {hasCoApplicant ? (
-          <p className="text-sm text-gray-600">On file: <span className="font-medium text-gray-900">{coName}</span>. To change their details, add a note or contact Georgian Water &amp; Air.</p>
+          <p className="text-sm text-gray-600">{t('coApp.onFilePre')} <span className="font-medium text-gray-900">{coName}</span>{t('coApp.onFilePost')}</p>
         ) : coAddBlocked ? (
-          <p className="text-sm text-gray-500">This deal is funded or closed. Adding a co-applicant changes the credit application — please start a new application, or contact Georgian Water &amp; Air.</p>
+          <p className="text-sm text-gray-500">{t('coApp.blocked')}</p>
         ) : (
           <>
-            <p className="mb-3 text-sm text-gray-500">No co-applicant on this deal yet — you can add one here without starting a new application.</p>
+            <p className="mb-3 text-sm text-gray-500">{t('coApp.none')}</p>
             <AddCoApplicantForm applicationId={app.id} willReset={coWillReset} />
           </>
         )}

@@ -6,8 +6,8 @@ import {
   progressPercent,
   currentStageIndex,
   type ProgressSignals,
-  type ProgressStage,
 } from '@/lib/progress';
+import { getT } from '@/i18n/server';
 
 // Per-stage completion dates (formatted), keyed by ProgressStage.key. Optional —
 // only the reviewer timeline shows them; the dealer bar doesn't need them.
@@ -20,17 +20,12 @@ interface DealProgressProps extends ProgressSignals {
   stageDates?: StageDates;
 }
 
-// Short "what's happening now" line for the reviewer timeline's detail strip.
-const STAGE_NOTE: Partial<Record<ApplicationStatus, string>> = {
-  SUBMITTED: 'A reviewer will pick this up shortly.',
-  UNDER_REVIEW: 'A reviewer is checking the application now.',
-  CONDITIONAL: 'Conditionally approved — a few documents still needed.',
-  APPROVED: 'Approved — install paperwork is being prepared.',
-  DOCS_SENT: 'Install paperwork sent — waiting on the signed package back.',
-  FUNDING_SUBMITTED: 'Signed package received — being checked before funding.',
-  FUNDING_REVIEW: 'Sent to the finance company — waiting on the funding decision.',
-  FUNDED: 'Funded — record the dealer payout to finish.',
-};
+// Statuses that have a "what's happening now" note (keys under progress.note.*);
+// any other status falls back to progress.note.inProgress.
+const NOTED_STATUSES: ApplicationStatus[] = [
+  'SUBMITTED', 'UNDER_REVIEW', 'CONDITIONAL', 'APPROVED', 'DOCS_SENT',
+  'FUNDING_SUBMITTED', 'FUNDING_REVIEW', 'FUNDED',
+];
 
 // Statuses that move forward on their own (a wait), vs. ones needing a staff step.
 const AUTO_ADVANCE: ApplicationStatus[] = ['SUBMITTED', 'UNDER_REVIEW', 'DOCS_SENT', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW'];
@@ -53,26 +48,32 @@ function StageIcon({ stageKey }: { stageKey: string }) {
   );
 }
 
-function FlagRow({ flag }: { flag: { label: string; cls: string } }) {
+function FlagRow({ label, cls, offTrack }: { label: string; cls: string; offTrack: string }) {
   return (
     <div className="mb-3 flex items-center gap-2 text-sm">
-      <span className={`badge ${flag.cls}`}>{flag.label}</span>
-      <span className="text-gray-500">This deal is currently off the normal track.</span>
+      <span className={`badge ${cls}`}>{label}</span>
+      <span className="text-gray-500">{offTrack}</span>
     </div>
   );
 }
 
 export function DealProgress(props: DealProgressProps) {
   const { variant = 'bar', stageDates } = props;
+  const t = getT();
   const stages = dealProgress(props);
   const flag = offPathFlag(props.status);
+  const flagLabel = flag ? t(`progress.flag.${props.status.toLowerCase()}`) : '';
+  const stageLabel = (key: string) => t(`progress.stage.${key}`);
+  const noteText = NOTED_STATUSES.includes(props.status)
+    ? t(`progress.note.${props.status}`)
+    : t('progress.note.inProgress');
   const current = currentStageIndex(stages); // -1 when every stage is done
   const pct = progressPercent(stages);
 
   if (variant === 'timeline') {
     return (
       <section className="card p-5">
-        {flag && <FlagRow flag={flag} />}
+        {flag && <FlagRow label={flagLabel} cls={flag.cls} offTrack={t('progress.offTrack')} />}
         <div className="flex items-start">
           {stages.map((st, i) => {
             const state: 'done' | 'now' | 'todo' = st.done ? 'done' : i === current ? 'now' : 'todo';
@@ -84,7 +85,7 @@ export function DealProgress(props: DealProgressProps) {
                 : state === 'now'
                   ? 'border-[3px] border-brand-600 bg-brand-50 text-brand-700 gwa-pulse-ring'
                   : 'border-2 border-gray-200 bg-gray-50 text-gray-400';
-            const date = state === 'now' ? 'Now' : state === 'done' ? stageDates?.[st.key] ?? null : null;
+            const date = state === 'now' ? t('progress.now') : state === 'done' ? stageDates?.[st.key] ?? null : null;
             return (
               <div key={st.key} className="flex min-w-0 flex-1 flex-col items-center">
                 <div className="flex w-full items-center">
@@ -95,7 +96,7 @@ export function DealProgress(props: DealProgressProps) {
                   <div className={`h-[3px] flex-1 ${i === stages.length - 1 ? 'opacity-0' : rightOn ? 'bg-brand-600' : 'bg-gray-200'}`} />
                 </div>
                 <span className={`mt-2 block w-full px-1 text-center text-[11px] leading-tight break-words hyphens-auto sm:text-xs ${state === 'now' ? 'font-bold text-brand-700' : state === 'done' ? 'font-semibold text-gray-800' : 'text-gray-400'}`}>
-                  {st.label}
+                  {stageLabel(st.key)}
                 </span>
                 <span className={`block w-full text-center text-[10.5px] ${state === 'now' ? 'font-semibold text-brand-600' : 'text-gray-400'}`}>{date ?? ' '}</span>
               </div>
@@ -107,18 +108,18 @@ export function DealProgress(props: DealProgressProps) {
           <div className="mt-5 flex items-center gap-3 rounded-r-xl border-l-4 border-brand-600 bg-brand-50 px-4 py-3">
             <div className="min-w-0 flex-1">
               <div className="text-sm font-bold text-gray-900">
-                {stages[current].label} <span className="font-medium text-gray-500">· step {current + 1} of {stages.length}</span>
+                {stageLabel(stages[current].key)} <span className="font-medium text-gray-500">· {t('progress.stepOfLower', { n: current + 1, total: stages.length })}</span>
               </div>
-              <div className="mt-0.5 text-[13px] text-gray-600">{STAGE_NOTE[props.status] ?? 'In progress.'}</div>
+              <div className="mt-0.5 text-[13px] text-gray-600">{noteText}</div>
             </div>
             {AUTO_ADVANCE.includes(props.status) && (
-              <span className="flex-none rounded-full bg-brand-100 px-3 py-1 text-[11px] font-bold text-brand-700">Auto-advances</span>
+              <span className="flex-none rounded-full bg-brand-100 px-3 py-1 text-[11px] font-bold text-brand-700">{t('progress.autoAdvances')}</span>
             )}
           </div>
         )}
         {!flag && current === -1 && (
           <div className="mt-5 rounded-r-xl border-l-4 border-green-500 bg-green-50 px-4 py-3 text-sm font-semibold text-green-800">
-            Deal complete — all steps done.
+            {t('progress.dealComplete')}
           </div>
         )}
       </section>
@@ -128,15 +129,15 @@ export function DealProgress(props: DealProgressProps) {
   // 'bar' — segmented progress (dealer view).
   return (
     <section className="card p-5">
-      {flag && <FlagRow flag={flag} />}
+      {flag && <FlagRow label={flagLabel} cls={flag.cls} offTrack={t('progress.offTrack')} />}
       <div className="mb-3 flex items-end justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">Current stage</div>
-          <div className="truncate text-lg font-bold text-gray-900">{current === -1 ? 'Complete' : stages[current].label}</div>
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">{t('progress.currentStage')}</div>
+          <div className="truncate text-lg font-bold text-gray-900">{current === -1 ? t('progress.complete') : stageLabel(stages[current].key)}</div>
         </div>
         <div className="flex-none text-right">
           <div className="text-2xl font-extrabold leading-none text-brand-700">{pct}%</div>
-          <div className="mt-1 text-[11px] text-gray-400">{current === -1 ? 'All steps done' : `Step ${current + 1} of ${stages.length}`}</div>
+          <div className="mt-1 text-[11px] text-gray-400">{current === -1 ? t('progress.allStepsDone') : t('progress.stepOf', { n: current + 1, total: stages.length })}</div>
         </div>
       </div>
 
@@ -161,7 +162,7 @@ export function DealProgress(props: DealProgressProps) {
             key={st.key}
             className={`min-w-0 flex-1 break-words px-0.5 text-center text-[11px] leading-tight ${st.done ? 'font-semibold text-gray-800' : i === current ? 'font-bold text-brand-700' : 'text-gray-400'}`}
           >
-            {st.label}
+            {stageLabel(st.key)}
           </span>
         ))}
       </div>

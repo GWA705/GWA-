@@ -38,6 +38,21 @@ source of truth; this file is the human-readable index.
 | HD Resolution ↔ Gmail email link | ✅ **Live & verified** (2026-10-07, Sean) | Read-only Gmail via the existing service account (`gwa-journal-writer@gwa-portal-504012…`, project **"GWA Portal"** `gwa-portal-504012`, Unique ID `100470797238569934976`), impersonating `sean@ghsbarrie.ca` + the `HD Resolution` label. All switches done: Gmail API enabled, Workspace domain-wide delegation (`…/auth/gmail.readonly`), `GMAIL_RESOLUTION_USER=sean@ghsbarrie.ca` on EB. **Verified end-to-end** — the Email inbox lists real HD threads and "Open as case" links the thread + auto-fills. 30-min sync `resolution-email-sync.yml` (reuses `CRON_SECRET`). Steps/facts: `HD-RESOLUTION-EMAIL.md`, `BUILD-FACTS.md`. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### Journal-sourced deal badge + French fixes on the deal page (2026-10-12)
+- **"Created from the sales journal" badge** on the HD case Deal & financing section, so anyone
+  looking later knows a deal came from a typed-in journal sale (not a credit application) and that
+  financing details may be partial. (`CaseDealVM.journalSourced` + the loader select.)
+- **French translation fixes** on the dealer deal page, where English was showing through in FR:
+  - **Deal progress tracker** (`DealProgress`): the stage labels (Submitted / Approved / Docs
+    uploaded / Confirmation / In for funding / Funded / Paid), "Current stage", "Step X of Y",
+    the per-stage status notes, "Auto-advances", "Now", the off-track flags (Problem / Declined /
+    Withdrawn) and "Deal complete" are now translated (new `progress.*` dictionary group).
+  - **Co-applicant section + form** (`AddCoApplicantForm` and the dealer page): the heading,
+    on-file / blocked / none messages, the add form's intro, every field label, the employment
+    options and the encrypted-data note (new `coApp.*` group). French: "Coemprunteur".
+  - Both dictionaries (`en.ts`/`fr.ts`) updated in lockstep — `fr: Dictionary` makes tsc enforce
+    that every new key exists in French, so nothing silently falls back to English.
+
 ### HD cases: link a customer from the sales journal (2026-10-11)
 - The **"Link this case to a deal"** search on an HD Resolution case now also searches the
   **sales journal** (current + two prior years), so a customer who was **typed straight into the

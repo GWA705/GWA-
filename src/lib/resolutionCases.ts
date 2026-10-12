@@ -189,6 +189,8 @@ export interface CaseDealVM {
   storeLabel: string | null;
   status: string;
   financingVerified: boolean;
+  /** True when this deal was materialized from a sales-journal row (not a real credit application). */
+  journalSourced: boolean;
 }
 
 export interface CaseInstallPhotoVM { id: string; label: string; mime: string | null; }
@@ -279,6 +281,7 @@ type AppForFile = {
   financeItNumber: string | null;
   financeNumberVerifiedAt: Date | null;
   productsSold: string[];
+  journalSourced: boolean;
   financeCompany: { name: string } | null;
   homeDepotStore: { number: string; name: string | null } | null;
 } | null;
@@ -311,6 +314,7 @@ function buildCaseFile(app: AppForFile, docs: DocForFile[]): CaseFileVM {
     storeLabel: store,
     status: titleize(app.status),
     financingVerified: !!app.financeNumberVerifiedAt,
+    journalSourced: !!app.journalSourced,
   };
   return { deal, installPhotos, docChecklist };
 }
@@ -331,7 +335,7 @@ export async function loadResolutionCase(id: string): Promise<CaseDetail | null>
           requestedAmount: true, approvedAmount: true, financedAmount: true,
           dateOfSale: true, installationDate: true,
           loanReference: true, financeReference: true, financeItNumber: true,
-          financeNumberVerifiedAt: true, productsSold: true,
+          financeNumberVerifiedAt: true, productsSold: true, journalSourced: true,
           financeCompany: { select: { name: true } },
           homeDepotStore: { select: { number: true, name: true } },
         },

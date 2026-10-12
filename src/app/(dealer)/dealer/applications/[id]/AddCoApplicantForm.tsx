@@ -2,12 +2,14 @@
 
 import { useFormState, useFormStatus } from 'react-dom';
 import { addCoApplicantAction, type ActionState } from '@/app/(dealer)/actions';
+import { useT } from '@/i18n/client';
 
 function SubmitBtn() {
   const { pending } = useFormStatus();
+  const t = useT();
   return (
     <button type="submit" className="btn-primary text-sm disabled:opacity-60" disabled={pending}>
-      {pending ? 'Adding…' : 'Add co-applicant'}
+      {pending ? t('coApp.adding') : t('coApp.addBtn')}
     </button>
   );
 }
@@ -34,12 +36,13 @@ function F({ name, label, type = 'text', err, placeholder, required = false }: {
 export function AddCoApplicantForm({ applicationId, willReset }: { applicationId: string; willReset: boolean }) {
   const [state, action] = useFormState<ActionState, FormData>(addCoApplicantAction.bind(null, applicationId), {});
   const e = state.fieldErrors ?? {};
+  const t = useT();
 
   if (state.ok) {
     return (
       <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-800">
-        <p className="font-semibold">Co-applicant added.</p>
-        <p className="mt-0.5">Georgian Water &amp; Air has been notified{willReset ? ' and the deal is back in review so credit can be re-checked with both applicants' : ''}.</p>
+        <p className="font-semibold">{t('coApp.addedTitle')}</p>
+        <p className="mt-0.5">{willReset ? t('coApp.notifiedReset') : t('coApp.notified')}</p>
       </div>
     );
   }
@@ -48,83 +51,80 @@ export function AddCoApplicantForm({ applicationId, willReset }: { applicationId
     <details className="rounded-lg border border-gray-200 bg-white">
       <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-sm font-semibold text-brand-700 [&::-webkit-details-marker]:hidden">
         <span aria-hidden className="text-base leading-none">＋</span>
-        Add a co-applicant
+        {t('coApp.add')}
       </summary>
       <div className="border-t border-gray-100 p-4">
-        <p className="mb-3 text-xs text-gray-500">
-          Adding a co-applicant changes the credit application, so the deal goes back to review for Georgian Water &amp; Air
-          to re-check credit with both applicants. First and last name are required; fill in the rest you have.
-        </p>
+        <p className="mb-3 text-xs text-gray-500">{t('coApp.intro')}</p>
         <form action={action} className="space-y-5">
           {state.error && !Object.keys(e).length && (
             <p className="rounded bg-red-50 px-3 py-2 text-xs text-red-700">{state.error}</p>
           )}
 
           <fieldset>
-            <legend className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Name &amp; relationship</legend>
+            <legend className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">{t('coApp.legendName')}</legend>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <F name="coFirstName" label="First name" err={e.coFirstName} required />
-              <F name="coMiddleName" label="Middle name" />
-              <F name="coLastName" label="Last name" err={e.coLastName} required />
-              <F name="coRelationship" label="Relationship to applicant" placeholder="Spouse, parent…" />
-              <F name="coMaritalStatus" label="Marital status" />
-              <F name="coDob" label="Date of birth" type="date" />
+              <F name="coFirstName" label={t('coApp.firstName')} err={e.coFirstName} required />
+              <F name="coMiddleName" label={t('coApp.middleName')} />
+              <F name="coLastName" label={t('coApp.lastName')} err={e.coLastName} required />
+              <F name="coRelationship" label={t('coApp.relationship')} placeholder={t('coApp.relationshipPh')} />
+              <F name="coMaritalStatus" label={t('coApp.maritalStatus')} />
+              <F name="coDob" label={t('coApp.dob')} type="date" />
             </div>
           </fieldset>
 
           <fieldset>
-            <legend className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Contact &amp; SIN</legend>
+            <legend className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">{t('coApp.legendContact')}</legend>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <F name="coApplicantSin" label="SIN (9 digits)" err={e.coApplicantSin} placeholder="123456789" />
-              <F name="coEmail" label="Email" type="email" err={e.coEmail} />
-              <F name="coPhone" label="Mobile phone" />
-              <F name="coHomePhone" label="Home phone" />
+              <F name="coApplicantSin" label={t('coApp.sin')} err={e.coApplicantSin} placeholder="123456789" />
+              <F name="coEmail" label={t('coApp.email')} type="email" err={e.coEmail} />
+              <F name="coPhone" label={t('coApp.mobilePhone')} />
+              <F name="coHomePhone" label={t('coApp.homePhone')} />
             </div>
           </fieldset>
 
           <fieldset>
-            <legend className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Current address</legend>
+            <legend className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">{t('coApp.legendAddress')}</legend>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
-              <div className="sm:col-span-2"><F name="coAddress" label="Street address" /></div>
-              <F name="coCity" label="City" />
-              <F name="coProvince" label="Province" />
-              <F name="coPostal" label="Postal code" />
+              <div className="sm:col-span-2"><F name="coAddress" label={t('coApp.streetAddress')} /></div>
+              <F name="coCity" label={t('coApp.city')} />
+              <F name="coProvince" label={t('coApp.province')} />
+              <F name="coPostal" label={t('coApp.postal')} />
             </div>
           </fieldset>
 
           <fieldset>
-            <legend className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Employment &amp; income</legend>
+            <legend className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">{t('coApp.legendEmployment')}</legend>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <label className={labelCls}>Employment status
+              <label className={labelCls}>{t('coApp.employmentStatus')}
                 <select name="coEmploymentStatus" className={inputCls} defaultValue="">
                   <option value="">—</option>
-                  <option value="EMPLOYED">Employed</option>
-                  <option value="SELF_EMPLOYED">Self-employed</option>
-                  <option value="RETIRED">Retired</option>
-                  <option value="OTHER">Other</option>
+                  <option value="EMPLOYED">{t('coApp.employed')}</option>
+                  <option value="SELF_EMPLOYED">{t('coApp.selfEmployed')}</option>
+                  <option value="RETIRED">{t('coApp.retired')}</option>
+                  <option value="OTHER">{t('coApp.other')}</option>
                 </select>
               </label>
-              <F name="coBusinessName" label="Employer" />
-              <F name="coPositionTitle" label="Position / title" />
-              <F name="coGrossMonthlyIncome" label="Gross monthly income ($)" type="number" />
-              <F name="coTimeAtJobYears" label="Years at job" type="number" />
-              <F name="coEmployerPhone" label="Employer phone" />
+              <F name="coBusinessName" label={t('coApp.employer')} />
+              <F name="coPositionTitle" label={t('coApp.position')} />
+              <F name="coGrossMonthlyIncome" label={t('coApp.grossMonthly')} type="number" />
+              <F name="coTimeAtJobYears" label={t('coApp.yearsAtJob')} type="number" />
+              <F name="coEmployerPhone" label={t('coApp.employerPhone')} />
             </div>
           </fieldset>
 
           <fieldset>
-            <legend className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Government ID</legend>
+            <legend className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">{t('coApp.legendId')}</legend>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
-              <F name="coIdType" label="ID type" placeholder="Driver's licence…" />
-              <F name="coGovIdNumber" label="ID number" />
-              <F name="coIdProvince" label="Issuing province" />
-              <F name="coIdExpiry" label="Expiry" type="date" />
+              <F name="coIdType" label={t('coApp.idType')} placeholder={t('coApp.idTypePh')} />
+              <F name="coGovIdNumber" label={t('coApp.idNumber')} />
+              <F name="coIdProvince" label={t('coApp.issuingProvince')} />
+              <F name="coIdExpiry" label={t('coApp.expiry')} type="date" />
             </div>
           </fieldset>
 
           <div className="flex items-center gap-3">
             <SubmitBtn />
-            <span className="text-xs text-gray-400">Sensitive details (SIN, DOB, address, ID) are encrypted.</span>
+            <span className="text-xs text-gray-400">{t('coApp.encryptedNote')}</span>
           </div>
         </form>
       </div>

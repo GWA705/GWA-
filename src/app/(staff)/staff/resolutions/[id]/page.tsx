@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import {
   ArrowLeft, User, CreditCard, Camera, Flag, Clock, Phone,
-  CheckCircle2, Check, Circle, FileText, ShieldCheck, Mail, Paperclip, MessageSquare,
+  CheckCircle2, Check, Circle, FileText, ShieldCheck, Mail, Paperclip, MessageSquare, BookOpen,
   type LucideIcon,
 } from 'lucide-react';
 import { requireRole } from '@/lib/session';
@@ -144,6 +144,12 @@ export default async function CaseDetailPage({ params }: { params: { id: string 
           {/* Deal & financing */}
           {deal && (
             <Section icon={CreditCard} title="The deal & financing" meta={deal.status}>
+              {deal.journalSourced && (
+                <div className="mb-4 flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-900 dark:border-blue-900/50 dark:bg-blue-950/30 dark:text-blue-200">
+                  <BookOpen size={16} className="mt-0.5 shrink-0" />
+                  <span>Created from the sales journal — a sale typed into the sheet, not a credit application. Financing details may be partial; see the journal row linked in the activity notes.</span>
+                </div>
+              )}
               <div className="grid gap-x-6 gap-y-3.5 sm:grid-cols-2">
                 <Field label="Program">{deal.program}</Field>
                 {deal.productsSummary && <Field label="Product">{deal.productsSummary}</Field>}
