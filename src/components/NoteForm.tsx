@@ -2,6 +2,7 @@
 
 import { useRef } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
+import { useT } from '@/i18n/client';
 
 export interface NoteTemplateOption {
   label: string;
@@ -15,10 +16,11 @@ interface NoteState {
 type BoundNoteAction = (prev: NoteState, formData: FormData) => Promise<NoteState>;
 
 function SubmitButton({ label }: { label: string }) {
+  const t = useT();
   const { pending } = useFormStatus();
   return (
     <button type="submit" className="btn-secondary text-sm" disabled={pending}>
-      {pending ? 'Saving…' : label}
+      {pending ? t('common.saving') : label}
     </button>
   );
 }
@@ -27,7 +29,7 @@ export function NoteForm({
   action,
   hidden,
   placeholder,
-  label = 'Add note',
+  label,
   templates,
 }: {
   action: BoundNoteAction;
@@ -36,6 +38,7 @@ export function NoteForm({
   label?: string;
   templates?: NoteTemplateOption[];
 }) {
+  const t = useT();
   const [state, formAction] = useFormState(action, {} as NoteState);
   const ref = useRef<HTMLFormElement>(null);
   const textRef = useRef<HTMLTextAreaElement>(null);
@@ -64,7 +67,7 @@ export function NoteForm({
         Object.entries(hidden).map(([k, v]) => <input key={k} type="hidden" name={k} value={v} />)}
       {templates && templates.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
-          <span className="self-center text-xs text-gray-400">Quick notes:</span>
+          <span className="self-center text-xs text-gray-400">{t('noteUi.quickNotes')}</span>
           {templates.map((t, i) => (
             <button
               key={i}
@@ -78,9 +81,9 @@ export function NoteForm({
           ))}
         </div>
       )}
-      <textarea ref={textRef} name="body" required rows={2} className="input" placeholder={placeholder ?? 'Write a note…'} />
+      <textarea ref={textRef} name="body" required rows={2} className="input" placeholder={placeholder ?? t('noteUi.notePlaceholder')} />
       <div className="flex items-center gap-3">
-        <SubmitButton label={label} />
+        <SubmitButton label={label ?? t('noteUi.addNote')} />
         {state?.error && <span className="text-xs text-red-600">{state.error}</span>}
       </div>
     </form>

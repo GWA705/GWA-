@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { AlertTriangle, ArrowRight } from 'lucide-react';
 import { StatusBadge } from '@/components/StatusBadge';
 import type { ApplicationStatus } from '@prisma/client';
+import { getT } from '@/i18n/server';
 
 export interface AttentionItem {
   id: string;
@@ -17,6 +18,7 @@ export interface AttentionItem {
  * queue is clear, so it only appears when there's actually something to do.
  */
 export function NeedsAttention({ items }: { items: AttentionItem[] }) {
+  const t = getT();
   if (items.length === 0) return null;
   const problems = items.filter((i) => i.problem).length;
 
@@ -25,10 +27,12 @@ export function NeedsAttention({ items }: { items: AttentionItem[] }) {
       <div className="flex items-center gap-3 border-b border-red-100 px-5 py-3">
         <span className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-red-600 text-lg font-black leading-none text-white">!</span>
         <div className="min-w-0">
-          <h3 className="text-base font-bold text-red-800">Needs your attention</h3>
+          <h3 className="text-base font-bold text-red-800">{t('dealParts.needsAttention.title')}</h3>
           <p className="text-xs text-red-700/80">
-            {problems > 0 && <>{problems} sent back by the reviewer · </>}
-            {items.length} item{items.length > 1 ? 's' : ''} to action
+            {problems > 0 && <>{t('dealParts.needsAttention.sentBackByReviewer', { n: problems })}</>}
+            {items.length === 1
+              ? t('dealParts.needsAttention.itemsToActionOne')
+              : t('dealParts.needsAttention.itemsToAction', { n: items.length })}
           </p>
         </div>
       </div>
@@ -49,7 +53,7 @@ export function NeedsAttention({ items }: { items: AttentionItem[] }) {
                 <span className="hidden sm:block"><StatusBadge status={i.status} /></span>
               </div>
               <span className="flex flex-none items-center gap-1 text-xs font-semibold text-red-700">
-                {i.problem ? 'Resolve issue' : 'Review'} <ArrowRight size={14} />
+                {i.problem ? t('dealParts.needsAttention.resolveIssue') : t('dealParts.needsAttention.review')} <ArrowRight size={14} />
               </span>
             </Link>
           </li>

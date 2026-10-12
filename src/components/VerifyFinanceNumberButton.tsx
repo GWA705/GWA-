@@ -2,6 +2,7 @@
 
 import { useOptimistic, useTransition } from 'react';
 import { toggleFinanceNumberVerifiedAction } from '@/app/(staff)/actions';
+import { useT } from '@/i18n/client';
 
 /**
  * "Verify financing number" toggle. Flips to verified (or back) immediately on
@@ -22,6 +23,7 @@ export function VerifyFinanceNumberButton({
   verifiedByName: string | null;
   verifiedAt: string | null;
 }) {
+  const t = useT();
   const [optimisticVerified, setOptimistic] = useOptimistic(verified, (_prev, next: boolean) => next);
   const [, startTransition] = useTransition();
 
@@ -37,24 +39,24 @@ export function VerifyFinanceNumberButton({
       {optimisticVerified ? (
         <>
           <div className="flex items-center justify-between gap-2">
-            <span className="badge bg-green-100 text-green-800">✓ Financing # verified</span>
-            <button type="button" onClick={toggle} className="text-xs text-gray-500 hover:underline">Undo</button>
+            <span className="badge bg-green-100 text-green-800">{t('dealParts.financeNum.verifiedBadge')}</span>
+            <button type="button" onClick={toggle} className="text-xs text-gray-500 hover:underline">{t('dealParts.financeNum.undo')}</button>
           </div>
           {verified && verifiedByName && (
             <p className="mt-1 text-xs text-gray-400">
-              by {verifiedByName}{verifiedAt ? ` · ${verifiedAt}` : ''}
+              {t('dealParts.financeNum.by', { name: verifiedByName })}{verifiedAt ? ` · ${verifiedAt}` : ''}
             </p>
           )}
         </>
       ) : (
         <>
           <button type="button" onClick={toggle} className="btn-secondary text-xs" disabled={!canVerify}>
-            Verify financing number
+            {t('dealParts.financeNum.verify')}
           </button>
           <p className="mt-1 text-xs text-gray-400">
             {canVerify
-              ? 'Confirm the FinanceIT number is valid to solidify this approval.'
-              : 'Add the financing deal number first, then verify it.'}
+              ? t('dealParts.financeNum.confirmValid')
+              : t('dealParts.financeNum.addFirst')}
           </p>
         </>
       )}

@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react';
 import { FileText, Loader2, CheckCircle2, AlertTriangle } from 'lucide-react';
 import type { BorrowerAutofill } from '@/lib/autofill';
+import { useT } from '@/i18n/client';
 
 /**
  * Read an uploaded, filled credit application (photo or single-page PDF) and
@@ -20,6 +21,7 @@ export function DocScan({
   onFields: (f: BorrowerAutofill, meta?: { uncertain?: string[] }) => void;
   className?: string;
 }) {
+  const t = useT();
   const inputRef = useRef<HTMLInputElement>(null);
   const [status, setStatus] = useState<Status>('idle');
   const [msg, setMsg] = useState('');
@@ -38,26 +40,26 @@ export function DocScan({
         setStatus('ok');
         setMsg(
           uncertain.length > 0
-            ? 'Filled from the uploaded application. Please review every field — the highlighted ones may have been misread.'
-            : 'Filled from the uploaded application. Please review every field.',
+            ? t('dealParts.docScan.filledUncertain')
+            : t('dealParts.docScan.filled'),
         );
         return;
       }
       if (data?.reason === 'not_enabled') {
         setStatus('fail');
-        setMsg('Reading uploaded documents isn’t turned on yet — enter the details manually for now.');
+        setMsg(t('dealParts.docScan.notEnabled'));
         return;
       }
       if (data?.reason === 'no_fields') {
         setStatus('fail');
-        setMsg('Couldn’t read enough from that file. Try a clearer scan, or enter the details manually.');
+        setMsg(t('dealParts.docScan.noFields'));
         return;
       }
     } catch {
       /* fall through */
     }
     setStatus('fail');
-    setMsg('Couldn’t read that file. Try a clearer photo/PDF, or enter the details manually.');
+    setMsg(t('dealParts.docScan.readFail'));
   }
 
   return (
@@ -80,7 +82,7 @@ export function DocScan({
         className="inline-flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-100 disabled:opacity-60"
       >
         {status === 'reading' ? <Loader2 size={16} className="animate-spin" /> : <FileText size={16} />}
-        {status === 'reading' ? 'Reading application…' : 'Scan a filled credit app'}
+        {status === 'reading' ? t('dealParts.docScan.reading') : t('dealParts.docScan.scanButton')}
       </button>
       {status === 'ok' && (
         <p className="mt-1 flex items-center gap-1 text-xs font-medium text-emerald-700">

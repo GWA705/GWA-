@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useT } from '@/i18n/client';
 
 /**
  * When a Home Depot lead includes a "View Project Photos" link, show a clean
@@ -8,6 +9,7 @@ import { useState } from 'react';
  * right there to paste (HD's page asks for it before showing the photos).
  */
 export function ProjectPhotosButton({ url, bookingId }: { url: string; bookingId: string }) {
+  const t = useT();
   const [copied, setCopied] = useState(false);
 
   function copy() {
@@ -24,22 +26,22 @@ export function ProjectPhotosButton({ url, bookingId }: { url: string; bookingId
   return (
     <div className="mt-3 rounded-lg border border-orange-200 bg-orange-50 p-3">
       <div className="flex flex-wrap items-center gap-3">
-        <span className="text-sm font-semibold text-orange-900">📷 Customer uploaded project photos</span>
+        <span className="text-sm font-semibold text-orange-900">{t('dealParts.projectPhotos.heading')}</span>
         <a
           href={url}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1 rounded-md bg-orange-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-orange-700"
         >
-          View project photos ↗
+          {t('dealParts.projectPhotos.viewPhotos')}
         </a>
       </div>
       {bookingId && (
         <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-orange-900">
-          <span>Home Depot asks for the Booking ID:</span>
+          <span>{t('dealParts.projectPhotos.hdAsksBookingId')}</span>
           <span className="rounded bg-white px-1.5 py-0.5 font-mono font-semibold ring-1 ring-orange-200">{bookingId}</span>
           <button type="button" onClick={copy} className="font-semibold text-orange-700 hover:underline">
-            {copied ? 'Copied ✓' : 'Copy'}
+            {copied ? t('dealParts.projectPhotos.copied') : t('dealParts.projectPhotos.copy')}
           </button>
         </div>
       )}

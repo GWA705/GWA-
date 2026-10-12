@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Sunrise } from 'lucide-react';
 import { markCaughtUpAction } from '@/app/(staff)/actions';
+import { getT } from '@/i18n/server';
 import type { CatchUp, CatchUpItem } from '@/lib/catchUp';
 
 function Tile({ n, label, href, tone }: { n: number; label: string; href: string; tone: 'brand' | 'warn' | 'crit' }) {
@@ -41,29 +42,30 @@ function ItemRow({ item }: { item: CatchUpItem }) {
 export function MorningCatchUp({ data }: { data: CatchUp }) {
   if (data.total === 0) return null;
   const { counts } = data;
+  const t = getT();
   return (
     <section className="card mb-6 p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Sunrise size={18} className="text-amber-500" />
-          <h2 className="text-base font-semibold text-gray-900">Catch-up</h2>
-          <span className="text-xs text-gray-500">since {data.sinceLabel}</span>
+          <h2 className="text-base font-semibold text-gray-900">{t('leadUi.morning.title')}</h2>
+          <span className="text-xs text-gray-500">{t('leadUi.morning.since', { date: data.sinceLabel })}</span>
         </div>
         <form action={markCaughtUpAction}>
-          <button type="submit" className="btn-secondary text-sm">Mark caught up</button>
+          <button type="submit" className="btn-secondary text-sm">{t('leadUi.morning.markCaughtUp')}</button>
         </form>
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Tile n={counts.issueReplies} label="Offices replied to flagged issues" href="/staff/confirmations" tone="warn" />
-        <Tile n={counts.newDeals} label="New deals submitted" href="/staff" tone="brand" />
-        <Tile n={counts.fundingIn} label="Funding packages in" href="/staff" tone="brand" />
-        <Tile n={counts.cancellations} label="Cancellation requests" href="/staff/cancellations" tone="crit" />
+        <Tile n={counts.issueReplies} label={t('leadUi.morning.issueReplies')} href="/staff/confirmations" tone="warn" />
+        <Tile n={counts.newDeals} label={t('leadUi.morning.newDeals')} href="/staff" tone="brand" />
+        <Tile n={counts.fundingIn} label={t('leadUi.morning.fundingIn')} href="/staff" tone="brand" />
+        <Tile n={counts.cancellations} label={t('leadUi.morning.cancellations')} href="/staff/cancellations" tone="crit" />
       </div>
 
       {data.replies.length > 0 && (
         <div className="mt-4">
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Replies waiting on you</h3>
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">{t('leadUi.morning.repliesWaiting')}</h3>
           <div className="flex flex-col gap-2">
             {data.replies.map((r) => (
               <ItemRow key={r.applicationId} item={r} />
@@ -74,7 +76,7 @@ export function MorningCatchUp({ data }: { data: CatchUp }) {
 
       {data.cancellations.length > 0 && (
         <div className="mt-4">
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Needs a decision</h3>
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">{t('leadUi.morning.needsDecision')}</h3>
           <div className="flex flex-col gap-2">
             {data.cancellations.map((c) => (
               <ItemRow key={c.applicationId} item={c} />

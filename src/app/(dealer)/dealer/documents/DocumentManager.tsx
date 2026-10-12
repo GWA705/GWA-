@@ -5,6 +5,7 @@ import { useFormState, useFormStatus } from 'react-dom';
 import { FileText, UploadCloud, CheckCircle2, AlertTriangle, Clock, Loader2, Trash2, ScanLine } from 'lucide-react';
 import { uploadDocumentAction, deleteDocumentAction, type DocActionState } from './actions';
 import type { DocStatus } from '@/lib/dealerDocs';
+import { useT } from '@/i18n/client';
 
 export interface DocVM {
   id: string;
@@ -49,11 +50,12 @@ function StatusChip({ status, text }: { status: DocStatus; text: string }) {
 }
 
 function SubmitButton({ isReplace }: { isReplace: boolean }) {
+  const t = useT();
   const { pending } = useFormStatus();
   return (
     <button type="submit" className="btn-primary inline-flex items-center gap-2" disabled={pending}>
       {pending ? <Loader2 size={15} className="animate-spin" /> : <UploadCloud size={15} />}
-      {pending ? 'Uploading…' : isReplace ? 'Replace document' : 'Upload document'}
+      {pending ? t('common.uploading') : isReplace ? t('dlrDocs.replaceDocument') : t('dlrDocs.uploadDocument')}
     </button>
   );
 }
@@ -76,6 +78,7 @@ function UploadForm({
   currentAccount?: string | null;
   onDone?: () => void;
 }) {
+  const t = useT();
   const [state, action] = useFormState(uploadDocumentAction, initial);
   const [scanning, setScanning] = useState(false);
   const [scanNote, setScanNote] = useState<string | null>(null);
@@ -108,17 +111,17 @@ function UploadForm({
         if (data.expiry) {
           setExpiry(data.expiry);
           setAutoExtracted(true);
-          setScanNote(`Detected expiry ${data.expiry} — please confirm it matches the document.`);
+          setScanNote(t('dlrDocs.scanDetected', { date: data.expiry }));
         } else {
-          setScanNote('Couldn’t read a date automatically — please enter the expiry date below.');
+          setScanNote(t('dlrDocs.scanNoDate'));
         }
         if (Array.isArray(data.dates)) setScannedDates(data.dates.join(','));
         if (data.accountNumber && !account) setAccount(data.accountNumber);
       } else {
-        setScanNote('Please enter the expiry date below.');
+        setScanNote(t('dlrDocs.scanEnterBelow'));
       }
     } catch {
-      setScanNote('Please enter the expiry date below.');
+      setScanNote(t('dlrDocs.scanEnterBelow'));
     } finally {
       setScanning(false);
     }
@@ -133,13 +136,13 @@ function UploadForm({
 
       {isOther && (
         <div>
-          <label className="label">Document name</label>
-          <input name="label" className="input" placeholder="e.g. General liability insurance" required />
+          <label className="label">{t('dlrDocs.docName')}</label>
+          <input name="label" className="input" placeholder={t('dlrDocs.docNamePlaceholder')} required />
         </div>
       )}
 
       <div>
-        <label className="label">File <span className="font-normal text-gray-400">(PDF or image — max 10 MB)</span></label>
+        <label className="label">{t('dlrDocs.fileLabel')} <span className="font-normal text-gray-400">{t('dlrDocs.fileHint')}</span></label>
         <input
           name="file"
           type="file"
@@ -149,7 +152,7 @@ function UploadForm({
           className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-md file:border-0 file:bg-brand-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-brand-700 hover:file:bg-brand-100"
         />
         {scanning && (
-          <p className="mt-1.5 inline-flex items-center gap-1.5 text-xs text-brand-700"><Loader2 size={13} className="animate-spin" /> Scanning the document for its expiry date…</p>
+          <p className="mt-1.5 inline-flex items-center gap-1.5 text-xs text-brand-700"><Loader2 size={13} className="animate-spin" /> {t('dlrDocs.scanning')}</p>
         )}
         {!scanning && scanNote && (
           <p className="mt-1.5 inline-flex items-center gap-1.5 text-xs text-gray-600"><ScanLine size={13} /> {scanNote}</p>
@@ -158,7 +161,7 @@ function UploadForm({
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
-          <label className="label">Expiry / renewal date {!isOther && <span className="text-amber-600">(required)</span>}</label>
+          <label className="label">{t('dlrDocs.expiryLabel')} {!isOther && <span className="text-amber-600">{t('dlrDocs.required')}</span>}</label>
           <input
             name="expiryDate"
             type="date"
@@ -170,7 +173,7 @@ function UploadForm({
         </div>
         {hasAccountNumber && (
           <div>
-            <label className="label">{accountLabel || 'Account #'}</label>
+            <label className="label">{accountLabel || t('dlrDocs.accountNumber')}</label>
             <input name="accountNumber" value={account} onChange={(e) => setAccount(e.target.value)} className="input" autoComplete="off" />
           </div>
         )}
@@ -178,26 +181,28 @@ function UploadForm({
 
       <div className="flex items-center gap-3">
         <SubmitButton isReplace={isReplace} />
-        {state.ok && <span className="inline-flex items-center gap-1 text-xs text-green-600"><CheckCircle2 size={14} /> Saved</span>}
+        {state.ok && <span className="inline-flex items-center gap-1 text-xs text-green-600"><CheckCircle2 size={14} /> {t('common.saved')}</span>}
       </div>
     </form>
   );
 }
 
 function CurrentFile({ doc }: { doc: DocVM }) {
+  const t = useT();
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
       <a href={`/api/dealer/documents/${doc.id}/file`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 font-medium text-brand-700 hover:underline">
         <FileText size={15} /> {doc.fileName}
       </a>
       <StatusChip status={doc.status} text={doc.statusText} />
-      {doc.expiryDate && <span className="text-xs text-gray-500">Expires {doc.expiryDate}</span>}
-      {doc.accountNumber && <span className="text-xs text-gray-400">Acct #{doc.accountNumber}</span>}
+      {doc.expiryDate && <span className="text-xs text-gray-500">{t('dlrDocs.expires')} {doc.expiryDate}</span>}
+      {doc.accountNumber && <span className="text-xs text-gray-400">{t('dlrDocs.acct')}{doc.accountNumber}</span>}
     </div>
   );
 }
 
 function SlotCard({ slot }: { slot: SlotVM }) {
+  const t = useT();
   const [open, setOpen] = useState(!slot.current); // missing → open for upload
   return (
     <div className="card p-5">
@@ -208,10 +213,10 @@ function SlotCard({ slot }: { slot: SlotVM }) {
         </div>
         {slot.current ? (
           <button type="button" onClick={() => setOpen((o) => !o)} className="text-sm font-medium text-brand-700 hover:underline">
-            {open ? 'Cancel' : 'Replace'}
+            {open ? t('common.cancel') : t('dlrDocs.replace')}
           </button>
         ) : (
-          <StatusChip status="missing" text="Not uploaded" />
+          <StatusChip status="missing" text={t('dlrDocs.notUploaded')} />
         )}
       </div>
 
@@ -239,6 +244,7 @@ function SlotCard({ slot }: { slot: SlotVM }) {
 }
 
 function OtherDoc({ doc }: { doc: DocVM }) {
+  const t = useT();
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-gray-200 p-3">
       <div className="min-w-0">
@@ -248,7 +254,7 @@ function OtherDoc({ doc }: { doc: DocVM }) {
       <form action={deleteDocumentAction}>
         <input type="hidden" name="id" value={doc.id} />
         <button type="submit" className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-red-600" aria-label="Delete document">
-          <Trash2 size={14} /> Remove
+          <Trash2 size={14} /> {t('common.remove')}
         </button>
       </form>
     </div>
@@ -256,6 +262,7 @@ function OtherDoc({ doc }: { doc: DocVM }) {
 }
 
 export function DocumentManager({ slots, others }: { slots: SlotVM[]; others: DocVM[] }) {
+  const t = useT();
   const [addOther, setAddOther] = useState(false);
   return (
     <div className="space-y-6">
@@ -268,11 +275,11 @@ export function DocumentManager({ slots, others }: { slots: SlotVM[]; others: Do
       <div className="card p-5">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="font-semibold text-gray-900">Other documents</h3>
-            <p className="mt-0.5 text-xs text-gray-500">Trade licences, insurance certificates, CSST, RBQ — anything else with a renewal date.</p>
+            <h3 className="font-semibold text-gray-900">{t('dlrDocs.otherDocs')}</h3>
+            <p className="mt-0.5 text-xs text-gray-500">{t('dlrDocs.otherDocsHint')}</p>
           </div>
           <button type="button" onClick={() => setAddOther((o) => !o)} className="text-sm font-medium text-brand-700 hover:underline">
-            {addOther ? 'Cancel' : '+ Add a document'}
+            {addOther ? t('common.cancel') : t('dlrDocs.addDocument')}
           </button>
         </div>
 
@@ -284,7 +291,7 @@ export function DocumentManager({ slots, others }: { slots: SlotVM[]; others: Do
 
         {addOther && (
           <div className="mt-4 border-t border-gray-100 pt-4">
-            <UploadForm type={OTHER} isOther hasAccountNumber accountLabel="Account / policy #" onDone={() => setAddOther(false)} />
+            <UploadForm type={OTHER} isOther hasAccountNumber accountLabel={t('dlrDocs.accountPolicy')} onDone={() => setAddOther(false)} />
           </div>
         )}
       </div>

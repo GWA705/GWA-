@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { looksLikeCardNumber, CARD_REDACT_NOTICE } from '@/lib/cardGuard';
 import { useQuickBar } from '@/components/useQuickBar';
+import { useT } from '@/i18n/client';
 import { AutoTranslate } from './AutoTranslate';
 
 interface Summary {
@@ -41,6 +42,7 @@ const fmtTime = (iso: string) =>
   new Date(iso).toLocaleString('en-CA', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 
 export function ChatWidget() {
+  const t = useT();
   const pathname = usePathname();
   const [quickBar] = useQuickBar();
   const [open, setOpen] = useState(false);
@@ -119,7 +121,7 @@ export function ChatWidget() {
       if (wantsSupport) {
         const existing = summary.conversations.find((c) => c.kind === 'SUPPORT');
         if (existing) openThread({ conversationId: existing.id, title: existing.title });
-        else openThread({ kind: 'SUPPORT', title: 'General support' });
+        else openThread({ kind: 'SUPPORT', title: t('chatUi.generalSupport') });
       } else {
         setView('list');
       }
@@ -167,7 +169,7 @@ export function ChatWidget() {
   async function clearChat() {
     const cid = active?.conversationId;
     if (!cid) return;
-    if (!window.confirm('Clear this chat? All messages in it will be removed.')) return;
+    if (!window.confirm(t('chatUi.clearConfirm'))) return;
     stopTyping();
     try {
       await fetch('/api/chat/clear', {
@@ -238,10 +240,10 @@ export function ChatWidget() {
         // Surface the reason instead of failing silently (the message stays in
         // the box so nothing is lost).
         const msg = await r.json().catch(() => null);
-        setSendError(msg?.error || 'Couldn’t send your message. Please try again.');
+        setSendError(msg?.error || t('chatUi.sendFailed'));
       }
     } catch {
-      setSendError('You appear to be offline. Please check your connection and try again.');
+      setSendError(t('chatUi.offline'));
     } finally {
       setSending(false);
     }
@@ -329,11 +331,11 @@ export function ChatWidget() {
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
             )}
             <div className="min-w-0 flex-1">
-              <div className="truncate text-sm font-semibold">{view === 'thread' ? active?.title : 'Georgian Water & Air team chat'}</div>
-              {view === 'list' && <div className="text-[11px] text-white/80">We usually reply the same day</div>}
+              <div className="truncate text-sm font-semibold">{view === 'thread' ? active?.title : t('chatUi.teamChat')}</div>
+              {view === 'list' && <div className="text-[11px] text-white/80">{t('chatUi.replySameDay')}</div>}
             </div>
             {view === 'thread' && curIsSupport && (
-              <button type="button" onClick={clearChat} aria-label="Clear chat" title="Clear chat" className="rounded p-1 hover:bg-white/10">
+              <button type="button" onClick={clearChat} aria-label={t('chatUi.clearChat')} title={t('chatUi.clearChat')} className="rounded p-1 hover:bg-white/10">
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /></svg>
               </button>
             )}
@@ -347,21 +349,21 @@ export function ChatWidget() {
               {dealAppId && !summary.conversations.some((c) => c.applicationId === dealAppId) && (
                 <button
                   type="button"
-                  onClick={() => openThread({ applicationId: dealAppId, title: 'This deal' })}
+                  onClick={() => openThread({ applicationId: dealAppId, title: t('chatUi.thisDeal') })}
                   className="flex w-full items-center gap-3 border-b border-gray-100 px-4 py-3 text-left hover:bg-gray-50"
                 >
                   <span className="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-brand-50 text-brand-700 text-xs font-bold">HD</span>
-                  <span className="min-w-0"><span className="block text-sm font-semibold text-gray-900">Chat about this deal</span><span className="block truncate text-xs text-gray-500">Start a message about the deal you&apos;re viewing</span></span>
+                  <span className="min-w-0"><span className="block text-sm font-semibold text-gray-900">{t('chatUi.chatAboutDeal')}</span><span className="block truncate text-xs text-gray-500">{t('chatUi.chatAboutDealSub')}</span></span>
                 </button>
               )}
               {!summary.conversations.some((c) => c.kind === 'SUPPORT') && (
                 <button
                   type="button"
-                  onClick={() => openThread({ kind: 'SUPPORT', title: 'General support' })}
+                  onClick={() => openThread({ kind: 'SUPPORT', title: t('chatUi.generalSupport') })}
                   className="flex w-full items-center gap-3 border-b border-gray-100 px-4 py-3 text-left hover:bg-gray-50"
                 >
                   <span className="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-amber-100 text-amber-700 text-xs font-bold">?</span>
-                  <span className="min-w-0"><span className="block text-sm font-semibold text-gray-900">General support</span><span className="block truncate text-xs text-gray-500">Ask the GWA team anything</span></span>
+                  <span className="min-w-0"><span className="block text-sm font-semibold text-gray-900">{t('chatUi.generalSupport')}</span><span className="block truncate text-xs text-gray-500">{t('chatUi.askTeamAnything')}</span></span>
                 </button>
               )}
               {summary.conversations.map((c) => (
@@ -379,7 +381,7 @@ export function ChatWidget() {
                       <span className="truncate text-sm font-semibold text-gray-900">{c.title}</span>
                       {c.unread > 0 && <span className="flex h-5 min-w-[20px] flex-none items-center justify-center rounded-full bg-red-500 px-1 text-[11px] font-bold text-white">{c.unread}</span>}
                     </span>
-                    <span className="block truncate text-xs text-gray-500">{c.preview ?? 'No messages yet'}</span>
+                    <span className="block truncate text-xs text-gray-500">{c.preview ?? t('chatUi.noMessagesYet')}</span>
                   </span>
                 </button>
               ))}
@@ -387,7 +389,7 @@ export function ChatWidget() {
           ) : (
             <>
               <div ref={listRef} onScroll={onScroll} className="flex-1 space-y-3 overflow-y-auto bg-gray-50 p-4">
-                {messages.length === 0 && <p className="text-center text-sm text-gray-400">No messages yet — say hello.</p>}
+                {messages.length === 0 && <p className="text-center text-sm text-gray-400">{t('chatUi.noMessagesHello')}</p>}
                 {messages.map((m) =>
                   m.auto ? (
                     // Assistant reply (AI or the after-hours fallback note): a
@@ -396,7 +398,7 @@ export function ChatWidget() {
                       <div className="max-w-[85%] rounded-2xl rounded-tl-sm border border-sky-100 bg-sky-50 px-3 py-2 text-sm text-gray-800">
                         <p className="mb-0.5 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-sky-600">
                           <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M12 2l1.9 5.1L19 9l-5.1 1.9L12 16l-1.9-5.1L5 9l5.1-1.9z" /></svg>
-                          Assistant
+                          {t('chatUi.assistant')}
                         </p>
                         <AutoTranslate text={m.body} tone="light" />
                         <p className="mt-1 text-[10px] text-gray-400">{fmtTime(m.createdAt)}</p>
@@ -415,7 +417,7 @@ export function ChatWidget() {
                   <div className="flex justify-start">
                     <div className="flex items-center gap-1.5 rounded-2xl rounded-tl-sm border border-sky-100 bg-sky-50 px-3 py-2.5">
                       <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden className="text-sky-600"><path d="M12 2l1.9 5.1L19 9l-5.1 1.9L12 16l-1.9-5.1L5 9l5.1-1.9z" /></svg>
-                      <span className="sr-only">Assistant is typing</span>
+                      <span className="sr-only">{t('chatUi.assistantTyping')}</span>
                       <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-sky-400 [animation-delay:-0.3s]" />
                       <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-sky-400 [animation-delay:-0.15s]" />
                       <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-sky-400" />
@@ -427,7 +429,7 @@ export function ChatWidget() {
                 {curIsSupport && canRequestAgent && (
                   <div className="mb-2 flex justify-center">
                     <button type="button" onClick={requestAgent} className="text-xs font-medium text-brand-700 hover:underline">
-                      Talk to a person
+                      {t('chatUi.talkToPerson')}
                     </button>
                   </div>
                 )}
@@ -439,12 +441,12 @@ export function ChatWidget() {
                     onChange={(e) => { setText(e.target.value); if (cardWarn) setCardWarn(false); if (sendError) setSendError(null); }}
                     onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
                     rows={1}
-                    placeholder="Write a message…"
+                    placeholder={t('chatUi.messagePlaceholder')}
                     // text-base (16px) is deliberate: iOS Safari force-zooms the page
                     // whenever a focused input's font-size is < 16px. Keep this at 16px+.
                     className="max-h-28 min-h-[40px] flex-1 resize-none rounded-lg border border-gray-300 px-3 py-2 text-base focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
                   />
-                  <button type="submit" disabled={sending || !text.trim()} className="btn-primary flex-none px-4 py-2 text-sm disabled:opacity-50">Send</button>
+                  <button type="submit" disabled={sending || !text.trim()} className="btn-primary flex-none px-4 py-2 text-sm disabled:opacity-50">{t('common.send')}</button>
                 </form>
               </div>
             </>

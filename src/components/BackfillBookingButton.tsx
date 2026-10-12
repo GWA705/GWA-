@@ -2,6 +2,7 @@
 
 import { useRef, useState, useTransition } from 'react';
 import { backfillScannedLeadsToBookingAction } from '@/app/(staff)/staff/leads/backfillActions';
+import { useT } from '@/i18n/client';
 
 /**
  * "Send existing scans to booking" — a one-time sweep of the scanned-lead backlog
@@ -19,6 +20,7 @@ const ZERO: Totals = { sent: 0, created: 0, duplicate: 0, skipped: 0, failed: 0 
 const MAX_CHUNKS = 2000; // safety stop for the loop
 
 export function BackfillBookingButton() {
+  const t = useT();
   const [pending, startTransition] = useTransition();
   const [totals, setTotals] = useState<Totals | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -53,20 +55,19 @@ export function BackfillBookingButton() {
     <div className="rounded-lg border border-gray-200 bg-white p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="text-sm font-semibold text-gray-900">Send existing scans to booking</h3>
+          <h3 className="text-sm font-semibold text-gray-900">{t('dealParts.backfill.title')}</h3>
           <p className="mt-0.5 text-xs text-gray-500">
-            One-time catch-up of scanned leads saved before the booking feed went live. New scans go over
-            on their own. Safe to run again — nothing is ever booked twice.
+            {t('dealParts.backfill.blurb')}
           </p>
         </div>
         <div className="flex items-center gap-2">
           {pending && (
             <button type="button" onClick={() => { stop.current = true; }} className="text-xs text-gray-500 hover:underline">
-              Stop
+              {t('dealParts.stop')}
             </button>
           )}
           <button type="button" onClick={run} className="btn-secondary text-xs" disabled={pending}>
-            {pending ? 'Sending…' : 'Send existing scans'}
+            {pending ? t('common.sending') : t('dealParts.backfill.sendBtn')}
           </button>
         </div>
       </div>
@@ -77,10 +78,10 @@ export function BackfillBookingButton() {
 
       {totals && !error && (
         <p className={`mt-3 rounded border-l-4 p-2 text-xs ${done ? 'border-green-500 bg-green-50 text-green-800' : 'border-blue-400 bg-blue-50 text-blue-800'}`}>
-          {done ? 'Done. ' : 'Sending… '}
-          Sent {totals.sent}: <strong>{totals.created}</strong> newly on the board, {totals.duplicate} already there
-          {totals.skipped ? `, ${totals.skipped} skipped (do-not-call or unbookable)` : ''}
-          {totals.failed ? `, ${totals.failed} couldn’t be sent — run it again` : ''}.
+          {done ? t('dealParts.doneStatus') : t('dealParts.backfill.sendingStatus')}
+          {t('dealParts.backfill.sentPrefix', { n: totals.sent })}<strong>{totals.created}</strong>{t('dealParts.backfill.newlyOnBoard', { dup: totals.duplicate })}
+          {totals.skipped ? t('dealParts.backfill.skipped', { n: totals.skipped }) : ''}
+          {totals.failed ? t('dealParts.backfill.failed', { n: totals.failed }) : ''}.
         </p>
       )}
     </div>

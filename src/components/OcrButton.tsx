@@ -2,6 +2,7 @@
 
 import { useTransition } from 'react';
 import { runDocumentOcrAction } from '@/app/(staff)/actions';
+import { useT } from '@/i18n/client';
 
 /**
  * "Read this scan" — triggers Tier-2 OCR for a scanned/photo document on demand.
@@ -9,6 +10,7 @@ import { runDocumentOcrAction } from '@/app/(staff)/actions';
  * dates found once it lands.
  */
 export function OcrButton({ documentId }: { documentId: string }) {
+  const t = useT();
   const [pending, startTransition] = useTransition();
   return (
     <button
@@ -16,9 +18,9 @@ export function OcrButton({ documentId }: { documentId: string }) {
       disabled={pending}
       onClick={() => startTransition(() => runDocumentOcrAction(documentId))}
       className="rounded-full px-2 py-0.5 text-[11px] font-medium text-brand-700 ring-1 ring-inset ring-brand-200 transition hover:bg-brand-50 disabled:opacity-60"
-      title="Read the text off this scan/photo"
+      title={t('dealParts.ocr.title')}
     >
-      {pending ? 'Reading…' : '🔍 Read this scan'}
+      {pending ? t('common.reading') : t('dealParts.ocr.readScan')}
     </button>
   );
 }

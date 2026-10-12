@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { BannerImage } from './BannerImage';
+import { useT } from '@/i18n/client';
 
 export interface BannerItem {
   id: string;
@@ -24,17 +25,18 @@ function Wrap({ href, children }: { href: string | null; children: React.ReactNo
 }
 
 export function BannerCard({ item }: { item: BannerItem }) {
+  const t = useT();
   return (
     <div className="overflow-hidden rounded-lg border border-brand-100 bg-brand-50">
       <Wrap href={item.linkUrl}>
         {item.hasImage && (
-          <BannerImage src={`/api/announcements/${item.id}/image?v=${item.imageVersion ?? 0}`} alt={item.title ?? 'Announcement'} className="block h-auto w-full" />
+          <BannerImage src={`/api/announcements/${item.id}/image?v=${item.imageVersion ?? 0}`} alt={item.title ?? t('dealParts.announcements.announcementAlt')} className="block h-auto w-full" />
         )}
         {(item.title || item.body) && (
           <div className="p-4">
             {item.title && <h3 className="text-sm font-semibold text-brand-900">{item.title}</h3>}
             {item.body && <p className="mt-1 whitespace-pre-wrap text-sm text-brand-900/80">{item.body}</p>}
-            {item.linkUrl && <span className="mt-1 inline-block text-xs font-medium text-brand-700 underline">Learn more →</span>}
+            {item.linkUrl && <span className="mt-1 inline-block text-xs font-medium text-brand-700 underline">{t('dealParts.announcements.learnMore')}</span>}
           </div>
         )}
       </Wrap>

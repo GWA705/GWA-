@@ -3,6 +3,7 @@ import { DOCUMENT_TYPE_LABELS } from '@/lib/constants';
 import { DocViewer } from '@/components/DocViewer';
 import { DownloadButton } from '@/components/DownloadButton';
 import { PaperworkThumb } from '@/components/PaperworkThumb';
+import { getT } from '@/i18n/server';
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -16,8 +17,9 @@ function formatSize(bytes: number): string {
  * deliberately hidden. Each card shows a preview thumbnail and View / Download.
  */
 export function PaperworkCards({ documents }: { documents: Document[] }) {
+  const t = getT();
   if (documents.length === 0) {
-    return <p className="text-sm text-gray-500">No documents shared yet.</p>;
+    return <p className="text-sm text-gray-500">{t('dealParts.paperwork.noneShared')}</p>;
   }
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -40,14 +42,14 @@ export function PaperworkCards({ documents }: { documents: Document[] }) {
                 title={DOCUMENT_TYPE_LABELS[d.type]}
                 className="rounded-md border border-green-600 px-3 py-1.5 text-xs font-semibold text-green-700 shadow-sm transition hover:bg-green-50"
               >
-                View
+                {t('common.view')}
               </DocViewer>
               <DownloadButton
                 url={`/api/documents/${d.id}?download=1`}
                 fileName={d.fileName}
                 className="rounded-md bg-green-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-green-700"
               >
-                Download
+                {t('common.download')}
               </DownloadButton>
             </div>
           </div>

@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { useT } from '@/i18n/client';
 import { updateScannedLeadAction } from '@/app/(dealer)/dealer/leads/scanActions';
 import type { ScannedLeadRow } from './ScannedLeadsList';
 
@@ -12,8 +13,16 @@ import type { ScannedLeadRow } from './ScannedLeadsList';
  */
 
 const CONDITION_OPTS = ['Taste', 'Odors', 'Scale build up', 'Stains'];
+// Stored condition value → translation key (the value itself is sent to the server).
+const CONDITION_KEY: Record<string, string> = {
+  Taste: 'leadUi.condition.taste',
+  Odors: 'leadUi.condition.odors',
+  'Scale build up': 'leadUi.condition.scaleBuildUp',
+  Stains: 'leadUi.condition.stains',
+};
 
 export function ScannedLeadEditForm({ lead, onDone }: { lead: ScannedLeadRow; onDone: () => void }) {
+  const t = useT();
   const router = useRouter();
   const [saving, start] = useTransition();
   const [err, setErr] = useState<string | null>(null);
@@ -39,7 +48,7 @@ export function ScannedLeadEditForm({ lead, onDone }: { lead: ScannedLeadRow; on
 
   function save() {
     if (!f.customerName.trim() && !f.phone.trim()) {
-      setErr('Enter at least a name or a phone number.');
+      setErr(t('leadUi.scan.needNameOrPhone'));
       return;
     }
     setErr(null);
@@ -84,39 +93,39 @@ export function ScannedLeadEditForm({ lead, onDone }: { lead: ScannedLeadRow; on
 
   return (
     <div className="mt-3 rounded-xl border border-brand-100 bg-white p-3">
-      <div className="mb-2 text-xs font-bold uppercase tracking-wide text-brand-700">Edit lead</div>
+      <div className="mb-2 text-xs font-bold uppercase tracking-wide text-brand-700">{t('leadUi.edit.title')}</div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {field('customerName', 'Customer name')}
-        {field('phone', 'Phone')}
-        {field('address', 'Address', { wide: true })}
-        {field('city', 'City')}
-        {field('postalCode', 'Postal code')}
-        {field('storeNumber', 'Store #')}
-        {field('collectedOn', 'Date collected')}
-        {field('householdSize', 'People in household')}
-        {field('generatorName', 'Collected by (rep)')}
+        {field('customerName', t('leadUi.field.customerName'))}
+        {field('phone', t('leadUi.field.phone'))}
+        {field('address', t('leadUi.field.address'), { wide: true })}
+        {field('city', t('leadUi.field.city'))}
+        {field('postalCode', t('leadUi.field.postalCode'))}
+        {field('storeNumber', t('leadUi.field.storeNumber'))}
+        {field('collectedOn', t('leadUi.field.collectedOn'))}
+        {field('householdSize', t('leadUi.field.householdSize'))}
+        {field('generatorName', t('leadUi.field.generatorName'))}
 
         <div>
-          <label className={label} htmlFor={`ed_${lead.id}_ownsHome`}>Owns home</label>
+          <label className={label} htmlFor={`ed_${lead.id}_ownsHome`}>{t('leadUi.field.ownsHome')}</label>
           <select id={`ed_${lead.id}_ownsHome`} value={f.ownsHome} onChange={(e) => set('ownsHome', e.target.value)} className="input">
-            <option value="UNKNOWN">Unknown</option><option value="OWN">Owns</option><option value="RENT">Rents</option><option value="WITH_PARENTS">With parents</option>
+            <option value="UNKNOWN">{t('leadUi.ownsHome.unknown')}</option><option value="OWN">{t('leadUi.ownsHome.owns')}</option><option value="RENT">{t('leadUi.ownsHome.rents')}</option><option value="WITH_PARENTS">{t('leadUi.ownsHome.withParents')}</option>
           </select>
         </div>
         <div>
-          <label className={label} htmlFor={`ed_${lead.id}_waterSource`}>Water source</label>
+          <label className={label} htmlFor={`ed_${lead.id}_waterSource`}>{t('leadUi.field.waterSource')}</label>
           <select id={`ed_${lead.id}_waterSource`} value={f.waterSource} onChange={(e) => set('waterSource', e.target.value)} className="input">
-            <option value="">—</option><option>City</option><option>Well</option><option>Community Well</option><option>Other</option>
+            <option value="">—</option><option value="City">{t('leadUi.waterSource.city')}</option><option value="Well">{t('leadUi.waterSource.well')}</option><option value="Community Well">{t('leadUi.waterSource.communityWell')}</option><option value="Other">{t('leadUi.waterSource.other')}</option>
           </select>
         </div>
         <div>
-          <label className={label} htmlFor={`ed_${lead.id}_waterQuality`}>Water quality</label>
+          <label className={label} htmlFor={`ed_${lead.id}_waterQuality`}>{t('leadUi.field.waterQuality')}</label>
           <select id={`ed_${lead.id}_waterQuality`} value={f.waterQuality} onChange={(e) => set('waterQuality', e.target.value)} className="input">
-            <option value="">—</option><option>Excellent</option><option>Good</option><option>Fair</option><option>Poor</option>
+            <option value="">—</option><option value="Excellent">{t('leadUi.waterQuality.excellent')}</option><option value="Good">{t('leadUi.waterQuality.good')}</option><option value="Fair">{t('leadUi.waterQuality.fair')}</option><option value="Poor">{t('leadUi.waterQuality.poor')}</option>
           </select>
         </div>
 
         <div className="sm:col-span-2">
-          <span className={label}>Conditions experienced</span>
+          <span className={label}>{t('leadUi.field.conditions')}</span>
           <div className="flex flex-wrap gap-3">
             {CONDITION_OPTS.map((opt) => (
               <label key={opt} className="flex items-center gap-1.5 text-sm text-gray-700">
@@ -126,18 +135,18 @@ export function ScannedLeadEditForm({ lead, onDone }: { lead: ScannedLeadRow; on
                   onChange={(e) => set('conditions', e.target.checked ? [...f.conditions, opt] : f.conditions.filter((x) => x !== opt))}
                   className="h-4 w-4 rounded border-gray-300"
                 />
-                {opt}
+                {t(CONDITION_KEY[opt])}
               </label>
             ))}
           </div>
         </div>
 
         <div className="sm:col-span-2">
-          <label className={label} htmlFor={`ed_${lead.id}_waterNotes`}>Water notes</label>
+          <label className={label} htmlFor={`ed_${lead.id}_waterNotes`}>{t('leadUi.field.waterNotes')}</label>
           <textarea id={`ed_${lead.id}_waterNotes`} value={f.waterNotes} onChange={(e) => set('waterNotes', e.target.value)} rows={2} className="input" />
         </div>
         <div className="sm:col-span-2">
-          <label className={label} htmlFor={`ed_${lead.id}_note`}>Internal note</label>
+          <label className={label} htmlFor={`ed_${lead.id}_note`}>{t('leadUi.field.internalNote')}</label>
           <textarea id={`ed_${lead.id}_note`} value={f.note} onChange={(e) => set('note', e.target.value)} rows={2} className="input" />
         </div>
       </div>
@@ -145,9 +154,9 @@ export function ScannedLeadEditForm({ lead, onDone }: { lead: ScannedLeadRow; on
       {err && <p className="mt-2 text-xs text-red-600">{err}</p>}
       <div className="mt-3 flex items-center gap-2">
         <button type="button" onClick={save} disabled={saving} className="btn-primary text-sm disabled:opacity-60">
-          {saving ? 'Saving…' : 'Save changes'}
+          {saving ? t('common.saving') : t('leadUi.edit.saveChanges')}
         </button>
-        <button type="button" onClick={onDone} disabled={saving} className="btn-secondary text-sm">Cancel</button>
+        <button type="button" onClick={onDone} disabled={saving} className="btn-secondary text-sm">{t('common.cancel')}</button>
       </div>
     </div>
   );

@@ -21,10 +21,10 @@ Water & Air" and brand taglines (PromoCard) stay as the brand kit defines.
 
 - [x] **0. Shared `common.*`** — Save/Cancel/Search/Sort/Loading…/Saving…/etc. (done first; underpins the rest)
 - [x] **1. Shell, nav, notifications** — AppShell, TopNav, MobileNav, NotificationBell, NotificationsFeed, dealer+staff notifications pages
-- [ ] **2. Dealer documents & recordings** — documents/page, DocumentManager, DocumentList, recordings/page
-- [ ] **3. Chat & notes** — ChatWidget, ConversationThread, NoteForm
-- [ ] **4. Leads** — CombinedLeadsControls, DealerListControls, ScanLeadCard, ScannedLeadEditForm, ScannedLeadsList, AllLeadsView, LeadsView, MailInTestWorkspace, SearchBox, QueueSortControl, MorningCatchUp
-- [ ] **5. Deal-detail shared components** — PayoutReceipt, SerialNumberForm, ProductSerialForm, PaperworkCards, ProductPicker, FundingItemUploader, misc small buttons (Download/Ocr/Verify/etc.)
+- [x] **2. Dealer documents & recordings** — documents/page, DocumentManager, DocumentList, recordings/page
+- [x] **3. Chat & notes** — ChatWidget, ConversationThread, NoteForm
+- [x] **4. Leads** — CombinedLeadsControls, DealerListControls, ScanLeadCard, ScannedLeadEditForm, ScannedLeadsList, AllLeadsView, LeadsView, MailInTestWorkspace, SearchBox, QueueSortControl, MorningCatchUp
+- [x] **5. Deal-detail shared components** — PayoutReceipt, SerialNumberForm, ProductSerialForm, PaperworkCards, ProductPicker, FundingItemUploader, misc small buttons (Download/Ocr/Verify/etc.)
 - [ ] **6. Staff deal-detail** — staff/applications/[id]/page.tsx, EditDealForm, ReviewerEntryView, colocated cards (Cancellation/EmailDocs/FlagIssue/ReviewRequest/FundingStep/etc.)
 - [ ] **7. Resolutions subsystem** — resolutions/page, [id]/page, CaseContactCard, NewCaseForm, CaseControls, CaseEmailThread, LinkDealControl, CaseAttachments, WatchEmailsControl, HdReplyDrafter, inbox/new
 - [ ] **8. Reports** — LeadsReportView, GiftCardReportView, funding/accounting/custom/forecast/leads/sales-reps/weekly, voc, connection/*

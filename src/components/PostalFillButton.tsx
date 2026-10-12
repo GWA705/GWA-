@@ -2,6 +2,9 @@
 
 import { useRef, useState, useTransition } from 'react';
 import { fillMissingPostalsAction } from '@/app/(staff)/staff/leads/postalActions';
+import { useT } from '@/i18n/client';
+
+type TFn = ReturnType<typeof useT>;
 
 /**
  * "Fill missing postal codes" — looks up the postal for scanned leads that have
@@ -29,35 +32,30 @@ function googleMessage(raw: string): string | null {
 }
 
 // Turn Google's raw status into a one-line, actionable explanation for the admin.
-function explainFailure(raw: string): string {
+function explainFailure(t: TFn, raw: string): string {
   const r = raw || '';
   const g = googleMessage(r);
-  const exact = g ? ` — Google’s exact words: “${g}”` : '';
+  const exact = g ? t('dealParts.postalFill.fail.exactWords', { msg: g }) : '';
   if (/REQUEST_DENIED/i.test(r)) {
-    return 'Google rejected every request (REQUEST_DENIED). Usual causes: the ' +
-      '“Geocoding API” isn’t allowed on the key the SERVER uses (check the key’s API ' +
-      'restrictions), the server’s key belongs to a different Google Cloud project than ' +
-      'the one you enabled Geocoding on, or the change hasn’t propagated yet (give it up ' +
-      'to 5 minutes). Confirm the key the portal uses is the exact one you edited' + exact + '.';
+    return t('dealParts.postalFill.fail.requestDenied', { exact });
   }
   if (/OVER_QUERY_LIMIT|RESOURCE_EXHAUSTED/i.test(r)) {
-    return 'Google returned a quota/billing limit (OVER_QUERY_LIMIT). Check that ' +
-      'billing is enabled on the Google Cloud project and the daily cap isn’t exceeded, then retry' + exact + '.';
+    return t('dealParts.postalFill.fail.overQuery', { exact });
   }
   if (/INVALID_REQUEST/i.test(r)) {
-    return 'Google returned INVALID_REQUEST for the lookups — likely a malformed address' + exact + '.';
+    return t('dealParts.postalFill.fail.invalidRequest', { exact });
   }
   if (/geocode_http_/i.test(r)) {
-    return 'The request to Google failed at the network level (HTTP error). This is usually ' +
-      'transient — try again; if it persists the server may be blocked from reaching Google.';
+    return t('dealParts.postalFill.fail.httpError');
   }
   if (/no GOOGLE_MAPS_API_KEY|geocode_unavailable/i.test(r)) {
-    return 'No Google Maps API key is configured on the server (GOOGLE_MAPS_API_KEY).';
+    return t('dealParts.postalFill.fail.noKey');
   }
-  return `Google returned: ${r}`;
+  return t('dealParts.postalFill.fail.generic', { raw: r });
 }
 
 export function PostalFillButton() {
+  const t = useT();
   const [pending, startTransition] = useTransition();
   const [totals, setTotals] = useState<Totals | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -82,7 +80,7 @@ export function PostalFillButton() {
         if (r) {
           acc.processed += r.processed; acc.filled += r.filled; acc.blank += r.blank; acc.failed += r.failed;
           setTotals({ ...acc });
-          if (!firstReason && r.failReason) { firstReason = r.failReason; setReason(explainFailure(r.failReason)); }
+          if (!firstReason && r.failReason) { firstReason = r.failReason; setReason(explainFailure(t, r.failReason)); }
         }
         if (state.result?.done || stop.current) { setDone(true); return; }
         cursor = state.result?.lastId;
@@ -95,20 +93,19 @@ export function PostalFillButton() {
     <div className="rounded-lg border border-gray-200 bg-white p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="text-sm font-semibold text-gray-900">Fill missing postal codes</h3>
+          <h3 className="text-sm font-semibold text-gray-900">{t('dealParts.postalFill.title')}</h3>
           <p className="mt-0.5 text-xs text-gray-500">
-            Looks up the postal from each scanned lead’s address (confident street matches only — vague
-            addresses stay blank, never guessed). Run this before sending scans to booking.
+            {t('dealParts.postalFill.blurb')}
           </p>
         </div>
         <div className="flex items-center gap-2">
           {pending && (
             <button type="button" onClick={() => { stop.current = true; }} className="text-xs text-gray-500 hover:underline">
-              Stop
+              {t('dealParts.stop')}
             </button>
           )}
           <button type="button" onClick={run} className="btn-secondary text-xs" disabled={pending}>
-            {pending ? 'Looking up…' : 'Fill postal codes'}
+            {pending ? t('dealParts.postalFill.lookingUp') : t('dealParts.postalFill.fillBtn')}
           </button>
         </div>
       </div>
@@ -119,15 +116,15 @@ export function PostalFillButton() {
 
       {totals && !error && (
         <p className={`mt-3 rounded border-l-4 p-2 text-xs ${done ? 'border-green-500 bg-green-50 text-green-800' : 'border-blue-400 bg-blue-50 text-blue-800'}`}>
-          {done ? 'Done. ' : 'Looking up… '}
-          Checked {totals.processed}: <strong>{totals.filled}</strong> filled, {totals.blank} left blank (address too vague)
-          {totals.failed ? `, ${totals.failed} couldn’t be looked up` : ''}.
+          {done ? t('dealParts.doneStatus') : t('dealParts.postalFill.lookingUpStatus')}
+          {t('dealParts.postalFill.checkedPrefix', { n: totals.processed })}<strong>{totals.filled}</strong>{t('dealParts.postalFill.filledBlank', { blank: totals.blank })}
+          {totals.failed ? t('dealParts.postalFill.couldntLookUp', { n: totals.failed }) : ''}.
         </p>
       )}
 
       {reason && (
         <p className="mt-2 rounded border-l-4 border-red-500 bg-red-50 p-2 text-xs text-red-800">
-          <strong>Why the lookups failed:</strong> {reason}
+          <strong>{t('dealParts.postalFill.whyFailed')}</strong> {reason}
         </p>
       )}
     </div>

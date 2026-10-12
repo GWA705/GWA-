@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState, type ReactNode } from 'react';
+import { useT } from '@/i18n/client';
 
 /**
  * Client controls for the combined "All leads" view. It receives ready-made rows
@@ -23,15 +24,7 @@ export interface CombinedItem {
   node: ReactNode;
 }
 
-const STATUSES: { k: string; label: string }[] = [
-  { k: 'all', label: 'All' },
-  { k: 'new', label: 'New' },
-  { k: 'working', label: 'Working' },
-  { k: 'spoke', label: 'Spoke' },
-  { k: 'booked', label: 'Booked' },
-  { k: 'sold', label: 'Sold' },
-  { k: 'nogood', label: 'No good' },
-];
+const STATUS_KEYS = ['all', 'new', 'working', 'spoke', 'booked', 'sold', 'nogood'];
 
 function chipClass(active: boolean) {
   return `rounded-full px-3 py-1 text-xs font-medium transition ${
@@ -40,6 +33,8 @@ function chipClass(active: boolean) {
 }
 
 export function CombinedLeadsControls({ items }: { items: CombinedItem[] }) {
+  const t = useT();
+  const statusLabel = (k: string) => (k === 'all' ? t('common.all') : t(`leadUi.status.${k}`));
   const [q, setQ] = useState('');
   const [source, setSource] = useState<'all' | Kind>('all');
   const [status, setStatus] = useState('all');
@@ -81,33 +76,33 @@ export function CombinedLeadsControls({ items }: { items: CombinedItem[] }) {
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Search name, phone, store, city…"
+          placeholder={t('leadUi.search.placeholderFull')}
           className="input min-w-[220px] flex-1"
           aria-label="Search leads"
         />
         <select value={sort} onChange={(e) => setSort(e.target.value as SortKey)} className="input w-auto text-sm" aria-label="Sort">
-          <option value="newest">Newest first</option>
-          <option value="oldest">Oldest first</option>
-          <option value="name">Name A–Z</option>
-          <option value="store">By store</option>
+          <option value="newest">{t('leadUi.sort.newest')}</option>
+          <option value="oldest">{t('leadUi.sort.oldest')}</option>
+          <option value="name">{t('leadUi.sort.nameAz')}</option>
+          <option value="store">{t('leadUi.sort.byStore')}</option>
         </select>
       </div>
 
       <div className="flex flex-wrap items-center gap-1.5">
-        <button type="button" onClick={() => setSource('all')} className={chipClass(source === 'all')}>All ({items.length})</button>
-        <button type="button" onClick={() => setSource('mailin')} className={chipClass(source === 'mailin')}>Mail in ({mailinCount})</button>
-        <button type="button" onClick={() => setSource('store')} className={chipClass(source === 'store')}>Store ({storeCount})</button>
+        <button type="button" onClick={() => setSource('all')} className={chipClass(source === 'all')}>{t('common.all')} ({items.length})</button>
+        <button type="button" onClick={() => setSource('mailin')} className={chipClass(source === 'mailin')}>{t('leadUi.source.mailIn', { count: mailinCount })}</button>
+        <button type="button" onClick={() => setSource('store')} className={chipClass(source === 'store')}>{t('leadUi.source.store', { count: storeCount })}</button>
         <span className="mx-1 h-4 w-px bg-gray-200" aria-hidden />
-        {STATUSES.map((d) => (
-          <button key={d.k} type="button" onClick={() => setStatus(d.k)} className={chipClass(status === d.k)}>
-            {d.label}{d.k !== 'all' && statusCounts[d.k] ? ` ${statusCounts[d.k]}` : ''}
+        {STATUS_KEYS.map((k) => (
+          <button key={k} type="button" onClick={() => setStatus(k)} className={chipClass(status === k)}>
+            {statusLabel(k)}{k !== 'all' && statusCounts[k] ? ` ${statusCounts[k]}` : ''}
           </button>
         ))}
       </div>
 
       {visible.length === 0 ? (
         <div className="card p-8 text-center text-sm text-gray-500">
-          {items.length === 0 ? 'No leads for this view yet.' : 'No leads match your search or filters.'}
+          {items.length === 0 ? t('leadUi.empty.noneView') : t('leadUi.empty.noMatch')}
         </div>
       ) : (
         <div className="space-y-2">

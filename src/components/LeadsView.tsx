@@ -449,7 +449,7 @@ export function LeadsView({
             {viewLink('list', t('leads.viewList'))}
             {viewLink('grouped', t('leads.viewGrouped'))}
             {viewLink('map', t('leads.viewMap'))}
-            {viewLink('all', 'All leads')}
+            {viewLink('all', t('leadUi.view.allLeads'))}
           </div>
           <LeadsSelect
             paramName="outcome"

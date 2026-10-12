@@ -1,5 +1,6 @@
 import { requireDealerAccess } from '@/lib/session';
 import { prisma } from '@/lib/db';
+import { getT } from '@/i18n/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,6 +13,7 @@ function fmtDuration(min: number): string {
 }
 
 export default async function DealerRecordingsPage() {
+  const t = getT();
   await requireDealerAccess();
   const recordings = await prisma.zoomRecording.findMany({
     where: { status: 'PUBLISHED' },
@@ -22,14 +24,14 @@ export default async function DealerRecordingsPage() {
   return (
     <div className="max-w-3xl space-y-4">
       <div>
-        <h1 className="text-xl font-semibold text-gray-900 dark:text-slate-100">Recordings</h1>
+        <h1 className="text-xl font-semibold text-gray-900 dark:text-slate-100">{t('rec.title')}</h1>
         <p className="mt-0.5 text-sm text-gray-500 dark:text-slate-400">
-          Meeting recordings from the Georgian Water &amp; Air team — watch or download any time.
+          {t('rec.subtitle')}
         </p>
       </div>
 
       {recordings.length === 0 ? (
-        <div className="card p-8 text-center text-sm text-gray-500 dark:text-slate-400">No recordings posted yet.</div>
+        <div className="card p-8 text-center text-sm text-gray-500 dark:text-slate-400">{t('rec.empty')}</div>
       ) : (
         <ul className="space-y-3">
           {recordings.map((r) => (
@@ -51,12 +53,12 @@ export default async function DealerRecordingsPage() {
                   rel="noopener noreferrer"
                   className="btn-primary shrink-0 text-sm"
                 >
-                  ▶ Watch / Download
+                  ▶ {t('rec.watchDownload')}
                 </a>
               </div>
               {r.passcode && (
                 <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-gray-100 pt-3 text-sm dark:border-slate-700">
-                  <span className="text-gray-500 dark:text-slate-400">Passcode:</span>
+                  <span className="text-gray-500 dark:text-slate-400">{t('rec.passcode')}</span>
                   <code className="select-all rounded bg-gray-100 px-2 py-0.5 font-mono text-gray-800 dark:bg-slate-700 dark:text-slate-100">{r.passcode}</code>
                 </div>
               )}

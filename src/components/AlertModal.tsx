@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { acknowledgeAlertAction } from '@/app/(account)/actions';
+import { useT } from '@/i18n/client';
 
 export type DealerAlertItem = {
   id: string;
@@ -18,6 +19,7 @@ export type DealerAlertItem = {
  * dismissal — the only way to close is to acknowledge.
  */
 export function AlertModal({ alerts }: { alerts: DealerAlertItem[] }) {
+  const t = useT();
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const [, startTransition] = useTransition();
 
@@ -76,19 +78,19 @@ export function AlertModal({ alerts }: { alerts: DealerAlertItem[] }) {
               rel="noopener noreferrer"
               className="mt-3 inline-block text-sm font-medium text-brand-700 hover:underline"
             >
-              Open link ↗
+              {t('dealParts.alert.openLink')}
             </a>
           )}
           <div className="mt-6 flex items-center justify-between">
             {remaining.length > 1 ? (
               <span className="text-xs text-gray-400">
-                {remaining.length} messages — 1 shown at a time
+                {t('dealParts.alert.messagesShownOneAtATime', { n: remaining.length })}
               </span>
             ) : (
               <span />
             )}
             <button type="button" onClick={acknowledge} className="btn-primary">
-              I’ve read this
+              {t('dealParts.alert.readThis')}
             </button>
           </div>
         </div>

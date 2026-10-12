@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import { useT } from '@/i18n/client';
 
 /**
  * Small "Delete" affordance on a document row, for reviewers/admins to remove a
@@ -17,6 +18,7 @@ export function DeleteDocumentButton({
   fileName: string;
   action: (id: string) => Promise<{ error?: string }>;
 }) {
+  const t = useT();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
@@ -35,14 +37,14 @@ export function DeleteDocumentButton({
   if (confirming) {
     return (
       <span className="inline-flex flex-none items-center gap-2">
-        <span className="text-xs text-gray-600">Delete this file?</span>
+        <span className="text-xs text-gray-600">{t('dealParts.deleteDoc.confirmQuestion')}</span>
         <button
           type="button"
           onClick={doDelete}
           disabled={pending}
           className="rounded-md bg-red-600 px-2 py-0.5 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50"
         >
-          {pending ? 'Deleting…' : 'Yes, delete'}
+          {pending ? t('common.deleting') : t('dealParts.deleteDoc.yesDelete')}
         </button>
         <button
           type="button"
@@ -50,7 +52,7 @@ export function DeleteDocumentButton({
           disabled={pending}
           className="rounded-md px-2 py-0.5 text-xs font-medium text-gray-500 hover:bg-gray-100"
         >
-          Cancel
+          {t('common.cancel')}
         </button>
       </span>
     );
@@ -63,9 +65,9 @@ export function DeleteDocumentButton({
         type="button"
         onClick={() => setConfirming(true)}
         className="text-xs font-medium text-gray-400 hover:text-red-600"
-        title={`Delete ${fileName}`}
+        title={t('dealParts.deleteDoc.deleteTitle', { name: fileName })}
       >
-        Delete
+        {t('common.delete')}
       </button>
     </span>
   );

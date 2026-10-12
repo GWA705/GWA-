@@ -19,30 +19,8 @@ import { ScanCardsPanel } from './ScanCardsPanel';
 
 const PAGE_SIZE = 20;
 
-const GROUPS: { k: string; label: string }[] = [
-  { k: 'new', label: 'New' },
-  { k: 'working', label: 'Working' },
-  { k: 'spoke', label: 'Spoke' },
-  { k: 'booked', label: 'Booked' },
-  { k: 'sold', label: 'Sold' },
-  { k: 'nogood', label: 'No good' },
-];
+const GROUP_KEYS = ['new', 'working', 'spoke', 'booked', 'sold', 'nogood'];
 const GROUP_ORDER = ['new', 'working', 'spoke', 'booked', 'sold', 'nogood'];
-
-const SORT_OPTIONS = [
-  { value: 'old', label: 'Oldest first' },
-  { value: 'name', label: 'Name A–Z' },
-  { value: 'store', label: 'Store #' },
-  { value: 'status', label: 'Status' },
-  { value: 'type', label: 'Lead type' },
-];
-
-const MAILIN_TAG = (
-  <span className="shrink-0 rounded bg-violet-100 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-violet-700">Mail-In</span>
-);
-const STORE_TAG = (
-  <span className="shrink-0 rounded bg-brand-50 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-brand-700">Store</span>
-);
 
 interface UnifiedRow {
   type: 'mailin' | 'store';
@@ -88,6 +66,20 @@ export function AllLeadsView({
   canScan?: boolean;
 }) {
   const t = getT();
+  const statusLabel = (k: string) => (k === 'all' ? t('common.all') : t(`leadUi.status.${k}`));
+  const sortOptions = [
+    { value: 'old', label: t('leadUi.sort.oldest') },
+    { value: 'name', label: t('leadUi.sort.nameAz') },
+    { value: 'store', label: t('leadUi.sort.storeNum') },
+    { value: 'status', label: t('leadUi.sort.status') },
+    { value: 'type', label: t('leadUi.sort.leadType') },
+  ];
+  const mailInTag = (
+    <span className="shrink-0 rounded bg-violet-100 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-violet-700">{t('leadUi.tag.mailIn')}</span>
+  );
+  const storeTag = (
+    <span className="shrink-0 rounded bg-brand-50 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-brand-700">{t('leadUi.tag.store')}</span>
+  );
 
   const rows: UnifiedRow[] = [];
   for (const l of mailin) {
@@ -129,7 +121,7 @@ export function AllLeadsView({
 
   // status-group counts over the q-filtered set
   const counts: Record<string, number> = { all: qFiltered.length };
-  for (const g of GROUPS) counts[g.k] = 0;
+  for (const k of GROUP_KEYS) counts[k] = 0;
   for (const r of qFiltered) counts[r.group] = (counts[r.group] ?? 0) + 1;
 
   const filtered = group && group !== 'all' ? qFiltered.filter((r) => r.group === group) : qFiltered;
@@ -171,17 +163,17 @@ export function AllLeadsView({
       <div className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <form method="GET" className="flex flex-1 gap-2">
-            <input name="q" defaultValue={q} placeholder="Search name, phone, store, city…" aria-label="Search all leads" className="input flex-1" />
+            <input name="q" defaultValue={q} placeholder={t('leadUi.search.placeholderFull')} aria-label="Search all leads" className="input flex-1" />
             {group && <input type="hidden" name="g" value={group} />}
             {sort && <input type="hidden" name="sort" value={sort} />}
             {extraHidden.map((h) => (h.value ? <input key={h.name} type="hidden" name={h.name} value={h.value} /> : null))}
-            <button type="submit" className="btn-primary">Search</button>
+            <button type="submit" className="btn-primary">{t('common.search')}</button>
           </form>
           <LeadsSelect
             paramName="sort"
             value={sort}
-            options={SORT_OPTIONS}
-            allLabel="Newest first"
+            options={sortOptions}
+            allLabel={t('leadUi.sort.newest')}
             ariaLabel="Sort leads"
             basePath={basePath}
             params={[{ name: 'q', value: q }, { name: 'g', value: group }, ...extraHidden]}
@@ -196,19 +188,19 @@ export function AllLeadsView({
 
         {/* status filter chips */}
         <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1">
-          {[{ k: 'all', label: 'All' }, ...GROUPS].map((g) => {
-            const n = counts[g.k] ?? 0;
-            if (g.k !== 'all' && n === 0) return null;
-            const active = (group || 'all') === g.k;
+          {['all', ...GROUP_KEYS].map((k) => {
+            const n = counts[k] ?? 0;
+            if (k !== 'all' && n === 0) return null;
+            const active = (group || 'all') === k;
             return (
               <Link
-                key={g.k}
-                href={buildHref({ g: g.k === 'all' ? '' : g.k, page: '' })}
+                key={k}
+                href={buildHref({ g: k === 'all' ? '' : k, page: '' })}
                 className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold transition ${
                   active ? 'border-slate-800 bg-slate-800 text-white' : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
                 }`}
               >
-                {g.label}
+                {statusLabel(k)}
                 <span className={`tabular-nums ${active ? 'text-gray-300' : 'text-gray-400'}`}>{n}</span>
               </Link>
             );
@@ -219,36 +211,36 @@ export function AllLeadsView({
       {/* List */}
       {filtered.length === 0 ? (
         <p className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-5 text-center text-sm text-gray-500">
-          {rows.length === 0 ? 'No leads yet.' : 'No leads match your search or filter.'}
+          {rows.length === 0 ? t('leadUi.empty.none') : t('leadUi.empty.noMatchFilter')}
         </p>
       ) : (
         <>
           <div className="space-y-2">
             {pageItems.map((r) =>
               r.type === 'mailin' && r.mailin ? (
-                <ScannedLeadRowItem key={`m_${r.id}`} lead={r.mailin} calls={r.calls} showOffice={showOffice} typeTag={MAILIN_TAG} />
+                <ScannedLeadRowItem key={`m_${r.id}`} lead={r.mailin} calls={r.calls} showOffice={showOffice} typeTag={mailInTag} />
               ) : r.store_ ? (
-                <StoreLeadRow key={`s_${r.id}`} l={r.store_} calls={r.calls} storeNames={storeNames} isStaff={isStaff} t={t} typeTag={STORE_TAG} />
+                <StoreLeadRow key={`s_${r.id}`} l={r.store_} calls={r.calls} storeNames={storeNames} isStaff={isStaff} t={t} typeTag={storeTag} />
               ) : null,
             )}
           </div>
 
           <div className="flex items-center justify-between text-sm text-gray-500">
             <span className="tabular-nums">
-              Showing {start + 1}–{Math.min(start + PAGE_SIZE, filtered.length)} of {filtered.length}
+              {t('leadUi.paging.showingRange', { from: start + 1, to: Math.min(start + PAGE_SIZE, filtered.length), total: filtered.length })}
             </span>
             {totalPages > 1 && (
               <div className="flex items-center gap-2">
                 {current > 1 ? (
-                  <Link href={buildHref({ page: String(current - 1) })} className="btn-secondary text-xs">Prev</Link>
+                  <Link href={buildHref({ page: String(current - 1) })} className="btn-secondary text-xs">{t('common.prev')}</Link>
                 ) : (
-                  <span className="btn-secondary pointer-events-none text-xs opacity-40">Prev</span>
+                  <span className="btn-secondary pointer-events-none text-xs opacity-40">{t('common.prev')}</span>
                 )}
                 <span className="text-xs tabular-nums">{current} / {totalPages}</span>
                 {current < totalPages ? (
-                  <Link href={buildHref({ page: String(current + 1) })} className="btn-secondary text-xs">Next</Link>
+                  <Link href={buildHref({ page: String(current + 1) })} className="btn-secondary text-xs">{t('common.next')}</Link>
                 ) : (
-                  <span className="btn-secondary pointer-events-none text-xs opacity-40">Next</span>
+                  <span className="btn-secondary pointer-events-none text-xs opacity-40">{t('common.next')}</span>
                 )}
               </div>
             )}

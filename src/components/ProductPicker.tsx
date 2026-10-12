@@ -160,7 +160,7 @@ export function ProductPicker({
           </p>
         )}
       </div>
-      <p className="mt-1 text-xs text-gray-400">Tap a product to add it · use − / + to set how many</p>
+      <p className="mt-1 text-xs text-gray-400">{t('dealParts.productPicker.tapHint')}</p>
       <div className="mt-2">
         <label className="flex flex-col gap-1 rounded-lg border border-dashed border-gray-300 px-3 py-2 text-sm">
           <span className="font-medium text-gray-700">{t('productPicker.otherLabel')}</span>

@@ -2,6 +2,7 @@
 
 import { useOptimistic, useTransition } from 'react';
 import { toggleDocumentVerifiedAction } from '@/app/(staff)/actions';
+import { useT } from '@/i18n/client';
 
 /**
  * "Mark completed" toggle for a funding document. Flips to its new state
@@ -10,6 +11,7 @@ import { toggleDocumentVerifiedAction } from '@/app/(staff)/actions';
  * The optimistic value resets to the server's once revalidation lands.
  */
 export function VerifyDocButton({ documentId, done }: { documentId: string; done: boolean }) {
+  const t = useT();
   const [optimisticDone, setOptimisticDone] = useOptimistic(done, (_prev, next: boolean) => next);
   const [, startTransition] = useTransition();
 
@@ -29,12 +31,12 @@ export function VerifyDocButton({ documentId, done }: { documentId: string; done
           ? 'bg-green-50 text-green-700 ring-green-200 hover:bg-green-100'
           : 'bg-white text-gray-600 ring-gray-300 hover:bg-gray-50'
       }`}
-      title={optimisticDone ? 'Mark as not completed' : 'View, then mark completed'}
+      title={optimisticDone ? t('dealParts.verifyDoc.markNotCompleted') : t('dealParts.verifyDoc.viewThenMark')}
     >
       <span className={`flex h-4 w-4 items-center justify-center rounded border ${optimisticDone ? 'border-green-600 bg-green-600 text-white' : 'border-gray-400'}`}>
         {optimisticDone ? '✓' : ''}
       </span>
-      {optimisticDone ? 'Completed' : 'Mark completed'}
+      {optimisticDone ? t('dealParts.verifyDoc.completed') : t('dealParts.verifyDoc.markCompleted')}
     </button>
   );
 }

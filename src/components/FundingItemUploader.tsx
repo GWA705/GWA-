@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { compressFiles } from '@/lib/clientImageCompress';
+import { useT } from '@/i18n/client';
 
 interface UploadState {
   error?: string;
@@ -25,6 +26,7 @@ export function FundingItemUploader({
   category: string;
   isOther?: boolean;
 }) {
+  const t = useT();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [customLabel, setCustomLabel] = useState('');
@@ -38,7 +40,7 @@ export function FundingItemUploader({
   function upload(list: FileList | null) {
     if (!list || list.length === 0) return;
     if (nameNeeded) {
-      setError('Name this document first.');
+      setError(t('dealParts.uploader.nameFirst'));
       return;
     }
     setError(null);
@@ -66,7 +68,7 @@ export function FundingItemUploader({
       {isOther && (
         <input
           className="input mb-2 py-1.5 text-sm"
-          placeholder="Name this document (e.g. Warranty)"
+          placeholder={t('dealParts.uploader.namePlaceholder')}
           value={customLabel}
           maxLength={40}
           onChange={(e) => setCustomLabel(e.target.value)}
@@ -94,7 +96,7 @@ export function FundingItemUploader({
           <path d="m8 17 4-4 4 4" />
           <path d="M20 16.6A5 5 0 0 0 18 7h-1.3A8 8 0 1 0 4 15.2" />
         </svg>
-        <span><span className="font-medium text-gray-700">Drag &amp; drop</span> a file here, or <span className="font-medium text-brand-700">choose a file</span></span>
+        <span><span className="font-medium text-gray-700">{t('dealParts.uploader.dragDrop')}</span>{t('dealParts.uploader.dropMiddle')}<span className="font-medium text-brand-700">{t('dealParts.uploader.chooseFile')}</span></span>
       </div>
 
       {/* Mobile: slim capture buttons. */}
@@ -105,7 +107,7 @@ export function FundingItemUploader({
           onClick={() => camRef.current?.click()}
           disabled={pending || nameNeeded}
         >
-          📷 Take photo
+          {t('dealParts.uploader.takePhoto')}
         </button>
         <button
           type="button"
@@ -113,10 +115,10 @@ export function FundingItemUploader({
           onClick={() => fileRef.current?.click()}
           disabled={pending || nameNeeded}
         >
-          📎 Choose files
+          {t('dealParts.uploader.chooseFiles')}
         </button>
       </div>
-      {pending && <p className="mt-1.5 text-xs text-brand-700">Uploading…</p>}
+      {pending && <p className="mt-1.5 text-xs text-brand-700">{t('common.uploading')}</p>}
       {error && <p className="mt-1.5 text-xs text-red-600">{error}</p>}
 
       <input

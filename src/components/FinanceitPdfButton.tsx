@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { FileDown, Loader2, AlertTriangle } from 'lucide-react';
 import { fillFinanceitPdf, type BorrowerFields } from '@/lib/financeit/fill';
+import { useT } from '@/i18n/client';
 
 /**
  * Generate a pre-filled Financeit loan-application PDF from the current form
@@ -74,6 +75,7 @@ function readCo(): BorrowerFields {
 }
 
 export function FinanceitPdfButton({ className = '' }: { className?: string }) {
+  const t = useT();
   const [status, setStatus] = useState<'idle' | 'working' | 'error'>('idle');
 
   async function generate() {
@@ -117,11 +119,11 @@ export function FinanceitPdfButton({ className = '' }: { className?: string }) {
         className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50 disabled:opacity-60"
       >
         {status === 'working' ? <Loader2 size={16} className="animate-spin" /> : <FileDown size={16} />}
-        {status === 'working' ? 'Building PDF…' : 'Download Financeit PDF'}
+        {status === 'working' ? t('dealParts.financeitPdf.building') : t('dealParts.financeitPdf.download')}
       </button>
       {status === 'error' && (
         <p className="mt-1 flex items-center gap-1 text-xs text-amber-700">
-          <AlertTriangle size={13} /> Enter at least the applicant’s name first, then try again.
+          <AlertTriangle size={13} /> {t('dealParts.financeitPdf.needName')}
         </p>
       )}
     </div>

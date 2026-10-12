@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useT } from '@/i18n/client';
 
 /**
  * Downloads a file WITHOUT navigating the app to it. A plain <a href> (even with
@@ -25,6 +26,7 @@ export function DownloadButton({
   title?: string;
   children?: React.ReactNode;
 }) {
+  const t = useT();
   const [busy, setBusy] = useState(false);
 
   async function handle() {
@@ -68,7 +70,7 @@ export function DownloadButton({
 
   return (
     <button type="button" onClick={handle} disabled={busy} className={className} title={title}>
-      {busy ? 'Downloading…' : (children ?? 'Download')}
+      {busy ? t('common.downloading') : (children ?? t('common.download'))}
     </button>
   );
 }

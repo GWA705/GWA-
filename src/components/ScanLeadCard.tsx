@@ -2,6 +2,7 @@
 
 import { useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { useT } from '@/i18n/client';
 import { createScannedLeadAction } from '@/app/(dealer)/dealer/leads/scanActions';
 
 // Mirrors leadScanner.ts CardExtraction (kept local — no server import), plus the
@@ -50,6 +51,13 @@ const EMPTY_FIELDS: Fields = {
 };
 
 const CONDITION_OPTS = ['Taste', 'Odors', 'Scale build up', 'Stains'];
+// Stored condition value → translation key (the value itself is sent to the server).
+const CONDITION_KEY: Record<string, string> = {
+  Taste: 'leadUi.condition.taste',
+  Odors: 'leadUi.condition.odors',
+  'Scale build up': 'leadUi.condition.scaleBuildUp',
+  Stains: 'leadUi.condition.stains',
+};
 const boolToStr = (b: boolean | null) => (b === true ? 'true' : b === false ? 'false' : '');
 
 function emptyCard(photoIndex: number): CardForm {
@@ -71,6 +79,7 @@ function cardFromExtraction(d: CardExtraction): CardForm {
 }
 
 export function ScanLeadCard({ onSaved }: { onSaved?: () => void }) {
+  const t = useT();
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const [previews, setPreviews] = useState<string[]>([]);
@@ -105,7 +114,7 @@ export function ScanLeadCard({ onSaved }: { onSaved?: () => void }) {
 
   async function scan() {
     const files = Array.from(fileRef.current?.files ?? []);
-    if (files.length === 0) { setScanError('Choose a photo of the card first.'); return; }
+    if (files.length === 0) { setScanError(t('leadUi.scan.choosePhotoFirst')); return; }
     const fd = new FormData();
     for (const f of files) fd.append('cardImage', f);
     setScanning(true);
@@ -123,12 +132,12 @@ export function ScanLeadCard({ onSaved }: { onSaved?: () => void }) {
         // Nothing read — drop in one blank card (with the first photo attached) to type by hand.
         setCards([emptyCard(0)]);
         setOpenIdx(new Set([0]));
-        setScanError(json.error ?? 'No card details could be read — please type it in.');
+        setScanError(json.error ?? t('leadUi.scan.noneRead'));
       }
     } catch {
       setCards([emptyCard(0)]);
       setOpenIdx(new Set([0]));
-      setScanError('Could not reach the card reader. Type the card in instead.');
+      setScanError(t('leadUi.scan.readerUnreachable'));
     } finally {
       setScanning(false);
     }
@@ -146,7 +155,7 @@ export function ScanLeadCard({ onSaved }: { onSaved?: () => void }) {
     if (pending.length === 0) return;
     // Every card needs at least a name or phone.
     if (pending.some((c) => !c.customerName.trim() && !c.phone.trim())) {
-      setSaveMsg({ text: 'Each card needs at least a name or a phone number — fill or remove the empty ones.' });
+      setSaveMsg({ text: t('leadUi.scan.needNameOrPhoneAll') });
       return;
     }
     setSaveMsg(null);
@@ -171,18 +180,18 @@ export function ScanLeadCard({ onSaved }: { onSaved?: () => void }) {
         if (photo) fd.append('photo', photo);
         const r = await createScannedLeadAction({}, fd);
         if (r.ok) { next[i] = { ...c, saved: true, error: null }; ok++; }
-        else { next[i] = { ...c, error: r.error ?? 'Could not save.' }; }
+        else { next[i] = { ...c, error: r.error ?? t('leadUi.scan.couldNotSave') }; }
       }
       setCards(next);
       const total = next.length;
       if (ok === total) {
-        setSaveMsg({ ok: true, text: `Saved ${ok} lead${ok === 1 ? '' : 's'}.` });
+        setSaveMsg({ ok: true, text: ok === 1 ? t('leadUi.scan.savedOne', { count: ok }) : t('leadUi.scan.savedMany', { count: ok }) });
         router.refresh();
         onSaved?.();
         // Clear the workspace shortly after a clean save.
         setTimeout(resetAll, 1200);
       } else {
-        setSaveMsg({ text: `Saved ${ok} of ${total}. Check the cards marked in red and try again.` });
+        setSaveMsg({ text: t('leadUi.scan.savedPartial', { ok, total }) });
         router.refresh();
         onSaved?.();
       }
@@ -195,7 +204,7 @@ export function ScanLeadCard({ onSaved }: { onSaved?: () => void }) {
     return (
       <div className={opts?.wide ? 'sm:col-span-2' : ''}>
         <label className={label} htmlFor={`sl_${idx}_${k}`}>
-          {name}{uncertain && <span className="ml-1 rounded bg-amber-100 px-1 text-[10px] font-bold text-amber-800">check</span>}
+          {name}{uncertain && <span className="ml-1 rounded bg-amber-100 px-1 text-[10px] font-bold text-amber-800">{t('leadUi.scan.check')}</span>}
         </label>
         <input id={`sl_${idx}_${k}`} value={cards[idx][k] as string} onChange={(e) => setField(idx, k, e.target.value as Fields[typeof k])}
           className={`input ${uncertain ? 'ring-2 ring-amber-300' : ''}`} />
@@ -209,16 +218,15 @@ export function ScanLeadCard({ onSaved }: { onSaved?: () => void }) {
   return (
     <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
       <div className="mb-1 flex items-center justify-between gap-2">
-        <div className="text-base font-bold text-[#0d2a63]">Add HD Mail In Test</div>
+        <div className="text-base font-bold text-[#0d2a63]">{t('leadUi.scan.addTitle')}</div>
         {(hasCards || previews.length > 0) && (
           <button type="button" onClick={resetAll} className="rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-semibold text-gray-600 hover:bg-gray-50">
-            ← Start over
+            ← {t('leadUi.scan.startOver')}
           </button>
         )}
       </div>
       <p className="mb-3 text-xs text-gray-500">
-        Snap a photo — or upload one from your files — of the Home Depot water-test cards and the scanner reads them for you, then check and save.
-        You can photograph <strong>several cards at once</strong> (side by side, or one photo per card) and each becomes its own lead.
+        {t('leadUi.scan.help1')}<strong>{t('leadUi.scan.helpStrong')}</strong>{t('leadUi.scan.help2')}
       </p>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -227,11 +235,11 @@ export function ScanLeadCard({ onSaved }: { onSaved?: () => void }) {
         <input ref={fileRef} name="cardImage" type="file" accept="image/*" multiple onChange={onPick} className="text-sm" />
         <button type="button" onClick={scan} disabled={scanning}
           className="rounded-lg bg-brand-600 px-3.5 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60">
-          {scanning ? 'Reading…' : previews.length > 1 ? `Read ${previews.length} photos` : 'Read the cards'}
+          {scanning ? t('leadUi.scan.reading') : previews.length > 1 ? t('leadUi.scan.readN', { count: previews.length }) : t('leadUi.scan.readCards')}
         </button>
         {!hasCards && (
           <button type="button" onClick={addBlankCard} className="text-sm text-gray-500 hover:underline">
-            or enter by hand
+            {t('leadUi.scan.enterByHand')}
           </button>
         )}
       </div>
@@ -240,7 +248,7 @@ export function ScanLeadCard({ onSaved }: { onSaved?: () => void }) {
         <div className="mt-3 flex flex-wrap gap-2">
           {previews.map((src, i) => (
             // eslint-disable-next-line @next/next/no-img-element
-            <img key={i} src={src} alt={`Photo ${i + 1}`} className="h-20 w-20 rounded-lg border border-gray-200 object-cover" />
+            <img key={i} src={src} alt={t('leadUi.scan.photoAlt', { n: i + 1 })} className="h-20 w-20 rounded-lg border border-gray-200 object-cover" />
           ))}
         </div>
       )}
@@ -250,7 +258,7 @@ export function ScanLeadCard({ onSaved }: { onSaved?: () => void }) {
       )}
       {hasCards && cards.length > 1 && (
         <p className="mt-3 rounded-md bg-green-50 px-3 py-2 text-sm text-green-800">
-          Found {cards.length} cards. Check each one and save them all.
+          {t('leadUi.scan.foundN', { count: cards.length })}
         </p>
       )}
 
@@ -258,7 +266,7 @@ export function ScanLeadCard({ onSaved }: { onSaved?: () => void }) {
         <div className="mt-4 space-y-3">
           {cards.map((c, idx) => {
             const open = openIdx.has(idx);
-            const title = c.customerName.trim() || c.phone.trim() || 'Untitled card';
+            const title = c.customerName.trim() || c.phone.trim() || t('leadUi.scan.untitledCard');
             return (
               <div key={idx} className={`rounded-xl border ${c.saved ? 'border-green-300 bg-green-50/40' : c.error ? 'border-red-300' : 'border-gray-200'}`}>
                 <div className="flex items-center gap-2 px-3 py-2.5">
@@ -267,10 +275,10 @@ export function ScanLeadCard({ onSaved }: { onSaved?: () => void }) {
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-semibold text-gray-900">{title}</span>
                       <span className="block truncate text-xs text-gray-500">
-                        {[c.phone, c.city, c.storeNumber && `Store ${c.storeNumber}`].filter(Boolean).join(' · ') || 'No details yet'}
+                        {[c.phone, c.city, c.storeNumber && t('leadUi.lead.storeNum', { n: c.storeNumber })].filter(Boolean).join(' · ') || t('leadUi.scan.noDetailsYet')}
                       </span>
                     </span>
-                    {c.saved && <span className="flex-none rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-bold text-green-700">Saved</span>}
+                    {c.saved && <span className="flex-none rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-bold text-green-700">{t('common.saved')}</span>}
                     {!c.saved && c.confidence != null && <span className="flex-none rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-600">{c.confidence}%</span>}
                     <svg className={`h-4 w-4 flex-none text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 8l4 4 4-4" /></svg>
                   </button>
@@ -283,72 +291,72 @@ export function ScanLeadCard({ onSaved }: { onSaved?: () => void }) {
 
                 {open && !c.saved && (
                   <div className="grid grid-cols-1 gap-3 border-t border-gray-100 p-3 sm:grid-cols-2">
-                    {field(idx, 'customerName', 'Customer name')}
-                    {field(idx, 'phone', 'Phone')}
-                    {field(idx, 'address', 'Address', { wide: true })}
-                    {field(idx, 'city', 'City')}
-                    {field(idx, 'postalCode', 'Postal code')}
-                    {field(idx, 'occupation', 'Occupation')}
-                    {field(idx, 'bestTimeToContact', 'Best time to contact')}
-                    {field(idx, 'householdSize', 'People in household')}
-                    {field(idx, 'storeNumber', 'Store #')}
-                    {field(idx, 'collectedOn', 'Date collected')}
-                    {field(idx, 'spouseName', 'Spouse name')}
-                    {field(idx, 'spousePhone', 'Spouse phone')}
-                    {field(idx, 'generatorName', 'Collected by (rep)')}
+                    {field(idx, 'customerName', t('leadUi.field.customerName'))}
+                    {field(idx, 'phone', t('leadUi.field.phone'))}
+                    {field(idx, 'address', t('leadUi.field.address'), { wide: true })}
+                    {field(idx, 'city', t('leadUi.field.city'))}
+                    {field(idx, 'postalCode', t('leadUi.field.postalCode'))}
+                    {field(idx, 'occupation', t('leadUi.field.occupation'))}
+                    {field(idx, 'bestTimeToContact', t('leadUi.field.bestTimeToContact'))}
+                    {field(idx, 'householdSize', t('leadUi.field.householdSize'))}
+                    {field(idx, 'storeNumber', t('leadUi.field.storeNumber'))}
+                    {field(idx, 'collectedOn', t('leadUi.field.collectedOn'))}
+                    {field(idx, 'spouseName', t('leadUi.field.spouseName'))}
+                    {field(idx, 'spousePhone', t('leadUi.field.spousePhone'))}
+                    {field(idx, 'generatorName', t('leadUi.field.generatorName'))}
 
                     <div>
-                      <label className={label} htmlFor={`sl_${idx}_ownsHome`}>Owns home</label>
+                      <label className={label} htmlFor={`sl_${idx}_ownsHome`}>{t('leadUi.field.ownsHome')}</label>
                       <select id={`sl_${idx}_ownsHome`} value={c.ownsHome} onChange={(e) => setField(idx, 'ownsHome', e.target.value)} className="input">
-                        <option value="UNKNOWN">Unknown</option><option value="OWN">Owns</option><option value="RENT">Rents</option><option value="WITH_PARENTS">With parents</option>
+                        <option value="UNKNOWN">{t('leadUi.ownsHome.unknown')}</option><option value="OWN">{t('leadUi.ownsHome.owns')}</option><option value="RENT">{t('leadUi.ownsHome.rents')}</option><option value="WITH_PARENTS">{t('leadUi.ownsHome.withParents')}</option>
                       </select>
                     </div>
                     <div>
-                      <label className={label} htmlFor={`sl_${idx}_waterSource`}>Water source</label>
+                      <label className={label} htmlFor={`sl_${idx}_waterSource`}>{t('leadUi.field.waterSource')}</label>
                       <select id={`sl_${idx}_waterSource`} value={c.waterSource} onChange={(e) => setField(idx, 'waterSource', e.target.value)} className="input">
-                        <option value="">—</option><option>City</option><option>Well</option><option>Community Well</option><option>Other</option>
+                        <option value="">—</option><option value="City">{t('leadUi.waterSource.city')}</option><option value="Well">{t('leadUi.waterSource.well')}</option><option value="Community Well">{t('leadUi.waterSource.communityWell')}</option><option value="Other">{t('leadUi.waterSource.other')}</option>
                       </select>
                     </div>
                     <div>
-                      <label className={label} htmlFor={`sl_${idx}_waterQuality`}>Water quality</label>
+                      <label className={label} htmlFor={`sl_${idx}_waterQuality`}>{t('leadUi.field.waterQuality')}</label>
                       <select id={`sl_${idx}_waterQuality`} value={c.waterQuality} onChange={(e) => setField(idx, 'waterQuality', e.target.value)} className="input">
-                        <option value="">—</option><option>Excellent</option><option>Good</option><option>Fair</option><option>Poor</option>
+                        <option value="">—</option><option value="Excellent">{t('leadUi.waterQuality.excellent')}</option><option value="Good">{t('leadUi.waterQuality.good')}</option><option value="Fair">{t('leadUi.waterQuality.fair')}</option><option value="Poor">{t('leadUi.waterQuality.poor')}</option>
                       </select>
                     </div>
                     <div>
-                      <label className={label} htmlFor={`sl_${idx}_buysBottledWater`}>Buys bottled water</label>
+                      <label className={label} htmlFor={`sl_${idx}_buysBottledWater`}>{t('leadUi.field.buysBottledWater')}</label>
                       <select id={`sl_${idx}_buysBottledWater`} value={c.buysBottledWater} onChange={(e) => setField(idx, 'buysBottledWater', e.target.value)} className="input">
-                        <option value="">—</option><option value="true">Yes</option><option value="false">No</option>
+                        <option value="">—</option><option value="true">{t('common.yes')}</option><option value="false">{t('common.no')}</option>
                       </select>
                     </div>
                     <div>
-                      <label className={label} htmlFor={`sl_${idx}_hasFilters`}>Has filters now</label>
+                      <label className={label} htmlFor={`sl_${idx}_hasFilters`}>{t('leadUi.field.hasFiltersNow')}</label>
                       <select id={`sl_${idx}_hasFilters`} value={c.hasFilters} onChange={(e) => setField(idx, 'hasFilters', e.target.value)} className="input">
-                        <option value="">—</option><option value="true">Yes</option><option value="false">No</option>
+                        <option value="">—</option><option value="true">{t('common.yes')}</option><option value="false">{t('common.no')}</option>
                       </select>
                     </div>
 
                     <div className="sm:col-span-2">
-                      <span className={label}>Conditions experienced</span>
+                      <span className={label}>{t('leadUi.field.conditions')}</span>
                       <div className="flex flex-wrap gap-3">
                         {CONDITION_OPTS.map((opt) => (
                           <label key={opt} className="flex items-center gap-1.5 text-sm text-gray-700">
                             <input type="checkbox" checked={c.conditions.includes(opt)}
                               onChange={(e) => setField(idx, 'conditions', e.target.checked ? [...c.conditions, opt] : c.conditions.filter((x) => x !== opt))}
                               className="h-4 w-4 rounded border-gray-300" />
-                            {opt}
+                            {t(CONDITION_KEY[opt])}
                           </label>
                         ))}
                       </div>
                     </div>
 
                     <div className="sm:col-span-2">
-                      <label className={label} htmlFor={`sl_${idx}_waterNotes`}>Water notes</label>
+                      <label className={label} htmlFor={`sl_${idx}_waterNotes`}>{t('leadUi.field.waterNotes')}</label>
                       <textarea id={`sl_${idx}_waterNotes`} value={c.waterNotes} onChange={(e) => setField(idx, 'waterNotes', e.target.value)} rows={2} className="input" />
                     </div>
                     <div className="sm:col-span-2">
-                      <label className={label} htmlFor={`sl_${idx}_note`}>Internal note (optional)</label>
-                      <textarea id={`sl_${idx}_note`} value={c.note} onChange={(e) => setField(idx, 'note', e.target.value)} rows={2} className="input" placeholder="Anything the office should know" />
+                      <label className={label} htmlFor={`sl_${idx}_note`}>{t('leadUi.field.internalNoteOptional')}</label>
+                      <textarea id={`sl_${idx}_note`} value={c.note} onChange={(e) => setField(idx, 'note', e.target.value)} rows={2} className="input" placeholder={t('leadUi.scan.internalNotePlaceholder')} />
                     </div>
                     {c.error && <p className="sm:col-span-2 text-sm text-red-600">{c.error}</p>}
                   </div>
@@ -360,10 +368,10 @@ export function ScanLeadCard({ onSaved }: { onSaved?: () => void }) {
           <div className="flex flex-wrap items-center gap-3 pt-1">
             <button type="button" onClick={saveAll} disabled={saving || unsaved === 0}
               className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60">
-              {saving ? 'Saving…' : unsaved > 1 ? `Save all ${unsaved} leads` : 'Save lead'}
+              {saving ? t('common.saving') : unsaved > 1 ? t('leadUi.scan.saveAllN', { count: unsaved }) : t('leadUi.scan.saveLead')}
             </button>
-            <button type="button" onClick={addBlankCard} className="text-sm text-gray-500 hover:underline">+ Add another card</button>
-            <button type="button" onClick={resetAll} className="text-sm text-gray-500 hover:underline">Cancel</button>
+            <button type="button" onClick={addBlankCard} className="text-sm text-gray-500 hover:underline">+ {t('leadUi.scan.addAnotherCard')}</button>
+            <button type="button" onClick={resetAll} className="text-sm text-gray-500 hover:underline">{t('common.cancel')}</button>
             {saveMsg && <span className={`text-sm ${saveMsg.ok ? 'text-green-700' : 'text-red-600'}`}>{saveMsg.text}</span>}
           </div>
         </div>

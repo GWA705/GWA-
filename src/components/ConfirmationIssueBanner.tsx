@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { ConfirmationIssue } from '@/lib/confirmationIssue';
+import { getT } from '@/i18n/server';
 
 function fmtDate(d: Date): string {
   return new Date(d).toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -19,6 +20,7 @@ export function ConfirmationIssueBanner({
   side: 'staff' | 'dealer';
   issue: ConfirmationIssue;
 }) {
+  const t = getT();
   const { acknowledged, body, ackByName, ackAt, flaggedAt, mailId } = issue;
   const mailHref = side === 'staff' ? `/staff/mail/${mailId}` : `/dealer/mail/${mailId}`;
 
@@ -29,10 +31,10 @@ export function ConfirmationIssueBanner({
   const headTone = acknowledged ? 'text-green-800' : 'text-red-800';
 
   const heading = acknowledged
-    ? 'Confirmation issue — acknowledged'
+    ? t('dealParts.confirmIssue.acknowledgedHeading')
     : side === 'staff'
-      ? 'Confirmation issue flagged to the dealer'
-      : 'Action needed: a confirmation issue was flagged';
+      ? t('dealParts.confirmIssue.flaggedStaff')
+      : t('dealParts.confirmIssue.flaggedDealer');
 
   return (
     <section className={`flex items-start gap-3 rounded-lg border-2 p-4 ${tone}`}>
@@ -49,13 +51,13 @@ export function ConfirmationIssueBanner({
 
         {acknowledged ? (
           <p className="mt-2 text-xs text-green-700">
-            Acknowledged{ackByName ? ` by ${ackByName}` : ''}{ackAt ? ` on ${fmtDate(ackAt)}` : ''}.
+            {t('dealParts.confirmIssue.acknowledged')}{ackByName ? t('dealParts.confirmIssue.byName', { name: ackByName }) : ''}{ackAt ? t('dealParts.confirmIssue.onDate', { date: fmtDate(ackAt) }) : ''}.
           </p>
         ) : (
           <p className="mt-2 text-xs text-red-700">
             {side === 'staff'
-              ? `Flagged ${fmtDate(flaggedAt)} — awaiting acknowledgement from the office.`
-              : 'Please open it, review the details, and confirm you’ve read it.'}
+              ? t('dealParts.confirmIssue.flaggedAwaiting', { date: fmtDate(flaggedAt) })
+              : t('dealParts.confirmIssue.pleaseOpen')}
           </p>
         )}
 
@@ -65,15 +67,15 @@ export function ConfirmationIssueBanner({
               href={mailHref}
               className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-3.5 py-2 text-sm font-semibold text-white hover:bg-red-700"
             >
-              Open &amp; acknowledge
+              {t('dealParts.confirmIssue.openAcknowledge')}
             </Link>
           ) : (
             <Link href={mailHref} className="font-semibold text-brand-700 hover:underline">
-              {side === 'staff' ? 'View in Mail & who’s acknowledged' : 'View in Mail'}
+              {side === 'staff' ? t('dealParts.confirmIssue.viewInMailStaff') : t('dealParts.confirmIssue.viewInMail')}
             </Link>
           )}
           {side === 'staff' && (
-            <span className="text-xs text-gray-500">The dealer can reply in the chat below.</span>
+            <span className="text-xs text-gray-500">{t('dealParts.confirmIssue.dealerCanReply')}</span>
           )}
         </div>
       </div>

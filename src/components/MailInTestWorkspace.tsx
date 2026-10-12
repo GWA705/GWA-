@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { useT } from '@/i18n/client';
 import { ScannedLeadRowItem, type ScannedLeadRow } from './ScannedLeadsList';
 import { ScanLeadCard } from './ScanLeadCard';
 import { LeadsMap, type MapLead, type MapStore, type PendingStore, type LatLng } from './LeadsMap';
@@ -15,23 +16,16 @@ import { scannedLeadKey } from '@/lib/scannedLeadKey';
  * never runs off the bottom.
  */
 
-const STATUS_DEFS = [
-  { k: 'new', label: 'New' },
-  { k: 'working', label: 'Working' },
-  { k: 'spoke', label: 'Spoke' },
-  { k: 'booked', label: 'Booked' },
-  { k: 'sold', label: 'Sold' },
-  { k: 'nogood', label: 'No good' },
-];
-const GROUP_LABEL: Record<string, string> = Object.fromEntries(STATUS_DEFS.map((d) => [d.k, d.label]));
+const STATUS_KEYS = ['new', 'working', 'spoke', 'booked', 'sold', 'nogood'];
 
-const SORTS: { k: string; label: string }[] = [
-  { k: 'new', label: 'Newest scanned' },
-  { k: 'old', label: 'Oldest scanned' },
-  { k: 'name', label: 'Name A–Z' },
-  { k: 'store', label: 'Store #' },
-  { k: 'collected', label: 'Collected date' },
-  { k: 'status', label: 'Status' },
+// Stable sort codes paired with their translation keys (labels resolved at render).
+const SORTS: { k: string; labelKey: string }[] = [
+  { k: 'new', labelKey: 'leadUi.sort.newestScanned' },
+  { k: 'old', labelKey: 'leadUi.sort.oldestScanned' },
+  { k: 'name', labelKey: 'leadUi.sort.nameAz' },
+  { k: 'store', labelKey: 'leadUi.sort.storeNum' },
+  { k: 'collected', labelKey: 'leadUi.sort.collected' },
+  { k: 'status', labelKey: 'leadUi.sort.status' },
 ];
 const STATUS_SORT_ORDER = ['new', 'working', 'spoke', 'booked', 'sold', 'nogood'];
 
@@ -70,6 +64,8 @@ export function MailInTestWorkspace({
   geo?: MailInGeo;
   basePath?: string;
 }) {
+  const t = useT();
+  const statusLabel = (k: string) => (k === 'all' ? t('common.all') : t(`leadUi.status.${k}`));
   const [q, setQ] = useState('');
   const [sort, setSort] = useState('new');
   const [status, setStatus] = useState('all');
@@ -88,7 +84,7 @@ export function MailInTestWorkspace({
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { all: annotated.length };
-    for (const d of STATUS_DEFS) c[d.k] = 0;
+    for (const k of STATUS_KEYS) c[k] = 0;
     for (const a of annotated) c[a.group] = (c[a.group] ?? 0) + 1;
     return c;
   }, [annotated]);
@@ -145,16 +141,16 @@ export function MailInTestWorkspace({
     if (view !== 'map') return [];
     return filtered.map(({ l, group }) => {
       const g = geo?.byKey[scannedLeadKey(l.id)];
-      const sub = [l.storeNumber && `Store ${l.storeNumber}`, l.city, l.collectedOn && `collected ${l.collectedOn}`]
+      const sub = [l.storeNumber && t('leadUi.lead.storeNum', { n: l.storeNumber }), l.city, l.collectedOn && t('leadUi.lead.collectedPrefix', { date: l.collectedOn })]
         .filter(Boolean)
         .join(' · ');
       return {
         key: g?.geoKey || scannedLeadKey(l.id),
         query: g?.query ?? '',
         rowId: l.id,
-        name: l.customerName ? titleCase(l.customerName) : '(no name)',
+        name: l.customerName ? titleCase(l.customerName) : t('leadUi.lead.noName'),
         status: mapStatus(group),
-        statusLabel: GROUP_LABEL[group] ?? 'Lead',
+        statusLabel: STATUS_KEYS.includes(group) ? statusLabel(group) : t('leadUi.lead.lead'),
         sub,
         openHref: `${basePath}?tab=mailin`,
         coord: g?.coord,
@@ -181,20 +177,20 @@ export function MailInTestWorkspace({
           <input
             value={q}
             onChange={(e) => { setQ(e.target.value); resetPage(); }}
-            placeholder="Search name, phone, store, city…"
+            placeholder={t('leadUi.search.placeholderFull')}
             aria-label="Search HD Mail In Test"
             className="input flex-1"
           />
           <div className="flex gap-2">
-            <label className="sr-only" htmlFor="mailin_sort">Sort</label>
+            <label className="sr-only" htmlFor="mailin_sort">{t('common.sort')}</label>
             <select id="mailin_sort" value={sort} onChange={(e) => setSort(e.target.value)} className="input w-full sm:w-auto">
               {SORTS.map((s) => (
-                <option key={s.k} value={s.k}>{s.label}</option>
+                <option key={s.k} value={s.k}>{t(s.labelKey)}</option>
               ))}
             </select>
             {canScan && (
               <button type="button" onClick={() => setScanOpen((v) => !v)} aria-expanded={scanOpen} className="btn-primary whitespace-nowrap">
-                {scanOpen ? '× Close' : '＋ Scan cards'}
+                {scanOpen ? `× ${t('common.close')}` : `＋ ${t('leadUi.scan.scanCards')}`}
               </button>
             )}
           </div>
@@ -203,21 +199,21 @@ export function MailInTestWorkspace({
         <div className="mt-2 flex flex-wrap items-center gap-2">
           {/* Status filter chips */}
           <div className="flex flex-1 gap-1.5 overflow-x-auto pb-1">
-            {[{ k: 'all', label: 'All' }, ...STATUS_DEFS].map((d) => {
-              const n = counts[d.k] ?? 0;
-              if (d.k !== 'all' && n === 0) return null;
-              const active = status === d.k;
+            {['all', ...STATUS_KEYS].map((k) => {
+              const n = counts[k] ?? 0;
+              if (k !== 'all' && n === 0) return null;
+              const active = status === k;
               return (
                 <button
-                  key={d.k}
+                  key={k}
                   type="button"
                   aria-pressed={active}
-                  onClick={() => { setStatus(d.k); resetPage(); }}
+                  onClick={() => { setStatus(k); resetPage(); }}
                   className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold transition ${
                     active ? 'border-slate-800 bg-slate-800 text-white' : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
                   }`}
                 >
-                  {d.label}
+                  {statusLabel(k)}
                   <span className={`tabular-nums ${active ? 'text-gray-300' : 'text-gray-400'}`}>{n}</span>
                 </button>
               );
@@ -225,9 +221,9 @@ export function MailInTestWorkspace({
           </div>
           {/* View toggle */}
           <div className="inline-flex flex-none rounded-full bg-gray-100 p-0.5" role="group" aria-label="View">
-            {viewBtn('list', 'List')}
-            {viewBtn('grouped', 'Grouped')}
-            {geo && viewBtn('map', 'Map')}
+            {viewBtn('list', t('leadUi.view.list'))}
+            {viewBtn('grouped', t('leadUi.view.grouped'))}
+            {geo && viewBtn('map', t('leadUi.view.map'))}
           </div>
         </div>
 
@@ -241,7 +237,7 @@ export function MailInTestWorkspace({
       {/* Content */}
       {filtered.length === 0 ? (
         <p className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-5 text-center text-sm text-gray-500">
-          {annotated.length === 0 ? 'No HD Mail In Test cards yet.' : 'No cards match your search or filter.'}
+          {annotated.length === 0 ? t('leadUi.list.emptyShort') : t('leadUi.list.noMatch')}
         </p>
       ) : view === 'map' && geo ? (
         <LeadsMap leads={mapLeads} stores={geo.stores} pendingStores={geo.pendingStores} />
@@ -259,7 +255,7 @@ export function MailInTestWorkspace({
               return blocks.map((b, bi) => (
                 <div key={`${b.group}-${bi}`}>
                   <div className="mb-2 flex items-center gap-2 px-1">
-                    <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-700">{GROUP_LABEL[b.group] ?? b.group}</span>
+                    <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-700">{STATUS_KEYS.includes(b.group) ? statusLabel(b.group) : b.group}</span>
                     <span className="text-xs text-gray-400 tabular-nums">{groupTotals[b.group] ?? b.items.length}</span>
                   </div>
                   <div className="space-y-2">
@@ -288,11 +284,12 @@ export function MailInTestWorkspace({
 }
 
 function Pager({ shown, total, onMore }: { shown: number; total: number; onMore: () => void }) {
+  const t = useT();
   return (
     <div className="flex items-center justify-between pt-1 text-sm text-gray-500">
-      <span className="tabular-nums">Showing {shown} of {total}</span>
+      <span className="tabular-nums">{t('leadUi.paging.showing', { shown, total })}</span>
       {shown < total && (
-        <button type="button" onClick={onMore} className="btn-secondary text-xs">Load more</button>
+        <button type="button" onClick={onMore} className="btn-secondary text-xs">{t('common.loadMore')}</button>
       )}
     </div>
   );

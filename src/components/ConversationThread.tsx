@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { looksLikeCardNumber, CARD_REDACT_NOTICE } from '@/lib/cardGuard';
+import { useT } from '@/i18n/client';
 import { AutoTranslate } from './AutoTranslate';
 
 interface Msg {
@@ -25,13 +26,14 @@ export function ConversationThread({
   conversationId: initialId,
   applicationId,
   heightClass = 'h-80',
-  placeholder = 'Write a message…',
+  placeholder,
 }: {
   conversationId?: string;
   applicationId?: string;
   heightClass?: string;
   placeholder?: string;
 }) {
+  const t = useT();
   const [conversationId, setConversationId] = useState<string | undefined>(initialId);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [text, setText] = useState('');
@@ -106,7 +108,7 @@ export function ConversationThread({
   return (
     <div className="overflow-hidden rounded-lg border border-gray-200">
       <div ref={listRef} onScroll={onScroll} className={`${heightClass} space-y-3 overflow-y-auto bg-gray-50 p-4`}>
-        {loaded && messages.length === 0 && <p className="text-center text-sm text-gray-400">No messages yet.</p>}
+        {loaded && messages.length === 0 && <p className="text-center text-sm text-gray-400">{t('convoUi.noMessagesYet')}</p>}
         {messages.map((m) => (
           <div key={m.id} className={`flex ${m.fromStaff ? 'justify-start' : 'justify-end'}`}>
             <div className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${m.fromStaff ? 'rounded-tl-sm bg-white text-gray-800 shadow-sm' : 'rounded-tr-sm bg-brand-600 text-white'}`}>
@@ -124,12 +126,12 @@ export function ConversationThread({
             onChange={(e) => { setText(e.target.value); if (cardWarn) setCardWarn(false); }}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
             rows={1}
-            placeholder={placeholder}
+            placeholder={placeholder ?? t('convoUi.messagePlaceholder')}
             // text-base (16px) on mobile is deliberate: iOS Safari force-zooms the
             // page when a focused field is under 16px. Desktop keeps the compact 14px.
             className="max-h-28 min-h-[40px] flex-1 resize-none rounded-lg border border-gray-300 px-3 py-2 text-base focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 sm:text-sm"
           />
-          <button type="submit" disabled={sending || !text.trim()} className="btn-primary flex-none px-4 py-2 text-sm disabled:opacity-50">Send</button>
+          <button type="submit" disabled={sending || !text.trim()} className="btn-primary flex-none px-4 py-2 text-sm disabled:opacity-50">{t('common.send')}</button>
         </form>
       </div>
     </div>

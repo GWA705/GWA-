@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useT } from '@/i18n/client';
 
 /**
  * GET search form. Submits `q` to the given action path on Search/Enter. When
@@ -13,7 +14,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 export function SearchBox({
   action,
   q,
-  placeholder = 'Search name or reference #…',
+  placeholder,
 }: {
   action: string;
   q?: string;
@@ -21,6 +22,8 @@ export function SearchBox({
 }) {
   const router = useRouter();
   const params = useSearchParams();
+  const t = useT();
+  const ph = placeholder ?? t('leadUi.search.placeholderRef');
   const [value, setValue] = useState(q ?? '');
   const active = (q ?? '') !== '';
 
@@ -45,18 +48,18 @@ export function SearchBox({
           // Emptied the box while a search was active → show all deals again.
           if (v.trim() === '' && active) resetToList();
         }}
-        placeholder={placeholder}
+        placeholder={ph}
         className="input h-9 w-full min-w-0 py-1 sm:w-64"
         aria-label="Search"
       />
-      <button type="submit" className="btn-secondary h-9 py-1 text-sm">Search</button>
+      <button type="submit" className="btn-secondary h-9 py-1 text-sm">{t('common.search')}</button>
       {active && (
         <button
           type="button"
           onClick={() => { setValue(''); resetToList(); }}
           className="text-sm text-gray-500 hover:underline"
         >
-          Clear
+          {t('leadUi.search.clear')}
         </button>
       )}
     </form>

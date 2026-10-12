@@ -4,6 +4,7 @@ import { SectionHero } from '@/components/SectionHero';
 import { BUSINESS_DOC_TYPES, OTHER_DOC_TYPE } from '@/lib/constants';
 import { docStatus, statusLabel } from '@/lib/dealerDocs';
 import { DocumentManager, type DocVM, type SlotVM } from './DocumentManager';
+import { getT } from '@/i18n/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,6 +12,7 @@ const iso = (d: Date | null) => (d ? new Date(d).toISOString().slice(0, 10) : nu
 const stamp = (d: Date) => new Date(d).toLocaleDateString('en-CA', { year: 'numeric', month: 'short', day: 'numeric' });
 
 export default async function DealerDocumentsPage() {
+  const t = getT();
   const session = await requireDealerAccess();
   const dealerId = session.dealerId ?? null;
 
@@ -53,8 +55,8 @@ export default async function DealerDocumentsPage() {
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <SectionHero
-        title="Business documents"
-        subtitle="Upload your WSIB / WCB clearance and other compliance documents. We’ll scan the expiry date and remind you before each one lapses — so nobody has to chase paperwork."
+        title={t('dlrDocs.heroTitle')}
+        subtitle={t('dlrDocs.heroSubtitle')}
         bgImage="/support-agent.webp"
       />
       <DocumentManager slots={slots} others={others} />

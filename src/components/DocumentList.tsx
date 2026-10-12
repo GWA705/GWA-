@@ -3,6 +3,7 @@ import { DOCUMENT_TYPE_LABELS } from '@/lib/constants';
 import { DeleteDocumentButton } from '@/components/DeleteDocumentButton';
 import { DocViewer } from '@/components/DocViewer';
 import { DocThumbnail } from '@/components/DocThumbnail';
+import { getT } from '@/i18n/server';
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -18,8 +19,9 @@ export function DocumentList({
   // When provided (staff pages), each row gets a Delete button.
   deleteAction?: (id: string) => Promise<{ error?: string }>;
 }) {
+  const t = getT();
   if (documents.length === 0) {
-    return <p className="text-sm text-gray-500">No documents uploaded yet.</p>;
+    return <p className="text-sm text-gray-500">{t('dlrDocs.listEmpty')}</p>;
   }
 
   // Raw upload filenames aren't shown — each doc gets a clean, consistent name:
@@ -36,14 +38,14 @@ export function DocumentList({
         const n = (typeSeen.get(d.type) ?? 0) + 1;
         typeSeen.set(d.type, n);
         const total = typeTotals.get(d.type) ?? 1;
-        const displayName = d.label?.trim() || (total > 1 ? `${typeLabel} — File ${n}` : typeLabel);
+        const displayName = d.label?.trim() || (total > 1 ? `${typeLabel} — ${t('dlrDocs.fileN', { n })}` : typeLabel);
         // Show the type in the meta line only when it isn't already the title.
         const metaBits = [d.label?.trim() ? typeLabel : null, formatSize(d.sizeBytes), d.createdAt.toLocaleDateString('en-CA')].filter(Boolean) as string[];
 
         return (
           <li key={d.id} className="flex gap-3 rounded-lg border border-gray-100 bg-gray-50/50 p-2">
             {/* Thumbnail — click to open the file */}
-            <DocViewer id={d.id} fileName={d.fileName} mimeType={d.mimeType} className="flex-none" title={`Open ${displayName}`}>
+            <DocViewer id={d.id} fileName={d.fileName} mimeType={d.mimeType} className="flex-none" title={t('dlrDocs.openFile', { name: displayName })}>
               <DocThumbnail id={d.id} mimeType={d.mimeType} />
             </DocViewer>
 
