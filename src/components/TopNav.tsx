@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useT } from '@/i18n/client';
 
 export interface NavItem {
   href?: string;
@@ -18,6 +19,7 @@ export interface NavItem {
  */
 export function TopNav({ nav }: { nav: NavItem[] }) {
   const pathname = usePathname() || '';
+  const t = useT();
 
   // Longest-prefix active match across every leaf link (top-level + children).
   const hrefs: string[] = [];
@@ -40,7 +42,7 @@ export function TopNav({ nav }: { nav: NavItem[] }) {
             <div key={item.label} className="topnav-group" data-active={groupActive || undefined}>
               <button type="button" className="topnav-trigger" aria-haspopup="menu">
                 {item.label}
-                {groupBadge && <span className="nav-dot" aria-label="New" />}
+                {groupBadge && <span className="nav-dot" aria-label={t('nav.newBadge')} />}
                 <svg className="chev" width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden>
                   <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
@@ -54,7 +56,7 @@ export function TopNav({ nav }: { nav: NavItem[] }) {
                     aria-current={c.href === activeHref ? 'page' : undefined}
                   >
                     {c.label}
-                    {c.badge && <span className="nav-dot ml-auto" title="New" aria-label="New" />}
+                    {c.badge && <span className="nav-dot ml-auto" title={t('nav.newBadge')} aria-label={t('nav.newBadge')} />}
                   </Link>
                 ))}
               </div>
@@ -69,7 +71,7 @@ export function TopNav({ nav }: { nav: NavItem[] }) {
             className={item.badge ? 'has-dot' : undefined}
           >
             {item.label}
-            {item.badge && <span className="nav-dot" title="New" aria-label="New" />}
+            {item.badge && <span className="nav-dot" title={t('nav.newBadge')} aria-label={t('nav.newBadge')} />}
           </Link>
         );
       })}

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useT } from '@/i18n/client';
 
 interface Item {
   id: string;
@@ -18,11 +19,11 @@ interface Item {
 const fmt = (iso: string) =>
   new Date(iso).toLocaleString('en-CA', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 
-function groupByCustomer(items: Item[]): { key: string; label: string; items: Item[] }[] {
+function groupByCustomer(items: Item[], aDealLabel: string, otherLabel: string): { key: string; label: string; items: Item[] }[] {
   const groups = new Map<string, { key: string; label: string; items: Item[] }>();
   for (const it of items) {
     const key = it.applicationId || it.customerName || '__other__';
-    const label = it.customerName || (it.applicationId ? 'A deal' : 'Other updates');
+    const label = it.customerName || (it.applicationId ? aDealLabel : otherLabel);
     const g = groups.get(key);
     if (g) g.items.push(it);
     else groups.set(key, { key, label, items: [it] });
@@ -33,6 +34,7 @@ function groupByCustomer(items: Item[]): { key: string; label: string; items: It
 /** Full-page notifications list — grouped by customer, newest first, with read state. */
 export function NotificationsFeed() {
   const router = useRouter();
+  const t = useT();
   const [items, setItems] = useState<Item[]>([]);
   const [loaded, setLoaded] = useState(false);
 
@@ -58,20 +60,20 @@ export function NotificationsFeed() {
     if (it.url) router.push(it.url);
   }
 
-  const groups = groupByCustomer(items);
+  const groups = groupByCustomer(items, t('notifications.aDeal'), t('notifications.other'));
   const anyUnread = items.some((i) => !i.read);
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-gray-500">Everything you’ve been alerted about, grouped by customer. Newest first.</p>
-        {anyUnread && <button type="button" onClick={markAll} className="btn-secondary text-sm">Mark all read</button>}
+        <p className="text-sm text-gray-500">{t('notifications.feedIntro')}</p>
+        {anyUnread && <button type="button" onClick={markAll} className="btn-secondary text-sm">{t('notifications.markAll')}</button>}
       </div>
 
       {!loaded ? (
-        <p className="py-10 text-center text-sm text-gray-400">Loading…</p>
+        <p className="py-10 text-center text-sm text-gray-400">{t('common.loading')}</p>
       ) : groups.length === 0 ? (
-        <p className="py-16 text-center text-sm text-gray-400">You’re all caught up — no notifications.</p>
+        <p className="py-16 text-center text-sm text-gray-400">{t('notifications.emptyFeed')}</p>
       ) : (
         groups.map((g) => (
           <section key={g.key} className="card overflow-hidden">

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useT } from '@/i18n/client';
 
 interface Item {
   id: string;
@@ -20,11 +21,11 @@ const fmt = (iso: string) =>
   new Date(iso).toLocaleString('en-CA', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 
 /** Group items by customer (applicationId, else customerName, else "Other"). */
-function groupByCustomer(items: Item[]): { key: string; label: string; items: Item[] }[] {
+function groupByCustomer(items: Item[], aDealLabel: string, otherLabel: string): { key: string; label: string; items: Item[] }[] {
   const groups = new Map<string, { key: string; label: string; items: Item[] }>();
   for (const it of items) {
     const key = it.applicationId || it.customerName || '__other__';
-    const label = it.customerName || (it.applicationId ? 'A deal' : 'Other updates');
+    const label = it.customerName || (it.applicationId ? aDealLabel : otherLabel);
     const g = groups.get(key);
     if (g) g.items.push(it);
     else groups.set(key, { key, label, items: [it] });
@@ -34,6 +35,7 @@ function groupByCustomer(items: Item[]): { key: string; label: string; items: It
 
 export function NotificationBell({ allHref }: { allHref: string }) {
   const router = useRouter();
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [unread, setUnread] = useState(0);
   const [items, setItems] = useState<Item[]>([]);
@@ -87,7 +89,7 @@ export function NotificationBell({ allHref }: { allHref: string }) {
     if (it.url) router.push(it.url);
   }
 
-  const groups = groupByCustomer(items);
+  const groups = groupByCustomer(items, t('notifications.aDeal'), t('notifications.other'));
 
   return (
     <div ref={rootRef} className="relative">
@@ -110,15 +112,15 @@ export function NotificationBell({ allHref }: { allHref: string }) {
       {open && (
         <div className="absolute right-0 z-50 mt-2 flex max-h-[32rem] w-[22rem] max-w-[calc(100vw-1.5rem)] flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-2xl">
           <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2.5">
-            <span className="text-sm font-semibold text-gray-900">Notifications</span>
+            <span className="text-sm font-semibold text-gray-900">{t('notifications.title')}</span>
             {unread > 0 && (
-              <button type="button" onClick={markAll} className="text-xs font-medium text-brand-700 hover:underline">Mark all read</button>
+              <button type="button" onClick={markAll} className="text-xs font-medium text-brand-700 hover:underline">{t('notifications.markAll')}</button>
             )}
           </div>
 
           <div className="flex-1 overflow-y-auto">
             {groups.length === 0 ? (
-              <p className="px-4 py-10 text-center text-sm text-gray-400">You’re all caught up.</p>
+              <p className="px-4 py-10 text-center text-sm text-gray-400">{t('notifications.caughtUp')}</p>
             ) : (
               groups.map((g) => (
                 <div key={g.key} className="border-b border-gray-50 last:border-0">
@@ -147,7 +149,7 @@ export function NotificationBell({ allHref }: { allHref: string }) {
           </div>
 
           <Link href={allHref} onClick={() => setOpen(false)} className="border-t border-gray-100 px-4 py-2.5 text-center text-sm font-medium text-brand-700 hover:bg-gray-50">
-            See all notifications
+            {t('notifications.seeAll')}
           </Link>
         </div>
       )}

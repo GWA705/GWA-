@@ -5,6 +5,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { MobileNav } from '@/components/MobileNav';
 import { TopNav } from '@/components/TopNav';
 import { AnimatedWordmark } from '@/components/AnimatedWordmark';
+import { getT } from '@/i18n/server';
 import Link from 'next/link';
 
 interface NavItem {
@@ -20,10 +21,11 @@ interface NavItem {
 // a dealer): jump between the dealer view and the reviewer view with one login.
 // Styled for the blue bar (translucent pills, active pill white).
 function PortalSwitcher({ current }: { current: 'dealer' | 'staff' }) {
+  const t = getT();
   return (
     <div className="topbar-switch">
-      <Link href="/dealer" aria-current={current === 'dealer'}>Dealer view</Link>
-      <Link href="/staff" aria-current={current === 'staff'}>Reviewer view</Link>
+      <Link href="/dealer" aria-current={current === 'dealer'}>{t('shell.dealerView')}</Link>
+      <Link href="/staff" aria-current={current === 'staff'}>{t('shell.reviewerView')}</Link>
     </div>
   );
 }
@@ -44,6 +46,7 @@ export function AppShell({
   children: React.ReactNode;
 }) {
   const showSwitcher = hasBothPortals(user) && (portal === 'dealer' || portal === 'staff');
+  const t = getT();
   return (
     <div className="min-h-screen">
       <header className="border-b border-gray-200 bg-white">
@@ -66,7 +69,7 @@ export function AppShell({
               <ThemeToggle className="topbar-btn" />
               <form action={logoutAction}>
                 <button className="topbar-btn" type="submit">
-                  Sign out
+                  {t('shell.signOut')}
                 </button>
               </form>
             </div>
@@ -80,9 +83,8 @@ export function AppShell({
       </header>
       <main className="mx-auto max-w-6xl overflow-x-clip px-4 py-8">{children}</main>
       <footer className="mx-auto max-w-6xl px-4 py-8 text-xs text-gray-400">
-        GWA Dealer Portal · Handles personal information under PIPEDA and provincial privacy law.
-        Access is logged. ·{' '}
-        <Link href="/privacy" className="underline">Privacy Policy</Link>
+        {t('shell.footer')} ·{' '}
+        <Link href="/privacy" className="underline">{t('shell.privacy')}</Link>
       </footer>
     </div>
   );

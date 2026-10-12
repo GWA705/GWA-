@@ -178,7 +178,7 @@ export function MobileNav({
                       >
                         <NavIcon label={c.label} />
                         {navLabel(c)}
-                        {c.badge && <span className="nav-dot ml-auto" title="New" aria-label="New" />}
+                        {c.badge && <span className="nav-dot ml-auto" title={t('nav.newBadge')} aria-label={t('nav.newBadge')} />}
                       </Link>
                     ))}
                   </div>
@@ -191,7 +191,7 @@ export function MobileNav({
                   >
                     <NavIcon label={item.label} />
                     {navLabel(item)}
-                    {item.badge && <span className="nav-dot ml-auto" title="New" aria-label="New" />}
+                    {item.badge && <span className="nav-dot ml-auto" title={t('nav.newBadge')} aria-label={t('nav.newBadge')} />}
                   </Link>
                 ),
               )}
@@ -207,7 +207,7 @@ export function MobileNav({
               <ThemeToggle />
               <form action={logoutAction}>
                 <button className="btn-secondary" type="submit">
-                  Sign out
+                  {t('shell.signOut')}
                 </button>
               </form>
             </div>
