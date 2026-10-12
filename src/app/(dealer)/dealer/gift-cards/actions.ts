@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db';
 import { requireDealerAccess } from '@/lib/session';
 import { audit } from '@/lib/audit';
 import { notifyGiftCardNote } from '@/lib/notify';
+import { getT } from '@/i18n/server';
 
 export interface GiftCardActionState {
   error?: string;
@@ -41,10 +42,11 @@ export interface BulkResult {
  * fix and re-upload. Nothing is created if the whole batch is empty/oversized.
  */
 export async function bulkCreateGiftCardRequestsAction(rows: BulkRow[]): Promise<BulkResult> {
+  const t = getT();
   const session = await requireDealerAccess();
-  if (!session.dealerId) return { created: 0, errors: ['Your login is not attached to a dealer.'] };
-  if (!Array.isArray(rows) || rows.length === 0) return { created: 0, errors: ['No rows found in the file.'] };
-  if (rows.length > 500) return { created: 0, errors: ['Too many rows — please upload 500 or fewer at a time.'] };
+  if (!session.dealerId) return { created: 0, errors: [t('actionMsg.giftCards.loginNotAttached')] };
+  if (!Array.isArray(rows) || rows.length === 0) return { created: 0, errors: [t('actionMsg.giftCards.noRows')] };
+  if (rows.length > 500) return { created: 0, errors: [t('actionMsg.giftCards.tooManyRows')] };
 
   const data: { dealerId: string; requestedById: string; customerName: string; customerEmail: string; customerPhone: string | null; amount: number }[] = [];
   const errors: string[] = [];
@@ -57,10 +59,10 @@ export async function bulkCreateGiftCardRequestsAction(rows: BulkRow[]): Promise
     const amount = amtRaw === '' ? 25 : Number(amtRaw);
 
     if (!name && !email) return; // silently skip fully blank rows
-    if (!name) { errors.push(`Row ${line}: missing customer name.`); return; }
-    if (!EMAIL_RE.test(email)) { errors.push(`Row ${line}: “${email || '(blank)'}” is not a valid email.`); return; }
-    if (phone === null) { errors.push(`Row ${line}: cell number needs at least 10 digits (or leave it blank).`); return; }
-    if (!Number.isFinite(amount) || amount <= 0 || amount > 1000) { errors.push(`Row ${line}: amount must be between $1 and $1,000.`); return; }
+    if (!name) { errors.push(t('actionMsg.giftCards.rowMissingName', { line })); return; }
+    if (!EMAIL_RE.test(email)) { errors.push(t('actionMsg.giftCards.rowInvalidEmail', { line, email: email || t('actionMsg.giftCards.blank') })); return; }
+    if (phone === null) { errors.push(t('actionMsg.giftCards.rowCellDigits', { line })); return; }
+    if (!Number.isFinite(amount) || amount <= 0 || amount > 1000) { errors.push(t('actionMsg.giftCards.rowAmountRange', { line })); return; }
 
     data.push({ dealerId: session.dealerId!, requestedById: session.userId, customerName: name, customerEmail: email, customerPhone: phone || null, amount });
   });
@@ -81,8 +83,9 @@ export async function createGiftCardRequestAction(
   _prev: GiftCardActionState,
   formData: FormData,
 ): Promise<GiftCardActionState> {
+  const t = getT();
   const session = await requireDealerAccess();
-  if (!session.dealerId) return { error: 'Your login is not attached to a dealer.' };
+  if (!session.dealerId) return { error: t('actionMsg.giftCards.loginNotAttached') };
 
   const customerName = String(formData.get('customerName') || '').replace(/\s+/g, ' ').trim();
   const customerEmail = String(formData.get('customerEmail') || '').trim().toLowerCase();
@@ -90,10 +93,10 @@ export async function createGiftCardRequestAction(
   const amountRaw = String(formData.get('amount') || '').replace(/[$,\s]/g, '');
   const amount = Number(amountRaw);
 
-  if (!customerName) return { error: 'Enter the customer’s name.' };
-  if (!EMAIL_RE.test(customerEmail)) return { error: 'Enter a valid customer email address.' };
-  if (customerPhone === null) return { error: 'Enter a valid cell number (at least 10 digits) or leave it blank.' };
-  if (!Number.isFinite(amount) || amount <= 0 || amount > 1000) return { error: 'Enter a card amount between $1 and $1,000.' };
+  if (!customerName) return { error: t('actionMsg.giftCards.enterCustomerName') };
+  if (!EMAIL_RE.test(customerEmail)) return { error: t('actionMsg.giftCards.enterValidCustomerEmail') };
+  if (customerPhone === null) return { error: t('actionMsg.giftCards.enterValidCell') };
+  if (!Number.isFinite(amount) || amount <= 0 || amount > 1000) return { error: t('actionMsg.giftCards.enterCardAmount') };
 
   const gc = await prisma.giftCardRequest.create({
     data: {
@@ -107,7 +110,7 @@ export async function createGiftCardRequestAction(
   });
   await audit({ actorId: session.userId, action: 'ORDER_SUBMIT', entityType: 'GiftCardRequest', entityId: gc.id, detail: `Gift-card request: ${customerName} <${customerEmail}> $${amount}` });
   revalidatePath('/dealer/gift-cards');
-  return { ok: true, message: 'Gift-card request submitted.' };
+  return { ok: true, message: t('actionMsg.giftCards.requestSubmitted') };
 }
 
 /**
@@ -120,24 +123,25 @@ export async function editGiftCardRequestAction(
   _prev: GiftCardActionState,
   formData: FormData,
 ): Promise<GiftCardActionState> {
+  const t = getT();
   const session = await requireDealerAccess();
   const id = String(formData.get('requestId') || '');
   const gc = await prisma.giftCardRequest.findUnique({ where: { id } });
-  if (!gc || gc.dealerId !== session.dealerId) return { error: 'Request not found.' };
-  if (gc.status === 'CANCELLED') return { error: 'This request was cancelled.' };
+  if (!gc || gc.dealerId !== session.dealerId) return { error: t('actionMsg.giftCards.requestNotFound') };
+  if (gc.status === 'CANCELLED') return { error: t('actionMsg.giftCards.requestCancelled') };
 
   const customerName = String(formData.get('customerName') || '').replace(/\s+/g, ' ').trim();
   const customerEmail = String(formData.get('customerEmail') || '').trim().toLowerCase();
   const customerPhone = cleanPhone(String(formData.get('customerPhone') || ''));
-  if (!customerName) return { error: 'Enter the customer’s name.' };
-  if (!EMAIL_RE.test(customerEmail)) return { error: 'Enter a valid customer email address.' };
-  if (customerPhone === null) return { error: 'Enter a valid cell number (at least 10 digits) or leave it blank.' };
+  if (!customerName) return { error: t('actionMsg.giftCards.enterCustomerName') };
+  if (!EMAIL_RE.test(customerEmail)) return { error: t('actionMsg.giftCards.enterValidCustomerEmail') };
+  if (customerPhone === null) return { error: t('actionMsg.giftCards.enterValidCell') };
 
   const changes: string[] = [];
   if (customerName !== gc.customerName) changes.push(`name → ${customerName}`);
   if (customerEmail !== gc.customerEmail) changes.push(`email → ${customerEmail}`);
   if ((customerPhone || null) !== (gc.customerPhone ?? null)) changes.push(`cell → ${customerPhone || '(none)'}`);
-  if (changes.length === 0) return { ok: true, message: 'No changes.' };
+  if (changes.length === 0) return { ok: true, message: t('actionMsg.giftCards.noChanges') };
 
   await prisma.giftCardRequest.update({
     where: { id },
@@ -152,7 +156,7 @@ export async function editGiftCardRequestAction(
   await audit({ actorId: session.userId, action: 'ORDER_SUBMIT', entityType: 'GiftCardRequest', entityId: id, detail: `Gift-card contact edited: ${changes.join(', ')}` });
   void notifyGiftCardNote(id, true);
   revalidatePath('/dealer/gift-cards');
-  return { ok: true, message: 'Details updated — the team has been notified.' };
+  return { ok: true, message: t('actionMsg.giftCards.detailsUpdated') };
 }
 
 /** A dealer adds a note to the request's thread (visible to staff). */
@@ -160,13 +164,14 @@ export async function addGiftCardNoteAction(
   _prev: GiftCardActionState,
   formData: FormData,
 ): Promise<GiftCardActionState> {
+  const t = getT();
   const session = await requireDealerAccess();
   const id = String(formData.get('requestId') || '');
   const body = String(formData.get('body') || '').trim();
-  if (!body) return { error: 'Enter a message.' };
-  if (body.length > 2000) return { error: 'Message is too long.' };
+  if (!body) return { error: t('actionMsg.giftCards.enterMessage') };
+  if (body.length > 2000) return { error: t('actionMsg.giftCards.messageTooLong') };
   const gc = await prisma.giftCardRequest.findUnique({ where: { id } });
-  if (!gc || gc.dealerId !== session.dealerId) return { error: 'Request not found.' };
+  if (!gc || gc.dealerId !== session.dealerId) return { error: t('actionMsg.giftCards.requestNotFound') };
 
   await prisma.giftCardRequest.update({
     where: { id },
@@ -174,7 +179,7 @@ export async function addGiftCardNoteAction(
   });
   void notifyGiftCardNote(id, true);
   revalidatePath('/dealer/gift-cards');
-  return { ok: true, message: 'Message sent.' };
+  return { ok: true, message: t('actionMsg.giftCards.messageSent') };
 }
 
 /** A dealer cancels their own still-pending request (typo, duplicate, etc.). */

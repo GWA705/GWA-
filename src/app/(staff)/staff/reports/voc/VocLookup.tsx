@@ -2,12 +2,14 @@
 
 import { useFormState, useFormStatus } from 'react-dom';
 import { vocLookupAction } from '../actions';
+import { useT } from '@/i18n/client';
 
 function SubmitBtn() {
+  const t = useT();
   const { pending } = useFormStatus();
   return (
     <button type="submit" className="btn-primary text-sm disabled:opacity-60" disabled={pending}>
-      {pending ? 'Checking…' : 'Check completion'}
+      {pending ? t('common.checking') : t('reportsUi.voc.checkCompletion')}
     </button>
   );
 }
@@ -17,15 +19,15 @@ function SubmitBtn() {
  * and see which have a completed VOC and which are still outstanding.
  */
 export function VocLookup() {
+  const t = useT();
   const [state, action] = useFormState(vocLookupAction, {} as Awaited<ReturnType<typeof vocLookupAction>>);
   const result = state.result;
 
   return (
     <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-      <h3 className="text-base font-bold text-gray-900">Check VOC completion</h3>
+      <h3 className="text-base font-bold text-gray-900">{t('reportsUi.voc.heading')}</h3>
       <p className="mt-0.5 text-xs text-gray-500">
-        Paste HD Lead #s (one per line, or comma/space separated) and/or upload a list (.xlsx, .csv, .txt). We’ll show
-        which have a completed VOC.
+        {t('reportsUi.voc.description')}
       </p>
       <form action={action} className="mt-3 space-y-3">
         <textarea
@@ -49,19 +51,18 @@ export function VocLookup() {
       {result && (
         <div className="mt-4">
           <p className="mb-2 text-sm text-gray-700">
-            <span className="font-semibold text-emerald-700">{result.completedCount} completed</span> ·{' '}
-            <span className="font-semibold text-amber-700">{result.outstandingCount} outstanding</span> of {result.total}{' '}
-            checked
+            <span className="font-semibold text-emerald-700">{t('reportsUi.voc.completedCount', { n: result.completedCount })}</span> ·{' '}
+            <span className="font-semibold text-amber-700">{t('reportsUi.voc.outstandingCount', { n: result.outstandingCount })}</span> {t('reportsUi.voc.ofChecked', { n: result.total })}
           </p>
           <div className="overflow-x-auto rounded-lg border border-gray-200">
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="border-b-2 border-[#123448]/30 bg-[#eef3f6] text-left text-[11px] uppercase tracking-wide text-[#123448]">
-                  <th className="px-4 py-2.5">Lead #</th>
-                  <th className="px-4 py-2.5">VOC done?</th>
-                  <th className="px-4 py-2.5">Date</th>
-                  <th className="px-4 py-2.5">Office</th>
-                  <th className="px-4 py-2.5">Sales rep</th>
+                  <th className="px-4 py-2.5">{t('reportsUi.voc.colLead')}</th>
+                  <th className="px-4 py-2.5">{t('reportsUi.voc.colVocDone')}</th>
+                  <th className="px-4 py-2.5">{t('reportsUi.voc.colDate')}</th>
+                  <th className="px-4 py-2.5">{t('reportsUi.common.office')}</th>
+                  <th className="px-4 py-2.5">{t('reportsUi.voc.colSalesRep')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -70,9 +71,9 @@ export function VocLookup() {
                     <td className="px-4 py-2 font-mono text-xs text-gray-700">{r.ref}</td>
                     <td className="px-4 py-2">
                       {r.completed ? (
-                        <span className="font-semibold text-emerald-700">✓ Yes</span>
+                        <span className="font-semibold text-emerald-700">{t('reportsUi.voc.yes')}</span>
                       ) : (
-                        <span className="font-semibold text-amber-700">— Not yet</span>
+                        <span className="font-semibold text-amber-700">{t('reportsUi.voc.notYet')}</span>
                       )}
                     </td>
                     <td className="px-4 py-2 text-gray-600">{r.submissionDate ?? '—'}</td>

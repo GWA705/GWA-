@@ -2,12 +2,14 @@
 
 import { useFormState, useFormStatus } from 'react-dom';
 import { importVocAction } from '../actions';
+import { useT } from '@/i18n/client';
 
 function SubmitBtn() {
+  const t = useT();
   const { pending } = useFormStatus();
   return (
     <button type="submit" className="btn-primary text-sm disabled:opacity-60" disabled={pending}>
-      {pending ? 'Importing…' : 'Import VOC file'}
+      {pending ? t('reportsUi.voc.importing') : t('reportsUi.voc.importFile')}
     </button>
   );
 }

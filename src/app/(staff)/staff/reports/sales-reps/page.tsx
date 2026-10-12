@@ -8,15 +8,16 @@ import { journalUnitsByRep, repKey } from '@/lib/reporting/salespersonLeaderboar
 import { listReportOffices } from '@/lib/reporting/monthly';
 import { SalesRepReport, type RepStat } from '@/components/reporting/SalesRepReport';
 import { ReportHeader, ReportStamp, reportGeneratedLabel } from '@/components/reporting/kit';
+import { getT } from '@/i18n/server';
 import type { ApplicationStatus } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
 
 const APPROVED: ApplicationStatus[] = ['CONDITIONAL', 'APPROVED', 'DOCS_SENT', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW', 'FUNDED'];
 const RANGES = [
-  { key: 'all', label: 'All time' },
-  { key: 'ytd', label: 'Year to date' },
-  { key: '12m', label: 'Last 12 months' },
+  { key: 'all', labelKey: 'reportsUi.salesReps.rangeAll' },
+  { key: 'ytd', labelKey: 'reportsUi.salesReps.rangeYtd' },
+  { key: '12m', labelKey: 'reportsUi.salesReps.range12m' },
 ] as const;
 type RangeKey = (typeof RANGES)[number]['key'];
 
@@ -37,19 +38,20 @@ export default async function StaffSalesRepsPage({ searchParams }: { searchParam
   const user = await requireRole('REVIEWER', 'ADMIN');
   if (!isAdmin(user) || !(await canViewReportsArea(user))) notFound();
 
+  const t = getT();
   const offices = await listReportOffices();
   if (offices.length === 0) {
     return (
       <div className="space-y-5">
-        <Link href="/staff/reports" className="text-sm text-gray-500 hover:underline">← All reports</Link>
-        <p className="text-sm text-gray-500">No offices have any stores yet.</p>
+        <Link href="/staff/reports" className="text-sm text-gray-500 hover:underline">{t('reportsUi.common.backAllReports')}</Link>
+        <p className="text-sm text-gray-500">{t('reportsUi.salesReps.noOffices')}</p>
       </div>
     );
   }
   const officeId = offices.some((o) => o.dealerId === searchParams.office) ? (searchParams.office as string) : offices[0].dealerId;
   const officeName = offices.find((o) => o.dealerId === officeId)?.name ?? '';
   const range = (RANGES.some((r) => r.key === searchParams.range) ? searchParams.range : '12m') as RangeKey;
-  const rangeLabel = RANGES.find((r) => r.key === range)!.label;
+  const rangeLabel = t(RANGES.find((r) => r.key === range)!.labelKey);
   const cut = cutoffYm(range);
 
   const rows = (await reportDataset({ dealerIds: [officeId] })).filter(
@@ -79,11 +81,11 @@ export default async function StaffSalesRepsPage({ searchParams }: { searchParam
 
   return (
     <div className="space-y-5">
-      <Link href="/staff/reports" className="text-sm text-gray-500 hover:underline">← All reports</Link>
+      <Link href="/staff/reports" className="text-sm text-gray-500 hover:underline">{t('reportsUi.common.backAllReports')}</Link>
 
       <form method="GET" className="flex flex-wrap items-end gap-3">
         <div>
-          <label className="label" htmlFor="office">Office</label>
+          <label className="label" htmlFor="office">{t('reportsUi.common.office')}</label>
           <select id="office" name="office" defaultValue={officeId} className="input min-w-[200px]">
             {offices.map((o) => (
               <option key={o.dealerId} value={o.dealerId}>{o.name}</option>
@@ -91,19 +93,19 @@ export default async function StaffSalesRepsPage({ searchParams }: { searchParam
           </select>
         </div>
         <div>
-          <label className="label" htmlFor="range">Range</label>
+          <label className="label" htmlFor="range">{t('reportsUi.salesReps.range')}</label>
           <select id="range" name="range" defaultValue={range} className="input min-w-[160px]">
             {RANGES.map((r) => (
-              <option key={r.key} value={r.key}>{r.label}</option>
+              <option key={r.key} value={r.key}>{t(r.labelKey)}</option>
             ))}
           </select>
         </div>
-        <button type="submit" className="btn-primary h-10">View</button>
+        <button type="submit" className="btn-primary h-10">{t('common.view')}</button>
       </form>
 
-      <ReportHeader org={officeName} title="Sales reps" generated={`Generated ${reportGeneratedLabel()}`} />
+      <ReportHeader org={officeName} title={t('reportsUi.salesReps.title')} generated={t('reportsUi.common.generated', { date: reportGeneratedLabel() })} />
       <SalesRepReport reps={reps} rangeLabel={rangeLabel} />
-      <ReportStamp brand="Georgian Water & Air" generated={`Generated ${reportGeneratedLabel()}`} />
+      <ReportStamp brand="Georgian Water & Air" generated={t('reportsUi.common.generated', { date: reportGeneratedLabel() })} />
     </div>
   );
 }

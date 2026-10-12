@@ -331,7 +331,7 @@ export function DealerCalculator({ defaultProvince = 'ON' }: { defaultProvince?:
 
       {/* Printable receipt (hidden on screen) */}
       {(r?.ok || showActual) && (
-        <Receipt r={r?.ok ? r : null} customer={customer} reference={reference} deal={deal} actual={showActual} />
+        <Receipt r={r?.ok ? r : null} customer={customer} reference={reference} deal={deal} actual={showActual} t={t} />
       )}
     </div>
   );
@@ -431,13 +431,14 @@ function BreakdownTable({ r, t }: { r: PayoutBreakdown; t: TFunction }) {
    For a fully-paid deal (actual=true) this prints the confirmed payout that
    Georgian Water & Air actually paid; otherwise it prints the estimate. */
 function Receipt({
-  r, customer, reference, deal, actual,
+  r, customer, reference, deal, actual, t,
 }: {
   r: PayoutBreakdown | null;
   customer: string;
   reference: string;
   deal: DealMatch | null;
   actual: boolean;
+  t: TFunction;
 }) {
   const details: [string, string | null][] = [
     ['Customer', customer || null],
@@ -454,7 +455,7 @@ function Receipt({
     <div className="print-only" style={{ padding: '24px', color: '#111', fontFamily: 'system-ui, sans-serif' }}>
       <div style={{ borderBottom: '2px solid #0e2b5c', paddingBottom: '10px', marginBottom: '16px' }}>
         <div style={{ fontSize: '18px', fontWeight: 800, color: '#0e2b5c' }}>Georgian Water &amp; Air</div>
-        <div style={{ fontSize: '13px', color: '#555' }}>Dealer Sale &amp; Payout Receipt</div>
+        <div style={{ fontSize: '13px', color: '#555' }}>{t('staffMisc.calc.receiptTitle')}</div>
         <div style={{ fontSize: '11px', color: '#888', marginTop: '2px' }}>Printed {new Date().toLocaleDateString('en-CA', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
       </div>
 
@@ -471,7 +472,7 @@ function Receipt({
 
       {actual && deal?.actualPayout != null ? (
         <>
-          <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: '#666', marginBottom: '4px' }}>Payment</div>
+          <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: '#666', marginBottom: '4px' }}>{t('staffMisc.calc.payment')}</div>
           <table style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse' }}>
             <tbody>
               {[
@@ -485,7 +486,7 @@ function Receipt({
                 </tr>
               ))}
               <tr style={{ borderTop: '2px solid #0f7a4d' }}>
-                <td style={{ padding: '6px 0', fontWeight: 800, color: '#0f7a4d' }}>PAYOUT PAID</td>
+                <td style={{ padding: '6px 0', fontWeight: 800, color: '#0f7a4d' }}>{t('staffMisc.calc.payoutPaid')}</td>
                 <td style={{ padding: '6px 0', textAlign: 'right', fontWeight: 800, color: '#0f7a4d' }}>{money(deal.actualPayout)}</td>
               </tr>
             </tbody>
@@ -496,7 +497,7 @@ function Receipt({
         </>
       ) : r ? (
         <>
-          <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: '#666', marginBottom: '4px' }}>Payout breakdown</div>
+          <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: '#666', marginBottom: '4px' }}>{t('staffMisc.calc.payoutBreakdown')}</div>
           <table style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse' }}>
             <tbody>
               {[
@@ -516,7 +517,7 @@ function Receipt({
                 </tr>
               ))}
               <tr style={{ borderTop: '2px solid #0f7a4d' }}>
-                <td style={{ padding: '6px 0', fontWeight: 800, color: '#0f7a4d' }}>TOTAL EFT PAYOUT</td>
+                <td style={{ padding: '6px 0', fontWeight: 800, color: '#0f7a4d' }}>{t('staffMisc.calc.totalEftPayout')}</td>
                 <td style={{ padding: '6px 0', textAlign: 'right', fontWeight: 800, color: '#0f7a4d' }}>{money(r.payout)}</td>
               </tr>
             </tbody>

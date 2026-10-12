@@ -6,6 +6,7 @@ import { isAdmin } from '@/lib/rbac';
 import { canViewReportsArea } from '@/lib/reporting/access';
 import { listReportOffices, ALL_OFFICES } from '@/lib/reporting/monthly';
 import { ReportHeader, ReportStamp, reportGeneratedLabel } from '@/components/reporting/kit';
+import { getT } from '@/i18n/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,29 +28,30 @@ export default async function StaffAccountingPage({ searchParams }: { searchPara
   const user = await requireRole('REVIEWER', 'ADMIN');
   if (!isAdmin(user) || !(await canViewReportsArea(user))) notFound();
 
+  const t = getT();
   const offices = await listReportOffices();
-  const choices = [{ dealerId: ALL_OFFICES, name: 'All offices' }, ...offices];
+  const choices = [{ dealerId: ALL_OFFICES, name: t('reportsUi.common.allOffices') }, ...offices];
   const officeId = choices.some((o) => o.dealerId === searchParams.office) ? (searchParams.office as string) : ALL_OFFICES;
-  const officeName = choices.find((o) => o.dealerId === officeId)?.name ?? 'All offices';
+  const officeName = choices.find((o) => o.dealerId === officeId)?.name ?? t('reportsUi.common.allOffices');
 
   return (
     <div className="space-y-5">
-      <Link href="/staff/reports" className="text-sm text-gray-500 hover:underline">← All reports</Link>
+      <Link href="/staff/reports" className="text-sm text-gray-500 hover:underline">{t('reportsUi.common.backAllReports')}</Link>
 
       {/* Office selector (reloads the page so the download targets this office) */}
       <form method="GET" className="flex flex-wrap items-end gap-3">
         <div>
-          <label className="label" htmlFor="office">Office</label>
+          <label className="label" htmlFor="office">{t('reportsUi.common.office')}</label>
           <select id="office" name="office" defaultValue={officeId} className="input min-w-[200px]">
             {choices.map((o) => (
               <option key={o.dealerId} value={o.dealerId}>{o.name}</option>
             ))}
           </select>
         </div>
-        <button type="submit" className="btn-secondary h-10">Choose</button>
+        <button type="submit" className="btn-secondary h-10">{t('reportsUi.accounting.choose')}</button>
       </form>
 
-      <ReportHeader org={officeName} title="Accounting export" generated={`Generated ${reportGeneratedLabel()}`} />
+      <ReportHeader org={officeName} title={t('reportsUi.accounting.title')} generated={t('reportsUi.common.generated', { date: reportGeneratedLabel() })} />
 
       <section className="card p-6">
         <div className="mb-4 flex items-start gap-3">
@@ -57,10 +59,9 @@ export default async function StaffAccountingPage({ searchParams }: { searchPara
             <FileSpreadsheet size={22} />
           </span>
           <div>
-            <h2 className="text-base font-bold text-gray-900 dark:text-slate-100">Payout CSV — {officeName}</h2>
+            <h2 className="text-base font-bold text-gray-900 dark:text-slate-100">{t('reportsUi.accounting.payoutCsv', { office: officeName })}</h2>
             <p className="text-sm text-gray-500">
-              One row per deal with the full EFT payout breakdown, for an accounting team to reconcile. Pick a date
-              range and download.
+              {t('reportsUi.accounting.description')}
             </p>
           </div>
         </div>
@@ -68,18 +69,18 @@ export default async function StaffAccountingPage({ searchParams }: { searchPara
         <form action="/api/dealer/accounting-export" method="get" className="flex flex-wrap items-end gap-3">
           {officeId !== ALL_OFFICES && <input type="hidden" name="dealerId" value={officeId} />}
           <div>
-            <label className="label" htmlFor="from">From</label>
+            <label className="label" htmlFor="from">{t('reportsUi.common.from')}</label>
             <input type="date" id="from" name="from" defaultValue={firstOfMonth()} className="input" />
           </div>
           <div>
-            <label className="label" htmlFor="to">To</label>
+            <label className="label" htmlFor="to">{t('reportsUi.common.to')}</label>
             <input type="date" id="to" name="to" defaultValue={today()} className="input" />
           </div>
-          <button type="submit" className="btn-primary h-10">Download CSV</button>
+          <button type="submit" className="btn-primary h-10">{t('reportsUi.accounting.downloadCsv')}</button>
         </form>
       </section>
 
-      <ReportStamp brand="Georgian Water & Air" generated={`Generated ${reportGeneratedLabel()}`} />
+      <ReportStamp brand="Georgian Water & Air" generated={t('reportsUi.common.generated', { date: reportGeneratedLabel() })} />
     </div>
   );
 }

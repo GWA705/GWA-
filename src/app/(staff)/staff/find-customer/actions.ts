@@ -10,6 +10,7 @@ import { isGlobalSearchEnabled } from '@/lib/settings';
 import { canSearchAllCustomers } from '@/lib/customerSearch';
 import { normalizeCallPhone } from '@/lib/customerCalls';
 import { getOverride, appOverrideKey, overlay } from '@/lib/customerOverride';
+import { getT } from '@/i18n/server';
 
 export interface MsgState {
   ok?: boolean;
@@ -22,11 +23,12 @@ export interface MsgState {
  * that the customer called and what about.
  */
 export async function messageOfficeAction(applicationId: string, _prev: MsgState, formData: FormData): Promise<MsgState> {
+  const t = getT();
   const user = await requireRole('REVIEWER', 'ADMIN');
-  if (!(await isGlobalSearchEnabled()) || !(await canSearchAllCustomers(user))) return { error: 'You don’t have access to do this.' };
+  if (!(await isGlobalSearchEnabled()) || !(await canSearchAllCustomers(user))) return { error: t('actionMsg.findCustomer.noAccess') };
 
   const message = String(formData.get('message') || '').trim();
-  if (message.length < 2) return { error: 'Write a message for the office.' };
+  if (message.length < 2) return { error: t('actionMsg.findCustomer.writeMessageForOffice') };
 
   const card = findCardData(message);
   if (card.blocked) {
@@ -35,7 +37,7 @@ export async function messageOfficeAction(applicationId: string, _prev: MsgState
   }
 
   const app = await prisma.application.findUnique({ where: { id: applicationId }, select: { id: true } });
-  if (!app) return { error: 'Customer not found.' };
+  if (!app) return { error: t('actionMsg.findCustomer.customerNotFound') };
 
   await prisma.note.create({
     data: { applicationId, authorId: user.userId, body: `📞 Customer called GWA — ${message}`, internal: false },
@@ -57,19 +59,20 @@ export interface CallState {
  * path as messageOfficeAction (and stamps the call as forwarded).
  */
 export async function logCustomerCallAction(applicationId: string, _prev: CallState, formData: FormData): Promise<CallState> {
+  const t = getT();
   const user = await requireRole('REVIEWER', 'ADMIN');
-  if (!(await isGlobalSearchEnabled()) || !(await canSearchAllCustomers(user))) return { error: 'You don’t have access to do this.' };
+  if (!(await isGlobalSearchEnabled()) || !(await canSearchAllCustomers(user))) return { error: t('actionMsg.findCustomer.noAccess') };
 
   const note = String(formData.get('note') || '').trim();
   const forward = String(formData.get('forward') || '') === 'on';
-  if (note.length < 2) return { error: 'Add a short note about the call.' };
-  if (note.length > 2000) return { error: 'Note is too long.' };
+  if (note.length < 2) return { error: t('actionMsg.findCustomer.addCallNote') };
+  if (note.length > 2000) return { error: t('actionMsg.findCustomer.noteTooLong') };
 
   const app = await prisma.application.findUnique({
     where: { id: applicationId },
     select: { id: true, applicantFirstName: true, applicantLastName: true, applicantPhone: true, dealerId: true },
   });
-  if (!app) return { error: 'Customer not found.' };
+  if (!app) return { error: t('actionMsg.findCustomer.customerNotFound') };
 
   // Only block card data when the note will leave our walls (forwarded to the office).
   if (forward) {
@@ -124,14 +127,15 @@ export async function logCustomerCallAction(applicationId: string, _prev: CallSt
  * forwarded, and is idempotent (a second click is a no-op).
  */
 export async function forwardCustomerCallAction(callId: string): Promise<CallState> {
+  const t = getT();
   const user = await requireRole('REVIEWER', 'ADMIN');
-  if (!(await isGlobalSearchEnabled()) || !(await canSearchAllCustomers(user))) return { error: 'You don’t have access to do this.' };
+  if (!(await isGlobalSearchEnabled()) || !(await canSearchAllCustomers(user))) return { error: t('actionMsg.findCustomer.noAccess') };
 
   const call = await prisma.customerCall.findUnique({
     where: { id: callId },
     select: { id: true, note: true, applicationId: true, forwardedToOfficeAt: true, application: { select: { dealerId: true } } },
   });
-  if (!call) return { error: 'Call not found.' };
+  if (!call) return { error: t('actionMsg.findCustomer.callNotFound') };
   if (call.forwardedToOfficeAt) return { ok: true }; // already forwarded
 
   const card = findCardData(call.note);

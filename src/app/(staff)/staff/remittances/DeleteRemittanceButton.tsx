@@ -1,23 +1,23 @@
 'use client';
 
+import { useT } from '@/i18n/client';
 import { deleteRemittanceAction } from './actions';
 
 export function DeleteRemittanceButton({ id, docNumber }: { id: string; docNumber: string | null }) {
+  const t = useT();
   return (
     <form
       action={deleteRemittanceAction.bind(null, id)}
       onSubmit={(e) => {
         if (
-          !confirm(
-            `Delete remittance ${docNumber ?? '(manual)'}?\n\nThis removes the record and its lines. Deals that were already funded stay funded — this only clears the remittance bookkeeping. Use it to remove a duplicate or a mistaken entry.`,
-          )
+          !confirm(t('remit.delete.confirm', { doc: docNumber ?? t('remit.manualTag') }))
         ) {
           e.preventDefault();
         }
       }}
     >
       <button type="submit" className="btn-secondary text-sm !text-red-700 hover:!bg-red-50">
-        Delete remittance
+        {t('remit.delete.button')}
       </button>
     </form>
   );

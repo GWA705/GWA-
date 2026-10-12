@@ -129,11 +129,9 @@ export default async function JournalConnectionPage() {
       {admin && (
         <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
           <div className="border-b border-gray-100 px-5 py-3">
-            <h2 className="text-sm font-semibold text-gray-900">Customer search archive (database)</h2>
+            <h2 className="text-sm font-semibold text-gray-900">{t('reportsUi.connection.archiveHeading')}</h2>
             <p className="mt-1 text-xs text-gray-500">
-              Upload each closed year’s journal into the database so office customer search is fast and reliable
-              (no live sheet read per search). Re-sync a year to pull in any later edits. The current year
-              ({currentYear}) always stays a live read and isn’t archived.
+              {t('reportsUi.connection.archiveIntro', { year: currentYear })}
             </p>
           </div>
           <ArchiveControls rows={archiveRows} />

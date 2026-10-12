@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireStaffSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
+import { getT } from '@/i18n/server';
 import { DeleteRemittanceButton } from '../DeleteRemittanceButton';
 
 export const dynamic = 'force-dynamic';
@@ -17,6 +18,7 @@ const CHIP: Record<string, string> = {
 
 export default async function RemittanceDetailPage({ params }: { params: { id: string } }) {
   await requireStaffSection('remittances');
+  const t = getT();
   const r = await prisma.hdRemittance.findUnique({
     where: { id: params.id },
     include: {
@@ -33,32 +35,32 @@ export default async function RemittanceDetailPage({ params }: { params: { id: s
     <div className="max-w-5xl space-y-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <Link href="/staff/remittances" className="text-sm text-gray-500 hover:underline">← All remittances</Link>
-          <h1 className="mt-2 text-xl font-semibold text-gray-900">Remittance {r.documentNumber ?? '(manual)'}</h1>
+          <Link href="/staff/remittances" className="text-sm text-gray-500 hover:underline">{t('remit.detail.backAll')}</Link>
+          <h1 className="mt-2 text-xl font-semibold text-gray-900">{t('remit.detail.title', { doc: r.documentNumber ?? t('remit.manualTag') })}</h1>
           <p className="mt-1 text-sm text-gray-500">
-            {r.source === 'MANUAL' ? 'Entered manually' : 'Received automatically'}
-            {r.processedBy?.name ? ` by ${r.processedBy.name}` : ''} · {fmt(r.createdAt)} · Payment date {fmt(r.paymentDate)}
+            {r.source === 'MANUAL' ? t('remit.detail.enteredManually') : t('remit.detail.receivedAuto')}
+            {r.processedBy?.name ? t('remit.detail.byName', { name: r.processedBy.name }) : ''} · {fmt(r.createdAt)} · {t('remit.paymentDate')} {fmt(r.paymentDate)}
           </p>
         </div>
         <DeleteRemittanceButton id={r.id} docNumber={r.documentNumber} />
       </div>
 
       <div className="flex flex-wrap gap-3 text-sm">
-        <span className="rounded-lg bg-gray-50 px-3 py-2"><span className="font-bold">{r.lineCount}</span> lines</span>
-        <span className="rounded-lg bg-green-50 px-3 py-2 text-green-800"><span className="font-bold">{r.matchedCount}</span> matched / funded</span>
-        <span className="rounded-lg bg-red-50 px-3 py-2 text-red-700"><span className="font-bold">{r.chargebackCount}</span> chargebacks</span>
-        {r.totalNet != null && <span className="rounded-lg bg-gray-900 px-3 py-2 font-bold text-white">{money(Number(r.totalNet))} net</span>}
+        <span className="rounded-lg bg-gray-50 px-3 py-2"><span className="font-bold">{r.lineCount}</span> {t('remit.detail.chipLines')}</span>
+        <span className="rounded-lg bg-green-50 px-3 py-2 text-green-800"><span className="font-bold">{r.matchedCount}</span> {t('remit.detail.chipMatched')}</span>
+        <span className="rounded-lg bg-red-50 px-3 py-2 text-red-700"><span className="font-bold">{r.chargebackCount}</span> {t('remit.detail.chipChargebacks')}</span>
+        {r.totalNet != null && <span className="rounded-lg bg-gray-900 px-3 py-2 font-bold text-white">{money(Number(r.totalNet))} {t('remit.detail.chipNet')}</span>}
       </div>
 
       <section className="card overflow-x-auto">
         <table className="min-w-full text-sm">
           <thead>
             <tr className="border-b border-gray-100 text-left text-xs uppercase tracking-wide text-gray-500">
-              <th className="px-4 py-3">HD ID #</th>
-              <th className="px-4 py-3">Customer</th>
-              <th className="px-4 py-3">Invoice date</th>
-              <th className="px-4 py-3 text-right">Amount</th>
-              <th className="px-4 py-3">Match</th>
+              <th className="px-4 py-3">{t('remit.detail.colHdId')}</th>
+              <th className="px-4 py-3">{t('remit.detail.colCustomer')}</th>
+              <th className="px-4 py-3">{t('remit.detail.colInvoiceDate')}</th>
+              <th className="px-4 py-3 text-right">{t('remit.detail.colAmount')}</th>
+              <th className="px-4 py-3">{t('remit.detail.colMatch')}</th>
               <th className="px-4 py-3"></th>
             </tr>
           </thead>
@@ -74,11 +76,11 @@ export default async function RemittanceDetailPage({ params }: { params: { id: s
                   <td className="px-4 py-3 text-gray-600">{fmt(l.invoiceDate)}</td>
                   <td className={`px-4 py-3 text-right font-medium ${amt < 0 ? 'text-red-600' : 'text-gray-900'}`}>{money(amt)}</td>
                   <td className="px-4 py-3">
-                    <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${CHIP[l.status] ?? 'bg-gray-100 text-gray-600'}`}>{l.status}</span>
-                    {l.fundedNow && <span className="ml-1 text-xs text-green-600">→ funded</span>}
+                    <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${CHIP[l.status] ?? 'bg-gray-100 text-gray-600'}`}>{t(`remit.status.${l.status}`)}</span>
+                    {l.fundedNow && <span className="ml-1 text-xs text-green-600">{t('remit.detail.fundedNow')}</span>}
                   </td>
                   <td className="px-4 py-3">
-                    {l.application && <Link href={`/staff/applications/${l.application.id}`} className="text-sm font-medium text-brand-700 hover:underline">Open deal</Link>}
+                    {l.application && <Link href={`/staff/applications/${l.application.id}`} className="text-sm font-medium text-brand-700 hover:underline">{t('remit.detail.openDeal')}</Link>}
                   </td>
                 </tr>
               );

@@ -1,4 +1,5 @@
 import { requireGiftCardAccess } from '@/lib/giftCardAccess';
+import { getT } from '@/i18n/server';
 import { SectionHero } from '@/components/SectionHero';
 import { loadGiftCardQueue } from '@/lib/giftCardQueueData';
 import { queryGiftCards, monthLabel, giftCardNotesVM } from '@/lib/giftCardHistory';
@@ -17,6 +18,7 @@ export default async function StaffGiftCardsPage({
   searchParams: { q?: string; status?: string; month?: string; sort?: string; perPage?: string; page?: string };
 }) {
   await requireGiftCardAccess();
+  const t = getT();
   const [{ pending, flagged }, history] = await Promise.all([
     loadGiftCardQueue(),
     queryGiftCards({ ...searchParams, includeNotes: true }),
@@ -39,9 +41,9 @@ export default async function StaffGiftCardsPage({
   return (
     <div className="space-y-6">
       <SectionHero
-        eyebrow="Rewards"
-        title="Water-test gift cards"
-        subtitle="Dealers submit a customer and $25 card amount for each completed water test. All HD gift cards go out through Guusto for safe, trackable delivery to the customer. Copy the selected emails (or CSV) into Guusto, send, then mark them sent — that stamps a dated receipt back to the dealer."
+        eyebrow={t('staffMisc.giftCards.eyebrow')}
+        title={t('staffMisc.giftCards.title')}
+        subtitle={t('staffMisc.giftCards.subtitle')}
       />
 
       <StaffFlaggedGiftCards flagged={flagged} />

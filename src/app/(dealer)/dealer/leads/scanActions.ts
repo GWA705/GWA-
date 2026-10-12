@@ -10,6 +10,7 @@ import { resolveDealerIdForStore, getScannedLeadForViewer } from '@/lib/scannedL
 import { pushLeadToBooking, pushScannedStatusToBooking, coarseFromScannedStatus } from '@/lib/bookingPush';
 import { enqueueLeadText, provinceFromPostalCode, cancelLeadFollowups } from '@/lib/leadText';
 import { newBookingToken } from '@/lib/leadBooking';
+import { getT } from '@/i18n/server';
 
 export interface ScanSaveState { ok?: boolean; error?: string; id?: string }
 
@@ -40,19 +41,20 @@ const STATUSES = ['NEW', 'CONTACTED', 'NO_GOOD'];
  * the card's store number when it maps to a dealer, else it stays unassigned.
  */
 export async function createScannedLeadAction(_prev: ScanSaveState, fd: FormData): Promise<ScanSaveState> {
+  const t = getT();
   const user = await getSession();
-  if (!user) return { error: 'Please sign in again.' };
+  if (!user) return { error: t('actionMsg.scan.signInAgain') };
   // An admin "viewing as" a dealer saves to THAT office (not by store lookup), so
   // the card lands where the impersonated dealer would put it.
   const staff = isInternalRole(user.role) && !user.impersonating;
-  if (!staff && !user.dealerId) return { error: 'Your account can’t save lead cards.' };
+  if (!staff && !user.dealerId) return { error: t('actionMsg.scan.cannotSaveLeadCards') };
 
   const storeNumber = str(fd, 'storeNumber');
   const dealerId = staff ? await resolveDealerIdForStore(storeNumber) : user.dealerId ?? null;
 
   const customerName = str(fd, 'customerName');
   const phone = str(fd, 'phone');
-  if (!customerName && !phone) return { error: 'Enter at least a name or a phone number.' };
+  if (!customerName && !phone) return { error: t('actionMsg.scan.enterNameOrPhone') };
 
   // Store the primary photo (best-effort — a storage hiccup shouldn't lose the lead).
   let photoStorageKey: string | null = null;
@@ -155,14 +157,15 @@ export async function createScannedLeadAction(_prev: ScanSaveState, fd: FormData
  * staff) may edit.
  */
 export async function updateScannedLeadAction(id: string, fd: FormData): Promise<ScanSaveState> {
+  const t = getT();
   const user = await getSession();
-  if (!user) return { error: 'Please sign in again.' };
+  if (!user) return { error: t('actionMsg.scan.signInAgain') };
   const lead = await getScannedLeadForViewer(id, user);
-  if (!lead) return { error: 'Not found.' };
+  if (!lead) return { error: t('actionMsg.notFound') };
 
   const customerName = str(fd, 'customerName');
   const phone = str(fd, 'phone');
-  if (!customerName && !phone) return { error: 'Enter at least a name or a phone number.' };
+  if (!customerName && !phone) return { error: t('actionMsg.scan.enterNameOrPhone') };
 
   await prisma.scannedLead.update({
     where: { id },
@@ -199,11 +202,12 @@ export async function updateScannedLeadAction(id: string, fd: FormData): Promise
 
 /** Update a scanned lead's follow-up status (NEW / CONTACTED / NO_GOOD). */
 export async function setScannedLeadStatusAction(id: string, status: string): Promise<{ error?: string }> {
+  const t = getT();
   const user = await getSession();
-  if (!user) return { error: 'Please sign in again.' };
-  if (!STATUSES.includes(status)) return { error: 'Unknown status.' };
+  if (!user) return { error: t('actionMsg.scan.signInAgain') };
+  if (!STATUSES.includes(status)) return { error: t('actionMsg.scan.unknownStatus') };
   const lead = await getScannedLeadForViewer(id, user);
-  if (!lead) return { error: 'Not found.' };
+  if (!lead) return { error: t('actionMsg.notFound') };
   await prisma.scannedLead.update({ where: { id }, data: { status } });
   // Once a lead is worked (contacted or marked no-good), cancel its pending
   // follow-up texts so we never nudge a customer a booker already reached.
@@ -219,10 +223,11 @@ export async function setScannedLeadStatusAction(id: string, status: string): Pr
 
 /** Remove a scanned lead (its owning office, or any GWA staff). */
 export async function deleteScannedLeadAction(id: string): Promise<{ error?: string }> {
+  const t = getT();
   const user = await getSession();
-  if (!user) return { error: 'Please sign in again.' };
+  if (!user) return { error: t('actionMsg.scan.signInAgain') };
   const lead = await getScannedLeadForViewer(id, user);
-  if (!lead) return { error: 'Not found.' };
+  if (!lead) return { error: t('actionMsg.notFound') };
   await prisma.scannedLead.delete({ where: { id } });
   await audit({ actorId: user.userId, action: 'STATUS_CHANGE', entityType: 'ScannedLead', entityId: id, detail: 'Scanned lead deleted' });
   revalidatePath('/dealer/leads');

@@ -44,7 +44,7 @@ export default async function OfficeRangeReportPage({
   const to = searchParams.to && valid.has(searchParams.to) ? searchParams.to : thisYm;
   const from = searchParams.from && valid.has(searchParams.from) ? searchParams.from : janYm;
 
-  const officeChoices = [{ dealerId: ALL_OFFICES, name: 'All offices' }, ...offices];
+  const officeChoices = [{ dealerId: ALL_OFFICES, name: t('reportsUi.common.allOffices') }, ...offices];
   const officeId = officeChoices.some((o) => o.dealerId === searchParams.office)
     ? (searchParams.office as string)
     : ALL_OFFICES;
@@ -65,7 +65,7 @@ export default async function OfficeRangeReportPage({
           </select>
         </div>
         <div>
-          <label className="label" htmlFor="from">From</label>
+          <label className="label" htmlFor="from">{t('reportsUi.common.from')}</label>
           <select id="from" name="from" defaultValue={from} className="input min-w-[160px]">
             {months.map((m) => (
               <option key={m.value} value={m.value}>{m.label}</option>
@@ -73,7 +73,7 @@ export default async function OfficeRangeReportPage({
           </select>
         </div>
         <div>
-          <label className="label" htmlFor="to">To</label>
+          <label className="label" htmlFor="to">{t('reportsUi.common.to')}</label>
           <select id="to" name="to" defaultValue={to} className="input min-w-[160px]">
             {months.map((m) => (
               <option key={m.value} value={m.value}>{m.label}</option>

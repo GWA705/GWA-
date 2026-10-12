@@ -64,9 +64,9 @@ function minutesSince(d: Date): number {
   return Math.floor((Date.now() - d.getTime()) / 60_000);
 }
 
-function waitLabel(d: Date): string {
+function waitLabel(d: Date, t: TFunction): string {
   const mins = minutesSince(d);
-  if (mins < 1) return 'just now';
+  if (mins < 1) return t('staffMisc.home.justNow');
   if (mins < 60) return `${mins}m`;
   const hrs = Math.floor(mins / 60);
   const remM = mins % 60;
@@ -92,17 +92,17 @@ function toneFor(status: ApplicationStatus): Tone {
 }
 
 // The "what changed" chip for the Updates lane.
-function activityFor(a: Deal): { label: string; tone: Tone } | null {
+function activityFor(a: Deal, t: TFunction): { label: string; tone: Tone } | null {
   if (!needsAttention(a)) return null;
-  if (a.status === 'PROBLEM') return { label: 'Problem', tone: 'prob' };
+  if (a.status === 'PROBLEM') return { label: t('staffMisc.home.act.problem'), tone: 'prob' };
   switch (a.lastDealerActionKind) {
-    case 'FUNDING': return { label: 'Funding ready', tone: 'fund' };
-    case 'DOCUMENT': return { label: 'New document', tone: 'review' };
-    case 'NOTE': return { label: 'New note', tone: 'note' };
-    case 'SUBMITTED': return { label: 'New deal', tone: 'new' };
+    case 'FUNDING': return { label: t('staffMisc.home.act.fundingReady'), tone: 'fund' };
+    case 'DOCUMENT': return { label: t('staffMisc.home.act.newDocument'), tone: 'review' };
+    case 'NOTE': return { label: t('staffMisc.home.act.newNote'), tone: 'note' };
+    case 'SUBMITTED': return { label: t('staffMisc.home.act.newDeal'), tone: 'new' };
     default:
-      if (a.status === 'FUNDING_SUBMITTED') return { label: 'Funding ready', tone: 'fund' };
-      return { label: 'Update', tone: 'decl' };
+      if (a.status === 'FUNDING_SUBMITTED') return { label: t('staffMisc.home.act.fundingReady'), tone: 'fund' };
+      return { label: t('staffMisc.home.act.update'), tone: 'decl' };
   }
 }
 
@@ -111,19 +111,19 @@ function fmtAmount(a: Deal): string {
 }
 
 // The one plain-language action a deal needs (Priority view chip).
-function actionFor(a: Deal): { label: string; tone: Tone } {
-  if (isPaid(a)) return { label: 'Paid — done', tone: 'paid' };
-  if (a.status === 'PROBLEM') return { label: 'Fix problem', tone: 'prob' };
-  if (NEW_STATUSES.includes(a.status)) return { label: 'Approve', tone: 'new' };
+function actionFor(a: Deal, t: TFunction): { label: string; tone: Tone } {
+  if (isPaid(a)) return { label: t('staffMisc.home.action.paidDone'), tone: 'paid' };
+  if (a.status === 'PROBLEM') return { label: t('staffMisc.home.action.fixProblem'), tone: 'prob' };
+  if (NEW_STATUSES.includes(a.status)) return { label: t('staffMisc.home.action.approve'), tone: 'new' };
   if (needsAttention(a)) {
     switch (a.lastDealerActionKind) {
-      case 'DOCUMENT': return { label: 'Review docs', tone: 'review' };
-      case 'NOTE': return { label: 'Reply', tone: 'note' };
-      case 'FUNDING': return { label: 'Fund', tone: 'fund' };
+      case 'DOCUMENT': return { label: t('staffMisc.home.action.reviewDocs'), tone: 'review' };
+      case 'NOTE': return { label: t('staffMisc.home.action.reply'), tone: 'note' };
+      case 'FUNDING': return { label: t('staffMisc.home.action.fund'), tone: 'fund' };
       default:
         return a.status === 'FUNDING_SUBMITTED'
-          ? { label: 'Fund', tone: 'fund' }
-          : { label: 'Review', tone: 'review' };
+          ? { label: t('staffMisc.home.action.fund'), tone: 'fund' }
+          : { label: t('staffMisc.home.action.review'), tone: 'review' };
     }
   }
   // Not on the reviewer's desk right now — name the actual stage instead of a
@@ -132,23 +132,23 @@ function actionFor(a: Deal): { label: string; tone: Tone } {
     case 'APPROVED':
     case 'CONDITIONAL':
     case 'DOCS_SENT':
-      return { label: 'Awaiting install', tone: 'decl' }; // ball is with the dealer
+      return { label: t('staffMisc.home.action.awaitingInstall'), tone: 'decl' }; // ball is with the dealer
     case 'FUNDING_SUBMITTED':
-      return { label: 'Verify & fund', tone: 'fund' };
+      return { label: t('staffMisc.home.action.verifyFund'), tone: 'fund' };
     case 'FUNDING_REVIEW':
-      return { label: 'In for funding', tone: 'fund' }; // submitted to the funder
+      return { label: t('staffMisc.home.action.inForFunding'), tone: 'fund' }; // submitted to the funder
     case 'FUNDED':
-      return { label: 'Pay dealer', tone: 'fund' };
+      return { label: t('staffMisc.home.action.payDealer'), tone: 'fund' };
     default:
-      return { label: 'In progress', tone: 'decl' };
+      return { label: t('staffMisc.home.action.inProgress'), tone: 'decl' };
   }
 }
 
 function toRow(a: Deal, t: TFunction): QueueRow {
   const attention = needsAttention(a);
   const since = waitingSince(a);
-  const activity = activityFor(a);
-  const action = actionFor(a);
+  const activity = activityFor(a, t);
+  const action = actionFor(a, t);
   return {
     id: a.id,
     applicant: `${a.applicantFirstName} ${a.applicantLastName}`,
@@ -157,12 +157,12 @@ function toRow(a: Deal, t: TFunction): QueueRow {
     programType: a.programType,
     programCategory: programCategoryLabel(t, a.programCategory),
     amount: fmtAmount(a),
-    statusLabel: isPaid(a) ? 'Paid' : STATUS_LABELS_SHORT[a.status] ?? a.status,
+    statusLabel: isPaid(a) ? t('staffMisc.home.paid') : STATUS_LABELS_SHORT[a.status] ?? a.status,
     tone: isPaid(a) ? 'paid' : toneFor(a.status),
     paid: isPaid(a),
     activityLabel: activity?.label ?? null,
     activityTone: activity?.tone ?? null,
-    waitLabel: waitLabel(since),
+    waitLabel: waitLabel(since, t),
     waitHot: attention && minutesSince(since) >= SLA_MINUTES,
     dateLabel: a.createdAt.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' }),
     actionLabel: action.label,
@@ -203,18 +203,18 @@ export default async function StaffQueue({ searchParams }: { searchParams: { q?:
     return (
       <div>
         <div className="mb-5 space-y-4">
-          <SectionHero eyebrow="Reviewer" title="Deals" subtitle="Review, approve and track every dealer submission." />
+          <SectionHero eyebrow={t('staffMisc.home.heroEyebrow')} title={t('staffMisc.home.heroTitle')} subtitle={t('staffMisc.home.heroSubtitle')} />
           <div className="flex flex-wrap items-center justify-end gap-2">
             <SearchBox action="/staff" q={q} />
             <QueueSortControl sort={sort} />
           </div>
         </div>
         <p className="mb-4 text-sm text-gray-500">
-          {rows.length} match{rows.length === 1 ? '' : 'es'} for “{q}”.{' '}
-          <Link href="/staff" className="text-brand-700 hover:underline">Back to all deals</Link>
+          {rows.length} {rows.length === 1 ? t('staffMisc.home.match') : t('staffMisc.home.matches')} {t('staffMisc.home.forQuery', { q })}{' '}
+          <Link href="/staff" className="text-brand-700 hover:underline">{t('staffMisc.home.backToAllDeals')}</Link>
         </p>
         {rows.length === 0 ? (
-          <div className="card p-8 text-center text-sm text-gray-500">No deals match “{q}”.</div>
+          <div className="card p-8 text-center text-sm text-gray-500">{t('staffMisc.home.noDealsMatch', { q })}</div>
         ) : (
           <DealTable rows={rows} kind="all" />
         )}
@@ -255,10 +255,10 @@ export default async function StaffQueue({ searchParams }: { searchParams: { q?:
   return (
     <div>
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold text-gray-900">Deals</h1>
+        <h1 className="text-xl font-semibold text-gray-900">{t('staffMisc.home.heroTitle')}</h1>
         <div className="flex flex-wrap items-center gap-2">
-          <Link href="/staff/cancellations" className="btn-secondary text-sm">🚫 Cancellations</Link>
-          <Link href="/staff/confirmations" className="btn-secondary text-sm">☎ Confirmation calls</Link>
+          <Link href="/staff/cancellations" className="btn-secondary text-sm">{t('staffMisc.home.cancellationsLink')}</Link>
+          <Link href="/staff/confirmations" className="btn-secondary text-sm">{t('staffMisc.home.confirmationsLink')}</Link>
           <SearchBox action="/staff" q={q} />
           <QueueSortControl sort={sort} />
         </div>

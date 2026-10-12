@@ -15,9 +15,10 @@ const money0 = (n: number) => `$${Math.round(n).toLocaleString('en-CA')}`;
  * global @media print rules).
  */
 export function OfficeRangeView({ report, org, orgLogoUrl }: { report: OfficeRangeReport; org?: string; orgLogoUrl?: string | null }) {
+  const t = getT();
   const { months, rows, monthTotals, grandTotal, grandCount, rangeLabel, scopeLabel, groupBy } = report;
-  const firstColHeader = groupBy === 'office' ? 'Office' : 'Store';
-  const unitLabel = groupBy === 'office' ? 'offices' : 'stores';
+  const firstColHeader = groupBy === 'office' ? t('reportsUi.common.office') : t('reportsUi.officeRange.store');
+  const unitLabel = groupBy === 'office' ? t('reportsUi.officeRange.unitOffices') : t('reportsUi.officeRange.unitStores');
   const generated = new Date().toLocaleDateString('en-CA', { year: 'numeric', month: 'long', day: 'numeric' });
 
   const monthsCount = months.length || 1;
@@ -30,7 +31,6 @@ export function OfficeRangeView({ report, org, orgLogoUrl }: { report: OfficeRan
   }
 
   const tile = (label: string, value: string, sub?: string) => <ReportTile label={label} value={value} sub={sub} />;
-  const t = getT();
 
   return (
     <div className="print-sheet space-y-5">
@@ -49,29 +49,29 @@ export function OfficeRangeView({ report, org, orgLogoUrl }: { report: OfficeRan
             )}
             <div className="text-sm font-bold uppercase tracking-wide text-gray-700">{org || 'Georgian Water & Air'}</div>
           </div>
-          <h1 className="mt-2.5 text-2xl font-bold text-gray-900">Total Sales</h1>
+          <h1 className="mt-2.5 text-2xl font-bold text-gray-900">{t('reportsUi.officeRange.title')}</h1>
           <p className="mt-0.5 text-sm text-gray-600">
-            {scopeLabel || 'All offices'} · Paid on funded deals · <span className="font-medium">{rangeLabel}</span>
+            {scopeLabel || t('reportsUi.common.allOffices')} · {t('reportsUi.officeRange.paidOnFunded')} · <span className="font-medium">{rangeLabel}</span>
           </p>
         </div>
         <div className="flex flex-col items-end gap-2">
           <ReportPrintButton />
-          <div className="text-right text-xs text-gray-400">Generated {generated}</div>
+          <div className="text-right text-xs text-gray-400">{t('reportsUi.common.generated', { date: generated })}</div>
         </div>
       </div>
 
       {/* KPI tiles */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {tile('Total sales', money(grandTotal), rangeLabel)}
-        {tile('Paid deals', grandCount.toLocaleString('en-CA'), `${activeRows} active ${unitLabel}`)}
-        {tile('Average / month', money0(avgPerMonth), `over ${months.length} month${months.length === 1 ? '' : 's'}`)}
-        {tile('Best month', bestMonth && bestMonth.total > 0 ? money0(bestMonth.total) : '—', bestMonth?.label ?? '')}
+        {tile(t('reportsUi.officeRange.tileTotalSales'), money(grandTotal), rangeLabel)}
+        {tile(t('reportsUi.officeRange.tilePaidDeals'), grandCount.toLocaleString('en-CA'), t('reportsUi.officeRange.activeUnits', { n: activeRows, unit: unitLabel }))}
+        {tile(t('reportsUi.officeRange.tileAvgMonth'), money0(avgPerMonth), t(months.length === 1 ? 'reportsUi.officeRange.overMonthOne' : 'reportsUi.officeRange.overMonthMany', { n: months.length }))}
+        {tile(t('reportsUi.officeRange.tileBestMonth'), bestMonth && bestMonth.total > 0 ? money0(bestMonth.total) : '—', bestMonth?.label ?? '')}
       </div>
 
       {/* Matrix */}
       {rows.length === 0 ? (
         <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
-          No paid deals found for {scopeLabel || 'these offices'} in {rangeLabel}.
+          {t('reportsUi.officeRange.noPaidDeals', { scope: scopeLabel || t('reportsUi.officeRange.theseOffices'), range: rangeLabel })}
         </div>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-gray-200">
@@ -82,7 +82,7 @@ export function OfficeRangeView({ report, org, orgLogoUrl }: { report: OfficeRan
                 {months.map((m) => (
                   <th key={m.ym} className="px-4 py-3 text-right">{m.label}</th>
                 ))}
-                <th className="px-4 py-3 text-right font-bold">Total</th>
+                <th className="px-4 py-3 text-right font-bold">{t('reportsUi.common.total')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -103,7 +103,7 @@ export function OfficeRangeView({ report, org, orgLogoUrl }: { report: OfficeRan
             </tbody>
             <tfoot>
               <tr className="border-t-2 border-[#123448]/30 bg-[#eef3f6]">
-                <td className="sticky left-0 bg-[#eef3f6] px-4 py-3 font-bold text-gray-800">Total</td>
+                <td className="sticky left-0 bg-[#eef3f6] px-4 py-3 font-bold text-gray-800">{t('reportsUi.common.total')}</td>
                 {months.map((m) => (
                   <td key={m.ym} className="px-4 py-3 text-right font-semibold tabular-nums text-gray-700">
                     {monthTotals[m.ym] ? money(monthTotals[m.ym]) : '—'}

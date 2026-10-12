@@ -1,4 +1,5 @@
 import { requireStaffSection } from '@/lib/session';
+import { getT } from '@/i18n/server';
 import { prisma } from '@/lib/db';
 import { STATUS_LABELS_SHORT } from '@/lib/constants';
 import {
@@ -52,6 +53,7 @@ function ageLabel(ms: number): string {
 
 export default async function ConfirmationsPage() {
   await requireStaffSection('confirmations');
+  const t = getT();
   const now = Date.now();
   const todayStr = torontoDay(new Date(now));
 
@@ -146,7 +148,7 @@ export default async function ConfirmationsPage() {
     if (state === 'NEEDS_CALL' || state === 'IN_PROGRESS') {
       const age = now - readyMs;
       row.overdue = age >= OVERDUE_DAYS * 86_400_000;
-      row.waitLabel = `Ready ${ageLabel(age)} ago`;
+      row.waitLabel = t('staffMisc.confirmWorklist.readyAgo', { age: ageLabel(age) });
       if (state === 'IN_PROGRESS') {
         row.remaining = confirmationChecksRemaining(a.confirmation).join(', ');
       }
@@ -160,7 +162,7 @@ export default async function ConfirmationsPage() {
       row.sortMs = since;
       const age = now - since;
       row.overdue = awaiting && age >= 2 * 86_400_000; // an unanswered office reply aging past 2 days
-      row.waitLabel = awaiting ? `Office replied ${ageLabel(age)} ago` : 'Awaiting office';
+      row.waitLabel = awaiting ? t('staffMisc.confirmWorklist.officeRepliedAgo', { age: ageLabel(age) }) : t('staffMisc.confirmWorklist.awaitingOffice');
       if (awaiting && last) row.issuePreview = last.body.slice(0, 160);
     } else {
       // DONE (today)
@@ -187,10 +189,9 @@ export default async function ConfirmationsPage() {
   return (
     <div>
       <div className="mb-5">
-        <h1 className="text-xl font-semibold text-gray-900">Confirmation calls</h1>
+        <h1 className="text-xl font-semibold text-gray-900">{t('staffMisc.confirmWorklist.pageTitle')}</h1>
         <p className="mt-1 max-w-2xl text-sm text-gray-500">
-          Every deal that still needs a confirmation call, wherever it is in the pipeline — plus the flagged issues
-          waiting on an office reply. Search or filter by state; open any row to make the call on the customer&apos;s deal.
+          {t('staffMisc.confirmWorklist.pageSubtitle')}
         </p>
       </div>
       <ConfirmationWorklist rows={rows} counts={counts} />

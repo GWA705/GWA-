@@ -6,6 +6,8 @@ import type { ProgramType } from '@prisma/client';
 import { ProgramBadge } from '@/components/ProgramBadge';
 import type { ConfirmationWorkState } from '@/lib/confirmationWork';
 import { Phone, Clock, Check, AlertTriangle, Flag, Loader, Search, ListChecks, ChevronRight } from 'lucide-react';
+import { useT } from '@/i18n/client';
+import type { TFunction } from '@/i18n/translator';
 
 // A pre-formatted worklist row — every display string is computed on the server
 // so this component only filters, groups and renders.
@@ -29,13 +31,16 @@ export interface CallRow {
   doneByLabel?: string | null; // DONE — who confirmed + when
 }
 
-type StateMeta = { label: string; pill: string; stripe: string; heading: string; desc: string };
+type StateMeta = { pill: string; stripe: string };
 const STATE_META: Record<ConfirmationWorkState, StateMeta> = {
-  NEEDS_CALL: { label: 'Needs a call', pill: 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300', stripe: 'bg-amber-400', heading: 'Needs a call', desc: 'Signed docs are back — the confirmation call hasn’t been made yet' },
-  IN_PROGRESS: { label: 'In progress', pill: 'bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-300', stripe: 'bg-blue-500', heading: 'In progress', desc: 'The call was started — some of the six checks are still open' },
-  ISSUE: { label: 'Issue · follow-up', pill: 'bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-300', stripe: 'bg-red-500', heading: 'Issues · follow-up', desc: 'A flagged issue — office replies waiting on a reviewer surface here' },
-  DONE: { label: 'Confirmed', pill: 'bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-300', stripe: 'bg-green-500', heading: 'Confirmed today', desc: 'Completed calls from today' },
+  NEEDS_CALL: { pill: 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300', stripe: 'bg-amber-400' },
+  IN_PROGRESS: { pill: 'bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-300', stripe: 'bg-blue-500' },
+  ISSUE: { pill: 'bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-300', stripe: 'bg-red-500' },
+  DONE: { pill: 'bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-300', stripe: 'bg-green-500' },
 };
+const stateLabel = (t: TFunction, s: ConfirmationWorkState) => t(`staffMisc.confirmWorklist.state.${s}.label`);
+const stateHeading = (t: TFunction, s: ConfirmationWorkState) => t(`staffMisc.confirmWorklist.state.${s}.heading`);
+const stateDesc = (t: TFunction, s: ConfirmationWorkState) => t(`staffMisc.confirmWorklist.state.${s}.desc`);
 
 const ORDER: ConfirmationWorkState[] = ['NEEDS_CALL', 'IN_PROGRESS', 'ISSUE', 'DONE'];
 const STACK_CAP = 12;
@@ -57,10 +62,11 @@ function Meter({ done, total }: { done: number; total: number }) {
 }
 
 function CallCard({ r }: { r: CallRow }) {
+  const t = useT();
   const meta = STATE_META[r.state];
   const stripe = r.overdue ? 'bg-red-500' : meta.stripe;
   const done = r.state === 'DONE';
-  const cta = done ? 'View' : r.state === 'ISSUE' ? 'Open' : 'Open call';
+  const cta = done ? t('common.view') : r.state === 'ISSUE' ? t('common.open') : t('staffMisc.confirmWorklist.openCall');
   return (
     <Link
       href={`/staff/applications/${r.id}`}
@@ -78,8 +84,8 @@ function CallCard({ r }: { r: CallRow }) {
           <span className="rounded-md border border-gray-200 bg-slate-50 px-1.5 py-0.5 text-xs text-gray-500 dark:border-slate-600 dark:bg-slate-700/40 dark:text-slate-300">{r.stageLabel}</span>
           <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${meta.pill}`}>
             {r.state === 'IN_PROGRESS' ? (
-              <span className="inline-flex items-center gap-1.5">{r.checked} of {r.checkTotal} <Meter done={r.checked} total={r.checkTotal} /></span>
-            ) : r.state === 'ISSUE' && r.issueAwaitingReviewer ? 'Issue · office replied' : meta.label}
+              <span className="inline-flex items-center gap-1.5">{t('staffMisc.confirmWorklist.ofCount', { done: r.checked, total: r.checkTotal })} <Meter done={r.checked} total={r.checkTotal} /></span>
+            ) : r.state === 'ISSUE' && r.issueAwaitingReviewer ? t('staffMisc.confirmWorklist.issueOfficeReplied') : stateLabel(t, r.state)}
           </span>
         </div>
 
@@ -90,9 +96,9 @@ function CallCard({ r }: { r: CallRow }) {
         <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-gray-500 dark:text-slate-400">
           <span className={`inline-flex items-center gap-1 ${r.overdue ? 'font-semibold text-red-600 dark:text-red-400' : ''}`}>
             {done ? <Check size={13} /> : <Clock size={13} />}
-            {done && r.doneByLabel ? `Confirmed by ${r.doneByLabel}` : r.waitLabel}
+            {done && r.doneByLabel ? t('staffMisc.confirmWorklist.confirmedByName', { name: r.doneByLabel }) : r.waitLabel}
           </span>
-          {r.state === 'IN_PROGRESS' && r.remaining && (<><span className="text-gray-300 dark:text-slate-600" aria-hidden>·</span><span>Left: {r.remaining}</span></>)}
+          {r.state === 'IN_PROGRESS' && r.remaining && (<><span className="text-gray-300 dark:text-slate-600" aria-hidden>·</span><span>{t('staffMisc.confirmWorklist.left', { items: r.remaining })}</span></>)}
           {r.hdRef && (<><span className="text-gray-300 dark:text-slate-600" aria-hidden>·</span><span className="font-mono tabular-nums">HD {r.hdRef}</span></>)}
         </div>
       </div>
@@ -105,6 +111,7 @@ function CallCard({ r }: { r: CallRow }) {
 
 function Band({ heading, desc, rows }: { heading: string; desc: string; rows: CallRow[] }) {
   if (rows.length === 0) return null;
+  // heading/desc are already localized by the caller.
   return (
     <section>
       <div className="mb-2 flex items-baseline gap-2.5">
@@ -138,6 +145,7 @@ export function ConfirmationWorklist({
   rows: CallRow[];
   counts: Record<ConfirmationWorkState, number>;
 }) {
+  const t = useT();
   const [view, setView] = useState<ViewMode>('worklist');
   const [filter, setFilter] = useState<Filter>('ALL');
   const [q, setQ] = useState('');
@@ -170,12 +178,12 @@ export function ConfirmationWorklist({
   }, [filtered]);
 
   const KPIS: { key: Filter; n: number; label: string; icon: typeof Phone; tone: string }[] = [
-    { key: 'ALL', n: outstanding, label: 'Outstanding', icon: ListChecks, tone: 'text-gray-900 dark:text-slate-100' },
-    { key: 'OVERDUE', n: overdueCount, label: 'Overdue', icon: AlertTriangle, tone: 'text-red-600 dark:text-red-400' },
-    { key: 'NEEDS_CALL', n: counts.NEEDS_CALL, label: 'Needs a call', icon: Phone, tone: 'text-amber-600 dark:text-amber-400' },
-    { key: 'IN_PROGRESS', n: counts.IN_PROGRESS, label: 'In progress', icon: Loader, tone: 'text-blue-600 dark:text-blue-400' },
-    { key: 'ISSUE', n: counts.ISSUE, label: 'Issues', icon: Flag, tone: 'text-red-600 dark:text-red-400' },
-    { key: 'DONE', n: counts.DONE, label: 'Confirmed', icon: Check, tone: 'text-green-600 dark:text-green-400' },
+    { key: 'ALL', n: outstanding, label: t('staffMisc.confirmWorklist.kpiOutstanding'), icon: ListChecks, tone: 'text-gray-900 dark:text-slate-100' },
+    { key: 'OVERDUE', n: overdueCount, label: t('staffMisc.confirmWorklist.kpiOverdue'), icon: AlertTriangle, tone: 'text-red-600 dark:text-red-400' },
+    { key: 'NEEDS_CALL', n: counts.NEEDS_CALL, label: t('staffMisc.confirmWorklist.kpiNeedsCall'), icon: Phone, tone: 'text-amber-600 dark:text-amber-400' },
+    { key: 'IN_PROGRESS', n: counts.IN_PROGRESS, label: t('staffMisc.confirmWorklist.kpiInProgress'), icon: Loader, tone: 'text-blue-600 dark:text-blue-400' },
+    { key: 'ISSUE', n: counts.ISSUE, label: t('staffMisc.confirmWorklist.kpiIssues'), icon: Flag, tone: 'text-red-600 dark:text-red-400' },
+    { key: 'DONE', n: counts.DONE, label: t('staffMisc.confirmWorklist.kpiConfirmed'), icon: Check, tone: 'text-green-600 dark:text-green-400' },
   ];
 
   return (
@@ -190,7 +198,7 @@ export function ConfirmationWorklist({
       {/* Layout toggle + search */}
       <div className="mb-4 flex flex-wrap items-center gap-2 text-sm">
         <div className="inline-flex rounded-full bg-white p-1 ring-1 ring-inset ring-gray-200 dark:bg-slate-800 dark:ring-slate-700">
-          {([['worklist', 'Worklist'], ['list', 'List'], ['stacked', 'Stacked']] as const).map(([v, label]) => (
+          {([['worklist', t('staffMisc.confirmWorklist.viewWorklist')], ['list', t('staffMisc.confirmWorklist.viewList')], ['stacked', t('staffMisc.confirmWorklist.viewStacked')]] as const).map(([v, label]) => (
             <button key={v} type="button" onClick={() => setView(v)}
               className={`rounded-full px-3.5 py-1 text-sm font-medium ${view === v ? 'bg-brand-600 text-white' : 'text-gray-600 hover:bg-gray-50 dark:text-slate-300 dark:hover:bg-slate-700'}`}>
               {label}
@@ -199,7 +207,7 @@ export function ConfirmationWorklist({
         </div>
         <div className="ml-auto flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-gray-400 dark:border-slate-700 dark:bg-slate-800">
           <Search size={15} />
-          <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name, office, HD ref…" aria-label="Search confirmations"
+          <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('staffMisc.confirmWorklist.searchPlaceholder')} aria-label="Search confirmations"
             className="w-40 border-0 bg-transparent p-0 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:ring-0 dark:text-slate-100 sm:w-56" />
         </div>
       </div>
@@ -210,8 +218,8 @@ export function ConfirmationWorklist({
           className="mb-5 flex w-full items-center gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-left transition hover:border-red-300 dark:border-red-900/50 dark:bg-red-950/30">
           <span className="text-3xl font-extrabold leading-none tabular-nums text-red-600">{overdueCount}</span>
           <div className="flex-1">
-            <div className="text-sm font-semibold text-red-700 dark:text-red-300">overdue — needs attention</div>
-            <div className="text-xs text-gray-500 dark:text-slate-400">Calls ready 3+ days, or office replies waiting 2+ days. Tap to see just these.</div>
+            <div className="text-sm font-semibold text-red-700 dark:text-red-300">{t('staffMisc.confirmWorklist.overdueNeedsAttention')}</div>
+            <div className="text-xs text-gray-500 dark:text-slate-400">{t('staffMisc.confirmWorklist.overdueHint')}</div>
           </div>
           <ChevronRight size={18} className="text-red-400" />
         </button>
@@ -219,12 +227,12 @@ export function ConfirmationWorklist({
 
       {view === 'worklist' ? (
         <div className="space-y-7">
-          {ORDER.map((s) => <Band key={s} heading={STATE_META[s].heading} desc={STATE_META[s].desc} rows={byState[s]} />)}
-          {filtered.length === 0 && <div className="rounded-xl border border-gray-200 bg-white p-8 text-center text-sm text-gray-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">{term || filter !== 'ALL' ? 'Nothing matches this filter.' : 'No confirmation calls outstanding. 🎉'}</div>}
+          {ORDER.map((s) => <Band key={s} heading={stateHeading(t, s)} desc={stateDesc(t, s)} rows={byState[s]} />)}
+          {filtered.length === 0 && <div className="rounded-xl border border-gray-200 bg-white p-8 text-center text-sm text-gray-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">{term || filter !== 'ALL' ? t('staffMisc.confirmWorklist.nothingMatches') : t('staffMisc.confirmWorklist.noneOutstanding')}</div>}
         </div>
       ) : view === 'list' ? (
         filtered.length === 0 ? (
-          <div className="rounded-xl border border-gray-200 bg-white p-8 text-center text-sm text-gray-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">Nothing matches this filter.</div>
+          <div className="rounded-xl border border-gray-200 bg-white p-8 text-center text-sm text-gray-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">{t('staffMisc.confirmWorklist.nothingMatches')}</div>
         ) : (
           <div className="flex flex-col gap-2">{filtered.map((r) => <CallCard key={r.id} r={r} />)}</div>
         )
@@ -237,19 +245,19 @@ export function ConfirmationWorklist({
             return (
               <section key={s}>
                 <div className="mb-2 flex items-baseline gap-2.5">
-                  <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-700 dark:text-slate-300">{STATE_META[s].heading}</h2>
+                  <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-700 dark:text-slate-300">{stateHeading(t, s)}</h2>
                   <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-bold tabular-nums text-gray-600 dark:bg-slate-700 dark:text-slate-300">{list.length}</span>
                 </div>
                 <div className="flex flex-col gap-2">{capped.map((r) => <CallCard key={r.id} r={r} />)}</div>
                 {list.length > capped.length && (
                   <div className="mt-2 text-right text-sm">
-                    <button type="button" onClick={() => { setView('list'); setFilter(s); }} className="font-medium text-brand-700 hover:underline dark:text-sky-300">See all {list.length} →</button>
+                    <button type="button" onClick={() => { setView('list'); setFilter(s); }} className="font-medium text-brand-700 hover:underline dark:text-sky-300">{t('staffMisc.confirmWorklist.seeAll', { n: list.length })} →</button>
                   </div>
                 )}
               </section>
             );
           })}
-          {filtered.length === 0 && <div className="rounded-xl border border-gray-200 bg-white p-8 text-center text-sm text-gray-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">Nothing matches this filter.</div>}
+          {filtered.length === 0 && <div className="rounded-xl border border-gray-200 bg-white p-8 text-center text-sm text-gray-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">{t('staffMisc.confirmWorklist.nothingMatches')}</div>}
         </div>
       )}
     </div>

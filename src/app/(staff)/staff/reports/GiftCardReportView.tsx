@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import type { GiftCardReport, GiftCardRow } from '@/lib/reporting/giftCardReport';
 import { ReportTile } from '@/components/reporting/kit';
+import { useT } from '@/i18n/client';
 
 const money = (n: number) =>
   `$${n.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -22,14 +23,14 @@ const NUMERIC: Record<SortKey, boolean> = {
   lastSentAt: true,
 };
 
-const COLUMNS: { key: SortKey; label: string; align: 'left' | 'right' }[] = [
-  { key: 'dealer', label: 'Office', align: 'left' },
-  { key: 'sentCount', label: 'Cards sent', align: 'right' },
-  { key: 'sentTotal', label: '$ sent', align: 'right' },
-  { key: 'pendingCount', label: 'Pending', align: 'right' },
-  { key: 'pendingTotal', label: '$ pending', align: 'right' },
-  { key: 'cancelledCount', label: 'Cancelled', align: 'right' },
-  { key: 'lastSentAt', label: 'Last sent', align: 'right' },
+const COLUMNS: { key: SortKey; labelKey: string; align: 'left' | 'right' }[] = [
+  { key: 'dealer', labelKey: 'reportsUi.common.office', align: 'left' },
+  { key: 'sentCount', labelKey: 'reportsUi.giftCards.colCardsSent', align: 'right' },
+  { key: 'sentTotal', labelKey: 'reportsUi.giftCards.colSent', align: 'right' },
+  { key: 'pendingCount', labelKey: 'reportsUi.giftCards.colPending', align: 'right' },
+  { key: 'pendingTotal', labelKey: 'reportsUi.giftCards.colPendingDollars', align: 'right' },
+  { key: 'cancelledCount', labelKey: 'reportsUi.giftCards.colCancelled', align: 'right' },
+  { key: 'lastSentAt', labelKey: 'reportsUi.giftCards.colLastSent', align: 'right' },
 ];
 
 /**
@@ -37,6 +38,7 @@ const COLUMNS: { key: SortKey; label: string; align: 'left' | 'right' }[] = [
  * Sortable (click any column header) and downloadable as CSV. Admin-only.
  */
 export function GiftCardReportView({ report }: { report: GiftCardReport }) {
+  const t = useT();
   const { rows, totals, generatedAt } = report;
   const [sortKey, setSortKey] = useState<SortKey>('sentTotal');
   const [dir, setDir] = useState<'asc' | 'desc'>('desc');
@@ -67,7 +69,15 @@ export function GiftCardReportView({ report }: { report: GiftCardReport }) {
   };
 
   const downloadCsv = () => {
-    const header = ['Office', 'Cards sent', '$ sent', 'Pending', '$ pending', 'Cancelled', 'Last sent'];
+    const header = [
+      t('reportsUi.common.office'),
+      t('reportsUi.giftCards.colCardsSent'),
+      t('reportsUi.giftCards.colSent'),
+      t('reportsUi.giftCards.colPending'),
+      t('reportsUi.giftCards.colPendingDollars'),
+      t('reportsUi.giftCards.colCancelled'),
+      t('reportsUi.giftCards.colLastSent'),
+    ];
     const esc = (v: string | number) => {
       const s = String(v);
       return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
@@ -81,7 +91,7 @@ export function GiftCardReportView({ report }: { report: GiftCardReport }) {
       );
     }
     lines.push(
-      ['TOTAL', totals.sentCount, totals.sentTotal.toFixed(2), totals.pendingCount, totals.pendingTotal.toFixed(2), totals.cancelledCount, '']
+      [t('reportsUi.giftCards.totalUpper'), totals.sentCount, totals.sentTotal.toFixed(2), totals.pendingCount, totals.pendingTotal.toFixed(2), totals.cancelledCount, '']
         .map(esc)
         .join(','),
     );
@@ -107,26 +117,26 @@ export function GiftCardReportView({ report }: { report: GiftCardReport }) {
       <div className="flex flex-wrap items-start justify-between gap-4 border-b-2 border-gray-800 pb-3">
         <div className="min-w-0">
           <div className="text-sm font-bold uppercase tracking-wide text-gray-500">Georgian Water &amp; Air</div>
-          <h1 className="text-2xl font-bold text-gray-900">Gift cards by office</h1>
-          <p className="mt-0.5 text-sm text-gray-600">Cards sent &amp; dollar value per dealer · all-time</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('reportsUi.giftCards.heading')}</h1>
+          <p className="mt-0.5 text-sm text-gray-600">{t('reportsUi.giftCards.subtitle')}</p>
         </div>
         <div className="flex flex-col items-end gap-2">
-          <button type="button" onClick={downloadCsv} className="btn-secondary text-sm">⬇ Download CSV</button>
-          <div className="text-right text-xs text-gray-400">Generated {generated}</div>
+          <button type="button" onClick={downloadCsv} className="btn-secondary text-sm">{t('reportsUi.giftCards.downloadCsv')}</button>
+          <div className="text-right text-xs text-gray-400">{t('reportsUi.common.generated', { date: generated })}</div>
         </div>
       </div>
 
       {/* KPI tiles */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {tile('Cards sent', totals.sentCount.toLocaleString('en-CA'), `${rows.length} office${rows.length === 1 ? '' : 's'}`)}
-        {tile('Total sent', money(totals.sentTotal))}
-        {tile('Pending', totals.pendingCount.toLocaleString('en-CA'), totals.pendingTotal > 0 ? `${money0(totals.pendingTotal)} queued` : undefined)}
-        {tile('Cancelled', totals.cancelledCount.toLocaleString('en-CA'))}
+        {tile(t('reportsUi.giftCards.colCardsSent'), totals.sentCount.toLocaleString('en-CA'), t(rows.length === 1 ? 'reportsUi.giftCards.officeOne' : 'reportsUi.giftCards.officeMany', { n: rows.length }))}
+        {tile(t('reportsUi.giftCards.tileTotalSent'), money(totals.sentTotal))}
+        {tile(t('reportsUi.giftCards.colPending'), totals.pendingCount.toLocaleString('en-CA'), totals.pendingTotal > 0 ? t('reportsUi.giftCards.queued', { amount: money0(totals.pendingTotal) }) : undefined)}
+        {tile(t('reportsUi.giftCards.colCancelled'), totals.cancelledCount.toLocaleString('en-CA'))}
       </div>
 
       {rows.length === 0 ? (
         <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
-          No gift-card requests on record yet.
+          {t('reportsUi.giftCards.noRequests')}
         </div>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-gray-200">
@@ -139,7 +149,7 @@ export function GiftCardReportView({ report }: { report: GiftCardReport }) {
                     className={`cursor-pointer select-none px-4 py-3 ${c.align === 'right' ? 'text-right' : 'text-left'} hover:text-gray-900`}
                     onClick={() => onSort(c.key)}
                   >
-                    {c.label}{arrow(c.key)}
+                    {t(c.labelKey)}{arrow(c.key)}
                   </th>
                 ))}
               </tr>
@@ -159,7 +169,7 @@ export function GiftCardReportView({ report }: { report: GiftCardReport }) {
             </tbody>
             <tfoot>
               <tr className="border-t-2 border-gray-300 bg-gray-100">
-                <td className="px-4 py-3 font-bold text-gray-800">Total</td>
+                <td className="px-4 py-3 font-bold text-gray-800">{t('reportsUi.common.total')}</td>
                 <td className="px-4 py-3 text-right font-semibold tabular-nums text-gray-800">{totals.sentCount}</td>
                 <td className="px-4 py-3 text-right font-bold tabular-nums text-gray-900">{money(totals.sentTotal)}</td>
                 <td className="px-4 py-3 text-right font-semibold tabular-nums text-gray-800">{totals.pendingCount}</td>
@@ -173,7 +183,7 @@ export function GiftCardReportView({ report }: { report: GiftCardReport }) {
       )}
 
       <p className="text-xs text-gray-400">
-        Dollar figures are the requested/sent card values. Sort by clicking any column header; the CSV export follows the current sort.
+        {t('reportsUi.giftCards.footnote')}
       </p>
     </div>
   );

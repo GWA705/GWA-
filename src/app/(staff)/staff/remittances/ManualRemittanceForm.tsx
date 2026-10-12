@@ -1,38 +1,41 @@
 'use client';
 
 import { useFormState, useFormStatus } from 'react-dom';
+import { useT } from '@/i18n/client';
 import { ingestManualRemittanceAction, type RemittanceActionState } from './actions';
 
 const initial: RemittanceActionState = {};
 
 function SubmitBtn() {
   const { pending } = useFormStatus();
+  const t = useT();
   return (
     <button type="submit" className="btn-primary text-sm" disabled={pending}>
-      {pending ? 'Processing…' : 'Process remittance'}
+      {pending ? t('common.processing') : t('remit.manual.submit')}
     </button>
   );
 }
 
 export function ManualRemittanceForm() {
+  const t = useT();
   const [state, action] = useFormState(ingestManualRemittanceAction, initial);
   return (
     <form action={action} className="space-y-3">
       {state.error && <p className="rounded-md border border-red-200 bg-red-50 p-2.5 text-sm text-red-700">{state.error}</p>}
-      {state.ok && <p className="rounded-md border border-green-200 bg-green-50 p-2.5 text-sm text-green-800">✓ Processed — {state.summary}</p>}
+      {state.ok && <p className="rounded-md border border-green-200 bg-green-50 p-2.5 text-sm text-green-800">{t('remit.processed', { summary: state.summary ?? '' })}</p>}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
-          <label className="label" htmlFor="documentNumber">HD document # <span className="font-normal text-gray-400">(optional — dedupes re-entries)</span></label>
+          <label className="label" htmlFor="documentNumber">{t('remit.manual.docNumberLabel')} <span className="font-normal text-gray-400">{t('remit.manual.docNumberHint')}</span></label>
           <input id="documentNumber" name="documentNumber" className="input" placeholder="e.g. 12345678" autoComplete="off" />
         </div>
         <div>
-          <label className="label" htmlFor="paymentDate">Payment date <span className="font-normal text-gray-400">(optional)</span></label>
+          <label className="label" htmlFor="paymentDate">{t('remit.paymentDate')} <span className="font-normal text-gray-400">{t('remit.manual.optionalHint')}</span></label>
           <input id="paymentDate" name="paymentDate" type="date" className="input" />
         </div>
       </div>
       <div>
-        <label className="label" htmlFor="lines">Lines</label>
-        <p className="mb-1 text-xs text-gray-500">One per line: <code>HD ID, amount, customer name</code>. A negative amount is a chargeback.</p>
+        <label className="label" htmlFor="lines">{t('remit.lines')}</label>
+        <p className="mb-1 text-xs text-gray-500">{t('remit.manual.linesHintBefore')}<code>HD ID, amount, customer name</code>{t('remit.manual.linesHintAfter')}</p>
         <textarea
           id="lines"
           name="lines"

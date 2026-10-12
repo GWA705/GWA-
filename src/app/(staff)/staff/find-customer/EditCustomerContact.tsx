@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { updateCustomerInfoAction } from '@/app/(dealer)/dealer/find-customer/actions';
+import { useT } from '@/i18n/client';
 
 // Staff-side editor for a customer's contact details on the assist page.
 // Corrections are stored as an override; the original application is untouched.
@@ -18,6 +19,7 @@ export function EditCustomerContact({
   updatedAt: string | null;
   updatedByName: string | null;
 }) {
+  const t = useT();
   const [phone, setPhone] = useState(initial.phone);
   const [address, setAddress] = useState(initial.address);
   const [email, setEmail] = useState(initial.email);
@@ -54,45 +56,45 @@ export function EditCustomerContact({
   return (
     <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
       <div className="mb-2 flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-gray-900">Customer contact</h2>
+        <h2 className="text-sm font-semibold text-gray-900">{t('staffMisc.findCustomer.contactHeading')}</h2>
         <button type="button" onClick={() => (editing ? setEditing(false) : open())} className="text-xs font-semibold text-gray-500 hover:text-gray-700 hover:underline">
-          {editing ? 'Cancel' : '✎ Edit'}
+          {editing ? t('common.cancel') : t('staffMisc.findCustomer.editPencil')}
         </button>
       </div>
 
       {!editing ? (
         <div className="grid grid-cols-1 gap-x-6 gap-y-1 text-sm text-gray-700 sm:grid-cols-2">
-          <div>Phone: <span className="font-medium text-gray-900">{phone || '—'}</span></div>
-          <div>Email: <span className="font-medium text-gray-900">{email || '—'}</span></div>
-          <div className="sm:col-span-2">Address: <span className="font-medium text-gray-900">{address || '—'}</span></div>
+          <div>{t('staffMisc.findCustomer.phoneRow')} <span className="font-medium text-gray-900">{phone || '—'}</span></div>
+          <div>{t('staffMisc.findCustomer.emailRow')} <span className="font-medium text-gray-900">{email || '—'}</span></div>
+          <div className="sm:col-span-2">{t('staffMisc.findCustomer.addressRow')} <span className="font-medium text-gray-900">{address || '—'}</span></div>
         </div>
       ) : (
         <div className="space-y-2">
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <label className="block">
-              <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Phone</span>
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">{t('staffMisc.findCustomer.phone')}</span>
               <input className="input mt-0.5" value={dPhone} onChange={(e) => setDPhone(e.target.value)} />
             </label>
             <label className="block">
-              <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Email</span>
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">{t('staffMisc.findCustomer.email')}</span>
               <input className="input mt-0.5" type="email" value={dEmail} onChange={(e) => setDEmail(e.target.value)} />
             </label>
             <label className="block sm:col-span-2">
-              <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Address</span>
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">{t('staffMisc.findCustomer.address')}</span>
               <input className="input mt-0.5" value={dAddress} onChange={(e) => setDAddress(e.target.value)} />
             </label>
           </div>
           <div className="flex items-center gap-3">
             <button type="button" onClick={save} disabled={pending} className="btn-primary text-sm">
-              {pending ? 'Saving…' : 'Save changes'}
+              {pending ? t('common.saving') : t('staffMisc.findCustomer.saveChanges')}
             </button>
-            <span className="text-[11px] text-gray-400">Updates this customer across the portal. The sales journal is left unchanged.</span>
+            <span className="text-[11px] text-gray-400">{t('staffMisc.findCustomer.updatesNote')}</span>
           </div>
         </div>
       )}
 
       {msg && <div className={`mt-2 rounded-md px-3 py-2 text-xs ${msg.ok ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>{msg.text}</div>}
-      {when && !editing && <p className="mt-2 text-[11px] text-gray-400">✎ Updated {when}{stampBy ? ` by ${stampBy}` : ''} · sales journal unchanged</p>}
+      {when && !editing && <p className="mt-2 text-[11px] text-gray-400">✎ {t('staffMisc.findCustomer.updatedOn', { when })}{stampBy ? ` ${t('staffMisc.findCustomer.byName', { name: stampBy })}` : ''} · {t('staffMisc.findCustomer.journalUnchanged')}</p>}
     </section>
   );
 }

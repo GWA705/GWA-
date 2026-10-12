@@ -27,10 +27,26 @@ Water & Air" and brand taglines (PromoCard) stay as the brand kit defines.
 - [x] **5. Deal-detail shared components** — PayoutReceipt, SerialNumberForm, ProductSerialForm, PaperworkCards, ProductPicker, FundingItemUploader, misc small buttons (Download/Ocr/Verify/etc.)
 - [x] **6. Staff deal-detail** — staff/applications/[id]/page.tsx, EditDealForm, ReviewerEntryView, colocated cards (Cancellation/EmailDocs/FlagIssue/ReviewRequest/FundingStep/etc.)
 - [x] **7. Resolutions subsystem** — resolutions/page, [id]/page, CaseContactCard, NewCaseForm, CaseControls, CaseEmailThread, LinkDealControl, CaseAttachments, WatchEmailsControl, HdReplyDrafter, inbox/new
-- [ ] **8. Reports** — LeadsReportView, GiftCardReportView, funding/accounting/custom/forecast/leads/sales-reps/weekly, voc, connection/*
-- [ ] **9. Remittances** — the whole remittances subsystem
-- [ ] **10. Confirmations, cancellations, misc** — ConfirmationView, ConfirmationWorklist, ConfirmationIssueBanner, cancellations/page, gift-cards/page, find-customer/*, directory/*, PromoCard (taglines TBD), StagingBanner
-- [ ] **11. Server-action messages** (secondary) — dealer/staff actions.ts return strings shown via `{state.error}`/toasts
+- [x] **8. Reports** — LeadsReportView, GiftCardReportView, funding/accounting/custom/forecast/leads/sales-reps, voc, connection/* (Monthly & Weekly views were already translated)
+- [x] **9. Remittances** — the whole remittances subsystem
+- [x] **10. Confirmations, cancellations, misc** — ConfirmationView, ConfirmationWorklist, cancellations/page, gift-cards/page, find-customer/*, directory/*, mail, staff home, DealerCalculator receipt, StagingBanner (ConfirmationIssueBanner done in batch 5; PromoCard taglines intentionally left English)
+- [x] **11. Server-action messages** — dealer/staff actions.ts return strings shown via `{state.error}`/toasts (actionMsg.*)
+
+---
+
+## ✅ Sweep complete (2026-10-12)
+All batches landed. New dict groups: `rec, dlrDocs, chatUi, convoUi, noteUi, dealParts,
+leadUi, staffCards, editForm, reviewerEntry, resolution, staffDeal, remit, staffMisc,
+actionMsg, reportsUi` + `shell/nav/notifications/progress/coApp` + `common.*` extensions.
+The `tests/i18nKeys.test.ts` guard keeps every `t()` key present in both en.ts and fr.ts.
+
+**Known remaining (by design / follow-up):**
+- PromoCard brand taglines — left English pending official FR taglines from the brand kit.
+- Monthly/Weekly snapshot report views were already translated before this sweep.
+- Some deep lib-produced strings (zod validation details, constants' STATUS_LABELS, CPA/consent
+  verbatim legal text) are intentionally not routed through t().
+- French is translator-quality draft; a native QC-French reviewer pass is recommended before
+  relying on it for a formal audience.
 
 ## Decisions needed / taken
 - Confirmation-call checklist (ConfirmationView, 6 items): treated as an internal

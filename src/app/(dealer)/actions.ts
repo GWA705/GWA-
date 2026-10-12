@@ -23,6 +23,7 @@ import { CONSENT_POLICY_VERSION, CONSENT_TEXT, PAYMENT_METHOD_LABELS, FUNDING_DO
 import { fundingPackageReadyToSubmit } from '@/lib/fundingSubmitStatus';
 import { SENT_OR_BEYOND } from '@/lib/outOfBandReturn';
 import { validateSplits } from '@/lib/payments';
+import { getT } from '@/i18n/server';
 import type { ApplicationStatus, DocumentType, PaymentMethod, Prisma } from '@prisma/client';
 
 export interface ActionState {
@@ -40,8 +41,9 @@ export async function createApplicationAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const t = getT();
   const session = await requireDealerAccess();
-  if (!session.dealerId) return { error: 'Your account is not linked to a dealer.' };
+  if (!session.dealerId) return { error: t('actionMsg.dealer.notLinkedToDealer') };
 
   const raw = Object.fromEntries(formData.entries());
   const parsed = applicationSchema.safeParse(raw);
@@ -50,7 +52,7 @@ export async function createApplicationAction(
     for (const issue of parsed.error.issues) {
       fieldErrors[issue.path.join('.')] = issue.message;
     }
-    return { error: 'Please correct the highlighted fields.', fieldErrors };
+    return { error: t('actionMsg.correctHighlighted'), fieldErrors };
   }
   const d = parsed.data;
   // Products are a multi-select (repeated fields) plus a free-text "Other" entry.
@@ -68,7 +70,7 @@ export async function createApplicationAction(
     salesErrors.productsSold = 'required';
   }
   if (Object.keys(salesErrors).length > 0) {
-    return { error: 'Please complete the sales details.', fieldErrors: salesErrors };
+    return { error: t('actionMsg.dealer.completeSalesDetails'), fieldErrors: salesErrors };
   }
 
   // If a Home Depot store was chosen, verify it belongs to this dealer.
@@ -99,7 +101,7 @@ export async function createApplicationAction(
       .map((m, i) => ({ method: m as PaymentMethod, amount: amounts[i] }))
       .filter((l) => allowed.has(l.method) && Number(l.amount) > 0);
     const v = validateSplits(splitLines, d.requestedAmount);
-    if (!v.ok) return { error: v.error ?? 'Check the split-payment amounts.', fieldErrors: { isSplitPayment: v.error ?? '' } };
+    if (!v.ok) return { error: v.error ?? t('actionMsg.dealer.checkSplitAmounts'), fieldErrors: { isSplitPayment: v.error ?? '' } };
     financedAmount = v.financed;
   }
 
@@ -196,7 +198,7 @@ export async function createApplicationAction(
   checkInlineDoc('creditAppFile', 'Application info');
   checkInlineDoc('billOfSaleFile', 'Bill of Sale');
   if (Object.keys(uploadErrors).length > 0) {
-    return { error: 'Please correct the highlighted fields.', fieldErrors: uploadErrors };
+    return { error: t('actionMsg.correctHighlighted'), fieldErrors: uploadErrors };
   }
 
   // Guard against accidental double-submits (a double-click, or going Back and
@@ -215,8 +217,7 @@ export async function createApplicationAction(
   });
   if (duplicate) {
     return {
-      error:
-        'This looks like a duplicate — a deal for this applicant was just submitted. Check your Applications list before submitting again.',
+      error: t('actionMsg.dealer.duplicateSubmission'),
     };
   }
 
@@ -341,14 +342,15 @@ export async function uploadSupportingDocAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const t = getT();
   const session = await requireDealerAccess();
   const app = await prisma.application.findUnique({ where: { id: applicationId } });
-  if (!app || !canAccessAsDealer(session, app.dealerId)) return { error: 'Not found.' };
+  if (!app || !canAccessAsDealer(session, app.dealerId)) return { error: t('actionMsg.notFound') };
 
   // Uploads run OCR + image processing on the request path; throttle per user so a
   // burst can't tie up the single instance's workers (see SECURITY-AUDIT #6).
   const rl = await rateLimit(`upload:${session.userId}`, 30, 60);
-  if (!rl.ok) return { error: 'You’re uploading too quickly — wait a moment and try again.' };
+  if (!rl.ok) return { error: t('actionMsg.dealer.uploadingTooQuickly') };
 
   // The uploader tags what the document is (Bill of Sale / Application info /
   // Other → typed). Stored as the document's label and shown as its title.
@@ -360,11 +362,11 @@ export async function uploadSupportingDocAction(
   let label: string | null = null;
   if (category === 'OTHER') {
     label = toTitleCase(String(formData.get('docCategoryOther') || '').trim());
-    if (!label) return { error: 'Enter what the document is.' };
+    if (!label) return { error: t('actionMsg.dealer.enterDocumentIs') };
   } else if (CATEGORY_LABELS[category]) {
     label = CATEGORY_LABELS[category];
   } else {
-    return { error: 'Choose what the document is.' };
+    return { error: t('actionMsg.dealer.chooseDocumentIs') };
   }
 
   const files = formData.getAll('file') as File[];
@@ -382,15 +384,16 @@ export async function addSerialNumberAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const t = getT();
   const session = await requireDealerAccess();
   const app = await prisma.application.findUnique({ where: { id: applicationId } });
-  if (!app || !canAccessAsDealer(session, app.dealerId)) return { error: 'Not found.' };
+  if (!app || !canAccessAsDealer(session, app.dealerId)) return { error: t('actionMsg.notFound') };
 
   const parsed = serialNumberSchema.safeParse({
     value: formData.get('value'),
     productLabel: formData.get('productLabel') || undefined,
   });
-  if (!parsed.success) return { error: 'Enter a valid serial number.' };
+  if (!parsed.success) return { error: t('actionMsg.dealer.enterValidSerial') };
 
   await prisma.serialNumber.create({
     data: { applicationId, value: parsed.data.value, productLabel: parsed.data.productLabel || null },
@@ -423,16 +426,17 @@ export async function uploadFundingDocAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const t = getT();
   const session = await requireDealerAccess();
   const app = await prisma.application.findUnique({ where: { id: applicationId } });
-  if (!app || !canAccessAsDealer(session, app.dealerId)) return { error: 'Not found.' };
+  if (!app || !canAccessAsDealer(session, app.dealerId)) return { error: t('actionMsg.notFound') };
   const rl = await rateLimit(`upload:${session.userId}`, 30, 60);
-  if (!rl.ok) return { error: 'You’re uploading too quickly — wait a moment and try again.' };
+  if (!rl.ok) return { error: t('actionMsg.dealer.uploadingTooQuickly') };
   // Dealers may upload individual documents any time after approval (e.g. a void
   // cheque they have on hand). Uploading does NOT advance the deal — only
   // *submitting* the completed package does, and that stays gated to DOCS_SENT.
   if (!['APPROVED', 'CONDITIONAL', 'DOCS_SENT', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW', 'FUNDED'].includes(app.status)) {
-    return { error: 'Documents can only be uploaded after approval.' };
+    return { error: t('actionMsg.dealer.docsAfterApproval') };
   }
 
   // Out-of-band paperwork: the signed package normally comes back after install
@@ -467,15 +471,16 @@ export async function uploadFundingBatchAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const t = getT();
   const session = await requireDealerAccess();
   const app = await prisma.application.findUnique({ where: { id: applicationId } });
-  if (!app || !canAccessAsDealer(session, app.dealerId)) return { error: 'Not found.' };
+  if (!app || !canAccessAsDealer(session, app.dealerId)) return { error: t('actionMsg.notFound') };
   const rl = await rateLimit(`upload:${session.userId}`, 30, 60);
-  if (!rl.ok) return { error: 'You’re uploading too quickly — wait a moment and try again.' };
+  if (!rl.ok) return { error: t('actionMsg.dealer.uploadingTooQuickly') };
   // Uploading is allowed any time after approval (e.g. an early void cheque); it
   // doesn't advance the deal — submitting the completed package does (DOCS_SENT).
   if (!['APPROVED', 'CONDITIONAL', 'DOCS_SENT', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW', 'FUNDED'].includes(app.status)) {
-    return { error: 'Documents can only be uploaded after approval.' };
+    return { error: t('actionMsg.dealer.docsAfterApproval') };
   }
 
   // See uploadFundingDocAction: flag a signed-package return that arrives before
@@ -485,19 +490,19 @@ export async function uploadFundingBatchAction(
   const files = formData.getAll('file') as File[];
   const categories = formData.getAll('category').map(String);
   const customLabels = formData.getAll('customLabel').map(String);
-  if (files.length === 0) return { error: 'Add at least one file.' };
-  if (categories.length !== files.length) return { error: 'Tag every file with a category.' };
+  if (files.length === 0) return { error: t('actionMsg.dealer.addAtLeastOneFile') };
+  if (categories.length !== files.length) return { error: t('actionMsg.dealer.tagEveryFile') };
 
-  const allowed = new Set(FUNDING_DOCUMENT_TYPES.map((t) => t.type as string));
+  const allowed = new Set(FUNDING_DOCUMENT_TYPES.map((ft) => ft.type as string));
   const storedTypes: DocumentType[] = [];
   for (let i = 0; i < files.length; i++) {
     const category = categories[i];
-    if (!allowed.has(category)) return { error: 'Choose a category for every file.' };
+    if (!allowed.has(category)) return { error: t('actionMsg.dealer.chooseCategoryEveryFile') };
     const docType = category as DocumentType;
     let namePrefix: string | undefined;
     if (docType === 'OTHER') {
       const custom = (customLabels[i] ?? '').trim().replace(/[^\w\s-]/g, '').slice(0, 40);
-      if (!custom) return { error: 'Name each "Other" document before sending.' };
+      if (!custom) return { error: t('actionMsg.dealer.nameOtherDocs') };
       namePrefix = custom;
     }
     const result = await storeFiles({
@@ -529,11 +534,12 @@ export async function uploadFundingBatchAction(
  * the file.
  */
 export async function deleteOwnDocumentAction(documentId: string): Promise<{ error?: string }> {
+  const t = getT();
   const session = await requireDealerAccess();
   const doc = await prisma.document.findUnique({ where: { id: documentId }, include: { application: true } });
-  if (!doc || !canAccessAsDealer(session, doc.application.dealerId)) return { error: 'Not found.' };
-  if (doc.stage === 'REVIEWER') return { error: 'This document was sent by Georgian Water & Air and can’t be deleted here.' };
-  if (doc.verifiedAt) return { error: 'Georgian Water & Air has confirmed this file — contact them to change it.' };
+  if (!doc || !canAccessAsDealer(session, doc.application.dealerId)) return { error: t('actionMsg.notFound') };
+  if (doc.stage === 'REVIEWER') return { error: t('actionMsg.dealer.docSentByGwa') };
+  if (doc.verifiedAt) return { error: t('actionMsg.dealer.docConfirmedByGwa') };
 
   try {
     await deleteDocument(doc.storageKey);
@@ -564,9 +570,10 @@ export async function setProductSerialsAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const t = getT();
   const session = await requireDealerAccess();
   const app = await prisma.application.findUnique({ where: { id: applicationId } });
-  if (!app || !canAccessAsDealer(session, app.dealerId)) return { error: 'Not found.' };
+  if (!app || !canAccessAsDealer(session, app.dealerId)) return { error: t('actionMsg.notFound') };
 
   const products = app.productsSold;
   await prisma.$transaction(async (tx) => {
@@ -692,16 +699,16 @@ export async function addCoApplicantAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const t = getT();
   const session = await requireDealerAccess();
   const app = await prisma.application.findUnique({
     where: { id: applicationId },
     select: { id: true, dealerId: true, status: true },
   });
-  if (!app || !canAccessAsDealer(session, app.dealerId)) return { error: 'Not found.' };
+  if (!app || !canAccessAsDealer(session, app.dealerId)) return { error: t('actionMsg.notFound') };
   if (CO_APP_BLOCKED.includes(app.status)) {
     return {
-      error:
-        'This deal is already funded or closed. Adding a co-applicant changes the credit application — please start a new application, or contact Georgian Water & Air.',
+      error: t('actionMsg.dealer.coAppBlocked'),
     };
   }
 
@@ -712,7 +719,7 @@ export async function addCoApplicantAction(
       const k = issue.path.join('.');
       if (!fieldErrors[k]) fieldErrors[k] = issue.message;
     }
-    return { error: 'Please correct the highlighted fields.', fieldErrors };
+    return { error: t('actionMsg.correctHighlighted'), fieldErrors };
   }
   const d = parsed.data;
   const coApplicantName = titleOrNull([d.coFirstName, d.coLastName].filter(Boolean).join(' ').trim());
@@ -802,17 +809,18 @@ export async function requestCancellationAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const t = getT();
   const session = await requireDealerAccess();
   const app = await prisma.application.findUnique({
     where: { id: applicationId },
     include: { cancellations: { where: { status: 'PENDING' }, take: 1 } },
   });
-  if (!app || !canAccessAsDealer(session, app.dealerId)) return { error: 'Not found.' };
-  if (CANCEL_BLOCKED.includes(app.status)) return { error: 'This deal is already closed and can’t be cancelled.' };
-  if (app.cancellations.length > 0) return { error: 'A cancellation request is already pending review for this deal.' };
+  if (!app || !canAccessAsDealer(session, app.dealerId)) return { error: t('actionMsg.notFound') };
+  if (CANCEL_BLOCKED.includes(app.status)) return { error: t('actionMsg.dealer.dealAlreadyClosed') };
+  if (app.cancellations.length > 0) return { error: t('actionMsg.dealer.cancellationPending') };
 
   const reason = (formData.get('reason') ?? '').toString().trim();
-  if (reason.length < 3) return { error: 'Please give a brief reason for the cancellation.' };
+  if (reason.length < 3) return { error: t('actionMsg.dealer.cancellationReasonRequired') };
 
   const wasFunded = app.status === 'FUNDED';
 
@@ -821,9 +829,9 @@ export async function requestCancellationAction(
   let uninstallDate: Date | null = null;
   if (wasFunded) {
     const raw = (formData.get('uninstallDate') ?? '').toString().trim();
-    if (!raw) return { error: 'Enter the date the equipment was uninstalled.' };
+    if (!raw) return { error: t('actionMsg.dealer.enterUninstallDate') };
     const d = new Date(`${raw}T00:00:00`);
-    if (Number.isNaN(d.getTime())) return { error: 'That uninstall date is not valid.' };
+    if (Number.isNaN(d.getTime())) return { error: t('actionMsg.dealer.uninstallDateInvalid') };
     uninstallDate = d;
   }
 
@@ -865,12 +873,13 @@ export async function addDealerNoteAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const t = getT();
   const session = await requireDealerAccess();
   const app = await prisma.application.findUnique({ where: { id: applicationId } });
-  if (!app || !canAccessAsDealer(session, app.dealerId)) return { error: 'Not found.' };
+  if (!app || !canAccessAsDealer(session, app.dealerId)) return { error: t('actionMsg.notFound') };
 
   const body = String(formData.get('body') || '').trim();
-  if (!body) return { error: 'Write a note first.' };
+  if (!body) return { error: t('actionMsg.writeNoteFirst') };
 
   // Hard block: never store payment-card data.
   const card = findCardData(body);
@@ -904,14 +913,15 @@ export async function submitUserRequestAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const t = getT();
   const session = await requireDealerAccess();
-  if (!session.dealerId) return { error: 'Your account is not linked to a dealership.' };
+  if (!session.dealerId) return { error: t('actionMsg.dealer.notLinkedToDealership') };
 
   let parsed: { note?: unknown; rows?: unknown };
   try {
     parsed = JSON.parse(String(formData.get('payload') || '{}'));
   } catch {
-    return { error: 'Could not read the form. Please try again.' };
+    return { error: t('actionMsg.dealer.couldNotReadForm') };
   }
   const rawRows = Array.isArray(parsed.rows) ? (parsed.rows as RequestRowInput[]) : [];
   const note = String(parsed.note ?? '').trim().slice(0, 500) || null;
@@ -923,9 +933,9 @@ export async function submitUserRequestAction(
     const name = toTitleCase(String(r.name ?? '').trim());
     const email = String(r.email ?? '').trim().toLowerCase();
     if (!name && !email) continue; // skip blank rows
-    if (!name) return { error: 'Every person needs a name.' };
-    if (!emailRe.test(email)) return { error: `Enter a valid email for ${name}.` };
-    if (seen.has(email)) return { error: `${email} is listed twice.` };
+    if (!name) return { error: t('actionMsg.dealer.everyPersonNeedsName') };
+    if (!emailRe.test(email)) return { error: t('actionMsg.dealer.enterValidEmailFor', { name }) };
+    if (seen.has(email)) return { error: t('actionMsg.dealer.emailListedTwice', { email }) };
     seen.add(email);
     rows.push({
       name,
@@ -935,8 +945,8 @@ export async function submitUserRequestAction(
       isMainContact: r.isMainContact === true,
     });
   }
-  if (rows.length === 0) return { error: 'Add at least one person.' };
-  if (rows.length > 25) return { error: 'That’s a lot at once — please submit 25 or fewer people per request.' };
+  if (rows.length === 0) return { error: t('actionMsg.dealer.addAtLeastOnePerson') };
+  if (rows.length > 25) return { error: t('actionMsg.dealer.tooManyPeople') };
 
   const request = await prisma.userRequest.create({
     data: {
@@ -963,8 +973,9 @@ export async function saveDealerProfileAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const t = getT();
   const session = await requireDealerAccess();
-  if (!session.dealerId) return { error: 'Your account is not linked to a dealership.' };
+  if (!session.dealerId) return { error: t('actionMsg.dealer.notLinkedToDealership') };
   const data = parseDealerProfileForm(formData);
   const extraContacts = data.extraContacts as unknown as Prisma.InputJsonValue;
   await prisma.dealerProfile.upsert({
@@ -986,9 +997,10 @@ export async function saveDealerProfileAction(
  * being worked doesn't slip onto a later page. Tenant-scoped and idempotent.
  */
 export async function togglePinAction(applicationId: string): Promise<{ error?: string }> {
+  const t = getT();
   const session = await requireDealerAccess();
   const app = await prisma.application.findUnique({ where: { id: applicationId }, select: { dealerId: true } });
-  if (!app || !canAccessAsDealer(session, app.dealerId)) return { error: 'Not found.' };
+  if (!app || !canAccessAsDealer(session, app.dealerId)) return { error: t('actionMsg.notFound') };
   const key = { userId_applicationId: { userId: session.userId, applicationId } };
   try {
     const existing = await prisma.applicationPin.findUnique({ where: key });
@@ -998,7 +1010,7 @@ export async function togglePinAction(applicationId: string): Promise<{ error?: 
       await prisma.applicationPin.create({ data: { userId: session.userId, applicationId } });
     }
   } catch {
-    return { error: 'Pinning isn’t available yet — please try again in a minute.' };
+    return { error: t('actionMsg.dealer.pinningUnavailable') };
   }
   revalidatePath('/dealer');
   return {};

@@ -1,13 +1,15 @@
 'use client';
 
 import { useFormState, useFormStatus } from 'react-dom';
+import { useT } from '@/i18n/client';
 import { reconcileUnmatchedAction, type RemittanceActionState } from './actions';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
+  const t = useT();
   return (
     <button type="submit" disabled={pending} className="btn-secondary text-sm disabled:opacity-60">
-      {pending ? 'Checking…' : 'Re-check unmatched against current deals'}
+      {pending ? t('common.checking') : t('remit.reconcile.submit')}
     </button>
   );
 }

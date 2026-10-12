@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { SectionHero } from '@/components/SectionHero';
+import { getT } from '@/i18n/server';
 import { requireStaffSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { formatPhoneDisplay } from '@/lib/format';
@@ -66,6 +67,7 @@ const I = {
 
 export default async function DirectoryPage({ searchParams }: { searchParams: { q?: string } }) {
   const user = await requireStaffSection('directory');
+  const t = getT();
   const canEdit = user.role === 'ADMIN';
   const q = (searchParams.q ?? '').trim();
 
@@ -80,17 +82,17 @@ export default async function DirectoryPage({ searchParams }: { searchParams: { 
   return (
     <div className="space-y-6">
       <SectionHero
-        eyebrow="Dealers"
-        title="Office directory"
-        subtitle={`Locations and key contacts, kept up to date by each office.${canEdit ? ' You can edit any profile.' : ' Read-only.'}`}
+        eyebrow={t('staffMisc.directory.eyebrow')}
+        title={t('staffMisc.directory.title')}
+        subtitle={`${t('staffMisc.directory.subtitleBase')} ${canEdit ? t('staffMisc.directory.subtitleCanEdit') : t('staffMisc.directory.subtitleReadOnly')}`}
       />
       <form className="flex items-center gap-2" action="/staff/directory">
-        <input name="q" defaultValue={q} placeholder="Search office name…" className="input h-9 w-56 text-sm" />
-        <button type="submit" className="btn-secondary text-sm">Search</button>
+        <input name="q" defaultValue={q} placeholder={t('staffMisc.directory.searchPlaceholder')} className="input h-9 w-56 text-sm" />
+        <button type="submit" className="btn-secondary text-sm">{t('common.search')}</button>
       </form>
 
       {dealers.length === 0 ? (
-        <div className="card p-8 text-center text-sm text-gray-500">No offices found.</div>
+        <div className="card p-8 text-center text-sm text-gray-500">{t('staffMisc.directory.noOffices')}</div>
       ) : (
         <ul className="grid grid-cols-1 gap-5 xl:grid-cols-2">
           {withProfile.map((d) => {
@@ -108,12 +110,12 @@ export default async function DirectoryPage({ searchParams }: { searchParams: { 
                       </a>
                     )}
                   </div>
-                  {canEdit && <Link href={`/staff/directory/${d.id}`} className="btn-secondary flex-none text-xs">Edit</Link>}
+                  {canEdit && <Link href={`/staff/directory/${d.id}`} className="btn-secondary flex-none text-xs">{t('common.edit')}</Link>}
                 </div>
 
                 <div className="space-y-2.5 p-5">
                   {p.address && <InfoRow icon={I.pin}>{p.address}</InfoRow>}
-                  {p.shippingAddress && <InfoRow icon={I.truck}><span className="text-gray-400">Ship: </span>{p.shippingAddress}</InfoRow>}
+                  {p.shippingAddress && <InfoRow icon={I.truck}><span className="text-gray-400">{t('staffMisc.directory.shipLabel')} </span>{p.shippingAddress}</InfoRow>}
                   {phones.length > 0 && (
                     <InfoRow icon={I.phone}>
                       {phones.map((ph, i) => (
@@ -134,7 +136,7 @@ export default async function DirectoryPage({ searchParams }: { searchParams: { 
                       <ContactBlock label={p.billingLabel || DEFAULT_BILLING_LABEL} name={p.billingContactName} phone={p.billingPhone} email={p.billingEmail} />
                       <ContactBlock label={p.supportLabel || DEFAULT_SUPPORT_LABEL} name={p.supportContactName} phone={p.supportPhone} email={p.supportEmail} />
                       {extras.map((c, i) => (
-                        <ContactBlock key={i} label={c.role || 'Contact'} name={c.name} phone={c.phone} email={c.email} />
+                        <ContactBlock key={i} label={c.role || t('staffMisc.directory.contactFallback')} name={c.name} phone={c.phone} email={c.email} />
                       ))}
                     </div>
                   );
@@ -147,12 +149,12 @@ export default async function DirectoryPage({ searchParams }: { searchParams: { 
 
       {missing.length > 0 && (
         <section>
-          <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">No profile yet ({missing.length})</h2>
+          <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">{t('staffMisc.directory.noProfileYet', { n: missing.length })}</h2>
           <ul className="flex flex-wrap gap-2">
             {missing.map((d) => (
               <li key={d.id}>
                 {canEdit ? (
-                  <Link href={`/staff/directory/${d.id}`} className="badge bg-gray-100 text-gray-600 hover:bg-gray-200">{d.name} — add</Link>
+                  <Link href={`/staff/directory/${d.id}`} className="badge bg-gray-100 text-gray-600 hover:bg-gray-200">{t('staffMisc.directory.addProfile', { name: d.name })}</Link>
                 ) : (
                   <span className="badge bg-gray-100 text-gray-500">{d.name}</span>
                 )}

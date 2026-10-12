@@ -1,5 +1,6 @@
 import type { Confirmation } from '@prisma/client';
 import { REVIEWER_DISPLAY } from '@/lib/constants';
+import { getT } from '@/i18n/server';
 
 type WithConfirmer = Confirmation & { confirmedBy?: { name: string } | null };
 
@@ -15,35 +16,36 @@ function Check({ ok, label }: { ok: boolean; label: string }) {
 }
 
 export function ConfirmationView({ c, anonymizeStaff = false }: { c: WithConfirmer; anonymizeStaff?: boolean }) {
+  const t = getT();
   return (
     <div className="space-y-3 text-sm">
       <ul className="space-y-1.5">
-        <Check ok={c.installedWorking} label="Installed in the home and working fine" />
-        <Check ok={c.performingAsRepresented} label="Performing as the salesperson represented" />
-        <Check ok={c.receivedEverything} label="Received everything promised" />
-        <Check ok={c.termsAgreed} label="Agreed to the terms" />
-        <Check ok={c.signatureConfirmed} label="Confirmed signature on the application" />
-        <Check ok={c.notTrialOffer} label="Aware this is not a trial offer" />
+        <Check ok={c.installedWorking} label={t('staffMisc.confirmView.installedWorking')} />
+        <Check ok={c.performingAsRepresented} label={t('staffMisc.confirmView.performingAsRepresented')} />
+        <Check ok={c.receivedEverything} label={t('staffMisc.confirmView.receivedEverything')} />
+        <Check ok={c.termsAgreed} label={t('staffMisc.confirmView.termsAgreed')} />
+        <Check ok={c.signatureConfirmed} label={t('staffMisc.confirmView.signatureConfirmed')} />
+        <Check ok={c.notTrialOffer} label={t('staffMisc.confirmView.notTrialOffer')} />
       </ul>
 
       {(c.financingAmount || c.termMonths) && (
         <p className="text-gray-600">
-          Financing {c.financingAmount ? `$${c.financingAmount.toString()}` : '—'}
-          {c.termMonths ? ` over ${c.termMonths} months` : ''}
-          {c.firstInstallmentAmount ? `, first installment $${c.firstInstallmentAmount.toString()}` : ''}
-          {c.firstInstallmentDate ? ` on ${new Date(c.firstInstallmentDate).toLocaleDateString('en-CA')}` : ''}.
+          {t('staffMisc.confirmView.financing')} {c.financingAmount ? `$${c.financingAmount.toString()}` : '—'}
+          {c.termMonths ? ` ${t('staffMisc.confirmView.overMonths', { n: c.termMonths })}` : ''}
+          {c.firstInstallmentAmount ? `, ${t('staffMisc.confirmView.firstInstallmentOf', { amount: `$${c.firstInstallmentAmount.toString()}` })}` : ''}
+          {c.firstInstallmentDate ? ` ${t('staffMisc.confirmView.onDate', { date: new Date(c.firstInstallmentDate).toLocaleDateString('en-CA') })}` : ''}.
         </p>
       )}
 
       {c.specialArrangements && (
-        <p className="text-gray-600"><span className="font-medium">Special arrangements: </span>{c.specialArrangements}</p>
+        <p className="text-gray-600"><span className="font-medium">{t('staffMisc.confirmView.specialArrangements')} </span>{c.specialArrangements}</p>
       )}
       {c.issueNote && (
-        <p className="rounded bg-red-50 p-2 text-red-700"><span className="font-medium">Issue: </span>{c.issueNote}</p>
+        <p className="rounded bg-red-50 p-2 text-red-700"><span className="font-medium">{t('staffMisc.confirmView.issue')} </span>{c.issueNote}</p>
       )}
       {c.completedAt && (
         <p className="text-xs text-gray-400">
-          Confirmed by {anonymizeStaff ? REVIEWER_DISPLAY : c.confirmedBy?.name ?? 'GWA'} · {new Date(c.completedAt).toLocaleString('en-CA')}
+          {t('staffMisc.confirmView.confirmedBy', { name: anonymizeStaff ? REVIEWER_DISPLAY : c.confirmedBy?.name ?? 'GWA' })} · {new Date(c.completedAt).toLocaleString('en-CA')}
         </p>
       )}
     </div>

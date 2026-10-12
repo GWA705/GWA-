@@ -43,6 +43,7 @@ import {
 } from '@/lib/constants';
 import { dealHasFinancing, financedAmountOf, nonFinancedAmountOf, journalPayCode } from '@/lib/payments';
 import { syncApplicationToJournal } from '@/lib/journalSync';
+import { getT } from '@/i18n/server';
 import type { ApplicationStatus, DecisionType, DocumentType, VerificationStatus } from '@prisma/client';
 
 export interface ActionState {
@@ -76,10 +77,11 @@ function nextStatus(type: DecisionType): ApplicationStatus | null {
  * document that's already been confirmed is protected — un-verify it first.
  */
 export async function deleteDocumentAction(documentId: string): Promise<{ error?: string }> {
+  const t = getT();
   const session = await requireStaffSection('review-queue');
   const doc = await prisma.document.findUnique({ where: { id: documentId } });
-  if (!doc) return { error: 'Document not found.' };
-  if (doc.verifiedAt) return { error: 'This document is confirmed — un-confirm it first, then delete.' };
+  if (!doc) return { error: t('actionMsg.staff.documentNotFound') };
+  if (doc.verifiedAt) return { error: t('actionMsg.staff.docConfirmedUnconfirm') };
 
   try {
     await deleteDocument(doc.storageKey);
@@ -108,13 +110,14 @@ export async function setDealReferencesAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const t = getT();
   const session = await requireStaffSection('review-queue');
   const parsed = dealReferencesSchema.safeParse({
     applicationId,
     financeItNumber: (formData.get('financeItNumber') as string) ?? '',
     hdReference: (formData.get('hdReference') as string) ?? '',
   });
-  if (!parsed.success) return { error: 'Reference numbers can be up to 60 characters.' };
+  if (!parsed.success) return { error: t('actionMsg.staff.refNumbersMaxLength') };
 
   const financeItNumber = parsed.data.financeItNumber?.trim() || null;
   const hdReference = parsed.data.hdReference?.trim() || null;
@@ -192,6 +195,7 @@ export async function recordDecisionAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const t = getT();
   const session = await requireStaffSection('review-queue');
 
   const parsed = decisionSchema.safeParse({
@@ -203,14 +207,14 @@ export async function recordDecisionAction(
     financeItNumber: (formData.get('financeItNumber') as string) || undefined,
     hdReference: (formData.get('hdReference') as string) || undefined,
   });
-  if (!parsed.success) return { error: 'Invalid decision.' };
+  if (!parsed.success) return { error: t('actionMsg.staff.invalidDecision') };
   const { applicationId, type, notes, approvedAmount, financeCompanyId, financeItNumber, hdReference } = parsed.data;
 
   const app = await prisma.application.findUnique({ where: { id: applicationId } });
-  if (!app) return { error: 'Application not found.' };
+  if (!app) return { error: t('actionMsg.staff.applicationNotFound') };
 
   if (!isTransitionAllowed(app.status, type)) {
-    return { error: `Cannot ${type.replace('_', ' ').toLowerCase()} an application in status ${app.status}.` };
+    return { error: t('actionMsg.staff.cannotTransition', { action: type.replace('_', ' ').toLowerCase(), status: app.status }) };
   }
 
   // Funding a deal requires its reference numbers on file. The Financing deal
@@ -233,7 +237,7 @@ export async function recordDecisionAction(
     const outstanding = applicable.filter((c) => byKey.get(c.key) !== 'CONFIRMED');
     if (outstanding.length > 0) {
       return {
-        error: 'Complete the funding verification checklist — every item must be Confirmed before funding.',
+        error: t('actionMsg.staff.completeVerificationChecklist'),
       };
     }
   }
@@ -370,14 +374,15 @@ export async function confirmCancellationAction(
   _prev: CancellationActionState,
   formData: FormData,
 ): Promise<CancellationActionState> {
+  const t = getT();
   const session = await requireStaffSection('review-queue');
   const c = await prisma.dealCancellation.findUnique({ where: { id: cancellationId }, include: { application: true, requestedBy: true } });
-  if (!c) return { error: 'Not found.' };
-  if (c.status !== 'PENDING') return { error: 'This request has already been resolved.' };
+  if (!c) return { error: t('actionMsg.notFound') };
+  if (c.status !== 'PENDING') return { error: t('actionMsg.staff.requestAlreadyResolved') };
 
   const hdRefundConfirmed = formData.get('hdRefundConfirmed') === 'on' || formData.get('hdRefundConfirmed') === '1';
   if (c.wasFunded && !hdRefundConfirmed) {
-    return { error: 'This deal was funded — confirm the Home Depot refund was processed before finalizing.' };
+    return { error: t('actionMsg.staff.confirmHdRefund') };
   }
   const note = (formData.get('note') ?? '').toString().trim().slice(0, 2000) || null;
 
@@ -452,10 +457,11 @@ export async function rejectCancellationAction(
   _prev: CancellationActionState,
   formData: FormData,
 ): Promise<CancellationActionState> {
+  const t = getT();
   const session = await requireStaffSection('review-queue');
   const c = await prisma.dealCancellation.findUnique({ where: { id: cancellationId } });
-  if (!c) return { error: 'Not found.' };
-  if (c.status !== 'PENDING') return { error: 'This request has already been resolved.' };
+  if (!c) return { error: t('actionMsg.notFound') };
+  if (c.status !== 'PENDING') return { error: t('actionMsg.staff.requestAlreadyResolved') };
 
   const note = (formData.get('note') ?? '').toString().trim().slice(0, 2000) || null;
   const trail = [`↩️ Cancellation request declined by a reviewer. The deal remains active.`, note ? `Note: ${note}` : null].filter(Boolean).join(' ');
@@ -481,27 +487,28 @@ export async function uploadReviewerPaperworkAction(
   _prev: { error?: string },
   formData: FormData,
 ): Promise<{ error?: string }> {
+  const tr = getT();
   const session = await requireStaffSection('review-queue');
   const app = await prisma.application.findUnique({ where: { id: applicationId } });
-  if (!app) return { error: 'Not found.' };
+  if (!app) return { error: tr('actionMsg.notFound') };
 
   // Rule: an HD-program deal must carry its HD Customer # before install
   // paperwork goes to the dealer. The deal can be approved (and journalled)
   // without it, but the number has to be recorded before the documents are sent.
   if (hdReferenceRequired(app.programType) && !app.hdReference?.trim()) {
-    return { error: 'Add the HD Customer # in “Review & decide” before sending install paperwork to the dealer.' };
+    return { error: tr('actionMsg.staff.addHdCustomerNumber') };
   }
 
   const category = String(formData.get('category') || '');
   const allowed = REVIEWER_PAPERWORK_TYPES.map((t) => t.type) as string[];
-  if (!allowed.includes(category)) return { error: 'Choose a paperwork type first.' };
+  if (!allowed.includes(category)) return { error: tr('actionMsg.staff.choosePaperworkType') };
   const docType = category as DocumentType;
 
   // "Other" carries a typed label that becomes the document's category name.
   let namePrefix = REVIEWER_PAPERWORK_PREFIX[docType];
   if (docType === 'OTHER') {
     const custom = String(formData.get('customLabel') || '').trim().replace(/[^\w\s-]/g, '').slice(0, 40);
-    if (!custom) return { error: 'Type a name for this document.' };
+    if (!custom) return { error: tr('actionMsg.staff.typeDocumentName') };
     namePrefix = custom;
   }
 
@@ -549,12 +556,13 @@ export async function uploadReviewerPaperworkAction(
  * reviewer/admin can set or clear it; the name + time are snapshotted.
  */
 export async function toggleReviewerDoneAction(applicationId: string): Promise<{ error?: string }> {
+  const t = getT();
   const session = await requireStaffSection('review-queue');
   const app = await prisma.application.findUnique({
     where: { id: applicationId },
     select: { id: true, reviewerDoneAt: true },
   });
-  if (!app) return { error: 'Not found.' };
+  if (!app) return { error: t('actionMsg.notFound') };
   const nowDone = !app.reviewerDoneAt;
   await prisma.application.update({
     where: { id: applicationId },
@@ -582,15 +590,16 @@ export async function updateDealAction(
   _prev: { error?: string; fieldErrors?: Record<string, string> },
   formData: FormData,
 ): Promise<{ error?: string; fieldErrors?: Record<string, string> }> {
+  const t = getT();
   const session = await requireStaffSection('review-queue');
   const app = await prisma.application.findUnique({ where: { id: applicationId } });
-  if (!app) return { error: 'Deal not found.' };
+  if (!app) return { error: t('actionMsg.staff.dealNotFound') };
 
   const parsed = editDealSchema.safeParse(Object.fromEntries(formData.entries()));
   if (!parsed.success) {
     const fieldErrors: Record<string, string> = {};
     for (const issue of parsed.error.issues) fieldErrors[issue.path.join('.')] = issue.message;
-    return { error: 'Please correct the highlighted fields.', fieldErrors };
+    return { error: t('actionMsg.correctHighlighted'), fieldErrors };
   }
   const d = parsed.data;
 
@@ -599,7 +608,7 @@ export async function updateDealAction(
   const dealerChanged = d.dealerId !== app.dealerId;
   if (dealerChanged) {
     const target = await prisma.dealer.findUnique({ where: { id: d.dealerId }, select: { id: true, name: true } });
-    if (!target) return { error: 'That dealer no longer exists.', fieldErrors: { dealerId: 'Unknown dealer' } };
+    if (!target) return { error: t('actionMsg.staff.dealerGone'), fieldErrors: { dealerId: 'Unknown dealer' } };
   }
 
   // Finance company (optional) — if one was chosen, make sure it still exists
@@ -607,7 +616,7 @@ export async function updateDealAction(
   const financeCompanyId = d.financeCompanyId || null;
   if (financeCompanyId) {
     const fc = await prisma.financeCompany.findUnique({ where: { id: financeCompanyId }, select: { id: true } });
-    if (!fc) return { error: 'That finance company no longer exists.', fieldErrors: { financeCompanyId: 'Unknown finance company' } };
+    if (!fc) return { error: t('actionMsg.staff.financeCompanyGone'), fieldErrors: { financeCompanyId: 'Unknown finance company' } };
   }
 
   const loanData = {
@@ -724,6 +733,7 @@ export async function recordPayoutAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const t = getT();
   const session = await requireStaffSection('review-queue');
   const parsed = payoutSchema.safeParse({
     applicationId: formData.get('applicationId'),
@@ -733,11 +743,11 @@ export async function recordPayoutAction(
     reference: formData.get('reference') || undefined,
     note: formData.get('note') || undefined,
   });
-  if (!parsed.success) return { error: 'Enter a valid amount and date.' };
+  if (!parsed.success) return { error: t('actionMsg.staff.enterValidAmountDate') };
   const d = parsed.data;
 
   const app = await prisma.application.findUnique({ where: { id: d.applicationId } });
-  if (!app) return { error: 'Application not found.' };
+  if (!app) return { error: t('actionMsg.staff.applicationNotFound') };
 
   const payout = await prisma.payout.create({
     data: {
@@ -782,9 +792,10 @@ export async function recordPayoutAction(
  * the status history.
  */
 export async function markFundedAction(applicationId: string): Promise<{ error?: string }> {
+  const t = getT();
   const session = await requireStaffSection('review-queue');
   const app = await prisma.application.findUnique({ where: { id: applicationId } });
-  if (!app) return { error: 'Application not found.' };
+  if (!app) return { error: t('actionMsg.staff.applicationNotFound') };
   if (app.status === 'FUNDED') return {};
   const refError = referenceGateError({ ...app, financed: dealHasFinancing(app) }, 'marking this deal funded');
   if (refError) return { error: refError };
@@ -814,19 +825,20 @@ export async function markFundedAction(applicationId: string): Promise<{ error?:
  * if the journal shows OK + a Date Paid, mark it paid and auto-advance to Funded.
  */
 export async function syncDealFromJournalAction(applicationId: string): Promise<{ error?: string; message?: string }> {
+  const t = getT();
   const session = await requireStaffSection('review-queue');
   const { syncApplicationFromJournal } = await import('@/lib/journalPaidSync');
   const out = await syncApplicationFromJournal(applicationId, session.userId);
   revalidatePath(`/staff/applications/${applicationId}`);
   revalidatePath('/staff');
-  if (out.error) return { error: `Couldn’t read the journal: ${out.error}` };
+  if (out.error) return { error: t('actionMsg.staff.couldntReadJournal', { error: out.error }) };
   if (out.skipped === 'not written to journal') {
-    return { error: 'This deal hasn’t been written to the journal yet — use “Write to Journal” first, then check again.' };
+    return { error: t('actionMsg.staff.notWrittenToJournal') };
   }
   if (out.skipped) return { error: out.skipped };
-  if (out.funded) return { message: 'Journal shows this deal paid — marked Funded & Paid.' };
-  if (out.paid) return { message: 'Journal shows this deal paid.' };
-  return { message: `Checked — not paid yet. ${out.reason ?? 'The journal doesn’t show this deal paid.'}` };
+  if (out.funded) return { message: t('actionMsg.staff.journalPaidFunded') };
+  if (out.paid) return { message: t('actionMsg.staff.journalPaid') };
+  return { message: t('actionMsg.staff.checkedNotPaid', { reason: out.reason ?? t('actionMsg.staff.journalNotPaidReason') }) };
 }
 
 // Reviewer toggles a funding document's "completed/verified" state.
@@ -1067,7 +1079,7 @@ export async function backfillJournalUnitsAction(apply: boolean): Promise<Backfi
     matched: 0, filled: 0, plan: [], skippedHadValue: 0, skippedMismatch: 0, skippedNoColumn: 0, errors: [], applied: false,
   };
   if (!journalEnabled()) {
-    return { ...empty, errors: ['The sales journal is not configured, so there is nothing to back-fill.'] };
+    return { ...empty, errors: [getT()('actionMsg.staff.journalNotConfiguredBackfill')] };
   }
 
   // Every deal the portal has placed on the journal (tab + row recorded) that we
@@ -1135,6 +1147,7 @@ export async function backfillJournalUnitsAction(apply: boolean): Promise<Backfi
  * uploaded funding documents are all confirmed. Never marks a deal Funded.
  */
 export async function advanceDealToInForFundingAction(applicationId: string): Promise<ActionState> {
+  const t = getT();
   const session = await requireStaffSection('review-queue');
   const a = await prisma.application.findUnique({
     where: { id: applicationId },
@@ -1144,7 +1157,7 @@ export async function advanceDealToInForFundingAction(applicationId: string): Pr
       statusEvents: { select: { to: true } },
     },
   });
-  if (!a) return { error: 'Not found.' };
+  if (!a) return { error: t('actionMsg.notFound') };
   const fundingDocs = a.documents;
   const eligible =
     a.status === 'FUNDING_SUBMITTED' ||
@@ -1152,9 +1165,9 @@ export async function advanceDealToInForFundingAction(applicationId: string): Pr
     // FUNDING_SUBMITTED (dealer didn't press Submit, or it was added another way).
     a.status === 'DOCS_SENT' ||
     isOutOfBandReturn({ status: a.status, fundingDocTypes: fundingDocs.map((d) => d.type), statusHistoryTos: a.statusEvents.map((e) => e.to) });
-  if (!eligible) return { error: 'This deal is not at a stage that can move to In for funding.' };
+  if (!eligible) return { error: t('actionMsg.staff.notStageForFunding') };
   if (fundingDocs.length === 0 || fundingDocs.some((d) => d.verifiedAt === null)) {
-    return { error: 'Confirm every uploaded funding document first.' };
+    return { error: t('actionMsg.staff.confirmEveryFundingDoc') };
   }
   await moveStuckDealToInForFunding(a.id, a.status, session.userId);
   revalidatePath(`/staff/applications/${applicationId}`);
@@ -1168,17 +1181,18 @@ export async function changeStatusAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const t = getT();
   const session = await requireStaffSection('review-queue');
   const parsed = statusChangeSchema.safeParse({
     applicationId: formData.get('applicationId'),
     status: formData.get('status'),
     note: formData.get('note') || undefined,
   });
-  if (!parsed.success) return { error: 'Pick a valid status.' };
+  if (!parsed.success) return { error: t('actionMsg.staff.pickValidStatus') };
   const { applicationId, status, note } = parsed.data;
 
   const app = await prisma.application.findUnique({ where: { id: applicationId } });
-  if (!app) return { error: 'Application not found.' };
+  if (!app) return { error: t('actionMsg.staff.applicationNotFound') };
   if (app.status === status) return { ok: true };
 
   // A deal can't reach an approved state (or anything past it) without the
@@ -1196,7 +1210,7 @@ export async function changeStatusAction(
       programType: app.programType,
       paymentMethod: app.paymentMethod,
     });
-    if (gate) return { error: `${gate} (Use the Approve form to add them.)` };
+    if (gate) return { error: `${gate} ${t('actionMsg.staff.useApproveForm')}` };
   }
 
   // A deal can't move into funding (or anything past it) until its required
@@ -1239,13 +1253,14 @@ export async function addStaffNoteAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const t = getT();
   const session = await requireStaffSection('review-queue');
   const parsed = noteSchema.safeParse({
     applicationId: formData.get('applicationId'),
     body: formData.get('body'),
     internal: formData.get('internal') === 'true',
   });
-  if (!parsed.success) return { error: 'Write a note first.' };
+  if (!parsed.success) return { error: t('actionMsg.writeNoteFirst') };
   const { applicationId, body, internal } = parsed.data;
 
   // Hard block: never store payment-card data.
@@ -1256,7 +1271,7 @@ export async function addStaffNoteAction(
   }
 
   const app = await prisma.application.findUnique({ where: { id: applicationId } });
-  if (!app) return { error: 'Application not found.' };
+  if (!app) return { error: t('actionMsg.staff.applicationNotFound') };
 
   await prisma.note.create({ data: { applicationId, authorId: session.userId, body, internal } });
   await markReviewerAction(applicationId);
@@ -1272,6 +1287,7 @@ export async function saveConfirmationAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const t = getT();
   const session = await requireStaffSection('review-queue');
   // Default to a plain "save" when no button/intent came through (e.g. the form
   // was submitted by the phone keyboard's return key with no submit button).
@@ -1319,14 +1335,14 @@ export async function saveConfirmationAction(
     const label = labels[field];
     return {
       error: label
-        ? `Couldn’t save — please check the “${label}” field and try again.`
-        : 'Could not save the confirmation. Please check the entries and try again.',
+        ? t('actionMsg.staff.couldntSaveCheckField', { label })
+        : t('actionMsg.staff.couldntSaveConfirmation'),
     };
   }
   const d = parsed.data;
 
   const app = await prisma.application.findUnique({ where: { id: d.applicationId } });
-  if (!app) return { error: 'Application not found.' };
+  if (!app) return { error: t('actionMsg.staff.applicationNotFound') };
 
   const allChecked =
     !!d.installedWorking &&
@@ -1337,7 +1353,7 @@ export async function saveConfirmationAction(
     !!d.notTrialOffer;
 
   if (d.intent === 'complete' && !allChecked) {
-    return { error: 'Check all six confirmation boxes before completing.' };
+    return { error: t('actionMsg.staff.checkAllSixBoxes') };
   }
 
   const fields = {
@@ -1416,6 +1432,7 @@ export async function setVerificationCheckAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const t = getT();
   const session = await requireStaffSection('review-queue');
 
   const key = String(formData.get('key') || '');
@@ -1423,16 +1440,16 @@ export async function setVerificationCheckAction(
   const note = ((formData.get('note') as string) || '').trim();
 
   const def = VERIFICATION_CHECKS.find((c) => c.key === key);
-  if (!def) return { error: 'Unknown checklist item.' };
+  if (!def) return { error: t('actionMsg.staff.unknownChecklistItem') };
   if (status !== 'CONFIRMED' && status !== 'PROBLEM' && status !== 'PENDING') {
-    return { error: 'Invalid status.' };
+    return { error: t('actionMsg.staff.invalidStatus') };
   }
   if (status === 'PROBLEM' && !note) {
-    return { error: 'Add a short note describing the problem — the dealer will be notified.' };
+    return { error: t('actionMsg.staff.addProblemNote') };
   }
 
   const app = await prisma.application.findUnique({ where: { id: applicationId } });
-  if (!app) return { error: 'Deal not found.' };
+  if (!app) return { error: t('actionMsg.staff.dealNotFound') };
 
   await prisma.verificationCheck.upsert({
     where: { applicationId_key: { applicationId, key } },
@@ -1501,20 +1518,20 @@ export async function writeToJournalAction(
   _prev: ActionState,
   _formData: FormData,
 ): Promise<ActionState> {
+  const t = getT();
   const session = await requireStaffSection('review-queue');
   const res = await syncApplicationToJournal(applicationId, session.userId);
   if (res.status === 'disabled') {
     return {
-      error:
-        'The sales journal is not connected yet (JOURNAL_SHEET_ID / Google credentials are missing on the server).',
+      error: t('actionMsg.staff.journalNotConnectedDetail'),
     };
   }
-  if (res.status === 'error') return { error: `Could not write to the journal: ${res.message}` };
+  if (res.status === 'error') return { error: t('actionMsg.staff.couldNotWriteJournal', { message: res.message ?? '' }) };
   if (res.status === 'conflict') {
     // Not a failure and not a silent success — the deal is already on the journal.
     // Surface it clearly so staff reconcile it by hand.
     await markReviewerAction(applicationId);
-    return { error: `⚠ ${res.message ?? 'This deal is already on the journal.'}` };
+    return { error: `⚠ ${res.message ?? t('actionMsg.staff.alreadyOnJournal')}` };
   }
   await markReviewerAction(applicationId);
   revalidatePath(`/staff/applications/${applicationId}`);
@@ -1533,12 +1550,13 @@ export async function replaceJournalRowAction(
   _prev: ActionState,
   _formData: FormData,
 ): Promise<ActionState> {
+  const t = getT();
   const session = await requireStaffSection('review-queue');
   if (!journalEnabled()) {
-    return { error: 'The sales journal is not connected yet.' };
+    return { error: t('actionMsg.staff.journalNotConnected') };
   }
   const app = await prisma.application.findUnique({ where: { id: applicationId } });
-  if (!app) return { error: 'Deal not found.' };
+  if (!app) return { error: t('actionMsg.staff.dealNotFound') };
 
   // Clear the old (misplaced) row's managed cells so re-writing doesn't leave a
   // duplicate and so the duplicate-guard won't re-grab that row by its HD Ref #
@@ -1560,15 +1578,16 @@ export async function replaceJournalRowAction(
   });
 
   const res = await syncApplicationToJournal(applicationId, session.userId);
-  if (res.status === 'disabled') return { error: 'The sales journal is not connected yet.' };
-  if (res.status === 'error') return { error: `Could not re-place the deal: ${res.message}` };
+  if (res.status === 'disabled') return { error: t('actionMsg.staff.journalNotConnected') };
+  if (res.status === 'error') return { error: t('actionMsg.staff.couldNotReplaceDeal', { message: res.message ?? '' }) };
   if (res.status === 'conflict') {
     await markReviewerAction(applicationId);
-    return { error: `⚠ ${res.message ?? 'This deal is already on the journal.'}` };
+    return { error: `⚠ ${res.message ?? t('actionMsg.staff.alreadyOnJournal')}` };
   }
   await markReviewerAction(applicationId);
   revalidatePath(`/staff/applications/${applicationId}`);
-  return { ok: true, message: res.message ? `Moved to the next blank line. ${res.message}` : 'Moved to the next blank line.' };
+  const movedBase = t('actionMsg.staff.movedToNextLine');
+  return { ok: true, message: res.message ? `${movedBase} ${res.message}` : movedBase };
 }
 
 // --- Customer review request (confirmation step) ---------------------------
@@ -1587,11 +1606,12 @@ export async function setCustomerEmailAction(
   applicationId: string,
   email: string,
 ): Promise<ActionState> {
+  const t = getT();
   const session = await requireStaffSection('review-queue');
   const e = (email || '').trim();
-  if (!EMAIL_RE.test(e) || e.length > 160) return { error: 'Enter a valid email address.' };
+  if (!EMAIL_RE.test(e) || e.length > 160) return { error: t('actionMsg.staff.enterValidEmail') };
   const app = await prisma.application.findUnique({ where: { id: applicationId }, select: { id: true } });
-  if (!app) return { error: 'Deal not found.' };
+  if (!app) return { error: t('actionMsg.staff.dealNotFound') };
   await prisma.application.update({ where: { id: applicationId }, data: { applicantEmail: e } });
   await audit({
     actorId: session.userId,
@@ -1613,15 +1633,16 @@ export async function setCustomerPhoneAction(
   applicationId: string,
   phone: string,
 ): Promise<ActionState> {
+  const t = getT();
   const session = await requireStaffSection('review-queue');
   const e164 = toE164(phone);
-  if (!e164) return { error: 'Enter a valid mobile number (10-digit North American, e.g. 905-555-0123).' };
+  if (!e164) return { error: t('actionMsg.staff.enterValidMobile') };
   // Store NANP numbers as XXX-XXX-XXXX (the portal's phone convention); keep a
   // non-NANP international number in E.164.
   const m = /^\+1(\d{3})(\d{3})(\d{4})$/.exec(e164);
   const stored = m ? `${m[1]}-${m[2]}-${m[3]}` : e164;
   const app = await prisma.application.findUnique({ where: { id: applicationId }, select: { id: true } });
-  if (!app) return { error: 'Deal not found.' };
+  if (!app) return { error: t('actionMsg.staff.dealNotFound') };
   await prisma.application.update({ where: { id: applicationId }, data: { applicantPhone: stored } });
   await audit({
     actorId: session.userId,
@@ -1639,9 +1660,10 @@ export async function setCustomerPhoneAction(
  * Admin only. Passing an empty string clears it.
  */
 export async function setReviewLinkAction(link: string): Promise<ActionState> {
+  const t = getT();
   await requireAdminSection('overview');
   const v = (link || '').trim();
-  if (v && !/^https?:\/\/\S+$/i.test(v)) return { error: 'Enter a full link starting with https://' };
+  if (v && !/^https?:\/\/\S+$/i.test(v)) return { error: t('actionMsg.staff.enterFullLink') };
   await setSetting(REVIEW_SETTING_KEYS.link, v);
   revalidatePath('/staff/applications', 'layout');
   return { ok: true };
@@ -1656,10 +1678,11 @@ export async function sendReviewRequestAction(
   applicationId: string,
   channels: { email?: boolean; sms?: boolean },
 ): Promise<ActionState & { sentEmail?: boolean; sentSms?: boolean; note?: string }> {
+  const t = getT();
   const session = await requireStaffSection('review-queue');
 
   const link = await getReviewLink();
-  if (!link) return { error: 'No review link is set yet — add it first, then send.' };
+  if (!link) return { error: t('actionMsg.staff.noReviewLink') };
 
   const app = await prisma.application.findUnique({
     where: { id: applicationId },
@@ -1668,7 +1691,7 @@ export async function sendReviewRequestAction(
       salespersonName: true, productsSold: true,
     },
   });
-  if (!app) return { error: 'Deal not found.' };
+  if (!app) return { error: t('actionMsg.staff.dealNotFound') };
 
   const name = `${app.applicantFirstName} ${app.applicantLastName}`.trim();
   const wantEmail = channels.email !== false; // default to email
@@ -1681,9 +1704,9 @@ export async function sendReviewRequestAction(
   if (wantEmail) {
     const to = (app.applicantEmail || '').trim();
     if (!to || !EMAIL_RE.test(to)) {
-      problems.push('no email on file');
+      problems.push(t('actionMsg.staff.probNoEmail'));
     } else if (!emailEnabled()) {
-      problems.push('email is not switched on (SMTP)');
+      problems.push(t('actionMsg.staff.probEmailOff'));
     } else {
       const { subject, html, text } = buildReviewEmail({
         customerName: name,
@@ -1701,23 +1724,23 @@ export async function sendReviewRequestAction(
         replyTo: 'Reporter@ghsbarrie.ca',
       });
       if (r.sent) sentEmail = true;
-      else problems.push(`email didn't send (${r.reason ?? 'error'})`);
+      else problems.push(t('actionMsg.staff.probEmailFailed', { reason: r.reason ?? t('actionMsg.staff.errorGeneric') }));
     }
   }
 
   if (wantSms) {
     if (!smsEnabled()) {
-      problems.push('texting isn’t set up yet');
+      problems.push(t('actionMsg.staff.probSmsOff'));
     } else {
       const body = buildReviewSms({ customerName: name, reviewLink: link });
       const r = await sendSms({ to: app.applicantPhone, body });
       if (r.sent) sentSms = true;
-      else problems.push(`text didn't send (${r.reason ?? 'error'})`);
+      else problems.push(t('actionMsg.staff.probSmsFailed', { reason: r.reason ?? t('actionMsg.staff.errorGeneric') }));
     }
   }
 
   if (!sentEmail && !sentSms) {
-    return { error: `Couldn’t send the review request: ${problems.join('; ') || 'nothing to send'}.` };
+    return { error: t('actionMsg.staff.couldntSendReview', { detail: problems.join('; ') || t('actionMsg.staff.nothingToSend') }) };
   }
 
   const via = [sentEmail && 'email', sentSms && 'sms'].filter(Boolean).join('+');
@@ -1734,7 +1757,7 @@ export async function sendReviewRequestAction(
   });
   revalidatePath(`/staff/applications/${applicationId}`);
 
-  const note = problems.length ? `Sent, but: ${problems.join('; ')}.` : undefined;
+  const note = problems.length ? t('actionMsg.staff.sentButProblems', { problems: problems.join('; ') }) : undefined;
   return { ok: true, sentEmail, sentSms, note };
 }
 
@@ -1745,10 +1768,11 @@ export async function sendReviewRequestAction(
  * sample product/rep values so the copy lines show.
  */
 export async function sendReviewTestAction(): Promise<ActionState & { sentTo?: string; note?: string }> {
+  const t = getT();
   const session = await requireRole('REVIEWER', 'ADMIN');
-  if (!emailEnabled()) return { error: 'Email isn’t switched on here (SMTP), so a test can’t be sent.' };
+  if (!emailEnabled()) return { error: t('actionMsg.staff.emailOffTest') };
   const to = (session.email || '').trim();
-  if (!to || !EMAIL_RE.test(to)) return { error: 'Your account has no valid email to send the test to.' };
+  if (!to || !EMAIL_RE.test(to)) return { error: t('actionMsg.staff.noAccountEmail') };
 
   const configuredLink = await getReviewLink();
   const link = configuredLink || `https://georgianwaterandair.ca`;
@@ -1764,12 +1788,12 @@ export async function sendReviewTestAction(): Promise<ActionState & { sentTo?: s
     from: 'Georgian Water & Air <Reporter@ghsbarrie.ca>',
     replyTo: 'Reporter@ghsbarrie.ca',
   });
-  if (!r.sent) return { error: `Test didn’t send (${r.reason ?? 'error'}).` };
+  if (!r.sent) return { error: t('actionMsg.staff.testFailed', { reason: r.reason ?? t('actionMsg.staff.errorGeneric') }) };
 
   await audit({ actorId: session.userId, action: 'MAIL_SEND', entityType: 'User', entityId: session.userId, detail: 'Review email test sent' });
   const note = configuredLink
     ? undefined
-    : 'No review link is set yet, so the button points to the website for now — set the link and it’ll point to Google.';
+    : t('actionMsg.staff.testNoLinkNote');
   return { ok: true, sentTo: to, note };
 }
 
@@ -1785,27 +1809,28 @@ export async function emailDocumentsToCustomerAction(
   message: string,
   toOverride?: string,
 ): Promise<ActionState & { sentTo?: string }> {
+  const t = getT();
   const session = await requireStaffSection('review-queue');
-  if (!emailEnabled()) return { error: 'Email isn’t switched on here (SMTP).' };
+  if (!emailEnabled()) return { error: t('actionMsg.staff.emailOff') };
 
   const app = await prisma.application.findUnique({
     where: { id: applicationId },
     select: { id: true, applicantFirstName: true, applicantLastName: true, applicantEmail: true },
   });
-  if (!app) return { error: 'Deal not found.' };
+  if (!app) return { error: t('actionMsg.staff.dealNotFound') };
 
   const to = (toOverride?.trim() || app.applicantEmail || '').trim();
-  if (!to || !EMAIL_RE.test(to)) return { error: 'Enter a valid customer email to send to.' };
+  if (!to || !EMAIL_RE.test(to)) return { error: t('actionMsg.staff.enterValidCustomerEmailSend') };
 
   const ids = Array.from(new Set((contentItemIds || []).filter(Boolean))).slice(0, 10);
-  if (ids.length === 0) return { error: 'Pick at least one document to send.' };
+  if (ids.length === 0) return { error: t('actionMsg.staff.pickOneDocument') };
 
   // The Product Library files (manuals / brochures / spec sheets).
   const items = await prisma.resourceProductFile.findMany({
     where: { id: { in: ids }, product: { active: true } },
     select: { id: true, storageKey: true, mime: true, originalName: true, label: true, kind: true, product: { select: { title: true } } },
   });
-  if (items.length === 0) return { error: 'Those documents aren’t available to send.' };
+  if (items.length === 0) return { error: t('actionMsg.staff.docsNotAvailable') };
 
   const titleOf = (it: (typeof items)[number]) => `${it.product.title}${it.label ? ` (${it.label})` : ''}`;
   const cleanName = (s: string) => (s || 'document').replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim();
@@ -1825,7 +1850,7 @@ export async function emailDocumentsToCustomerAction(
     try {
       buf = await getDocument(it.storageKey);
     } catch {
-      return { error: `Couldn’t read “${titleOf(it)}”. Try again or pick a different file.` };
+      return { error: t('actionMsg.staff.couldntReadDoc', { title: titleOf(it) }) };
     }
     if (buf.length <= ATTACH_BUDGET && attachedBytes + buf.length <= ATTACH_BUDGET) {
       attachedBytes += buf.length;
@@ -1850,7 +1875,7 @@ export async function emailDocumentsToCustomerAction(
     logoUrl: `${portalUrl()}/gwa-hd-partners.png`,
   });
   const r = await sendEmail({ to, subject, html, text, attachments });
-  if (!r.sent) return { error: `Didn’t send (${r.reason ?? 'error'}).` };
+  if (!r.sent) return { error: t('actionMsg.staff.didntSend', { reason: r.reason ?? t('actionMsg.staff.errorGeneric') }) };
 
   // Record on the customer file (internal note) + audit.
   const linkNote = links.length ? ` (${links.length} sent as ${DOC_LINK_TTL_DAYS}-day download link${links.length === 1 ? '' : 's'})` : '';
@@ -1874,10 +1899,11 @@ export async function flagDealerIssueAction(
   applicationId: string,
   body: string,
 ): Promise<ActionState & { notified?: number }> {
+  const t = getT();
   const session = await requireStaffSection('review-queue');
   const text = (body || '').trim();
-  if (text.length < 3) return { error: 'Describe the issue first.' };
-  if (text.length > 4000) return { error: 'Keep the issue under 4000 characters.' };
+  if (text.length < 3) return { error: t('actionMsg.staff.describeIssue') };
+  if (text.length > 4000) return { error: t('actionMsg.staff.issueTooLong') };
 
   // Never store payment-card data (same guard as a normal note).
   const card = findCardData(text);
@@ -1890,14 +1916,14 @@ export async function flagDealerIssueAction(
     where: { id: applicationId },
     select: { id: true, dealerId: true, applicantFirstName: true, applicantLastName: true },
   });
-  if (!app) return { error: 'Deal not found.' };
+  if (!app) return { error: t('actionMsg.staff.dealNotFound') };
 
   // 1) Post the issue into the DEAL CHAT — it shows on BOTH the staff and dealer
   // copies of the deal (the "Chat with the dealer" thread), is saved to the
   // customer file, and the dealer can reply right there. (A one-way dealer note
   // isn't shown on the staff side, which is why a flagged issue seemed to vanish.)
   const conv = await getOrCreateDealConversation(applicationId, session);
-  if (!conv) return { error: 'Couldn’t open the deal conversation to post the issue.' };
+  if (!conv) return { error: t('actionMsg.staff.couldntOpenConversation') };
   await postChatMessage({ conversationId: conv.id, user: session, body: `⚠ Issue to review (confirmation call):\n\n${text}` });
 
   // 2) Send a portal Mail to the office that REQUIRES them to acknowledge they've

@@ -74,7 +74,7 @@ export default async function StaffLeadsPage({
   const scannedCalls = await readLeadCalls(scanned.map((s) => scannedLeadKey(s.id)));
   const scannedSection = (
     <div>
-      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">HD Mail In Test</h2>
+      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">{t('staffMisc.leads.mailInTest')}</h2>
       {canManageLeads && (
         <div className="mb-3 grid gap-3 md:grid-cols-2"><PostalFillButton /><BackfillBookingButton /></div>
       )}
@@ -165,7 +165,7 @@ export default async function StaffLeadsPage({
           )}
           {/* View toggle (page-level here, since the combined list replaces LeadsView) */}
           <div className="inline-flex rounded-full bg-gray-100 p-0.5" role="group" aria-label={t('leads.viewAria')}>
-            {([['list', t('leads.viewList')], ['grouped', t('leads.viewGrouped')], ['map', t('leads.viewMap')], ['all', 'All leads']] as const).map(([v, label]) => {
+            {([['list', t('leads.viewList')], ['grouped', t('leads.viewGrouped')], ['map', t('leads.viewMap')], ['all', t('staffMisc.leads.allLeads')]] as const).map(([v, label]) => {
               const href = v === 'list'
                 ? `/staff/leads${officeId ? `?office=${officeId}` : ''}`
                 : `/staff/leads?view=${v}${officeId ? `&office=${officeId}` : ''}`;

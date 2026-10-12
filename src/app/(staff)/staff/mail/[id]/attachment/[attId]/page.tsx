@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { getT } from '@/i18n/server';
 import { requireStaffSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { friendlyFileName } from '@/lib/filenames';
@@ -16,6 +17,7 @@ export default async function StaffAttachmentViewer({
   params: { id: string; attId: string };
 }) {
   await requireStaffSection('mail');
+  const t = getT();
 
   const mail = await prisma.mail.findUnique({
     where: { id: params.id },
@@ -33,9 +35,9 @@ export default async function StaffAttachmentViewer({
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Link href={`/staff/mail/${mail.id}`} className="text-sm text-gray-500 hover:underline">
-          ← Back to message
+          ← {t('staffMisc.mail.backToMessage')}
         </Link>
-        <DownloadButton url={`${src}?download=1`} fileName={name} className="btn-secondary text-xs">Download</DownloadButton>
+        <DownloadButton url={`${src}?download=1`} fileName={name} className="btn-secondary text-xs">{t('common.download')}</DownloadButton>
       </div>
 
       <h1 className="truncate text-lg font-semibold text-gray-900" title={att.fileName}>{name}</h1>
@@ -48,8 +50,8 @@ export default async function StaffAttachmentViewer({
           <PdfPagesImage pagesUrl={`${src}/pages`} downloadUrl={`${src}?download=1`} alt={name} />
         ) : (
           <div className="p-6 text-center text-sm text-gray-600">
-            This file type can&apos;t be previewed.{' '}
-            <DownloadButton url={`${src}?download=1`} fileName={name} className="text-brand-700 hover:underline">Download it</DownloadButton> to view.
+            {t('staffMisc.mail.cannotPreview')}{' '}
+            <DownloadButton url={`${src}?download=1`} fileName={name} className="text-brand-700 hover:underline">{t('common.downloadIt')}</DownloadButton> {t('staffMisc.mail.toView')}
           </div>
         )}
       </div>
