@@ -3,6 +3,7 @@ import { requireDealerAccess } from '@/lib/session';
 import { canViewAllLeads } from '@/lib/reporting/access';
 import { buildLeadsReport, leadsPeriodWindow } from '@/lib/reporting/leadsReport';
 import { buildLeadsPdf } from '@/lib/reporting/leadsPdf';
+import { getT } from '@/i18n/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,13 +18,15 @@ export async function GET(req: NextRequest) {
   const offset = Number.parseInt(req.nextUrl.searchParams.get('o') ?? '0', 10) || 0;
   const report = await buildLeadsReport(new Date().toISOString(), leadsPeriodWindow(period, offset));
 
+  const t = getT();
   const generated = new Date().toLocaleDateString('en-CA', { year: 'numeric', month: 'long', day: 'numeric' });
   const pdf = await buildLeadsPdf(report, {
     brandName: 'Georgian Water & Air',
-    title: 'Leads report',
+    title: t('download.leadsPdf.title'),
     periodLabel: report.periodLabel,
     generated,
-    footer: 'GWA Portal · Georgian Water & Air',
+    footer: t('download.leadsPdf.footer'),
+    t,
   });
   const suffix = report.periodLabel ? '-' + report.periodLabel.replace(/[^a-z0-9]+/gi, '-') : '';
   return new NextResponse(new Uint8Array(pdf), {

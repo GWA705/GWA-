@@ -38,6 +38,30 @@ source of truth; this file is the human-readable index.
 | HD Resolution ↔ Gmail email link | ✅ **Live & verified** (2026-10-07, Sean) | Read-only Gmail via the existing service account (`gwa-journal-writer@gwa-portal-504012…`, project **"GWA Portal"** `gwa-portal-504012`, Unique ID `100470797238569934976`), impersonating `sean@ghsbarrie.ca` + the `HD Resolution` label. All switches done: Gmail API enabled, Workspace domain-wide delegation (`…/auth/gmail.readonly`), `GMAIL_RESOLUTION_USER=sean@ghsbarrie.ca` on EB. **Verified end-to-end** — the Email inbox lists real HD threads and "Open as case" links the thread + auto-fills. 30-min sync `resolution-email-sync.yml` (reuses `CRON_SECRET`). Steps/facts: `HD-RESOLUTION-EMAIL.md`, `BUILD-FACTS.md`. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### French (i18n) full-coverage sweep — "every word in FR mode" (2026-10-12)
+- Ran a full audit of hardcoded English UI strings that never went through the translation
+  system (so they stayed English even in FR mode) and routed them all through `t()`. ~650
+  strings across ~95 files, in batches 0–11 (tracked in `docs/I18N-AUDIT.md`): shared
+  `common.*`, the app shell/nav/notifications, dealer documents & recordings, chat & notes,
+  leads, the shared and staff deal-detail components, the HD resolutions subsystem, every
+  report view, remittances, confirmations/cancellations/misc, and the server-action return
+  messages shown in toasts/banners.
+- **This batch (the last of the sweep):** the in-app **dealer Tutorial** (`tutorial.*`, ~100
+  keys — page, illustrations, image captions), the **"Direct sale" pages** (`directSale.*` +
+  reused enum groups), and the **human-read generated download labels** — the calculator
+  **receipt** PDF (`download.receipt.*`) and the **leads PDF** (`download.leadsPdf.*`, with the
+  translator threaded into `buildLeadsPdf`).
+- **Kept English by design:** the **accounting CSV export** and the **resource-products CSV
+  export** — those files are machine contracts (consumed by accounting reconciliation and the
+  booking-site importer), so French column headers would break the downstream parsers. Also
+  still English by decision: the internal **admin console** and the verbatim **Consumer
+  Protection Act / consent** legal text (Québec team to supply the official FR).
+- A new coverage guard, `tests/i18nKeys.test.ts`, asserts every literal `t('group.key')` in
+  `src/` exists in **both** `en.ts` and `fr.ts`; combined with `fr: Dictionary` (tsc fails on a
+  missing French key), nothing can silently fall back to English. French remains
+  translator-quality draft — a native QC-French review pass is still recommended before relying
+  on it for a formal audience.
+
 ### Journal-sourced deal badge + French fixes on the deal page (2026-10-12)
 - **"Created from the sales journal" badge** on the HD case Deal & financing section, so anyone
   looking later knows a deal came from a typed-in journal sale (not a credit application) and that

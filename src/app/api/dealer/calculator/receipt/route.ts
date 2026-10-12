@@ -6,6 +6,7 @@ import { computeDealerPayout } from '@/lib/payoutCalc';
 import { prisma } from '@/lib/db';
 import { dealerPortalScopeWhere } from '@/lib/rbac';
 import { PAYMENT_METHOD_LABELS } from '@/lib/constants';
+import { getT } from '@/i18n/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -77,6 +78,8 @@ export async function POST(req: Request) {
     if (!r!.ok) return new NextResponse('Cannot compute payout', { status: 400 });
   }
 
+  const t = getT();
+
   const pdf = await PDFDocument.create();
   const page = pdf.addPage([612, 792]); // US Letter
   const font = await pdf.embedFont(StandardFonts.Helvetica);
@@ -95,32 +98,32 @@ export async function POST(req: Request) {
 
   // Header
   text('Georgian Water & Air', M, y, 17, bold, navy); y -= 18;
-  text('Dealer Sale & Payout Receipt', M, y, 11, font, gray); y -= 14;
-  text(`Printed ${new Date().toLocaleDateString('en-CA', { year: 'numeric', month: 'long', day: 'numeric' })}`, M, y, 9, font, gray);
+  text(t('download.receipt.subtitle'), M, y, 11, font, gray); y -= 14;
+  text(t('download.receipt.printed', { date: new Date().toLocaleDateString('en-CA', { year: 'numeric', month: 'long', day: 'numeric' }) }), M, y, 9, font, gray);
   y -= 12;
   page.drawLine({ start: { x: M, y }, end: { x: 612 - M, y }, thickness: 1.5, color: navy }); y -= 22;
 
   // Sale details
   const details: [string, string | undefined][] = act
     ? [
-        ['Customer', act.customer],
-        ['Date of sale', act.saleDate],
-        ['Reference / deal #', act.reference],
-        ['Products sold', act.products],
-        ['Sales rep', act.salesperson],
-        ['Installer', act.installer],
-        ['Payment method', act.paymentLabel],
-        ['Province', act.province],
+        [t('download.receipt.customer'), act.customer],
+        [t('download.receipt.dateOfSale'), act.saleDate],
+        [t('download.receipt.reference'), act.reference],
+        [t('download.receipt.products'), act.products],
+        [t('download.receipt.salesRep'), act.salesperson],
+        [t('download.receipt.installer'), act.installer],
+        [t('download.receipt.paymentMethod'), act.paymentLabel],
+        [t('download.receipt.province'), act.province],
       ]
     : [
-        ['Customer', body.customer],
-        ['Date of sale', body.saleDate],
-        ['Reference / deal #', body.reference],
-        ['Products sold', body.products],
-        ['Sales rep', body.salesperson],
-        ['Installer', body.installer],
-        ['Payment method', body.paymentLabel],
-        ['Province', r!.province ?? undefined],
+        [t('download.receipt.customer'), body.customer],
+        [t('download.receipt.dateOfSale'), body.saleDate],
+        [t('download.receipt.reference'), body.reference],
+        [t('download.receipt.products'), body.products],
+        [t('download.receipt.salesRep'), body.salesperson],
+        [t('download.receipt.installer'), body.installer],
+        [t('download.receipt.paymentMethod'), body.paymentLabel],
+        [t('download.receipt.province'), r!.province ?? undefined],
       ];
   for (const [k, v] of details) {
     if (!v) continue;
@@ -132,11 +135,11 @@ export async function POST(req: Request) {
 
   if (act) {
     // Actual-payout receipt — the confirmed amount paid.
-    text('PAYMENT', M, y, 9, bold, gray); y -= 16;
+    text(t('download.receipt.paymentSection'), M, y, 9, bold, gray); y -= 16;
     const payRows: [string, string][] = [
-      ['Date paid', act.paidOn ?? '—'],
-      ['Method', act.method ?? '—'],
-      ['Reference', act.payoutReference ?? '—'],
+      [t('download.receipt.datePaid'), act.paidOn ?? '—'],
+      [t('download.receipt.method'), act.method ?? '—'],
+      [t('download.receipt.paymentReference'), act.payoutReference ?? '—'],
     ];
     for (const [k, v] of payRows) {
       text(k, M, y, 10);
@@ -147,23 +150,23 @@ export async function POST(req: Request) {
     }
     y -= 4;
     page.drawLine({ start: { x: M, y: y + 8 }, end: { x: 612 - M, y: y + 8 }, thickness: 1.5, color: green });
-    text('PAYOUT PAID', M, y - 8, 12, bold, green);
+    text(t('download.receipt.payoutPaid'), M, y - 8, 12, bold, green);
     right(money(act.actualPayout), 612 - M, y - 8, 13, bold, green);
     y -= 40;
-    text('Actual payout paid to your office by Georgian Water & Air. Recorded from the sales journal.', M, y, 8, font, gray);
+    text(t('download.receipt.actualNote'), M, y, 8, font, gray);
   } else {
     // Estimate receipt — recomputed HD breakdown.
-    text('PAYOUT BREAKDOWN', M, y, 9, bold, gray); y -= 16;
+    text(t('download.receipt.breakdownSection'), M, y, 9, bold, gray); y -= 16;
     const rows: [string, string][] = [
-      ['Total sale (with tax)', money(r!.totalWithTax)],
-      ['Subtotal (pre-tax)', money(r!.subtotal)],
-      ['HD Discount (13%)', `-${money(r!.hdDiscount)}`],
-      ['Subtotal after HD Discount', money(r!.afterHd)],
-      ['HD IBX Discount (1.25%)', `-${money(r!.ibxDiscount)}`],
-      ['Subtotal after IBX Discount', money(r!.afterIbx)],
-      ['HD Program (4%)', `-${money(r!.hdProgram)}`],
-      ['Net payout (pre-tax)', money(r!.netPreTax)],
-      [`HST / Tax (${pct(r!.taxRate)})`, `+${money(r!.hst)}`],
+      [t('download.receipt.totalWithTax'), money(r!.totalWithTax)],
+      [t('download.receipt.subtotalPreTax'), money(r!.subtotal)],
+      [t('download.receipt.hdDiscount'), `-${money(r!.hdDiscount)}`],
+      [t('download.receipt.afterHdDiscount'), money(r!.afterHd)],
+      [t('download.receipt.ibxDiscount'), `-${money(r!.ibxDiscount)}`],
+      [t('download.receipt.afterIbxDiscount'), money(r!.afterIbx)],
+      [t('download.receipt.hdProgram'), `-${money(r!.hdProgram)}`],
+      [t('download.receipt.netPreTax'), money(r!.netPreTax)],
+      [t('download.receipt.hstTax', { pct: pct(r!.taxRate) }), `+${money(r!.hst)}`],
     ];
     for (const [k, v] of rows) {
       text(k, M, y, 10);
@@ -174,10 +177,10 @@ export async function POST(req: Request) {
     }
     y -= 4;
     page.drawLine({ start: { x: M, y: y + 8 }, end: { x: 612 - M, y: y + 8 }, thickness: 1.5, color: green });
-    text('TOTAL EFT PAYOUT', M, y - 8, 12, bold, green);
+    text(t('download.receipt.totalEftPayout'), M, y - 8, 12, bold, green);
     right(money(r!.payout), 612 - M, y - 8, 13, bold, green);
     y -= 40;
-    text('Estimate for your records. The amount paid is confirmed by Georgian Water & Air when the deal funds.', M, y, 8, font, gray);
+    text(t('download.receipt.estimateNote'), M, y, 8, font, gray);
   }
 
   const bytes = await pdf.save();

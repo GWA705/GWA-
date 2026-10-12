@@ -6,6 +6,8 @@
  * anytime by giving a step an `img` instead of an `illo`.
  */
 
+import type { TFunction } from '@/i18n/translator';
+
 const BRAND = '#3b82f6';
 const GREEN = '#22c55e';
 const AMBER = '#f59e0b';
@@ -293,14 +295,15 @@ function Account() {
 
 // The top navigation bar, showing a few everyday tabs plus a dropdown "group"
 // opened to reveal its sub-items — the concept behind the consolidated menus.
-function Nav() {
+function Nav(t: TFunction) {
   const tabs: [number, number, string, boolean][] = [
-    [40, 58, 'Applications', false],
-    [104, 62, 'New customer', false],
-    [172, 34, 'Mail', false],
-    [212, 44, 'Tools ▾', false],
-    [262, 96, 'Sales & rewards ▾', true],
+    [40, 58, t('tutorial.illo.nav.applications'), false],
+    [104, 62, t('tutorial.illo.nav.newCustomer'), false],
+    [172, 34, t('tutorial.illo.nav.mail'), false],
+    [212, 44, t('tutorial.illo.nav.tools'), false],
+    [262, 96, t('tutorial.illo.nav.salesRewards'), true],
   ];
+  const dropdown = [t('tutorial.illo.nav.marketplace'), t('tutorial.illo.nav.leads'), t('tutorial.illo.nav.giftCards')];
   return (
     <Frame>
       <rect x="0.75" y="34" width="398.5" height="30" fill="currentColor" fillOpacity="0.05" />
@@ -313,13 +316,13 @@ function Nav() {
       ))}
       {/* Dropdown opened under the active group. */}
       <rect x="262" y="70" width="120" height="98" rx="9" fill="currentColor" fillOpacity="0.04" stroke="currentColor" strokeOpacity="0.28" />
-      {['Marketplace', 'Leads', 'Gift cards'].map((t, i) => {
+      {dropdown.map((label, i) => {
         const y = 82 + i * 28;
         return (
-          <g key={t}>
+          <g key={label}>
             {i === 2 && <rect x="270" y={y - 8} width="104" height="24" rx="6" fill={BRAND} fillOpacity="0.1" />}
             <circle cx="282" cy={y + 4} r="3.5" fill={BRAND} fillOpacity={0.35 + i * 0.2} />
-            <text x="296" y={y + 7} fontSize="8.5" fill="currentColor" fillOpacity="0.7">{t}</text>
+            <text x="296" y={y + 7} fontSize="8.5" fill="currentColor" fillOpacity="0.7">{label}</text>
           </g>
         );
       })}
@@ -328,7 +331,7 @@ function Nav() {
 }
 
 // The water-test gift-card request form, with a dated "sent" receipt below.
-function GiftCards() {
+function GiftCards(t: TFunction) {
   return (
     <Frame>
       <Line x="20" y="52" w={110} o={0.55} />
@@ -340,28 +343,29 @@ function GiftCards() {
       <text x="32" y="146" fontSize="13" fontWeight="700" fill={BRAND}>$</text>
       <rect x="48" y="137" width="30" height="8" rx="4" fill="currentColor" fillOpacity="0.55" />
       <rect x="20" y="162" width="140" height="26" rx="7" fill={BRAND} fillOpacity="0.85" />
-      <text x="90" y="179" fontSize="8.5" textAnchor="middle" fill="#fff" fillOpacity="0.95">Request gift card</text>
+      <text x="90" y="179" fontSize="8.5" textAnchor="middle" fill="#fff" fillOpacity="0.95">{t('tutorial.illo.giftCards.request')}</text>
       {/* Sent receipt */}
       <rect x="20" y="204" width="360" height="34" rx="8" fill={GREEN} fillOpacity="0.12" stroke={GREEN} strokeOpacity="0.3" />
       <circle cx="42" cy="221" r="9" fill={GREEN} fillOpacity="0.22" stroke={GREEN} strokeOpacity="0.6" />
       <path d="M37 221 l3.5 4 l7 -8.5" stroke={GREEN} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-      <text x="60" y="219" fontSize="8.5" fontWeight="700" fill={GREEN} fillOpacity="0.9">Sent</text>
+      <text x="60" y="219" fontSize="8.5" fontWeight="700" fill={GREEN} fillOpacity="0.9">{t('tutorial.illo.giftCards.sent')}</text>
       <Line x="60" y="226" w={150} o={0.3} />
     </Frame>
   );
 }
 
-function Applications() {
+function Applications(t: TFunction) {
+  const views = [t('tutorial.illo.applications.tracker'), t('tutorial.illo.applications.pipeline'), t('tutorial.illo.applications.list'), t('tutorial.illo.applications.progress')];
   return (
     <Frame>
-      {['Tracker', 'Pipeline', 'List', 'Progress'].map((t, i) => (
-        <g key={t}>
+      {views.map((label, i) => (
+        <g key={label}>
           <rect x={20 + i * 80} y="46" width="74" height="22" rx="7" fill={i === 0 ? BRAND : 'currentColor'} fillOpacity={i === 0 ? 0.85 : 0.06} stroke="currentColor" strokeOpacity={i === 0 ? 0 : 0.25} />
-          <text x={20 + i * 80 + 37} y="61" fontSize="8" fontWeight="700" textAnchor="middle" fill={i === 0 ? '#fff' : 'currentColor'} fillOpacity={i === 0 ? 0.95 : 0.5}>{t}</text>
+          <text x={20 + i * 80 + 37} y="61" fontSize="8" fontWeight="700" textAnchor="middle" fill={i === 0 ? '#fff' : 'currentColor'} fillOpacity={i === 0 ? 0.95 : 0.5}>{label}</text>
         </g>
       ))}
       <rect x="20" y="84" width="360" height="20" rx="6" fill={RED} fillOpacity="0.1" />
-      <text x="30" y="98" fontSize="8" fontWeight="700" fill={RED} fillOpacity="0.85">Needs your action</text>
+      <text x="30" y="98" fontSize="8" fontWeight="700" fill={RED} fillOpacity="0.85">{t('tutorial.illo.applications.needsAction')}</text>
       {[112, 142, 172, 202].map((y, i) => (
         <g key={y}>
           <Box x="20" y={y} width="360" height="26" />
@@ -373,12 +377,12 @@ function Applications() {
   );
 }
 
-function Chat() {
+function Chat(t: TFunction) {
   return (
     <Frame>
       <rect x="120" y="40" width="220" height="182" rx="10" fill="currentColor" fillOpacity="0.05" stroke="currentColor" strokeOpacity="0.25" />
       <path d="M120 50 A10 10 0 0 1 130 40 H330 A10 10 0 0 1 340 50 V66 H120 Z" fill={BRAND} fillOpacity="0.85" />
-      <text x="134" y="58" fontSize="8.5" fontWeight="700" fill="#fff">Support chat</text>
+      <text x="134" y="58" fontSize="8.5" fontWeight="700" fill="#fff">{t('tutorial.illo.chat.supportChat')}</text>
       <rect x="134" y="80" width="120" height="24" rx="8" fill="currentColor" fillOpacity="0.08" />
       <Line x="144" y="90" w={90} o={0.4} />
       <rect x="206" y="116" width="120" height="24" rx="8" fill={BRAND} fillOpacity="0.7" />
@@ -391,8 +395,8 @@ function Chat() {
   );
 }
 
-function Leads() {
-  const tiles: [string, string, string][] = [['60', 'RECEIVED', BRAND], ['47', 'FORWARDED', GREEN], ['13', 'NO-GOOD', RED]];
+function Leads(t: TFunction) {
+  const tiles: [string, string, string][] = [['60', t('tutorial.illo.leads.received'), BRAND], ['47', t('tutorial.illo.leads.forwarded'), GREEN], ['13', t('tutorial.illo.leads.noGood'), RED]];
   return (
     <Frame>
       {tiles.map(([n, label, color], i) => (
@@ -417,13 +421,14 @@ function Leads() {
   );
 }
 
-function Reports() {
+function Reports(t: TFunction) {
+  const tabs = [t('tutorial.illo.reports.monthly'), t('tutorial.illo.reports.pricing'), t('tutorial.illo.reports.custom'), t('tutorial.illo.reports.forecast')];
   return (
     <Frame>
-      {['Monthly', 'Pricing', 'Custom', 'Forecast'].map((t, i) => (
-        <g key={t}>
+      {tabs.map((label, i) => (
+        <g key={label}>
           <rect x={20 + i * 82} y="46" width="76" height="20" rx="10" fill={i === 0 ? BRAND : 'currentColor'} fillOpacity={i === 0 ? 0.85 : 0.06} />
-          <text x={20 + i * 82 + 38} y="60" fontSize="7.5" fontWeight="700" textAnchor="middle" fill={i === 0 ? '#fff' : 'currentColor'} fillOpacity={i === 0 ? 0.95 : 0.5}>{t}</text>
+          <text x={20 + i * 82 + 38} y="60" fontSize="7.5" fontWeight="700" textAnchor="middle" fill={i === 0 ? '#fff' : 'currentColor'} fillOpacity={i === 0 ? 0.95 : 0.5}>{label}</text>
         </g>
       ))}
       {[60, 110, 150, 90, 170, 130].map((h, i) => (
@@ -434,7 +439,7 @@ function Reports() {
   );
 }
 
-const ILLOS: Record<string, () => JSX.Element> = {
+const ILLOS: Record<string, (t: TFunction) => JSX.Element> = {
   login: Login,
   applications: Applications,
   chat: Chat,
@@ -456,7 +461,7 @@ const ILLOS: Record<string, () => JSX.Element> = {
   account: Account,
 };
 
-export function TutorialIllo({ name }: { name: string }) {
+export function TutorialIllo({ name, t }: { name: string; t: TFunction }) {
   const C = ILLOS[name];
-  return C ? <C /> : null;
+  return C ? C(t) : null;
 }

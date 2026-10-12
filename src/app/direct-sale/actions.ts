@@ -9,6 +9,7 @@ import { storeFiles } from '@/lib/upload';
 import { syncApplicationToJournal } from '@/lib/journalSync';
 import { requireDirectSaleAccess } from '@/lib/directSaleAccess';
 import { directSaleSchema } from '@/lib/validation';
+import { getT } from '@/i18n/server';
 import {
   dealIsFinanced,
   missingRequiredReferences,
@@ -38,6 +39,7 @@ export async function createDirectSaleAction(
   _prev: DirectSaleState,
   formData: FormData,
 ): Promise<DirectSaleState> {
+  const t = getT();
   const session = await requireDirectSaleAccess();
   const internal = session.role === 'REVIEWER' || session.role === 'ADMIN';
 
@@ -48,27 +50,27 @@ export async function createDirectSaleAction(
       const key = String(issue.path[0] ?? '');
       if (key && !fieldErrors[key]) fieldErrors[key] = issue.message;
     }
-    return { error: 'Please correct the highlighted fields.', fieldErrors };
+    return { error: t('directSale.error.correctFields'), fieldErrors };
   }
   const d = parsed.data;
 
   // Owning office. Internal staff choose it; a granted GWA-store (DEALER_USER)
   // grantee is locked to their own dealer — never another office's.
   const dealerId = internal ? d.dealerId : session.dealerId ?? '';
-  if (!dealerId) return { error: 'No Georgian Water & Air office is set for your account — ask an admin.' };
+  if (!dealerId) return { error: t('directSale.error.noOffice') };
   const dealer = await prisma.dealer.findFirst({ where: { id: dealerId }, select: { id: true } });
-  if (!dealer) return { error: 'Please correct the highlighted fields.', fieldErrors: { dealerId: 'Choose a valid office.' } };
+  if (!dealer) return { error: t('directSale.error.correctFields'), fieldErrors: { dealerId: t('directSale.error.validOffice') } };
 
   // A direct sale is a real, paid sale — a bill of sale is required.
   const bill = formData.get('billOfSaleFile');
   if (!bill || typeof bill === 'string' || bill.size === 0) {
-    return { error: 'Attach the bill of sale to complete the sale.', fieldErrors: { billOfSaleFile: 'A bill of sale is required.' } };
+    return { error: t('directSale.error.attachBill'), fieldErrors: { billOfSaleFile: t('directSale.error.billRequired') } };
   }
   if (bill.size > MAX_FILE_BYTES) {
-    return { error: 'Please correct the highlighted fields.', fieldErrors: { billOfSaleFile: `File exceeds the ${mb} MB limit.` } };
+    return { error: t('directSale.error.correctFields'), fieldErrors: { billOfSaleFile: t('directSale.error.fileTooLarge', { mb }) } };
   }
   if (!ALLOWED_MIME_TYPES.includes(bill.type)) {
-    return { error: 'Please correct the highlighted fields.', fieldErrors: { billOfSaleFile: 'Use a PDF or a photo (JPG, PNG, HEIC).' } };
+    return { error: t('directSale.error.correctFields'), fieldErrors: { billOfSaleFile: t('directSale.error.fileType') } };
   }
 
   // At least one product so the journal "UNITS" count is meaningful.
@@ -77,7 +79,7 @@ export async function createDirectSaleAction(
     String(formData.get('productsSoldOther') ?? ''),
   );
   if (productsSold.length === 0) {
-    return { error: 'Please correct the highlighted fields.', fieldErrors: { productsSold: 'Pick at least one product sold.' } };
+    return { error: t('directSale.error.correctFields'), fieldErrors: { productsSold: t('directSale.error.pickProduct') } };
   }
 
   // Payment source gate — the same rule funding uses: a GWA-program cash sale
@@ -91,7 +93,12 @@ export async function createDirectSaleAction(
     programType: d.programType,
   });
   if (missing.length) {
-    return { error: `To complete this direct sale, add ${missing.join(' and ')}.` };
+    // Rebuild the missing-items list from the translated field names (the same
+    // conditions the gate above uses) so the message is localized.
+    const needs: string[] = [];
+    if (d.programType === 'HD' && !d.hdReference) needs.push(t('directSale.error.needHdNumber'));
+    if (financed && !d.financeItNumber) needs.push(t('directSale.error.needFinanceNumber'));
+    return { error: t('directSale.error.completeAdd', { items: needs.join(t('directSale.error.and')) }) };
   }
 
   // HD-program direct sales must carry the Home Depot store, and it must be one
@@ -100,14 +107,14 @@ export async function createDirectSaleAction(
   let homeDepotStoreId: string | null = null;
   if (d.programType === 'HD') {
     if (!d.homeDepotStoreId) {
-      return { error: 'Please correct the highlighted fields.', fieldErrors: { homeDepotStoreId: 'Choose the HD store this sale belongs to.' } };
+      return { error: t('directSale.error.correctFields'), fieldErrors: { homeDepotStoreId: t('directSale.error.chooseHdStore') } };
     }
     const store = await prisma.homeDepotStore.findFirst({
       where: { id: d.homeDepotStoreId, dealerId },
       select: { id: true },
     });
     if (!store) {
-      return { error: 'Please correct the highlighted fields.', fieldErrors: { homeDepotStoreId: 'That store isn’t assigned to this office — pick one of its stores.' } };
+      return { error: t('directSale.error.correctFields'), fieldErrors: { homeDepotStoreId: t('directSale.error.storeNotAssigned') } };
     }
     homeDepotStoreId = store.id;
   }

@@ -1,6 +1,7 @@
 import 'server-only';
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from 'pdf-lib';
 import type { LeadsReport } from './leadsReport';
+import type { TFunction } from '@/i18n/translator';
 
 const SLATE = rgb(0.071, 0.204, 0.282); // #123448
 const INK = rgb(0.1, 0.1, 0.1);
@@ -10,8 +11,9 @@ const TINT = rgb(0.933, 0.953, 0.965); // #eef3f6
 /** Compose the Leads report as a real PDF (pdf-lib — no browser needed). */
 export async function buildLeadsPdf(
   report: LeadsReport,
-  opts: { brandName: string; title: string; periodLabel?: string; generated: string; footer: string },
+  opts: { brandName: string; title: string; periodLabel?: string; generated: string; footer: string; t: TFunction },
 ): Promise<Buffer> {
+  const t = opts.t;
   const doc = await PDFDocument.create();
   const font = await doc.embedFont(StandardFonts.Helvetica);
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
@@ -42,13 +44,13 @@ export async function buildLeadsPdf(
   y -= 22;
   text(opts.title, M, 20, bold, rgb(0.06, 0.06, 0.06));
   y -= 15;
-  text([opts.periodLabel, `Generated ${opts.generated}`].filter(Boolean).join('   ·   '), M, 9, font, MUTE);
+  text([opts.periodLabel, t('download.leadsPdf.generated', { date: opts.generated })].filter(Boolean).join('   ·   '), M, 9, font, MUTE);
   y -= 8;
   page.drawLine({ start: { x: M, y }, end: { x: W - M, y }, thickness: 2, color: SLATE });
   y -= 26;
 
   if (!report.configured || report.error) {
-    text(report.error || 'The HD Leads Log is not connected.', M, 11, font, INK);
+    text(report.error || t('download.leadsPdf.notConnected'), M, 11, font, INK);
     return Buffer.from(await doc.save());
   }
 
@@ -58,10 +60,10 @@ export async function buildLeadsPdf(
 
   // KPI row
   const kpis: [string, string][] = [
-    ['TOTAL LEADS', String(g.total)],
-    ['NO GOOD', String(g.noGood)],
-    ['BOOKED / SOLD', String(won)],
-    ['DEALERS', String(g.dealers)],
+    [t('download.leadsPdf.kpiTotalLeads'), String(g.total)],
+    [t('download.leadsPdf.kpiNoGood'), String(g.noGood)],
+    [t('download.leadsPdf.kpiBookedSold'), String(won)],
+    [t('download.leadsPdf.kpiDealers'), String(g.dealers)],
   ];
   const cellW = (W - 2 * M) / 4;
   kpis.forEach(([label, value], i) => {
@@ -72,17 +74,17 @@ export async function buildLeadsPdf(
   y -= 44;
 
   // Call activity
-  text('CALL ACTIVITY', M, 8, bold, MUTE);
+  text(t('download.leadsPdf.callActivity'), M, 8, bold, MUTE);
   y -= 14;
   const o = g.outcomes;
-  text(`Not called ${o.notCalled}   ·   NA ${o.na}   ·   LM ${o.lm}   ·   Spoke ${o.spoke}   ·   Booked ${o.booked}   ·   Sold ${o.sold}   ·   NI ${o.ni}`, M, 9.5, font, INK);
+  text(t('download.leadsPdf.activityLine', { notCalled: o.notCalled, na: o.na, lm: o.lm, spoke: o.spoke, booked: o.booked, sold: o.sold, ni: o.ni }), M, 9.5, font, INK);
   y -= 12;
-  text(`${contacted} of ${g.total} contacted`, M, 9, font, MUTE);
+  text(t('download.leadsPdf.contactedOf', { contacted, total: g.total }), M, 9, font, MUTE);
   y -= 22;
 
   // Leads by type (top 6)
   if (g.byKind.length) {
-    text('LEADS BY TYPE', M, 8, bold, MUTE);
+    text(t('download.leadsPdf.leadsByType'), M, 8, bold, MUTE);
     y -= 14;
     for (const k of g.byKind.slice(0, 6)) {
       ensure(14);
@@ -101,11 +103,11 @@ export async function buildLeadsPdf(
   const colNoGood = W - M; // 564
   const drawTableHeader = () => {
     page.drawRectangle({ x: M, y: y - 4, width: W - 2 * M, height: 18, color: TINT });
-    text('OFFICE', M + 4, 8, bold, SLATE);
-    rightText('LEADS', colLeads, 8, bold, SLATE);
-    rightText('CONTACTED', colContacted, 8, bold, SLATE);
-    rightText('BKD/SOLD', colWon, 8, bold, SLATE);
-    rightText('NO GOOD', colNoGood, 8, bold, SLATE);
+    text(t('download.leadsPdf.colOffice'), M + 4, 8, bold, SLATE);
+    rightText(t('download.leadsPdf.colLeads'), colLeads, 8, bold, SLATE);
+    rightText(t('download.leadsPdf.colContacted'), colContacted, 8, bold, SLATE);
+    rightText(t('download.leadsPdf.colBkdSold'), colWon, 8, bold, SLATE);
+    rightText(t('download.leadsPdf.colNoGood'), colNoGood, 8, bold, SLATE);
     y -= 20;
   };
   ensure(60);

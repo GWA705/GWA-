@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { createDirectSaleAction, type DirectSaleState } from './actions';
-import { PROVINCES, PAYMENT_METHOD_LABELS } from '@/lib/constants';
+import { PROVINCES } from '@/lib/constants';
+import { useT } from '@/i18n/client';
 import type { ProductOption } from '@/lib/products';
 
 interface Office { id: string; name: string }
@@ -16,10 +17,11 @@ const PAY_METHODS = ['CASH', 'CHEQUE', 'E_TRANSFER', 'CREDIT_CARD', 'HD_CREDIT_C
 const FINANCED = new Set(['FINANCEIT', 'FINANCE_COMPANY']);
 
 function SubmitBtn() {
+  const t = useT();
   const { pending } = useFormStatus();
   return (
     <button type="submit" className="btn-primary" disabled={pending}>
-      {pending ? 'Saving…' : 'Save direct sale → In funding'}
+      {pending ? t('common.saving') : t('directSale.form.submit')}
     </button>
   );
 }
@@ -50,6 +52,7 @@ export function DirectSaleForm({
   financeCompanies: FinanceCo[];
   stores: Store[];
 }) {
+  const t = useT();
   const [state, action] = useFormState(createDirectSaleAction, {} as DirectSaleState);
   const [programType, setProgramType] = useState('GWA');
   const [paymentMethod, setPaymentMethod] = useState('CASH');
@@ -66,7 +69,7 @@ export function DirectSaleForm({
 
       {/* Office */}
       <section className="space-y-2">
-        <h2 className="text-sm font-semibold text-gray-900 dark:text-slate-100">Office</h2>
+        <h2 className="text-sm font-semibold text-gray-900 dark:text-slate-100">{t('directSale.form.officeSection')}</h2>
         {fixedOffice ? (
           <>
             <input type="hidden" name="dealerId" value={fixedOffice.id} />
@@ -74,9 +77,9 @@ export function DirectSaleForm({
           </>
         ) : (
           <div className="max-w-sm">
-            <label className="label" htmlFor="dealerId">Georgian Water &amp; Air office</label>
+            <label className="label" htmlFor="dealerId">{t('directSale.form.officeLabel')}</label>
             <select id="dealerId" name="dealerId" required value={dealerId} onChange={(e) => setDealerId(e.target.value)} className="input">
-              <option value="" disabled>Choose an office…</option>
+              <option value="" disabled>{t('directSale.form.chooseOffice')}</option>
               {offices.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
             </select>
             <Err errors={state.fieldErrors} field="dealerId" />
@@ -86,43 +89,43 @@ export function DirectSaleForm({
 
       {/* Customer */}
       <section className="space-y-3">
-        <h2 className="text-sm font-semibold text-gray-900 dark:text-slate-100">Customer</h2>
+        <h2 className="text-sm font-semibold text-gray-900 dark:text-slate-100">{t('directSale.form.customerSection')}</h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
-            <label className="label" htmlFor="applicantFirstName">First name</label>
+            <label className="label" htmlFor="applicantFirstName">{t('directSale.field.firstName')}</label>
             <input id="applicantFirstName" name="applicantFirstName" required className="input" />
             <Err errors={state.fieldErrors} field="applicantFirstName" />
           </div>
           <div>
-            <label className="label" htmlFor="applicantLastName">Last name</label>
+            <label className="label" htmlFor="applicantLastName">{t('directSale.field.lastName')}</label>
             <input id="applicantLastName" name="applicantLastName" required className="input" />
             <Err errors={state.fieldErrors} field="applicantLastName" />
           </div>
           <div>
-            <label className="label" htmlFor="applicantEmail">Email</label>
+            <label className="label" htmlFor="applicantEmail">{t('directSale.field.email')}</label>
             <input id="applicantEmail" name="applicantEmail" type="email" required className="input" />
             <Err errors={state.fieldErrors} field="applicantEmail" />
           </div>
           <div>
-            <label className="label" htmlFor="applicantPhone">Phone</label>
+            <label className="label" htmlFor="applicantPhone">{t('directSale.field.phone')}</label>
             <input id="applicantPhone" name="applicantPhone" required className="input" placeholder="705-555-0148" />
             <Err errors={state.fieldErrors} field="applicantPhone" />
           </div>
           <div className="sm:col-span-2">
-            <label className="label" htmlFor="applicantAddress">Address <span className="font-normal text-gray-400">(optional)</span></label>
+            <label className="label" htmlFor="applicantAddress">{t('directSale.field.address')} <span className="font-normal text-gray-400">{t('directSale.optional')}</span></label>
             <input id="applicantAddress" name="applicantAddress" className="input" />
           </div>
           <div>
-            <label className="label" htmlFor="city">City</label>
+            <label className="label" htmlFor="city">{t('directSale.field.city')}</label>
             <input id="city" name="city" className="input" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="label" htmlFor="postalCode">Postal</label>
+              <label className="label" htmlFor="postalCode">{t('directSale.field.postal')}</label>
               <input id="postalCode" name="postalCode" className="input" />
             </div>
             <div>
-              <label className="label" htmlFor="province">Province</label>
+              <label className="label" htmlFor="province">{t('directSale.field.province')}</label>
               <select id="province" name="province" defaultValue="ON" className="input">
                 {PROVINCES.map((p) => <option key={p.value} value={p.value}>{p.value}</option>)}
               </select>
@@ -133,42 +136,42 @@ export function DirectSaleForm({
 
       {/* Sale */}
       <section className="space-y-3">
-        <h2 className="text-sm font-semibold text-gray-900 dark:text-slate-100">Sale</h2>
+        <h2 className="text-sm font-semibold text-gray-900 dark:text-slate-100">{t('directSale.form.saleSection')}</h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
-            <label className="label" htmlFor="programType">Program</label>
+            <label className="label" htmlFor="programType">{t('directSale.field.program')}</label>
             <select id="programType" name="programType" value={programType} onChange={(e) => setProgramType(e.target.value)} className="input">
               <option value="GWA">Georgian Water &amp; Air</option>
               <option value="HD">Home Depot</option>
             </select>
           </div>
           <div>
-            <label className="label" htmlFor="programCategory">Category</label>
+            <label className="label" htmlFor="programCategory">{t('directSale.field.category')}</label>
             <select id="programCategory" name="programCategory" defaultValue="WATER" className="input">
-              <option value="WATER">Water</option>
-              <option value="AIR">Air</option>
-              <option value="SMELL_BUSTERS">Smell Busters</option>
-              <option value="HVAC">HVAC</option>
+              <option value="WATER">{t('enum.programCategory.WATER')}</option>
+              <option value="AIR">{t('enum.programCategory.AIR')}</option>
+              <option value="SMELL_BUSTERS">{t('enum.programCategory.SMELL_BUSTERS')}</option>
+              <option value="HVAC">{t('enum.programCategory.HVAC')}</option>
             </select>
           </div>
           <div>
-            <label className="label" htmlFor="requestedAmount">Sale amount ($)</label>
+            <label className="label" htmlFor="requestedAmount">{t('directSale.field.saleAmount')}</label>
             <input id="requestedAmount" name="requestedAmount" required inputMode="decimal" className="input" placeholder="5000.00" />
             <Err errors={state.fieldErrors} field="requestedAmount" />
           </div>
           <div>
-            <label className="label" htmlFor="dateOfSale">Sale date <span className="font-normal text-gray-400">(= paid date)</span></label>
+            <label className="label" htmlFor="dateOfSale">{t('directSale.field.saleDate')} <span className="font-normal text-gray-400">{t('directSale.field.saleDateHint')}</span></label>
             <input id="dateOfSale" name="dateOfSale" type="date" required className="input" />
             <Err errors={state.fieldErrors} field="dateOfSale" />
           </div>
           <div>
-            <label className="label" htmlFor="installationDate">Install date <span className="font-normal text-gray-400">(optional)</span></label>
+            <label className="label" htmlFor="installationDate">{t('directSale.field.installDate')} <span className="font-normal text-gray-400">{t('directSale.optional')}</span></label>
             <input id="installationDate" name="installationDate" type="date" className="input" />
           </div>
         </div>
 
         <div>
-          <span className="label">Product(s) sold</span>
+          <span className="label">{t('directSale.field.productsSold')}</span>
           <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
             {products.map((p) => (
               <label key={p.id} className="flex items-center gap-2 text-sm text-gray-700 dark:text-slate-200">
@@ -177,28 +180,28 @@ export function DirectSaleForm({
               </label>
             ))}
           </div>
-          <input name="productsSoldOther" className="input mt-2" placeholder="Other product(s), comma-separated" />
-          <p className="mt-1 text-xs text-gray-400">The number of products = the UNITS written to the journal.</p>
+          <input name="productsSoldOther" className="input mt-2" placeholder={t('directSale.form.otherProducts')} />
+          <p className="mt-1 text-xs text-gray-400">{t('directSale.form.unitsHint')}</p>
           <Err errors={state.fieldErrors} field="productsSold" />
         </div>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
-            <label className="label" htmlFor="salespersonName">Salesperson <span className="font-normal text-gray-400">(optional)</span></label>
+            <label className="label" htmlFor="salespersonName">{t('directSale.field.salesperson')} <span className="font-normal text-gray-400">{t('directSale.optional')}</span></label>
             <input id="salespersonName" name="salespersonName" className="input" />
           </div>
           <div>
-            <label className="label" htmlFor="installerName">Installer <span className="font-normal text-gray-400">(optional)</span></label>
+            <label className="label" htmlFor="installerName">{t('directSale.field.installer')} <span className="font-normal text-gray-400">{t('directSale.optional')}</span></label>
             <input id="installerName" name="installerName" className="input" />
           </div>
           <div>
-            <label className="label" htmlFor="soapIncluded">SOAP included</label>
+            <label className="label" htmlFor="soapIncluded">{t('directSale.field.soapIncluded')}</label>
             <select id="soapIncluded" name="soapIncluded" defaultValue="" className="input">
               <option value="">—</option>
-              <option value="NO">No</option>
-              <option value="NV">Yes — NV</option>
-              <option value="PS">Yes — PS</option>
-              <option value="OTHER">Yes — Other</option>
+              <option value="NO">{t('enum.soap.NO')}</option>
+              <option value="NV">{t('enum.soap.NV')}</option>
+              <option value="PS">{t('enum.soap.PS')}</option>
+              <option value="OTHER">{t('enum.soap.OTHER')}</option>
             </select>
           </div>
         </div>
@@ -206,22 +209,22 @@ export function DirectSaleForm({
 
       {/* Payment source */}
       <section className="space-y-3">
-        <h2 className="text-sm font-semibold text-gray-900 dark:text-slate-100">Payment source</h2>
+        <h2 className="text-sm font-semibold text-gray-900 dark:text-slate-100">{t('directSale.form.paymentSection')}</h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
-            <label className="label" htmlFor="paymentMethod">How it was paid</label>
+            <label className="label" htmlFor="paymentMethod">{t('directSale.field.howPaid')}</label>
             <select id="paymentMethod" name="paymentMethod" value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} className="input">
-              {PAY_METHODS.map((m) => <option key={m} value={m}>{PAYMENT_METHOD_LABELS[m]}</option>)}
+              {PAY_METHODS.map((m) => <option key={m} value={m}>{t('enum.paymentMethod.' + m)}</option>)}
             </select>
           </div>
           {showHdRef && (
             <>
               <div>
-                <label className="label" htmlFor="hdReference">HD Customer #</label>
+                <label className="label" htmlFor="hdReference">{t('directSale.field.hdCustomerNumber')}</label>
                 <input id="hdReference" name="hdReference" className="input" placeholder="800255118" />
               </div>
               <div>
-                <label className="label" htmlFor="homeDepotStoreId">HD store</label>
+                <label className="label" htmlFor="homeDepotStoreId">{t('directSale.field.hdStore')}</label>
                 {/* key on dealerId so switching office resets any stale selection */}
                 <select
                   key={dealerId}
@@ -232,13 +235,13 @@ export function DirectSaleForm({
                   disabled={officeStores.length === 0}
                   className="input"
                 >
-                  <option value="" disabled>{officeStores.length === 0 ? 'No stores for this office' : 'Choose a store…'}</option>
+                  <option value="" disabled>{officeStores.length === 0 ? t('directSale.form.noStoresOption') : t('directSale.form.chooseStore')}</option>
                   {officeStores.map((s) => (
                     <option key={s.id} value={s.id}>{s.number}{s.name ? ` — ${s.name}` : ''}</option>
                   ))}
                 </select>
                 {officeStores.length === 0 && (
-                  <p className="mt-1 text-xs text-gray-400">No HD stores assigned to this office — ask an admin to add one.</p>
+                  <p className="mt-1 text-xs text-gray-400">{t('directSale.form.noStoresHint')}</p>
                 )}
                 <Err errors={state.fieldErrors} field="homeDepotStoreId" />
               </div>
@@ -247,14 +250,14 @@ export function DirectSaleForm({
           {showFinance && (
             <>
               <div>
-                <label className="label" htmlFor="financeCompanyId">Finance company</label>
+                <label className="label" htmlFor="financeCompanyId">{t('directSale.field.financeCompany')}</label>
                 <select id="financeCompanyId" name="financeCompanyId" defaultValue="" className="input">
                   <option value="">—</option>
                   {financeCompanies.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
                 </select>
               </div>
               <div>
-                <label className="label" htmlFor="financeItNumber">Financing deal #</label>
+                <label className="label" htmlFor="financeItNumber">{t('directSale.field.financingDealNumber')}</label>
                 <input id="financeItNumber" name="financeItNumber" className="input" />
               </div>
             </>
@@ -264,14 +267,14 @@ export function DirectSaleForm({
 
       {/* Bill of sale */}
       <section className="space-y-2">
-        <h2 className="text-sm font-semibold text-gray-900 dark:text-slate-100">Bill of sale</h2>
+        <h2 className="text-sm font-semibold text-gray-900 dark:text-slate-100">{t('directSale.form.billSection')}</h2>
         <input type="file" name="billOfSaleFile" accept=".pdf,.jpg,.jpeg,.png,.heic,.webp" required className="block w-full text-sm" />
-        <p className="text-xs text-gray-400">Required. PDF or a photo (JPG, PNG, HEIC), up to 15 MB.</p>
+        <p className="text-xs text-gray-400">{t('directSale.form.billHint')}</p>
         <Err errors={state.fieldErrors} field="billOfSaleFile" />
       </section>
 
       <div className="flex items-center justify-end gap-3 border-t border-gray-100 pt-4 dark:border-slate-700">
-        <p className="mr-auto text-xs text-gray-500 dark:text-slate-400">Saving records the sale <strong>In funding</strong> and writes the journal row. Mark it funded on the deal; it turns Paid when the journal updates.</p>
+        <p className="mr-auto text-xs text-gray-500 dark:text-slate-400">{t('directSale.form.footerPre')}<strong>{t('enum.statusShort.FUNDING_REVIEW')}</strong>{t('directSale.form.footerPost')}</p>
         <SubmitBtn />
       </div>
     </form>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useT } from '@/i18n/client';
 import { TutorialIllo } from './illustrations';
 
 /**
@@ -12,6 +13,7 @@ import { TutorialIllo } from './illustrations';
  * are being captured — drop the PNG into `public/tutorial/` and it takes over.
  */
 export function TutorialImage({ src, alt, illo }: { src: string; alt?: string; illo?: string }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [failed, setFailed] = useState(false);
 
@@ -34,10 +36,10 @@ export function TutorialImage({ src, alt, illo }: { src: string; alt?: string; i
     return (
       <div className="border-t border-gray-100 bg-gray-50 p-5">
         {illo ? (
-          <TutorialIllo name={illo} />
+          <TutorialIllo name={illo} t={t} />
         ) : (
           <div className="mx-auto flex h-40 max-w-md items-center justify-center rounded-lg border border-dashed border-gray-300 text-sm text-gray-400">
-            Screenshot coming soon
+            {t('tutorial.image.comingSoon')}
           </div>
         )}
       </div>
@@ -56,7 +58,7 @@ export function TutorialImage({ src, alt, illo }: { src: string; alt?: string; i
           className="mx-auto max-h-96 w-auto rounded-lg border border-gray-200 bg-white shadow-sm"
         />
       </button>
-      <p className="mt-2 text-xs text-gray-400">Tap the image to enlarge</p>
+      <p className="mt-2 text-xs text-gray-400">{t('tutorial.image.tapToEnlarge')}</p>
 
       {open && (
         <div
@@ -82,7 +84,7 @@ export function TutorialImage({ src, alt, illo }: { src: string; alt?: string; i
             className="max-h-[90vh] max-w-full overflow-auto rounded-lg bg-white shadow-2xl"
           />
           <p className="pointer-events-none absolute bottom-4 left-0 right-0 text-center text-xs text-white/80">
-            Tap anywhere to close
+            {t('tutorial.image.tapToClose')}
           </p>
         </div>
       )}
