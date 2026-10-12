@@ -2,17 +2,20 @@
 
 import { useFormState, useFormStatus } from 'react-dom';
 import { writeToJournalAction, replaceJournalRowAction, type ActionState } from '@/app/(staff)/actions';
+import { useT } from '@/i18n/client';
 
 function SubmitButton({ synced }: { synced: boolean }) {
+  const t = useT();
   const { pending } = useFormStatus();
   return (
     <button type="submit" className="btn-primary text-sm" disabled={pending}>
-      {pending ? 'Writing…' : synced ? 'Update journal' : 'Write to Journal'}
+      {pending ? t('staffDeal.journal.writing') : synced ? t('staffDeal.journal.update') : t('staffDeal.journal.write')}
     </button>
   );
 }
 
 function MoveButton() {
+  const t = useT();
   const { pending } = useFormStatus();
   return (
     <button
@@ -20,16 +23,12 @@ function MoveButton() {
       disabled={pending}
       className="text-xs text-gray-400 underline underline-offset-2 hover:text-gray-700 disabled:opacity-50"
       onClick={(e) => {
-        if (
-          !window.confirm(
-            'Move this deal to the next blank numbered line in the journal?\n\nIts current row will be cleared and the deal re-written in the correct place. Use this if a deal landed below the totals row.',
-          )
-        ) {
+        if (!window.confirm(t('staffDeal.journal.moveConfirm'))) {
           e.preventDefault();
         }
       }}
     >
-      {pending ? 'Moving…' : 'Move to the correct line'}
+      {pending ? t('common.moving') : t('staffDeal.journal.moveToCorrectLine')}
     </button>
   );
 }
@@ -54,6 +53,7 @@ export function WriteToJournalButton({
   tab: string | null;
   row: number | null;
 }) {
+  const t = useT();
   const [state, action] = useFormState(
     writeToJournalAction.bind(null, applicationId),
     {} as ActionState,
@@ -67,12 +67,12 @@ export function WriteToJournalButton({
     <div className="mt-4 space-y-2 border-t border-gray-100 pt-4">
       <form action={action} className="space-y-2">
         {state.error && <div className="rounded-md bg-red-50 p-2 text-xs text-red-700">{state.error}</div>}
-        {state.ok && <div className="rounded-md bg-green-50 p-2 text-xs text-green-700">{state.message || 'Written to the journal.'}</div>}
+        {state.ok && <div className="rounded-md bg-green-50 p-2 text-xs text-green-700">{state.message || t('staffDeal.journal.written')}</div>}
         <div className="flex items-center justify-between gap-3">
           <p className="text-xs text-gray-400">
             {synced
-              ? `In journal${tab ? ` — ${tab} row ${row}` : ''}. Last synced ${new Date(syncedAt as string).toLocaleString('en-CA')}.`
-              : 'Not yet written to the sales journal.'}
+              ? `${t('staffDeal.journal.inJournal')}${tab ? ` ${t('staffDeal.journal.tabRow', { tab, row: row ?? '' })}` : ''}. ${t('staffDeal.journal.lastSynced', { time: new Date(syncedAt as string).toLocaleString('en-CA') })}`
+              : t('staffDeal.journal.notYet')}
           </p>
           <SubmitButton synced={synced} />
         </div>
@@ -80,7 +80,7 @@ export function WriteToJournalButton({
       {synced && (
         <form action={moveAction} className="space-y-2">
           {moveState.error && <div className="rounded-md bg-red-50 p-2 text-xs text-red-700">{moveState.error}</div>}
-          {moveState.ok && <div className="rounded-md bg-green-50 p-2 text-xs text-green-700">{moveState.message || 'Moved.'}</div>}
+          {moveState.ok && <div className="rounded-md bg-green-50 p-2 text-xs text-green-700">{moveState.message || t('staffDeal.journal.moved')}</div>}
           <div className="flex justify-end">
             <MoveButton />
           </div>

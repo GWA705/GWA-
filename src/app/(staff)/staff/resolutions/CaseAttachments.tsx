@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { uploadCaseFileAction, addCaseLinkAction, deleteCaseAttachmentAction, type CaseFormState } from './actions';
 import { DocViewer } from '@/components/DocViewer';
 import type { CaseAttachmentVM } from '@/lib/resolutionCases';
+import { useT } from '@/i18n/client';
 
 function Btn({ idle, busy }: { idle: string; busy: string }) {
   const { pending } = useFormStatus();
@@ -13,6 +14,7 @@ function Btn({ idle, busy }: { idle: string; busy: string }) {
 }
 
 export function CaseAttachments({ caseId, attachments }: { caseId: string; attachments: CaseAttachmentVM[] }) {
+  const t = useT();
   const router = useRouter();
   const [upState, upAction] = useFormState(uploadCaseFileAction.bind(null, caseId), {} as CaseFormState);
   const [lnState, lnAction] = useFormState(addCaseLinkAction.bind(null, caseId), {} as CaseFormState);
@@ -24,7 +26,7 @@ export function CaseAttachments({ caseId, attachments }: { caseId: string; attac
   useEffect(() => { if (lnState.ok) { lnRef.current?.reset(); router.refresh(); } }, [lnState, router]);
 
   function remove(id: string) {
-    if (!window.confirm('Remove this attachment from the case?')) return;
+    if (!window.confirm(t('resolution.attach.removeConfirm'))) return;
     startDel(async () => { await deleteCaseAttachmentAction(id); router.refresh(); });
   }
 
@@ -32,7 +34,7 @@ export function CaseAttachments({ caseId, attachments }: { caseId: string; attac
     <div className="space-y-3">
       {/* List */}
       {attachments.length === 0 ? (
-        <p className="text-sm text-gray-500 dark:text-slate-400">No files or links added to this case yet.</p>
+        <p className="text-sm text-gray-500 dark:text-slate-400">{t('resolution.attach.empty')}</p>
       ) : (
         <ul className="space-y-1.5">
           {attachments.map((a) => (
@@ -63,22 +65,22 @@ export function CaseAttachments({ caseId, attachments }: { caseId: string; attac
       {/* Upload a file */}
       <form ref={upRef} action={upAction} className="flex flex-wrap items-end gap-2 border-t border-gray-100 pt-3 dark:border-slate-700">
         <div className="min-w-0">
-          <label className="label" htmlFor="file">Add a file</label>
+          <label className="label" htmlFor="file">{t('resolution.attach.addFile')}</label>
           <input id="file" type="file" name="file" accept="application/pdf,image/*" required className="block text-sm" />
         </div>
-        <input name="label" placeholder="Label (optional)" className="input max-w-[180px]" />
-        <Btn idle="Upload" busy="Uploading…" />
+        <input name="label" placeholder={t('resolution.attach.labelOptional')} className="input max-w-[180px]" />
+        <Btn idle={t('resolution.attach.upload')} busy={t('resolution.attach.uploading')} />
         {upState.error && <p className="w-full text-xs text-red-600">{upState.error}</p>}
       </form>
 
       {/* Add a resource link */}
       <form ref={lnRef} action={lnAction} className="flex flex-wrap items-end gap-2">
         <div className="min-w-0 flex-1">
-          <label className="label" htmlFor="url">Add a resource link</label>
+          <label className="label" htmlFor="url">{t('resolution.attach.addLink')}</label>
           <input id="url" name="url" placeholder="https://…" className="input" />
         </div>
-        <input name="label" placeholder="Label" className="input max-w-[180px]" />
-        <Btn idle="Add link" busy="Adding…" />
+        <input name="label" placeholder={t('resolution.attach.label')} className="input max-w-[180px]" />
+        <Btn idle={t('resolution.attach.addLinkBtn')} busy={t('resolution.attach.adding')} />
         {lnState.error && <p className="w-full text-xs text-red-600">{lnState.error}</p>}
       </form>
     </div>

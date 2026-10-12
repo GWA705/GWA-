@@ -10,6 +10,7 @@ import {
   type DealCandidate,
   type JournalMatchVM,
 } from './actions';
+import { useT } from '@/i18n/client';
 
 /**
  * "Link this case to a deal" — shown when a case isn't attached to a customer's
@@ -21,6 +22,7 @@ import {
  * and populates the customer file for the reviewer.
  */
 export function LinkDealControl({ caseId }: { caseId: string }) {
+  const t = useT();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
@@ -40,7 +42,7 @@ export function LinkDealControl({ caseId }: { caseId: string }) {
         const r = await findDealsForCaseAction(caseId, query);
         if (r.error) { setErr(r.error); setDeals([]); }
         else setDeals(r.deals ?? []);
-      } catch { setErr('Couldn’t search deals — try again.'); setDeals([]); }
+      } catch { setErr(t('resolution.link.searchError')); setDeals([]); }
       finally { setLoading(false); }
     })();
     void (async () => {
@@ -80,9 +82,9 @@ export function LinkDealControl({ caseId }: { caseId: string }) {
     return (
       <div className="card flex flex-wrap items-center justify-between gap-2 border-amber-200 bg-amber-50/60 p-4 dark:border-amber-900/40 dark:bg-amber-900/10">
         <div className="text-sm text-amber-900 dark:text-amber-200">
-          <span className="font-semibold">Not linked to a deal.</span> Link it to turn on Notify office + the customer’s documents.
+          <span className="font-semibold">{t('resolution.link.notLinkedTitle')}</span> {t('resolution.link.notLinkedHint')}
         </div>
-        <button type="button" onClick={openPanel} className="btn-secondary shrink-0 text-sm">🔗 Link to a deal</button>
+        <button type="button" onClick={openPanel} className="btn-secondary shrink-0 text-sm">🔗 {t('resolution.link.linkToDeal')}</button>
       </div>
     );
   }
@@ -90,8 +92,8 @@ export function LinkDealControl({ caseId }: { caseId: string }) {
   return (
     <div className="card space-y-3 p-4">
       <div className="flex items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold text-gray-900 dark:text-slate-100">🔗 Link this case to a deal</h2>
-        <button type="button" onClick={() => setOpen(false)} className="text-xs text-gray-400 hover:text-gray-600">Cancel</button>
+        <h2 className="text-sm font-semibold text-gray-900 dark:text-slate-100">🔗 {t('resolution.link.panelTitle')}</h2>
+        <button type="button" onClick={() => setOpen(false)} className="text-xs text-gray-400 hover:text-gray-600">{t('common.cancel')}</button>
       </div>
 
       <form
@@ -102,12 +104,12 @@ export function LinkDealControl({ caseId }: { caseId: string }) {
           type="search"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Search by name or phone…"
+          placeholder={t('resolution.link.searchPlaceholder')}
           className="input flex-1"
           autoComplete="off"
         />
         <button type="submit" className="btn-secondary shrink-0 text-sm" disabled={loading || journalLoading}>
-          {loading || journalLoading ? 'Searching…' : 'Search'}
+          {loading || journalLoading ? t('resolution.searching') : t('common.search')}
         </button>
       </form>
 
@@ -116,20 +118,20 @@ export function LinkDealControl({ caseId }: { caseId: string }) {
       {/* Portal deals */}
       {deals === null ? null : deals.length === 0 ? (
         <p className="text-sm text-gray-500 dark:text-slate-400">
-          {loading ? 'Searching deals…' : 'No portal deals found.'}
+          {loading ? t('resolution.link.searchingDeals') : t('resolution.link.noPortalDeals')}
         </p>
       ) : (
         <ul className="space-y-2">
-          {!q && <li className="text-xs text-gray-400 dark:text-slate-500">Suggested for this customer:</li>}
+          {!q && <li className="text-xs text-gray-400 dark:text-slate-500">{t('resolution.link.suggested')}</li>}
           {deals.map((d) => (
             <li key={d.applicationId} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-gray-100 p-2.5 dark:border-slate-700">
               <div className="min-w-0">
-                <div className="truncate text-sm font-medium text-gray-900 dark:text-slate-100">{d.name || 'Unnamed customer'}</div>
+                <div className="truncate text-sm font-medium text-gray-900 dark:text-slate-100">{d.name || t('resolution.link.unnamedCustomer')}</div>
                 <div className="truncate text-xs text-gray-500 dark:text-slate-400">
                   🏬 {d.office} · {d.statusLabel}{d.reference ? ` · HD #${d.reference}` : ''} · {d.date}
                 </div>
               </div>
-              <button type="button" onClick={() => link(d.applicationId)} className="btn-secondary shrink-0 text-sm">Link</button>
+              <button type="button" onClick={() => link(d.applicationId)} className="btn-secondary shrink-0 text-sm">{t('resolution.link.linkBtn')}</button>
             </li>
           ))}
         </ul>

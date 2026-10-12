@@ -73,35 +73,37 @@ import type { ApplicationStatus } from '@prisma/client';
 export const dynamic = 'force-dynamic';
 
 // Friendly wording for each audit action shown in the deal activity log.
-const ACTION_LABELS: Record<string, string> = {
-  APPLICATION_CREATE: 'Created the deal',
-  APPLICATION_SUBMIT: 'Submitted the application',
-  APPLICATION_UPDATE: 'Edited the deal',
-  PII_DECRYPT: 'Revealed protected identity',
-  DECISION: 'Recorded a decision',
-  STATUS_CHANGE: 'Changed status',
-  DOC_UPLOAD: 'Uploaded a document',
-  DOC_DOWNLOAD: 'Downloaded a document',
-  JOURNAL_WRITE: 'Wrote to the sales journal',
-  FUNDING_SUBMIT: 'Submitted the funding package',
-  FUNDING_DECISION: 'Funding decision',
+// Values are i18n keys under staffDeal.activity.actions.
+const ACTION_LABEL_KEYS: Record<string, string> = {
+  APPLICATION_CREATE: 'staffDeal.activity.actions.created',
+  APPLICATION_SUBMIT: 'staffDeal.activity.actions.submitted',
+  APPLICATION_UPDATE: 'staffDeal.activity.actions.updated',
+  PII_DECRYPT: 'staffDeal.activity.actions.piiDecrypt',
+  DECISION: 'staffDeal.activity.actions.decision',
+  STATUS_CHANGE: 'staffDeal.activity.actions.statusChange',
+  DOC_UPLOAD: 'staffDeal.activity.actions.docUpload',
+  DOC_DOWNLOAD: 'staffDeal.activity.actions.docDownload',
+  JOURNAL_WRITE: 'staffDeal.activity.actions.journalWrite',
+  FUNDING_SUBMIT: 'staffDeal.activity.actions.fundingSubmit',
+  FUNDING_DECISION: 'staffDeal.activity.actions.fundingDecision',
 };
 
-function actionLabel(action: string): string {
-  return ACTION_LABELS[action] ?? action.replace(/_/g, ' ').toLowerCase();
+function actionLabel(t: ReturnType<typeof getT>, action: string): string {
+  const key = ACTION_LABEL_KEYS[action];
+  return key ? t(key) : action.replace(/_/g, ' ').toLowerCase();
 }
 
-function decisionOptions(status: ApplicationStatus): { value: string; label: string }[] {
+function decisionOptions(t: ReturnType<typeof getT>, status: ApplicationStatus): { value: string; label: string }[] {
   if (['SUBMITTED', 'UNDER_REVIEW', 'CONDITIONAL'].includes(status)) {
     return [
-      { value: 'APPROVE', label: 'Approve' },
-      { value: 'CONDITIONAL', label: 'Conditionally approve' },
-      { value: 'REQUEST_DOCS', label: 'Request more documents' },
-      { value: 'DECLINE', label: 'Decline' },
+      { value: 'APPROVE', label: t('staffDeal.decisionOptions.approve') },
+      { value: 'CONDITIONAL', label: t('staffDeal.decisionOptions.conditional') },
+      { value: 'REQUEST_DOCS', label: t('staffDeal.decisionOptions.requestDocs') },
+      { value: 'DECLINE', label: t('staffDeal.decisionOptions.decline') },
     ];
   }
   if (['FUNDING_SUBMITTED', 'FUNDING_REVIEW'].includes(status)) {
-    return [{ value: 'FUND', label: 'Approve funding (mark funded)' }];
+    return [{ value: 'FUND', label: t('staffDeal.decisionOptions.fund') }];
   }
   return [];
 }
@@ -244,7 +246,11 @@ export default async function StaffApplicationDetail({
   // Product Library files (manuals / brochures / spec sheets) that can be emailed
   // to the customer — from the ResourceProduct catalog, not the internal content.
   const RESOURCE_FILE_KIND_LABELS: Record<string, string> = {
-    MANUAL: 'Manual', BROCHURE: 'Brochure', SPEC_SHEET: 'Spec sheet', WARRANTY: 'Warranty', OTHER: 'File',
+    MANUAL: t('staffDeal.resourceKind.manual'),
+    BROCHURE: t('staffDeal.resourceKind.brochure'),
+    SPEC_SHEET: t('staffDeal.resourceKind.specSheet'),
+    WARRANTY: t('staffDeal.resourceKind.warranty'),
+    OTHER: t('staffDeal.resourceKind.file'),
   };
   const libraryDocs = (
     await prisma.resourceProductFile.findMany({
@@ -255,7 +261,7 @@ export default async function StaffApplicationDetail({
   ).map((f) => ({
     id: f.id,
     title: `${f.product.title}${f.label ? ` (${f.label})` : ''}`,
-    sectionLabel: RESOURCE_FILE_KIND_LABELS[f.kind] ?? 'File',
+    sectionLabel: RESOURCE_FILE_KIND_LABELS[f.kind] ?? t('staffDeal.resourceKind.file'),
   }));
 
   // When the install paperwork first went out (earliest reviewer-stage doc).
@@ -352,7 +358,7 @@ export default async function StaffApplicationDetail({
     }
   }
 
-  const options = decisionOptions(app.status);
+  const options = decisionOptions(t, app.status);
   const startReview = startReviewAction.bind(null, app.id);
 
   // Full activity log for this deal — every recorded action, and who did it, so
@@ -408,10 +414,10 @@ export default async function StaffApplicationDetail({
 
   const dealNumbersSection = (
     <div className="rounded-lg border border-gray-200 bg-gray-50/60 p-4">
-      <h3 className="mb-3 text-sm font-semibold text-gray-700">Deal numbers</h3>
+      <h3 className="mb-3 text-sm font-semibold text-gray-700">{t('staffDeal.dealNumbers.title')}</h3>
       {journalEnabled() && (
         <p className="mb-3 -mt-1 text-xs text-gray-400">
-          Saved numbers sync to the sales journal automatically on approval and whenever you change them.
+          {t('staffDeal.dealNumbers.syncNote')}
         </p>
       )}
       <DealReferencesForm
@@ -441,12 +447,12 @@ export default async function StaffApplicationDetail({
     <div>
       {app.status === 'SUBMITTED' && (
         <form action={startReview} className="mb-4">
-          <button type="submit" className="btn-secondary w-full sm:w-auto">Start review</button>
+          <button type="submit" className="btn-secondary w-full sm:w-auto">{t('staffDeal.decision.startReview')}</button>
         </form>
       )}
       {options.some((o) => o.value === 'FUND') && !verificationComplete && (
         <p className="mb-4 rounded bg-amber-50 p-2 text-xs text-amber-800">
-          Complete the funding verification checklist (every item Confirmed) before this deal can be funded.
+          {t('staffDeal.decision.verifyBeforeFund')}
         </p>
       )}
       <DecisionForm
@@ -460,10 +466,10 @@ export default async function StaffApplicationDetail({
         hdRequired={hdReferenceRequired(app.programType)}
       />
       <div className="mt-5 border-t border-gray-100 pt-4">
-        <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Change status</h4>
+        <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">{t('staffDeal.decision.changeStatus')}</h4>
         <StatusChangeForm applicationId={app.id} current={app.status} />
         <p className="mt-2 text-xs text-gray-400">
-          The flow sets the status for you as you work. Use this to jump back, change the decision, or flag a Problem.
+          {t('staffDeal.decision.statusHint')}
         </p>
       </div>
     </div>
@@ -488,7 +494,7 @@ export default async function StaffApplicationDetail({
   const editButton = (
     <div className="flex justify-end">
       <Link href={`/staff/applications/${app.id}/edit`} className="btn-secondary text-sm">
-        Edit deal details
+        {t('staffDeal.editDealDetails')}
       </Link>
     </div>
   );
@@ -505,17 +511,17 @@ export default async function StaffApplicationDetail({
           storageKey={`entryview:${app.id}`}
           snapshot={
             <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3 [&>div]:min-w-0 [&_dd]:break-words">
-              <div><dt className="text-gray-500">Program</dt><dd><ProgramBadge type={app.programType} category={programCategoryLabel(t, app.programCategory)} /></dd></div>
-              <div><dt className="text-gray-500">Customer</dt><dd className="font-medium">{app.applicantFirstName} {app.applicantLastName}</dd></div>
-              <div><dt className="text-gray-500">Phone</dt><dd className="font-medium">{app.applicantPhone}</dd></div>
-              <div className="sm:col-span-2"><dt className="text-gray-500">Address</dt><dd className="font-medium">{fullAddress || '—'}{!revealOk && app.applicantAddressEnc && <a href={`/staff/applications/${app.id}?reveal=1`} className="ml-2 text-xs font-normal text-brand-600 hover:underline">reveal street</a>}</dd></div>
-              <div><dt className="text-gray-500">Product(s)</dt><dd className="font-medium">{app.productsSold.length ? app.productsSold.join(', ') : '—'}</dd></div>
-              <div><dt className="text-gray-500">Amount</dt><dd className="font-medium">{app.approvedAmount ? `$${app.approvedAmount.toString()}` : `$${app.requestedAmount.toString()}`}</dd></div>
-              {app.isSplitPayment && <div><dt className="text-gray-500">Financed</dt><dd className="font-medium text-brand-700">${financedAmt.toLocaleString('en-CA', { minimumFractionDigits: 2 })} <span className="text-xs font-normal text-gray-400">(split)</span></dd></div>}
-              <div><dt className="text-gray-500">Payment</dt><dd className="font-medium">{app.paymentMethod ? paymentMethodLabel(t, app.paymentMethod) : 'Not specified'}</dd></div>
-              <div><dt className="text-gray-500">Finance company</dt><dd className="font-medium">{financeCompanyDisplay(app)}</dd></div>
-              <div><dt className="text-gray-500">Financing deal #</dt><dd className="font-medium">{app.financeItNumber ?? '—'}</dd></div>
-              <div><dt className="text-gray-500">HD Customer #</dt><dd className="font-medium">{app.hdReference ?? '—'}</dd></div>
+              <div><dt className="text-gray-500">{t('staffDeal.snapshot.program')}</dt><dd><ProgramBadge type={app.programType} category={programCategoryLabel(t, app.programCategory)} /></dd></div>
+              <div><dt className="text-gray-500">{t('staffDeal.snapshot.customer')}</dt><dd className="font-medium">{app.applicantFirstName} {app.applicantLastName}</dd></div>
+              <div><dt className="text-gray-500">{t('staffDeal.snapshot.phone')}</dt><dd className="font-medium">{app.applicantPhone}</dd></div>
+              <div className="sm:col-span-2"><dt className="text-gray-500">{t('staffDeal.snapshot.address')}</dt><dd className="font-medium">{fullAddress || '—'}{!revealOk && app.applicantAddressEnc && <a href={`/staff/applications/${app.id}?reveal=1`} className="ml-2 text-xs font-normal text-brand-600 hover:underline">{t('staffDeal.snapshot.revealStreet')}</a>}</dd></div>
+              <div><dt className="text-gray-500">{t('staffDeal.snapshot.products')}</dt><dd className="font-medium">{app.productsSold.length ? app.productsSold.join(', ') : '—'}</dd></div>
+              <div><dt className="text-gray-500">{t('staffDeal.snapshot.amount')}</dt><dd className="font-medium">{app.approvedAmount ? `$${app.approvedAmount.toString()}` : `$${app.requestedAmount.toString()}`}</dd></div>
+              {app.isSplitPayment && <div><dt className="text-gray-500">{t('staffDeal.snapshot.financed')}</dt><dd className="font-medium text-brand-700">${financedAmt.toLocaleString('en-CA', { minimumFractionDigits: 2 })} <span className="text-xs font-normal text-gray-400">{t('staffDeal.snapshot.split')}</span></dd></div>}
+              <div><dt className="text-gray-500">{t('staffDeal.snapshot.payment')}</dt><dd className="font-medium">{app.paymentMethod ? paymentMethodLabel(t, app.paymentMethod) : t('staffDeal.snapshot.notSpecified')}</dd></div>
+              <div><dt className="text-gray-500">{t('staffDeal.snapshot.financeCompany')}</dt><dd className="font-medium">{financeCompanyDisplay(app)}</dd></div>
+              <div><dt className="text-gray-500">{t('staffDeal.snapshot.financingDeal')}</dt><dd className="font-medium">{app.financeItNumber ?? '—'}</dd></div>
+              <div><dt className="text-gray-500">{t('staffDeal.snapshot.hdCustomer')}</dt><dd className="font-medium">{app.hdReference ?? '—'}</dd></div>
             </dl>
           }
         >
@@ -534,10 +540,10 @@ export default async function StaffApplicationDetail({
         {paymentBreakdownSection}
         {dealNumbersSection}
         <div className="border-t border-gray-100 pt-4">
-          <h3 className="mb-3 text-sm font-medium text-gray-700">Application documents</h3>
+          <h3 className="mb-3 text-sm font-medium text-gray-700">{t('staffDeal.applicationDocuments')}</h3>
           <DocumentList documents={applicationDocs} deleteAction={deleteDocumentAction} />
         </div>
-        <CollapsibleSection title="Decision" defaultOpen={!decided} summary={<span>{STATUS_LABELS[app.status]}</span>}>
+        <CollapsibleSection title={t('staffDeal.decision.title')} defaultOpen={!decided} summary={<span>{STATUS_LABELS[app.status]}</span>}>
           {decisionSection}
         </CollapsibleSection>
       </div>
@@ -547,25 +553,25 @@ export default async function StaffApplicationDetail({
       <div>
         {hdBlocksPaperwork ? (
           <div className="rounded-md border border-amber-300 bg-amber-50 p-4 text-sm">
-            <p className="font-semibold text-amber-900">Add the HD Customer # first</p>
+            <p className="font-semibold text-amber-900">{t('staffDeal.produce.addHdFirst')}</p>
             <p className="mt-1 text-amber-800">
-              This HD deal needs its HD Customer # before install paperwork can go to the dealer. Add it under{' '}
-              <strong>Review &amp; decide → Deal numbers</strong> (it also writes to the sales journal), then send the documents here.
+              {t('staffDeal.produce.addHdBefore')}{' '}
+              <strong>{t('staffDeal.reviewDecide')} → {t('staffDeal.dealNumbers.title')}</strong> {t('staffDeal.produce.addHdAfter')}
             </p>
           </div>
         ) : (
           <>
             {app.programType === 'HD' && (
               <div className="mb-4">
-                <h3 className="mb-1 text-sm font-medium text-gray-700">Home Depot Customer Approval Waiver</h3>
-                <p className="mb-2 text-xs text-gray-500">Attached automatically to this HD deal — no need to upload or send it; the dealer already has it on their deal. View or download it here.</p>
+                <h3 className="mb-1 text-sm font-medium text-gray-700">{t('staffDeal.produce.hdWaiverTitle')}</h3>
+                <p className="mb-2 text-xs text-gray-500">{t('staffDeal.produce.hdWaiverNote')}</p>
                 <HdWaiverCard
-                  title="Home Depot Customer Approval Waiver"
-                  hint="Standard form, attached automatically to this HD deal."
+                  title={t('staffDeal.produce.hdWaiverTitle')}
+                  hint={t('staffDeal.produce.hdWaiverHint')}
                 />
               </div>
             )}
-            <p className="mb-4 text-xs text-gray-500">Upload paperwork the dealer can view and download — send as many as you need, now or later. Files are converted to PDF.</p>
+            <p className="mb-4 text-xs text-gray-500">{t('staffDeal.produce.uploadHint')}</p>
             <div className="mb-4">
               <DocumentList documents={reviewerDocs} deleteAction={deleteDocumentAction} />
             </div>
@@ -594,18 +600,18 @@ export default async function StaffApplicationDetail({
           doneByName={app.reviewerDoneByName}
         />
         <p className="mb-4 text-xs text-gray-500">
-          Waiting on the dealer&apos;s signed package — the deal moves to review on its own the moment the dealer sends anything back.
+          {t('staffDeal.await.waiting')}
         </p>
-        <div className="mb-2 text-sm font-medium text-gray-700">Documents you&apos;ve sent the dealer</div>
+        <div className="mb-2 text-sm font-medium text-gray-700">{t('staffDeal.await.sentDocs')}</div>
         <div className="mb-4">
           <DocumentList documents={reviewerDocs} deleteAction={deleteDocumentAction} />
         </div>
         <details className="border-t border-gray-100 pt-4">
           <summary className="flex cursor-pointer list-none items-center gap-1.5 text-sm font-medium text-brand-700 hover:underline [&::-webkit-details-marker]:hidden">
             <span aria-hidden className="text-base leading-none">＋</span>
-            Send more paperwork
+            {t('staffDeal.await.sendMore')}
           </summary>
-          <p className="mt-1 text-xs text-gray-500">Only if the dealer still needs another document — otherwise just wait for their signed package.</p>
+          <p className="mt-1 text-xs text-gray-500">{t('staffDeal.await.sendMoreHint')}</p>
           <div className="mt-4">
             <ReviewerPaperworkBoxes
               action={uploadReviewerPaperworkAction.bind(null, app.id)}
@@ -621,16 +627,16 @@ export default async function StaffApplicationDetail({
       <div className="space-y-6">
         {returnedApplicationDocs.length > 0 && (
           <div className="rounded-md border border-amber-200 bg-amber-50 p-3">
-            <h3 className="mb-1 text-sm font-medium text-amber-900">Returned by the dealer</h3>
+            <h3 className="mb-1 text-sm font-medium text-amber-900">{t('staffDeal.review.returnedTitle')}</h3>
             <p className="mb-2 text-xs text-amber-700">
-              These arrived in the dealer&apos;s &ldquo;Documents for approval&rdquo; area after the install paperwork went out — treat them as part of the signed package.
+              {t('staffDeal.review.returnedNote')}
             </p>
             <DocumentList documents={returnedApplicationDocs} deleteAction={deleteDocumentAction} />
           </div>
         )}
         {app.serialNumbers.length > 0 && (
           <div>
-            <h3 className="mb-1 text-sm font-medium text-gray-700">Serial numbers</h3>
+            <h3 className="mb-1 text-sm font-medium text-gray-700">{t('staffDeal.review.serialNumbers')}</h3>
             <ul className="text-sm">
               {app.serialNumbers.map((s) => (
                 <li key={s.id} className="font-mono text-gray-700">
@@ -642,9 +648,9 @@ export default async function StaffApplicationDetail({
         )}
         <FundingChecklist fundingDocs={fundingDocs} applicationId={app.id} status={app.status} programType={app.programType} paymentMethod={app.paymentMethod} isSplitPayment={app.isSplitPayment} />
         <div className="border-t border-gray-100 pt-4">
-          <h3 className="mb-1 text-sm font-medium text-gray-700">Funding verification</h3>
+          <h3 className="mb-1 text-sm font-medium text-gray-700">{t('staffDeal.review.fundingVerification')}</h3>
           <p className="mb-3 text-xs text-gray-500">
-            Confirm each item before funding. Flagging a problem sends a note to the dealer.
+            {t('staffDeal.review.fundingVerificationHint')}
           </p>
           <VerificationChecklist
             applicationId={app.id}
@@ -658,10 +664,10 @@ export default async function StaffApplicationDetail({
     confirm: (
       <div>
         <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-sm font-medium text-gray-700">Confirmation call</h3>
+          <h3 className="text-sm font-medium text-gray-700">{t('staffDeal.confirm.title')}</h3>
           <ConfirmationBadge status={app.confirmationStatus} />
         </div>
-        <p className="mb-4 text-xs text-gray-500">Confirmation script — work through it on the call, check all six boxes, then Confirm. You can open this any time and add to it as the call happens.</p>
+        <p className="mb-4 text-xs text-gray-500">{t('staffDeal.confirm.scriptHint')}</p>
         <ConfirmationForm
           applicationId={app.id}
           data={app.confirmation}
@@ -690,8 +696,7 @@ export default async function StaffApplicationDetail({
     // 6 · Submit to finance company
     submit: (
       <p className="rounded-md bg-gray-50 p-3 text-sm text-gray-600">
-        Deal numbers and the journal are recorded up at <strong>Review &amp; decide</strong>. Send the deal to the
-        finance company, then mark it in for funding.
+        {t('staffDeal.submit.before')} <strong>{t('staffDeal.reviewDecide')}</strong>. {t('staffDeal.submit.after')}
       </p>
     ),
     // 7 · Awaiting funding — the Mark Funded button, but only once the deal has
@@ -711,15 +716,15 @@ export default async function StaffApplicationDetail({
         {app.payouts.length > 0 ? (
           <>
             <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-              <span className="font-semibold">Paid — nothing to enter.</span>{' '}
+              <span className="font-semibold">{t('staffDeal.pay.paidNothing')}</span>{' '}
               {app.journalPaidOn
-                ? <>The sales journal marked this deal <strong>OK &amp; paid</strong> on {app.journalPaidOn.toLocaleDateString('en-CA')}, and the dealer payout below was filled in automatically.</>
-                : <>The dealer payout below is recorded. This deal is complete.</>}
+                ? <>{t('staffDeal.pay.journalMarkedBefore')} <strong>{t('staffDeal.pay.okPaid')}</strong> {t('staffDeal.pay.journalMarkedAfter', { date: app.journalPaidOn.toLocaleDateString('en-CA') })}</>
+                : <>{t('staffDeal.pay.payoutRecorded')}</>}
             </div>
             <div className="mb-5">
               <PayoutReceipt payouts={app.payouts} />
             </div>
-            <CollapsibleSection title="Record another payout or a correction" defaultOpen={false}>
+            <CollapsibleSection title={t('staffDeal.pay.recordAnother')} defaultOpen={false}>
               <PayoutForm applicationId={app.id} />
             </CollapsibleSection>
           </>
@@ -727,12 +732,12 @@ export default async function StaffApplicationDetail({
           <>
             {app.journalPaidOn && (
               <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-                <span className="font-semibold">Sales journal:</span> this deal is marked <strong>OK &amp; paid</strong> on{' '}
-                {app.journalPaidOn.toLocaleDateString('en-CA')}. Record the dealer payout below to complete the disbursement.
+                <span className="font-semibold">{t('staffDeal.pay.salesJournalLabel')}</span> {t('staffDeal.pay.markedBefore')} <strong>{t('staffDeal.pay.okPaid')}</strong>{' '}
+                {t('staffDeal.pay.markedAfter', { date: app.journalPaidOn.toLocaleDateString('en-CA') })}
               </div>
             )}
             <div className="border-t border-gray-100 pt-4">
-              <h3 className="mb-3 text-sm font-medium text-gray-700">Record a payout</h3>
+              <h3 className="mb-3 text-sm font-medium text-gray-700">{t('staffDeal.pay.recordPayout')}</h3>
               <PayoutForm applicationId={app.id} />
             </div>
           </>
@@ -742,22 +747,24 @@ export default async function StaffApplicationDetail({
   };
 
   const phaseSummary: Record<string, string> = {
-    decide: 'Decision recorded',
-    produce: `${reviewerDocs.length} document${reviewerDocs.length === 1 ? '' : 's'} sent to the dealer`,
-    await: 'Signed package received',
-    review: 'Documents reviewed',
-    confirm: 'Confirmation call complete',
-    submit: 'Submitted to the finance company',
-    funding: 'Funded',
-    pay: 'Paid',
+    decide: t('staffDeal.phaseSummary.decide'),
+    produce: reviewerDocs.length === 1
+      ? t('staffDeal.phaseSummary.produceDocOne')
+      : t('staffDeal.phaseSummary.produceDocs', { n: reviewerDocs.length }),
+    await: t('staffDeal.phaseSummary.await'),
+    review: t('staffDeal.phaseSummary.review'),
+    confirm: t('staffDeal.phaseSummary.confirm'),
+    submit: t('staffDeal.phaseSummary.submit'),
+    funding: t('staffDeal.phaseSummary.funding'),
+    pay: t('staffDeal.phaseSummary.pay'),
   };
 
   const phaseAuto: Record<string, string> = {
-    decide: 'Approving sets the deal to Approved — the dealer sees "Approved — preparing your documents."',
-    produce: 'When the dealer returns the signed package, the deal moves to review on its own.',
-    review: 'Confirm every item to send the deal for funding — the dealer sees "Submitted to finance company."',
-    submit: 'Sending it in sets the status to In for funding.',
-    pay: 'Recording the payout completes the deal.',
+    decide: t('staffDeal.phaseAuto.decide'),
+    produce: t('staffDeal.phaseAuto.produce'),
+    review: t('staffDeal.phaseAuto.review'),
+    submit: t('staffDeal.phaseAuto.submit'),
+    pay: t('staffDeal.phaseAuto.pay'),
   };
 
   // The confirmation call runs on its own clock — it's Done once confirmed, and
@@ -780,9 +787,9 @@ export default async function StaffApplicationDetail({
   const deadEnd = app.status === 'DECLINED' || app.status === 'WITHDRAWN';
   const decideNeedsRefs =
     missingRefs.length > 0 && currentPhaseIndex(flowSignals) > 1 && !deadEnd;
-  const refsList = missingRefs.length === 2 ? `${missingRefs[0]} and ${missingRefs[1]}` : missingRefs[0];
+  const refsList = missingRefs.length === 2 ? `${missingRefs[0]} ${t('staffDeal.and')} ${missingRefs[1]}` : missingRefs[0];
   const reviewAlert = decideNeedsRefs
-    ? { message: `This deal is already approved but still needs ${refsList}. Add it in the Deal numbers card below before producing the install documents.` }
+    ? { message: t('staffDeal.reviewAlert', { refs: refsList }) }
     : null;
 
   // While an approved deal is still missing a required number (the HD Customer #),
@@ -792,7 +799,7 @@ export default async function StaffApplicationDetail({
   const decidePinned = decideNeedsRefs ? (
     <div className="space-y-2">
       <p className="text-xs font-medium text-amber-700">
-        Add the HD Customer # to finish this deal — this stays here until it&apos;s in.
+        {t('staffDeal.decidePinned')}
       </p>
       {dealNumbersSection}
     </div>
@@ -815,26 +822,26 @@ export default async function StaffApplicationDetail({
   const comms = (
     <div className="space-y-6">
       <div>
-        <h3 className="text-sm font-semibold text-gray-900">Chat with the dealer</h3>
-        <p className="mb-3 text-xs text-gray-500">Live conversation on this deal — the dealer sees you as &ldquo;Reviewer.&rdquo;</p>
-        <ConversationThread applicationId={app.id} placeholder="Message the dealer…" />
+        <h3 className="text-sm font-semibold text-gray-900">{t('staffDeal.comms.chatTitle')}</h3>
+        <p className="mb-3 text-xs text-gray-500">{t('staffDeal.comms.chatHint')}</p>
+        <ConversationThread applicationId={app.id} placeholder={t('staffDeal.comms.chatPlaceholder')} />
       </div>
       <div className="rounded-lg border border-amber-200 p-4">
-        <h3 className="text-sm font-semibold text-gray-900">Internal notes</h3>
-        <p className="mb-3 text-xs text-amber-700">Only Reviewers and Admins can see these — never shown to the dealer.</p>
+        <h3 className="text-sm font-semibold text-gray-900">{t('staffDeal.comms.internalTitle')}</h3>
+        <p className="mb-3 text-xs text-amber-700">{t('staffDeal.comms.internalHint')}</p>
         <div className="mb-4">
-          <NoteThread notes={internalNotes} emptyText="No internal notes yet." />
+          <NoteThread notes={internalNotes} emptyText={t('staffDeal.comms.noInternalNotes')} />
         </div>
         <NoteForm
           action={addStaffNoteAction}
           hidden={{ applicationId: app.id, internal: 'true' }}
-          placeholder="Internal note (staff only)…"
-          label="Add internal note"
+          placeholder={t('staffDeal.comms.internalPlaceholder')}
+          label={t('staffDeal.comms.addInternalNote')}
           templates={noteTemplates}
         />
       </div>
       <div className="border-t border-gray-100 pt-4">
-        <h3 className="mb-3 text-sm font-semibold text-gray-900">History</h3>
+        <h3 className="mb-3 text-sm font-semibold text-gray-900">{t('staffDeal.comms.history')}</h3>
         <ul className="space-y-2 text-sm">
           {app.statusEvents.map((e) => (
             <li key={e.id} className="flex items-center justify-between">
@@ -842,7 +849,7 @@ export default async function StaffApplicationDetail({
                 {e.from ? `${STATUS_LABELS[e.from]} → ` : ''}
                 <span className="font-medium">{STATUS_LABELS[e.to]}</span>
                 {e.note && <span className="ml-2 text-gray-500">— {e.note}</span>}
-                <span className="ml-2 text-xs text-gray-400">by {e.actor.name}</span>
+                <span className="ml-2 text-xs text-gray-400">{t('staffDeal.comms.by', { name: e.actor.name })}</span>
               </span>
               <span className="text-xs text-gray-400">{e.createdAt.toLocaleString('en-CA')}</span>
             </li>
@@ -850,17 +857,17 @@ export default async function StaffApplicationDetail({
         </ul>
       </div>
       <div className="border-t border-gray-100 pt-4">
-        <h3 className="mb-1 text-sm font-semibold text-gray-900">Activity log</h3>
-        <p className="mb-3 text-xs text-gray-500">Everything that happened on this deal, and which team member did it.</p>
+        <h3 className="mb-1 text-sm font-semibold text-gray-900">{t('staffDeal.comms.activityLog')}</h3>
+        <p className="mb-3 text-xs text-gray-500">{t('staffDeal.comms.activityHint')}</p>
         {activity.length === 0 ? (
-          <p className="text-sm text-gray-500">No activity recorded yet.</p>
+          <p className="text-sm text-gray-500">{t('staffDeal.comms.noActivity')}</p>
         ) : (
           <ul className="space-y-2 text-sm">
             {activity.map((e) => (
               <li key={e.id} className="flex items-start justify-between gap-3 border-b border-gray-50 pb-2 last:border-0">
                 <span>
-                  <span className="font-medium text-gray-800">{e.actor?.name ?? e.actorName ?? 'System'}</span>
-                  <span className="text-gray-600"> — {actionLabel(e.action)}</span>
+                  <span className="font-medium text-gray-800">{e.actor?.name ?? e.actorName ?? t('staffDeal.comms.system')}</span>
+                  <span className="text-gray-600"> — {actionLabel(t, e.action)}</span>
                   {e.detail && <span className="ml-1 text-gray-400">({e.detail})</span>}
                 </span>
                 <span className="flex-none text-xs text-gray-400">{e.createdAt.toLocaleString('en-CA')}</span>
@@ -871,7 +878,7 @@ export default async function StaffApplicationDetail({
       </div>
       {app.decisions.length > 0 && (
         <div className="border-t border-gray-100 pt-4">
-          <h3 className="mb-3 text-sm font-semibold text-gray-900">Decision log</h3>
+          <h3 className="mb-3 text-sm font-semibold text-gray-900">{t('staffDeal.comms.decisionLog')}</h3>
           <ul className="space-y-2 text-sm">
             {app.decisions.map((d) => {
               const tone = decisionTone(d.type);
@@ -888,10 +895,10 @@ export default async function StaffApplicationDetail({
       )}
       {app.consents.length > 0 && (
         <div className="border-t border-gray-100 pt-4 text-xs text-gray-500">
-          <h3 className="mb-2 text-sm font-semibold text-gray-900">Consent</h3>
-          <p>Captured {app.consents[0].capturedAt.toLocaleString('en-CA')}</p>
-          <p>Policy version: {app.consents[0].policyVersion}</p>
-          {app.consents[0].ipAddress && <p>IP: {app.consents[0].ipAddress}</p>}
+          <h3 className="mb-2 text-sm font-semibold text-gray-900">{t('staffDeal.comms.consent')}</h3>
+          <p>{t('staffDeal.comms.captured', { date: app.consents[0].capturedAt.toLocaleString('en-CA') })}</p>
+          <p>{t('staffDeal.comms.policyVersion', { version: app.consents[0].policyVersion })}</p>
+          {app.consents[0].ipAddress && <p>{t('staffDeal.comms.ip', { ip: app.consents[0].ipAddress })}</p>}
         </div>
       )}
     </div>
@@ -903,7 +910,7 @@ export default async function StaffApplicationDetail({
         id: cx.id,
         status: cx.status as 'PENDING' | 'CONFIRMED' | 'REJECTED',
         reason: cx.reason,
-        requestedBy: cx.requestedBy?.name ?? 'Dealer',
+        requestedBy: cx.requestedBy?.name ?? t('staffDeal.cancellation.dealer'),
         requestedAt: cx.createdAt.toLocaleString('en-CA'),
         wasFunded: cx.wasFunded,
         uninstallDate: cx.uninstallDate ? cx.uninstallDate.toLocaleDateString('en-CA') : null,
@@ -917,7 +924,7 @@ export default async function StaffApplicationDetail({
   return (
     <div className="space-y-6">
       <div>
-        <Link href="/staff" className="text-sm text-gray-500 hover:underline">← Back to queue</Link>
+        <Link href="/staff" className="text-sm text-gray-500 hover:underline">{t('staffDeal.backToQueue')}</Link>
           <div className="mt-2 flex items-center justify-between gap-3">
             <h1 className="flex flex-wrap items-center gap-2 text-xl font-semibold text-gray-900">
               <ProgramBadge type={app.programType} category={programCategoryLabel(t, app.programCategory)} size="lg" />
@@ -927,11 +934,11 @@ export default async function StaffApplicationDetail({
           </div>
           <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
             <p className="text-sm text-gray-500">
-              {app.dealer.name} · submitted by {app.createdBy.name} · {app.createdAt.toLocaleString('en-CA')}
+              {app.dealer.name} · {t('staffDeal.submittedBy', { name: app.createdBy.name })} · {app.createdAt.toLocaleString('en-CA')}
             </p>
             <div className="flex flex-wrap gap-2">
               <Link href={`/staff/applications/${app.id}/edit`} className="btn-secondary text-xs">
-                ✎ Edit deal
+                ✎ {t('staffDeal.editDeal')}
               </Link>
               {app.documents.some((d) => d.stage === 'FUNDING' || d.stage === 'REVIEWER') && (
                 // The docs that get uploaded to the funder / Home Depot, cleanly
@@ -940,9 +947,9 @@ export default async function StaffApplicationDetail({
                   url={`/api/applications/${app.id}/upload-package`}
                   fileName={`GWA_${app.applicantLastName}_${app.applicantFirstName}_upload-package.zip`}
                   className="btn-secondary text-xs"
-                  title="Only the documents that get uploaded to the funder / Home Depot, named properly"
+                  title={t('staffDeal.downloadPackageTitle')}
                 >
-                  ↓ Download upload package (ZIP)
+                  ↓ {t('staffDeal.downloadUploadPackage')}
                 </DownloadButton>
               )}
               {app.documents.length > 0 && (
@@ -954,7 +961,7 @@ export default async function StaffApplicationDetail({
                   fileName={`GWA_${app.applicantLastName}_${app.applicantFirstName}_documents.zip`}
                   className="btn-secondary text-xs"
                 >
-                  ↓ Download all documents (ZIP)
+                  ↓ {t('staffDeal.downloadAllDocuments')}
                 </DownloadButton>
               )}
             </div>
@@ -984,16 +991,16 @@ export default async function StaffApplicationDetail({
           return (
             <section className="card border border-amber-200 bg-amber-50 p-4">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="badge bg-amber-200 text-amber-900">🪶 Tax exempt · {ex.label}</span>
+                <span className="badge bg-amber-200 text-amber-900">🪶 {t('staffDeal.taxExempt.badge')} · {ex.label}</span>
                 <span className="text-sm text-amber-900">{ex.detail}</span>
               </div>
               <dl className="mt-3 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4 [&>div]:min-w-0 [&_dd]:break-words">
-                <div><dt className="text-gray-500">Status card #</dt><dd className="font-medium">{statusCard}{!revealOk && app.statusCardNumberEnc && <a href={`/staff/applications/${app.id}?reveal=1`} className="ml-2 text-xs text-brand-600 hover:underline">reveal</a>}</dd></div>
-                <div><dt className="text-gray-500">Band / First Nation</dt><dd className="font-medium">{app.bandName ?? '—'}</dd></div>
-                <div><dt className="text-gray-500">On reserve</dt><dd className="font-medium">{app.deliveredToReserve ? 'Yes' : 'No'}</dd></div>
-                <div><dt className="text-gray-500">Province</dt><dd className="font-medium">{app.province}</dd></div>
+                <div><dt className="text-gray-500">{t('staffDeal.taxExempt.statusCard')}</dt><dd className="font-medium">{statusCard}{!revealOk && app.statusCardNumberEnc && <a href={`/staff/applications/${app.id}?reveal=1`} className="ml-2 text-xs text-brand-600 hover:underline">{t('staffDeal.taxExempt.reveal')}</a>}</dd></div>
+                <div><dt className="text-gray-500">{t('staffDeal.taxExempt.band')}</dt><dd className="font-medium">{app.bandName ?? '—'}</dd></div>
+                <div><dt className="text-gray-500">{t('staffDeal.taxExempt.onReserve')}</dt><dd className="font-medium">{app.deliveredToReserve ? t('common.yes') : t('common.no')}</dd></div>
+                <div><dt className="text-gray-500">{t('staffDeal.taxExempt.province')}</dt><dd className="font-medium">{app.province}</dd></div>
               </dl>
-              <p className="mt-2 text-xs text-amber-800">Verify the status card and register this exemption with Home Depot before final payment (see the funding verification checklist).</p>
+              <p className="mt-2 text-xs text-amber-800">{t('staffDeal.taxExempt.verifyNote')}</p>
             </section>
           );
         })()}
@@ -1001,14 +1008,13 @@ export default async function StaffApplicationDetail({
       {partialFunding && (
         <section className="card border-2 border-amber-400 bg-amber-50 p-4">
           <h2 className="text-sm font-semibold text-amber-900">
-            💵 Partially funded — awaiting the rest of Home Depot&apos;s payment
+            💵 {t('staffDeal.partialFunding.title')}
           </h2>
           <p className="mt-1 text-xs text-amber-800">
-            This is a <strong>split-payment</strong> deal. Home Depot has paid{' '}
-            <strong>${partialFunding.received.toLocaleString('en-CA', { minimumFractionDigits: 2 })}</strong> so far, of
-            an expected <strong>~${partialFunding.expected.toLocaleString('en-CA', { minimumFractionDigits: 2 })}</strong>.
-            It won&apos;t be marked <strong>Funded</strong> until the remaining HD payment arrives — or you can mark it
-            funded manually below once you&apos;ve confirmed it. (Expected is an estimate from the HD payout calculator.)
+            {t('staffDeal.partialFunding.seg1')} <strong>{t('staffDeal.partialFunding.splitPayment')}</strong> {t('staffDeal.partialFunding.seg2')}{' '}
+            <strong>${partialFunding.received.toLocaleString('en-CA', { minimumFractionDigits: 2 })}</strong> {t('staffDeal.partialFunding.seg3')}{' '}
+            <strong>~${partialFunding.expected.toLocaleString('en-CA', { minimumFractionDigits: 2 })}</strong>{t('staffDeal.partialFunding.seg4')}{' '}
+            <strong>{t('staffDeal.partialFunding.funded')}</strong> {t('staffDeal.partialFunding.seg5')}
           </p>
         </section>
       )}
@@ -1016,12 +1022,11 @@ export default async function StaffApplicationDetail({
       {lateDealerDocs.length > 0 && (
         <section className="card border-2 border-amber-400 bg-amber-50 p-4">
           <h2 className="text-sm font-semibold text-amber-900">
-            📎 New {lateDealerDocs.length === 1 ? 'document' : `${lateDealerDocs.length} documents`} from the dealer — added after this deal was completed
+            📎 {lateDealerDocs.length === 1 ? t('staffDeal.lateDocs.titleOne') : t('staffDeal.lateDocs.titleMany', { n: lateDealerDocs.length })}
           </h2>
           <p className="mb-3 mt-1 text-xs text-amber-800">
-            The dealer uploaded {lateDealerDocs.length === 1 ? 'this file' : 'these files'} after the deal reached{' '}
-            <strong>{STATUS_LABELS[app.status]}</strong>. {lateDealerDocs.length === 1 ? "It's" : "They're"} saved on the
-            customer&apos;s file — review and action as needed.
+            {lateDealerDocs.length === 1 ? t('staffDeal.lateDocs.uploadedOneBefore') : t('staffDeal.lateDocs.uploadedManyBefore')}{' '}
+            <strong>{STATUS_LABELS[app.status]}</strong>{lateDealerDocs.length === 1 ? t('staffDeal.lateDocs.uploadedOneAfter') : t('staffDeal.lateDocs.uploadedManyAfter')}
           </p>
           <DocumentList documents={lateDealerDocs} deleteAction={deleteDocumentAction} />
         </section>
@@ -1044,11 +1049,10 @@ export default async function StaffApplicationDetail({
         <div className="mb-4 flex items-start gap-3 rounded-lg border-2 border-red-300 bg-red-50 p-4">
           <span className="mt-0.5 flex h-6 w-6 flex-none items-center justify-center rounded-full bg-red-500 text-sm font-bold text-white" aria-hidden>!</span>
           <div className="text-sm text-red-900">
-            <p className="font-semibold">The dealer sent signed paperwork, but this deal never had its install documents sent here.</p>
+            <p className="font-semibold">{t('staffDeal.outOfBand.title')}</p>
             <p className="mt-0.5">
-              It looks like the documents were handled outside the portal (e.g. emailed). Review what the dealer uploaded
-              under <strong>Funding documents</strong>, then move the deal forward so it doesn&apos;t stay stuck at
-              its current status.
+              {t('staffDeal.outOfBand.before')}{' '}
+              <strong>{t('staffDeal.fundingDocuments')}</strong>{t('staffDeal.outOfBand.after')}
             </p>
             <AdvanceToFundingButton applicationId={app.id} ready={fundingDocsReady} />
           </div>

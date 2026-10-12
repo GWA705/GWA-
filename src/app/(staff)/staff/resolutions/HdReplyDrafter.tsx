@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { draftHdReplyAction } from './actions';
+import { useT } from '@/i18n/client';
 
 /**
  * "Draft reply to HD" — turns the case's notes (+ HD's latest email when linked)
@@ -9,6 +10,7 @@ import { draftHdReplyAction } from './actions';
  * into Gmail. The portal's Gmail is read-only, so it drafts rather than sends.
  */
 export function HdReplyDrafter({ caseId }: { caseId: string }) {
+  const t = useT();
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -23,7 +25,7 @@ export function HdReplyDrafter({ caseId }: { caseId: string }) {
       if (r.error) setErr(r.error);
       else setText(r.text ?? '');
     } catch {
-      setErr('Couldn’t draft right now — try again.');
+      setErr(t('resolution.drafter.error'));
     } finally {
       setLoading(false);
     }
@@ -44,19 +46,18 @@ export function HdReplyDrafter({ caseId }: { caseId: string }) {
   return (
     <div className="card p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold text-gray-900 dark:text-slate-100">✉️ Draft reply to HD</h2>
+        <h2 className="text-sm font-semibold text-gray-900 dark:text-slate-100">✉️ {t('resolution.drafter.title')}</h2>
         <button
           type="button"
           onClick={draft}
           disabled={loading}
           className="text-xs font-medium text-brand-700 hover:underline disabled:opacity-50 dark:text-sky-300"
         >
-          {loading ? '✨ Drafting…' : text ? '✨ Re-draft from notes' : '✨ Draft from notes'}
+          {loading ? `✨ ${t('resolution.drafter.drafting')}` : text ? `✨ ${t('resolution.drafter.redraft')}` : `✨ ${t('resolution.drafter.draft')}`}
         </button>
       </div>
       <p className="mt-1 text-xs text-gray-500 dark:text-slate-400">
-        Turns this case&apos;s notes (and HD&apos;s latest email) into a professional reply. Review and edit it, then copy
-        it into your Gmail reply — nothing is sent from here.
+        {t('resolution.drafter.hint')}
       </p>
       {err && <p className="mt-2 text-xs text-amber-600">{err}</p>}
       {text && (
@@ -70,7 +71,7 @@ export function HdReplyDrafter({ caseId }: { caseId: string }) {
           />
           <div className="mt-2 flex justify-end">
             <button type="button" onClick={copy} className="btn-secondary text-sm">
-              {copied ? '✓ Copied' : 'Copy reply'}
+              {copied ? `✓ ${t('resolution.drafter.copied')}` : t('resolution.drafter.copyReply')}
             </button>
           </div>
         </>

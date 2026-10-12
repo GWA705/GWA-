@@ -69,10 +69,11 @@ function Err({ state, name }: { state: State; name: string }) {
 }
 
 function SaveButton() {
+  const t = useT();
   const { pending } = useFormStatus();
   return (
     <button type="submit" className="btn-primary" disabled={pending}>
-      {pending ? 'Saving…' : 'Save changes'}
+      {pending ? t('common.saving') : t('editForm.saveChanges')}
     </button>
   );
 }
@@ -109,10 +110,10 @@ export function EditDealForm({
       )}
 
       <section className="card p-6">
-        <h2 className="mb-1 text-base font-semibold text-gray-900">Dealer</h2>
-        <p className="mb-3 text-xs text-gray-500">Which dealership this deal belongs to. Change it to reclassify a deal (e.g. one entered under a test dealer) — it then shows in that dealer’s portal instead.</p>
+        <h2 className="mb-1 text-base font-semibold text-gray-900">{t('editForm.section.dealer')}</h2>
+        <p className="mb-3 text-xs text-gray-500">{t('editForm.dealerHint')}</p>
         <div className="max-w-md">
-          <label className="label" htmlFor="dealerId">Dealer</label>
+          <label className="label" htmlFor="dealerId">{t('editForm.field.dealer')}</label>
           <select id="dealerId" name="dealerId" defaultValue={v.dealerId} className="input">
             {dealers.map((dl) => (<option key={dl.id} value={dl.id}>{dl.name}</option>))}
           </select>
@@ -121,77 +122,74 @@ export function EditDealForm({
       </section>
 
       <section className="card p-6">
-        <h2 className="mb-4 text-base font-semibold text-gray-900">Deal details</h2>
+        <h2 className="mb-4 text-base font-semibold text-gray-900">{t('editForm.section.dealDetails')}</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div>
-            <label className="label" htmlFor="programType">Program</label>
+            <label className="label" htmlFor="programType">{t('editForm.field.program')}</label>
             <select id="programType" name="programType" defaultValue={v.programType} className="input">
               {PROGRAM_TYPES.map((p) => (<option key={p.value} value={p.value}>{programTypeLabel(t, p.value)}</option>))}
             </select>
             <Err state={state} name="programType" />
           </div>
           <div>
-            <label className="label" htmlFor="programCategory">Category</label>
+            <label className="label" htmlFor="programCategory">{t('editForm.field.category')}</label>
             <select id="programCategory" name="programCategory" defaultValue={v.programCategory} className="input">
               {PROGRAM_CATEGORIES.map((p) => (<option key={p.value} value={p.value}>{programCategoryLabel(t, p.value)}</option>))}
             </select>
             <Err state={state} name="programCategory" />
           </div>
           <div>
-            <label className="label" htmlFor="province">Province</label>
+            <label className="label" htmlFor="province">{t('editForm.field.province')}</label>
             <select id="province" name="province" defaultValue={v.province} className="input">
               {PROVINCES.map((p) => (<option key={p.value} value={p.value}>{p.label}</option>))}
             </select>
             <Err state={state} name="province" />
           </div>
-          <div><label className="label" htmlFor="requestedAmount">Requested amount</label><input id="requestedAmount" name="requestedAmount" type="number" step="0.01" min="0" defaultValue={v.requestedAmount} className="input" /><Err state={state} name="requestedAmount" /></div>
-          <div><label className="label" htmlFor="approvedAmount">Approved amount</label><input id="approvedAmount" name="approvedAmount" type="number" step="0.01" min="0" defaultValue={v.approvedAmount} className="input" /></div>
-          <div><label className="label" htmlFor="dateOfSale">Date of sale</label><input id="dateOfSale" name="dateOfSale" type="date" defaultValue={v.dateOfSale} className="input" /></div>
-          <div><label className="label" htmlFor="installationDate">Installation date</label><input id="installationDate" name="installationDate" type="date" defaultValue={v.installationDate} className="input" /></div>
+          <div><label className="label" htmlFor="requestedAmount">{t('editForm.field.requestedAmount')}</label><input id="requestedAmount" name="requestedAmount" type="number" step="0.01" min="0" defaultValue={v.requestedAmount} className="input" /><Err state={state} name="requestedAmount" /></div>
+          <div><label className="label" htmlFor="approvedAmount">{t('editForm.field.approvedAmount')}</label><input id="approvedAmount" name="approvedAmount" type="number" step="0.01" min="0" defaultValue={v.approvedAmount} className="input" /></div>
+          <div><label className="label" htmlFor="dateOfSale">{t('editForm.field.dateOfSale')}</label><input id="dateOfSale" name="dateOfSale" type="date" defaultValue={v.dateOfSale} className="input" /></div>
+          <div><label className="label" htmlFor="installationDate">{t('editForm.field.installationDate')}</label><input id="installationDate" name="installationDate" type="date" defaultValue={v.installationDate} className="input" /></div>
         </div>
-        <div className="mt-4"><label className="label" htmlFor="financingNote">Financing note</label><textarea id="financingNote" name="financingNote" rows={2} defaultValue={v.financingNote} className="input" /></div>
-        <div className="mt-4"><label className="label" htmlFor="notes">Notes</label><textarea id="notes" name="notes" rows={2} defaultValue={v.notes} className="input" /></div>
+        <div className="mt-4"><label className="label" htmlFor="financingNote">{t('editForm.field.financingNote')}</label><textarea id="financingNote" name="financingNote" rows={2} defaultValue={v.financingNote} className="input" /></div>
+        <div className="mt-4"><label className="label" htmlFor="notes">{t('editForm.field.notes')}</label><textarea id="notes" name="notes" rows={2} defaultValue={v.notes} className="input" /></div>
       </section>
 
       <section className="card p-6">
-        <h2 className="mb-1 text-base font-semibold text-gray-900">Financing</h2>
+        <h2 className="mb-1 text-base font-semibold text-gray-900">{t('editForm.section.financing')}</h2>
         <p className="mb-4 text-xs text-gray-500">
-          How the deal is financed. An Express deal records the source as a payment method (e.g. FinanceIT); a
-          regular finance-company application uses the finance company. Leave the finance company blank for cash-type
-          deals. The loan / approval number is the FinanceIT (or finance company) number; the HD Customer # applies to
-          Home Depot deals.
+          {t('editForm.financingHint')}
         </p>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className="label" htmlFor="paymentMethod">Payment method</label>
+            <label className="label" htmlFor="paymentMethod">{t('editForm.field.paymentMethod')}</label>
             <select id="paymentMethod" name="paymentMethod" defaultValue={v.paymentMethod} className="input">
-              <option value="">Not specified</option>
+              <option value="">{t('editForm.notSpecified')}</option>
               {PAYMENT_METHODS.map((p) => (<option key={p.value} value={p.value}>{paymentMethodLabel(t, p.value)}</option>))}
             </select>
           </div>
           <div>
-            <label className="label" htmlFor="financeCompanyId">Finance company</label>
+            <label className="label" htmlFor="financeCompanyId">{t('editForm.field.financeCompany')}</label>
             <select id="financeCompanyId" name="financeCompanyId" defaultValue={v.financeCompanyId} className="input">
-              <option value="">— none —</option>
+              <option value="">{t('editForm.noneDash')}</option>
               {financeCompanies.map((fc) => (<option key={fc.id} value={fc.id}>{fc.name}</option>))}
             </select>
             <Err state={state} name="financeCompanyId" />
           </div>
-          <div><label className="label" htmlFor="financeItNumber">Loan / approval number</label><input id="financeItNumber" name="financeItNumber" defaultValue={v.financeItNumber} className="input" /></div>
-          <div><label className="label" htmlFor="hdReference">HD Customer #</label><input id="hdReference" name="hdReference" defaultValue={v.hdReference} className="input" /></div>
+          <div><label className="label" htmlFor="financeItNumber">{t('editForm.field.loanNumber')}</label><input id="financeItNumber" name="financeItNumber" defaultValue={v.financeItNumber} className="input" /></div>
+          <div><label className="label" htmlFor="hdReference">{t('editForm.field.hdCustomerNumber')}</label><input id="hdReference" name="hdReference" defaultValue={v.hdReference} className="input" /></div>
         </div>
       </section>
 
       {/* Sales details — fill the sales journal. */}
       <section className="card p-6">
-        <h2 className="mb-4 text-base font-semibold text-gray-900">Sales details</h2>
+        <h2 className="mb-4 text-base font-semibold text-gray-900">{t('editForm.section.salesDetails')}</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <div><label className="label" htmlFor="salespersonName">Salesperson&apos;s name</label><input id="salespersonName" name="salespersonName" defaultValue={v.salespersonName} className="input" /></div>
-          <div><label className="label" htmlFor="installerName">Installer&apos;s name</label><input id="installerName" name="installerName" defaultValue={v.installerName} className="input" /></div>
+          <div><label className="label" htmlFor="salespersonName">{t('editForm.field.salespersonName')}</label><input id="salespersonName" name="salespersonName" defaultValue={v.salespersonName} className="input" /></div>
+          <div><label className="label" htmlFor="installerName">{t('editForm.field.installerName')}</label><input id="installerName" name="installerName" defaultValue={v.installerName} className="input" /></div>
           <div>
-            <label className="label" htmlFor="soapIncluded">SOAP included</label>
+            <label className="label" htmlFor="soapIncluded">{t('editForm.field.soapIncluded')}</label>
             <select id="soapIncluded" name="soapIncluded" defaultValue={v.soapIncluded} className="input">
-              <option value="">—</option>
+              <option value="">{t('editForm.dash')}</option>
               {SOAP_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>{t(`enum.soap.${o.value}`)}</option>
               ))}
@@ -199,7 +197,7 @@ export function EditDealForm({
           </div>
         </div>
         <div className="mt-4">
-          <span className="label">Product(s) sold</span>
+          <span className="label">{t('editForm.field.productsSold')}</span>
           <div className="mt-1">
             <ProductPicker products={options} selected={v.productsSold} />
           </div>
@@ -207,117 +205,117 @@ export function EditDealForm({
       </section>
 
       <section className="card p-6">
-        <h2 className="mb-4 text-base font-semibold text-gray-900">Applicant</h2>
+        <h2 className="mb-4 text-base font-semibold text-gray-900">{t('editForm.section.applicant')}</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div><label className="label" htmlFor="applicantFirstName">First name</label><input id="applicantFirstName" name="applicantFirstName" defaultValue={v.applicantFirstName} className="input" /><Err state={state} name="applicantFirstName" /></div>
-          <div><label className="label" htmlFor="applicantLastName">Last name</label><input id="applicantLastName" name="applicantLastName" defaultValue={v.applicantLastName} className="input" /><Err state={state} name="applicantLastName" /></div>
-          <div><label className="label" htmlFor="middleName">Middle name</label><input id="middleName" name="middleName" defaultValue={v.middleName} className="input" /></div>
-          <div><label className="label" htmlFor="applicantDob">Date of birth</label><DateOfBirthInput name="applicantDob" id="applicantDob" defaultValue={v.applicantDob} invalid={!!state.fieldErrors?.applicantDob} />{state.fieldErrors?.applicantDob && <p className="mt-1 text-xs text-red-600">{state.fieldErrors.applicantDob}</p>}</div>
-          <div><label className="label" htmlFor="applicantEmail">Email</label><input id="applicantEmail" name="applicantEmail" type="email" defaultValue={v.applicantEmail} className="input" /><Err state={state} name="applicantEmail" /></div>
-          <div><label className="label" htmlFor="applicantPhone">Mobile phone</label><input id="applicantPhone" name="applicantPhone" defaultValue={v.applicantPhone} className="input" /><Err state={state} name="applicantPhone" /></div>
-          <div><label className="label" htmlFor="homePhone">Home phone</label><input id="homePhone" name="homePhone" defaultValue={v.homePhone} className="input" /></div>
+          <div><label className="label" htmlFor="applicantFirstName">{t('editForm.field.firstName')}</label><input id="applicantFirstName" name="applicantFirstName" defaultValue={v.applicantFirstName} className="input" /><Err state={state} name="applicantFirstName" /></div>
+          <div><label className="label" htmlFor="applicantLastName">{t('editForm.field.lastName')}</label><input id="applicantLastName" name="applicantLastName" defaultValue={v.applicantLastName} className="input" /><Err state={state} name="applicantLastName" /></div>
+          <div><label className="label" htmlFor="middleName">{t('editForm.field.middleName')}</label><input id="middleName" name="middleName" defaultValue={v.middleName} className="input" /></div>
+          <div><label className="label" htmlFor="applicantDob">{t('editForm.field.dateOfBirth')}</label><DateOfBirthInput name="applicantDob" id="applicantDob" defaultValue={v.applicantDob} invalid={!!state.fieldErrors?.applicantDob} />{state.fieldErrors?.applicantDob && <p className="mt-1 text-xs text-red-600">{state.fieldErrors.applicantDob}</p>}</div>
+          <div><label className="label" htmlFor="applicantEmail">{t('editForm.field.email')}</label><input id="applicantEmail" name="applicantEmail" type="email" defaultValue={v.applicantEmail} className="input" /><Err state={state} name="applicantEmail" /></div>
+          <div><label className="label" htmlFor="applicantPhone">{t('editForm.field.mobilePhone')}</label><input id="applicantPhone" name="applicantPhone" defaultValue={v.applicantPhone} className="input" /><Err state={state} name="applicantPhone" /></div>
+          <div><label className="label" htmlFor="homePhone">{t('editForm.field.homePhone')}</label><input id="homePhone" name="homePhone" defaultValue={v.homePhone} className="input" /></div>
           <div>
-            <label className="label" htmlFor="maritalStatus">Marital status</label>
+            <label className="label" htmlFor="maritalStatus">{t('editForm.field.maritalStatus')}</label>
             <select id="maritalStatus" name="maritalStatus" defaultValue={v.maritalStatus} className="input">
-              <option value="">Select…</option>
-              <option>Single</option><option>Married</option><option>Common-law</option>
-              <option>Separated</option><option>Divorced</option><option>Widowed</option>
+              <option value="">{t('editForm.selectPlaceholder')}</option>
+              <option value="Single">{t('editForm.marital.single')}</option><option value="Married">{t('editForm.marital.married')}</option><option value="Common-law">{t('editForm.marital.commonLaw')}</option>
+              <option value="Separated">{t('editForm.marital.separated')}</option><option value="Divorced">{t('editForm.marital.divorced')}</option><option value="Widowed">{t('editForm.marital.widowed')}</option>
             </select>
           </div>
         </div>
       </section>
 
       <section className="card p-6">
-        <h2 className="mb-4 text-base font-semibold text-gray-900">Address &amp; housing</h2>
+        <h2 className="mb-4 text-base font-semibold text-gray-900">{t('editForm.section.addressHousing')}</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="sm:col-span-2"><label className="label" htmlFor="applicantAddress">Street address</label><input id="applicantAddress" name="applicantAddress" defaultValue={v.applicantAddress} className="input" /></div>
-          <div><label className="label" htmlFor="city">City</label><input id="city" name="city" defaultValue={v.city} className="input" /></div>
+          <div className="sm:col-span-2"><label className="label" htmlFor="applicantAddress">{t('editForm.field.streetAddress')}</label><input id="applicantAddress" name="applicantAddress" defaultValue={v.applicantAddress} className="input" /></div>
+          <div><label className="label" htmlFor="city">{t('editForm.field.city')}</label><input id="city" name="city" defaultValue={v.city} className="input" /></div>
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="label" htmlFor="addressProvince">Province</label>
+              <label className="label" htmlFor="addressProvince">{t('editForm.field.province')}</label>
               <select id="addressProvince" name="addressProvince" defaultValue={v.addressProvince} className="input">
-                <option value="">Select…</option>
+                <option value="">{t('editForm.selectPlaceholder')}</option>
                 {PROVINCES.map((p) => (<option key={p.value} value={p.value}>{p.value}</option>))}
               </select>
             </div>
-            <div><label className="label" htmlFor="postalCode">Postal</label><input id="postalCode" name="postalCode" defaultValue={v.postalCode} className="input" maxLength={7} /></div>
+            <div><label className="label" htmlFor="postalCode">{t('editForm.field.postal')}</label><input id="postalCode" name="postalCode" defaultValue={v.postalCode} className="input" maxLength={7} /></div>
           </div>
           <div>
-            <label className="label" htmlFor="housingStatus">Housing status</label>
+            <label className="label" htmlFor="housingStatus">{t('editForm.field.housingStatus')}</label>
             <select id="housingStatus" name="housingStatus" defaultValue={v.housingStatus} className="input">
-              <option value="">Select…</option>
-              <option value="OWN">Own</option><option value="RENT">Rent</option><option value="OTHER">Other</option>
+              <option value="">{t('editForm.selectPlaceholder')}</option>
+              <option value="OWN">{t('editForm.housing.own')}</option><option value="RENT">{t('editForm.housing.rent')}</option><option value="OTHER">{t('editForm.housing.other')}</option>
             </select>
           </div>
-          <div><label className="label" htmlFor="monthlyHousingCost">Monthly housing cost</label><input id="monthlyHousingCost" name="monthlyHousingCost" type="number" step="0.01" min="0" defaultValue={v.monthlyHousingCost} className="input" /></div>
-          <div><label className="label" htmlFor="yearsAtAddress">Years at address</label><input id="yearsAtAddress" name="yearsAtAddress" type="number" min="0" defaultValue={v.yearsAtAddress} className="input" /></div>
+          <div><label className="label" htmlFor="monthlyHousingCost">{t('editForm.field.monthlyHousingCost')}</label><input id="monthlyHousingCost" name="monthlyHousingCost" type="number" step="0.01" min="0" defaultValue={v.monthlyHousingCost} className="input" /></div>
+          <div><label className="label" htmlFor="yearsAtAddress">{t('editForm.field.yearsAtAddress')}</label><input id="yearsAtAddress" name="yearsAtAddress" type="number" min="0" defaultValue={v.yearsAtAddress} className="input" /></div>
         </div>
       </section>
 
       <section className="card p-6">
-        <h2 className="mb-4 text-base font-semibold text-gray-900">Identification</h2>
+        <h2 className="mb-4 text-base font-semibold text-gray-900">{t('editForm.section.identification')}</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className="label" htmlFor="idType">Photo ID type</label>
+            <label className="label" htmlFor="idType">{t('editForm.field.photoIdType')}</label>
             <select id="idType" name="idType" defaultValue={v.idType} className="input">
-              <option value="">Select…</option>
-              {PHOTO_ID_TYPES.map((t) => (<option key={t} value={t}>{t}</option>))}
+              <option value="">{t('editForm.selectPlaceholder')}</option>
+              {PHOTO_ID_TYPES.map((idt) => (<option key={idt} value={idt}>{idt}</option>))}
             </select>
           </div>
-          <div><label className="label" htmlFor="govIdNumber">Photo ID number</label><input id="govIdNumber" name="govIdNumber" defaultValue={v.govIdNumber} className="input" autoComplete="off" /></div>
+          <div><label className="label" htmlFor="govIdNumber">{t('editForm.field.photoIdNumber')}</label><input id="govIdNumber" name="govIdNumber" defaultValue={v.govIdNumber} className="input" autoComplete="off" /></div>
           <div>
-            <label className="label" htmlFor="idProvince">Province of issue</label>
+            <label className="label" htmlFor="idProvince">{t('editForm.field.provinceOfIssue')}</label>
             <select id="idProvince" name="idProvince" defaultValue={v.idProvince} className="input">
-              <option value="">Select…</option>
+              <option value="">{t('editForm.selectPlaceholder')}</option>
               {PROVINCES.map((p) => (<option key={p.value} value={p.value}>{p.label}</option>))}
             </select>
           </div>
-          <div><label className="label" htmlFor="idExpiry">Expiry date</label><input id="idExpiry" name="idExpiry" type="date" defaultValue={v.idExpiry} className="input" /></div>
+          <div><label className="label" htmlFor="idExpiry">{t('editForm.field.expiryDate')}</label><input id="idExpiry" name="idExpiry" type="date" defaultValue={v.idExpiry} className="input" /></div>
         </div>
       </section>
 
       <section className="card p-6">
-        <h2 className="mb-4 text-base font-semibold text-gray-900">Employment &amp; income</h2>
+        <h2 className="mb-4 text-base font-semibold text-gray-900">{t('editForm.section.employmentIncome')}</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div><label className="label" htmlFor="businessName">Employer / business name</label><input id="businessName" name="businessName" defaultValue={v.businessName} className="input" /></div>
-          <div><label className="label" htmlFor="positionTitle">Position title</label><input id="positionTitle" name="positionTitle" defaultValue={v.positionTitle} className="input" /></div>
-          <div><label className="label" htmlFor="employerAddress">Employer address</label><input id="employerAddress" name="employerAddress" defaultValue={v.employerAddress} className="input" /></div>
-          <div><label className="label" htmlFor="employerPhone">Employer phone</label><input id="employerPhone" name="employerPhone" defaultValue={v.employerPhone} className="input" /></div>
-          <div><label className="label" htmlFor="grossMonthlyIncome">Gross monthly income</label><input id="grossMonthlyIncome" name="grossMonthlyIncome" type="number" step="0.01" min="0" defaultValue={v.grossMonthlyIncome} className="input" /></div>
-          <div><label className="label" htmlFor="timeAtJobYears">Time at job (years)</label><input id="timeAtJobYears" name="timeAtJobYears" type="number" min="0" defaultValue={v.timeAtJobYears} className="input" /></div>
+          <div><label className="label" htmlFor="businessName">{t('editForm.field.employerBusinessName')}</label><input id="businessName" name="businessName" defaultValue={v.businessName} className="input" /></div>
+          <div><label className="label" htmlFor="positionTitle">{t('editForm.field.positionTitle')}</label><input id="positionTitle" name="positionTitle" defaultValue={v.positionTitle} className="input" /></div>
+          <div><label className="label" htmlFor="employerAddress">{t('editForm.field.employerAddress')}</label><input id="employerAddress" name="employerAddress" defaultValue={v.employerAddress} className="input" /></div>
+          <div><label className="label" htmlFor="employerPhone">{t('editForm.field.employerPhone')}</label><input id="employerPhone" name="employerPhone" defaultValue={v.employerPhone} className="input" /></div>
+          <div><label className="label" htmlFor="grossMonthlyIncome">{t('editForm.field.grossMonthlyIncome')}</label><input id="grossMonthlyIncome" name="grossMonthlyIncome" type="number" step="0.01" min="0" defaultValue={v.grossMonthlyIncome} className="input" /></div>
+          <div><label className="label" htmlFor="timeAtJobYears">{t('editForm.field.timeAtJob')}</label><input id="timeAtJobYears" name="timeAtJobYears" type="number" min="0" defaultValue={v.timeAtJobYears} className="input" /></div>
           <div>
-            <label className="label" htmlFor="employmentStatus">Employment status</label>
+            <label className="label" htmlFor="employmentStatus">{t('editForm.field.employmentStatus')}</label>
             <select id="employmentStatus" name="employmentStatus" defaultValue={v.employmentStatus} className="input">
-              <option value="">Select…</option>
-              <option value="EMPLOYED">Employed</option><option value="SELF_EMPLOYED">Self-employed</option><option value="RETIRED">Retired</option><option value="OTHER">Other</option>
+              <option value="">{t('editForm.selectPlaceholder')}</option>
+              <option value="EMPLOYED">{t('editForm.employment.employed')}</option><option value="SELF_EMPLOYED">{t('editForm.employment.selfEmployed')}</option><option value="RETIRED">{t('editForm.employment.retired')}</option><option value="OTHER">{t('editForm.employment.other')}</option>
             </select>
           </div>
         </div>
       </section>
 
       <section className="card p-6">
-        <h2 className="mb-1 text-base font-semibold text-gray-900">First Nations tax exemption</h2>
-        <p className="mb-3 text-xs text-gray-500">Capture / confirm the status card and exemption to register with Home Depot before payment.</p>
+        <h2 className="mb-1 text-base font-semibold text-gray-900">{t('editForm.section.taxExemption')}</h2>
+        <p className="mb-3 text-xs text-gray-500">{t('editForm.taxExemptionHint')}</p>
         <label className="flex items-start gap-2 text-sm text-gray-700">
           <input type="checkbox" name="taxExempt" value="on" checked={taxExempt} onChange={(e) => setTaxExempt(e.target.checked)} className="mt-0.5 rounded border-gray-300" />
-          <span>Tax-exempt (valid Certificate of Indian Status)</span>
+          <span>{t('editForm.taxExemptLabel')}</span>
         </label>
         {taxExempt && (
           <div className="mt-3 space-y-4 border-t border-gray-100 pt-4">
             <label className="flex items-start gap-2 text-sm text-gray-700">
               <input type="checkbox" name="deliveredToReserve" value="on" defaultChecked={v.deliveredToReserve} className="mt-0.5 rounded border-gray-300" />
-              <span>Delivered / installed on a reserve <span className="text-gray-400">(full exemption; otherwise provincial portion only)</span></span>
+              <span>{t('editForm.deliveredToReserve')} <span className="text-gray-400">{t('editForm.deliveredToReserveHint')}</span></span>
             </label>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div><label className="label" htmlFor="statusCardNumber">Status card number</label><input id="statusCardNumber" name="statusCardNumber" defaultValue={v.statusCardNumber} autoComplete="off" className="input" /></div>
-              <div><label className="label" htmlFor="bandName">Band / First Nation</label><input id="bandName" name="bandName" defaultValue={v.bandName} autoComplete="off" className="input" /></div>
+              <div><label className="label" htmlFor="statusCardNumber">{t('editForm.field.statusCardNumber')}</label><input id="statusCardNumber" name="statusCardNumber" defaultValue={v.statusCardNumber} autoComplete="off" className="input" /></div>
+              <div><label className="label" htmlFor="bandName">{t('editForm.field.bandName')}</label><input id="bandName" name="bandName" defaultValue={v.bandName} autoComplete="off" className="input" /></div>
             </div>
           </div>
         )}
       </section>
 
       <div className="flex items-center justify-end gap-3">
-        <Link href={`/staff/applications/${applicationId}`} className="btn-secondary">Cancel</Link>
+        <Link href={`/staff/applications/${applicationId}`} className="btn-secondary">{t('common.cancel')}</Link>
         <SaveButton />
       </div>
     </form>

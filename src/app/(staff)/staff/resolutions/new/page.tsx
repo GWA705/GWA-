@@ -3,6 +3,7 @@ import { requireRole } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { aiConfigured } from '@/lib/ai';
 import { NewCaseForm } from '../NewCaseForm';
+import { getT } from '@/i18n/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,6 +15,7 @@ export default async function NewCasePage({
   searchParams: { applicationId?: string; gmailThreadId?: string; title?: string; hdCase?: string; hdRef?: string; name?: string };
 }) {
   await requireRole('REVIEWER', 'ADMIN');
+  const t = getT();
   const gmailThreadId = searchParams.gmailThreadId?.trim() || undefined;
   const prefillTitle = searchParams.title?.trim() || undefined;
   const prefillHdCase = searchParams.hdCase?.trim() || undefined;
@@ -64,8 +66,8 @@ export default async function NewCasePage({
 
   return (
     <div className="max-w-2xl space-y-4">
-      <Link href="/staff/resolutions" className="text-sm text-gray-500 hover:underline">← Back to the queue</Link>
-      <h1 className="text-xl font-semibold text-gray-900 dark:text-slate-100">New HD resolution case</h1>
+      <Link href="/staff/resolutions" className="text-sm text-gray-500 hover:underline">← {t('resolution.backToQueue')}</Link>
+      <h1 className="text-xl font-semibold text-gray-900 dark:text-slate-100">{t('resolution.newCase.pageTitle')}</h1>
       <NewCaseForm
         linkedDeal={linkedDeal}
         gmailThreadId={gmailThreadId}

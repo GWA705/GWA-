@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 import { markFundedAction, syncDealFromJournalAction } from '@/app/(staff)/actions';
+import { useT } from '@/i18n/client';
 
 /**
  * "Mark Funded" right inside the Awaiting-funding step, so the reviewer can mark
@@ -21,6 +22,7 @@ export function FundingStepActions({
   // Hidden once the deal is already Funded — then only "Check journal now" shows.
   canMarkFunded?: boolean;
 }) {
+  const t = useT();
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -52,7 +54,7 @@ export function FundingStepActions({
         setError(res.error);
         return;
       }
-      setMessage(res.message ?? 'Checked.');
+      setMessage(res.message ?? t('staffCards.fundingStep.checked'));
       router.refresh();
     });
   }
@@ -67,7 +69,7 @@ export function FundingStepActions({
             disabled={pending || checking || marked}
             className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 active:scale-95 disabled:opacity-70"
           >
-            {marked ? '✓ Funded' : '✓ Mark Funded'}
+            {marked ? t('staffCards.fundingStep.funded') : t('staffCards.fundingStep.markFunded')}
           </button>
         )}
         <button
@@ -75,20 +77,18 @@ export function FundingStepActions({
           onClick={checkJournal}
           disabled={pending || checking}
           className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3.5 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 active:scale-95 disabled:opacity-50"
-          title="Read this deal's row from the sales journal — if it's marked OK and paid, this advances it to Funded & Paid."
+          title={t('staffCards.fundingStep.checkJournalTitle')}
         >
-          {checking ? 'Checking…' : '↻ Check journal now'}
+          {checking ? t('common.checking') : t('staffCards.fundingStep.checkJournal')}
         </button>
       </div>
       <p className="mt-2 text-xs text-gray-500">
-        Logs the funded date and moves the deal to <strong>Pay dealer</strong>. The portal also checks the journal on a
-        schedule — when the journal shows this deal <strong>OK &amp; paid</strong>, it fills in Funded &amp; Paid on its
-        own.
+        {t('staffCards.fundingStep.desc1')}<strong>{t('staffCards.fundingStep.payDealer')}</strong>{t('staffCards.fundingStep.desc2')}<strong>{t('staffCards.fundingStep.okPaid')}</strong>{t('staffCards.fundingStep.desc3')}
       </p>
       {message && <p className="mt-1 text-xs text-emerald-700">{message}</p>}
       {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
       {journalCheckedAt && !message && (
-        <p className="mt-1 text-[11px] text-gray-400">Journal last checked {new Date(journalCheckedAt).toLocaleString('en-CA')}.</p>
+        <p className="mt-1 text-[11px] text-gray-400">{t('staffCards.fundingStep.lastChecked', { when: new Date(journalCheckedAt).toLocaleString('en-CA') })}</p>
       )}
     </div>
   );

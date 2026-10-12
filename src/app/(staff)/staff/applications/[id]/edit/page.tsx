@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db';
 import { decryptOptional, readEnc } from '@/lib/crypto';
 import { audit } from '@/lib/audit';
 import { productChecklistOptions } from '@/lib/products';
+import { getT } from '@/i18n/server';
 import { EditDealForm, type EditInitial } from '../EditDealForm';
 
 export const dynamic = 'force-dynamic';
@@ -19,6 +20,7 @@ const decDate = (enc: string | null) => {
 const num = (n: { toString(): string } | null | undefined) => (n === null || n === undefined ? '' : n.toString());
 
 export default async function EditDealPage({ params }: { params: { id: string } }) {
+  const t = getT();
   const user = await requireStaffSection('review-queue');
   const app = await prisma.application.findUnique({
     where: { id: params.id },
@@ -111,11 +113,11 @@ export default async function EditDealPage({ params }: { params: { id: string } 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <div>
-        <Link href={`/staff/applications/${app.id}`} className="text-sm text-gray-500 hover:underline">← Back to deal</Link>
+        <Link href={`/staff/applications/${app.id}`} className="text-sm text-gray-500 hover:underline">{t('editForm.backToDeal')}</Link>
         <h1 className="mt-2 text-xl font-semibold text-gray-900">
-          Edit deal — {app.applicantFirstName} {app.applicantLastName}
+          {t('editForm.pageTitle', { name: `${app.applicantFirstName} ${app.applicantLastName}` })}
         </h1>
-        <p className="mt-1 text-sm text-gray-500">Update applicant and deal details. Changes are logged.</p>
+        <p className="mt-1 text-sm text-gray-500">{t('editForm.pageSubtitle')}</p>
       </div>
       <EditDealForm applicationId={app.id} initial={initial} products={products} dealers={dealers} financeCompanies={financeCompanies} />
     </div>

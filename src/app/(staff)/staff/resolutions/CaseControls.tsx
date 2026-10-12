@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { updateCaseStatusAction, assignCaseAction, notifyOfficeAction, addCaseNoteAction, type CaseFormState } from './actions';
 import { RESOLUTION_STATUSES, STATUS_LABEL } from '@/lib/resolutionStatus';
 import type { ResolutionStatus } from '@prisma/client';
+import { useT } from '@/i18n/client';
 
 function SubmitBtn({ idle, busy }: { idle: string; busy: string }) {
   const { pending } = useFormStatus();
@@ -27,6 +28,7 @@ export function CaseControls({
   canNotifyOffice: boolean;
   officeName: string;
 }) {
+  const t = useT();
   const router = useRouter();
   const [, startT] = useTransition();
 
@@ -43,7 +45,7 @@ export function CaseControls({
       {/* Status + assign */}
       <div className="flex flex-wrap items-end gap-4">
         <div>
-          <label className="label" htmlFor="status">Status</label>
+          <label className="label" htmlFor="status">{t('resolution.controls.status')}</label>
           <select
             id="status"
             defaultValue={status}
@@ -54,14 +56,14 @@ export function CaseControls({
           </select>
         </div>
         <div>
-          <label className="label" htmlFor="assign">Assigned to</label>
+          <label className="label" htmlFor="assign">{t('resolution.controls.assignedTo')}</label>
           <select
             id="assign"
             defaultValue={assignedToId ?? ''}
             className="input min-w-[180px]"
             onChange={(e) => startT(async () => { await assignCaseAction(caseId, e.target.value); router.refresh(); })}
           >
-            <option value="">— Unassigned —</option>
+            <option value="">{t('resolution.controls.unassignedOption')}</option>
             {staff.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
           </select>
         </div>
@@ -69,28 +71,28 @@ export function CaseControls({
 
       {/* Notify office (one-way) */}
       <div>
-        <h3 className="mb-1 text-sm font-semibold text-gray-900 dark:text-slate-100">🔔 Notify {officeName}</h3>
+        <h3 className="mb-1 text-sm font-semibold text-gray-900 dark:text-slate-100">🔔 {t('resolution.controls.notifyOffice', { office: officeName })}</h3>
         {canNotifyOffice ? (
           <form ref={notifyRef} action={notifyAction} className="space-y-2">
             {notifyState.error && <div className="rounded-md bg-red-50 p-2 text-sm text-red-700">{notifyState.error}</div>}
-            <textarea name="message" rows={2} required className="input" placeholder={`What should ${officeName} do? e.g. "Please book a service visit for this customer."`} />
+            <textarea name="message" rows={2} required className="input" placeholder={t('resolution.controls.notifyPlaceholder', { office: officeName })} />
             <div className="flex items-center justify-between gap-2">
-              <p className="text-xs text-gray-400 dark:text-slate-500">Sends them an in-portal notice + email. One-way — the case stays here.</p>
-              <SubmitBtn idle="Notify office" busy="Sending…" />
+              <p className="text-xs text-gray-400 dark:text-slate-500">{t('resolution.controls.notifyHint')}</p>
+              <SubmitBtn idle={t('resolution.controls.notifyBtn')} busy={t('common.sending')} />
             </div>
           </form>
         ) : (
-          <p className="text-sm text-gray-500 dark:text-slate-400">Link this case to the customer&apos;s deal to notify their office.</p>
+          <p className="text-sm text-gray-500 dark:text-slate-400">{t('resolution.controls.notifyLocked')}</p>
         )}
       </div>
 
       {/* Add note */}
       <div>
-        <h3 className="mb-1 text-sm font-semibold text-gray-900 dark:text-slate-100">Add a note</h3>
+        <h3 className="mb-1 text-sm font-semibold text-gray-900 dark:text-slate-100">{t('resolution.controls.addNote')}</h3>
         <form ref={noteRef} action={noteAction} className="space-y-2">
           {noteState.error && <div className="rounded-md bg-red-50 p-2 text-sm text-red-700">{noteState.error}</div>}
-          <textarea name="body" rows={2} required className="input" placeholder="Add an internal note to the activity log…" />
-          <div className="flex justify-end"><SubmitBtn idle="Add note" busy="Saving…" /></div>
+          <textarea name="body" rows={2} required className="input" placeholder={t('resolution.controls.notePlaceholder')} />
+          <div className="flex justify-end"><SubmitBtn idle={t('resolution.controls.addNoteBtn')} busy={t('common.saving')} /></div>
         </form>
       </div>
     </div>

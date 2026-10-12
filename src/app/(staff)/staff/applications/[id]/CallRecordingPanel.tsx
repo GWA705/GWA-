@@ -1,4 +1,5 @@
 import { Phone } from 'lucide-react';
+import { getT } from '@/i18n/server';
 
 export interface CallRecordingView {
   id: string;
@@ -21,17 +22,18 @@ export function CallRecordingPanel({
   enabled: boolean;
   recordings?: CallRecordingView[];
 }) {
+  const t = getT();
   return (
     <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-3">
       <div className="mb-1 flex items-center gap-2 text-sm font-medium text-gray-700">
         <Phone size={15} className="text-gray-400" />
-        Call recording
+        {t('staffDeal.callRecording.title')}
       </div>
       {recordings.length === 0 ? (
         <p className="text-xs text-gray-500">
           {enabled
-            ? 'No recordings on this deal yet. Recorded confirmation calls will appear here.'
-            : 'Not set up yet. When Twilio Voice is enabled, recordings of this confirmation call attach here, on the customer’s deal.'}
+            ? t('staffDeal.callRecording.noneYet')
+            : t('staffDeal.callRecording.notSetUp')}
         </p>
       ) : (
         <ul className="divide-y divide-gray-200 text-sm">

@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { flagDealerIssueAction } from '@/app/(staff)/actions';
+import { useT } from '@/i18n/client';
 
 /**
  * Confirmation-step action: when a confirmer finds the customer has a question or
@@ -13,6 +14,7 @@ import { flagDealerIssueAction } from '@/app/(staff)/actions';
  * exchange is tracked here.
  */
 export function FlagDealerIssueCard({ applicationId }: { applicationId: string }) {
+  const t = useT();
   const router = useRouter();
   const [pending, start] = useTransition();
   const [open, setOpen] = useState(false);
@@ -28,10 +30,10 @@ export function FlagDealerIssueCard({ applicationId }: { applicationId: string }
       setOpen(false);
       const emailed = typeof r.notified === 'number'
         ? (r.notified > 0
-            ? ` ${r.notified} office contact${r.notified === 1 ? '' : 's'} emailed.`
-            : ' (No active office contacts to email, but it’s in their portal inbox to acknowledge.)')
+            ? t(r.notified === 1 ? 'staffCards.flagIssue.emailedContactsOne' : 'staffCards.flagIssue.emailedContactsMany', { n: r.notified })
+            : t('staffCards.flagIssue.noContactsEmailed'))
         : '';
-      setMsg({ kind: 'ok', text: `Issue sent. It’s posted to the deal chat below (“Chat with the dealer”) and in the office’s portal Mail, where they must acknowledge they’ve read it. A banner stays at the top of this deal until they do.${emailed}` });
+      setMsg({ kind: 'ok', text: t('staffCards.flagIssue.issueSent', { emailed }) });
       router.refresh();
     });
   }
@@ -46,21 +48,21 @@ export function FlagDealerIssueCard({ applicationId }: { applicationId: string }
               onClick={() => { setOpen(true); setMsg(null); }}
               className="inline-flex items-center gap-1.5 rounded-lg bg-amber-600 px-3.5 py-2 text-sm font-semibold text-white hover:bg-amber-700"
             >
-              <span aria-hidden>⚠</span> Flag an issue to the dealer
+              <span aria-hidden>⚠</span> {t('staffCards.flagIssue.openButton')}
             </button>
-            <p className="mt-1 text-xs text-gray-500">Customer has a question or concern? It posts to the deal chat, emails the office, and lands in their portal Mail where they must acknowledge they’ve read it — all tracked on the deal.</p>
+            <p className="mt-1 text-xs text-gray-500">{t('staffCards.flagIssue.openHint')}</p>
           </div>
         </div>
       ) : (
         <div>
-          <label htmlFor="issueBody" className="block text-sm font-semibold text-amber-900">What’s the issue?</label>
-          <p className="mb-1.5 text-xs text-amber-700">This posts to the deal chat, emails the office, and sends it to their portal Mail where they must acknowledge they’ve read it. They can reply in the chat.</p>
+          <label htmlFor="issueBody" className="block text-sm font-semibold text-amber-900">{t('staffCards.flagIssue.promptLabel')}</label>
+          <p className="mb-1.5 text-xs text-amber-700">{t('staffCards.flagIssue.promptHint')}</p>
           <textarea
             id="issueBody"
             value={body}
             onChange={(e) => setBody(e.target.value)}
             rows={4}
-            placeholder="e.g. Customer says the installer hasn’t booked the follow-up visit — please reach out and confirm."
+            placeholder={t('staffCards.flagIssue.bodyPlaceholder')}
             className="input w-full text-sm"
           />
           <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -70,10 +72,10 @@ export function FlagDealerIssueCard({ applicationId }: { applicationId: string }
               disabled={pending || body.trim().length < 3}
               className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700 disabled:opacity-50"
             >
-              {pending ? 'Sending…' : 'Send to the office'}
+              {pending ? t('common.sending') : t('staffCards.flagIssue.sendButton')}
             </button>
             <button type="button" onClick={() => { setOpen(false); setMsg(null); }} className="px-2 py-2 text-sm text-gray-500 hover:underline">
-              cancel
+              {t('common.cancel')}
             </button>
           </div>
         </div>

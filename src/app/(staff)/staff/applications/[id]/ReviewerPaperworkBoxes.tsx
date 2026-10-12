@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { FileDropInput } from '@/components/FileDropInput';
+import { useT } from '@/i18n/client';
 
 interface UploadState {
   error?: string;
@@ -10,10 +11,11 @@ interface UploadState {
 type BoundAction = (prev: UploadState, formData: FormData) => Promise<UploadState>;
 
 function UploadButton({ disabled, label }: { disabled: boolean; label: string }) {
+  const t = useT();
   const { pending } = useFormStatus();
   return (
     <button type="submit" className="btn-primary w-full text-sm" disabled={pending || disabled}>
-      {pending ? 'Uploading…' : label}
+      {pending ? t('common.uploading') : label}
     </button>
   );
 }
@@ -24,6 +26,7 @@ function UploadButton({ disabled, label }: { disabled: boolean; label: string })
  * same reviewer-paperwork action with its own fixed category.
  */
 function PaperworkBox({ action, type, label, scope }: { action: BoundAction; type: string; label: string; scope: string }) {
+  const t = useT();
   const [state, formAction] = useFormState(action, {} as UploadState);
   const formRef = useRef<HTMLFormElement>(null);
   const [names, setNames] = useState<string[]>([]);
@@ -48,7 +51,7 @@ function PaperworkBox({ action, type, label, scope }: { action: BoundAction; typ
         <span className="text-sm font-semibold text-gray-800">{label}</span>
         {names.length > 0 && (
           <span className="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700">
-            {names.length} ready
+            {t('staffCards.paperwork.ready', { n: names.length })}
           </span>
         )}
       </div>
@@ -57,7 +60,7 @@ function PaperworkBox({ action, type, label, scope }: { action: BoundAction; typ
         <input
           name="customLabel"
           className="input py-1.5 text-sm"
-          placeholder="Name this document (e.g. Warranty)"
+          placeholder={t('staffCards.paperwork.customLabelPlaceholder')}
           value={customLabel}
           maxLength={40}
           autoComplete="off"
@@ -68,13 +71,13 @@ function PaperworkBox({ action, type, label, scope }: { action: BoundAction; typ
       <FileDropInput
         name="file"
         variant="compact"
-        buttonLabel="Add files"
-        hint="Drop here or tap"
+        buttonLabel={t('staffCards.paperwork.addFiles')}
+        hint={t('staffCards.paperwork.dropHint')}
         persistKey={`${scope}:${type}`}
         onFilesChange={setNames}
       />
 
-      <UploadButton disabled={!ready} label={`Send to dealer`} />
+      <UploadButton disabled={!ready} label={t('staffCards.paperwork.sendToDealer')} />
       {state?.error && <span className="text-xs text-red-600">{state.error}</span>}
     </form>
   );
@@ -90,10 +93,11 @@ export function ReviewerPaperworkBoxes({
   // A per-deal key so staged files survive a remount without leaking between deals.
   scope: string;
 }) {
+  const t = useT();
   return (
     <div>
       <p className="mb-3 text-xs text-gray-500">
-        Drop each file into its matching box, then send. No need to pick a type — the box is the type.
+        {t('staffCards.paperwork.intro')}
       </p>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {categories.map((c) => (

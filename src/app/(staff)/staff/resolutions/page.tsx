@@ -3,6 +3,7 @@ import { requireRole } from '@/lib/session';
 import { loadResolutionQueue } from '@/lib/resolutionCases';
 import { RESOLUTION_STATUSES, STATUS_LABEL, statusChipClass } from '@/lib/resolutionStatus';
 import { gmailResolutionConfigured } from '@/lib/gmailResolution';
+import { getT } from '@/i18n/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,6 +19,7 @@ export default async function ResolutionQueuePage({
   searchParams: { status?: string; q?: string };
 }) {
   await requireRole('REVIEWER', 'ADMIN');
+  const t = getT();
   const queue = await loadResolutionQueue({ status: searchParams.status, q: searchParams.q });
   const active = queue.status;
 
@@ -28,20 +30,20 @@ export default async function ResolutionQueuePage({
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900 dark:text-slate-100">🧰 HD Resolution Centre</h1>
-          <p className="mt-0.5 text-sm text-gray-500 dark:text-slate-400">Home Depot resolution-centre problems, tracked to resolved. Open cases turn amber at 3 days, red at 7.</p>
+          <h1 className="text-xl font-semibold text-gray-900 dark:text-slate-100">🧰 {t('resolution.queue.title')}</h1>
+          <p className="mt-0.5 text-sm text-gray-500 dark:text-slate-400">{t('resolution.queue.subtitle')}</p>
         </div>
         <div className="flex items-center gap-2">
           {gmailResolutionConfigured() && (
-            <Link href="/staff/resolutions/inbox" className="btn-secondary">📧 Email inbox</Link>
+            <Link href="/staff/resolutions/inbox" className="btn-secondary">📧 {t('resolution.queue.emailInbox')}</Link>
           )}
-          <Link href="/staff/resolutions/new" className="btn-primary">＋ New case</Link>
+          <Link href="/staff/resolutions/new" className="btn-primary">＋ {t('resolution.queue.newCase')}</Link>
         </div>
       </div>
 
       {/* Status filter chips */}
       <div className="flex flex-wrap gap-2">
-        <FilterChip href="/staff/resolutions" label={`Live · ${liveCount}`} active={!active} />
+        <FilterChip href="/staff/resolutions" label={`${t('resolution.queue.live')} · ${liveCount}`} active={!active} />
         {RESOLUTION_STATUSES.map((s) => (
           <FilterChip
             key={s}
@@ -50,14 +52,14 @@ export default async function ResolutionQueuePage({
             active={active === s}
           />
         ))}
-        <FilterChip href="/staff/resolutions?status=all" label="All" active={active === 'all'} />
+        <FilterChip href="/staff/resolutions?status=all" label={t('common.all')} active={active === 'all'} />
       </div>
 
       {/* Search */}
       <form method="GET" className="flex flex-wrap items-end gap-2">
         {active && <input type="hidden" name="status" value={active} />}
-        <input name="q" defaultValue={queue.q} placeholder="Search case #, customer, HD ref…" className="input min-w-[220px]" />
-        <button type="submit" className="btn-secondary">Search</button>
+        <input name="q" defaultValue={queue.q} placeholder={t('resolution.queue.searchPlaceholder')} className="input min-w-[220px]" />
+        <button type="submit" className="btn-secondary">{t('common.search')}</button>
       </form>
 
       {/* Queue table */}
@@ -66,16 +68,16 @@ export default async function ResolutionQueuePage({
           <table className="min-w-full divide-y divide-gray-200 text-sm dark:divide-slate-700">
             <thead className="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500 dark:bg-slate-800 dark:text-slate-400">
               <tr>
-                <th className="px-4 py-3">Case</th>
-                <th className="px-4 py-3">Customer</th>
-                <th className="px-4 py-3">Office</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Opened</th>
+                <th className="px-4 py-3">{t('resolution.queue.colCase')}</th>
+                <th className="px-4 py-3">{t('resolution.queue.colCustomer')}</th>
+                <th className="px-4 py-3">{t('resolution.queue.colOffice')}</th>
+                <th className="px-4 py-3">{t('resolution.queue.colStatus')}</th>
+                <th className="px-4 py-3">{t('resolution.queue.colOpened')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
               {queue.rows.length === 0 ? (
-                <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-500 dark:text-slate-400">No cases{queue.q || active ? ' match your filters' : ' yet'}.</td></tr>
+                <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-500 dark:text-slate-400">{queue.q || active ? t('resolution.queue.noCasesFiltered') : t('resolution.queue.noCasesYet')}</td></tr>
               ) : (
                 queue.rows.map((r) => (
                   <tr key={r.id} className={AGE_ROW[r.age]}>
@@ -87,11 +89,11 @@ export default async function ResolutionQueuePage({
                     <td className="px-4 py-3 text-gray-600 dark:text-slate-300">{r.officeName}</td>
                     <td className="px-4 py-3">
                       <span className={statusChipClass(r.status)}>{STATUS_LABEL[r.status]}</span>
-                      {r.age === 'red' && <span className="ml-2 text-xs font-semibold text-red-600">● aging</span>}
-                      {r.age === 'amber' && <span className="ml-2 text-xs font-semibold text-amber-600">● ageing</span>}
+                      {r.age === 'red' && <span className="ml-2 text-xs font-semibold text-red-600">● {t('resolution.queue.aging')}</span>}
+                      {r.age === 'amber' && <span className="ml-2 text-xs font-semibold text-amber-600">● {t('resolution.queue.ageing')}</span>}
                       {r.awaitingReplyDays != null && (
                         <div className={`mt-1 text-xs font-semibold ${r.awaitingReplyDays >= 5 ? 'text-red-600' : 'text-amber-600'}`}>
-                          ⏳ Awaiting your reply · {r.awaitingReplyDays}d
+                          ⏳ {t('resolution.queue.awaitingReply')} · {r.awaitingReplyDays}d
                         </div>
                       )}
                     </td>

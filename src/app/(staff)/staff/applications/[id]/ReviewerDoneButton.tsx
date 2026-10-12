@@ -3,6 +3,7 @@
 import { useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { toggleReviewerDoneAction } from '@/app/(staff)/actions';
+import { useT } from '@/i18n/client';
 
 /**
  * "My paperwork is done" marker for the awaiting-install step. A team signal —
@@ -18,6 +19,7 @@ export function ReviewerDoneButton({
   doneAt: string | null;
   doneByName: string | null;
 }) {
+  const t = useT();
   const [pending, start] = useTransition();
   const router = useRouter();
   const done = !!doneAt;
@@ -47,14 +49,14 @@ export function ReviewerDoneButton({
           done ? 'bg-green-600 hover:bg-green-700' : 'bg-brand-600 hover:bg-brand-700'
         }`}
       >
-        {pending ? 'Saving…' : done ? '✓ Completed — tap to undo' : '✓ Mark my paperwork complete'}
+        {pending ? t('common.saving') : done ? t('staffDeal.reviewerDone.completedUndo') : t('staffDeal.reviewerDone.markComplete')}
       </button>
       {done ? (
         <span className="text-xs font-medium text-green-800">
-          Completed{doneByName ? ` by ${doneByName}` : ''}{when ? ` · ${when}` : ''}
+          {t('staffDeal.reviewerDone.completed')}{doneByName ? ` ${t('staffDeal.reviewerDone.by', { name: doneByName })}` : ''}{when ? ` · ${when}` : ''}
         </span>
       ) : (
-        <span className="text-xs text-gray-500">Marks your side done — the status still waits on the dealer.</span>
+        <span className="text-xs text-gray-500">{t('staffDeal.reviewerDone.marksSide')}</span>
       )}
     </div>
   );

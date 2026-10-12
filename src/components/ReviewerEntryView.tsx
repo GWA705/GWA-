@@ -30,14 +30,6 @@ export interface ProtectedValues {
   coGovId: string;
 }
 
-const HOUSING: Record<string, string> = { OWN: 'Own', RENT: 'Rent', OTHER: 'Other' };
-const EMPLOYMENT: Record<string, string> = {
-  EMPLOYED: 'Employed',
-  SELF_EMPLOYED: 'Self-employed',
-  RETIRED: 'Retired',
-  OTHER: 'Other',
-};
-
 function nonEmpty(v: string | null | undefined): string | null {
   return v && v.trim() ? v : null;
 }
@@ -116,146 +108,145 @@ export function ReviewerEntryView({
   return (
     <section className="card p-6">
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-base font-semibold text-gray-900">Application — reviewer entry view</h2>
+        <h2 className="text-base font-semibold text-gray-900">{t('reviewerEntry.heading')}</h2>
         <div className="flex flex-wrap items-center gap-2">
           {printHref && (
             <a href={printHref} target="_blank" rel="noopener noreferrer" className="btn-secondary text-xs">
-              Open full application ↗
+              {t('reviewerEntry.openFullApplication')}
             </a>
           )}
           {reveal ? (
             <Link href={hideHref} className="text-xs text-brand-700 hover:underline">
-              Hide protected fields
+              {t('reviewerEntry.hideProtected')}
             </Link>
           ) : (
             <Link href={revealHref} prefetch={false} className="btn-secondary text-xs">
-              Reveal protected fields (logged)
+              {t('reviewerEntry.revealProtected')}
             </Link>
           )}
         </div>
       </div>
       <p className="mb-2 text-xs text-gray-500">
-        Read top to bottom — laid out in the order a lender’s application asks for it.
+        {t('reviewerEntry.readTopToBottom')}
       </p>
       {reveal && (
         <p className="mb-4 rounded bg-amber-50 p-2 text-xs text-amber-700">
-          Date of birth, street address, and ID numbers are shown. This access is recorded in the
-          audit log.
+          {t('reviewerEntry.protectedShownNotice')}
         </p>
       )}
 
-      <Group title="Personal details">
-        <Field label="First / middle / last name" value={joinName(app.applicantFirstName, loan?.middleName, app.applicantLastName)} />
-        <Field label="Birthdate" value={pv.dob} />
-        <Field label="Marital status" value={nonEmpty(loan?.maritalStatus)} />
-        <Field label="Home phone" value={nonEmpty(loan?.homePhone)} />
-        <Field label="Mobile phone" value={app.applicantPhone} />
-        <Field label="Email" value={app.applicantEmail} raw />
+      <Group title={t('reviewerEntry.group.personalDetails')}>
+        <Field label={t('reviewerEntry.field.fullName')} value={joinName(app.applicantFirstName, loan?.middleName, app.applicantLastName)} />
+        <Field label={t('reviewerEntry.field.birthdate')} value={pv.dob} />
+        <Field label={t('reviewerEntry.field.maritalStatus')} value={nonEmpty(loan?.maritalStatus)} />
+        <Field label={t('reviewerEntry.field.homePhone')} value={nonEmpty(loan?.homePhone)} />
+        <Field label={t('reviewerEntry.field.mobilePhone')} value={app.applicantPhone} />
+        <Field label={t('reviewerEntry.field.email')} value={app.applicantEmail} raw />
       </Group>
 
-      <Group title="Housing">
-        <Field label="Address" value={pv.address} />
-        <Field label="City" value={nonEmpty(loan?.city) ?? nonEmpty(app.applicantCity)} />
-        <Field label="Province" value={nonEmpty(loan?.addressProvince) ?? app.province} />
-        <Field label="Postal code" value={nonEmpty(loan?.postalCode) ?? nonEmpty(app.applicantPostal)} />
-        <Field label="Years at this address" value={loan?.yearsAtAddress ?? null} />
-        <Field label="Monthly housing costs" value={money(readEnc(loan?.monthlyHousingCostEnc, loan?.monthlyHousingCost))} />
-        <Field label="Housing status (Own / Rent / Other)" value={loan?.housingStatus ? HOUSING[loan.housingStatus] : null} />
+      <Group title={t('reviewerEntry.group.housing')}>
+        <Field label={t('reviewerEntry.field.address')} value={pv.address} />
+        <Field label={t('reviewerEntry.field.city')} value={nonEmpty(loan?.city) ?? nonEmpty(app.applicantCity)} />
+        <Field label={t('reviewerEntry.field.province')} value={nonEmpty(loan?.addressProvince) ?? app.province} />
+        <Field label={t('reviewerEntry.field.postalCode')} value={nonEmpty(loan?.postalCode) ?? nonEmpty(app.applicantPostal)} />
+        <Field label={t('reviewerEntry.field.yearsAtAddress')} value={loan?.yearsAtAddress ?? null} />
+        <Field label={t('reviewerEntry.field.monthlyHousingCosts')} value={money(readEnc(loan?.monthlyHousingCostEnc, loan?.monthlyHousingCost))} />
+        <Field label={t('reviewerEntry.field.housingStatus')} value={loan?.housingStatus ? t(`reviewerEntry.housingValue.${loan.housingStatus}`) : null} />
       </Group>
 
       {hasOther && (
-        <Group title="Other addresses">
-          <Field label="Mailing address" value={otherAddresses[0]} />
-          <Field label="Previous address (if moved within 2 yrs)" value={otherAddresses[1]} />
-          <Field label="Work-site address" value={otherAddresses[2]} />
+        <Group title={t('reviewerEntry.group.otherAddresses')}>
+          <Field label={t('reviewerEntry.field.mailingAddress')} value={otherAddresses[0]} />
+          <Field label={t('reviewerEntry.field.previousAddress')} value={otherAddresses[1]} />
+          <Field label={t('reviewerEntry.field.worksiteAddress')} value={otherAddresses[2]} />
         </Group>
       )}
 
-      <Group title="Borrower identification">
-        <Field label="Photo ID card type" value={nonEmpty(loan?.idType)} />
-        <Field label="Photo ID number" value={pv.govId} mono />
-        <Field label="Photo ID province" value={nonEmpty(loan?.idProvince)} />
-        <Field label="Photo ID expiry" value={fmtDate(loan?.idExpiry)} />
+      <Group title={t('reviewerEntry.group.borrowerId')}>
+        <Field label={t('reviewerEntry.field.photoIdType')} value={nonEmpty(loan?.idType)} />
+        <Field label={t('reviewerEntry.field.photoIdNumber')} value={pv.govId} mono />
+        <Field label={t('reviewerEntry.field.photoIdProvince')} value={nonEmpty(loan?.idProvince)} />
+        <Field label={t('reviewerEntry.field.photoIdExpiry')} value={fmtDate(loan?.idExpiry)} />
       </Group>
 
-      <Group title="Employment & income information">
-        <Field label="Business name / employer" value={nonEmpty(loan?.businessName)} />
-        <Field label="Position title" value={nonEmpty(loan?.positionTitle)} />
-        <Field label="Employer address" value={nonEmpty(readEnc(loan?.employerAddressEnc, loan?.employerAddress))} />
-        <Field label="Employer phone" value={nonEmpty(loan?.employerPhone)} />
-        <Field label="Time at job (years)" value={loan?.timeAtJobYears ?? null} />
-        <Field label="Gross monthly income" value={money(readEnc(loan?.grossMonthlyIncomeEnc, loan?.grossMonthlyIncome))} />
-        <Field label="Employment status" value={loan?.employmentStatus ? EMPLOYMENT[loan.employmentStatus] : null} />
+      <Group title={t('reviewerEntry.group.employmentIncome')}>
+        <Field label={t('reviewerEntry.field.businessName')} value={nonEmpty(loan?.businessName)} />
+        <Field label={t('reviewerEntry.field.positionTitle')} value={nonEmpty(loan?.positionTitle)} />
+        <Field label={t('reviewerEntry.field.employerAddress')} value={nonEmpty(readEnc(loan?.employerAddressEnc, loan?.employerAddress))} />
+        <Field label={t('reviewerEntry.field.employerPhone')} value={nonEmpty(loan?.employerPhone)} />
+        <Field label={t('reviewerEntry.field.timeAtJob')} value={loan?.timeAtJobYears ?? null} />
+        <Field label={t('reviewerEntry.field.grossMonthlyIncome')} value={money(readEnc(loan?.grossMonthlyIncomeEnc, loan?.grossMonthlyIncome))} />
+        <Field label={t('reviewerEntry.field.employmentStatus')} value={loan?.employmentStatus ? t(`reviewerEntry.employmentValue.${loan.employmentStatus}`) : null} />
       </Group>
 
       {hasCo && loan && (
         <div className="mt-6 rounded-lg border border-brand-100 bg-brand-50/40 p-4">
           <h3 className="mb-1 text-sm font-semibold text-brand-900">
-            Co-applicant{nonEmpty(loan.coRelationship) ? ` · ${loan.coRelationship}` : ''}
+            {t('reviewerEntry.coApplicant')}{nonEmpty(loan.coRelationship) ? ` · ${loan.coRelationship}` : ''}
           </h3>
-          <Group title="Personal details">
-            <Field label="First / middle / last name" value={joinName(loan.coFirstName, loan.coMiddleName, loan.coLastName)} />
-            <Field label="Birthdate" value={pv.coDob} />
-            <Field label="Marital status" value={nonEmpty(loan.coMaritalStatus)} />
-            <Field label="Home phone" value={nonEmpty(loan.coHomePhone)} />
-            <Field label="Mobile phone" value={nonEmpty(loan.coPhone)} />
-            <Field label="Email" value={nonEmpty(loan.coEmail)} raw />
+          <Group title={t('reviewerEntry.group.personalDetails')}>
+            <Field label={t('reviewerEntry.field.fullName')} value={joinName(loan.coFirstName, loan.coMiddleName, loan.coLastName)} />
+            <Field label={t('reviewerEntry.field.birthdate')} value={pv.coDob} />
+            <Field label={t('reviewerEntry.field.maritalStatus')} value={nonEmpty(loan.coMaritalStatus)} />
+            <Field label={t('reviewerEntry.field.homePhone')} value={nonEmpty(loan.coHomePhone)} />
+            <Field label={t('reviewerEntry.field.mobilePhone')} value={nonEmpty(loan.coPhone)} />
+            <Field label={t('reviewerEntry.field.email')} value={nonEmpty(loan.coEmail)} raw />
           </Group>
-          <Group title="Housing">
-            <Field label="Address" value={pv.coAddress} />
-            <Field label="City" value={nonEmpty(loan.coCity)} />
-            <Field label="Province" value={nonEmpty(loan.coProvince)} />
-            <Field label="Postal code" value={nonEmpty(loan.coPostal)} />
+          <Group title={t('reviewerEntry.group.housing')}>
+            <Field label={t('reviewerEntry.field.address')} value={pv.coAddress} />
+            <Field label={t('reviewerEntry.field.city')} value={nonEmpty(loan.coCity)} />
+            <Field label={t('reviewerEntry.field.province')} value={nonEmpty(loan.coProvince)} />
+            <Field label={t('reviewerEntry.field.postalCode')} value={nonEmpty(loan.coPostal)} />
           </Group>
-          <Group title="Borrower identification">
-            <Field label="Photo ID card type" value={nonEmpty(loan.coIdType)} />
-            <Field label="Photo ID number" value={pv.coGovId} mono />
-            <Field label="Photo ID province" value={nonEmpty(loan.coIdProvince)} />
-            <Field label="Photo ID expiry" value={fmtDate(loan.coIdExpiry)} />
+          <Group title={t('reviewerEntry.group.borrowerId')}>
+            <Field label={t('reviewerEntry.field.photoIdType')} value={nonEmpty(loan.coIdType)} />
+            <Field label={t('reviewerEntry.field.photoIdNumber')} value={pv.coGovId} mono />
+            <Field label={t('reviewerEntry.field.photoIdProvince')} value={nonEmpty(loan.coIdProvince)} />
+            <Field label={t('reviewerEntry.field.photoIdExpiry')} value={fmtDate(loan.coIdExpiry)} />
           </Group>
-          <Group title="Employment & income information">
-            <Field label="Business name / employer" value={nonEmpty(loan.coBusinessName)} />
-            <Field label="Position title" value={nonEmpty(loan.coPositionTitle)} />
-            <Field label="Employer address" value={nonEmpty(readEnc(loan.coEmployerAddressEnc, loan.coEmployerAddress))} />
-            <Field label="Employer phone" value={nonEmpty(loan.coEmployerPhone)} />
-            <Field label="Time at job (years)" value={loan.coTimeAtJobYears ?? null} />
-            <Field label="Gross monthly income" value={money(readEnc(loan.coGrossMonthlyIncomeEnc, loan.coGrossMonthlyIncome))} />
-            <Field label="Employment status" value={loan.coEmploymentStatus ? EMPLOYMENT[loan.coEmploymentStatus] : null} />
+          <Group title={t('reviewerEntry.group.employmentIncome')}>
+            <Field label={t('reviewerEntry.field.businessName')} value={nonEmpty(loan.coBusinessName)} />
+            <Field label={t('reviewerEntry.field.positionTitle')} value={nonEmpty(loan.coPositionTitle)} />
+            <Field label={t('reviewerEntry.field.employerAddress')} value={nonEmpty(readEnc(loan.coEmployerAddressEnc, loan.coEmployerAddress))} />
+            <Field label={t('reviewerEntry.field.employerPhone')} value={nonEmpty(loan.coEmployerPhone)} />
+            <Field label={t('reviewerEntry.field.timeAtJob')} value={loan.coTimeAtJobYears ?? null} />
+            <Field label={t('reviewerEntry.field.grossMonthlyIncome')} value={money(readEnc(loan.coGrossMonthlyIncomeEnc, loan.coGrossMonthlyIncome))} />
+            <Field label={t('reviewerEntry.field.employmentStatus')} value={loan.coEmploymentStatus ? t(`reviewerEntry.employmentValue.${loan.coEmploymentStatus}`) : null} />
           </Group>
         </div>
       )}
 
-      <Group title="Financing / deal">
-        <Field label="Program" value={programDisplayLabel(t, app.programType, app.programCategory)} />
-        <Field label="Requested amount" value={money(app.requestedAmount)} />
+      <Group title={t('reviewerEntry.group.financingDeal')}>
+        <Field label={t('reviewerEntry.field.program')} value={programDisplayLabel(t, app.programType, app.programCategory)} />
+        <Field label={t('reviewerEntry.field.requestedAmount')} value={money(app.requestedAmount)} />
         {(() => {
           const total = Number(app.approvedAmount ?? app.requestedAmount) || 0;
           const n = netBeforeTax(total, app.province);
           const net = `$${n.net.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-          const label = n.rate > 0 ? `Net — pre-tax (${app.province} ${n.ratePct}% removed)` : 'Net — pre-tax';
+          const label = n.rate > 0 ? t('reviewerEntry.netPreTaxWithRate', { province: app.province, rate: n.ratePct }) : t('reviewerEntry.netPreTax');
           return <Field label={label} value={net} />;
         })()}
-        <Field label="Approved amount" value={money(app.approvedAmount)} />
-        <Field label="Payment method" value={app.paymentMethod ? paymentMethodLabel(t, app.paymentMethod) : 'Not specified'} />
-        <Field label="Finance company" value={financeCompanyDisplay(app)} />
-        <Field label="Home Depot store" value={storeLabel} />
-        <Field label="Date of sale" value={fmtDate(app.dateOfSale)} />
-        <Field label="Installation date" value={fmtDate(app.installationDate)} />
-        <Field label="Product(s) sold" value={app.productsSold.length ? app.productsSold.join(', ') : null} />
-        <Field label="SOAP included" value={soapDisplayLabel(t, app.soapType, app.soapIncluded)} />
-        <Field label="Salesperson" value={nonEmpty(app.salespersonName)} />
-        <Field label="Installer" value={nonEmpty(app.installerName)} />
-        <Field label="Financing deal number" value={nonEmpty(app.financeItNumber)} mono />
-        <Field label="HD Customer #" value={nonEmpty(app.hdReference)} mono />
-        <Field label="Entry method" value={app.entryMethod === 'TYPED' ? 'Typed in' : app.entryMethod === 'PHOTO' ? 'Photo upload' : app.entryMethod === 'DIRECT' ? 'Direct sale' : 'FinanceIT #'} />
-        <Field label="Approved by" value={app.approvedBy?.name ?? null} />
+        <Field label={t('reviewerEntry.field.approvedAmount')} value={money(app.approvedAmount)} />
+        <Field label={t('reviewerEntry.field.paymentMethod')} value={app.paymentMethod ? paymentMethodLabel(t, app.paymentMethod) : t('reviewerEntry.notSpecified')} />
+        <Field label={t('reviewerEntry.field.financeCompany')} value={financeCompanyDisplay(app)} />
+        <Field label={t('reviewerEntry.field.homeDepotStore')} value={storeLabel} />
+        <Field label={t('reviewerEntry.field.dateOfSale')} value={fmtDate(app.dateOfSale)} />
+        <Field label={t('reviewerEntry.field.installationDate')} value={fmtDate(app.installationDate)} />
+        <Field label={t('reviewerEntry.field.productsSold')} value={app.productsSold.length ? app.productsSold.join(', ') : null} />
+        <Field label={t('reviewerEntry.field.soapIncluded')} value={soapDisplayLabel(t, app.soapType, app.soapIncluded)} />
+        <Field label={t('reviewerEntry.field.salesperson')} value={nonEmpty(app.salespersonName)} />
+        <Field label={t('reviewerEntry.field.installer')} value={nonEmpty(app.installerName)} />
+        <Field label={t('reviewerEntry.field.financingDealNumber')} value={nonEmpty(app.financeItNumber)} mono />
+        <Field label={t('reviewerEntry.field.hdCustomerNumber')} value={nonEmpty(app.hdReference)} mono />
+        <Field label={t('reviewerEntry.field.entryMethod')} value={app.entryMethod === 'TYPED' ? t('reviewerEntry.entryMethod.TYPED') : app.entryMethod === 'PHOTO' ? t('reviewerEntry.entryMethod.PHOTO') : app.entryMethod === 'DIRECT' ? t('reviewerEntry.entryMethod.DIRECT') : t('reviewerEntry.entryMethod.FINANCEIT')} />
+        <Field label={t('reviewerEntry.field.approvedBy')} value={app.approvedBy?.name ?? null} />
       </Group>
 
       {(app.financingNote || app.notes) && (
-        <Group title="Notes">
+        <Group title={t('reviewerEntry.group.notes')}>
           {app.financingNote && (
             <div className="rounded bg-gray-50 p-3 text-sm text-gray-600">
-              <span className="font-medium text-gray-700">Financing note: </span>
+              <span className="font-medium text-gray-700">{t('reviewerEntry.financingNoteLabel')}</span>
               <AutoTranslate text={app.financingNote} className="inline-block align-top" />
             </div>
           )}

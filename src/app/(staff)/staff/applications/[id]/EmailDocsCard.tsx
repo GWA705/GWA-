@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { emailDocumentsToCustomerAction } from '@/app/(staff)/actions';
+import { useT } from '@/i18n/client';
 
 export interface EmailDocOption {
   id: string;
@@ -25,6 +26,7 @@ export function EmailDocsCard({
   customerEmail: string;
   docs: EmailDocOption[];
 }) {
+  const t = useT();
   const router = useRouter();
   const [pending, start] = useTransition();
   const [open, setOpen] = useState(false);
@@ -52,7 +54,7 @@ export function EmailDocsCard({
     start(async () => {
       const r = await emailDocumentsToCustomerAction(applicationId, Array.from(selected), message, email);
       if (r.error) { setMsg({ kind: 'err', text: r.error }); return; }
-      setMsg({ kind: 'ok', text: `Sent to ${r.sentTo} — it's saved to the customer file.` });
+      setMsg({ kind: 'ok', text: t('staffCards.emailDocs.sentConfirm', { to: r.sentTo ?? email }) });
       setSelected(new Set());
       setMessage('');
       router.refresh();
@@ -70,15 +72,15 @@ export function EmailDocsCard({
             onClick={() => { setOpen(true); setMsg(null); }}
             className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-3.5 py-2 text-sm font-semibold text-white hover:bg-brand-700"
           >
-            <span aria-hidden>📎</span> Email a brochure or manual
+            <span aria-hidden>📎</span> {t('staffCards.emailDocs.openButton')}
           </button>
-          <p className="mt-1 text-xs text-gray-500">Customer asked for a brochure or manual? Send it to them from the Product Library.</p>
+          <p className="mt-1 text-xs text-gray-500">{t('staffCards.emailDocs.openHint')}</p>
         </div>
       ) : (
         <div>
-          <h3 className="text-sm font-semibold text-gray-900">Email a brochure or manual to the customer</h3>
+          <h3 className="text-sm font-semibold text-gray-900">{t('staffCards.emailDocs.heading')}</h3>
 
-          <label className="mt-2 block text-xs font-medium text-gray-700">Send to</label>
+          <label className="mt-2 block text-xs font-medium text-gray-700">{t('staffCards.emailDocs.sendToLabel')}</label>
           <input
             type="email"
             value={email}
@@ -87,18 +89,18 @@ export function EmailDocsCard({
             className="input mt-1 w-full text-sm"
           />
 
-          <label className="mt-3 block text-xs font-medium text-gray-700">Choose document(s)</label>
+          <label className="mt-3 block text-xs font-medium text-gray-700">{t('staffCards.emailDocs.chooseDocsLabel')}</label>
           {docs.length > 6 && (
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Search the library…"
+              placeholder={t('staffCards.emailDocs.searchPlaceholder')}
               className="input mt-1 w-full text-sm"
             />
           )}
           <div className="mt-1.5 max-h-56 overflow-auto rounded-md border border-gray-200">
             {visible.length === 0 ? (
-              <p className="p-3 text-xs text-gray-500">No documents match.</p>
+              <p className="p-3 text-xs text-gray-500">{t('staffCards.emailDocs.noMatch')}</p>
             ) : (
               visible.map((d) => (
                 <label key={d.id} className="flex cursor-pointer items-center gap-2 border-b border-gray-100 px-3 py-2 text-sm last:border-0 hover:bg-gray-50">
@@ -110,12 +112,12 @@ export function EmailDocsCard({
             )}
           </div>
 
-          <label className="mt-3 block text-xs font-medium text-gray-700">Add a note (optional)</label>
+          <label className="mt-3 block text-xs font-medium text-gray-700">{t('staffCards.emailDocs.addNoteLabel')}</label>
           <textarea
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             rows={2}
-            placeholder="e.g. Here's the manual for your new system — let us know if you have any questions!"
+            placeholder={t('staffCards.emailDocs.notePlaceholder')}
             className="input mt-1 w-full text-sm"
           />
 
@@ -126,9 +128,9 @@ export function EmailDocsCard({
               disabled={pending || selected.size === 0 || !email.trim()}
               className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
             >
-              {pending ? 'Sending…' : `Send ${selected.size || ''} to customer`}
+              {pending ? t('common.sending') : t('staffCards.emailDocs.sendButton', { n: selected.size || '' })}
             </button>
-            <button type="button" onClick={() => setOpen(false)} className="px-2 py-2 text-sm text-gray-500 hover:underline">cancel</button>
+            <button type="button" onClick={() => setOpen(false)} className="px-2 py-2 text-sm text-gray-500 hover:underline">{t('common.cancel')}</button>
           </div>
         </div>
       )}

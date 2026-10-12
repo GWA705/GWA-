@@ -25,8 +25,8 @@ Water & Air" and brand taglines (PromoCard) stay as the brand kit defines.
 - [x] **3. Chat & notes** — ChatWidget, ConversationThread, NoteForm
 - [x] **4. Leads** — CombinedLeadsControls, DealerListControls, ScanLeadCard, ScannedLeadEditForm, ScannedLeadsList, AllLeadsView, LeadsView, MailInTestWorkspace, SearchBox, QueueSortControl, MorningCatchUp
 - [x] **5. Deal-detail shared components** — PayoutReceipt, SerialNumberForm, ProductSerialForm, PaperworkCards, ProductPicker, FundingItemUploader, misc small buttons (Download/Ocr/Verify/etc.)
-- [ ] **6. Staff deal-detail** — staff/applications/[id]/page.tsx, EditDealForm, ReviewerEntryView, colocated cards (Cancellation/EmailDocs/FlagIssue/ReviewRequest/FundingStep/etc.)
-- [ ] **7. Resolutions subsystem** — resolutions/page, [id]/page, CaseContactCard, NewCaseForm, CaseControls, CaseEmailThread, LinkDealControl, CaseAttachments, WatchEmailsControl, HdReplyDrafter, inbox/new
+- [x] **6. Staff deal-detail** — staff/applications/[id]/page.tsx, EditDealForm, ReviewerEntryView, colocated cards (Cancellation/EmailDocs/FlagIssue/ReviewRequest/FundingStep/etc.)
+- [x] **7. Resolutions subsystem** — resolutions/page, [id]/page, CaseContactCard, NewCaseForm, CaseControls, CaseEmailThread, LinkDealControl, CaseAttachments, WatchEmailsControl, HdReplyDrafter, inbox/new
 - [ ] **8. Reports** — LeadsReportView, GiftCardReportView, funding/accounting/custom/forecast/leads/sales-reps/weekly, voc, connection/*
 - [ ] **9. Remittances** — the whole remittances subsystem
 - [ ] **10. Confirmations, cancellations, misc** — ConfirmationView, ConfirmationWorklist, ConfirmationIssueBanner, cancellations/page, gift-cards/page, find-customer/*, directory/*, PromoCard (taglines TBD), StagingBanner

@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { sendReviewRequestAction, setCustomerEmailAction, setCustomerPhoneAction, setReviewLinkAction } from '@/app/(staff)/actions';
+import { useT } from '@/i18n/client';
 
 /**
  * Confirmation-step action: send the customer a "leave us a review" request by
@@ -31,6 +32,7 @@ export function ReviewRequestCard({
   sentVia: string | null;
   sentByName: string | null;
 }) {
+  const t = useT();
   const router = useRouter();
   const [pending, start] = useTransition();
 
@@ -48,7 +50,7 @@ export function ReviewRequestCard({
   const when = sentAt
     ? new Date(sentAt).toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' })
     : '';
-  const viaLabel = sentVia ? sentVia.replace('email', 'email').replace('sms', 'text').replace('+', ' + ') : '';
+  const viaLabel = sentVia ? sentVia.replace('email', t('staffCards.reviewRequest.viaEmail')).replace('sms', t('staffCards.reviewRequest.viaText')).replace('+', ' + ') : '';
 
   function saveEmail() {
     setMsg(null);
@@ -89,7 +91,7 @@ export function ReviewRequestCard({
     start(async () => {
       const r = await sendReviewRequestAction(applicationId, { email: true, sms: alsoText });
       if (r.error) { setMsg({ kind: 'err', text: r.error }); return; }
-      setMsg({ kind: 'ok', text: r.note ? r.note : 'Review request sent — thank-you on its way! ⭐' });
+      setMsg({ kind: 'ok', text: r.note ? r.note : t('staffCards.reviewRequest.sentDefault') });
       router.refresh();
     });
   }
@@ -98,15 +100,15 @@ export function ReviewRequestCard({
     <div className="mt-6 rounded-xl border border-gray-200 bg-white p-4">
       <div className="flex items-center gap-2">
         <span aria-hidden className="text-base">⭐</span>
-        <h3 className="text-sm font-semibold text-gray-900">Ask the customer for a review</h3>
+        <h3 className="text-sm font-semibold text-gray-900">{t('staffCards.reviewRequest.heading')}</h3>
       </div>
       <p className="mt-0.5 text-xs text-gray-500">
-        Had a great call? Send a friendly link so the customer can leave Georgian Water &amp; Air a quick review.
+        {t('staffCards.reviewRequest.subtitle')}
       </p>
 
       {sentAt && (
         <p className="mt-2 rounded-md border-l-4 border-green-500 bg-green-50 p-2 text-xs text-green-800">
-          Last sent {when}{sentByName ? ` by ${sentByName}` : ''}{viaLabel ? ` · via ${viaLabel}` : ''}.
+          {t('staffCards.reviewRequest.lastSent', { when })}{sentByName ? t('staffCards.reviewRequest.lastSentBy', { name: sentByName }) : ''}{viaLabel ? t('staffCards.reviewRequest.lastSentVia', { via: viaLabel }) : ''}.
         </p>
       )}
 
@@ -114,8 +116,8 @@ export function ReviewRequestCard({
       {!reviewLinkSet ? (
         canManageLink ? (
           <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3">
-            <label className="block text-xs font-medium text-amber-900">Set the review link (one-time, applies to all deals)</label>
-            <p className="mb-2 text-[11px] text-amber-700">Paste your Google-review landing page link. Starts with https://</p>
+            <label className="block text-xs font-medium text-amber-900">{t('staffCards.reviewRequest.setLinkLabel')}</label>
+            <p className="mb-2 text-[11px] text-amber-700">{t('staffCards.reviewRequest.setLinkHint')}</p>
             <div className="flex flex-wrap gap-2">
               <input
                 type="url"
@@ -131,13 +133,13 @@ export function ReviewRequestCard({
                 disabled={pending || !linkDraft.trim()}
                 className="rounded-md bg-brand-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
               >
-                {pending ? 'Saving…' : 'Save link'}
+                {pending ? t('common.saving') : t('staffCards.reviewRequest.saveLink')}
               </button>
             </div>
           </div>
         ) : (
           <p className="mt-3 rounded-md bg-gray-50 p-2 text-xs text-gray-500">
-            A review link hasn’t been set up yet. An admin can add it here the first time.
+            {t('staffCards.reviewRequest.noLinkNote')}
           </p>
         )
       ) : (
@@ -146,16 +148,16 @@ export function ReviewRequestCard({
           <div className="mt-3 text-sm">
             {hasEmail && !editingEmail ? (
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-gray-500">Email:</span>
+                <span className="text-gray-500">{t('staffCards.reviewRequest.emailLabel')}</span>
                 <span className="font-medium text-gray-800">{email}</span>
                 <button type="button" onClick={() => { setEditingEmail(true); setEmailDraft(email); }} className="text-xs text-brand-700 hover:underline">
-                  change
+                  {t('staffCards.reviewRequest.change')}
                 </button>
               </div>
             ) : (
               <div className="rounded-md border border-gray-200 bg-gray-50 p-3">
                 <label className="block text-xs font-medium text-gray-700">
-                  {hasEmail ? 'Update customer email' : 'No email on file — add one to email the review link'}
+                  {hasEmail ? t('staffCards.reviewRequest.updateEmailLabel') : t('staffCards.reviewRequest.noEmailLabel')}
                 </label>
                 <div className="mt-1.5 flex flex-wrap gap-2">
                   <input
@@ -172,11 +174,11 @@ export function ReviewRequestCard({
                     disabled={pending || !emailDraft.trim()}
                     className="rounded-md bg-brand-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
                   >
-                    {pending ? 'Saving…' : 'Save'}
+                    {pending ? t('common.saving') : t('common.save')}
                   </button>
                   {hasEmail && (
                     <button type="button" onClick={() => setEditingEmail(false)} className="px-2 py-1.5 text-sm text-gray-500 hover:underline">
-                      cancel
+                      {t('common.cancel')}
                     </button>
                   )}
                 </div>
@@ -188,7 +190,7 @@ export function ReviewRequestCard({
           {editingPhone ? (
             <div className="mt-3 rounded-md border border-gray-200 bg-gray-50 p-3">
               <label className="block text-xs font-medium text-gray-700">
-                {phone.trim() ? 'Update customer mobile number' : 'Add a mobile number to text the review link'}
+                {phone.trim() ? t('staffCards.reviewRequest.updatePhoneLabel') : t('staffCards.reviewRequest.addPhoneLabel')}
               </label>
               <div className="mt-1.5 flex flex-wrap gap-2">
                 <input
@@ -205,10 +207,10 @@ export function ReviewRequestCard({
                   disabled={pending || !phoneDraft.trim()}
                   className="rounded-md bg-brand-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
                 >
-                  {pending ? 'Saving…' : 'Save'}
+                  {pending ? t('common.saving') : t('common.save')}
                 </button>
                 <button type="button" onClick={() => { setEditingPhone(false); setPhoneDraft(''); }} className="px-2 py-1.5 text-sm text-gray-500 hover:underline">
-                  cancel
+                  {t('common.cancel')}
                 </button>
               </div>
             </div>
@@ -220,15 +222,15 @@ export function ReviewRequestCard({
                 disabled={!smsConfigured || !phone.trim()}
                 onChange={(e) => setAlsoText(e.target.checked)}
               />
-              Also text {phone.trim() || 'the customer'}
+              {t('staffCards.reviewRequest.alsoText', { who: phone.trim() || t('staffCards.reviewRequest.theCustomer') })}
               <button
                 type="button"
                 onClick={() => { setEditingPhone(true); setPhoneDraft(phone); setMsg(null); }}
                 className="text-xs text-brand-700 hover:underline"
               >
-                {phone.trim() ? 'change' : 'add number'}
+                {phone.trim() ? t('staffCards.reviewRequest.change') : t('staffCards.reviewRequest.addNumber')}
               </button>
-              {!smsConfigured && <span className="text-xs">(texting not set up yet)</span>}
+              {!smsConfigured && <span className="text-xs">{t('staffCards.reviewRequest.smsNotSetUp')}</span>}
             </label>
           )}
 
@@ -240,10 +242,10 @@ export function ReviewRequestCard({
               disabled={pending || (!hasEmail && !alsoText)}
               className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
             >
-              {pending ? 'Sending…' : sentAt ? 'Send review request again' : 'Send review request'}
+              {pending ? t('common.sending') : sentAt ? t('staffCards.reviewRequest.sendAgain') : t('staffCards.reviewRequest.sendRequest')}
             </button>
             {!hasEmail && !alsoText && (
-              <span className="text-xs text-gray-400">Add an email (or enable text) to send.</span>
+              <span className="text-xs text-gray-400">{t('staffCards.reviewRequest.addEmailHint')}</span>
             )}
           </div>
         </>

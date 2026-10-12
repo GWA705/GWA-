@@ -3,6 +3,7 @@ import { requireRole } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { gmailResolutionConfigured, listUnlinkedThreads, resolutionLabel, parseHdSubject, type GmailThreadSummary } from '@/lib/gmailResolution';
 import { decodeEntities } from '@/lib/htmlEntities';
+import { getT } from '@/i18n/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,6 +21,7 @@ function openAsCaseHref(threadId: string, subject: string): string {
 
 export default async function ResolutionInboxPage() {
   await requireRole('REVIEWER', 'ADMIN');
+  const t = getT();
 
   const configured = gmailResolutionConfigured();
   let threads: GmailThreadSummary[] = [];
@@ -35,40 +37,40 @@ export default async function ResolutionInboxPage() {
       threads = await listUnlinkedThreads(linkedSet, 25);
     } catch (e) {
       console.error('[resolution-inbox] list failed', e);
-      error = 'Couldn’t reach Gmail. Check the email setup and try again.';
+      error = t('resolution.inbox.gmailError');
     }
   }
 
   return (
     <div className="max-w-3xl space-y-4">
-      <Link href="/staff/resolutions" className="text-sm text-gray-500 hover:underline">← Back to the queue</Link>
+      <Link href="/staff/resolutions" className="text-sm text-gray-500 hover:underline">← {t('resolution.backToQueue')}</Link>
       <div>
-        <h1 className="text-xl font-semibold text-gray-900 dark:text-slate-100">📧 Unlinked HD emails</h1>
-        <p className="mt-0.5 text-sm text-gray-500 dark:text-slate-400">Recent emails under the &quot;{resolutionLabel()}&quot; label not yet linked to a case. Turn one into a case in a click.</p>
+        <h1 className="text-xl font-semibold text-gray-900 dark:text-slate-100">📧 {t('resolution.inbox.title')}</h1>
+        <p className="mt-0.5 text-sm text-gray-500 dark:text-slate-400">{t('resolution.inbox.subtitle', { label: resolutionLabel() })}</p>
       </div>
 
       {!configured ? (
         <div className="card p-5 text-sm text-gray-500 dark:text-slate-400">
-          The Gmail email link isn&apos;t set up yet. Once read-only access and the &quot;{resolutionLabel()}&quot; label are configured, HD emails will appear here.
+          {t('resolution.inbox.notConfigured', { label: resolutionLabel() })}
         </div>
       ) : error ? (
         <div className="card p-5 text-sm text-red-600">{error}</div>
       ) : threads.length === 0 ? (
-        <div className="card p-5 text-sm text-gray-500 dark:text-slate-400">No unlinked HD emails right now.</div>
+        <div className="card p-5 text-sm text-gray-500 dark:text-slate-400">{t('resolution.inbox.none')}</div>
       ) : (
         <ul className="space-y-2">
-          {threads.map((t) => (
-            <li key={t.threadId} className="card flex flex-wrap items-center justify-between gap-3 p-3">
+          {threads.map((th) => (
+            <li key={th.threadId} className="card flex flex-wrap items-center justify-between gap-3 p-3">
               <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-medium text-gray-900 dark:text-slate-100">{decodeEntities(t.subject)}</div>
-                <div className="truncate text-xs text-gray-500 dark:text-slate-400">✉️ {t.fromAddr}{t.sentAt ? ` · ${t.sentAt.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })}` : ''}</div>
-                {t.snippet && <div className="mt-0.5 truncate text-xs text-gray-400 dark:text-slate-500">{decodeEntities(t.snippet)}</div>}
+                <div className="truncate text-sm font-medium text-gray-900 dark:text-slate-100">{decodeEntities(th.subject)}</div>
+                <div className="truncate text-xs text-gray-500 dark:text-slate-400">✉️ {th.fromAddr}{th.sentAt ? ` · ${th.sentAt.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })}` : ''}</div>
+                {th.snippet && <div className="mt-0.5 truncate text-xs text-gray-400 dark:text-slate-500">{decodeEntities(th.snippet)}</div>}
               </div>
               <Link
-                href={openAsCaseHref(t.threadId, t.subject)}
+                href={openAsCaseHref(th.threadId, th.subject)}
                 className="btn-secondary shrink-0 text-sm"
               >
-                ＋ Open as case
+                ＋ {t('resolution.inbox.openAsCase')}
               </Link>
             </li>
           ))}
