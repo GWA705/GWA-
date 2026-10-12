@@ -1,7 +1,6 @@
 import { requireStaffSection } from '@/lib/session';
 import { getT } from '@/i18n/server';
 import { prisma } from '@/lib/db';
-import { STATUS_LABELS_SHORT } from '@/lib/constants';
 import {
   confirmationWorkState,
   confirmationEligible,
@@ -126,7 +125,7 @@ export default async function ConfirmationsPage() {
 
     const applicant = `${a.applicantFirstName} ${a.applicantLastName}`.trim();
     const office = a.dealer.name;
-    const stageLabel = STATUS_LABELS_SHORT[a.status] ?? a.status;
+    const stageLabel = t(`enum.statusShort.${a.status}`);
     const hdRef = a.hdReference?.trim() || null;
 
     const row: CallRow = {

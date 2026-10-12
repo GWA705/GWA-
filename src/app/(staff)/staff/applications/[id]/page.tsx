@@ -56,7 +56,7 @@ import {
   deleteDocumentAction,
 } from '@/app/(staff)/actions';
 import { VerifyFinanceNumberButton } from '@/components/VerifyFinanceNumberButton';
-import { STATUS_LABELS, REVIEWER_PAPERWORK_TYPES, applicableVerificationChecks, decisionTone } from '@/lib/constants';
+import { REVIEWER_PAPERWORK_TYPES, applicableVerificationChecks, decisionTone } from '@/lib/constants';
 import { isOutOfBandReturn } from '@/lib/outOfBandReturn';
 import { diagnoseFundingSubmit } from '@/lib/fundingSubmitStatus';
 import { AdvanceToFundingButton } from './AdvanceToFundingButton';
@@ -543,7 +543,7 @@ export default async function StaffApplicationDetail({
           <h3 className="mb-3 text-sm font-medium text-gray-700">{t('staffDeal.applicationDocuments')}</h3>
           <DocumentList documents={applicationDocs} deleteAction={deleteDocumentAction} />
         </div>
-        <CollapsibleSection title={t('staffDeal.decision.title')} defaultOpen={!decided} summary={<span>{STATUS_LABELS[app.status]}</span>}>
+        <CollapsibleSection title={t('staffDeal.decision.title')} defaultOpen={!decided} summary={<span>{t(`enum.status.${app.status}`)}</span>}>
           {decisionSection}
         </CollapsibleSection>
       </div>
@@ -846,8 +846,8 @@ export default async function StaffApplicationDetail({
           {app.statusEvents.map((e) => (
             <li key={e.id} className="flex items-center justify-between">
               <span>
-                {e.from ? `${STATUS_LABELS[e.from]} → ` : ''}
-                <span className="font-medium">{STATUS_LABELS[e.to]}</span>
+                {e.from ? `${t(`enum.status.${e.from}`)} → ` : ''}
+                <span className="font-medium">{t(`enum.status.${e.to}`)}</span>
                 {e.note && <span className="ml-2 text-gray-500">— {e.note}</span>}
                 <span className="ml-2 text-xs text-gray-400">{t('staffDeal.comms.by', { name: e.actor.name })}</span>
               </span>
@@ -1026,7 +1026,7 @@ export default async function StaffApplicationDetail({
           </h2>
           <p className="mb-3 mt-1 text-xs text-amber-800">
             {lateDealerDocs.length === 1 ? t('staffDeal.lateDocs.uploadedOneBefore') : t('staffDeal.lateDocs.uploadedManyBefore')}{' '}
-            <strong>{STATUS_LABELS[app.status]}</strong>{lateDealerDocs.length === 1 ? t('staffDeal.lateDocs.uploadedOneAfter') : t('staffDeal.lateDocs.uploadedManyAfter')}
+            <strong>{t(`enum.status.${app.status}`)}</strong>{lateDealerDocs.length === 1 ? t('staffDeal.lateDocs.uploadedOneAfter') : t('staffDeal.lateDocs.uploadedManyAfter')}
           </p>
           <DocumentList documents={lateDealerDocs} deleteAction={deleteDocumentAction} />
         </section>

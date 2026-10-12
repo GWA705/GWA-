@@ -6,7 +6,6 @@ import { SearchBox } from '@/components/SearchBox';
 import { QueueSortControl } from '@/components/QueueSortControl';
 import { QUEUE_SORTS } from '@/lib/sortOptions';
 import { searchWhere } from '@/lib/search';
-import { STATUS_LABELS_SHORT } from '@/lib/constants';
 import { programDisplayLabel, programCategoryLabel } from '@/lib/enumLabels';
 import { getT } from '@/i18n/server';
 import type { TFunction } from '@/i18n/translator';
@@ -157,7 +156,7 @@ function toRow(a: Deal, t: TFunction): QueueRow {
     programType: a.programType,
     programCategory: programCategoryLabel(t, a.programCategory),
     amount: fmtAmount(a),
-    statusLabel: isPaid(a) ? t('staffMisc.home.paid') : STATUS_LABELS_SHORT[a.status] ?? a.status,
+    statusLabel: isPaid(a) ? t('staffMisc.home.paid') : t(`enum.statusShort.${a.status}`),
     tone: isPaid(a) ? 'paid' : toneFor(a.status),
     paid: isPaid(a),
     activityLabel: activity?.label ?? null,

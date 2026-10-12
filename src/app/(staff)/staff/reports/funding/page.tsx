@@ -4,7 +4,6 @@ import { requireRole } from '@/lib/session';
 import { canViewReport } from '@/lib/reporting/visibility';
 import { canViewReportsArea } from '@/lib/reporting/access';
 import { prisma } from '@/lib/db';
-import { STATUS_LABELS } from '@/lib/constants';
 import { buildFundingReport, weekWindow, monthWindow } from '@/lib/reporting/fundingReport';
 import { getT } from '@/i18n/server';
 import type { TFunction } from '@/i18n/translator';
@@ -107,7 +106,7 @@ export default async function FundingReportPage({ searchParams }: { searchParams
                         {d.customer}{d.hdReference ? ` · HD #${d.hdReference}` : ''}
                       </Link>
                       <span className="flex items-center gap-3 text-gray-500">
-                        {d.currentStatus !== 'FUNDED' && <span className="rounded bg-gray-100 px-1.5 text-xs text-gray-600">{STATUS_LABELS[d.currentStatus]}</span>}
+                        {d.currentStatus !== 'FUNDED' && <span className="rounded bg-gray-100 px-1.5 text-xs text-gray-600">{t(`enum.status.${d.currentStatus}`)}</span>}
                         <span>{dt(d.paidOn)}</span>
                         <span className="font-medium text-gray-800">{money(d.amount)}</span>
                       </span>
@@ -130,7 +129,7 @@ export default async function FundingReportPage({ searchParams }: { searchParams
               href={`/staff/reports/funding?p=${period}&o=${offset}&status=${s}`}
               className={`rounded-full border px-2.5 py-1 text-xs font-medium ${s === status ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
             >
-              {STATUS_LABELS[s]}
+              {t(`enum.status.${s}`)}
             </Link>
           ))}
           {status && <Link href={`/staff/reports/funding?p=${period}&o=${offset}`} className="rounded-full px-2.5 py-1 text-xs text-gray-400 hover:underline">{t('reportsUi.funding.clear')}</Link>}
@@ -139,7 +138,7 @@ export default async function FundingReportPage({ searchParams }: { searchParams
         {status && (
           <div className="mt-4">
             <div className="mb-2 flex items-center justify-between text-sm">
-              <span className="font-medium text-gray-800">{t(statusDeals.length === 1 ? 'reportsUi.funding.dealsInStatusOne' : 'reportsUi.funding.dealsInStatusMany', { n: statusDeals.length, status: STATUS_LABELS[status] })}</span>
+              <span className="font-medium text-gray-800">{t(statusDeals.length === 1 ? 'reportsUi.funding.dealsInStatusOne' : 'reportsUi.funding.dealsInStatusMany', { n: statusDeals.length, status: t(`enum.status.${status}`) })}</span>
               <span className="text-gray-500">{t('reportsUi.funding.approvedValue')} <span className="font-semibold text-gray-800">{money(statusTotal)}</span></span>
             </div>
             {statusDeals.length === 0 ? (

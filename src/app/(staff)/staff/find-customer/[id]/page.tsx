@@ -8,7 +8,6 @@ import { canSearchAllCustomers } from '@/lib/customerSearch';
 import { matchManualsForProducts } from '@/lib/resourceMatch';
 import { readExtraContacts, DEFAULT_BILLING_LABEL, DEFAULT_SUPPORT_LABEL } from '@/lib/dealerProfile';
 import { formatPhoneDisplay } from '@/lib/format';
-import { STATUS_LABELS } from '@/lib/constants';
 import { getOverride, appOverrideKey, overlay } from '@/lib/customerOverride';
 import { decryptOptional } from '@/lib/crypto';
 import { MessageOffice } from '../MessageOffice';
@@ -89,7 +88,7 @@ export default async function CustomerAssistPage({ params }: { params: { id: str
               <span>{app.province}</span>
             </div>
           </div>
-          <span className="rounded-full bg-white/15 px-2.5 py-1 text-xs font-semibold text-white">{STATUS_LABELS[app.status]}</span>
+          <span className="rounded-full bg-white/15 px-2.5 py-1 text-xs font-semibold text-white">{t(`enum.status.${app.status}`)}</span>
         </div>
         <div className="flex flex-wrap gap-x-6 gap-y-1 border-t border-white/10 px-6 py-2.5 text-xs text-white/60">
           {app.dateOfSale && <span>🗓 {t('staffCustomerDetail.sold')} {app.dateOfSale.toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' })}</span>}
