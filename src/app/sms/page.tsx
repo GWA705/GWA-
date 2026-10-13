@@ -107,7 +107,7 @@ export default function SmsInfoPage() {
       </div>
 
       <footer className="mt-10 border-t border-gray-100 pt-4 text-xs text-gray-400">
-        Last updated {UPDATED}. Home Depot Home Services, serviced by Georgian Water &amp; Air. ·{' '}
+        Last updated {UPDATED}. Georgian Water &amp; Air. ·{' '}
         <Link href="/privacy" className="underline">Privacy Policy</Link>
       </footer>
     </main>
