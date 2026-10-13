@@ -47,6 +47,19 @@ export default function SmsInfoPage() {
         </section>
 
         <section>
+          <h2 className="mb-1.5 text-base font-semibold text-gray-900">How you signed up</h2>
+          <p>
+            You gave us your mobile number and agreed to be contacted when you requested your
+            assessment — by ticking the <strong>text-updates box</strong> on the Home Depot lead card
+            (in store or mail-in) or on the online request form. By doing so you agreed that
+            <strong> Home Depot Home Services</strong>, serviced by <strong>Georgian Water &amp; Air</strong>,
+            may contact you by phone and text about that request, including appointment scheduling and
+            reminders. <strong>Consent isn&rsquo;t required to receive your assessment</strong>, and you can
+            opt out any time by replying <strong>STOP</strong>.
+          </p>
+        </section>
+
+        <section>
           <h2 className="mb-1.5 text-base font-semibold text-gray-900">What to expect</h2>
           <ul className="list-disc space-y-1 pl-5 text-gray-700">
             <li>A confirmation when your request is received.</li>

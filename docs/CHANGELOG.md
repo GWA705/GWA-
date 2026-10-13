@@ -38,6 +38,15 @@ source of truth; this file is the human-readable index.
 | HD Resolution ↔ Gmail email link | ✅ **Live & verified** (2026-10-07, Sean) | Read-only Gmail via the existing service account (`gwa-journal-writer@gwa-portal-504012…`, project **"GWA Portal"** `gwa-portal-504012`, Unique ID `100470797238569934976`), impersonating `sean@ghsbarrie.ca` + the `HD Resolution` label. All switches done: Gmail API enabled, Workspace domain-wide delegation (`…/auth/gmail.readonly`), `GMAIL_RESOLUTION_USER=sean@ghsbarrie.ca` on EB. **Verified end-to-end** — the Email inbox lists real HD threads and "Open as case" links the thread + auto-fills. 30-min sync `resolution-email-sync.yml` (reuses `CRON_SECRET`). Steps/facts: `HD-RESOLUTION-EMAIL.md`, `BUILD-FACTS.md`. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### SMS opt-in disclosure + toll-free verification pack (2026-10-13)
+- Added a **"How you signed up" consent section** to the public program page (`/sms`) so Twilio's
+  toll-free verification reviewers can see exactly how customers consented (the #1 rejection
+  reason). States who's texting, that consent isn't required for service, and the STOP opt-out.
+- New `docs/SMS-OPTIN-DISCLOSURE.md`: ready-to-print **opt-in disclosure for the Home Depot lead
+  card** (EN + FR, beside a tick box, with all six required CTIA/CASL elements), plus **field-by-field
+  Twilio verification answers** for 1-866-840-2789 (Customer Care use case, sample messages, opt-in
+  type/description, the two evidence URLs). Contact block + hyphenated web numbers per the brand kit.
+
 ### Lead auto-text: run it for selected offices only (2026-10-13)
 - **New "Which offices get texted" picker** in Admin → Lead auto-text → Settings. Leave it
   empty to text leads for **all** offices (unchanged default); tick one or more offices to
