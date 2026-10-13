@@ -21,8 +21,7 @@ export default function SmsInfoPage() {
   return (
     <main className="mx-auto max-w-2xl px-4 py-10 text-gray-800">
       <header className="mb-8 border-b border-gray-200 pb-5">
-        <div className="text-lg font-semibold text-gray-900">Home Depot Home Services</div>
-        <div className="text-sm text-gray-500">serviced by Georgian Water &amp; Air</div>
+        <div className="text-lg font-semibold text-gray-900">Georgian Water &amp; Air</div>
         <h1 className="mt-4 text-2xl font-bold tracking-tight text-gray-900">Text message program</h1>
         <p className="mt-1 text-sm text-gray-500">How our texts work, and how to stop them.</p>
       </header>
