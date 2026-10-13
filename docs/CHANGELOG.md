@@ -38,6 +38,19 @@ source of truth; this file is the human-readable index.
 | HD Resolution ↔ Gmail email link | ✅ **Live & verified** (2026-10-07, Sean) | Read-only Gmail via the existing service account (`gwa-journal-writer@gwa-portal-504012…`, project **"GWA Portal"** `gwa-portal-504012`, Unique ID `100470797238569934976`), impersonating `sean@ghsbarrie.ca` + the `HD Resolution` label. All switches done: Gmail API enabled, Workspace domain-wide delegation (`…/auth/gmail.readonly`), `GMAIL_RESOLUTION_USER=sean@ghsbarrie.ca` on EB. **Verified end-to-end** — the Email inbox lists real HD threads and "Open as case" links the thread + auto-fills. 30-min sync `resolution-email-sync.yml` (reuses `CRON_SECRET`). Steps/facts: `HD-RESOLUTION-EMAIL.md`, `BUILD-FACTS.md`. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### Fix: journal-sourced HD-resolution deals leaked into the dealer portal (2026-10-13)
+- Deals materialized from an old sales-journal row when linking an **HD Resolution** case
+  (`journalSourced=true`, status FUNDED) were appearing in the **matched dealer's own Deals and
+  Pending lists** — those records exist only to give a case reviewer a customer file, not as part
+  of the dealership's live pipeline.
+- Fix is central: **`dealerPortalScopeWhere()` now excludes `journalSourced`**, covering the dealer
+  home (pending KPIs + status donut), the Applications workspace, the calculator, and the dealer
+  accounting export / receipt at once. Dealer **customer search** (find-customer) also excludes them
+  (own-office name + phone, and the cross-office exact-phone reveal). **Internal/staff search and the
+  resolution case file are untouched** — staff still see these records where they belong.
+- Regression test in `rbac.test.ts`. No data migration needed — the affected deals already carry the
+  flag, so they drop out of dealer views on deploy. 517 tests + build green.
+
 ### SMS opt-in disclosure + toll-free verification pack (2026-10-13)
 - Added a **"How you signed up" consent section** to the public program page (`/sms`) so Twilio's
   toll-free verification reviewers can see exactly how customers consented (the #1 rejection
