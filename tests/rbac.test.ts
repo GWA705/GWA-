@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   canAccessApplication,
   applicationScopeWhere,
+  dealerPortalScopeWhere,
   isInternal,
   isAdmin,
   isDealer,
@@ -39,6 +40,14 @@ describe('tenant isolation', () => {
   it('scopes dealer queries to their dealerId, staff to all', () => {
     expect(applicationScopeWhere(dealerA)).toEqual({ dealerId: 'dealer-A' });
     expect(applicationScopeWhere(reviewer)).toEqual({});
+  });
+
+  it('hides journal-sourced deals from the dealer portal scope', () => {
+    // HD-resolution case files (journalSourced) must never appear in a dealer's
+    // own deals/pending/calculator/exports — only their real pipeline.
+    expect(dealerPortalScopeWhere(dealerA)).toEqual({ dealerId: 'dealer-A', journalSourced: false });
+    const broken: SessionUser = { ...dealerA, dealerId: null };
+    expect(dealerPortalScopeWhere(broken)).toEqual({ dealerId: '__none__', journalSourced: false });
   });
 
   it('never scopes to a real dealer when dealerId is missing', () => {

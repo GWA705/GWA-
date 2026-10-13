@@ -227,10 +227,13 @@ async function phoneMatchIds(phoneDigits: string, dealerId?: string, exact = fal
   const norm = `regexp_replace("applicantPhone", '[^0-9]', '', 'g')`;
   // Match on the last 10 digits when exact, tolerating a leading country code.
   const cmp = exact ? phoneDigits.slice(-10) : phoneDigits;
+  // The dealer-scoped branches exclude journal-sourced deals (HD-resolution
+  // case files) so they never surface in a dealer's customer search. The
+  // unscoped branches below are used by internal staff, who should still find them.
   const rows = dealerId
     ? exact
-      ? await prisma.$queryRaw<{ id: string }[]>`SELECT "id" FROM "Application" WHERE "dealerId" = ${dealerId} AND right(regexp_replace("applicantPhone", '[^0-9]', '', 'g'), 10) = ${cmp} LIMIT 25`
-      : await prisma.$queryRaw<{ id: string }[]>`SELECT "id" FROM "Application" WHERE "dealerId" = ${dealerId} AND regexp_replace("applicantPhone", '[^0-9]', '', 'g') LIKE ${'%' + cmp + '%'} LIMIT 25`
+      ? await prisma.$queryRaw<{ id: string }[]>`SELECT "id" FROM "Application" WHERE "dealerId" = ${dealerId} AND "journalSourced" = false AND right(regexp_replace("applicantPhone", '[^0-9]', '', 'g'), 10) = ${cmp} LIMIT 25`
+      : await prisma.$queryRaw<{ id: string }[]>`SELECT "id" FROM "Application" WHERE "dealerId" = ${dealerId} AND "journalSourced" = false AND regexp_replace("applicantPhone", '[^0-9]', '', 'g') LIKE ${'%' + cmp + '%'} LIMIT 25`
     : exact
       ? await prisma.$queryRaw<{ id: string }[]>`SELECT "id" FROM "Application" WHERE right(regexp_replace("applicantPhone", '[^0-9]', '', 'g'), 10) = ${cmp} LIMIT 50`
       : await prisma.$queryRaw<{ id: string }[]>`SELECT "id" FROM "Application" WHERE regexp_replace("applicantPhone", '[^0-9]', '', 'g') LIKE ${'%' + cmp + '%'} LIMIT 50`;
@@ -446,7 +449,7 @@ export async function searchCustomers(user: SessionUser, rawQuery: string): Prom
 
   // 1) Own-office matches (full access).
   const ownApps = await prisma.application.findMany({
-    where: isPhone ? { id: { in: await phoneMatchIds(digits(q), dealerId) } } : { ...nameWhere(terms), dealerId },
+    where: isPhone ? { id: { in: await phoneMatchIds(digits(q), dealerId) } } : { ...nameWhere(terms), dealerId, journalSourced: false },
     orderBy: { createdAt: 'desc' },
     take: 20,
     select: {
@@ -476,7 +479,7 @@ export async function searchCustomers(user: SessionUser, rawQuery: string): Prom
   let other: OtherOfficeMatch[] = [];
   if (exactPhone) {
     const otherApps = await prisma.application.findMany({
-      where: { id: { in: await phoneMatchIds(digits(q), undefined, true) }, dealerId: { not: dealerId } },
+      where: { id: { in: await phoneMatchIds(digits(q), undefined, true) }, dealerId: { not: dealerId }, journalSourced: false },
       orderBy: { createdAt: 'desc' },
       take: 15,
       select: {

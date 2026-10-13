@@ -78,9 +78,15 @@ export function applicationScopeWhere(user: SessionUser): { dealerId?: string } 
  * Scope for the DEALER portal specifically — always the user's own dealer, even
  * for an internal user who is linked to a dealer (the "switch portals" case).
  * This keeps the dealer view limited to that dealership's deals.
+ *
+ * Also excludes journal-sourced deals — records materialized from an old sales-
+ * journal row when linking an HD Resolution case (status FUNDED, entryMethod
+ * DIRECT, journalSourced=true). Those exist only so a case reviewer has a
+ * customer file; they are NOT part of the dealership's live pipeline and must
+ * never appear in a dealer's deals, pending, calculator, or exports.
  */
-export function dealerPortalScopeWhere(user: SessionUser): { dealerId: string } {
-  return { dealerId: user.dealerId ?? '__none__' };
+export function dealerPortalScopeWhere(user: SessionUser): { dealerId: string; journalSourced: boolean } {
+  return { dealerId: user.dealerId ?? '__none__', journalSourced: false };
 }
 
 /** Can this user act on this application within the DEALER portal? */
