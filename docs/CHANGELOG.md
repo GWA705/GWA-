@@ -38,6 +38,20 @@ source of truth; this file is the human-readable index.
 | HD Resolution ↔ Gmail email link | ✅ **Live & verified** (2026-10-07, Sean) | Read-only Gmail via the existing service account (`gwa-journal-writer@gwa-portal-504012…`, project **"GWA Portal"** `gwa-portal-504012`, Unique ID `100470797238569934976`), impersonating `sean@ghsbarrie.ca` + the `HD Resolution` label. All switches done: Gmail API enabled, Workspace domain-wide delegation (`…/auth/gmail.readonly`), `GMAIL_RESOLUTION_USER=sean@ghsbarrie.ca` on EB. **Verified end-to-end** — the Email inbox lists real HD threads and "Open as case" links the thread + auto-fills. 30-min sync `resolution-email-sync.yml` (reuses `CRON_SECRET`). Steps/facts: `HD-RESOLUTION-EMAIL.md`, `BUILD-FACTS.md`. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### Lead auto-text: run it for selected offices only (2026-10-13)
+- **New "Which offices get texted" picker** in Admin → Lead auto-text → Settings. Leave it
+  empty to text leads for **all** offices (unchanged default); tick one or more offices to
+  run the auto-text for **those offices only** — every other office is paused and receives
+  nothing. Lets you roll it out one office at a time (e.g. Georgian Water & Air first).
+- The picker is a searchable, controlled checkbox list with Select-all / Clear and a live
+  banner that reads "⚠ All offices will receive texts" when nothing is selected, or "Only the
+  N selected offices will be texted — all other offices are paused" otherwise.
+- Gated centrally in `enqueueLeadText` (covers scanned, mail-in **and** online HD leads) and
+  in the aged-lead reactivation query. A lead **not yet attributed to an office** is paused
+  too while an allowlist is active (can't confirm it belongs to a selected office). Stored in
+  `leadText.dealerAllowlist` (JSON array of dealer IDs), validated against real active dealers
+  on save. Pure `officeAllowed()` helper + 3 unit tests. tsc / 516 tests / build all green.
+
 ### French (i18n) full-coverage sweep — "every word in FR mode" (2026-10-12)
 - Ran a full audit of hardcoded English UI strings that never went through the translation
   system (so they stayed English even in FR mode) and routed them all through `t()`. ~650

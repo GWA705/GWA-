@@ -243,6 +243,14 @@ export async function saveLeadTextSettingsAction(_prev: ActionState, formData: F
     .map((v) => parseInt(String(v), 10))
     .filter((n) => Number.isInteger(n) && n >= 0 && n <= 6);
   const bookingLink = formData.get('bookingLink') === 'on';
+  // Office allowlist — which dealers the auto-text runs for. Validated against
+  // real active dealer IDs so stale/invalid IDs can't linger in the setting.
+  const officeIdsSel = formData.getAll('officeIds').map((v) => String(v)).filter(Boolean);
+  let dealerAllowlist: string[] = [];
+  if (officeIdsSel.length) {
+    const valid = await prisma.dealer.findMany({ where: { id: { in: officeIdsSel } }, select: { id: true } });
+    dealerAllowlist = valid.map((d) => d.id);
+  }
   const reactivation = formData.get('reactivation') === 'on';
   const reactivationDays = Number(formData.get('reactivationDays'));
   const reactivationMaxDays = Number(formData.get('reactivationMaxDays'));
@@ -279,6 +287,7 @@ export async function saveLeadTextSettingsAction(_prev: ActionState, formData: F
   await setSetting(LEAD_TEXT_KEYS.testNumber, testNumber);
   await setSetting(LEAD_TEXT_KEYS.mediaUrl, mediaUrl);
   await setSetting(LEAD_TEXT_KEYS.senderMap, senderMapRaw);
+  await setSetting(LEAD_TEXT_KEYS.dealerAllowlist, dealerAllowlist.length ? JSON.stringify(dealerAllowlist) : '');
   await setSetting(LEAD_TEXT_KEYS.quietStart, String(quietStart));
   await setSetting(LEAD_TEXT_KEYS.quietEnd, String(quietEnd));
   await setSetting(LEAD_TEXT_KEYS.followups, followups ? 'true' : 'false');
@@ -291,8 +300,10 @@ export async function saveLeadTextSettingsAction(_prev: ActionState, formData: F
   if (Number.isFinite(reactivationDays) && reactivationDays >= 1) await setSetting(LEAD_TEXT_KEYS.reactivationDays, String(Math.round(reactivationDays)));
   if (Number.isFinite(reactivationMaxDays) && reactivationMaxDays > reactivationDays) await setSetting(LEAD_TEXT_KEYS.reactivationMaxDays, String(Math.round(reactivationMaxDays)));
 
-  await audit({ actorId: session.userId, action: 'USER_UPDATE', entityType: 'User', entityId: session.userId, detail: `Lead auto-text settings saved (enabled=${enabled}, testMode=${testMode})` });
-  return { ok: true, message: enabled ? (testMode ? 'Saved. Test mode is ON — texts go only to your test number.' : 'Saved. LIVE — new leads will be texted.') : 'Saved. Auto-text is OFF.' };
+  const offices = dealerAllowlist.length ? `${dealerAllowlist.length} office(s)` : 'all offices';
+  await audit({ actorId: session.userId, action: 'USER_UPDATE', entityType: 'User', entityId: session.userId, detail: `Lead auto-text settings saved (enabled=${enabled}, testMode=${testMode}, offices=${offices})` });
+  const scope = dealerAllowlist.length ? ` for ${dealerAllowlist.length} selected office${dealerAllowlist.length === 1 ? '' : 's'} only` : '';
+  return { ok: true, message: enabled ? (testMode ? `Saved. Test mode is ON — texts go only to your test number${scope}.` : `Saved. LIVE — new leads will be texted${scope}.`) : 'Saved. Auto-text is OFF.' };
 }
 
 // Send one sample auto-text right now (to the test number), using the configured

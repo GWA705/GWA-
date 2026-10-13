@@ -59,11 +59,31 @@ Edit/preview under **Admin → Lead auto-text**.
 | Setting | Key | Default |
 |---|---|---|
 | Enabled | `leadText.enabled` | `false` |
+| **Offices to run for** | `leadText.dealerAllowlist` | — (empty = **all** offices) |
 | Test mode | `leadText.testMode` | `true` |
 | Test number | `leadText.testNumber` | — |
 | MMS image URL | `leadText.mediaUrl` | — |
 | Sender map (JSON province→number) | `leadText.senderMap` | — (uses `TWILIO_FROM_NUMBER`) |
 | Daytime window start/end (local hour) | `leadText.quietStart` / `leadText.quietEnd` | `8` / `21` |
+
+## Per-office rollout (`leadText.dealerAllowlist`)
+
+Admin → Lead auto-text → **Settings** has a **"Which offices get texted"** picker.
+Leave it empty to text leads for **every** office (the original behaviour). Tick one
+or more offices to run the auto-text for **those offices only** — every other office
+is paused and receives nothing. This lets you switch it on one office at a time (e.g.
+run it at Georgian Water & Air this week, add the rest once they're ready).
+
+- Gated centrally in `enqueueLeadText` (covers scanned, mail-in **and** online HD
+  leads) and in the aged-lead reactivation query — a paused office never gets a
+  welcome, follow-up, or reactivation text.
+- A lead **not yet attributed to an office** (e.g. an online HD lead whose store
+  isn't mapped to a dealer) is **also paused** while an allowlist is active, since we
+  can't confirm it belongs to a selected office. With the allowlist empty, those
+  leads are texted as before.
+- Selection is validated against real active dealer IDs on save, so a renamed or
+  removed office can't linger in the setting. Pure gate: `officeAllowed()` in
+  `src/lib/leadText.ts` (unit-tested).
 
 ## Compliance
 

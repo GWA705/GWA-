@@ -34,10 +34,11 @@ export default async function LeadTextingAdminPage({ searchParams }: { searchPar
   const days = [30, 90, 365].includes(Number(searchParams.days)) ? Number(searchParams.days) : 90;
   const cfg = await leadTextConfig();
   const vcfg = await clickToCallConfig();
-  const [recent, optOutCount, pendingCount] = await Promise.all([
+  const [recent, optOutCount, pendingCount, offices] = await Promise.all([
     prisma.leadTextOutbox.findMany({ orderBy: { createdAt: 'desc' }, take: 20 }),
     prisma.smsOptOut.count(),
     prisma.leadTextOutbox.count({ where: { status: 'PENDING' } }),
+    prisma.dealer.findMany({ where: { active: true }, select: { id: true, name: true }, orderBy: { name: 'asc' } }),
   ]);
 
   const info = smsInfoUrl();
@@ -70,12 +71,14 @@ export default async function LeadTextingAdminPage({ searchParams }: { searchPar
     <div className="card p-6">
       <h2 className="mb-4 text-base font-semibold text-gray-900">Settings</h2>
       <LeadTextSettingsForm
+        offices={offices}
         config={{
           enabled: cfg.enabled,
           testMode: cfg.testMode,
           testNumber: cfg.testNumber ?? '',
           mediaUrl: cfg.mediaUrl ?? '',
           senderMap: cfg.senderMap && Object.keys(cfg.senderMap).length ? JSON.stringify(cfg.senderMap, null, 2) : '',
+          dealerAllowlist: cfg.dealerAllowlist,
           quietStart: cfg.quietStart,
           quietEnd: cfg.quietEnd,
           followups: cfg.followups,

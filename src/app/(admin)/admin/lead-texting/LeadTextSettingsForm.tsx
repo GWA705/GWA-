@@ -1,9 +1,12 @@
 'use client';
 
+import { useMemo, useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { saveLeadTextSettingsAction, sendLeadTextTestAction } from '@/app/(admin)/actions';
 import type { ActionState } from '@/app/(admin)/actions';
 import { WEEKDAYS } from '@/lib/businessDays';
+
+interface Office { id: string; name: string }
 
 interface Config {
   enabled: boolean;
@@ -11,6 +14,7 @@ interface Config {
   testNumber: string;
   mediaUrl: string;
   senderMap: string;
+  dealerAllowlist: string[];
   quietStart: number;
   quietEnd: number;
   followups: boolean;
@@ -24,6 +28,87 @@ interface Config {
   reactivationMaxDays: number;
 }
 
+/**
+ * Pick which offices the auto-text runs for. No boxes ticked = every office
+ * (the default). Tick one or more = ONLY those offices are texted; every other
+ * office is paused. Controlled so the count + warning update as you click.
+ */
+function OfficePicker({ offices, selected }: { offices: Office[]; selected: string[] }) {
+  const [picked, setPicked] = useState<Set<string>>(() => new Set(selected));
+  const [q, setQ] = useState('');
+
+  const visible = useMemo(() => {
+    const n = q.trim().toLowerCase();
+    return n ? offices.filter((o) => o.name.toLowerCase().includes(n)) : offices;
+  }, [offices, q]);
+
+  function toggle(id: string) {
+    setPicked((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  const count = picked.size;
+
+  return (
+    <div className="border-t border-gray-100 pt-5">
+      <span className="font-medium text-gray-900">Which offices get texted</span>
+      <p className="mt-0.5 text-xs text-gray-500">
+        Leave every box unticked to text leads for <span className="font-medium">all offices</span>. Tick one or more to
+        run the auto-text for <span className="font-medium">those offices only</span> — every other office is paused and
+        receives nothing (handy when you want to roll it out one office at a time).
+      </p>
+
+      {/* Submit the selection — hidden inputs cover every picked office, even ones
+          currently filtered out of the list below. Only ticked IDs post. */}
+      {Array.from(picked).map((id) => (
+        <input key={id} type="hidden" name="officeIds" value={id} />
+      ))}
+
+      <div className={`mt-2 rounded-md border p-2.5 text-xs ${count === 0 ? 'border-amber-300 bg-amber-50 text-amber-900' : 'border-green-300 bg-green-50 text-green-800'}`}>
+        {count === 0
+          ? '⚠ All offices will receive texts (no office selected).'
+          : `Only the ${count} selected office${count === 1 ? '' : 's'} will be texted — all other offices are paused.`}
+      </div>
+
+      {offices.length === 0 ? (
+        <p className="mt-2 text-xs text-gray-400">No active offices found.</p>
+      ) : (
+        <>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            {offices.length > 8 && (
+              <input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Filter offices…"
+                className="input max-w-[220px] text-sm"
+                autoComplete="off"
+              />
+            )}
+            <button type="button" onClick={() => setPicked(new Set(offices.map((o) => o.id)))} className="text-xs text-brand-700 hover:underline">Select all</button>
+            <span className="text-gray-300">·</span>
+            <button type="button" onClick={() => setPicked(new Set())} className="text-xs text-gray-500 hover:underline">Clear (all offices)</button>
+          </div>
+          <div className="mt-2 max-h-56 overflow-auto rounded-md border border-gray-200">
+            {visible.length === 0 ? (
+              <p className="p-3 text-xs text-gray-500">No office matches “{q}”.</p>
+            ) : (
+              visible.map((o) => (
+                <label key={o.id} className="flex cursor-pointer items-center gap-2 border-b border-gray-100 px-3 py-2 text-sm last:border-0 hover:bg-gray-50">
+                  <input type="checkbox" checked={picked.has(o.id)} onChange={() => toggle(o.id)} className="h-4 w-4" />
+                  <span className="min-w-0 flex-1 truncate text-gray-800">{o.name}</span>
+                </label>
+              ))
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function SaveBtn() {
   const { pending } = useFormStatus();
   return <button type="submit" className="btn-primary" disabled={pending}>{pending ? 'Saving…' : 'Save settings'}</button>;
@@ -33,7 +118,7 @@ function TestBtn() {
   return <button type="submit" className="btn-secondary text-sm" disabled={pending}>{pending ? 'Sending…' : 'Send sample to test number'}</button>;
 }
 
-export function LeadTextSettingsForm({ config }: { config: Config }) {
+export function LeadTextSettingsForm({ config, offices }: { config: Config; offices: Office[] }) {
   const [saveState, saveAction] = useFormState(saveLeadTextSettingsAction, {} as ActionState);
   const [testState, testAction] = useFormState(sendLeadTextTestAction, {} as ActionState);
 
@@ -58,6 +143,8 @@ export function LeadTextSettingsForm({ config }: { config: Config }) {
             <span className="block text-xs text-gray-500">Every text goes to your test number instead of the real customer. Leave this ON until the sending number is verified and you’ve seen a sample land.</span>
           </span>
         </label>
+
+        <OfficePicker offices={offices} selected={config.dealerAllowlist} />
 
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="block">

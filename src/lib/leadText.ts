@@ -40,6 +40,11 @@ export const LEAD_TEXT_KEYS = {
   testNumber: 'leadText.testNumber',
   mediaUrl: 'leadText.mediaUrl',
   senderMap: 'leadText.senderMap',
+  // Which offices (dealers) the auto-text runs for. JSON array of dealer IDs.
+  // Empty/unset = every office (the original behaviour). Non-empty = ONLY those
+  // offices are texted; every other office — and any lead not yet attributed to
+  // an office — is paused, so you can switch it on for one office at a time.
+  dealerAllowlist: 'leadText.dealerAllowlist',
   quietStart: 'leadText.quietStart',
   quietEnd: 'leadText.quietEnd',
   // Follow-up sequence (scanned/mail-in leads only).
@@ -66,6 +71,7 @@ export interface LeadTextConfig {
   testNumber: string | null;
   mediaUrl: string | null;
   senderMap: Record<string, string>;
+  dealerAllowlist: string[]; // office (dealer) IDs; empty = all offices
   quietStart: number; // local hour, inclusive
   quietEnd: number; // local hour, exclusive
   followups: boolean; // schedule the DAY1 + MISSED_WINDOW follow-ups
@@ -88,6 +94,18 @@ export async function leadTextConfig(): Promise<LeadTextConfig> {
   } catch {
     senderMap = {};
   }
+  let dealerAllowlist: string[] = [];
+  try {
+    const raw = s[LEAD_TEXT_KEYS.dealerAllowlist];
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        dealerAllowlist = parsed.filter((v): v is string => typeof v === 'string' && v.length > 0);
+      }
+    }
+  } catch {
+    dealerAllowlist = [];
+  }
   const qs = Number(s[LEAD_TEXT_KEYS.quietStart]);
   const qe = Number(s[LEAD_TEXT_KEYS.quietEnd]);
   const d1 = Number(s[LEAD_TEXT_KEYS.day1Hours]);
@@ -99,6 +117,7 @@ export async function leadTextConfig(): Promise<LeadTextConfig> {
     testNumber: s[LEAD_TEXT_KEYS.testNumber] || null,
     mediaUrl: s[LEAD_TEXT_KEYS.mediaUrl] || null,
     senderMap,
+    dealerAllowlist,
     quietStart: Number.isFinite(qs) ? qs : 8,
     quietEnd: Number.isFinite(qe) ? qe : 21,
     // Follow-ups on by default once the feature itself is enabled.
@@ -239,6 +258,18 @@ export function renderLeadTextBody(
   return renderLeadTextTemplate(DEFAULT_LEAD_TEXTS[kind][lang], leadTextVars(opts ?? {}, lang));
 }
 
+/**
+ * Office allowlist gate. When the admin has selected specific offices (dealers)
+ * to run the auto-text for, a lead is only texted if it belongs to one of them.
+ * An empty allowlist means "every office" (the original behaviour). A lead with
+ * no office (e.g. an online HD lead whose store isn't mapped yet) is paused when
+ * an allowlist is active, since we can't confirm it belongs to an allowed office.
+ */
+export function officeAllowed(dealerId: string | null | undefined, allowlist: string[]): boolean {
+  if (!allowlist || allowlist.length === 0) return true;
+  return !!dealerId && allowlist.includes(dealerId);
+}
+
 // province → sending number; falls back to the "default" entry, else undefined
 // (sms.ts then uses TWILIO_FROM_NUMBER).
 export function pickSender(province: string | null | undefined, map: Record<string, string>): string | undefined {
@@ -264,6 +295,11 @@ export async function enqueueLeadText(input: {
 }): Promise<{ queued: boolean; reason?: string }> {
   const cfg = await leadTextConfig();
   if (!cfg.enabled) return { queued: false, reason: 'disabled' };
+
+  // Office gate — when specific offices are selected, only text their leads.
+  if (!officeAllowed(input.dealerId, cfg.dealerAllowlist)) {
+    return { queued: false, reason: 'office-paused' };
+  }
 
   const phone = toE164(input.phone);
   if (!phone) return { queued: false, reason: 'bad-number' };
@@ -370,6 +406,8 @@ export async function enqueueReactivationTexts(limit = 300): Promise<number> {
       bookingStatus: null,
       phone: { not: null },
       createdAt: { lte: olderThan, gte: notOlderThan },
+      // Respect the office allowlist — only reactivate selected offices' leads.
+      ...(cfg.dealerAllowlist.length ? { dealerId: { in: cfg.dealerAllowlist } } : {}),
     },
     select: { id: true, phone: true, customerName: true, address: true, city: true, postalCode: true, dealerId: true, uploadedByGwa: true },
     take: limit,

@@ -6,6 +6,7 @@ import {
   inDaytimeWindow,
   leadTextLang,
   pickSender,
+  officeAllowed,
   classifyInboundSms,
   helpReplyBody,
 } from '@/lib/leadText';
@@ -222,6 +223,27 @@ describe('sender pick', () => {
     expect(pickSender('ON', map)).toBe('+17055550123');
     expect(pickSender('BC', map)).toBe('+18668675309');
     expect(pickSender('ON', {})).toBeUndefined();
+  });
+});
+
+describe('office allowlist gate', () => {
+  it('allows every office when the allowlist is empty', () => {
+    expect(officeAllowed('d1', [])).toBe(true);
+    expect(officeAllowed(null, [])).toBe(true);
+    expect(officeAllowed(undefined, [])).toBe(true);
+  });
+
+  it('only allows offices on a non-empty allowlist', () => {
+    const allow = ['gwa', 'd2'];
+    expect(officeAllowed('gwa', allow)).toBe(true);
+    expect(officeAllowed('d2', allow)).toBe(true);
+    expect(officeAllowed('other', allow)).toBe(false);
+  });
+
+  it('pauses leads with no office once an allowlist is active', () => {
+    expect(officeAllowed(null, ['gwa'])).toBe(false);
+    expect(officeAllowed(undefined, ['gwa'])).toBe(false);
+    expect(officeAllowed('', ['gwa'])).toBe(false);
   });
 });
 
