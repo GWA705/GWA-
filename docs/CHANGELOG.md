@@ -38,6 +38,20 @@ source of truth; this file is the human-readable index.
 | HD Resolution ↔ Gmail email link | ✅ **Live & verified** (2026-10-07, Sean) | Read-only Gmail via the existing service account (`gwa-journal-writer@gwa-portal-504012…`, project **"GWA Portal"** `gwa-portal-504012`, Unique ID `100470797238569934976`), impersonating `sean@ghsbarrie.ca` + the `HD Resolution` label. All switches done: Gmail API enabled, Workspace domain-wide delegation (`…/auth/gmail.readonly`), `GMAIL_RESOLUTION_USER=sean@ghsbarrie.ca` on EB. **Verified end-to-end** — the Email inbox lists real HD threads and "Open as case" links the thread + auto-fills. 30-min sync `resolution-email-sync.yml` (reuses `CRON_SECRET`). Steps/facts: `HD-RESOLUTION-EMAIL.md`, `BUILD-FACTS.md`. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### Consolidated all portal cron schedulers onto GitHub Actions, staggered (2026-10-14)
+- Root-caused the 6 PM `504`s to **duplicate schedulers firing on the hour**: several portal cron
+  jobs were scheduled in both Render and GitHub (and briefly the reverted EB host cron), all hitting
+  the single EB instance at `:00`/`:30` at once and saturating it.
+- Fix: **one scheduler per endpoint, all on GitHub Actions** (free — the repo is public), each on a
+  **distinct staggered minute** so nothing collides. New workflows added for the Render-only jobs:
+  `new-leads` (:02–:52/10), `doc-ocr` (:07/:37), `weekly-funding-report` (Mon 13:30),
+  `doc-expiry-reminders` (daily 13:35), `db-backup` (Sun 08:40). Existing ones re-timed off the
+  hour: `journal-paid-sync` (:10), `resolution-email-sync` (:17/:47), `zoom-sync` (:25).
+- **Render crons retired** (deleted in the dashboard): `gwa-journal-paid-sync`,
+  `gwa-weekly-funding-report`, `gwa-doc-expiry-reminders`, `gwa-new-leads`, `gwa-doc-ocr`,
+  `gwa-db-backup-weekly`. This removes the duplication, the Render failure-alarm emails, and the
+  Render cron cost. (The old suspended `gwa-portal` web service on Render was already off.)
+
 ### Reverted the EB host-cron migration — it was redundant and caused 6pm 504s (2026-10-14)
 - Earlier today an EB host-cron hook was added to move the portal's scheduled syncs off GitHub
   Actions. **Reverted**, because: (a) the portal repo is **public**, so its GitHub Actions are

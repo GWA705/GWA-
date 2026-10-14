@@ -17,7 +17,7 @@ name: Zoom recordings sync (cron)
 
 on:
   schedule:
-    - cron: '0 */2 * * *'   # every 2 hours (UTC)
+    - cron: '25 */2 * * *'   # every 2 hours, at :25 (UTC) — staggered off the hour
   workflow_dispatch: {}
 
 concurrency:

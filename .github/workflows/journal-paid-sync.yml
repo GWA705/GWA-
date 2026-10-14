@@ -18,7 +18,7 @@ name: Journal paid sync (cron)
 
 on:
   schedule:
-    - cron: '0 */2 * * *'   # every 2 hours, on the hour (UTC)
+    - cron: '10 */2 * * *'   # every 2 hours, at :10 (UTC) — staggered off the hour
   workflow_dispatch: {}       # manual "Run workflow" button
 
 concurrency:
