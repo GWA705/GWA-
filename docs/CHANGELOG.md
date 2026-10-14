@@ -38,6 +38,18 @@ source of truth; this file is the human-readable index.
 | HD Resolution ↔ Gmail email link | ✅ **Live & verified** (2026-10-07, Sean) | Read-only Gmail via the existing service account (`gwa-journal-writer@gwa-portal-504012…`, project **"GWA Portal"** `gwa-portal-504012`, Unique ID `100470797238569934976`), impersonating `sean@ghsbarrie.ca` + the `HD Resolution` label. All switches done: Gmail API enabled, Workspace domain-wide delegation (`…/auth/gmail.readonly`), `GMAIL_RESOLUTION_USER=sean@ghsbarrie.ca` on EB. **Verified end-to-end** — the Email inbox lists real HD threads and "Open as case" links the thread + auto-fills. 30-min sync `resolution-email-sync.yml` (reuses `CRON_SECRET`). Steps/facts: `HD-RESOLUTION-EMAIL.md`, `BUILD-FACTS.md`. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### Scheduled syncs moved off GitHub Actions onto the EB instance (2026-10-14)
+- The three cron workflows (resolution-email-sync every 30 min, journal-paid-sync and zoom-sync
+  every 2 h) were burning **~2,000 GitHub Actions minutes/month** — each ~2-second curl bills a
+  full minute — which blew the account's 3,000-minute allowance (shared across all repos).
+- New `/.platform/hooks/postdeploy/02_install_crons.sh` installs the same schedules as **host cron
+  jobs on the Elastic Beanstalk instance** (zero GitHub minutes, no extra cost, single-instance so
+  no double-firing; installs `cronie` if missing, logs to `/var/log/gwa-cron.log`, smoke-tests on
+  deploy). Best-effort — it can never fail a deploy.
+- **Rollout:** the GitHub cron workflows stay enabled as a safety net until the host crons are
+  verified (`HTTP 200` in the log); then their `schedule:` triggers get turned off (step 2). See
+  `docs/CRON-MIGRATION.md`.
+
 ### Staff deal: Internal notes pinned to the top of the profile (2026-10-14)
 - Moved the **Internal notes** panel from the lower comms area to the **top of the deal profile**
   (right under the header), so every reviewer sees staff notes the moment they open the file.
