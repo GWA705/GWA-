@@ -708,8 +708,8 @@ export const en = {
   dealDetail: {
     backToApplications: '← Back to applications',
     whereYouStand: 'Where your deal stands:',
-    messagesTitle: 'Messages from Georgian Water & Air',
-    messagesPlaceholder: 'Reply to Georgian Water & Air…',
+    messagesTitle: 'Messages from the Review team',
+    messagesPlaceholder: 'Reply to the Review team…',
     readyToSubmit: '✅ Ready to submit',
     whatsNeeded: '⚠️ What’s needed from you',
     goToFunding: 'Go to funding package →',
