@@ -176,7 +176,12 @@ export default async function StaffApplicationDetail({
     (i) => verificationStates[i.key]?.status === 'CONFIRMED',
   );
 
-  const internalNotes = app.dealNotes.filter((n) => n.internal);
+  // Internal notes, newest first — so the latest note any reviewer adds lands at
+  // the top of the panel we pin near the top of the profile.
+  const internalNotes = app.dealNotes
+    .filter((n) => n.internal)
+    .slice()
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
   // Flagged confirmation issue → top banner with its acknowledgement state.
   const confirmationIssue = await loadConfirmationIssue(app.confirmationIssueMailId);
@@ -826,20 +831,6 @@ export default async function StaffApplicationDetail({
         <p className="mb-3 text-xs text-gray-500">{t('staffDeal.comms.chatHint')}</p>
         <ConversationThread applicationId={app.id} placeholder={t('staffDeal.comms.chatPlaceholder')} />
       </div>
-      <div className="rounded-lg border border-amber-200 p-4">
-        <h3 className="text-sm font-semibold text-gray-900">{t('staffDeal.comms.internalTitle')}</h3>
-        <p className="mb-3 text-xs text-amber-700">{t('staffDeal.comms.internalHint')}</p>
-        <div className="mb-4">
-          <NoteThread notes={internalNotes} emptyText={t('staffDeal.comms.noInternalNotes')} />
-        </div>
-        <NoteForm
-          action={addStaffNoteAction}
-          hidden={{ applicationId: app.id, internal: 'true' }}
-          placeholder={t('staffDeal.comms.internalPlaceholder')}
-          label={t('staffDeal.comms.addInternalNote')}
-          templates={noteTemplates}
-        />
-      </div>
       <div className="border-t border-gray-100 pt-4">
         <h3 className="mb-3 text-sm font-semibold text-gray-900">{t('staffDeal.comms.history')}</h3>
         <ul className="space-y-2 text-sm">
@@ -921,6 +912,27 @@ export default async function StaffApplicationDetail({
       }
     : null;
 
+  // Internal notes, pinned to the top of the profile so every reviewer sees the
+  // latest staff note the moment they open the file (newest first). Adding a note
+  // revalidates the page, so a new note surfaces here for other reviewers on their
+  // next load/refresh.
+  const internalNotesPanel = (
+    <section className="card border border-amber-300 bg-amber-50/40 p-4">
+      <h2 className="text-sm font-semibold text-gray-900">{t('staffDeal.comms.internalTitle')}</h2>
+      <p className="mb-3 text-xs text-amber-700">{t('staffDeal.comms.internalHint')}</p>
+      <NoteForm
+        action={addStaffNoteAction}
+        hidden={{ applicationId: app.id, internal: 'true' }}
+        placeholder={t('staffDeal.comms.internalPlaceholder')}
+        label={t('staffDeal.comms.addInternalNote')}
+        templates={noteTemplates}
+      />
+      <div className="mt-4">
+        <NoteThread notes={internalNotes} emptyText={t('staffDeal.comms.noInternalNotes')} />
+      </div>
+    </section>
+  );
+
   return (
     <div className="space-y-6">
       <div>
@@ -967,6 +979,9 @@ export default async function StaffApplicationDetail({
             </div>
           </div>
         </div>
+
+        {/* Internal staff notes — pinned to the top so reviewers see them first. */}
+        {internalNotesPanel}
 
         {/* Dealer-requested cancellation — reviewer confirms (or rejects) it. */}
         {cancellationVM && <CancellationReviewCard c={cancellationVM} />}
