@@ -38,17 +38,19 @@ source of truth; this file is the human-readable index.
 | HD Resolution ↔ Gmail email link | ✅ **Live & verified** (2026-10-07, Sean) | Read-only Gmail via the existing service account (`gwa-journal-writer@gwa-portal-504012…`, project **"GWA Portal"** `gwa-portal-504012`, Unique ID `100470797238569934976`), impersonating `sean@ghsbarrie.ca` + the `HD Resolution` label. All switches done: Gmail API enabled, Workspace domain-wide delegation (`…/auth/gmail.readonly`), `GMAIL_RESOLUTION_USER=sean@ghsbarrie.ca` on EB. **Verified end-to-end** — the Email inbox lists real HD threads and "Open as case" links the thread + auto-fills. 30-min sync `resolution-email-sync.yml` (reuses `CRON_SECRET`). Steps/facts: `HD-RESOLUTION-EMAIL.md`, `BUILD-FACTS.md`. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
-### Scheduled syncs moved off GitHub Actions onto the EB instance (2026-10-14)
-- The three cron workflows (resolution-email-sync every 30 min, journal-paid-sync and zoom-sync
-  every 2 h) were burning **~2,000 GitHub Actions minutes/month** — each ~2-second curl bills a
-  full minute — which blew the account's 3,000-minute allowance (shared across all repos).
-- New `/.platform/hooks/postdeploy/02_install_crons.sh` installs the same schedules as **host cron
-  jobs on the Elastic Beanstalk instance** (zero GitHub minutes, no extra cost, single-instance so
-  no double-firing; installs `cronie` if missing, logs to `/var/log/gwa-cron.log`, smoke-tests on
-  deploy). Best-effort — it can never fail a deploy.
-- **Rollout:** the GitHub cron workflows stay enabled as a safety net until the host crons are
-  verified (`HTTP 200` in the log); then their `schedule:` triggers get turned off (step 2). See
-  `docs/CRON-MIGRATION.md`.
+### Reverted the EB host-cron migration — it was redundant and caused 6pm 504s (2026-10-14)
+- Earlier today an EB host-cron hook was added to move the portal's scheduled syncs off GitHub
+  Actions. **Reverted**, because: (a) the portal repo is **public**, so its GitHub Actions are
+  already **free** — the migration saved nothing; and (b) it added a *third* scheduler for
+  `journal-paid-sync` (alongside the existing **Render** cron and **GitHub Actions** cron), so at
+  the top of each even hour three copies of that sync plus `doc-ocr` hit the single EB instance at
+  once — saturating it and producing transient **`504` gateway timeouts** (the Render cron failure
+  emails at 22:01 UTC / 6:01 PM; recovered on its own within the hour).
+- Removed `/.platform/hooks/postdeploy/02_install_crons.sh` and `docs/CRON-MIGRATION.md`. Back to
+  the prior Render + GitHub schedulers.
+- Follow-up (not yet done): de-duplicate so each portal cron endpoint is driven from exactly **one**
+  place (recommend GitHub Actions — free for this public repo) and retire the redundant Render crons
+  that email on failure.
 
 ### Staff deal: Internal notes pinned to the top of the profile (2026-10-14)
 - Moved the **Internal notes** panel from the lower comms area to the **top of the deal profile**
