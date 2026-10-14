@@ -38,6 +38,13 @@ source of truth; this file is the human-readable index.
 | HD Resolution ↔ Gmail email link | ✅ **Live & verified** (2026-10-07, Sean) | Read-only Gmail via the existing service account (`gwa-journal-writer@gwa-portal-504012…`, project **"GWA Portal"** `gwa-portal-504012`, Unique ID `100470797238569934976`), impersonating `sean@ghsbarrie.ca` + the `HD Resolution` label. All switches done: Gmail API enabled, Workspace domain-wide delegation (`…/auth/gmail.readonly`), `GMAIL_RESOLUTION_USER=sean@ghsbarrie.ca` on EB. **Verified end-to-end** — the Email inbox lists real HD threads and "Open as case" links the thread + auto-fills. 30-min sync `resolution-email-sync.yml` (reuses `CRON_SECRET`). Steps/facts: `HD-RESOLUTION-EMAIL.md`, `BUILD-FACTS.md`. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### Staff deal: Internal notes pinned to the top of the profile (2026-10-14)
+- Moved the **Internal notes** panel from the lower comms area to the **top of the deal profile**
+  (right under the header), so every reviewer sees staff notes the moment they open the file.
+- Notes now show **newest-first**; the add-note form sits above the list. Adding a note already
+  revalidates the page, so a new note surfaces for other reviewers on their next load/refresh.
+  (Dealer chat, status history, activity log and decision log stay in the comms section.)
+
 ### Fix: journal-sourced HD-resolution deals leaked into the dealer portal (2026-10-13)
 - Deals materialized from an old sales-journal row when linking an **HD Resolution** case
   (`journalSourced=true`, status FUNDED) were appearing in the **matched dealer's own Deals and
