@@ -38,6 +38,14 @@ source of truth; this file is the human-readable index.
 | HD Resolution ↔ Gmail email link | ✅ **Live & verified** (2026-10-07, Sean) | Read-only Gmail via the existing service account (`gwa-journal-writer@gwa-portal-504012…`, project **"GWA Portal"** `gwa-portal-504012`, Unique ID `100470797238569934976`), impersonating `sean@ghsbarrie.ca` + the `HD Resolution` label. All switches done: Gmail API enabled, Workspace domain-wide delegation (`…/auth/gmail.readonly`), `GMAIL_RESOLUTION_USER=sean@ghsbarrie.ca` on EB. **Verified end-to-end** — the Email inbox lists real HD threads and "Open as case" links the thread + auto-fills. 30-min sync `resolution-email-sync.yml` (reuses `CRON_SECRET`). Steps/facts: `HD-RESOLUTION-EMAIL.md`, `BUILD-FACTS.md`. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### Dealer can download the auto HD waiver at every stage (2026-10-15)
+- The auto-attached blank **HD Customer Approval Waiver** (view/download, no team upload needed)
+  was only shown for early statuses (DRAFT..APPROVED/PROBLEM) — it assumed the waiver would appear
+  under "Paperwork for Customer" later, but that section only holds what the team uploads (e.g. HD
+  Agreements), so the waiver **disappeared at the funding stage**. Now it shows for the whole life
+  of an HD deal (hidden only on DECLINED/WITHDRAWN), suppressed only if the team actually provided a
+  waiver document (type HD_WAIVER) so it never shows twice. Pairs with the upload tile below.
+
 ### Restored the signed Home Depot waiver uploader on the funding package (2026-10-15)
 - The customer-**signed** Home Depot Customer Approval Waiver tile had been dropped from the dealer
   funding checklist (on the theory the portal auto-attaches the blank standard form). Dealers still
