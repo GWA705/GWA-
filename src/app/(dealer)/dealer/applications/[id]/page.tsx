@@ -107,6 +107,9 @@ export default async function DealerApplicationDetail({
     ['APPROVED', 'CONDITIONAL', 'DOCS_SENT', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW', 'FUNDED'].includes(app.status);
   const fundingDocs = app.documents.filter((d) => d.stage === 'FUNDING');
   const gwaDocs = app.documents.filter((d) => d.stage === 'REVIEWER');
+  // Only suppress the auto-attached blank waiver when the team has actually
+  // provided a waiver document in the customer paperwork (real de-dup).
+  const teamProvidedWaiver = gwaDocs.some((d) => d.type === 'HD_WAIVER');
   const uploadedFundingTypes = new Set(fundingDocs.map((d) => d.type));
 
   // Dealers can upload documents any time after approval (e.g. a void cheque they
@@ -343,12 +346,13 @@ export default async function DealerApplicationDetail({
         )}
       </section>
 
-      {/* HD Customer Approval Waiver — attached automatically to every Home Depot
-          deal (no upload needed), as a convenience in the early application/approval
-          phase. Once the deal reaches "produce install documents" (DOCS_SENT) and
-          beyond, the reviewer's waiver shows under "Paperwork for Customer", so this
-          standalone card is hidden to avoid showing the waiver twice. */}
-      {app.programType === 'HD' && ['DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'CONDITIONAL', 'APPROVED', 'PROBLEM'].includes(app.status) && (
+      {/* HD Customer Approval Waiver — the standard blank form, attached
+          automatically to every Home Depot deal so the dealer can view/download it
+          at any stage without our team uploading it each time. Shown for the whole
+          life of the deal (hidden only on dead deals), and suppressed only if the
+          team has actually provided a waiver document under "Paperwork for Customer"
+          so it never appears twice. */}
+      {app.programType === 'HD' && !['DECLINED', 'WITHDRAWN'].includes(app.status) && !teamProvidedWaiver && (
         <section className="card p-6">
           <h2 className="mb-3 border-l-4 border-brand-500 pl-2.5 text-lg font-bold text-gray-900">{t('dealDetail.hdWaiverTitle')}</h2>
           <HdWaiverCard title={t('dealDetail.hdWaiverTitle')} hint={t('dealDetail.hdWaiverHint')} />
