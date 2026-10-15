@@ -395,6 +395,13 @@ export async function addSerialNumberAction(
   });
   if (!parsed.success) return { error: t('actionMsg.dealer.enterValidSerial') };
 
+  // Never store payment-card data entered into the serial field.
+  const card = findCardData(parsed.data.value);
+  if (card.blocked) {
+    await audit({ actorId: session.userId, action: 'CARD_DATA_BLOCKED', entityType: 'Application', entityId: applicationId, detail: `Serial blocked — card data detected (${card.signals.join(', ')})` });
+    return { error: CARD_BLOCK_MESSAGE };
+  }
+
   await prisma.serialNumber.create({
     data: { applicationId, value: parsed.data.value, productLabel: parsed.data.productLabel || null },
   });
@@ -576,9 +583,21 @@ export async function setProductSerialsAction(
   if (!app || !canAccessAsDealer(session, app.dealerId)) return { error: t('actionMsg.notFound') };
 
   const products = app.productsSold;
+  const values = products.map((_, i) => String(formData.get(`serial_${i}`) || '').trim().slice(0, 120));
+
+  // Never store payment-card data entered into a serial field — scan every value
+  // first and reject the whole submission (store nothing) if any looks like a card.
+  for (const value of values) {
+    const card = findCardData(value);
+    if (card.blocked) {
+      await audit({ actorId: session.userId, action: 'CARD_DATA_BLOCKED', entityType: 'Application', entityId: applicationId, detail: `Serial blocked — card data detected (${card.signals.join(', ')})` });
+      return { error: CARD_BLOCK_MESSAGE };
+    }
+  }
+
   await prisma.$transaction(async (tx) => {
     for (let i = 0; i < products.length; i += 1) {
-      const value = String(formData.get(`serial_${i}`) || '').trim().slice(0, 120);
+      const value = values[i];
       // Replace this product's serial with the submitted value (blank clears it).
       await tx.serialNumber.deleteMany({ where: { applicationId, productLabel: products[i] } });
       if (value) await tx.serialNumber.create({ data: { applicationId, value, productLabel: products[i] } });
