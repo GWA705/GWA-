@@ -2,16 +2,15 @@ import { describe, it, expect } from 'vitest';
 import { fundingDocumentTypesFor, FUNDING_DOCUMENT_TYPES } from '../src/lib/constants';
 
 describe('fundingDocumentTypesFor', () => {
-  it('keeps HD paperwork for HD deals, and never lists the auto-attached HD waiver', () => {
+  it('keeps HD paperwork for HD deals, including the signed HD waiver upload', () => {
     const types = fundingDocumentTypesFor('HD').map((t) => t.type);
     expect(types).toContain('SIGNED_HD_DOCUMENT');
-    // The HD Customer Approval Waiver is attached automatically now, so it is
-    // never a dealer upload item on any deal.
-    expect(types).not.toContain('HD_WAIVER');
+    // Dealers upload the customer-SIGNED Home Depot waiver as a funding doc on HD deals.
+    expect(types).toContain('HD_WAIVER');
     expect(types).toEqual(FUNDING_DOCUMENT_TYPES.map((t) => t.type));
   });
 
-  it('drops HD paperwork for GWA deals (and still no HD waiver)', () => {
+  it('drops HD paperwork for GWA deals (including the HD waiver)', () => {
     const types = fundingDocumentTypesFor('GWA').map((t) => t.type);
     expect(types).not.toContain('SIGNED_HD_DOCUMENT');
     expect(types).not.toContain('HD_WAIVER');
