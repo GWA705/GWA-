@@ -149,6 +149,9 @@ export function TrainingFlow({ token, dealerName, bundles }: { token: string; de
 
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
+  const [city, setCity] = useState('');
+  const [postal, setPostal] = useState('');
+  const [startDate, setStartDate] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
 
@@ -176,13 +179,16 @@ export function TrainingFlow({ token, dealerName, bundles }: { token: string; de
     if (name.trim().length < 2) return setError(t.errName);
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return setError(t.errEmail);
     if (phone.replace(/\D/g, '').length < 10) return setError(t.errPhone);
+    if (address.trim().length < 2 || city.trim().length < 2 || postal.trim().length < 3) return setError(t.errAddress);
+    if (!startDate.trim()) return setError(t.errStartDate);
     setPhase('learn'); setLearnIdx(0); window.scrollTo({ top: 0 });
   }
   function submit() {
     setError(null);
     start(async () => {
       const res = await submitTrainingAction(token, {
-        traineeName: name, traineeEmail: email, traineePhone: phone, traineeAddress: address,
+        traineeName: name, traineeEmail: email, traineePhone: phone,
+        traineeAddress: address, traineeCity: city, traineePostal: postal, startDate,
         answers, acknowledged: Array.from(acked), signatureName: signature, lang,
       });
       if (!res.ok) { setError(res.error || t.errGeneric); return; }
@@ -296,10 +302,13 @@ export function TrainingFlow({ token, dealerName, bundles }: { token: string; de
             <div className={card}>
               <div className="mb-5 flex items-start gap-4">
                 <IconBadge name="expectations" />
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <h2 className="text-lg font-bold text-slate-900">{t.intakeTitle}</h2>
                   <p className="mt-0.5 text-sm text-slate-500">{t.intakeSub}</p>
                 </div>
+                <span className="hidden flex-none items-center gap-1.5 self-start rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700 sm:inline-flex">
+                  {t.yourOffice}: <span className="font-bold">{dealerName}</span>
+                </span>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="block"><span className="mb-1 block text-xs font-semibold text-slate-600">{t.fullName}</span>
@@ -308,8 +317,14 @@ export function TrainingFlow({ token, dealerName, bundles }: { token: string; de
                   <input value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" placeholder={t.phPhone} inputMode="tel" /></label>
                 <label className="block"><span className="mb-1 block text-xs font-semibold text-slate-600">{t.email}</span>
                   <input value={email} onChange={(e) => setEmail(e.target.value)} className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" placeholder={t.phEmail} inputMode="email" /></label>
-                <label className="block"><span className="mb-1 block text-xs font-semibold text-slate-600">{t.address}</span>
+                <label className="block"><span className="mb-1 block text-xs font-semibold text-slate-600">{t.startDate}</span>
+                  <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" /></label>
+                <label className="block sm:col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-600">{t.address}</span>
                   <input value={address} onChange={(e) => setAddress(e.target.value)} className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" placeholder={t.phAddress} /></label>
+                <label className="block"><span className="mb-1 block text-xs font-semibold text-slate-600">{t.city}</span>
+                  <input value={city} onChange={(e) => setCity(e.target.value)} className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" placeholder={t.phCity} /></label>
+                <label className="block"><span className="mb-1 block text-xs font-semibold text-slate-600">{t.postal}</span>
+                  <input value={postal} onChange={(e) => setPostal(e.target.value)} className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm uppercase outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" placeholder={t.phPostal} /></label>
               </div>
               <button onClick={startIntake} className="mt-6 w-full rounded-xl bg-brand-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-brand-600/25 transition hover:bg-brand-700">{t.start}</button>
               <p className="mt-2.5 text-center text-[11px] text-slate-400">{t.intakeConsent}</p>

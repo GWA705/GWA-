@@ -409,7 +409,10 @@ model TrainingCertification {
   traineeName    String
   traineeEmail   String
   traineePhone   String
-  traineeAddress String?
+  traineeAddress String?  // street address
+  traineeCity    String?
+  traineePostal  String?
+  startDate      String?  // the trainee's start date (YYYY-MM-DD)
 
   answers        Json    // { [questionId]: selectedOptionIndex }
   score          Int     // percent, 0–100

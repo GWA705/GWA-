@@ -8,6 +8,9 @@ export interface CertRecord {
   traineeEmail: string;
   traineePhone: string;
   traineeAddress: string | null;
+  traineeCity?: string | null;
+  traineePostal?: string | null;
+  startDate?: string | null;
   score: number;
   passed: boolean;
   answers: unknown;
@@ -56,7 +59,11 @@ export function TrainingCertificateView({ cert, dealerName }: { cert: CertRecord
         <div><dt className="text-gray-400">Office / dealer</dt><dd className="font-medium text-gray-900">{dealerName}</dd></div>
         <div><dt className="text-gray-400">Email</dt><dd className="font-medium text-gray-900 break-words">{cert.traineeEmail}</dd></div>
         <div><dt className="text-gray-400">Phone</dt><dd className="font-medium text-gray-900">{cert.traineePhone}</dd></div>
-        {cert.traineeAddress && <div className="col-span-2"><dt className="text-gray-400">Address</dt><dd className="font-medium text-gray-900">{cert.traineeAddress}</dd></div>}
+        {(cert.traineeAddress || cert.traineeCity || cert.traineePostal) && (
+          <div className="col-span-2"><dt className="text-gray-400">Address</dt>
+            <dd className="font-medium text-gray-900">{[cert.traineeAddress, cert.traineeCity, cert.traineePostal].filter(Boolean).join(', ')}</dd></div>
+        )}
+        {cert.startDate && <div><dt className="text-gray-400">Start date</dt><dd className="font-medium text-gray-900">{cert.startDate}</dd></div>}
         <div><dt className="text-gray-400">Completed</dt><dd className="font-medium text-gray-900">{cert.createdAt.toLocaleString('en-CA')}</dd></div>
         <div><dt className="text-gray-400">Program version</dt><dd className="font-medium text-gray-900">{cert.contentVersion}</dd></div>
         <div><dt className="text-gray-400">Language</dt><dd className="font-medium text-gray-900">{langLabel}</dd></div>

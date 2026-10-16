@@ -355,9 +355,10 @@ export interface TrainingStrings {
   steps: { info: string; learn: string; quiz: string; signoff: string };
   intakeTitle: string; intakeSub: string;
   fullName: string; phone: string; email: string; address: string;
-  phName: string; phPhone: string; phEmail: string; phAddress: string;
+  city: string; postal: string; startDate: string; yourOffice: string;
+  phName: string; phPhone: string; phEmail: string; phAddress: string; phCity: string; phPostal: string;
   start: string; intakeConsent: string;
-  errName: string; errEmail: string; errPhone: string; errGeneric: string;
+  errName: string; errEmail: string; errPhone: string; errAddress: string; errStartDate: string; errGeneric: string;
   sectionOf: string; back: string; next: string; startQuiz: string;
   quizTitle: string; quizSub: string; review: string; continueScored: string; continuePlain: string; answerAll: string; quizBelow: string;
   signoffTitle: string; signoffSub: string; signLabel: string; phSign: string; signConsent: string;
@@ -375,11 +376,12 @@ export const STRINGS: Record<Lang, TrainingStrings> = {
     steps: { info: 'Your info', learn: 'Learn', quiz: 'Quiz', signoff: 'Sign off' },
     intakeTitle: 'Welcome! Let’s get you store-ready.',
     intakeSub: 'A quick, visual walkthrough of how to work a Home Depot booth, a short quiz, and a sign-off. Takes about 10–15 minutes.',
-    fullName: 'Full name', phone: 'Phone', email: 'Email', address: 'Address',
-    phName: 'Jamie Lee', phPhone: '705-555-0123', phEmail: 'you@email.com', phAddress: 'Street, city',
+    fullName: 'Full name', phone: 'Phone', email: 'Email', address: 'Street address',
+    city: 'City', postal: 'Postal code', startDate: 'Start date', yourOffice: 'Your office',
+    phName: 'Jamie Lee', phPhone: '705-555-0123', phEmail: 'you@email.com', phAddress: '74 Brown Bear Street', phCity: 'Barrie', phPostal: 'L4M 1A1',
     start: 'Start training →',
     intakeConsent: 'We collect your name and contact details only to record that you completed this training.',
-    errName: 'Please enter your full name.', errEmail: 'Please enter a valid email address.', errPhone: 'Please enter a valid phone number.', errGeneric: 'Something went wrong.',
+    errName: 'Please enter your full name.', errEmail: 'Please enter a valid email address.', errPhone: 'Please enter a valid phone number.', errAddress: 'Please enter your full address (street, city, postal code).', errStartDate: 'Please choose your start date.', errGeneric: 'Something went wrong.',
     sectionOf: 'Section {i} of {n}', back: '← Back', next: 'Next →', startQuiz: 'Start the quiz →',
     quizTitle: 'Quick quiz', quizSub: 'Answer all {n}. You need {p}% to pass — you can retry.',
     review: '← Review', continueScored: 'Continue ({s}%) →', continuePlain: 'Continue →', answerAll: 'Answer all {n}',
@@ -401,11 +403,12 @@ export const STRINGS: Record<Lang, TrainingStrings> = {
     steps: { info: 'Vos infos', learn: 'Apprendre', quiz: 'Questionnaire', signoff: 'Engagement' },
     intakeTitle: 'Bienvenue! Préparons-vous pour le magasin.',
     intakeSub: 'Un parcours visuel rapide sur la façon de tenir un kiosque Home Depot, un court questionnaire et un engagement. Environ 10 à 15 minutes.',
-    fullName: 'Nom complet', phone: 'Téléphone', email: 'Courriel', address: 'Adresse',
-    phName: 'Jamie Lee', phPhone: '705-555-0123', phEmail: 'vous@courriel.com', phAddress: 'Rue, ville',
+    fullName: 'Nom complet', phone: 'Téléphone', email: 'Courriel', address: 'Adresse (rue)',
+    city: 'Ville', postal: 'Code postal', startDate: 'Date de début', yourOffice: 'Votre bureau',
+    phName: 'Jamie Lee', phPhone: '705-555-0123', phEmail: 'vous@courriel.com', phAddress: '74, rue Brown Bear', phCity: 'Barrie', phPostal: 'L4M 1A1',
     start: 'Commencer la formation →',
     intakeConsent: 'Nous recueillons votre nom et vos coordonnées uniquement pour consigner que vous avez terminé cette formation.',
-    errName: 'Veuillez entrer votre nom complet.', errEmail: 'Veuillez entrer une adresse courriel valide.', errPhone: 'Veuillez entrer un numéro de téléphone valide.', errGeneric: 'Une erreur est survenue.',
+    errName: 'Veuillez entrer votre nom complet.', errEmail: 'Veuillez entrer une adresse courriel valide.', errPhone: 'Veuillez entrer un numéro de téléphone valide.', errAddress: 'Veuillez entrer votre adresse complète (rue, ville, code postal).', errStartDate: 'Veuillez choisir votre date de début.', errGeneric: 'Une erreur est survenue.',
     sectionOf: 'Section {i} sur {n}', back: '← Retour', next: 'Suivant →', startQuiz: 'Commencer le questionnaire →',
     quizTitle: 'Court questionnaire', quizSub: 'Répondez aux {n}. Il faut {p} % pour réussir — vous pouvez réessayer.',
     review: '← Revoir', continueScored: 'Continuer ({s} %) →', continuePlain: 'Continuer →', answerAll: 'Répondez aux {n}',
@@ -526,7 +529,10 @@ export interface TrainingSubmission {
   traineeName?: string;
   traineeEmail?: string;
   traineePhone?: string;
-  traineeAddress?: string;
+  traineeAddress?: string; // street address
+  traineeCity?: string;
+  traineePostal?: string;
+  startDate?: string; // YYYY-MM-DD
   answers?: Record<string, number>;
   acknowledged?: string[]; // rule ids checked
   signatureName?: string;

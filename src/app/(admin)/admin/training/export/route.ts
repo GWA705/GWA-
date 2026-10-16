@@ -22,7 +22,7 @@ export async function GET(req: Request) {
     include: { dealer: { select: { name: true } } },
   });
 
-  const header = ['Completed', 'Office', 'Name', 'Email', 'Phone', 'Address', 'Score %', 'Passed', 'Signature', 'Program version', 'IP'];
+  const header = ['Completed', 'Office', 'Name', 'Email', 'Phone', 'Address', 'City', 'Postal code', 'Start date', 'Score %', 'Passed', 'Signature', 'Program version', 'IP'];
   const lines = [header.join(',')];
   for (const r of rows) {
     lines.push([
@@ -32,6 +32,9 @@ export async function GET(req: Request) {
       r.traineeEmail,
       r.traineePhone,
       r.traineeAddress ?? '',
+      r.traineeCity ?? '',
+      r.traineePostal ?? '',
+      r.startDate ?? '',
       r.score,
       r.passed ? 'Yes' : 'No',
       r.signatureName,
