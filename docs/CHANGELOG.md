@@ -21,7 +21,7 @@ source of truth; this file is the human-readable index.
 |---|---|---|
 | Sales journal (Google Sheets) | ✅ Live on AWS EB | `JOURNAL_SHEET_ID_<year>` (2024/2025/2026/2027) + the test `JOURNAL_SHEET_ID` set on EB. Auto-writes on approval and whenever deal numbers change. The Google **service-account JSON is sourced from SSM Parameter Store** (`/gwa-portal/GOOGLE_SERVICE_ACCOUNT_JSON`), not plain-text env (2026-10-02). Write row-selection: next-empty-line + duplicate guard (see BUILD-FACTS). |
 | Texting / SMS (Twilio) | ✅ Connected on EB (2026-10-02, Sean) — ⚠ carrier registration pending | `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` / `TWILIO_FROM_NUMBER` (`+12494449591`) set on EB. Powers the customer review-request text. **Delivery to Canadian numbers needs toll-free verification / A2P 10DLC in Twilio before it's reliable** — until then a text may "send" but not arrive. Admin → Email: status badge + send-test-text + cost meter. |
-| Email (SMTP) | ✅ Live | Sends from `hello@ghsbarrie.ca`. |
+| Email (SMTP) | ✅ Live via Gmail (hello@) — ⏳ migrating to SES | **Currently** sends from `hello@ghsbarrie.ca` (Gmail app password, reactivated after the 2026-10-15 suspension). **Migration to Amazon SES in progress (2026-10-16):** SES set up in **ca-central-1**, **Essentials** plan (no monthly fee), still in **Sandbox** (200/day, 1/sec). Domain identity `ghsbarrie.ca` created with **Easy DKIM** + custom **MAIL FROM** `mail.ghsbarrie.ca`. VDM on, engagement-tracking off, optimized-delivery on, Auto-Validation off, no dedicated IP. Target sender **`gwadealerportal@ghsbarrie.ca`** (Google Group, routes to team), From name **Georgian Water & Air**, Reply-To the same group. **Still pending:** add DKIM/MAIL-FROM DNS records → domain verify → request production access (lifts sandbox) → create SES SMTP creds → set EB env vars (`SMTP_*`, `EMAIL_FROM/NAME/REPLY_TO`) → test. Full runbook: `docs/EMAIL-SES-MIGRATION.md`. The same SES setup will also serve the booking site later (account/region-wide). |
 | RDS database backups (`gwa-portal-db`) | ✅ Confirmed (2026-10-04, Sean) | Automated backups **Enabled, 16-day retention** (point-in-time restore), nightly window 06:24–06:54 UTC, copy-tags-to-snapshots on, stored in ca-central-1. Manual `gwa-before-rebuild` snapshot retained from the 2026-10-02 outage. Single-AZ (Multi-AZ not enabled — a future failover upgrade). See `RELIABILITY.md`. |
 | EB deploy safety (immutable + health alerts) | ✅ In repo (2026-10-04) — applies on deploy | `.ebextensions/01_resilience.config`: **Immutable deploy policy** (auto-rollback on failed health, fresh disk every deploy), `/api/health` check, EB health-change email to sean@ghsbarrie.ca (⚠ confirm the SNS subscription email), managed updates. `.platform/hooks/postdeploy/01_docker_prune.sh` prunes old images. Deploy workflow `wait_for_deployment: true`. Pending console follow-ups in `RELIABILITY.md`: t3.medium + 50 GB disk, external uptime monitor. |
 | Domain email auth (SPF / DKIM / DMARC) on `ghsbarrie.ca` | ✅ Set | SPF `include:_spf.google.com`; DKIM authenticating (Google Workspace); DMARC `p=quarantine`. Confirmed 2026-09-03 (Sean). |
@@ -37,6 +37,21 @@ source of truth; this file is the human-readable index.
 | Desktop/phone push notifications | ✅ Keys set (2026-09-11, Sean) — confirm with a test | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` set on EB. The client fetches the public key at **runtime** (`GET /api/push/key`) so it survives rebuilds. Reviewers get push on new dealer docs / activity. iOS needs the app installed to the Home Screen. **To confirm:** Account → Enable desktop notifications → Send a test. |
 | HD Resolution ↔ Gmail email link | ✅ **Live & verified** (2026-10-07, Sean) | Read-only Gmail via the existing service account (`gwa-journal-writer@gwa-portal-504012…`, project **"GWA Portal"** `gwa-portal-504012`, Unique ID `100470797238569934976`), impersonating `sean@ghsbarrie.ca` + the `HD Resolution` label. All switches done: Gmail API enabled, Workspace domain-wide delegation (`…/auth/gmail.readonly`), `GMAIL_RESOLUTION_USER=sean@ghsbarrie.ca` on EB. **Verified end-to-end** — the Email inbox lists real HD threads and "Open as case" links the thread + auto-fills. 30-min sync `resolution-email-sync.yml` (reuses `CRON_SECRET`). Steps/facts: `HD-RESOLUTION-EMAIL.md`, `BUILD-FACTS.md`. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
+
+### Email: Amazon SES migration started (2026-10-16)
+- Began moving the portal's outgoing email off the `hello@` Gmail mailbox (which Google
+  auto-suspended on 2026-10-15 under the portal's own sending volume) onto **Amazon SES**
+  in **ca-central-1**. SES account set up (Essentials plan, no monthly fee), domain
+  identity `ghsbarrie.ca` with Easy DKIM + custom MAIL FROM `mail.ghsbarrie.ca`, still in
+  Sandbox. Dedicated sender will be the **`gwadealerportal@` Google Group** (From name
+  *Georgian Water & Air*, Reply-To the group); `hello@` becomes a human-only inbox again.
+- **Config, not code** — `src/lib/email.ts` is already provider-agnostic SMTP. Remaining
+  steps (DNS records → domain verify → production access → SMTP creds → EB env vars → test)
+  and full status are tracked in `docs/EMAIL-SES-MIGRATION.md` and the Operational status
+  table above. Same SES setup will serve the booking site later (account/region-wide).
+- Also hardened the deploy pipeline: authenticate base-image pulls to **Amazon ECR Public**
+  so the intermittent `toomanyrequests: Data limit exceeded` build failures can't recur
+  (IAM policy `ECRPublicAuth` added to the `github-ecr-push` user).
 
 ### Lead Gen Training — GWA admin view, auto-email, admin editor, French (2026-10-16)
 - **Company-wide admin view for Home Depot.** New **Admin → Dealers → Training records**: every

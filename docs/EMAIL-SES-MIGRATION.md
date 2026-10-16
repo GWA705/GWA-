@@ -69,6 +69,18 @@ provider-agnostic SMTP (`src/lib/email.ts`), so this is **config, not code**.
    are tracked/suppressed. High bounce rate is the other common way a sender gets
    flagged — SES manages this; a Gmail mailbox does not.
 
+## Progress log
+- **2026-10-16** — SES account set up via the console wizard in **ca-central-1**.
+  Plan: **Essentials** (no monthly fee, ~$0.16/1k). Deliverability: VDM **on**,
+  engagement-tracking **off** (no link rewriting on transactional mail),
+  optimized shared delivery **on**, Auto-Validation **off**, **no dedicated IP**.
+  Domain identity `ghsbarrie.ca` created (Easy DKIM) with custom MAIL FROM
+  `mail.ghsbarrie.ca`. Email identity `Sean@ghsbarrie.ca` added for sandbox
+  testing (verification link pending click). Group `gwadealerportal@ghsbarrie.ca`
+  created (external posting allowed; add members). Account is in **Sandbox**
+  (200/day, 1/sec). **Next:** add DKIM + MAIL-FROM DNS records → domain Verified →
+  request production access → SMTP creds → EB env vars → test.
+
 ## After cutover
 - `hello@ghsbarrie.ca`: remove its App Password / stop using it for SMTP entirely;
   it's a human mailbox again.
