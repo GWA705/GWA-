@@ -5,6 +5,8 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { rateLimit, clientIp } from '@/lib/ratelimit';
 import { sendTrainingCertificationEmails } from '@/lib/training-email';
+import { advancePendingIdTagsForCert, markIdTagEmailed } from '@/lib/idTag';
+import { sendIdTagNewRepEmail } from '@/lib/idTag-email';
 import { getEffectiveContent } from '@/lib/training-content';
 import {
   CONTENT_VERSION,
@@ -92,6 +94,28 @@ export async function submitTrainingAction(
       quiz,
       firstAnswers,
     });
+
+    // If this person had an ID-tag request parked for "needs training", it now
+    // clears: advance it to Submitted and fire their background-check email.
+    void (async () => {
+      try {
+        const advanced = await advancePendingIdTagsForCert({
+          dealerId: dealer.id,
+          traineeName: (payload.traineeName || '').trim(),
+          traineeEmail: (payload.traineeEmail || '').trim(),
+          certId: cert.id,
+        });
+        for (const a of advanced) {
+          if (a.personEmail) {
+            const sent = await sendIdTagNewRepEmail(a.personEmail, a.personName);
+            if (sent) await markIdTagEmailed(a.id);
+          }
+        }
+      } catch (e) {
+        console.error('[training] id-tag advance failed', e);
+      }
+    })();
+
     return { ok: true, certificationId: cert.id, score };
   } catch (e) {
     console.error('[training] submit failed', e);

@@ -118,6 +118,7 @@ export default async function DealerLayout({ children }: { children: React.React
           { href: '/dealer/marketplace', label: 'Marketplace', labelKey: 'nav.marketplace' },
           { href: '/dealer/leads', label: 'Leads', labelKey: 'nav.leads' },
           ...(trainingEnabled ? [{ href: '/dealer/training', label: 'Lead Gen Training' }] : []),
+          ...(trainingEnabled ? [{ href: '/dealer/id-tags', label: 'HD ID Tags' }] : []),
           { href: '/dealer/gift-cards', label: 'Gift cards', labelKey: 'nav.giftCards', badge: giftCardUnread },
           {
             label: 'Resources',

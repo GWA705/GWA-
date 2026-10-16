@@ -38,6 +38,26 @@ source of truth; this file is the human-readable index.
 | HD Resolution ↔ Gmail email link | ✅ **Live & verified** (2026-10-07, Sean) | Read-only Gmail via the existing service account (`gwa-journal-writer@gwa-portal-504012…`, project **"GWA Portal"** `gwa-portal-504012`, Unique ID `100470797238569934976`), impersonating `sean@ghsbarrie.ca` + the `HD Resolution` label. All switches done: Gmail API enabled, Workspace domain-wide delegation (`…/auth/gmail.readonly`), `GMAIL_RESOLUTION_USER=sean@ghsbarrie.ca` on EB. **Verified end-to-end** — the Email inbox lists real HD threads and "Open as case" links the thread + auto-fills. 30-min sync `resolution-email-sync.yml` (reuses `CRON_SECRET`). Steps/facts: `HD-RESOLUTION-EMAIL.md`, `BUILD-FACTS.md`. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### Home Depot ID Tags — submission + status board, gated on training (2026-10-16)
+- New feature: offices submit their people for a Home Depot in-store ID tag, and GWA tracks
+  each one to issuance. New model `HomeDepotIdTag` (+ enums `IdTagKind` NEW/EXISTING and
+  `IdTagStatus`), migration `20261016090000_home_depot_id_tag` (guarded CREATE TABLE/TYPE/FK).
+- **Dealer page** `/dealer/id-tags` (nav gated by the training rollout, GWA-only to start):
+  submit a person (name/email/phone + "brand new" vs "already has a tag"). On submit we match
+  their training certificate by office + normalized name/email. Training is a **nudge, never a
+  hard block** — no certificate → flagged "Needs training" with the office's training link to
+  send them; they advance automatically once they complete it.
+- **New reps** get the **background-check setup email** (Entuitive screening link + shared
+  login/password) and enter the pipeline (Submitted → Background check → Approved → Tag issued).
+  **Existing-tag reps** get a **welcome email** (no background-check steps) and sit at "Has tag".
+- **Admin board** `/admin/id-tags` (section `id-tags`): everyone across all offices, count
+  tiles, office/status filters, one-click status changes, and an editable settings panel for
+  the screening link, shared login/password (kept in `AppSetting`, **never in code/git**), and
+  both email bodies (blank = built-in default; `{{name}}/{{link}}/{{login}}/{{password}}` tokens).
+- Wired into training completion: finishing the Lead Generator training auto-advances a parked
+  ID-tag request and fires the background-check email. `src/lib/idTag.ts`, `idTag-email.ts`,
+  `idTag-email-template.ts`; settings in `src/lib/settings.ts` (`ID_TAG_SETTING_KEYS`).
+
 ### Sales journal now writes all text in UPPERCASE (2026-10-16)
 - Every string cell the portal writes to the sales journal (Google Sheets) is now forced to
   UPPERCASE via a single `upperCells()` helper applied at every journal write site in

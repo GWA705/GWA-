@@ -393,6 +393,7 @@ model Dealer {
   businessDocuments DealerDocument[]
   scannedLeads     ScannedLead[]
   trainingCertifications TrainingCertification[]
+  homeDepotIdTags  HomeDepotIdTag[]
 }
 
 // A completed Lead-Generator training & certification. A dealer shares a public
@@ -431,6 +432,60 @@ model TrainingCertification {
   createdAt DateTime @default(now())
 
   @@index([dealerId])
+  @@index([createdAt])
+}
+
+// Whether a person is brand-new (needs the full screening) or already carries a
+// Home Depot ID tag (logged for the roster; no background-check setup).
+enum IdTagKind {
+  NEW
+  EXISTING
+}
+
+// Pipeline status for a Home Depot ID tag request. New reps move through the
+// screening states; existing-tag reps sit at ACTIVE. Training is tracked
+// separately (certificationId) and nudged, never a hard block.
+enum IdTagStatus {
+  AWAITING_TRAINING // new rep, no training certificate yet
+  SUBMITTED         // background-check initiated (email sent)
+  BACKGROUND_CHECK  // screening in progress
+  APPROVED          // screening cleared
+  TAG_ISSUED        // ID tag received
+  ACTIVE            // existing-tag rep — already has a tag
+  ON_HOLD
+  NOT_PROCEEDING
+}
+
+// A Home Depot ID tag request submitted by an office for one of their people.
+// Every person needs a completed Lead-Generator training certificate (tracked
+// via certificationId and nudged in the UI). New reps get a background-check
+// setup email + screening pipeline; existing-tag reps get a welcome email and
+// are logged as ACTIVE.
+model HomeDepotIdTag {
+  id       String @id @default(cuid())
+  dealerId String
+  dealer   Dealer @relation(fields: [dealerId], references: [id], onDelete: Cascade)
+
+  personName  String
+  personEmail String?
+  personPhone String?
+
+  kind   IdTagKind   @default(NEW)
+  status IdTagStatus @default(AWAITING_TRAINING)
+
+  // Linked training certificate once one is found for this person (matched by
+  // office + normalized name). Null = no certificate yet ("Needs training").
+  certificationId String?
+
+  submittedById String?   // the portal user who submitted this person
+  emailSentAt   DateTime? // when the onboarding / welcome email went out
+  note          String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([dealerId])
+  @@index([status])
   @@index([createdAt])
 }
 

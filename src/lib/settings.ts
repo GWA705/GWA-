@@ -64,6 +64,43 @@ export async function getReviewLink(): Promise<string | null> {
   return getSetting(REVIEW_SETTING_KEYS.link);
 }
 
+// Home Depot ID-tag onboarding. Admin-editable so the exact wording, the
+// background-screening portal link, and its shared login/password can be
+// managed without a redeploy (and the password stays OUT of the codebase/git).
+export const ID_TAG_SETTING_KEYS = {
+  screeningLink: 'idTag.screeningLink',     // e.g. https://hdis.entuitivetracker.com/
+  screeningLogin: 'idTag.screeningLogin',   // the shared login hint (often "your email")
+  screeningPassword: 'idTag.screeningPassword', // the shared password for the screening portal
+  newEmailBody: 'idTag.newEmailBody',       // background-check setup email (new reps)
+  existingEmailBody: 'idTag.existingEmailBody', // welcome email (reps who already have a tag)
+} as const;
+
+export interface IdTagSettings {
+  screeningLink: string | null;
+  screeningLogin: string | null;
+  screeningPassword: string | null;
+  newEmailBody: string | null;
+  existingEmailBody: string | null;
+}
+
+/** All ID-tag onboarding settings in one read. */
+export async function getIdTagSettings(): Promise<IdTagSettings> {
+  const m = await getSettings([
+    ID_TAG_SETTING_KEYS.screeningLink,
+    ID_TAG_SETTING_KEYS.screeningLogin,
+    ID_TAG_SETTING_KEYS.screeningPassword,
+    ID_TAG_SETTING_KEYS.newEmailBody,
+    ID_TAG_SETTING_KEYS.existingEmailBody,
+  ]);
+  return {
+    screeningLink: m[ID_TAG_SETTING_KEYS.screeningLink],
+    screeningLogin: m[ID_TAG_SETTING_KEYS.screeningLogin],
+    screeningPassword: m[ID_TAG_SETTING_KEYS.screeningPassword],
+    newEmailBody: m[ID_TAG_SETTING_KEYS.newEmailBody],
+    existingEmailBody: m[ID_TAG_SETTING_KEYS.existingEmailBody],
+  };
+}
+
 // Admin-editable knowledge the AI support assistant answers from (FAQ, process,
 // policies, tone — written in the team's own words). Injected into the system
 // prompt on every reply; edit it to "train" the assistant without a deploy.
