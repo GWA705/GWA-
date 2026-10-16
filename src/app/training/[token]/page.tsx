@@ -9,10 +9,25 @@ import { TrainingFlow } from './TrainingFlow';
 
 export const dynamic = 'force-dynamic';
 
+const OG_DESC = 'Home Depot in-store training & certification for Georgian Water & Air lead generators.';
+
 export const metadata: Metadata = {
+  metadataBase: new URL((process.env.APP_URL || 'https://portal.ghsbarrie.ca').replace(/\/$/, '')),
   title: 'Lead Generator Training — Home Depot Home Services (Georgian Water & Air)',
-  description: 'In-store training and certification for Georgian Water & Air lead generators at The Home Depot.',
+  description: OG_DESC,
   robots: { index: false, follow: false },
+  openGraph: {
+    title: 'Lead Generator Training — Georgian Water & Air',
+    description: OG_DESC,
+    type: 'website',
+    images: [{ url: '/training/og-training.jpg', width: 1200, height: 630, alt: 'GWA Lead Generator Training' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Lead Generator Training — Georgian Water & Air',
+    description: OG_DESC,
+    images: ['/training/og-training.jpg'],
+  },
 };
 
 export default async function TrainingPage({ params }: { params: { token: string } }) {
