@@ -291,7 +291,7 @@ export function TrainingFlow({ token, dealerName, bundles }: { token: string; de
       {navRow(phase === 'signoff', curIdx >= 3, false, <SectionIcon name="signoff" className="h-4 w-4" />, t.steps.signoff, () => goPhase('signoff'))}
 
       <div className="mt-auto overflow-hidden rounded-xl bg-gradient-to-br from-brand-600 to-brand-900 p-4 text-white">
-        <div className="font-[cursive] text-lg leading-tight">Clean Water,<br />Brighter Homes,<br />Stronger Communities</div>
+        <div className="font-serif text-lg italic leading-tight">Clean Water,<br />Brighter Homes,<br />Stronger Communities</div>
         <div className="mt-2 text-[11px] text-white/70">Office: {dealerName}</div>
       </div>
     </nav>
@@ -302,13 +302,30 @@ export function TrainingFlow({ token, dealerName, bundles }: { token: string; de
     const today = new Date().toLocaleDateString(lang === 'fr' ? 'fr-CA' : 'en-CA');
     return (
       <>
-        <style>{`@media print { main { background: #fff !important; } .cert-noprint { display: none !important; } }`}</style>
+        <style>{`@media print {
+          /* The training page's full-bleed FIXED background photo blanks the
+             printout in Chrome. Rather than depend on diagnosing that, isolate
+             the certificate: hide everything, then show only the certificate at
+             the page origin. Bulletproof regardless of the page background. */
+          html, body { background: #fff !important; }
+          body * { visibility: hidden !important; }
+          #cert-print, #cert-print * { visibility: visible !important; }
+          #cert-print {
+            position: absolute !important; left: 0 !important; right: 0 !important; top: 0 !important;
+            margin: 0 auto !important; max-width: 760px !important;
+            box-shadow: none !important;
+          }
+          main { background: #fff !important; background-image: none !important; background-attachment: scroll !important; min-height: 0 !important; }
+          .cert-noprint { display: none !important; }
+          * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        }`}</style>
         <div className="cert-noprint"><TopBar t={t} pct={100} initials={initialsOf(name)} lang={lang} setLang={setLang} langs={available} showProgress={false} /></div>
         <div className="mx-auto max-w-3xl px-4 py-8">
           <p className="cert-noprint mb-4 text-center text-lg font-bold text-slate-900">{t.doneTitle} <span className="font-normal text-slate-500">{tpl(t.doneSub, { first: name.trim().split(' ')[0] })}</span></p>
 
           {/* The printable certificate */}
           <div
+            id="cert-print"
             className="relative overflow-hidden rounded-3xl bg-white p-2 shadow-xl shadow-slate-300/40 ring-1 ring-slate-200 print:shadow-none print:ring-0"
             style={{ printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact' } as CSSProperties}
           >
@@ -328,7 +345,7 @@ export function TrainingFlow({ token, dealerName, bundles }: { token: string; de
                 <div className="mx-auto mt-2 h-px w-20 bg-brand-900/30" />
 
                 <p className="mt-6 text-sm text-slate-500">{t.certAwarded}</p>
-                <p className="mt-1 font-[cursive] text-4xl text-slate-900">{name.trim()}</p>
+                <p className="mt-1 font-serif text-4xl font-semibold tracking-wide text-slate-900">{name.trim()}</p>
                 <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-slate-600">{t.certProgram}.</p>
 
                 <dl className="mx-auto mt-9 grid max-w-lg grid-cols-2 gap-x-6 gap-y-3 text-left text-sm">
@@ -339,7 +356,7 @@ export function TrainingFlow({ token, dealerName, bundles }: { token: string; de
                 </dl>
 
                 <div className="mx-auto mt-9 max-w-lg border-t border-slate-200 pt-5">
-                  <p className="font-[cursive] text-2xl text-slate-900">{signature.trim()}</p>
+                  <p className="font-serif text-2xl italic text-slate-900">{signature.trim()}</p>
                   <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">— Digitally signed —</p>
                   <p className="mt-3 text-[11px] leading-relaxed text-slate-400">{tpl(t.signedBy, { sig: signature.trim(), n: RULES.length })}</p>
                 </div>
@@ -570,7 +587,7 @@ export function TrainingFlow({ token, dealerName, bundles }: { token: string; de
               </div>
               <div className="mt-5 rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-4">
                 <label className="block"><span className="mb-1 block text-xs font-semibold text-slate-600">{t.signLabel}</span>
-                  <input value={signature} onChange={(e) => setSignature(e.target.value)} placeholder={t.phSign} className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 font-[cursive] text-xl text-slate-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" /></label>
+                  <input value={signature} onChange={(e) => setSignature(e.target.value)} placeholder={t.phSign} className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 font-serif text-xl italic text-slate-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" /></label>
                 <p className="mt-2 text-[11px] text-slate-500">{t.signConsent}</p>
               </div>
               <div className="mt-6 flex items-center justify-between border-t border-slate-100 pt-5">
