@@ -90,6 +90,13 @@ provider-agnostic SMTP (`src/lib/email.ts`), so this is **config, not code**.
   **Next (after approval):** create SES SMTP creds → set EB env vars → test. Do NOT
   change the portal's email env vars while still in sandbox (sandbox only delivers to
   verified addresses, so real dealers wouldn't receive mail until production access lands).
+- **2026-10-16 — ✅ DONE / LIVE.** Production access granted (50k/day, 14/sec). Created
+  IAM SMTP user (classic `ses:SendRawEmail`, not Mail Manager). Set EB env: `SMTP_HOST`
+  = `email-smtp.ca-central-1.amazonaws.com`, `SMTP_PORT`=587, `SMTP_USER`/`SMTP_PASS` =
+  SES SMTP creds, `EMAIL_FROM`=`gwadealerportal@ghsbarrie.ca`, `EMAIL_FROM_NAME`=`Georgian
+  Water & Air`, `EMAIL_REPLY_TO`=`gwadealerportal@ghsbarrie.ca`. **Test email verified:**
+  `mailed-by mail.ghsbarrie.ca`, `signed-by ghsbarrie.ca`, no "via amazonses.com". Portal
+  email fully on SES. Follow-up: retire the `hello@` Gmail app password (no longer used).
 
 ## After cutover
 - `hello@ghsbarrie.ca`: remove its App Password / stop using it for SMTP entirely;
