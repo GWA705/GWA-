@@ -39,7 +39,10 @@ export default async function TrainingPage({ params }: { params: { token: string
   const bundles = LANGS.map((l) => localizedBundle(base, l));
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-slate-100 via-slate-50 to-white">
+    <main
+      className="min-h-screen bg-slate-100 bg-cover bg-fixed bg-center"
+      style={{ backgroundImage: "linear-gradient(to bottom, rgba(241,245,249,0.45), rgba(241,245,249,0.25)), url('/training/trainee-hero.webp')" }}
+    >
       <TrainingFlow token={params.token} dealerName={dealer.name} bundles={bundles} />
     </main>
   );

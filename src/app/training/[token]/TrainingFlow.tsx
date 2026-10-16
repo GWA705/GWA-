@@ -179,7 +179,7 @@ export function TrainingFlow({ token, dealerName, bundles }: { token: string; de
     </button>
   );
   const sidebar = (
-    <nav className="flex h-full flex-col gap-1 overflow-hidden rounded-2xl bg-white p-3 ring-1 ring-slate-200">
+    <nav className="flex h-full flex-col gap-1 overflow-hidden rounded-2xl bg-white/80 p-3 shadow-xl shadow-slate-900/10 ring-1 ring-white/60 backdrop-blur-md">
       {navRow(phase === 'intake', true, curIdx > 0, <SectionIcon name="expectations" className="h-4 w-4" />, t.steps.info, () => goPhase('intake'))}
       {navRow(phase === 'learn', curIdx >= 1, curIdx > 1, <SectionIcon name="quiz" className="h-4 w-4" />, t.steps.learn, () => goPhase('learn', learnIdx))}
       {phase === 'learn' && (
@@ -253,8 +253,8 @@ export function TrainingFlow({ token, dealerName, bundles }: { token: string; de
         {/* Left section nav (desktop) */}
         <div className="hidden w-64 flex-none self-stretch lg:block">{sidebar}</div>
 
-        {/* Main content */}
-        <main className="min-w-0 flex-1">
+        {/* Main content — kept to the left so the hero photo shows through on the right */}
+        <main className="w-full min-w-0 max-w-[760px]">
           {error && (
             <div className="mb-4 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-3.5 text-sm text-red-800">
               <AlertIcon className="mt-0.5 h-4 w-4 flex-none text-red-500" /> <span>{error}</span>
@@ -399,14 +399,6 @@ export function TrainingFlow({ token, dealerName, bundles }: { token: string; de
             </div>
           )}
         </main>
-
-        {/* Right hero image (wide screens) */}
-        <aside className="hidden w-[320px] flex-none xl:block">
-          <div className="sticky top-24 overflow-hidden rounded-2xl ring-1 ring-slate-200">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/training/trainee-hero.webp" alt="Georgian Water & Air lead generator at The Home Depot" className="h-[520px] w-full object-cover" />
-          </div>
-        </aside>
       </div>
     </>
   );
