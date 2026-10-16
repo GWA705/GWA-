@@ -49,6 +49,20 @@ jobs:
         id: ecr
         uses: aws-actions/amazon-ecr-login@v2
 
+      # The Dockerfile pulls its base image (node:20) from public.ecr.aws.
+      # Anonymous pulls from GitHub's shared runner IPs intermittently hit the
+      # registry's data limit ("toomanyrequests: Data limit exceeded"), which
+      # fails the build for reasons unrelated to our code. Authenticating lifts
+      # that limit. Best-effort: if the IAM user lacks ecr-public permissions
+      # this is skipped and the build proceeds exactly as before (never worse).
+      # To make it always-on, grant the deploy user ecr-public:GetAuthorizationToken
+      # and sts:GetServiceBearerToken.
+      - name: Log in to Amazon ECR Public (for base-image pulls)
+        continue-on-error: true
+        uses: aws-actions/amazon-ecr-login@v2
+        with:
+          registry-type: public
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
