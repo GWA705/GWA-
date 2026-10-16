@@ -1,6 +1,8 @@
 import Link from 'next/link';
+import { notFound } from 'next/navigation';
 import { randomBytes } from 'crypto';
 import { requireDealerAccess } from '@/lib/session';
+import { isTrainingEnabledForDealer } from '@/lib/training-content';
 import { prisma } from '@/lib/db';
 import { TrainingLinkCard } from './TrainingLinkCard';
 
@@ -13,6 +15,10 @@ function baseUrl() {
 export default async function DealerTrainingPage() {
   const user = await requireDealerAccess();
   const dealerId = user.dealerId as string;
+
+  // Rolled out office-by-office — hide the page entirely for offices not yet
+  // switched on (matches the nav gating in the dealer layout).
+  if (!(await isTrainingEnabledForDealer(dealerId))) notFound();
 
   // Ensure this office has a training link token (lazily created, idempotent).
   let dealer = await prisma.dealer.findUnique({ where: { id: dealerId }, select: { name: true, trainingToken: true } });

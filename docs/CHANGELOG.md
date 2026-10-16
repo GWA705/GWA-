@@ -61,6 +61,10 @@ source of truth; this file is the human-readable index.
 - **Preview as a trainee** — the admin Training records page has a "See it as a lead generator would"
   office picker that opens the live `/training/<token>` flow in a new tab (generating that office's token
   on the fly), so admins can preview without a dealer login (`/admin/training/preview`).
+- **Per-office rollout gate** — Admin → Training records has a "Who can use it" office checklist
+  (`training.enabledOffices` app setting). Only ticked offices see the **Lead Gen Training** nav item and
+  page; the dealer page 404s for offices not switched on. Start with just Georgian Water & Air and add
+  others later; leave all unticked to open it to every office (same rollout idea as lead texting).
 - tsc clean, **534 tests** (9 new: custom-quiz scoring, localization, admin-editor coercion), build green.
 
 ### Lead Generator Training & Certification (public, no-login) (2026-10-16)

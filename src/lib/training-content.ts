@@ -51,6 +51,42 @@ export async function resetTrainingOverride(): Promise<void> {
   await setSetting(TRAINING_CONTENT_KEY, '');
 }
 
+// ---------------------------------------------------------------------------
+// Rollout gating: which offices can see + use the Lead Gen Training module.
+// Stored as a JSON array of dealer ids in app settings. Semantics:
+//   unset / empty  -> ALL offices (the default, and "turn it on for everyone"),
+//   non-empty list -> ONLY those offices (start with just Georgian Water & Air,
+//                     add more as they're ready — same idea as lead-texting).
+// ---------------------------------------------------------------------------
+export const TRAINING_OFFICES_KEY = 'training.enabledOffices';
+
+/** The office allowlist, or null when training is open to every office. */
+export async function getTrainingEnabledOffices(): Promise<string[] | null> {
+  const raw = await getSetting(TRAINING_OFFICES_KEY);
+  if (!raw) return null;
+  try {
+    const arr = JSON.parse(raw);
+    if (!Array.isArray(arr)) return null;
+    const ids = arr.filter((x): x is string => typeof x === 'string' && x.length > 0);
+    return ids.length ? ids : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Whether a given office may see + use the training module. */
+export async function isTrainingEnabledForDealer(dealerId: string | null | undefined): Promise<boolean> {
+  if (!dealerId) return false;
+  const list = await getTrainingEnabledOffices();
+  return list === null ? true : list.includes(dealerId);
+}
+
+/** Save the office allowlist. An empty list clears it (back to all offices). */
+export async function setTrainingEnabledOffices(ids: string[]): Promise<void> {
+  const clean = Array.from(new Set(ids.filter((x) => typeof x === 'string' && x.length > 0)));
+  await setSetting(TRAINING_OFFICES_KEY, clean.length ? JSON.stringify(clean) : '');
+}
+
 export interface LocalizedBundle {
   lang: Lang;
   sections: Section[];

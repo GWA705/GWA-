@@ -1,5 +1,7 @@
 import Link from 'next/link';
 import { requireAdminSection } from '@/lib/session';
+import { getTrainingEnabledOffices } from '@/lib/training-content';
+import { saveTrainingOfficesAction } from './actions';
 import { prisma } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
@@ -28,13 +30,15 @@ export default async function AdminTrainingPage({ searchParams }: { searchParams
       orderBy: { name: 'asc' },
       select: { id: true, name: true },
     }),
-    // All active offices, for the "preview as a trainee" picker.
+    // All active offices, for the "preview as a trainee" picker and rollout list.
     prisma.dealer.findMany({
       where: { active: true },
       orderBy: { name: 'asc' },
       select: { id: true, name: true },
     }),
   ]);
+  const enabledOffices = await getTrainingEnabledOffices();
+  const enabledSet = new Set(enabledOffices ?? []);
 
   const total = certs.length;
   const passed = certs.filter((c) => c.passed).length;
@@ -65,6 +69,31 @@ export default async function AdminTrainingPage({ searchParams }: { searchParams
           </a>
         </div>
       </div>
+
+      {/* Rollout: which offices can see + use training. */}
+      <form action={saveTrainingOfficesAction} className="rounded-xl border border-gray-200 bg-white p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <div className="text-sm font-semibold text-gray-900">Who can use it</div>
+            <p className="mt-0.5 text-xs text-gray-500">
+              Tick the offices that can see &amp; use Lead Gen Training. Start with just Georgian Water &amp; Air and add
+              others when they’re ready. <b>Leave every box unticked to open it to all offices.</b>
+            </p>
+          </div>
+          <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${enabledOffices ? 'bg-amber-100 text-amber-800' : 'bg-green-100 text-green-700'}`}>
+            {enabledOffices ? `Limited to ${enabledOffices.length} office${enabledOffices.length === 1 ? '' : 's'}` : 'Open to all offices'}
+          </span>
+        </div>
+        <div className="mt-3 grid grid-cols-1 gap-x-4 gap-y-1.5 sm:grid-cols-2 lg:grid-cols-3">
+          {activeOffices.map((o) => (
+            <label key={o.id} className="flex items-center gap-2 text-sm text-gray-700">
+              <input type="checkbox" name="offices" value={o.id} defaultChecked={enabledSet.has(o.id)} className="h-4 w-4 flex-none" />
+              <span className="truncate">{o.name}</span>
+            </label>
+          ))}
+        </div>
+        <button type="submit" className="mt-3 rounded-lg bg-brand-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-brand-700">Save who can use it</button>
+      </form>
 
       <div className="rounded-xl border border-gray-200 bg-slate-50/60 p-4">
         <div className="text-sm font-semibold text-gray-900">See it as a lead generator would</div>
