@@ -34,22 +34,51 @@ function IconBadge({ name, className = 'h-14 w-14', icon = 'h-7 w-7' }: { name: 
   );
 }
 
-function RenderBlock({ b }: { b: Block }) {
-  if (b.type === 'p') return <p className="text-[15px] leading-relaxed text-slate-600">{b.text}</p>;
+// Placeholders in the training copy that get swapped for the trainee's first
+// name once they've entered it (English + French forms).
+const NAME_TOKENS = ['[your name]', '[votre nom]'];
+function personalize(text: string, firstName: string): string {
+  if (!firstName) return text;
+  let out = text;
+  for (const tok of NAME_TOKENS) out = out.split(tok).join(firstName);
+  return out;
+}
+
+function RenderBlock({ b, firstName }: { b: Block; firstName: string }) {
+  if (b.type === 'p') return <p className="text-[15px] leading-relaxed text-slate-600">{personalize(b.text, firstName)}</p>;
   if (b.type === 'ul') return (
     <ul className="space-y-2">
       {b.items.map((it, i) => (
         <li key={i} className="flex items-start gap-3 rounded-xl bg-slate-50/80 px-3.5 py-2.5 text-[15px] leading-relaxed text-slate-700 ring-1 ring-slate-100">
           <span className="mt-0.5 flex h-5 w-5 flex-none items-center justify-center rounded-full bg-brand-50 text-brand-600"><CheckMark className="h-3.5 w-3.5" /></span>
-          <span className="min-w-0">{it}</span>
+          <span className="min-w-0">{personalize(it, firstName)}</span>
         </li>
       ))}
     </ul>
   );
+  if (b.type === 'img') return (
+    <figure className="overflow-hidden rounded-xl ring-1 ring-slate-200">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={b.src} alt={b.alt} className="w-full object-contain" />
+      {b.caption && <figcaption className="bg-slate-50 px-3 py-2 text-center text-xs text-slate-500">{b.caption}</figcaption>}
+    </figure>
+  );
+  if (b.type === 'qa') return (
+    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div className="flex items-start gap-3 border-l-4 border-brand-500 bg-brand-50/50 px-4 py-3">
+        <span className="flex h-6 w-6 flex-none items-center justify-center rounded-md bg-brand-600 text-[11px] font-bold text-white">Q</span>
+        <p className="text-[15px] font-semibold leading-snug text-slate-900">{personalize(b.q, firstName)}</p>
+      </div>
+      <div className="flex items-start gap-3 px-4 py-3">
+        <span className="flex h-6 w-6 flex-none items-center justify-center rounded-md bg-green-100 text-[11px] font-bold text-green-700">A</span>
+        <p className="text-[15px] leading-relaxed text-slate-600">{personalize(b.a, firstName)}</p>
+      </div>
+    </div>
+  );
   return (
     <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50/60 p-4">
       <span className="mt-0.5 flex h-6 w-6 flex-none items-center justify-center rounded-lg bg-amber-100 text-amber-600"><AlertIcon className="h-4 w-4" /></span>
-      <p className="text-[15px] font-medium leading-relaxed text-amber-900">{b.text}</p>
+      <p className="text-[15px] font-medium leading-relaxed text-amber-900">{personalize(b.text, firstName)}</p>
     </div>
   );
 }
@@ -136,6 +165,7 @@ export function TrainingFlow({ token, dealerName, bundles }: { token: string; de
   const allAcked = RULES.every((r) => acked.has(r.id));
   const liveScore = useMemo(() => scoreQuiz(answers, QUIZ), [answers, QUIZ]);
 
+  const firstName = name.trim().split(/\s+/)[0] || '';
   const curIdx = ORDER.indexOf(phase);
   const pct = phase === 'done' ? 100
     : phase === 'learn' ? Math.round(((1 + (learnIdx + 1) / (SECTIONS.length + 1)) / 4) * 100)
@@ -303,7 +333,7 @@ export function TrainingFlow({ token, dealerName, bundles }: { token: string; de
                     <span key={i} className={`h-1.5 rounded-full transition-all ${i === learnIdx ? 'w-6 bg-brand-600' : i < learnIdx ? 'w-1.5 bg-brand-100' : 'w-1.5 bg-slate-200'}`} />
                   ))}
                 </div>
-                <div className="space-y-3">{s.blocks.map((b, i) => <RenderBlock key={i} b={b} />)}</div>
+                <div className="space-y-3">{s.blocks.map((b, i) => <RenderBlock key={i} b={b} firstName={firstName} />)}</div>
                 <div className="mt-7 flex items-center justify-between border-t border-slate-100 pt-5">
                   <button onClick={() => { if (learnIdx === 0) setPhase('intake'); else setLearnIdx(learnIdx - 1); window.scrollTo({ top: 0 }); }}
                     className="rounded-lg px-3 py-2 text-sm font-medium text-slate-500 hover:text-slate-800">{t.back}</button>

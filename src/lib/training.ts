@@ -11,7 +11,9 @@ export const PASS_THRESHOLD = 80; // percent needed to pass the quiz
 export type Block =
   | { type: 'p'; text: string }
   | { type: 'ul'; items: string[] }
-  | { type: 'note'; text: string }; // emphasised callout
+  | { type: 'note'; text: string } // emphasised callout
+  | { type: 'img'; src: string; alt: string; caption?: string }
+  | { type: 'qa'; q: string; a: string }; // question + answer card
 
 export interface Section {
   id: string;
@@ -108,16 +110,17 @@ export const SECTIONS: Section[] = [
         'Anything found in high levels, we make recommendations to help improve your water — no cost or obligation.',
         'A great opportunity to learn about your water and get a $25 Home Depot gift card for your time.',
       ] },
+      { type: 'img', src: '/training/gift-card-25.webp', alt: 'Receive a $25 Home Depot gift card with a free water test', caption: 'The card you hand out — a $25 Home Depot gift card plus a FREE water test.' },
     ],
   },
   {
     id: 'questions',
     title: 'Answering customer questions',
     blocks: [
-      { type: 'p', text: '“What do you test for?” — We test anything inorganic in your water, like rock or metals.' },
-      { type: 'p', text: '“Do you test for bacteria?” / “I just had my water tested, it’s clean.” — I’m glad to hear that! We do not test for organics / microbiological compounds. We test for inorganics and the long-term effects they MAY have on your home or appliances.' },
-      { type: 'p', text: '“Are you going to try and sell me something?” — We are Home Depot Home Services’ water treatment specialists. We do in-home testing to guarantee any recommendation could actually solve an issue you may be experiencing. There is no cost or obligation; if you have a need and choose to work with us, wonderful. If not, you still receive your gift card for taking the time to learn about your water.' },
-      { type: 'p', text: '“Do I fill up a bottle and bring it back here?” — No, we come to you and do the test with you at the kitchen sink, so you get all the results on the spot. Anything in high levels, we make recommendations to help — no cost or obligation.' },
+      { type: 'qa', q: '“What do you test for?”', a: 'We test anything inorganic in your water, like rock or metals.' },
+      { type: 'qa', q: '“Do you test for bacteria?” / “I just had my water tested, it’s clean.”', a: 'I’m glad to hear that! We do not test for organics / microbiological compounds. We test for inorganics and the long-term effects they MAY have on your home or appliances.' },
+      { type: 'qa', q: '“Are you going to try and sell me something?”', a: 'We are Home Depot Home Services’ water treatment specialists. We do in-home testing to guarantee any recommendation could actually solve an issue you may be experiencing. There is no cost or obligation; if you have a need and choose to work with us, wonderful. If not, you still receive your gift card for taking the time to learn about your water.' },
+      { type: 'qa', q: '“Do I fill up a bottle and bring it back here?”', a: 'No, we come to you and do the test with you at the kitchen sink, so you get all the results on the spot. Anything in high levels, we make recommendations to help — no cost or obligation.' },
     ],
   },
   {
@@ -270,16 +273,17 @@ export const SECTIONS_FR: Section[] = [
         'Pour tout élément trouvé en forte concentration, nous faisons des recommandations pour améliorer votre eau — sans frais ni obligation.',
         'Une belle occasion d’en apprendre sur votre eau et d’obtenir une carte-cadeau Home Depot de 25 $ pour votre temps.',
       ] },
+      { type: 'img', src: '/training/gift-card-25.webp', alt: 'Recevez une carte-cadeau Home Depot de 25 $ avec une analyse d’eau gratuite', caption: 'La carte que vous remettez — une carte-cadeau Home Depot de 25 $ et une analyse d’eau GRATUITE.' },
     ],
   },
   {
     id: 'questions',
     title: 'Répondre aux questions des clients',
     blocks: [
-      { type: 'p', text: '« Que testez-vous? » — Nous testons tout ce qui est inorganique dans votre eau, comme la roche ou les métaux.' },
-      { type: 'p', text: '« Testez-vous les bactéries? » / « Je viens de faire tester mon eau, elle est propre. » — Tant mieux! Nous ne testons pas les composés organiques / microbiologiques. Nous testons les éléments inorganiques et les effets à long terme qu’ils POURRAIENT avoir sur votre maison ou vos appareils.' },
-      { type: 'p', text: '« Allez-vous essayer de me vendre quelque chose? » — Nous sommes les spécialistes du traitement de l’eau de Home Depot Home Services. Nous faisons des tests à domicile pour garantir qu’une recommandation pourrait réellement régler un problème que vous vivez. Il n’y a ni frais ni obligation; si vous avez un besoin et choisissez de travailler avec nous, tant mieux. Sinon, vous recevez quand même votre carte-cadeau pour avoir pris le temps d’en apprendre sur votre eau.' },
-      { type: 'p', text: '« Est-ce que je remplis une bouteille et je la rapporte ici? » — Non, nous venons chez vous et faisons le test avec vous à l’évier de la cuisine, pour que vous ayez tous les résultats sur-le-champ. Pour tout élément en forte concentration, nous faisons des recommandations pour aider — sans frais ni obligation.' },
+      { type: 'qa', q: '« Que testez-vous? »', a: 'Nous testons tout ce qui est inorganique dans votre eau, comme la roche ou les métaux.' },
+      { type: 'qa', q: '« Testez-vous les bactéries? » / « Je viens de faire tester mon eau, elle est propre. »', a: 'Tant mieux! Nous ne testons pas les composés organiques / microbiologiques. Nous testons les éléments inorganiques et les effets à long terme qu’ils POURRAIENT avoir sur votre maison ou vos appareils.' },
+      { type: 'qa', q: '« Allez-vous essayer de me vendre quelque chose? »', a: 'Nous sommes les spécialistes du traitement de l’eau de Home Depot Home Services. Nous faisons des tests à domicile pour garantir qu’une recommandation pourrait réellement régler un problème que vous vivez. Il n’y a ni frais ni obligation; si vous avez un besoin et choisissez de travailler avec nous, tant mieux. Sinon, vous recevez quand même votre carte-cadeau pour avoir pris le temps d’en apprendre sur votre eau.' },
+      { type: 'qa', q: '« Est-ce que je remplis une bouteille et je la rapporte ici? »', a: 'Non, nous venons chez vous et faisons le test avec vous à l’évier de la cuisine, pour que vous ayez tous les résultats sur-le-champ. Pour tout élément en forte concentration, nous faisons des recommandations pour aider — sans frais ni obligation.' },
     ],
   },
   {
