@@ -1,13 +1,10 @@
 import { prisma } from './db';
 import { sendEmail } from './email';
 import { PASS_THRESHOLD } from './training';
+import { traineeEmailHtml, officeEmailHtml } from './training-email-template';
 
 function appUrl(): string {
   return (process.env.APP_URL || 'https://portal.ghsbarrie.ca').replace(/\/$/, '');
-}
-
-function esc(s: string): string {
-  return s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] as string));
 }
 
 /**
@@ -38,22 +35,16 @@ export async function sendTrainingCertificationEmails(params: {
       }),
     ]);
     const officeName = dealer?.name || 'your office';
-    const result = passed ? 'passed' : 'did not reach the passing score';
+    const base = appUrl();
+    const date = new Date().toLocaleDateString('en-CA');
+    const firstName = (traineeName || '').trim().split(/\s+/)[0] || '';
 
-    // 1) Trainee confirmation.
+    // 1) Trainee confirmation — designed HTML certificate email.
     if (traineeEmail) {
-      const html = `
-        <p>Hi ${esc(traineeName || 'there')},</p>
-        <p>Thank you for completing the Home Depot in-store training with <strong>${esc(officeName)}</strong>.</p>
-        <p>Your result: <strong>${score}%</strong> — you ${result} (pass mark ${PASS_THRESHOLD}%).</p>
-        ${passed
-          ? `<p>You're all set. Your office has a copy of your certificate on file.</p>`
-          : `<p>You can retake the training using the same link from your office whenever you're ready.</p>`}
-        <p>— Georgian Water &amp; Air</p>`;
       await sendEmail({
         to: traineeEmail,
-        subject: passed ? 'Your Home Depot training certificate' : 'Your Home Depot training result',
-        html,
+        subject: passed ? 'You’re certified — Home Depot in-store training ✓' : 'Your Home Depot training result',
+        html: traineeEmailHtml({ appUrl: base, firstName, office: officeName, score, passed, passThreshold: PASS_THRESHOLD, date }),
       });
     }
 
@@ -62,16 +53,11 @@ export async function sendTrainingCertificationEmails(params: {
       new Set(officeUsers.map((u) => (u.notificationEmail || u.email || '').trim()).filter(Boolean)),
     );
     if (officeTo.length) {
-      const link = `${appUrl()}/dealer/training/${certId}`;
-      const html = `
-        <p>A lead generator has completed the Home Depot training.</p>
-        <p><strong>${esc(traineeName || 'Trainee')}</strong> — score ${score}% (${passed ? 'passed' : 'incomplete'}).</p>
-        <p>View the certificate record: <a href="${link}">${link}</a></p>
-        <p>— GWA Dealer Portal</p>`;
+      const link = `${base}/dealer/training/${certId}`;
       await sendEmail({
         to: officeTo.join(', '),
         subject: `Training completed — ${traineeName || 'lead generator'} (${score}%)`,
-        html,
+        html: officeEmailHtml({ appUrl: base, traineeName, office: officeName, score, passed, link, date }),
       });
     }
   } catch (e) {
