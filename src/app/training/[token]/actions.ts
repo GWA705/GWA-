@@ -40,7 +40,11 @@ export async function submitTrainingAction(
   if (!check.ok) return { ok: false, error: check.error };
 
   const answers = payload.answers || {};
-  const { score, passed } = scoreQuiz(answers, quiz);
+  const { passed } = scoreQuiz(answers, quiz);
+  // Under the mastery model the final answers are all correct, so the meaningful
+  // score is the FIRST attempt (what they knew before the teach-then-retry loop).
+  const firstAnswers = payload.firstAnswers && Object.keys(payload.firstAnswers).length ? payload.firstAnswers : answers;
+  const { score } = scoreQuiz(firstAnswers, quiz);
   const lang = payload.lang === 'fr' ? 'fr' : 'en';
   const ua = headers().get('user-agent')?.slice(0, 300) || null;
 
@@ -63,7 +67,9 @@ export async function submitTrainingAction(
         contentVersion: CONTENT_VERSION,
         // Snapshot the exact program the trainee saw so the certificate always
         // renders faithfully, even if an admin edits the quiz/rules later.
-        contentSnapshot: { quiz, rules } as unknown as Prisma.InputJsonValue,
+        // Also snapshot the first-attempt answers so the "what to review" record
+        // and the emailed answer-review PDF reflect what they originally missed.
+        contentSnapshot: { quiz, rules, firstAnswers } as unknown as Prisma.InputJsonValue,
         language: lang,
         ipAddress: ip === 'unknown' ? null : ip,
         userAgent: ua,
@@ -79,6 +85,12 @@ export async function submitTrainingAction(
       traineeEmail: (payload.traineeEmail || '').trim(),
       score,
       passed,
+      // Extra context for the emailed PDFs (certificate + answer review).
+      startDate: (payload.startDate || '').trim() || null,
+      signatureName: (payload.signatureName || '').trim(),
+      lang,
+      quiz,
+      firstAnswers,
     });
     return { ok: true, certificationId: cert.id, score };
   } catch (e) {

@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition, type ReactNode, type CSSProperties } from 'react';
 import {
-  PASS_THRESHOLD, CONTENT_VERSION, scoreQuiz, STRINGS, LANGS,
+  CONTENT_VERSION, STRINGS, LANGS,
   type Block, type SubmitResult, type Lang, type Section, type QuizQuestion, type Rule, type TrainingStrings,
 } from '@/lib/training';
 import { submitTrainingAction } from './actions';
@@ -25,6 +25,16 @@ function tpl(s: string, vars: Record<string, string | number>): string {
 function initialsOf(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   return (parts.slice(0, 2).map((w) => w[0]?.toUpperCase()).join('') || '').slice(0, 2);
+}
+// Fisher–Yates shuffle (returns a new array). Used to randomize question order
+// and answer-option order each attempt, so reps can't be coached to "pick C".
+function shuffle<T>(arr: T[]): T[] {
+  const r = arr.slice();
+  for (let i = r.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [r[i], r[j]] = [r[j], r[i]];
+  }
+  return r;
 }
 
 function IconBadge({ name, className = 'h-14 w-14', icon = 'h-7 w-7' }: { name: string; className?: string; icon?: string }) {
@@ -164,10 +174,34 @@ export function TrainingFlow({ token, dealerName, bundles }: { token: string; de
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<SubmitResult | null>(null);
 
-  const allAnswered = useMemo(() => QUIZ.every((q) => typeof answers[q.id] === 'number'), [QUIZ, answers]);
-  const answeredCount = QUIZ.filter((q) => typeof answers[q.id] === 'number').length;
   const allAcked = RULES.every((r) => acked.has(r.id));
-  const liveScore = useMemo(() => scoreQuiz(answers, QUIZ), [answers, QUIZ]);
+
+  // Quiz: question ids and per-question option order are shuffled (display only).
+  // Question ids + option *indices* are stable across languages, so these
+  // mappings stay valid if the trainee switches EN/FR mid-quiz.
+  const quizById = useMemo(() => {
+    const m: Record<string, QuizQuestion> = {};
+    for (const q of QUIZ) m[q.id] = q;
+    return m;
+  }, [QUIZ]);
+  const [qOrder] = useState<string[]>(() => shuffle(bundle.quiz.map((q) => q.id)));
+  const [optOrder, setOptOrder] = useState<Record<string, number[]>>(() => {
+    const m: Record<string, number[]> = {};
+    for (const q of bundle.quiz) m[q.id] = shuffle(q.options.map((_, i) => i));
+    return m;
+  });
+  // Mastery retry loop: everyone must reach 100%. Each round asks `roundIds`;
+  // after "check", misses are shown with the right answer, then only those are
+  // re-asked (options reshuffled) until none are wrong.
+  const [roundIds, setRoundIds] = useState<string[]>(() => bundle.quiz.map((q) => q.id));
+  const [quizStage, setQuizStage] = useState<'answer' | 'review'>('answer');
+  const [attempt, setAttempt] = useState(1);
+  const [firstAnswers, setFirstAnswers] = useState<Record<string, number> | null>(null);
+
+  const roundOrdered = qOrder.filter((id) => roundIds.includes(id)); // this round's ids in shuffled order
+  const roundAnswered = roundIds.every((id) => typeof answers[id] === 'number');
+  const roundAnsweredCount = roundIds.filter((id) => typeof answers[id] === 'number').length;
+  const roundWrong = roundIds.filter((id) => answers[id] !== quizById[id]?.correct);
 
   const firstName = name.trim().split(/\s+/)[0] || '';
   const curIdx = ORDER.indexOf(phase);
@@ -190,11 +224,33 @@ export function TrainingFlow({ token, dealerName, bundles }: { token: string; de
       const res = await submitTrainingAction(token, {
         traineeName: name, traineeEmail: email, traineePhone: phone,
         traineeAddress: address, traineeCity: city, traineePostal: postal, startDate,
-        answers, acknowledged: Array.from(acked), signatureName: signature, lang,
+        answers, firstAnswers: firstAnswers || answers,
+        acknowledged: Array.from(acked), signatureName: signature, lang,
       });
       if (!res.ok) { setError(res.error || t.errGeneric); return; }
       setResult(res); setPhase('done'); window.scrollTo({ top: 0 });
     });
+  }
+  // Grade the current round → go to the review screen. Capture the first-attempt
+  // answers once (they drive the "what to review" record + emailed PDF).
+  function checkRound() {
+    if (attempt === 1 && !firstAnswers) setFirstAnswers({ ...answers });
+    setError(null); setQuizStage('review'); window.scrollTo({ top: 0 });
+  }
+  // Re-ask only the ones still wrong, with their options reshuffled.
+  function retryRound() {
+    const wrong = roundIds.filter((id) => answers[id] !== quizById[id]?.correct);
+    setOptOrder((prev) => {
+      const m = { ...prev };
+      for (const id of wrong) m[id] = shuffle((quizById[id]?.options || []).map((_, i) => i));
+      return m;
+    });
+    setAnswers((prev) => {
+      const a = { ...prev };
+      for (const id of wrong) delete a[id];
+      return a;
+    });
+    setRoundIds(wrong); setAttempt((a) => a + 1); setQuizStage('answer'); window.scrollTo({ top: 0 });
   }
   // Navigation: can jump to any phase up to the furthest one reached (never skip ahead).
   function goPhase(target: Phase, sectionIdx?: number) {
@@ -256,35 +312,37 @@ export function TrainingFlow({ token, dealerName, bundles }: { token: string; de
             className="relative overflow-hidden rounded-3xl bg-white p-2 shadow-xl shadow-slate-300/40 ring-1 ring-slate-200 print:shadow-none print:ring-0"
             style={{ printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact' } as CSSProperties}
           >
-            <div className="rounded-[20px] border-2 border-brand-100 px-6 py-8 text-center sm:px-10 sm:py-10">
+            <div className="relative overflow-hidden rounded-[20px] border-4 border-[#f96302] px-6 py-10 text-center sm:px-12">
+              {/* Home Depot orange outer frame + GWA navy inner line */}
+              <span aria-hidden className="pointer-events-none absolute inset-[6px] rounded-[14px] border-2 border-brand-900" />
+              <span aria-hidden className="pointer-events-none absolute inset-[11px] rounded-[10px] border border-[#f9a06b]" />
+              {/* Faint GWA icon watermark for depth */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/gwa-hd-partners.png" alt="Georgian Water & Air — Authorized Home Depot Home Services installer" className="mx-auto h-16 w-auto" />
+              <img src="/training/gwa-icon-mark.png" alt="" aria-hidden className="pointer-events-none absolute left-1/2 top-[54%] w-[340px] max-w-[72%] -translate-x-1/2 -translate-y-1/2 opacity-[0.06]" />
 
-              <div className="mt-6 text-[11px] font-semibold uppercase tracking-[0.3em] text-brand-600">{t.certTitle}</div>
-              <div className="mx-auto mt-2 h-px w-20 bg-brand-100" />
+              <div className="relative">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/gwa-hd-partners.png" alt="Georgian Water & Air — Authorized Home Depot Home Services installer" className="mx-auto h-24 w-auto sm:h-28" />
 
-              <p className="mt-6 text-sm text-slate-500">{t.certAwarded}</p>
-              <p className="mt-1 font-[cursive] text-4xl text-slate-900">{name.trim()}</p>
-              <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-slate-600">{t.certProgram}.</p>
+                <div className="mt-6 text-[11px] font-semibold uppercase tracking-[0.3em] text-brand-700">{t.certTitle}</div>
+                <div className="mx-auto mt-2 h-px w-20 bg-brand-900/30" />
 
-              <div className="mt-7 flex justify-center">
-                <div className="flex h-24 w-24 flex-col items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-brand-900 text-white shadow-lg shadow-brand-600/25 ring-4 ring-brand-100">
-                  <span className="text-[9px] font-semibold uppercase tracking-wide text-white/70">Score</span>
-                  <span className="text-2xl font-bold">{result.score ?? 0}%</span>
+                <p className="mt-6 text-sm text-slate-500">{t.certAwarded}</p>
+                <p className="mt-1 font-[cursive] text-4xl text-slate-900">{name.trim()}</p>
+                <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-slate-600">{t.certProgram}.</p>
+
+                <dl className="mx-auto mt-9 grid max-w-lg grid-cols-2 gap-x-6 gap-y-3 text-left text-sm">
+                  <div><dt className="text-xs text-slate-400">{t.dealerLabel}</dt><dd className="font-semibold text-slate-900">{dealerName}</dd></div>
+                  {startDate && <div><dt className="text-xs text-slate-400">{t.startDate}</dt><dd className="font-semibold text-slate-900">{startDate}</dd></div>}
+                  <div><dt className="text-xs text-slate-400">{t.dateLabel}</dt><dd className="font-semibold text-slate-900">{today}</dd></div>
+                  <div><dt className="text-xs text-slate-400">{t.versionLabel}</dt><dd className="font-semibold text-slate-900">{CONTENT_VERSION}</dd></div>
+                </dl>
+
+                <div className="mx-auto mt-9 max-w-lg border-t border-slate-200 pt-5">
+                  <p className="font-[cursive] text-2xl text-slate-900">{signature.trim()}</p>
+                  <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">— Digitally signed —</p>
+                  <p className="mt-3 text-[11px] leading-relaxed text-slate-400">{tpl(t.signedBy, { sig: signature.trim(), n: RULES.length })}</p>
                 </div>
-              </div>
-
-              <dl className="mx-auto mt-8 grid max-w-lg grid-cols-2 gap-x-6 gap-y-3 text-left text-sm">
-                <div><dt className="text-xs text-slate-400">{t.dealerLabel}</dt><dd className="font-semibold text-slate-900">{dealerName}</dd></div>
-                {startDate && <div><dt className="text-xs text-slate-400">{t.startDate}</dt><dd className="font-semibold text-slate-900">{startDate}</dd></div>}
-                <div><dt className="text-xs text-slate-400">{t.dateLabel}</dt><dd className="font-semibold text-slate-900">{today}</dd></div>
-                <div><dt className="text-xs text-slate-400">{t.versionLabel}</dt><dd className="font-semibold text-slate-900">{CONTENT_VERSION}</dd></div>
-              </dl>
-
-              <div className="mx-auto mt-8 max-w-lg border-t border-slate-200 pt-5">
-                <p className="font-[cursive] text-2xl text-slate-900">{signature.trim()}</p>
-                <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">— Digitally signed —</p>
-                <p className="mt-3 text-[11px] leading-relaxed text-slate-400">{tpl(t.signedBy, { sig: signature.trim(), n: RULES.length })}</p>
               </div>
             </div>
           </div>
@@ -382,47 +440,109 @@ export function TrainingFlow({ token, dealerName, bundles }: { token: string; de
             );
           })()}
 
-          {/* ---- QUIZ ---- */}
-          {phase === 'quiz' && (
+          {/* ---- QUIZ (answer round) ---- */}
+          {phase === 'quiz' && quizStage === 'answer' && (
             <div className={card}>
               <div className="mb-5 flex items-center gap-4">
                 <IconBadge name="quiz" />
                 <div className="min-w-0">
-                  <h2 className="text-lg font-bold text-slate-900">{t.quizTitle}</h2>
-                  <p className="mt-0.5 text-sm text-slate-500">{tpl(t.quizSub, { n: QUIZ.length, p: PASS_THRESHOLD })}</p>
+                  <h2 className="text-lg font-bold text-slate-900">{attempt === 1 ? t.quizTitle : t.retryTitle}</h2>
+                  <p className="mt-0.5 text-sm text-slate-500">{attempt === 1 ? tpl(t.quizSub, { n: QUIZ.length }) : t.retrySub}</p>
                 </div>
-                <span className="ml-auto flex-none rounded-full bg-brand-50 px-3 py-1 text-xs font-bold tabular-nums text-brand-700">{answeredCount}/{QUIZ.length}</span>
+                <span className="ml-auto flex-none rounded-full bg-brand-50 px-3 py-1 text-xs font-bold tabular-nums text-brand-700">{roundAnsweredCount}/{roundIds.length}</span>
               </div>
               <div className="space-y-5">
-                {QUIZ.map((q, qi) => (
-                  <div key={q.id} className="rounded-2xl bg-slate-50/70 p-4 ring-1 ring-slate-100">
-                    <p className="mb-3 flex gap-2 text-sm font-semibold text-slate-900">
-                      <span className="flex h-5 w-5 flex-none items-center justify-center rounded-full bg-brand-600 text-[11px] font-bold text-white">{qi + 1}</span>
-                      <span className="min-w-0">{q.q}</span>
-                    </p>
-                    <div className="grid gap-2">
-                      {q.options.map((opt, oi) => {
-                        const sel = answers[q.id] === oi;
-                        return (
-                          <button key={oi} type="button" onClick={() => setAnswers({ ...answers, [q.id]: oi })}
-                            className={`flex items-center gap-2.5 rounded-xl border px-3.5 py-2.5 text-left text-sm transition ${sel ? 'border-brand-500 bg-white font-medium text-brand-700 ring-2 ring-brand-100' : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'}`}>
-                            <span className={`flex h-4 w-4 flex-none items-center justify-center rounded-full border ${sel ? 'border-brand-600 bg-brand-600' : 'border-slate-300'}`}>{sel && <span className="h-1.5 w-1.5 rounded-full bg-white" />}</span>
-                            <span className="min-w-0">{opt}</span>
-                          </button>
-                        );
-                      })}
+                {roundOrdered.map((qid, qi) => {
+                  const q = quizById[qid];
+                  if (!q) return null;
+                  const order = optOrder[qid] || q.options.map((_, i) => i);
+                  return (
+                    <div key={qid} className="rounded-2xl bg-slate-50/70 p-4 ring-1 ring-slate-100">
+                      <p className="mb-3 flex gap-2 text-sm font-semibold text-slate-900">
+                        <span className="flex h-5 w-5 flex-none items-center justify-center rounded-full bg-brand-600 text-[11px] font-bold text-white">{qi + 1}</span>
+                        <span className="min-w-0">{q.q}</span>
+                      </p>
+                      <div className="grid gap-2">
+                        {order.map((ci) => {
+                          const sel = answers[qid] === ci;
+                          return (
+                            <button key={ci} type="button" onClick={() => setAnswers({ ...answers, [qid]: ci })}
+                              className={`flex items-center gap-2.5 rounded-xl border px-3.5 py-2.5 text-left text-sm transition ${sel ? 'border-brand-500 bg-white font-medium text-brand-700 ring-2 ring-brand-100' : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'}`}>
+                              <span className={`flex h-4 w-4 flex-none items-center justify-center rounded-full border ${sel ? 'border-brand-600 bg-brand-600' : 'border-slate-300'}`}>{sel && <span className="h-1.5 w-1.5 rounded-full bg-white" />}</span>
+                              <span className="min-w-0">{q.options[ci]}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
               <div className="mt-6 flex items-center justify-between border-t border-slate-100 pt-5">
                 <button onClick={() => { setPhase('learn'); setLearnIdx(SECTIONS.length - 1); window.scrollTo({ top: 0 }); }} className="rounded-lg px-3 py-2 text-sm font-medium text-slate-500 hover:text-slate-800">{t.review}</button>
-                <button disabled={!allAnswered} onClick={() => { setError(null); setPhase('signoff'); window.scrollTo({ top: 0 }); }}
+                <button disabled={!roundAnswered} onClick={checkRound}
                   className="rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand-600/25 hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none">
-                  {allAnswered ? (liveScore.passed ? tpl(t.continueScored, { s: liveScore.score }) : t.continuePlain) : tpl(t.answerAll, { n: QUIZ.length })}
+                  {roundAnswered ? t.checkAnswers : tpl(t.answerAll, { n: roundIds.length })}
                 </button>
               </div>
-              {allAnswered && !liveScore.passed && <p className="mt-2 text-right text-xs font-medium text-amber-700">{tpl(t.quizBelow, { s: liveScore.score })}</p>}
+            </div>
+          )}
+
+          {/* ---- QUIZ (review / teach step) ---- */}
+          {phase === 'quiz' && quizStage === 'review' && (
+            <div className={card}>
+              {roundWrong.length === 0 ? (
+                <>
+                  <div className="mb-5 flex items-center gap-4">
+                    <span className="flex h-14 w-14 flex-none items-center justify-center rounded-2xl bg-green-100 text-green-600"><CheckBadge className="h-7 w-7" /></span>
+                    <div className="min-w-0">
+                      <h2 className="text-lg font-bold text-slate-900">{t.reviewPerfectTitle}</h2>
+                      <p className="mt-0.5 text-sm text-slate-500">{t.reviewPerfectSub}</p>
+                    </div>
+                  </div>
+                  <div className="mt-6 flex items-center justify-end border-t border-slate-100 pt-5">
+                    <button onClick={() => { setPhase('signoff'); window.scrollTo({ top: 0 }); }}
+                      className="rounded-xl bg-green-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-green-600/25 hover:bg-green-700">{t.continueSignoff}</button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="mb-5 flex items-center gap-4">
+                    <span className="flex h-14 w-14 flex-none items-center justify-center rounded-2xl bg-amber-100 text-amber-600"><AlertIcon className="h-7 w-7" /></span>
+                    <div className="min-w-0">
+                      <h2 className="text-lg font-bold text-slate-900">{t.reviewWrongTitle}</h2>
+                      <p className="mt-0.5 text-sm text-slate-500">{tpl(t.reviewWrongSub, { m: roundWrong.length, n: roundIds.length })}</p>
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    {roundWrong.map((qid) => {
+                      const q = quizById[qid];
+                      if (!q) return null;
+                      const picked = answers[qid];
+                      return (
+                        <div key={qid} className="overflow-hidden rounded-2xl border border-red-200 bg-red-50/60">
+                          <p className="border-b border-red-100 px-4 py-3 text-sm font-semibold text-slate-900">{q.q}</p>
+                          <div className="space-y-1.5 px-4 py-3">
+                            <p className="flex items-start gap-2 text-sm text-red-700">
+                              <span className="font-bold">✗</span>
+                              <span><span className="font-semibold">{t.yourAnswerLabel}:</span> {typeof picked === 'number' ? q.options[picked] : '—'}</span>
+                            </p>
+                            <p className="flex items-start gap-2 text-sm text-green-700">
+                              <span className="font-bold">✓</span>
+                              <span><span className="font-semibold">{t.correctAnswerLabel}:</span> <span className="rounded bg-green-100 px-1.5 py-0.5 font-medium">{q.options[q.correct]}</span></span>
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <p className="mt-4 text-xs text-slate-500">{t.reviewForFuture}</p>
+                  <div className="mt-6 flex items-center justify-end border-t border-slate-100 pt-5">
+                    <button onClick={retryRound}
+                      className="rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand-600/25 hover:bg-brand-700">{t.tryAgain}</button>
+                  </div>
+                </>
+              )}
             </div>
           )}
 

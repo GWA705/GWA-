@@ -6,7 +6,7 @@
 // can always prove what a trainee agreed to on a given date.
 
 export const CONTENT_VERSION = '2026-09-23';
-export const PASS_THRESHOLD = 80; // percent needed to pass the quiz
+export const PASS_THRESHOLD = 100; // percent needed to pass — every answer must be correct (mastery)
 
 export type Block =
   | { type: 'p'; text: string }
@@ -361,6 +361,9 @@ export interface TrainingStrings {
   errName: string; errEmail: string; errPhone: string; errAddress: string; errStartDate: string; errGeneric: string;
   sectionOf: string; back: string; next: string; startQuiz: string;
   quizTitle: string; quizSub: string; review: string; continueScored: string; continuePlain: string; answerAll: string; quizBelow: string;
+  checkAnswers: string; retryTitle: string; retrySub: string;
+  reviewPerfectTitle: string; reviewPerfectSub: string; reviewWrongTitle: string; reviewWrongSub: string;
+  yourAnswerLabel: string; correctAnswerLabel: string; tryAgain: string; continueSignoff: string; reviewForFuture: string;
   signoffTitle: string; signoffSub: string; signLabel: string; phSign: string; signConsent: string;
   submitting: string; submit: string; tickAll: string;
   doneTitle: string; doneSub: string; certTitle: string; score: string;
@@ -379,14 +382,19 @@ export const STRINGS: Record<Lang, TrainingStrings> = {
     intakeSub: 'A quick, visual walkthrough of how to work a Home Depot booth, a short quiz, and a sign-off. Takes about 10–15 minutes.',
     fullName: 'Full name', phone: 'Phone', email: 'Email', address: 'Street address',
     city: 'City', postal: 'Postal code', startDate: 'Start date', yourOffice: 'Your office',
-    phName: 'Jamie Lee', phPhone: '705-555-0123', phEmail: 'you@email.com', phAddress: '74 Brown Bear Street', phCity: 'Barrie', phPostal: 'L4M 1A1',
+    phName: 'Jamie Lee', phPhone: '705-555-0123', phEmail: 'you@email.com', phAddress: '123 Main Street', phCity: 'Barrie', phPostal: 'L4M 1A1',
     start: 'Start training →',
     intakeConsent: 'We collect your name and contact details only to record that you completed this training.',
     errName: 'Please enter your full name.', errEmail: 'Please enter a valid email address.', errPhone: 'Please enter a valid phone number.', errAddress: 'Please enter your full address (street, city, postal code).', errStartDate: 'Please choose your start date.', errGeneric: 'Something went wrong.',
     sectionOf: 'Section {i} of {n}', back: '← Back', next: 'Next →', startQuiz: 'Start the quiz →',
-    quizTitle: 'Quick quiz', quizSub: 'Answer all {n}. You need {p}% to pass — you can retry.',
+    quizTitle: 'Quick quiz', quizSub: 'Answer all {n}. You need every one right — we’ll show you any you miss and let you try just those again.',
     review: '← Review', continueScored: 'Continue ({s}%) →', continuePlain: 'Continue →', answerAll: 'Answer all {n}',
     quizBelow: 'You’re at {s}%. Review the sections and adjust before signing.',
+    checkAnswers: 'Check my answers →', retryTitle: 'Try these again', retrySub: 'Pick the right answer for each. The order is reshuffled.',
+    reviewPerfectTitle: 'Perfect — you got them all! ✓', reviewPerfectSub: 'You answered every question correctly.',
+    reviewWrongTitle: 'Let’s lock these in', reviewWrongSub: 'You missed {m} of {n}. Here are the right answers — then you’ll retry just these to finish.',
+    yourAnswerLabel: 'Your answer', correctAnswerLabel: 'Correct answer', tryAgain: 'Try these again →', continueSignoff: 'Continue to sign-off →',
+    reviewForFuture: 'Keep these in mind on the floor.',
     signoffTitle: 'Sign off on the rules', signoffSub: 'Tick each one to confirm you understand, then sign.',
     signLabel: 'Type your full name to sign', phSign: 'Your full name',
     signConsent: 'By signing, I confirm I have read and understand the Home Depot in-store rules above and agree to follow them.',
@@ -407,14 +415,19 @@ export const STRINGS: Record<Lang, TrainingStrings> = {
     intakeSub: 'Un parcours visuel rapide sur la façon de tenir un kiosque Home Depot, un court questionnaire et un engagement. Environ 10 à 15 minutes.',
     fullName: 'Nom complet', phone: 'Téléphone', email: 'Courriel', address: 'Adresse (rue)',
     city: 'Ville', postal: 'Code postal', startDate: 'Date de début', yourOffice: 'Votre bureau',
-    phName: 'Jamie Lee', phPhone: '705-555-0123', phEmail: 'vous@courriel.com', phAddress: '74, rue Brown Bear', phCity: 'Barrie', phPostal: 'L4M 1A1',
+    phName: 'Jamie Lee', phPhone: '705-555-0123', phEmail: 'vous@courriel.com', phAddress: '123, rue Principale', phCity: 'Barrie', phPostal: 'L4M 1A1',
     start: 'Commencer la formation →',
     intakeConsent: 'Nous recueillons votre nom et vos coordonnées uniquement pour consigner que vous avez terminé cette formation.',
     errName: 'Veuillez entrer votre nom complet.', errEmail: 'Veuillez entrer une adresse courriel valide.', errPhone: 'Veuillez entrer un numéro de téléphone valide.', errAddress: 'Veuillez entrer votre adresse complète (rue, ville, code postal).', errStartDate: 'Veuillez choisir votre date de début.', errGeneric: 'Une erreur est survenue.',
     sectionOf: 'Section {i} sur {n}', back: '← Retour', next: 'Suivant →', startQuiz: 'Commencer le questionnaire →',
-    quizTitle: 'Court questionnaire', quizSub: 'Répondez aux {n}. Il faut {p} % pour réussir — vous pouvez réessayer.',
+    quizTitle: 'Court questionnaire', quizSub: 'Répondez aux {n}. Il faut toutes les bonnes réponses — nous vous montrerons celles manquées et vous pourrez les reprendre.',
     review: '← Revoir', continueScored: 'Continuer ({s} %) →', continuePlain: 'Continuer →', answerAll: 'Répondez aux {n}',
     quizBelow: 'Vous êtes à {s} %. Revoyez les sections et ajustez avant de signer.',
+    checkAnswers: 'Vérifier mes réponses →', retryTitle: 'Reprenez celles-ci', retrySub: 'Choisissez la bonne réponse pour chacune. L’ordre est remélangé.',
+    reviewPerfectTitle: 'Parfait — toutes bonnes! ✓', reviewPerfectSub: 'Vous avez répondu correctement à toutes les questions.',
+    reviewWrongTitle: 'Fixons celles-ci', reviewWrongSub: 'Vous avez manqué {m} sur {n}. Voici les bonnes réponses — puis vous reprendrez seulement celles-ci pour terminer.',
+    yourAnswerLabel: 'Votre réponse', correctAnswerLabel: 'Bonne réponse', tryAgain: 'Reprendre celles-ci →', continueSignoff: 'Continuer vers l’engagement →',
+    reviewForFuture: 'Gardez-les en tête sur le plancher.',
     signoffTitle: 'Engagement envers les règles', signoffSub: 'Cochez chacune pour confirmer que vous comprenez, puis signez.',
     signLabel: 'Tapez votre nom complet pour signer', phSign: 'Votre nom complet',
     signConsent: 'En signant, je confirme avoir lu et compris les règles en magasin de Home Depot ci-dessus et je m’engage à les respecter.',
@@ -536,7 +549,8 @@ export interface TrainingSubmission {
   traineeCity?: string;
   traineePostal?: string;
   startDate?: string; // YYYY-MM-DD
-  answers?: Record<string, number>;
+  answers?: Record<string, number>; // final answers (all correct under mastery)
+  firstAnswers?: Record<string, number>; // answers on the FIRST attempt, before any retry — drives the "what to review" record/PDF
   acknowledged?: string[]; // rule ids checked
   signatureName?: string;
   lang?: Lang; // language the trainee completed in (display only; scoring is language-independent)

@@ -61,11 +61,11 @@ export function traineeEmailHtml(a: TraineeEmailArgs): string {
       <p style="margin:0 0 18px;">Congratulations — you've <strong>successfully completed</strong> the Home Depot in-store Lead Generator Training with ${strong(office)}. You're ready to represent Georgian Water &amp; Air on the floor.</p>
       ${resultCard([
         { label: 'Result', value: passedPill },
-        { label: 'Score', value: strong(`${a.score}%`) },
         { label: 'Office', value: office },
         { label: 'Date completed', value: a.date },
       ])}
-      <p style="margin:18px 0 0;">A copy of your certificate is on file with your office. On every shift, remember: ${strong('steel-toe boots, your Home Depot badge, and your apron')} — and no phones on the floor.</p>
+      <p style="margin:18px 0 0;">Your <strong>certificate of completion</strong> and a full <strong>answer review</strong> are attached to this email (PDF) — save them for your records. A copy is also on file with your office.</p>
+      <p style="margin:14px 0 0;">On every shift, remember: ${strong('steel-toe boots, your Home Depot badge, and your apron')} — and no phones on the floor.</p>
       <p style="margin:16px 0 0;">Welcome to the team!</p>`;
     return shell(a.appUrl, hero, body);
   }
@@ -97,7 +97,7 @@ export function officeEmailHtml(a: OfficeEmailArgs): string {
     ${resultCard([
       { label: 'Trainee', value: strong(name) },
       { label: 'Result', value: statusPill },
-      { label: 'Score', value: strong(`${a.score}%`) },
+      { label: 'First-try score', value: strong(`${a.score}%`) },
       { label: 'Date', value: a.date },
     ])}
     <p style="margin:18px 0 16px;">The full record — answers, rules acknowledged, typed signature, IP &amp; time — is saved for Home Depot compliance.</p>

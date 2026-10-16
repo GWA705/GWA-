@@ -38,6 +38,27 @@ source of truth; this file is the human-readable index.
 | HD Resolution ↔ Gmail email link | ✅ **Live & verified** (2026-10-07, Sean) | Read-only Gmail via the existing service account (`gwa-journal-writer@gwa-portal-504012…`, project **"GWA Portal"** `gwa-portal-504012`, Unique ID `100470797238569934976`), impersonating `sean@ghsbarrie.ca` + the `HD Resolution` label. All switches done: Gmail API enabled, Workspace domain-wide delegation (`…/auth/gmail.readonly`), `GMAIL_RESOLUTION_USER=sean@ghsbarrie.ca` on EB. **Verified end-to-end** — the Email inbox lists real HD threads and "Open as case" links the thread + auto-fills. 30-min sync `resolution-email-sync.yml` (reuses `CRON_SECRET`). Steps/facts: `HD-RESOLUTION-EMAIL.md`, `BUILD-FACTS.md`. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### Lead Gen Training — 100% mastery quiz, shuffle, teach-then-retry, emailed PDFs (2026-10-16)
+- **Quiz is now 100%-to-pass (mastery).** `PASS_THRESHOLD` 80 → 100. The certificate no
+  longer prints a score (it just certifies completion + date); the first-attempt score is
+  still recorded internally and shown in the office email as "first-try score".
+- **Anti-coaching randomization.** Question order **and** answer-option order are shuffled
+  on every attempt (display-only; the client submits canonical option indices, so server
+  scoring is unchanged and EN/FR switching mid-quiz stays valid).
+- **Teach-then-retry loop.** On "Check my answers", any misses are shown with the correct
+  answer (red cards), then only the missed questions are re-asked with options reshuffled,
+  until the trainee reaches 100%. First-attempt answers are captured + snapshotted
+  (`contentSnapshot.firstAnswers`) so the record/PDF reflect what they originally missed.
+- **Emailed PDFs** (`src/lib/training-pdf.ts`, pdf-lib — pure JS, runs in the prod
+  container). The trainee's completion email now attaches (1) their **certificate of
+  completion** (co-branded logo enlarged, Home Depot orange + GWA navy frame, faint GWA
+  icon watermark, no score) and (2) an **answer-review** PDF (every question, correct
+  answers, first-attempt misses flagged). Base-14 fonts only (no fontkit dependency); the
+  on-screen printable certificate matches.
+- Address placeholder changed from a real-looking street to a generic "123 Main Street".
+- Not yet shipped (awaiting content approval): a rotating **question bank** ("ask N of a
+  larger pool") so reps get genuinely different sets over time — drafted, pending sign-off.
+
 ### Email: Amazon SES migration started (2026-10-16)
 - Began moving the portal's outgoing email off the `hello@` Gmail mailbox (which Google
   auto-suspended on 2026-10-15 under the portal's own sending volume) onto **Amazon SES**
