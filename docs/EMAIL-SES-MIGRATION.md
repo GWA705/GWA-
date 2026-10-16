@@ -12,17 +12,26 @@ breach). App email must not run through a human mailbox.
 handling, won't suspend your Google account). We're already on AWS. The code is
 provider-agnostic SMTP (`src/lib/email.ts`), so this is **config, not code**.
 
-## Target addressing (decided)
-- **From:** `notifications@ghsbarrie.ca` — send-only; **needs NO Google Workspace
-  mailbox/seat** (SES sends it directly once the domain is DKIM-verified).
-- **Reply-To:** `hello@ghsbarrie.ca` — a real, monitored mailbox, so dealer replies
-  still reach a person. `hello@` goes back to being a normal human mailbox and
-  never sends automated mail again.
-- (Optional best practice: send from a **subdomain** `notifications@mail.ghsbarrie.ca`
-  to isolate sending reputation from the root domain. More DNS; skip for v1.)
+## Target addressing (decided 2026-10-16)
+- **From:** `gwadealerportal@ghsbarrie.ca` — a **Google Group** (not a user mailbox,
+  so **no seat/cost**). SES sends it directly once the domain is DKIM-verified; the
+  group also receives, so stray replies and bounce notices reach a person.
+- **From name:** `Georgian Water & Air` (brand kit — never "GWA" alone in anything
+  customer-facing).
+- **Reply-To:** `gwadealerportal@ghsbarrie.ca` (the same group, so replies reach the
+  whole team). Can be set to `hello@ghsbarrie.ca` instead in Admin → Email if
+  preferred — it's a one-field change, no redeploy.
+- `hello@ghsbarrie.ca` goes back to being a normal human mailbox and never sends
+  automated mail again.
+- (Optional best practice: send from a **subdomain** `mail.ghsbarrie.ca` to isolate
+  sending reputation from the root domain. More DNS; skip for v1.)
 
 ## Steps
 
+0. **Google Group** `gwadealerportal@ghsbarrie.ca` (done 2026-10-16): set **Who can
+   post → anyone / external allowed** (so bounce notices + outside replies get in,
+   not rejected) and **add members** (whoever should see replies). The address can
+   only be one object in Workspace — it is a Group, not an alias.
 1. **SES console → region `ca-central-1`** (same region as EB/RDS; keeps data in
    Canada for PIPEDA). → **Verified identities → Create identity → Domain** →
    `ghsbarrie.ca` → enable **Easy DKIM (RSA 2048)**.
@@ -48,9 +57,9 @@ provider-agnostic SMTP (`src/lib/email.ts`), so this is **config, not code**.
    SMTP_PORT       = 587
    SMTP_USER       = <SES SMTP username>
    SMTP_PASS       = <SES SMTP password>
-   EMAIL_FROM      = notifications@ghsbarrie.ca
-   EMAIL_FROM_NAME = GWA Dealer Portal
-   EMAIL_REPLY_TO  = hello@ghsbarrie.ca
+   EMAIL_FROM      = gwadealerportal@ghsbarrie.ca
+   EMAIL_FROM_NAME = Georgian Water & Air
+   EMAIL_REPLY_TO  = gwadealerportal@ghsbarrie.ca
    ```
    Apply → environment restarts. (This also takes `hello@` out of the sending path.)
 8. **Test:** Admin → Email → Send test email (works once out of sandbox, or to a
