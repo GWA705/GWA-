@@ -114,6 +114,38 @@ export async function markLeadNoGood(
   }
 }
 
+/**
+ * Write a lead's deal outcome (Sold / Booked) into the shared HD Leads Log, in
+ * column U — the column the booking system reads so a lead the office has sold
+ * or booked here is never dialled by a booker over there. Keyed by Booking ID,
+ * exactly like the No-Good write above. `null` clears it. Column U sits clear of
+ * the No-Good block (O/P/Q) and the office Apps Script's delivery columns (S/T),
+ * so writing it disturbs nothing else.
+ */
+export async function writeLeadDeal(
+  tab: string,
+  bookingId: string,
+  deal: 'sold' | 'booked' | null,
+): Promise<{ ok: boolean; error?: string }> {
+  const id = leadsSheetId();
+  if (!id) return { ok: false, error: 'Leads sheet is not configured.' };
+  try {
+    const sheets = await writeClient();
+    const row = await findRowByBooking(sheets, id, tab, bookingId);
+    if (!row) return { ok: false, error: 'That lead was not found in the log.' };
+    const value = deal === 'sold' ? 'Sold' : deal === 'booked' ? 'Booked' : '';
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: id,
+      range: `'${tab}'!U${row}`,
+      valueInputOption: 'RAW',
+      requestBody: { values: [[value]] },
+    });
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: (e as Error).message };
+  }
+}
+
 export async function unmarkLeadNoGood(tab: string, bookingId: string): Promise<{ ok: boolean; error?: string }> {
   const id = leadsSheetId();
   if (!id) return { ok: false, error: 'Leads sheet is not configured.' };

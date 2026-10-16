@@ -9,6 +9,8 @@ import { rateLimit } from './ratelimit';
 import { LEAD_CALL_OUTCOMES } from './leadCalls';
 import { getScannedLeadForViewer } from './scannedLeads';
 import { pushScannedStatusToBooking, coarseFromCallOutcome } from './bookingPush';
+import { readLeads, parseLeadRowId, findLeadByBooking } from './leads';
+import { writeLeadDeal } from './leadsWrite';
 
 /**
  * Log a follow-up call (or a plain note) on a lead. Available to any signed-in
@@ -62,6 +64,26 @@ export async function logLeadCallAction(input: {
   if (leadKey.startsWith('scanned:')) {
     const coarse = coarseFromCallOutcome(input.outcome);
     if (coarse) await pushScannedStatusToBooking(leadKey.slice('scanned:'.length), coarse);
+  } else if (leadKey.startsWith('b:')) {
+    // An HD-feed lead (keyed by Home Depot booking id). When it's sold or booked
+    // here, record it on the shared HD Leads Log (col U) so the booking system
+    // stops offering it for a call, and push the status live as a backstop —
+    // keyed on the booking id both apps share. Fire-and-forget.
+    const coarse = coarseFromCallOutcome(input.outcome);
+    const bookingId = leadKey.slice(2).trim();
+    if (bookingId && (coarse === 'sold' || coarse === 'booked')) {
+      try {
+        const { leads } = await readLeads();
+        const parsed = (() => {
+          const lead = findLeadByBooking(leads, bookingId);
+          return lead ? parseLeadRowId(lead.rowId) : null;
+        })();
+        if (parsed) await writeLeadDeal(parsed.tab, bookingId, coarse);
+      } catch (e) {
+        console.error('[leadCall] could not write deal to the leads log', e);
+      }
+      await pushScannedStatusToBooking('', coarse, bookingId);
+    }
   }
   revalidatePath('/dealer/leads');
   revalidatePath('/staff/leads');
