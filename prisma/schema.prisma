@@ -370,6 +370,11 @@ model Dealer {
   // seeing payout dollars can turn this off, leaving payouts visible only to the
   // distributor. The distributor always sees payouts regardless of this flag.
   showPayoutsToAllUsers Boolean @default(true)
+  // Public, unguessable token backing this office's Lead-Generator training link
+  // (/training/<trainingToken>). Generated on demand from the dealer's Training
+  // page. Lets an office share the training with a new lead generator who has no
+  // portal login; every completion is auto-tagged to this dealer.
+  trainingToken String? @unique
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 
@@ -387,6 +392,38 @@ model Dealer {
   giftCardRequests GiftCardRequest[]
   businessDocuments DealerDocument[]
   scannedLeads     ScannedLead[]
+  trainingCertifications TrainingCertification[]
+}
+
+// A completed Lead-Generator training & certification. A dealer shares a public
+// link (/training/<trainingToken>); the lead generator enters their contact info,
+// works through the Home Depot in-store training, passes a quiz, and signs off on
+// the store rules. The full record — answers, score, the rules acknowledged, the
+// typed signature, the content version, and the IP + timestamp — is kept as the
+// training record for Home Depot compliance. No login required.
+model TrainingCertification {
+  id       String @id @default(cuid())
+  dealerId String
+  dealer   Dealer @relation(fields: [dealerId], references: [id], onDelete: Cascade)
+
+  traineeName    String
+  traineeEmail   String
+  traineePhone   String
+  traineeAddress String?
+
+  answers        Json    // { [questionId]: selectedOptionIndex }
+  score          Int     // percent, 0–100
+  passed         Boolean
+  acknowledged   Json    // ids of the rules the trainee acknowledged
+  signatureName  String  // typed signature (the trainee's name)
+  contentVersion String  // which version of the training they completed
+
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([dealerId])
+  @@index([createdAt])
 }
 
 // A dealer's business/compliance document (WSIB, WCB, CSST, RBQ, trade licence,

@@ -114,6 +114,7 @@ export default async function DealerLayout({ children }: { children: React.React
           ...(recordingsCount > 0 ? [{ href: '/dealer/recordings', label: 'Recordings', labelKey: 'nav.recordings' }] : []),
           { href: '/dealer/marketplace', label: 'Marketplace', labelKey: 'nav.marketplace' },
           { href: '/dealer/leads', label: 'Leads', labelKey: 'nav.leads' },
+          { href: '/dealer/training', label: 'Lead Gen Training' },
           { href: '/dealer/gift-cards', label: 'Gift cards', labelKey: 'nav.giftCards', badge: giftCardUnread },
           {
             label: 'Resources',

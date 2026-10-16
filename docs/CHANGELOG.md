@@ -38,6 +38,22 @@ source of truth; this file is the human-readable index.
 | HD Resolution ↔ Gmail email link | ✅ **Live & verified** (2026-10-07, Sean) | Read-only Gmail via the existing service account (`gwa-journal-writer@gwa-portal-504012…`, project **"GWA Portal"** `gwa-portal-504012`, Unique ID `100470797238569934976`), impersonating `sean@ghsbarrie.ca` + the `HD Resolution` label. All switches done: Gmail API enabled, Workspace domain-wide delegation (`…/auth/gmail.readonly`), `GMAIL_RESOLUTION_USER=sean@ghsbarrie.ca` on EB. **Verified end-to-end** — the Email inbox lists real HD threads and "Open as case" links the thread + auto-fills. 30-min sync `resolution-email-sync.yml` (reuses `CRON_SECRET`). Steps/facts: `HD-RESOLUTION-EMAIL.md`, `BUILD-FACTS.md`. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### Lead Generator Training & Certification (public, no-login) (2026-10-16)
+- New **public training module** for new in-store lead generators (asked for by Home Depot). An office
+  shares a link (`/training/<Dealer.trainingToken>`) — **no portal login needed**. The trainee enters
+  name/address/email/phone, works through an **illustrated** 10-section walkthrough built from the
+  "Intro to The Home Depot" manual (dress code, sign-in, etiquette, the pitch, objections, leads,
+  gift-card redemption, etc.), passes a **quiz** (80% to pass, retryable, re-scored server-side), and
+  **signs off** on the 10 store rules (steel-toe boots, badge, no phones on the floor, …).
+- Every completion is tagged to the sending office and **fully recorded for Home Depot compliance**:
+  answers, score, rules acknowledged, typed signature, content version, IP + timestamp
+  (`TrainingCertification` model + migration). The trainee gets a printable certificate; the office
+  sees all completions and a printable per-trainee certificate record under **Dealer → Lead Gen
+  Training**. Public submit is rate-limited (20/hr/IP).
+- Visual (SVG icons per section, progress stepper, interactive quiz cards, celebratory certificate).
+  Content lives in `src/lib/training.ts` (pure data + scoring, 8 unit tests) so questions/rules are a
+  quick edit. English-only for now (public page, like `/sms`). tsc, 525 tests, build all green.
+
 ### Serial-number fields now reject credit-card numbers (2026-10-15)
 - Dealers were entering card numbers into the serial-number inputs. Both dealer serial-save actions
   (`addSerialNumberAction`, `setProductSerialsAction`) now run the existing card-data detector
