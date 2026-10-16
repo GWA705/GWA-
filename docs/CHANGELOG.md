@@ -38,6 +38,28 @@ source of truth; this file is the human-readable index.
 | HD Resolution ↔ Gmail email link | ✅ **Live & verified** (2026-10-07, Sean) | Read-only Gmail via the existing service account (`gwa-journal-writer@gwa-portal-504012…`, project **"GWA Portal"** `gwa-portal-504012`, Unique ID `100470797238569934976`), impersonating `sean@ghsbarrie.ca` + the `HD Resolution` label. All switches done: Gmail API enabled, Workspace domain-wide delegation (`…/auth/gmail.readonly`), `GMAIL_RESOLUTION_USER=sean@ghsbarrie.ca` on EB. **Verified end-to-end** — the Email inbox lists real HD threads and "Open as case" links the thread + auto-fills. 30-min sync `resolution-email-sync.yml` (reuses `CRON_SECRET`). Steps/facts: `HD-RESOLUTION-EMAIL.md`, `BUILD-FACTS.md`. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### Lead Gen Training — GWA admin view, auto-email, admin editor, French (2026-10-16)
+- **Company-wide admin view for Home Depot.** New **Admin → Dealers → Training records**: every
+  completion across **all offices** with totals (completions / passed / offices), an office filter, a
+  per-trainee certificate record, and a **Download CSV** export (`/admin/training/export`, honours the
+  office filter) — the single record HD legal asked for. Gated by a new `training` admin section.
+- **Certificate emailed automatically on completion.** The trainee gets a pass/result email and the
+  office's portal users get a notification with a link to the record (`src/lib/training-email.ts`,
+  best-effort/non-blocking). Runs in log-only mode today; it **sends for real the moment the dedicated
+  SES sender is switched on** — no code change needed.
+- **Admin editor for the quiz & rules** (the "test questionnaire we can insert"): **Admin → Training →
+  Edit quiz & rules** — add/reorder/delete questions, edit options, pick the correct answer, edit the
+  sign-off rules; "Reset to built-in program" restores the defaults. Stored as an override in app
+  settings; the public flow and server scoring both use the **effective** program, so a trainee is
+  always judged on the exact questions shown. Each certificate now **snapshots** the quiz/rules the
+  trainee saw (+ language) so edits never rewrite earned certificates (additive migration).
+- **French (Canadian) version.** The public flow now has an **EN/FR toggle** — full French for the
+  10 sections, the quiz, the rules and all UI. French is a **display layer** over the authoritative
+  English structure (same question ids + correct answers), so scoring is identical in either language;
+  admin-added questions show in English until translated. **HD logo still pending HD approval** (left
+  off per the brand kit — greyscale until confirmed).
+- tsc clean, **534 tests** (9 new: custom-quiz scoring, localization, admin-editor coercion), build green.
+
 ### Lead Generator Training & Certification (public, no-login) (2026-10-16)
 - New **public training module** for new in-store lead generators (asked for by Home Depot). An office
   shares a link (`/training/<Dealer.trainingToken>`) — **no portal login needed**. The trainee enters

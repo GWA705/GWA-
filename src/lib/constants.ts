@@ -655,6 +655,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
   { key: 'reminders', label: 'Dealer reminders', href: '/admin/reminders' },
   { key: 'lead-texting', label: 'Lead auto-text', href: '/admin/lead-texting', hint: 'Text customers when a new lead comes in' },
   { key: 'zoom-recordings', label: 'Zoom recordings', href: '/admin/zoom-recordings', hint: 'Review & publish meeting recordings for dealers' },
+  { key: 'training', label: 'Training records', href: '/admin/training', hint: 'Lead-generator training & certification across all offices (for Home Depot)' },
   { key: 'note-templates', label: 'Quick notes', href: '/admin/note-templates' },
   { key: 'content', label: 'Content', href: '/admin/content', hint: 'Resources / promos' },
   { key: 'marketplace', label: 'Marketplace', href: '/admin/marketplace' },

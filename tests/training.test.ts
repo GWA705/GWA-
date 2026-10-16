@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { QUIZ, RULES, scoreQuiz, validateSubmission, PASS_THRESHOLD } from '@/lib/training';
+import {
+  QUIZ, RULES, scoreQuiz, validateSubmission, PASS_THRESHOLD,
+  localizeQuiz, localizeRules, coerceQuiz, coerceRules, QUIZ_FR, RULES_FR,
+  type QuizQuestion, type Rule,
+} from '@/lib/training';
 
 const allCorrect = Object.fromEntries(QUIZ.map((q) => [q.id, q.correct]));
 const allRules = RULES.map((r) => r.id);
@@ -58,5 +62,86 @@ describe('training submission validation', () => {
 
   it('requires a typed signature', () => {
     expect(validateSubmission({ ...base, signatureName: '' }).ok).toBe(false);
+  });
+});
+
+describe('custom (admin-edited) quiz + rules', () => {
+  const quiz: QuizQuestion[] = [
+    { id: 'c1', q: 'Pick A', options: ['A', 'B'], correct: 0 },
+    { id: 'c2', q: 'Pick B', options: ['A', 'B'], correct: 1 },
+  ];
+  const rules: Rule[] = [{ id: 'cr1', text: 'I agree' }];
+
+  it('scores against the supplied quiz, not the defaults', () => {
+    expect(scoreQuiz({ c1: 0, c2: 1 }, quiz).score).toBe(100);
+    expect(scoreQuiz({ c1: 1, c2: 1 }, quiz).score).toBe(50);
+  });
+
+  it('validates against supplied quiz + rules', () => {
+    const sub = { traineeName: 'Ann Lee', traineeEmail: 'a@b.com', traineePhone: '7055550123', answers: { c1: 0, c2: 1 }, acknowledged: ['cr1'], signatureName: 'Ann Lee' };
+    expect(validateSubmission(sub, quiz, rules).ok).toBe(true);
+    // Default rules would reject this (no default rule ids acknowledged).
+    expect(validateSubmission(sub, quiz).ok).toBe(false);
+  });
+});
+
+describe('localization', () => {
+  it('translates quiz display but keeps ids + correct index', () => {
+    const fr = localizeQuiz(QUIZ, 'fr');
+    for (let i = 0; i < QUIZ.length; i++) {
+      expect(fr[i].id).toBe(QUIZ[i].id);
+      expect(fr[i].correct).toBe(QUIZ[i].correct);
+      expect(fr[i].options.length).toBe(QUIZ[i].options.length);
+      if (QUIZ_FR[QUIZ[i].id]) expect(fr[i].q).toBe(QUIZ_FR[QUIZ[i].id].q);
+    }
+    // Scoring is identical regardless of language.
+    const all = Object.fromEntries(QUIZ.map((q) => [q.id, q.correct]));
+    expect(scoreQuiz(all, fr).score).toBe(100);
+  });
+
+  it('falls back to English for untranslated questions', () => {
+    const custom: QuizQuestion[] = [{ id: 'new-q', q: 'English only', options: ['x', 'y'], correct: 0 }];
+    expect(localizeQuiz(custom, 'fr')[0].q).toBe('English only');
+  });
+
+  it('translates rules by id with fallback', () => {
+    const fr = localizeRules(RULES, 'fr');
+    expect(fr[0].id).toBe(RULES[0].id);
+    if (RULES_FR[RULES[0].id]) expect(fr[0].text).toBe(RULES_FR[RULES[0].id]);
+    expect(localizeRules([{ id: 'z', text: 'keep me' }], 'fr')[0].text).toBe('keep me');
+  });
+
+  it('returns English unchanged', () => {
+    expect(localizeQuiz(QUIZ, 'en')).toBe(QUIZ);
+    expect(localizeRules(RULES, 'en')).toBe(RULES);
+  });
+});
+
+describe('coercion (admin editor input)', () => {
+  it('drops invalid questions and clamps correct index', () => {
+    const out = coerceQuiz([
+      { q: 'Good', options: ['a', 'b'], correct: 5 }, // correct out of range -> 0
+      { q: '', options: ['a', 'b'], correct: 0 },     // empty prompt -> dropped
+      { q: 'OneOpt', options: ['only'], correct: 0 }, // <2 options -> dropped
+      { q: 'Blanks', options: ['a', '', 'b'], correct: 0 }, // blank option filtered
+    ]);
+    expect(out.length).toBe(2);
+    expect(out[0].correct).toBe(0);
+    expect(out[0].id).toBeTruthy();
+    expect(out[1].options).toEqual(['a', 'b']);
+  });
+
+  it('gives questions unique ids', () => {
+    const out = coerceQuiz([
+      { q: 'Same', options: ['a', 'b'], correct: 0 },
+      { q: 'Same', options: ['a', 'b'], correct: 0 },
+    ]);
+    expect(out[0].id).not.toBe(out[1].id);
+  });
+
+  it('coerces rules from strings or objects and drops blanks', () => {
+    const out = coerceRules(['Wear boots', { text: 'Sign in' }, '', { text: '  ' }]);
+    expect(out.map((r) => r.text)).toEqual(['Wear boots', 'Sign in']);
+    expect(out.every((r) => r.id)).toBe(true);
   });
 });

@@ -2,25 +2,37 @@
 
 import { useMemo, useState, useTransition } from 'react';
 import {
-  SECTIONS, QUIZ, RULES, PASS_THRESHOLD, CONTENT_VERSION,
-  scoreQuiz, type Block, type SubmitResult,
+  PASS_THRESHOLD, CONTENT_VERSION, scoreQuiz, STRINGS, LANGS,
+  type Block, type SubmitResult, type Lang, type Section, type QuizQuestion, type Rule,
 } from '@/lib/training';
 import { submitTrainingAction } from './actions';
 import { SectionIcon, CheckBadge } from './icons';
 
 type Phase = 'intake' | 'learn' | 'quiz' | 'signoff' | 'done';
 
-function Progress({ phase, learnIdx }: { phase: Phase; learnIdx: number }) {
+export interface TrainingBundle {
+  lang: Lang;
+  sections: Section[];
+  quiz: QuizQuestion[];
+  rules: Rule[];
+}
+
+// Fill {placeholders} in a localized string.
+function tpl(s: string, vars: Record<string, string | number>): string {
+  return s.replace(/\{(\w+)\}/g, (_, k) => (k in vars ? String(vars[k]) : `{${k}}`));
+}
+
+function Progress({ phase, learnIdx, sectionCount, labels }: { phase: Phase; learnIdx: number; sectionCount: number; labels: { info: string; learn: string; quiz: string; signoff: string } }) {
   const steps = [
-    { key: 'intake', label: 'Your info' },
-    { key: 'learn', label: 'Learn' },
-    { key: 'quiz', label: 'Quiz' },
-    { key: 'signoff', label: 'Sign off' },
+    { key: 'intake', label: labels.info },
+    { key: 'learn', label: labels.learn },
+    { key: 'quiz', label: labels.quiz },
+    { key: 'signoff', label: labels.signoff },
   ];
   const order: Phase[] = ['intake', 'learn', 'quiz', 'signoff', 'done'];
   const curIdx = order.indexOf(phase);
   const pct = phase === 'done' ? 100
-    : phase === 'learn' ? Math.round(((1 + (learnIdx + 1) / (SECTIONS.length + 1)) / 4) * 100)
+    : phase === 'learn' ? Math.round(((1 + (learnIdx + 1) / (sectionCount + 1)) / 4) * 100)
     : Math.round((curIdx / 4) * 100);
   return (
     <div className="mb-6">
@@ -62,7 +74,18 @@ function RenderBlock({ b }: { b: Block }) {
   );
 }
 
-export function TrainingFlow({ token, dealerName }: { token: string; dealerName: string }) {
+export function TrainingFlow({ token, dealerName, bundles }: { token: string; dealerName: string; bundles: TrainingBundle[] }) {
+  const byLang = useMemo(() => {
+    const m = {} as Record<Lang, TrainingBundle>;
+    for (const b of bundles) m[b.lang] = b;
+    return m;
+  }, [bundles]);
+  const available = LANGS.filter((l) => byLang[l]);
+  const [lang, setLang] = useState<Lang>(available[0] || 'en');
+  const bundle = byLang[lang] || bundles[0];
+  const { sections: SECTIONS, quiz: QUIZ, rules: RULES } = bundle;
+  const t = STRINGS[lang];
+
   const [phase, setPhase] = useState<Phase>('intake');
   const [learnIdx, setLearnIdx] = useState(0);
 
@@ -79,15 +102,15 @@ export function TrainingFlow({ token, dealerName }: { token: string; dealerName:
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<SubmitResult | null>(null);
 
-  const allAnswered = useMemo(() => QUIZ.every((q) => typeof answers[q.id] === 'number'), [answers]);
-  const allAcked = acked.size === RULES.length;
-  const liveScore = useMemo(() => scoreQuiz(answers), [answers]);
+  const allAnswered = useMemo(() => QUIZ.every((q) => typeof answers[q.id] === 'number'), [QUIZ, answers]);
+  const allAcked = RULES.every((r) => acked.has(r.id));
+  const liveScore = useMemo(() => scoreQuiz(answers, QUIZ), [answers, QUIZ]);
 
   function startIntake() {
     setError(null);
-    if (name.trim().length < 2) return setError('Please enter your full name.');
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return setError('Please enter a valid email address.');
-    if (phone.replace(/\D/g, '').length < 10) return setError('Please enter a valid phone number.');
+    if (name.trim().length < 2) return setError(t.errName);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return setError(t.errEmail);
+    if (phone.replace(/\D/g, '').length < 10) return setError(t.errPhone);
     setPhase('learn'); setLearnIdx(0); window.scrollTo({ top: 0 });
   }
 
@@ -96,19 +119,31 @@ export function TrainingFlow({ token, dealerName }: { token: string; dealerName:
     start(async () => {
       const res = await submitTrainingAction(token, {
         traineeName: name, traineeEmail: email, traineePhone: phone, traineeAddress: address,
-        answers, acknowledged: Array.from(acked), signatureName: signature,
+        answers, acknowledged: Array.from(acked), signatureName: signature, lang,
       });
-      if (!res.ok) { setError(res.error || 'Something went wrong.'); return; }
+      if (!res.ok) { setError(res.error || t.errGeneric); return; }
       setResult(res); setPhase('done'); window.scrollTo({ top: 0 });
     });
   }
 
+  const langToggle = available.length > 1 && (
+    <div className="mt-3 flex justify-center gap-1 print:hidden">
+      {available.map((l) => (
+        <button key={l} type="button" onClick={() => setLang(l)}
+          className={`rounded-full px-3 py-1 text-xs font-medium ${l === lang ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+          {STRINGS[l].langName}
+        </button>
+      ))}
+    </div>
+  );
+
   const header = (
     <div className="mb-5 text-center">
-      <div className="text-sm font-semibold text-gray-900">Home Depot Home Services</div>
-      <div className="text-xs text-gray-500">in-store training — serviced by Georgian Water &amp; Air</div>
-      <h1 className="mt-2 text-2xl font-bold tracking-tight text-gray-900">Lead Generator Training</h1>
-      <div className="mt-1 text-xs text-gray-400">Office: <span className="font-medium text-gray-600">{dealerName}</span></div>
+      <div className="text-sm font-semibold text-gray-900">{t.brandTop}</div>
+      <div className="text-xs text-gray-500">{t.brandSub}</div>
+      <h1 className="mt-2 text-2xl font-bold tracking-tight text-gray-900">{t.title}</h1>
+      <div className="mt-1 text-xs text-gray-400">{t.office} <span className="font-medium text-gray-600">{dealerName}</span></div>
+      {langToggle}
     </div>
   );
 
@@ -120,30 +155,29 @@ export function TrainingFlow({ token, dealerName }: { token: string; dealerName:
           <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-green-100 text-green-600">
             <SectionIcon name="trophy" className="h-11 w-11" />
           </div>
-          <h2 className="mt-4 text-2xl font-bold text-gray-900">You’re certified! 🎉</h2>
-          <p className="mt-1 text-sm text-gray-500">Nice work, {name.trim().split(' ')[0]}. Here’s your certificate of completion.</p>
+          <h2 className="mt-4 text-2xl font-bold text-gray-900">{t.doneTitle}</h2>
+          <p className="mt-1 text-sm text-gray-500">{tpl(t.doneSub, { first: name.trim().split(' ')[0] })}</p>
 
           <div className="mt-6 rounded-xl border border-gray-200 bg-slate-50/70 p-6 text-left">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Certificate of completion</span>
-              <span className="rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-bold text-green-700">Score {result.score}%</span>
+              <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">{t.certTitle}</span>
+              <span className="rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-bold text-green-700">{tpl(t.score, { s: result.score ?? 0 })}</span>
             </div>
             <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
-              <div><dt className="text-gray-400">Name</dt><dd className="font-medium text-gray-900">{name.trim()}</dd></div>
-              <div><dt className="text-gray-400">Office / dealer</dt><dd className="font-medium text-gray-900">{dealerName}</dd></div>
-              <div><dt className="text-gray-400">Date</dt><dd className="font-medium text-gray-900">{new Date().toLocaleDateString('en-CA')}</dd></div>
-              <div><dt className="text-gray-400">Program version</dt><dd className="font-medium text-gray-900">{CONTENT_VERSION}</dd></div>
+              <div><dt className="text-gray-400">{t.fullName}</dt><dd className="font-medium text-gray-900">{name.trim()}</dd></div>
+              <div><dt className="text-gray-400">{t.dealerLabel}</dt><dd className="font-medium text-gray-900">{dealerName}</dd></div>
+              <div><dt className="text-gray-400">{t.dateLabel}</dt><dd className="font-medium text-gray-900">{new Date().toLocaleDateString(lang === 'fr' ? 'fr-CA' : 'en-CA')}</dd></div>
+              <div><dt className="text-gray-400">{t.versionLabel}</dt><dd className="font-medium text-gray-900">{CONTENT_VERSION}</dd></div>
             </dl>
             <p className="mt-4 border-t border-gray-200 pt-3 text-xs text-gray-500">
-              Signed by <span className="font-semibold text-gray-700">{signature.trim()}</span>, who acknowledged all {RULES.length} Home Depot
-              in-store rules. A full record (answers, score, acknowledgements, signature, time) has been saved for Home Depot compliance.
+              {tpl(t.signedBy, { sig: signature.trim(), n: RULES.length })}
             </p>
           </div>
 
           <div className="mt-6 flex flex-wrap justify-center gap-2 print:hidden">
-            <button onClick={() => window.print()} className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Print / save certificate</button>
+            <button onClick={() => window.print()} className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">{t.print}</button>
           </div>
-          <p className="mt-3 text-xs text-gray-400 print:hidden">Your office can see your completion in their portal. You can close this page.</p>
+          <p className="mt-3 text-xs text-gray-400 print:hidden">{t.doneFoot}</p>
         </div>
       </div>
     );
@@ -152,7 +186,7 @@ export function TrainingFlow({ token, dealerName }: { token: string; dealerName:
   return (
     <div className="mx-auto max-w-2xl px-4 py-8">
       {header}
-      {phase !== 'done' && <Progress phase={phase} learnIdx={learnIdx} />}
+      {phase !== 'done' && <Progress phase={phase} learnIdx={learnIdx} sectionCount={SECTIONS.length} labels={t.steps} />}
 
       {error && <div className="mb-4 rounded-lg border-l-4 border-red-500 bg-red-50 p-3 text-sm text-red-800">{error}</div>}
 
@@ -162,22 +196,22 @@ export function TrainingFlow({ token, dealerName }: { token: string; dealerName:
           <div className="mb-4 flex items-start gap-3">
             <div className="flex h-11 w-11 flex-none items-center justify-center rounded-xl bg-brand-50 text-brand-600"><SectionIcon name="expectations" /></div>
             <div>
-              <h2 className="text-lg font-bold text-gray-900">Welcome! Let’s get you store-ready.</h2>
-              <p className="text-sm text-gray-500">A quick, visual walkthrough of how to work a Home Depot booth, a short quiz, and a sign-off. Takes about 10–15 minutes.</p>
+              <h2 className="text-lg font-bold text-gray-900">{t.intakeTitle}</h2>
+              <p className="text-sm text-gray-500">{t.intakeSub}</p>
             </div>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
-            <label className="block"><span className="mb-1 block text-xs font-medium text-gray-700">Full name</span>
-              <input value={name} onChange={(e) => setName(e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="Jamie Lee" /></label>
-            <label className="block"><span className="mb-1 block text-xs font-medium text-gray-700">Phone</span>
-              <input value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="705-555-0123" inputMode="tel" /></label>
-            <label className="block"><span className="mb-1 block text-xs font-medium text-gray-700">Email</span>
-              <input value={email} onChange={(e) => setEmail(e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="you@email.com" inputMode="email" /></label>
-            <label className="block"><span className="mb-1 block text-xs font-medium text-gray-700">Address</span>
-              <input value={address} onChange={(e) => setAddress(e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="Street, city" /></label>
+            <label className="block"><span className="mb-1 block text-xs font-medium text-gray-700">{t.fullName}</span>
+              <input value={name} onChange={(e) => setName(e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder={t.phName} /></label>
+            <label className="block"><span className="mb-1 block text-xs font-medium text-gray-700">{t.phone}</span>
+              <input value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder={t.phPhone} inputMode="tel" /></label>
+            <label className="block"><span className="mb-1 block text-xs font-medium text-gray-700">{t.email}</span>
+              <input value={email} onChange={(e) => setEmail(e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder={t.phEmail} inputMode="email" /></label>
+            <label className="block"><span className="mb-1 block text-xs font-medium text-gray-700">{t.address}</span>
+              <input value={address} onChange={(e) => setAddress(e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder={t.phAddress} /></label>
           </div>
-          <button onClick={startIntake} className="mt-5 w-full rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700">Start training →</button>
-          <p className="mt-2 text-center text-[11px] text-gray-400">We collect your name and contact details only to record that you completed this training.</p>
+          <button onClick={startIntake} className="mt-5 w-full rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700">{t.start}</button>
+          <p className="mt-2 text-center text-[11px] text-gray-400">{t.intakeConsent}</p>
         </div>
       )}
 
@@ -186,7 +220,7 @@ export function TrainingFlow({ token, dealerName }: { token: string; dealerName:
         const s = SECTIONS[learnIdx];
         return (
           <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-            <div className="mb-1 text-xs font-medium text-gray-400">Section {learnIdx + 1} of {SECTIONS.length}</div>
+            <div className="mb-1 text-xs font-medium text-gray-400">{tpl(t.sectionOf, { i: learnIdx + 1, n: SECTIONS.length })}</div>
             <div className="mb-4 flex items-center gap-3">
               <div className="flex h-12 w-12 flex-none items-center justify-center rounded-2xl bg-brand-50 text-brand-600"><SectionIcon name={s.id} /></div>
               <h2 className="text-xl font-bold text-gray-900">{s.title}</h2>
@@ -194,11 +228,11 @@ export function TrainingFlow({ token, dealerName }: { token: string; dealerName:
             <div className="space-y-3">{s.blocks.map((b, i) => <RenderBlock key={i} b={b} />)}</div>
             <div className="mt-6 flex items-center justify-between">
               <button onClick={() => { if (learnIdx === 0) setPhase('intake'); else setLearnIdx(learnIdx - 1); window.scrollTo({ top: 0 }); }}
-                className="rounded-lg px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-800">← Back</button>
+                className="rounded-lg px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-800">{t.back}</button>
               {learnIdx < SECTIONS.length - 1 ? (
-                <button onClick={() => { setLearnIdx(learnIdx + 1); window.scrollTo({ top: 0 }); }} className="rounded-lg bg-brand-600 px-5 py-2 text-sm font-semibold text-white hover:bg-brand-700">Next →</button>
+                <button onClick={() => { setLearnIdx(learnIdx + 1); window.scrollTo({ top: 0 }); }} className="rounded-lg bg-brand-600 px-5 py-2 text-sm font-semibold text-white hover:bg-brand-700">{t.next}</button>
               ) : (
-                <button onClick={() => { setPhase('quiz'); window.scrollTo({ top: 0 }); }} className="rounded-lg bg-green-600 px-5 py-2 text-sm font-semibold text-white hover:bg-green-700">Start the quiz →</button>
+                <button onClick={() => { setPhase('quiz'); window.scrollTo({ top: 0 }); }} className="rounded-lg bg-green-600 px-5 py-2 text-sm font-semibold text-white hover:bg-green-700">{t.startQuiz}</button>
               )}
             </div>
           </div>
@@ -210,7 +244,7 @@ export function TrainingFlow({ token, dealerName }: { token: string; dealerName:
         <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
           <div className="mb-4 flex items-center gap-3">
             <div className="flex h-11 w-11 flex-none items-center justify-center rounded-xl bg-brand-50 text-brand-600"><SectionIcon name="quiz" /></div>
-            <div><h2 className="text-lg font-bold text-gray-900">Quick quiz</h2><p className="text-sm text-gray-500">Answer all {QUIZ.length}. You need {PASS_THRESHOLD}% to pass — you can retry.</p></div>
+            <div><h2 className="text-lg font-bold text-gray-900">{t.quizTitle}</h2><p className="text-sm text-gray-500">{tpl(t.quizSub, { n: QUIZ.length, p: PASS_THRESHOLD })}</p></div>
           </div>
           <div className="space-y-5">
             {QUIZ.map((q, qi) => (
@@ -232,13 +266,13 @@ export function TrainingFlow({ token, dealerName }: { token: string; dealerName:
             ))}
           </div>
           <div className="mt-6 flex items-center justify-between">
-            <button onClick={() => { setPhase('learn'); setLearnIdx(SECTIONS.length - 1); window.scrollTo({ top: 0 }); }} className="rounded-lg px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-800">← Review</button>
+            <button onClick={() => { setPhase('learn'); setLearnIdx(SECTIONS.length - 1); window.scrollTo({ top: 0 }); }} className="rounded-lg px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-800">{t.review}</button>
             <button disabled={!allAnswered} onClick={() => { setError(null); setPhase('signoff'); window.scrollTo({ top: 0 }); }}
               className="rounded-lg bg-brand-600 px-5 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-40">
-              {allAnswered ? (liveScore.passed ? `Continue (${liveScore.score}%) →` : `Continue →`) : `Answer all ${QUIZ.length}`}
+              {allAnswered ? (liveScore.passed ? tpl(t.continueScored, { s: liveScore.score }) : t.continuePlain) : tpl(t.answerAll, { n: QUIZ.length })}
             </button>
           </div>
-          {allAnswered && !liveScore.passed && <p className="mt-2 text-right text-xs text-amber-700">You’re at {liveScore.score}%. Review the sections and adjust before signing.</p>}
+          {allAnswered && !liveScore.passed && <p className="mt-2 text-right text-xs text-amber-700">{tpl(t.quizBelow, { s: liveScore.score })}</p>}
         </div>
       )}
 
@@ -247,7 +281,7 @@ export function TrainingFlow({ token, dealerName }: { token: string; dealerName:
         <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
           <div className="mb-4 flex items-center gap-3">
             <div className="flex h-11 w-11 flex-none items-center justify-center rounded-xl bg-brand-50 text-brand-600"><SectionIcon name="signoff" /></div>
-            <div><h2 className="text-lg font-bold text-gray-900">Sign off on the rules</h2><p className="text-sm text-gray-500">Tick each one to confirm you understand, then sign.</p></div>
+            <div><h2 className="text-lg font-bold text-gray-900">{t.signoffTitle}</h2><p className="text-sm text-gray-500">{t.signoffSub}</p></div>
           </div>
           <div className="space-y-2">
             {RULES.map((r) => {
@@ -261,18 +295,18 @@ export function TrainingFlow({ token, dealerName }: { token: string; dealerName:
             })}
           </div>
           <div className="mt-5 rounded-lg border border-gray-200 bg-slate-50/70 p-4">
-            <label className="block"><span className="mb-1 block text-xs font-medium text-gray-700">Type your full name to sign</span>
-              <input value={signature} onChange={(e) => setSignature(e.target.value)} placeholder="Your full name" className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 font-[cursive] text-lg text-gray-900" /></label>
-            <p className="mt-1.5 text-[11px] text-gray-500">By signing, I confirm I have read and understand the Home Depot in-store rules above and agree to follow them.</p>
+            <label className="block"><span className="mb-1 block text-xs font-medium text-gray-700">{t.signLabel}</span>
+              <input value={signature} onChange={(e) => setSignature(e.target.value)} placeholder={t.phSign} className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 font-[cursive] text-lg text-gray-900" /></label>
+            <p className="mt-1.5 text-[11px] text-gray-500">{t.signConsent}</p>
           </div>
           <div className="mt-6 flex items-center justify-between">
-            <button onClick={() => { setPhase('quiz'); window.scrollTo({ top: 0 }); }} className="rounded-lg px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-800">← Back</button>
+            <button onClick={() => { setPhase('quiz'); window.scrollTo({ top: 0 }); }} className="rounded-lg px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-800">{t.back}</button>
             <button disabled={pending || !allAcked || signature.trim().length < 2} onClick={submit}
               className="inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-5 py-2 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-40">
-              <CheckBadge className="h-4 w-4" /> {pending ? 'Submitting…' : 'Submit & get certified'}
+              <CheckBadge className="h-4 w-4" /> {pending ? t.submitting : t.submit}
             </button>
           </div>
-          {!allAcked && <p className="mt-2 text-right text-xs text-gray-400">Tick all {RULES.length} rules to continue.</p>}
+          {!allAcked && <p className="mt-2 text-right text-xs text-gray-400">{tpl(t.tickAll, { n: RULES.length })}</p>}
         </div>
       )}
     </div>

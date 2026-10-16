@@ -417,6 +417,11 @@ model TrainingCertification {
   acknowledged   Json    // ids of the rules the trainee acknowledged
   signatureName  String  // typed signature (the trainee's name)
   contentVersion String  // which version of the training they completed
+  // Snapshot of the exact quiz + rules the trainee saw ({ quiz, rules, lang }),
+  // so the certificate renders faithfully even after an admin edits the program.
+  // Null for records created before snapshots existed (fall back to defaults).
+  contentSnapshot Json?
+  language        String? // 'en' | 'fr' — the language the trainee completed in
 
   ipAddress String?
   userAgent String?
