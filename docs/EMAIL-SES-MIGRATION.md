@@ -80,6 +80,12 @@ provider-agnostic SMTP (`src/lib/email.ts`), so this is **config, not code**.
   created (external posting allowed; add members). Account is in **Sandbox**
   (200/day, 1/sec). **Next:** add DKIM + MAIL-FROM DNS records → domain Verified →
   request production access → SMTP creds → EB env vars → test.
+- **2026-10-16 (later)** — DNS host is **GoDaddy**. Added the 3 DKIM CNAMEs + the
+  MAIL FROM `mail` MX (`feedback-smtp.ca-central-1.amazonses.com`, pri 10) and
+  `mail` SPF TXT (`v=spf1 include:amazonses.com ~all`). SES domain identity
+  `ghsbarrie.ca` is now **✅ Verified** (ARN `…ses:ca-central-1:863478708936:identity/ghsbarrie.ca`).
+  Root SPF (Google) + existing `portal`/`office`/`www` records left untouched.
+  **Next:** request production access (lifts 200/day sandbox) → SMTP creds → EB env vars → test.
 
 ## After cutover
 - `hello@ghsbarrie.ca`: remove its App Password / stop using it for SMTP entirely;
