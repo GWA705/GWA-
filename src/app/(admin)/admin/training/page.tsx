@@ -11,7 +11,7 @@ export default async function AdminTrainingPage({ searchParams }: { searchParams
 
   const officeFilter = searchParams.office && searchParams.office !== 'all' ? searchParams.office : null;
 
-  const [certs, offices] = await Promise.all([
+  const [certs, offices, activeOffices] = await Promise.all([
     prisma.trainingCertification.findMany({
       where: officeFilter ? { dealerId: officeFilter } : undefined,
       orderBy: { createdAt: 'desc' },
@@ -25,6 +25,12 @@ export default async function AdminTrainingPage({ searchParams }: { searchParams
     // Offices that have at least one completion, for the filter dropdown.
     prisma.dealer.findMany({
       where: { trainingCertifications: { some: {} } },
+      orderBy: { name: 'asc' },
+      select: { id: true, name: true },
+    }),
+    // All active offices, for the "preview as a trainee" picker.
+    prisma.dealer.findMany({
+      where: { active: true },
       orderBy: { name: 'asc' },
       select: { id: true, name: true },
     }),
@@ -58,6 +64,20 @@ export default async function AdminTrainingPage({ searchParams }: { searchParams
             Download CSV
           </a>
         </div>
+      </div>
+
+      <div className="rounded-xl border border-gray-200 bg-slate-50/60 p-4">
+        <div className="text-sm font-semibold text-gray-900">See it as a lead generator would</div>
+        <p className="mt-0.5 text-xs text-gray-500">Opens the live training for an office in a new tab — the exact page a new lead generator sees (no login). Use the EN/FR toggle at the top of it to check French.</p>
+        <form action="/admin/training/preview" method="get" target="_blank" className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+          <select name="office" required defaultValue="" className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm">
+            <option value="" disabled>Choose an office…</option>
+            {activeOffices.map((o) => (
+              <option key={o.id} value={o.id}>{o.name}</option>
+            ))}
+          </select>
+          <button type="submit" className="rounded-lg bg-gray-900 px-4 py-1.5 font-semibold text-white hover:bg-black">Preview training ↗</button>
+        </form>
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">

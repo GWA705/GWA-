@@ -58,6 +58,9 @@ source of truth; this file is the human-readable index.
   English structure (same question ids + correct answers), so scoring is identical in either language;
   admin-added questions show in English until translated. **HD logo still pending HD approval** (left
   off per the brand kit — greyscale until confirmed).
+- **Preview as a trainee** — the admin Training records page has a "See it as a lead generator would"
+  office picker that opens the live `/training/<token>` flow in a new tab (generating that office's token
+  on the fly), so admins can preview without a dealer login (`/admin/training/preview`).
 - tsc clean, **534 tests** (9 new: custom-quiz scoring, localization, admin-editor coercion), build green.
 
 ### Lead Generator Training & Certification (public, no-login) (2026-10-16)
