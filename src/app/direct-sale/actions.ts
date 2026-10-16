@@ -101,14 +101,12 @@ export async function createDirectSaleAction(
     return { error: t('directSale.error.completeAdd', { items: needs.join(t('directSale.error.and')) }) };
   }
 
-  // HD-program direct sales must carry the Home Depot store, and it must be one
-  // of the owning office's stores. A GWA direct sale isn't a Home Depot deal —
-  // it carries no store.
+  // The Home Depot store is REQUIRED for an HD-program deal and OPTIONAL for a
+  // GWA direct sale (pick one when the sale was at/through a store, leave blank
+  // otherwise). Whenever a store is chosen it must be one assigned to the owning
+  // office. The store flows to the sales journal + reports for both programs.
   let homeDepotStoreId: string | null = null;
-  if (d.programType === 'HD') {
-    if (!d.homeDepotStoreId) {
-      return { error: t('directSale.error.correctFields'), fieldErrors: { homeDepotStoreId: t('directSale.error.chooseHdStore') } };
-    }
+  if (d.homeDepotStoreId) {
     const store = await prisma.homeDepotStore.findFirst({
       where: { id: d.homeDepotStoreId, dealerId },
       select: { id: true },
@@ -117,6 +115,8 @@ export async function createDirectSaleAction(
       return { error: t('directSale.error.correctFields'), fieldErrors: { homeDepotStoreId: t('directSale.error.storeNotAssigned') } };
     }
     homeDepotStoreId = store.id;
+  } else if (d.programType === 'HD') {
+    return { error: t('directSale.error.correctFields'), fieldErrors: { homeDepotStoreId: t('directSale.error.chooseHdStore') } };
   }
 
   const saleDate = new Date(d.dateOfSale);

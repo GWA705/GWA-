@@ -60,7 +60,6 @@ export function DirectSaleForm({
   // stores. A locked grantee has no picker — seed it from the fixed office.
   const [dealerId, setDealerId] = useState(fixedOffice?.id ?? defaultDealerId ?? '');
   const showFinance = FINANCED.has(paymentMethod);
-  const showHdRef = programType === 'HD';
   const officeStores = stores.filter((s) => s.dealerId === dealerId);
 
   return (
@@ -155,6 +154,42 @@ export function DirectSaleForm({
             </select>
           </div>
           <div>
+            <label className="label" htmlFor="homeDepotStoreId">
+              {t('directSale.field.hdStore')}
+              {programType !== 'HD' && <span className="font-normal text-gray-400"> {t('directSale.optional')}</span>}
+            </label>
+            {/* Which Home Depot store the sale is part of. Required for an HD
+                deal, optional for a GWA sale. key on dealerId resets a stale
+                selection when the office changes. */}
+            <select
+              key={dealerId}
+              id="homeDepotStoreId"
+              name="homeDepotStoreId"
+              required={programType === 'HD'}
+              defaultValue=""
+              disabled={officeStores.length === 0}
+              className="input"
+            >
+              <option value="" disabled={programType === 'HD'}>
+                {officeStores.length === 0 ? t('directSale.form.noStoresOption') : t('directSale.form.chooseStore')}
+              </option>
+              {officeStores.map((s) => (
+                <option key={s.id} value={s.id}>{s.number}{s.name ? ` — ${s.name}` : ''}</option>
+              ))}
+            </select>
+            {officeStores.length === 0 && (
+              <p className="mt-1 text-xs text-gray-400">{t('directSale.form.noStoresHint')}</p>
+            )}
+            <Err errors={state.fieldErrors} field="homeDepotStoreId" />
+          </div>
+          <div>
+            <label className="label" htmlFor="hdReference">
+              {t('directSale.field.hdCustomerNumber')}
+              {programType !== 'HD' && <span className="font-normal text-gray-400"> {t('directSale.optional')}</span>}
+            </label>
+            <input id="hdReference" name="hdReference" className="input" placeholder="800255118" />
+          </div>
+          <div>
             <label className="label" htmlFor="requestedAmount">{t('directSale.field.saleAmount')}</label>
             <input id="requestedAmount" name="requestedAmount" required inputMode="decimal" className="input" placeholder="5000.00" />
             <Err errors={state.fieldErrors} field="requestedAmount" />
@@ -217,36 +252,6 @@ export function DirectSaleForm({
               {PAY_METHODS.map((m) => <option key={m} value={m}>{t('enum.paymentMethod.' + m)}</option>)}
             </select>
           </div>
-          {showHdRef && (
-            <>
-              <div>
-                <label className="label" htmlFor="hdReference">{t('directSale.field.hdCustomerNumber')}</label>
-                <input id="hdReference" name="hdReference" className="input" placeholder="800255118" />
-              </div>
-              <div>
-                <label className="label" htmlFor="homeDepotStoreId">{t('directSale.field.hdStore')}</label>
-                {/* key on dealerId so switching office resets any stale selection */}
-                <select
-                  key={dealerId}
-                  id="homeDepotStoreId"
-                  name="homeDepotStoreId"
-                  required
-                  defaultValue=""
-                  disabled={officeStores.length === 0}
-                  className="input"
-                >
-                  <option value="" disabled>{officeStores.length === 0 ? t('directSale.form.noStoresOption') : t('directSale.form.chooseStore')}</option>
-                  {officeStores.map((s) => (
-                    <option key={s.id} value={s.id}>{s.number}{s.name ? ` — ${s.name}` : ''}</option>
-                  ))}
-                </select>
-                {officeStores.length === 0 && (
-                  <p className="mt-1 text-xs text-gray-400">{t('directSale.form.noStoresHint')}</p>
-                )}
-                <Err errors={state.fieldErrors} field="homeDepotStoreId" />
-              </div>
-            </>
-          )}
           {showFinance && (
             <>
               <div>

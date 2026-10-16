@@ -38,6 +38,20 @@ source of truth; this file is the human-readable index.
 | HD Resolution ↔ Gmail email link | ✅ **Live & verified** (2026-10-07, Sean) | Read-only Gmail via the existing service account (`gwa-journal-writer@gwa-portal-504012…`, project **"GWA Portal"** `gwa-portal-504012`, Unique ID `100470797238569934976`), impersonating `sean@ghsbarrie.ca` + the `HD Resolution` label. All switches done: Gmail API enabled, Workspace domain-wide delegation (`…/auth/gmail.readonly`), `GMAIL_RESOLUTION_USER=sean@ghsbarrie.ca` on EB. **Verified end-to-end** — the Email inbox lists real HD threads and "Open as case" links the thread + auto-fills. 30-min sync `resolution-email-sync.yml` (reuses `CRON_SECRET`). Steps/facts: `HD-RESOLUTION-EMAIL.md`, `BUILD-FACTS.md`. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### Direct sale: HD store + HD number on GWA sales too (2026-10-16)
+- The Direct Sale entry's Home Depot store picker now shows for **Georgian Water & Air**
+  program sales, not just HD. It's **required for an HD deal** (unchanged) and **optional for
+  a GWA sale** (pick one when it happened at/through a store, leave blank otherwise). Any store
+  chosen must be one assigned to the owning office. Moved the picker from the payment section
+  into the Sale section so it reads naturally for both programs.
+- The **HD (customer) number** field now shows on any direct sale (optional), not only HD-program
+  ones, so it can be recorded whenever it applies. The **loan / financing number** continues to
+  appear when a financing payment method (FinanceIt / finance company) is selected — i.e. when
+  applicable. Both save on the deal as before.
+- The selected store flows to the **sales journal** and **reports/exports** for GWA sales the
+  same way it already did for HD — both read the store from the deal's store relation, so no
+  journal/report changes were needed, only populating it. `src/app/direct-sale/`.
+
 ### Training quiz: 10 more questions (pool of 22) + random-subset rotation (2026-10-16)
 - Added 10 new quiz questions (EN + FR) to the default pool — now **22** questions covering
   dress code, sign-in, trees, the pitch/"what's the catch", the Guusto gift-card flow, and
