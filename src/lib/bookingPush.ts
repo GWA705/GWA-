@@ -76,21 +76,28 @@ export function coarseFromCallOutcome(outcome: string): CoarseStatus | null {
  * Fire-and-forget and inert until configured. Booking applies it with guardrails
  * so it can never downgrade a booker's own progress.
  */
-export async function pushScannedStatusToBooking(applicationId: string, status: CoarseStatus): Promise<void> {
+export async function pushScannedStatusToBooking(
+  applicationId: string,
+  status: CoarseStatus,
+  bookingRef?: string | null,
+): Promise<void> {
   const url = bookingStatusUrl();
   const token = process.env.PORTAL_INTAKE_TOKEN?.trim();
-  if (!url || !token || !applicationId) return;
+  const ref = (bookingRef ?? '').trim();
+  // Need something to match on: a portal application id, or the Home Depot
+  // booking id (which reaches a lead that came into booking via the HD feed).
+  if (!url || !token || (!applicationId && !ref)) return;
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 5000);
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
-      body: JSON.stringify({ applicationId, status }),
+      body: JSON.stringify({ applicationId, status, ...(ref ? { bookingRef: ref } : {}) }),
       signal: controller.signal,
     });
     clearTimeout(timer);
-    if (!res.ok) console.error(`[bookingPush] status sync returned ${res.status} for ${applicationId}`);
+    if (!res.ok) console.error(`[bookingPush] status sync returned ${res.status} for ${applicationId || ref}`);
   } catch (e) {
     console.error('[bookingPush] could not push status to booking', e);
   }
