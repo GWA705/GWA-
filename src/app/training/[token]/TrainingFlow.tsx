@@ -1,11 +1,12 @@
 'use client';
 
-import { useMemo, useState, useTransition, type ReactNode } from 'react';
+import { useMemo, useState, useTransition, type ReactNode, type CSSProperties } from 'react';
 import {
   PASS_THRESHOLD, CONTENT_VERSION, scoreQuiz, STRINGS, LANGS,
   type Block, type SubmitResult, type Lang, type Section, type QuizQuestion, type Rule, type TrainingStrings,
 } from '@/lib/training';
 import { submitTrainingAction } from './actions';
+import { TrainingAddressField } from './TrainingAddressField';
 import { SectionIcon, CheckBadge, CheckMark, AlertIcon } from './icons';
 
 type Phase = 'intake' | 'learn' | 'quiz' | 'signoff' | 'done';
@@ -242,39 +243,56 @@ export function TrainingFlow({ token, dealerName, bundles }: { token: string; de
 
   // ---- DONE (certificate) ----
   if (phase === 'done' && result?.ok) {
+    const today = new Date().toLocaleDateString(lang === 'fr' ? 'fr-CA' : 'en-CA');
     return (
       <>
-        <TopBar t={t} pct={100} initials={initialsOf(name)} lang={lang} setLang={setLang} langs={available} showProgress={false} />
-        <div className="mx-auto max-w-2xl px-4 py-8">
-          <div className="overflow-hidden rounded-3xl bg-white shadow-xl shadow-slate-300/40 ring-1 ring-slate-200 print:shadow-none">
-            <div className="relative bg-gradient-to-br from-brand-700 via-brand-600 to-brand-900 px-8 py-10 text-center text-white">
-              <div aria-hidden className="pointer-events-none absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 20% 20%, white 1px, transparent 1px)', backgroundSize: '22px 22px' }} />
-              <div className="relative">
-                <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-white/15 ring-4 ring-white/20">
-                  <SectionIcon name="trophy" className="h-11 w-11" />
+        <style>{`@media print { main { background: #fff !important; } .cert-noprint { display: none !important; } }`}</style>
+        <div className="cert-noprint"><TopBar t={t} pct={100} initials={initialsOf(name)} lang={lang} setLang={setLang} langs={available} showProgress={false} /></div>
+        <div className="mx-auto max-w-3xl px-4 py-8">
+          <p className="cert-noprint mb-4 text-center text-lg font-bold text-slate-900">{t.doneTitle} <span className="font-normal text-slate-500">{tpl(t.doneSub, { first: name.trim().split(' ')[0] })}</span></p>
+
+          {/* The printable certificate */}
+          <div
+            className="relative overflow-hidden rounded-3xl bg-white p-2 shadow-xl shadow-slate-300/40 ring-1 ring-slate-200 print:shadow-none print:ring-0"
+            style={{ printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact' } as CSSProperties}
+          >
+            <div className="rounded-[20px] border-2 border-brand-100 px-6 py-8 text-center sm:px-10 sm:py-10">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/gwa-hd-partners.png" alt="Georgian Water & Air — Authorized Home Depot Home Services installer" className="mx-auto h-16 w-auto" />
+
+              <div className="mt-6 text-[11px] font-semibold uppercase tracking-[0.3em] text-brand-600">{t.certTitle}</div>
+              <div className="mx-auto mt-2 h-px w-20 bg-brand-100" />
+
+              <p className="mt-6 text-sm text-slate-500">{t.certAwarded}</p>
+              <p className="mt-1 font-[cursive] text-4xl text-slate-900">{name.trim()}</p>
+              <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-slate-600">{t.certProgram}.</p>
+
+              <div className="mt-7 flex justify-center">
+                <div className="flex h-24 w-24 flex-col items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-brand-900 text-white shadow-lg shadow-brand-600/25 ring-4 ring-brand-100">
+                  <span className="text-[9px] font-semibold uppercase tracking-wide text-white/70">Score</span>
+                  <span className="text-2xl font-bold">{result.score ?? 0}%</span>
                 </div>
-                <h2 className="mt-4 text-2xl font-bold">{t.doneTitle}</h2>
-                <p className="mt-1 text-sm text-white/80">{tpl(t.doneSub, { first: name.trim().split(' ')[0] })}</p>
               </div>
-            </div>
-            <div className="px-8 py-7">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">{t.certTitle}</span>
-                <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-700"><CheckBadge className="h-3.5 w-3.5" /> {tpl(t.score, { s: result.score ?? 0 })}</span>
-              </div>
-              <dl className="mt-5 grid grid-cols-2 gap-x-4 gap-y-4 text-sm">
-                <div><dt className="text-xs text-slate-400">{t.fullName}</dt><dd className="font-semibold text-slate-900">{name.trim()}</dd></div>
+
+              <dl className="mx-auto mt-8 grid max-w-lg grid-cols-2 gap-x-6 gap-y-3 text-left text-sm">
                 <div><dt className="text-xs text-slate-400">{t.dealerLabel}</dt><dd className="font-semibold text-slate-900">{dealerName}</dd></div>
-                <div><dt className="text-xs text-slate-400">{t.dateLabel}</dt><dd className="font-semibold text-slate-900">{new Date().toLocaleDateString(lang === 'fr' ? 'fr-CA' : 'en-CA')}</dd></div>
+                {startDate && <div><dt className="text-xs text-slate-400">{t.startDate}</dt><dd className="font-semibold text-slate-900">{startDate}</dd></div>}
+                <div><dt className="text-xs text-slate-400">{t.dateLabel}</dt><dd className="font-semibold text-slate-900">{today}</dd></div>
                 <div><dt className="text-xs text-slate-400">{t.versionLabel}</dt><dd className="font-semibold text-slate-900">{CONTENT_VERSION}</dd></div>
               </dl>
-              <p className="mt-5 rounded-xl bg-slate-50 p-4 text-xs leading-relaxed text-slate-500 ring-1 ring-slate-100">{tpl(t.signedBy, { sig: signature.trim(), n: RULES.length })}</p>
-              <div className="mt-6 flex flex-wrap justify-center gap-2 print:hidden">
-                <button onClick={() => window.print()} className="rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand-600/25 hover:bg-brand-700">{t.print}</button>
+
+              <div className="mx-auto mt-8 max-w-lg border-t border-slate-200 pt-5">
+                <p className="font-[cursive] text-2xl text-slate-900">{signature.trim()}</p>
+                <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">— Digitally signed —</p>
+                <p className="mt-3 text-[11px] leading-relaxed text-slate-400">{tpl(t.signedBy, { sig: signature.trim(), n: RULES.length })}</p>
               </div>
-              <p className="mt-3 text-center text-xs text-slate-400 print:hidden">{t.doneFoot}</p>
             </div>
           </div>
+
+          <div className="cert-noprint mt-6 flex flex-wrap justify-center gap-2">
+            <button onClick={() => window.print()} className="rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand-600/25 hover:bg-brand-700">{t.print}</button>
+          </div>
+          <p className="cert-noprint mt-3 text-center text-xs text-slate-400">{t.doneFoot}</p>
         </div>
       </>
     );
@@ -320,7 +338,9 @@ export function TrainingFlow({ token, dealerName, bundles }: { token: string; de
                 <label className="block"><span className="mb-1 block text-xs font-semibold text-slate-600">{t.startDate}</span>
                   <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" /></label>
                 <label className="block sm:col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-600">{t.address}</span>
-                  <input value={address} onChange={(e) => setAddress(e.target.value)} className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" placeholder={t.phAddress} /></label>
+                  <TrainingAddressField token={token} value={address} onChange={setAddress}
+                    onPick={({ street, city: c, postal: p }) => { setAddress(street); if (c) setCity(c); if (p) setPostal(p); }}
+                    className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" placeholder={t.phAddress} /></label>
                 <label className="block"><span className="mb-1 block text-xs font-semibold text-slate-600">{t.city}</span>
                   <input value={city} onChange={(e) => setCity(e.target.value)} className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" placeholder={t.phCity} /></label>
                 <label className="block"><span className="mb-1 block text-xs font-semibold text-slate-600">{t.postal}</span>

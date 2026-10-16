@@ -98,6 +98,41 @@ provider-agnostic SMTP (`src/lib/email.ts`), so this is **config, not code**.
   `mailed-by mail.ghsbarrie.ca`, `signed-by ghsbarrie.ca`, no "via amazonses.com". Portal
   email fully on SES. Follow-up: retire the `hello@` Gmail app password (no longer used).
 
+## Reusing SES for the booking site (when ready)
+
+SES is **account- and region-wide**, so the booking site reuses everything we set
+up here — **no new domain verification, DNS, or production-access request needed.**
+Those are one-time, account-level, and already done:
+- `ghsbarrie.ca` is a **verified** SES identity (ca-central-1) with DKIM + custom
+  MAIL FROM `mail.ghsbarrie.ca` → the booking site can send as **any** `@ghsbarrie.ca`
+  address with full DKIM/SPF/DMARC alignment, no DNS changes.
+- Account is in **Production** (50k/day, 14/sec) — shared across all apps in
+  ca-central-1, so the booking site draws from the same quota.
+
+Steps for the booking site (repo `GWA705/GWA-webiste-`, running on EB
+`gwa-booking-prod`):
+1. **Pick a sender** — e.g. `bookings@ghsbarrie.ca`. Make it a Google **Group** or an
+   **alias** (free, no seat) that routes to a human, same as `gwadealerportal@`.
+2. **Create its own SMTP credentials** — SES → SMTP settings → **Create SMTP
+   credentials** → **IAM SMTP credentials** (not Mail Manager). Use a *separate*
+   pair from the portal's so each app can be tracked/rotated independently.
+3. **Set the booking site's env** (same keys as the portal):
+   ```
+   SMTP_HOST       = email-smtp.ca-central-1.amazonaws.com
+   SMTP_PORT       = 587
+   SMTP_USER       = <booking-site SES SMTP username>
+   SMTP_PASS       = <booking-site SES SMTP password>
+   EMAIL_FROM      = bookings@ghsbarrie.ca
+   EMAIL_FROM_NAME = Georgian Water & Air
+   EMAIL_REPLY_TO  = bookings@ghsbarrie.ca
+   ```
+   If the booking app's mailer isn't already provider-agnostic SMTP, point it at
+   these SMTP settings (nodemailer or equivalent).
+4. **Test** a send and confirm `mailed-by mail.ghsbarrie.ca` / `signed-by ghsbarrie.ca`.
+
+That's it — the booking site is ~10 minutes because the domain/DNS/prod-access
+groundwork is shared.
+
 ## After cutover
 - `hello@ghsbarrie.ca`: remove its App Password / stop using it for SMTP entirely;
   it's a human mailbox again.

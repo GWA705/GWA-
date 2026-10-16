@@ -364,6 +364,7 @@ export interface TrainingStrings {
   signoffTitle: string; signoffSub: string; signLabel: string; phSign: string; signConsent: string;
   submitting: string; submit: string; tickAll: string;
   doneTitle: string; doneSub: string; certTitle: string; score: string;
+  certAwarded: string; certProgram: string;
   dateLabel: string; versionLabel: string; dealerLabel: string;
   signedBy: string; print: string; doneFoot: string;
 }
@@ -392,6 +393,7 @@ export const STRINGS: Record<Lang, TrainingStrings> = {
     submitting: 'Submitting…', submit: 'Submit & get certified', tickAll: 'Tick all {n} rules to continue.',
     doneTitle: 'You’re certified! 🎉', doneSub: 'Nice work, {first}. Here’s your certificate of completion.',
     certTitle: 'Certificate of completion', score: 'Score {s}%',
+    certAwarded: 'This certifies that', certProgram: 'has successfully completed the Home Depot in-store Lead Generator Training',
     dateLabel: 'Date', versionLabel: 'Program version', dealerLabel: 'Office / dealer',
     signedBy: 'Signed by {sig}, who acknowledged all {n} Home Depot in-store rules. A full record (answers, score, acknowledgements, signature, time) has been saved for Home Depot compliance.',
     print: 'Print / save certificate', doneFoot: 'Your office can see your completion in their portal. You can close this page.',
@@ -419,6 +421,7 @@ export const STRINGS: Record<Lang, TrainingStrings> = {
     submitting: 'Envoi…', submit: 'Soumettre et obtenir ma certification', tickAll: 'Cochez les {n} règles pour continuer.',
     doneTitle: 'Vous êtes certifié! 🎉', doneSub: 'Beau travail, {first}. Voici votre certificat de réussite.',
     certTitle: 'Certificat de réussite', score: 'Résultat {s} %',
+    certAwarded: 'Ceci atteste que', certProgram: 'a terminé avec succès la formation en magasin du générateur de pistes de Home Depot',
     dateLabel: 'Date', versionLabel: 'Version du programme', dealerLabel: 'Bureau',
     signedBy: 'Signé par {sig}, qui a reconnu les {n} règles en magasin de Home Depot. Un dossier complet (réponses, résultat, reconnaissances, signature, heure) a été conservé pour la conformité Home Depot.',
     print: 'Imprimer / enregistrer le certificat', doneFoot: 'Votre bureau peut voir votre réussite dans son portail. Vous pouvez fermer cette page.',
