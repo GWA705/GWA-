@@ -5,7 +5,7 @@
 // changes — every certification stores the version it was completed under, so you
 // can always prove what a trainee agreed to on a given date.
 
-export const CONTENT_VERSION = '2026-09-23';
+export const CONTENT_VERSION = '2026-10-16';
 export const PASS_THRESHOLD = 100; // percent needed to pass — every answer must be correct (mastery)
 
 export type Block =
@@ -170,6 +170,16 @@ export const QUIZ: QuizQuestion[] = [
   { id: 'q-leads', q: 'What must you do with every lead?', options: ['Keep it to yourself', 'Put your name on it, and it goes through the office before it can be paid', 'Pay it out yourself', 'Throw it away if the customer seems unsure'], correct: 1 },
   { id: 'q-trees', q: 'When filling water-test-kit trees, you must…', options: ['Leave them blank', 'Label them with the store number', 'Hide them in the back', 'Put all of them in one aisle'], correct: 1 },
   { id: 'q-area', q: 'When you finish your shift, the area should be…', options: ['Left however it is', 'Returned the way it was before you arrived — or better', 'Packed up with garbage left behind', 'Someone else’s problem'], correct: 1 },
+  { id: 'q-badge-apron', q: 'Besides steel-toe boots, which items are also MANDATORY on the floor?', options: ['A Home Depot badge only', 'Your Home Depot badge AND your apron', 'Just a GWA shirt', 'A hard hat'], correct: 1 },
+  { id: 'q-hats', q: 'Which hats are allowed on the floor?', options: ['Any ball cap', 'Only GWA or Home Depot related hats', 'No hats at all', 'Only company logo caps in winter'], correct: 1 },
+  { id: 'q-attire-not', q: 'Which of these is NOT acceptable to wear?', options: ['A GWA shirt or sweater', 'Business casual', 'A hoodie, sweats, ripped jeans, or a graphic tee', 'Your apron'], correct: 2 },
+  { id: 'q-signin-role', q: 'At the Home Depot contractor QR sign-in, which option do you select?', options: ['Customer', 'Employee', 'Contractor', 'Vendor'], correct: 2 },
+  { id: 'q-signin-confirm', q: 'At sign-in you confirm no COVID symptoms AND…', options: ['That you brought your lunch', 'That you are wearing your steel-toe shoes', 'Your license plate number', 'The day’s weather'], correct: 1 },
+  { id: 'q-trees-count', q: 'How many water-test-kit trees per branch, and where do they go?', options: ['1 per branch, by the exit', '5 per branch, in high-traffic areas', '10 per branch, in the back room', 'As many as fit, anywhere'], correct: 1 },
+  { id: 'q-catch', q: 'A customer asks “what’s the catch?” — what should you do?', options: ['Pause and think about it', 'Tell them there’s a small fee', 'Don’t pause — the office books a time, we come to them, results on the spot, no cost or obligation', 'Change the subject'], correct: 2 },
+  { id: 'q-giftcard-sender', q: 'The $25 gift-card email is sent by which service?', options: ['PayPal', 'Guusto', 'Home Depot directly', 'Interac e-Transfer'], correct: 1 },
+  { id: 'q-giftcard-timing', q: 'A customer did the water test but has no gift-card email yet. When is it sent?', options: ['Within the hour', 'The next business day after 12pm (office closed Sat & Sun)', 'Within 30 days', 'They have to call to request it'], correct: 1 },
+  { id: 'q-find-product', q: 'You can’t find a product a customer is looking for. You should…', options: ['Tell them you don’t actually work there', 'Guess an aisle and point', 'Take them to the PRO desk / Customer Service / an associate, sum up their needs, and thank them', 'Tell them to look it up online'], correct: 2 },
 ];
 
 export const RULES: Rule[] = [
@@ -333,6 +343,16 @@ export const QUIZ_FR: Record<string, { q: string; options: string[] }> = {
   'q-leads': { q: 'Que devez-vous faire avec chaque piste?', options: ['La garder pour vous', 'Y inscrire votre nom; elle passe par le bureau avant d’être payée', 'La payer vous-même', 'La jeter si le client semble hésitant'] },
   'q-trees': { q: 'En remplissant les présentoirs de trousses d’analyse d’eau, vous devez…', options: ['Les laisser vides', 'Les étiqueter avec le numéro de magasin', 'Les cacher à l’arrière', 'Les mettre tous dans une seule allée'] },
   'q-area': { q: 'À la fin de votre quart, l’aire devrait être…', options: ['Laissée telle quelle', 'Remise comme elle était avant votre arrivée — ou mieux', 'Rangée avec des déchets laissés derrière', 'Le problème de quelqu’un d’autre'] },
+  'q-badge-apron': { q: 'En plus des bottes à embout d’acier, quels articles sont aussi OBLIGATOIRES sur le plancher?', options: ['Seulement un badge Home Depot', 'Votre badge Home Depot ET votre tablier', 'Seulement un chandail GWA', 'Un casque de sécurité'] },
+  'q-hats': { q: 'Quels chapeaux sont permis sur le plancher?', options: ['N’importe quelle casquette', 'Seulement les chapeaux GWA ou Home Depot', 'Aucun chapeau', 'Seulement les casquettes à logo en hiver'] },
+  'q-attire-not': { q: 'Lequel de ces vêtements n’est PAS acceptable?', options: ['Un chandail ou pull GWA', 'Tenue décontractée chic', 'Un kangourou, un survêtement, un jean déchiré ou un t-shirt à imprimé', 'Votre tablier'] },
+  'q-signin-role': { q: 'Au code QR d’inscription entrepreneur de Home Depot, quelle option choisissez-vous?', options: ['Client', 'Employé', 'Entrepreneur', 'Fournisseur'] },
+  'q-signin-confirm': { q: 'À l’inscription, vous confirmez l’absence de symptômes de COVID ET…', options: ['Que vous avez apporté votre dîner', 'Que vous portez vos chaussures à embout d’acier', 'Votre numéro de plaque', 'La météo du jour'] },
+  'q-trees-count': { q: 'Combien de présentoirs de trousses d’analyse d’eau par succursale, et où vont-ils?', options: ['1 par succursale, près de la sortie', '5 par succursale, dans les zones passantes', '10 par succursale, à l’arrière', 'Autant qu’il en rentre, n’importe où'] },
+  'q-catch': { q: 'Un client demande « c’est quoi l’attrape? » — que faites-vous?', options: ['Faire une pause et réfléchir', 'Dire qu’il y a de petits frais', 'Ne pas hésiter — le bureau fixe un rendez-vous, on se déplace, résultats sur place, sans frais ni obligation', 'Changer de sujet'] },
+  'q-giftcard-sender': { q: 'La carte-cadeau de 25 $ est envoyée par quel service?', options: ['PayPal', 'Guusto', 'Home Depot directement', 'Virement Interac'] },
+  'q-giftcard-timing': { q: 'Un client a fait l’analyse d’eau mais n’a pas encore le courriel de la carte-cadeau. Quand est-il envoyé?', options: ['Dans l’heure', 'Le jour ouvrable suivant après 12 h (bureau fermé samedi et dimanche)', 'Dans les 30 jours', 'Il doit appeler pour la demander'] },
+  'q-find-product': { q: 'Vous ne trouvez pas un produit que cherche un client. Vous devriez…', options: ['Lui dire que vous ne travaillez pas vraiment ici', 'Deviner une allée et pointer', 'L’amener au comptoir PRO / service à la clientèle / un associé, résumer ses besoins et le remercier', 'Lui dire de chercher en ligne'] },
 };
 
 export const RULES_FR: Record<string, string> = {
@@ -528,6 +548,23 @@ export function coerceRules(input: unknown): Rule[] {
  *  `quiz` defaults to the built-in questions; pass the effective (admin-edited)
  *  quiz so a trainee is always scored against the questions they actually saw.
  *  Scoring is language-independent — it compares option indices, never text. */
+/**
+ * Randomly pick `n` questions from a pool (Fisher–Yates). When n >= pool size,
+ * the whole pool is returned. Used to serve each trainee a different subset so
+ * reps can't be coached on a fixed set; the on-screen flow then shuffles the
+ * order of those questions and their options as well.
+ */
+export function sampleQuiz(quiz: QuizQuestion[], n: number): QuizQuestion[] {
+  if (!Number.isFinite(n) || n >= quiz.length) return quiz;
+  const take = Math.max(1, Math.floor(n));
+  const idx = quiz.map((_, i) => i);
+  for (let i = idx.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [idx[i], idx[j]] = [idx[j], idx[i]];
+  }
+  return idx.slice(0, take).map((i) => quiz[i]);
+}
+
 export function scoreQuiz(
   answers: Record<string, number>,
   quiz: QuizQuestion[] = QUIZ,

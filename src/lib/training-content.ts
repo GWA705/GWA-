@@ -51,6 +51,24 @@ export async function resetTrainingOverride(): Promise<void> {
   await setSetting(TRAINING_CONTENT_KEY, '');
 }
 
+// How many questions to ask each attempt. Unset / 0 = ask the whole pool. When
+// set below the pool size, each trainee gets a different random subset (plus the
+// usual shuffled order + options) so a fixed set can't be coached.
+export const TRAINING_ASK_COUNT_KEY = 'training.askCount';
+
+/** The configured ask-count, or null for "ask all". */
+export async function getTrainingAskCount(): Promise<number | null> {
+  const raw = await getSetting(TRAINING_ASK_COUNT_KEY);
+  if (!raw) return null;
+  const n = parseInt(raw, 10);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+/** Save the ask-count (0 or blank clears it → ask the whole pool). */
+export async function setTrainingAskCount(n: number): Promise<void> {
+  await setSetting(TRAINING_ASK_COUNT_KEY, Number.isFinite(n) && n > 0 ? String(Math.floor(n)) : '');
+}
+
 // ---------------------------------------------------------------------------
 // Rollout gating: which offices can see + use the Lead Gen Training module.
 // Stored as a JSON array of dealer ids in app settings. Semantics:

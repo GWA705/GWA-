@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  QUIZ, RULES, scoreQuiz, validateSubmission, PASS_THRESHOLD,
+  QUIZ, RULES, scoreQuiz, validateSubmission, PASS_THRESHOLD, sampleQuiz,
   localizeQuiz, localizeRules, coerceQuiz, coerceRules, QUIZ_FR, RULES_FR,
   type QuizQuestion, type Rule,
 } from '@/lib/training';
@@ -22,6 +22,27 @@ describe('training scoring', () => {
     const r = scoreQuiz(wrong);
     expect(r.score).toBeLessThan(PASS_THRESHOLD);
     expect(r.passed).toBe(false);
+  });
+});
+
+describe('question pool sampling', () => {
+  it('returns the whole pool when n >= pool size', () => {
+    expect(sampleQuiz(QUIZ, QUIZ.length)).toBe(QUIZ);
+    expect(sampleQuiz(QUIZ, QUIZ.length + 5).length).toBe(QUIZ.length);
+  });
+  it('returns exactly n distinct questions drawn from the pool', () => {
+    const n = 5;
+    const picked = sampleQuiz(QUIZ, n);
+    expect(picked.length).toBe(n);
+    const ids = new Set(picked.map((q) => q.id));
+    expect(ids.size).toBe(n); // no duplicates
+    const poolIds = new Set(QUIZ.map((q) => q.id));
+    expect(picked.every((q) => poolIds.has(q.id))).toBe(true);
+  });
+  it('a subset is fully gradeable against itself', () => {
+    const subset = sampleQuiz(QUIZ, 6);
+    const allCorrectSubset = Object.fromEntries(subset.map((q) => [q.id, q.correct]));
+    expect(scoreQuiz(allCorrectSubset, subset).passed).toBe(true);
   });
 });
 

@@ -38,6 +38,19 @@ source of truth; this file is the human-readable index.
 | HD Resolution ↔ Gmail email link | ✅ **Live & verified** (2026-10-07, Sean) | Read-only Gmail via the existing service account (`gwa-journal-writer@gwa-portal-504012…`, project **"GWA Portal"** `gwa-portal-504012`, Unique ID `100470797238569934976`), impersonating `sean@ghsbarrie.ca` + the `HD Resolution` label. All switches done: Gmail API enabled, Workspace domain-wide delegation (`…/auth/gmail.readonly`), `GMAIL_RESOLUTION_USER=sean@ghsbarrie.ca` on EB. **Verified end-to-end** — the Email inbox lists real HD threads and "Open as case" links the thread + auto-fills. 30-min sync `resolution-email-sync.yml` (reuses `CRON_SECRET`). Steps/facts: `HD-RESOLUTION-EMAIL.md`, `BUILD-FACTS.md`. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### Training quiz: 10 more questions (pool of 22) + random-subset rotation (2026-10-16)
+- Added 10 new quiz questions (EN + FR) to the default pool — now **22** questions covering
+  dress code, sign-in, trees, the pitch/"what's the catch", the Guusto gift-card flow, and
+  helping customers find products. `CONTENT_VERSION` bumped to 2026-10-16.
+- New **ask-N-of-pool** rotation: an admin sets "questions asked per attempt" in
+  **Admin → Training → Edit quiz & rules**; each trainee is then served a different random
+  subset (`sampleQuiz`), on top of the existing shuffled order + answer options, so a fixed
+  set can't be coached. Blank/0 = ask the whole pool. Setting key `training.askCount`.
+- Scoring/validation now judge the trainee against only the questions they were **shown**
+  (the pool questions they answered), require at least the ask-count, and snapshot/email that
+  shown subset. The existing admin editor already supports add/edit/reorder/delete questions,
+  options, and the correct answer — the 10 are in the default set and fully editable there.
+
 ### Home Depot ID Tags — submission + status board, gated on training (2026-10-16)
 - New feature: offices submit their people for a Home Depot in-store ID tag, and GWA tracks
   each one to issuance. New model `HomeDepotIdTag` (+ enums `IdTagKind` NEW/EXISTING and

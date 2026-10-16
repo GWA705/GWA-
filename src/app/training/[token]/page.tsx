@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { prisma } from '@/lib/db';
-import { LANGS } from '@/lib/training';
-import { getEffectiveContent, localizedBundle } from '@/lib/training-content';
+import { LANGS, sampleQuiz } from '@/lib/training';
+import { getEffectiveContent, getTrainingAskCount, localizedBundle } from '@/lib/training-content';
 import { TrainingFlow } from './TrainingFlow';
 
 // Public (no-login) Lead-Generator training. The office shares the link
@@ -51,7 +51,11 @@ export default async function TrainingPage({ params }: { params: { token: string
   // Quiz/rules keep their ids + correct answers across languages, so scoring is
   // identical whichever one the trainee picks.
   const base = await getEffectiveContent();
-  const bundles = LANGS.map((l) => localizedBundle(base, l));
+  // Serve a random subset per visit when an ask-count is configured (anti-coaching);
+  // the client additionally shuffles the order of these questions + their options.
+  const askCount = await getTrainingAskCount();
+  const served = askCount ? { quiz: sampleQuiz(base.quiz, askCount), rules: base.rules } : base;
+  const bundles = LANGS.map((l) => localizedBundle(served, l));
 
   return (
     <main

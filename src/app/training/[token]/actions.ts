@@ -7,7 +7,7 @@ import { rateLimit, clientIp } from '@/lib/ratelimit';
 import { sendTrainingCertificationEmails } from '@/lib/training-email';
 import { advancePendingIdTagsForCert, markIdTagEmailed } from '@/lib/idTag';
 import { sendIdTagNewRepEmail } from '@/lib/idTag-email';
-import { getEffectiveContent } from '@/lib/training-content';
+import { getEffectiveContent, getTrainingAskCount } from '@/lib/training-content';
 import {
   CONTENT_VERSION,
   scoreQuiz,
@@ -35,18 +35,25 @@ export async function submitTrainingAction(
   const dealer = await prisma.dealer.findUnique({ where: { trainingToken: token }, select: { id: true, active: true } });
   if (!dealer || !dealer.active) return { ok: false, error: 'This training link is no longer valid. Please ask your office for a new one.' };
 
-  // Score + validate against the EFFECTIVE (possibly admin-edited) program — the
-  // trainee must be judged against the exact questions they were shown.
-  const { quiz, rules } = await getEffectiveContent();
-  const check = validateSubmission(payload, quiz, rules);
+  // The trainee is served a RANDOM subset of the question pool (anti-coaching),
+  // so judge them only against the questions they were actually shown — the pool
+  // questions they answered. Require at least the configured ask-count, and every
+  // shown question must belong to the pool.
+  const { quiz: pool, rules } = await getEffectiveContent();
+  const answers = payload.answers || {};
+  const shownQuiz = pool.filter((q) => Object.prototype.hasOwnProperty.call(answers, q.id));
+  const askCount = Math.min((await getTrainingAskCount()) ?? pool.length, pool.length);
+  if (shownQuiz.length < askCount) {
+    return { ok: false, error: `Please answer all ${askCount} questions.` };
+  }
+  const check = validateSubmission(payload, shownQuiz, rules);
   if (!check.ok) return { ok: false, error: check.error };
 
-  const answers = payload.answers || {};
-  const { passed } = scoreQuiz(answers, quiz);
+  const { passed } = scoreQuiz(answers, shownQuiz);
   // Under the mastery model the final answers are all correct, so the meaningful
   // score is the FIRST attempt (what they knew before the teach-then-retry loop).
   const firstAnswers = payload.firstAnswers && Object.keys(payload.firstAnswers).length ? payload.firstAnswers : answers;
-  const { score } = scoreQuiz(firstAnswers, quiz);
+  const { score } = scoreQuiz(firstAnswers, shownQuiz);
   const lang = payload.lang === 'fr' ? 'fr' : 'en';
   const ua = headers().get('user-agent')?.slice(0, 300) || null;
 
@@ -71,7 +78,7 @@ export async function submitTrainingAction(
         // renders faithfully, even if an admin edits the quiz/rules later.
         // Also snapshot the first-attempt answers so the "what to review" record
         // and the emailed answer-review PDF reflect what they originally missed.
-        contentSnapshot: { quiz, rules, firstAnswers } as unknown as Prisma.InputJsonValue,
+        contentSnapshot: { quiz: shownQuiz, rules, firstAnswers } as unknown as Prisma.InputJsonValue,
         language: lang,
         ipAddress: ip === 'unknown' ? null : ip,
         userAgent: ua,
@@ -91,7 +98,7 @@ export async function submitTrainingAction(
       startDate: (payload.startDate || '').trim() || null,
       signatureName: (payload.signatureName || '').trim(),
       lang,
-      quiz,
+      quiz: shownQuiz,
       firstAnswers,
     });
 

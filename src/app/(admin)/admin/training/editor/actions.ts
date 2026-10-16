@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { requireAdminSection } from '@/lib/session';
-import { saveTrainingOverride, resetTrainingOverride } from '@/lib/training-content';
+import { saveTrainingOverride, resetTrainingOverride, setTrainingAskCount } from '@/lib/training-content';
 import type { QuizQuestion, Rule } from '@/lib/training';
 
 export interface SaveContentResult {
@@ -30,4 +30,12 @@ export async function resetTrainingContentAction(): Promise<SaveContentResult> {
   await resetTrainingOverride();
   revalidatePath('/admin/training/editor');
   return { ok: true };
+}
+
+/** Set how many questions each attempt asks (0 / blank = ask the whole pool). */
+export async function saveTrainingAskCountAction(formData: FormData): Promise<void> {
+  await requireAdminSection('training');
+  const n = parseInt(String(formData.get('askCount') || ''), 10);
+  await setTrainingAskCount(Number.isFinite(n) ? n : 0);
+  revalidatePath('/admin/training/editor');
 }
