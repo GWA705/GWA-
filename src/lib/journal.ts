@@ -111,6 +111,23 @@ function norm(s: unknown): string {
 }
 
 /**
+ * Force every string cell we write to the sales journal to UPPERCASE, so the
+ * sheet reads consistently (we had been landing a mix of upper- and lower-case
+ * depending on how each deal was typed). Non-string cells (numbers) and blanks
+ * pass through unchanged, and read-back matching is case-insensitive (see
+ * `norm()`), so this is purely cosmetic for the humans reading the journal.
+ * Applied at every journal write so future writes are covered automatically.
+ */
+function upperCells(data: sheets_v4.Schema$ValueRange[]): sheets_v4.Schema$ValueRange[] {
+  return data.map((d) => ({
+    ...d,
+    values: (d.values || []).map((row) =>
+      row.map((cell) => (typeof cell === 'string' ? cell.toUpperCase() : cell)),
+    ),
+  }));
+}
+
+/**
  * True when a cell carries no REAL content for the purpose of "is this row an
  * available blank line?". Besides a truly empty cell, this treats a formula's
  * zero/placeholder output as empty — the live journal's calculated columns
@@ -683,7 +700,7 @@ export async function writeDealToJournal(deal: JournalDeal): Promise<JournalResu
   if (data.length > 0) {
     await sheets.spreadsheets.values.batchUpdate({
       spreadsheetId: ssId,
-      requestBody: { valueInputOption: 'USER_ENTERED', data },
+      requestBody: { valueInputOption: 'USER_ENTERED', data: upperCells(data) },
     });
   }
 
@@ -891,7 +908,7 @@ export async function updateJournalRowCells(
   if (data.length > 0) {
     await sheets.spreadsheets.values.batchUpdate({
       spreadsheetId: ssId,
-      requestBody: { valueInputOption: 'USER_ENTERED', data },
+      requestBody: { valueInputOption: 'USER_ENTERED', data: upperCells(data) },
     });
   }
 
@@ -1005,7 +1022,7 @@ export async function backfillJournalUnits(
       if (opts.apply && data.length > 0) {
         await sheets.spreadsheets.values.batchUpdate({
           spreadsheetId: ssId,
-          requestBody: { valueInputOption: 'USER_ENTERED', data },
+          requestBody: { valueInputOption: 'USER_ENTERED', data: upperCells(data) },
         });
       }
       result.filled += data.length;
@@ -1057,7 +1074,7 @@ export async function clearJournalRow(
   if (data.length > 0) {
     await sheets.spreadsheets.values.batchUpdate({
       spreadsheetId: ssId,
-      requestBody: { valueInputOption: 'USER_ENTERED', data },
+      requestBody: { valueInputOption: 'USER_ENTERED', data: upperCells(data) },
     });
   }
   return { cleared: data.length };

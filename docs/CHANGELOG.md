@@ -38,6 +38,14 @@ source of truth; this file is the human-readable index.
 | HD Resolution ↔ Gmail email link | ✅ **Live & verified** (2026-10-07, Sean) | Read-only Gmail via the existing service account (`gwa-journal-writer@gwa-portal-504012…`, project **"GWA Portal"** `gwa-portal-504012`, Unique ID `100470797238569934976`), impersonating `sean@ghsbarrie.ca` + the `HD Resolution` label. All switches done: Gmail API enabled, Workspace domain-wide delegation (`…/auth/gmail.readonly`), `GMAIL_RESOLUTION_USER=sean@ghsbarrie.ca` on EB. **Verified end-to-end** — the Email inbox lists real HD threads and "Open as case" links the thread + auto-fills. 30-min sync `resolution-email-sync.yml` (reuses `CRON_SECRET`). Steps/facts: `HD-RESOLUTION-EMAIL.md`, `BUILD-FACTS.md`. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### Sales journal now writes all text in UPPERCASE (2026-10-16)
+- Every string cell the portal writes to the sales journal (Google Sheets) is now forced to
+  UPPERCASE via a single `upperCells()` helper applied at every journal write site in
+  `src/lib/journal.ts` (deal writes, contact-cell edits, units backfill, row clear). Fixes
+  the mix of upper/lower case that was landing depending on how each deal was typed.
+  Numbers/blanks pass through unchanged; read-back matching is case-insensitive (`norm()`),
+  so duplicate-guard and paid-sync are unaffected. All 57 journal tests still pass.
+
 ### Lead Gen Training — 100% mastery quiz, shuffle, teach-then-retry, emailed PDFs (2026-10-16)
 - **Quiz is now 100%-to-pass (mastery).** `PASS_THRESHOLD` 80 → 100. The certificate no
   longer prints a score (it just certifies completion + date); the first-attempt score is
