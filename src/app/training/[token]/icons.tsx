@@ -4,19 +4,19 @@
 export function SectionIcon({ name, className = 'h-7 w-7' }: { name: string; className?: string }) {
   const common = { className, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, 'aria-hidden': true };
   switch (name) {
-    case 'dress-code': // boot
-      return (<svg {...common}><path d="M7 3v9c0 1-.4 2-1.2 2.7L4 16c-1 1-1 3 1 3h13a2 2 0 0 0 2-2c0-2-1-3-3-4l-4-2c-1-.6-1.8-1.6-1.8-3V3z" /><path d="M7 10h4" /></svg>);
-    case 'what-to-bring': // bag / kit
-      return (<svg {...common}><path d="M4 8h16l-1 11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 8z" /><path d="M9 8V6a3 3 0 0 1 6 0v2" /></svg>);
-    case 'signing-in': // QR
+    case 'dress-code': // work boot
+      return (<svg {...common}><path d="M6 4h3v7c0 .9.5 1.7 1.3 2.1l5.1 2.6c1 .5 1.6 1.5 1.6 2.6V20H6V4z" /><path d="M6 11h3" /><path d="M6 20H4a0 0 0 0 1 0 0" /><path d="M17 18H8" /></svg>);
+    case 'what-to-bring': // kit bag
+      return (<svg {...common}><path d="M4 8h16l-1 11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 8z" /><path d="M9 8V6a3 3 0 0 1 6 0v2" /><path d="M9 13h6" /></svg>);
+    case 'signing-in': // QR code
       return (<svg {...common}><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><path d="M14 14h3v3M21 14v7M17 21h4" /></svg>);
-    case 'expectations': // speech bubbles
-      return (<svg {...common}><path d="M3 11a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v1a4 4 0 0 1-4 4H9l-4 3v-3a4 4 0 0 1-2-3.5z" /><path d="M9 11h.01M12 11h.01" /></svg>);
-    case 'maintaining-area': // broom
-      return (<svg {...common}><path d="M19 4l-7 7" /><path d="M11 10l-5 5c-1 1-1 3-1 4h4c1 0 3 0 4-1l4-4" /><path d="M8 20l-3-3" /></svg>);
+    case 'expectations': // handshake / greet
+      return (<svg {...common}><path d="M8 11l2.2-2.2a2 2 0 0 1 2.8 0l3 3a2 2 0 0 1 0 2.8L14 17" /><path d="M3 9l3-3 5 5-1.5 1.5a2 2 0 0 1-2.8 0L3 9z" /><path d="M16 14l3 3" /></svg>);
+    case 'maintaining-area': // broom / tidy
+      return (<svg {...common}><path d="M19 4l-7 7" /><path d="M11 10l-5 5c-1 1-1 3-1 4h4c1 0 3 0 4-1l4-4z" /><path d="M8 20l-3-3" /></svg>);
     case 'the-pitch': // gift + spark
       return (<svg {...common}><rect x="4" y="9" width="16" height="11" rx="1" /><path d="M4 13h16M12 9v11" /><path d="M12 9c-2-3-6-2-6 0h6zm0 0c2-3 6-2 6 0h-6z" /></svg>);
-    case 'questions': // chat ?
+    case 'questions': // chat with ?
       return (<svg {...common}><path d="M4 5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H9l-5 4z" /><path d="M9.2 8.5a2.5 2.5 0 0 1 4.8 1c0 1.6-2 2-2 3.5M12 16h.01" /></svg>);
     case 'leads': // tag
       return (<svg {...common}><path d="M3 12l8.5-8.5a2 2 0 0 1 1.4-.6H19a2 2 0 0 1 2 2v5.1a2 2 0 0 1-.6 1.4L12 21a2 2 0 0 1-2.8 0L3 14.8a2 2 0 0 1 0-2.8z" /><circle cx="16.5" cy="7.5" r="1.3" /></svg>);
@@ -39,4 +39,14 @@ export function SectionIcon({ name, className = 'h-7 w-7' }: { name: string; cla
 
 export function CheckBadge({ className = 'h-5 w-5' }: { className?: string }) {
   return (<svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><circle cx="12" cy="12" r="9" /><path d="M8.5 12l2.2 2.2L15.5 9.5" /></svg>);
+}
+
+/** Small solid check used as a premium list marker. */
+export function CheckMark({ className = 'h-4 w-4' }: { className?: string }) {
+  return (<svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M5 13l4 4L19 7" /></svg>);
+}
+
+/** Alert glyph for the emphasised "note" callouts. */
+export function AlertIcon({ className = 'h-5 w-5' }: { className?: string }) {
+  return (<svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M12 9v4M12 17h.01" /><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" /></svg>);
 }

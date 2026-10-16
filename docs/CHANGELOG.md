@@ -65,6 +65,15 @@ source of truth; this file is the human-readable index.
   (`training.enabledOffices` app setting). Only ticked offices see the **Lead Gen Training** nav item and
   page; the dealer page 404s for offices not switched on. Start with just Georgian Water & Air and add
   others later; leave all unticked to open it to every office (same rollout idea as lead texting).
+- **Premium visual redesign of the public training flow.** Branded gradient hero (wordmark, title,
+  office pill, EN/FR toggle and a step/percent progress bar), gradient "medallion" icon badges per
+  section, proper checklist rows (fixed invisible bullets — they used a `brand-400` shade that isn't in
+  the palette), polished quiz option cards with an answered counter, a styled sign-off + signature pad,
+  and a real certificate screen (gradient header, trophy medallion, score chip). Built entirely on the
+  portal's existing brand-blue tokens so it matches the rest of the app. Logic unchanged.
+- **Official co-branding** — the training flow and the certificate now carry the approved GWA + Home Depot
+  Home Services "Authorized Installer" partner lockup (`public/gwa-hd-partners.png`, the same asset used on
+  portal emails) as a clean white header band, so it reads as an official document.
 - tsc clean, **534 tests** (9 new: custom-quiz scoring, localization, admin-editor coercion), build green.
 
 ### Lead Generator Training & Certification (public, no-login) (2026-10-16)
