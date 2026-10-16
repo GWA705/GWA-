@@ -85,7 +85,11 @@ provider-agnostic SMTP (`src/lib/email.ts`), so this is **config, not code**.
   `mail` SPF TXT (`v=spf1 include:amazonses.com ~all`). SES domain identity
   `ghsbarrie.ca` is now **✅ Verified** (ARN `…ses:ca-central-1:863478708936:identity/ghsbarrie.ca`).
   Root SPF (Google) + existing `portal`/`office`/`www` records left untouched.
-  **Next:** request production access (lifts 200/day sandbox) → SMTP creds → EB env vars → test.
+  Sandbox test email to `Sean@ghsbarrie.ca` sent OK (SES confirmed sending).
+  **Production access requested 2026-10-16 — status: Under review** (up to 24h).
+  **Next (after approval):** create SES SMTP creds → set EB env vars → test. Do NOT
+  change the portal's email env vars while still in sandbox (sandbox only delivers to
+  verified addresses, so real dealers wouldn't receive mail until production access lands).
 
 ## After cutover
 - `hello@ghsbarrie.ca`: remove its App Password / stop using it for SMTP entirely;
