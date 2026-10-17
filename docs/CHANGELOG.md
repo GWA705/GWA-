@@ -38,6 +38,24 @@ source of truth; this file is the human-readable index.
 | HD Resolution ↔ Gmail email link | ✅ **Live & verified** (2026-10-07, Sean) | Read-only Gmail via the existing service account (`gwa-journal-writer@gwa-portal-504012…`, project **"GWA Portal"** `gwa-portal-504012`, Unique ID `100470797238569934976`), impersonating `sean@ghsbarrie.ca` + the `HD Resolution` label. All switches done: Gmail API enabled, Workspace domain-wide delegation (`…/auth/gmail.readonly`), `GMAIL_RESOLUTION_USER=sean@ghsbarrie.ca` on EB. **Verified end-to-end** — the Email inbox lists real HD threads and "Open as case" links the thread + auto-fills. 30-min sync `resolution-email-sync.yml` (reuses `CRON_SECRET`). Steps/facts: `HD-RESOLUTION-EMAIL.md`, `BUILD-FACTS.md`. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### Staff dashboard: new "Send dealer paperwork" lane (2026-10-17)
+- **The gap this closes:** approving a deal moved it straight from *Needs approval* into the big
+  *In Funding* pile, so an approved-overnight deal whose install paperwork hadn't been produced/sent
+  yet could hide there and get missed. New lane catches exactly those — **approved (or
+  auto-approved), paperwork not yet sent**.
+- Added a **Send dealer paperwork** band to the Priority view (between *Needs approval* and *Needs
+  attention*, sky-blue, longest-waiting first) **and** a **Send paperwork** tab to the tabs/stacked
+  views. The staff deal row's action chip reads **"Send paperwork"** for these instead of
+  "Awaiting install" (which wrongly implied the ball was with the dealer).
+- **How it clears:** a deal leaves the lane the moment the install paperwork goes out — detected by
+  the presence of a **reviewer-stage document** (`_count.documents` filtered to `stage: REVIEWER`
+  in `staff/page.tsx`), not by a status flip, because paperwork can be sent without the status
+  changing to `DOCS_SENT`. These deals are also **removed from the In Funding lane** so they show in
+  one place only.
+- Deals that *also* need reviewer attention (a new dealer doc, a Problem flag) stay in the
+  *Needs attention* band as before — the new lane is specifically "approved, nothing else pending,
+  we owe the docs." No schema change; EN + FR strings added.
+
 ### "Copy to Home Depot" sheet on the staff deal page (2026-10-17)
 - HD deals have **no public lead-entry API**, so staff re-type the whole deal into Home Depot's
   Service-Provider portal twice — once on the **lead** screen, once on the **Proposal and

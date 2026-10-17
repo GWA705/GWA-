@@ -372,7 +372,7 @@ export const en = {
     home: {
       justNow: 'just now',
       act: { problem: 'Problem', fundingReady: 'Funding ready', newDocument: 'New document', newNote: 'New note', newDeal: 'New deal', update: 'Update' },
-      action: { paidDone: 'Paid — done', fixProblem: 'Fix problem', approve: 'Approve', reviewDocs: 'Review docs', reply: 'Reply', fund: 'Fund', review: 'Review', awaitingInstall: 'Awaiting install', verifyFund: 'Verify & fund', inForFunding: 'In for funding', payDealer: 'Pay dealer', inProgress: 'In progress' },
+      action: { paidDone: 'Paid — done', fixProblem: 'Fix problem', approve: 'Approve', reviewDocs: 'Review docs', reply: 'Reply', fund: 'Fund', review: 'Review', sendPaperwork: 'Send paperwork', awaitingInstall: 'Awaiting install', verifyFund: 'Verify & fund', inForFunding: 'In for funding', payDealer: 'Pay dealer', inProgress: 'In progress' },
       paid: 'Paid', heroEyebrow: 'Reviewer', heroTitle: 'Deals', heroSubtitle: 'Review, approve and track every dealer submission.', match: 'match', matches: 'matches', forQuery: 'for “{q}”.', backToAllDeals: 'Back to all deals', noDealsMatch: 'No deals match “{q}”.', cancellationsLink: '🚫 Cancellations', confirmationsLink: '☎ Confirmation calls' },
     leads: { mailInTest: 'HD Mail In Test', allLeads: 'All leads' },
     calc: { receiptTitle: 'Dealer Sale & Payout Receipt', payment: 'Payment', payoutPaid: 'PAYOUT PAID', payoutBreakdown: 'Payout breakdown', totalEftPayout: 'TOTAL EFT PAYOUT' },
@@ -2318,6 +2318,10 @@ export const en = {
         label: 'Needs approval',
         hint: 'Brand-new deals waiting for a decision. Approving these is the priority.',
       },
+      paperwork: {
+        label: 'Send paperwork',
+        hint: 'Approved — the install paperwork still has to be produced and sent to the dealer. Clears once you send it.',
+      },
       updates: {
         label: 'Updates',
         hint: 'Deals you already handled where the dealer just sent something new.',
@@ -2335,6 +2339,10 @@ export const en = {
       approval: {
         title: 'Needs approval',
         desc: 'Waiting on an approve / decline decision — do these first',
+      },
+      sendPaperwork: {
+        title: 'Send dealer paperwork',
+        desc: 'Approved — we still owe the dealer the install documents',
       },
       attention: {
         title: 'Needs attention',

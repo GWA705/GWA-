@@ -32,6 +32,7 @@ export interface QueueRow {
 
 export interface Lanes {
   needsApproval: QueueRow[];
+  sendPaperwork: QueueRow[];
   updates: QueueRow[];
   inFunding: QueueRow[];
   all: QueueRow[];
@@ -40,6 +41,7 @@ export interface Lanes {
 // Priority view: deals grouped by urgency rather than by status.
 export interface PriorityBands {
   approval: QueueRow[]; // waiting for an approve / decline decision — top priority
+  sendPaperwork: QueueRow[]; // approved, but we still owe the dealer the install docs
   attention: QueueRow[]; // approved, but a new document / change needs the reviewer
   prog: QueueRow[]; // in progress or waiting on the dealer
 }
@@ -58,7 +60,7 @@ function StatusPill({ tone, label }: { tone: Tone; label: string }) {
   return <span className={barChipClass(toBucket(tone))}>{label}</span>;
 }
 
-type Kind = 'approve' | 'updates' | 'funding' | 'all';
+type Kind = 'approve' | 'paperwork' | 'updates' | 'funding' | 'all';
 const PAGE_SIZES = [10, 25, 50, 100];
 
 export function DealTable({ rows, kind }: { rows: QueueRow[]; kind: Kind }) {
@@ -120,10 +122,11 @@ export function DealTable({ rows, kind }: { rows: QueueRow[]; kind: Kind }) {
   );
 }
 
-const TAB_KEYS: Kind[] = ['approve', 'updates', 'funding', 'all'];
+const TAB_KEYS: Kind[] = ['approve', 'paperwork', 'updates', 'funding', 'all'];
 
 function rowsFor(lanes: Lanes, kind: Kind): QueueRow[] {
   if (kind === 'approve') return lanes.needsApproval;
+  if (kind === 'paperwork') return lanes.sendPaperwork;
   if (kind === 'updates') return lanes.updates;
   if (kind === 'funding') return lanes.inFunding;
   return lanes.all;
@@ -183,6 +186,7 @@ function PriorityRow({ r }: { r: QueueRow }) {
 
 const PRIORITY_BANDS: { key: keyof PriorityBands; accent: string; count: string }[] = [
   { key: 'approval', accent: 'text-emerald-700', count: 'bg-emerald-600 text-white' },
+  { key: 'sendPaperwork', accent: 'text-sky-700', count: 'bg-sky-600 text-white' },
   { key: 'attention', accent: 'text-red-700', count: 'bg-red-600 text-white' },
   { key: 'prog', accent: 'text-gray-600', count: 'bg-gray-200 text-gray-600' },
 ];
@@ -210,11 +214,18 @@ function PriorityView({ priority }: { priority: PriorityBands }) {
   const t = useT();
   const overdue = priority.attention.filter((r) => r.waitHot).length;
   const oldest = priority.attention.find((r) => r.waitHot)?.waitLabel;
-  const allEmpty = priority.approval.length === 0 && priority.attention.length === 0 && priority.prog.length === 0;
+  const allEmpty =
+    priority.approval.length === 0 &&
+    priority.sendPaperwork.length === 0 &&
+    priority.attention.length === 0 &&
+    priority.prog.length === 0;
   return (
     <div className="space-y-7">
       {/* 1 · Needs approval — the top priority. */}
       <Band b={PRIORITY_BANDS[0]} rows={priority.approval} />
+      {/* 2 · Send dealer paperwork — approved deals we still owe the install docs
+          (so a deal approved overnight can't hide in the funding pile). */}
+      <Band b={PRIORITY_BANDS[1]} rows={priority.sendPaperwork} />
       {/* Overdue callout for the attention band. */}
       {overdue > 0 && (
         <div className="flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 p-4">
@@ -225,9 +236,9 @@ function PriorityView({ priority }: { priority: PriorityBands }) {
           </div>
         </div>
       )}
-      {/* 2 · Needs attention, then 3 · In progress. */}
-      <Band b={PRIORITY_BANDS[1]} rows={priority.attention} />
-      <Band b={PRIORITY_BANDS[2]} rows={priority.prog} />
+      {/* 3 · Needs attention, then 4 · In progress. */}
+      <Band b={PRIORITY_BANDS[2]} rows={priority.attention} />
+      <Band b={PRIORITY_BANDS[3]} rows={priority.prog} />
       {allEmpty && (
         <div className="card p-8 text-center text-sm text-gray-500">{t('reviewerQueue.caughtUp')}</div>
       )}
@@ -256,6 +267,7 @@ export function ReviewerQueue({ lanes, priority }: { lanes: Lanes; priority: Pri
 
   const counts = {
     approve: lanes.needsApproval.length,
+    paperwork: lanes.sendPaperwork.length,
     updates: lanes.updates.length,
     funding: lanes.inFunding.length,
     all: lanes.all.length,

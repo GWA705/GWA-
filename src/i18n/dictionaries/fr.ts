@@ -377,7 +377,7 @@ export const fr: Dictionary = {
     home: {
       justNow: 'à l’instant',
       act: { problem: 'Problème', fundingReady: 'Financement prêt', newDocument: 'Nouveau document', newNote: 'Nouvelle note', newDeal: 'Nouveau dossier', update: 'Mise à jour' },
-      action: { paidDone: 'Payé — terminé', fixProblem: 'Régler le problème', approve: 'Approuver', reviewDocs: 'Réviser les documents', reply: 'Répondre', fund: 'Financer', review: 'Réviser', awaitingInstall: 'En attente d’installation', verifyFund: 'Vérifier et financer', inForFunding: 'En financement', payDealer: 'Payer le concessionnaire', inProgress: 'En cours' },
+      action: { paidDone: 'Payé — terminé', fixProblem: 'Régler le problème', approve: 'Approuver', reviewDocs: 'Réviser les documents', reply: 'Répondre', fund: 'Financer', review: 'Réviser', sendPaperwork: 'Envoyer les documents', awaitingInstall: 'En attente d’installation', verifyFund: 'Vérifier et financer', inForFunding: 'En financement', payDealer: 'Payer le concessionnaire', inProgress: 'En cours' },
       paid: 'Payé', heroEyebrow: 'Réviseur', heroTitle: 'Dossiers', heroSubtitle: 'Révisez, approuvez et suivez chaque soumission de concessionnaire.', match: 'résultat', matches: 'résultats', forQuery: 'pour « {q} ».', backToAllDeals: 'Retour à tous les dossiers', noDealsMatch: 'Aucun dossier ne correspond à « {q} ».', cancellationsLink: '🚫 Annulations', confirmationsLink: '☎ Appels de confirmation' },
     leads: { mailInTest: 'Test par la poste HD', allLeads: 'Tous les prospects' },
     calc: { receiptTitle: 'Reçu de vente et de versement au concessionnaire', payment: 'Paiement', payoutPaid: 'VERSEMENT PAYÉ', payoutBreakdown: 'Détail du versement', totalEftPayout: 'VERSEMENT EFT TOTAL' },
@@ -2322,6 +2322,10 @@ export const fr: Dictionary = {
         label: 'À approuver',
         hint: 'Nouvelles demandes en attente d’une décision. Les approuver est la priorité.',
       },
+      paperwork: {
+        label: 'Documents à envoyer',
+        hint: 'Approuvé — les documents d’installation doivent encore être produits et envoyés au détaillant. Disparaît une fois envoyés.',
+      },
       updates: {
         label: 'Mises à jour',
         hint: 'Dossiers que vous avez déjà traités pour lesquels le détaillant vient d’envoyer du nouveau.',
@@ -2339,6 +2343,10 @@ export const fr: Dictionary = {
       approval: {
         title: 'À approuver',
         desc: 'En attente d’une décision d’approbation ou de refus — à traiter en premier',
+      },
+      sendPaperwork: {
+        title: 'Documents à envoyer au détaillant',
+        desc: 'Approuvé — nous devons encore produire les documents d’installation',
       },
       attention: {
         title: 'Attention requise',

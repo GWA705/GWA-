@@ -24,11 +24,21 @@ const NEW_STATUSES: ApplicationStatus[] = ['SUBMITTED', 'UNDER_REVIEW'];
 const FUNDING_STATUSES: ApplicationStatus[] = ['APPROVED', 'CONDITIONAL', 'DOCS_SENT', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW', 'FUNDED'];
 const TERMINAL: ApplicationStatus[] = ['FUNDED', 'DECLINED', 'WITHDRAWN', 'DRAFT'];
 
-type Deal = Application & { dealer: Dealer; _count: { payouts: number } };
+type Deal = Application & { dealer: Dealer; _count: { payouts: number; documents: number } };
 
 // Paid = a recorded payout OR the sales journal showing the deal settled.
 function isPaid(a: Deal): boolean {
   return a._count.payouts > 0 || a.journalPaidOn != null;
+}
+
+// "Send dealer paperwork": the deal is approved (or auto-approved) but the
+// install paperwork hasn't been produced/sent yet — i.e. no reviewer-stage
+// document exists. This is the step that used to get lost between approval and
+// funding. `_count.documents` here counts ONLY reviewer-stage docs (see the
+// query). Clears itself the moment that paperwork is sent.
+const NEEDS_PAPERWORK: ApplicationStatus[] = ['APPROVED', 'CONDITIONAL'];
+function paperworkOwed(a: Deal): boolean {
+  return NEEDS_PAPERWORK.includes(a.status) && a._count.documents === 0 && !isPaid(a);
 }
 
 // Sort for the flat "All deals" list + search results (the urgency lanes keep
@@ -125,6 +135,9 @@ function actionFor(a: Deal, t: TFunction): { label: string; tone: Tone } {
           : { label: t('staffMisc.home.action.review'), tone: 'review' };
     }
   }
+  // Approved but we haven't produced/sent the install paperwork yet — that's OUR
+  // move, so say so instead of "awaiting install" (which reads as the dealer's).
+  if (paperworkOwed(a)) return { label: t('staffMisc.home.action.sendPaperwork'), tone: 'sent' };
   // Not on the reviewer's desk right now — name the actual stage instead of a
   // generic "Awaiting dealer" on every row.
   switch (a.status) {
@@ -194,7 +207,7 @@ export default async function StaffQueue({ searchParams }: { searchParams: { q?:
   if (search) {
     const matches = (await prisma.application.findMany({
       where: search,
-      include: { dealer: true, _count: { select: { payouts: true } } },
+      include: { dealer: true, _count: { select: { payouts: true, documents: { where: { stage: 'REVIEWER' } } } } },
       orderBy: { createdAt: 'desc' },
       take: 300,
     })) as Deal[];
@@ -223,17 +236,21 @@ export default async function StaffQueue({ searchParams }: { searchParams: { q?:
 
   // --- Browse mode: four lanes for the toggle/tabs view. ---
   const apps = (await prisma.application.findMany({
-    include: { dealer: true, _count: { select: { payouts: true } } },
+    include: { dealer: true, _count: { select: { payouts: true, documents: { where: { stage: 'REVIEWER' } } } } },
     orderBy: { createdAt: 'desc' },
     take: 500,
   })) as Deal[];
 
   const lanes: Lanes = {
     needsApproval: apps.filter((a) => NEW_STATUSES.includes(a.status)).sort(byWaiting).map((a) => toRow(a, t)),
+    // Approved but the install paperwork hasn't gone out yet — our move, longest-
+    // waiting first so an overnight approval surfaces at the top.
+    sendPaperwork: apps.filter(paperworkOwed).sort(byWaiting).map((a) => toRow(a, t)),
     updates: apps.filter((a) => needsAttention(a) && !NEW_STATUSES.includes(a.status)).sort(byWaiting).map((a) => toRow(a, t)),
     // In-progress / funding deals: most recently touched first, so a deal you
-    // just handled lands at the TOP of the list, not the bottom.
-    inFunding: apps.filter((a) => FUNDING_STATUSES.includes(a.status) && !isPaid(a)).sort(byRecentActivity).map((a) => toRow(a, t)),
+    // just handled lands at the TOP of the list, not the bottom. The paperwork-
+    // owed deals are pulled out into their own lane so they can't hide here.
+    inFunding: apps.filter((a) => FUNDING_STATUSES.includes(a.status) && !isPaid(a) && !paperworkOwed(a)).sort(byRecentActivity).map((a) => toRow(a, t)),
     all: sortDeals(apps, sort).map((a) => toRow(a, t)),
   };
 
@@ -243,12 +260,18 @@ export default async function StaffQueue({ searchParams }: { searchParams: { q?:
   const priority: PriorityBands = {
     // Band 1 — waiting for an approve / decline decision (Submitted / Under review).
     approval: active.filter((a) => NEW_STATUSES.includes(a.status)).sort(byWaiting).map((a) => toRow(a, t)),
-    // Band 2 — already approved but the reviewer must act: a new document was
+    // Band 2 — approved but we still owe the dealer the install paperwork. Pulled
+    // ahead of "in progress" so an approved-overnight deal can't sit unnoticed in
+    // the waiting-on-dealer pile. Longest-waiting first. Deals that also need
+    // reviewer attention stay in Band 3 (handled there).
+    sendPaperwork: active.filter((a) => !NEW_STATUSES.includes(a.status) && !needsAttention(a) && paperworkOwed(a)).sort(byWaiting).map((a) => toRow(a, t)),
+    // Band 3 — already approved but the reviewer must act: a new document was
     // uploaded, the dealer changed something, a reply is owed, or it's flagged a
     // Problem. Longest-waiting (incl. overdue) first.
     attention: active.filter((a) => !NEW_STATUSES.includes(a.status) && needsAttention(a)).sort(byWaiting).map((a) => toRow(a, t)),
-    // Band 3 — moving along / waiting on the dealer: newest activity first.
-    prog: active.filter((a) => !NEW_STATUSES.includes(a.status) && !needsAttention(a)).sort(byRecentActivity).map((a) => toRow(a, t)),
+    // Band 4 — moving along / waiting on the dealer: newest activity first. The
+    // paperwork-owed deals are excluded (they're in Band 2).
+    prog: active.filter((a) => !NEW_STATUSES.includes(a.status) && !needsAttention(a) && !paperworkOwed(a)).sort(byRecentActivity).map((a) => toRow(a, t)),
   };
 
   return (
