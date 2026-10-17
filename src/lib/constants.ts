@@ -486,7 +486,8 @@ export const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
 // section). Dealers can view and download these.
 export const REVIEWER_PAPERWORK_TYPES: { type: DocumentType; label: string }[] = [
   { type: 'HD_PAPERWORK', label: 'HD Agreements' },
-  { type: 'HD_WAIVER', label: 'HD Waiver' },
+  // HD Waiver is attached automatically to HD deals (the dealer already has it),
+  // so staff no longer upload it here — box removed.
   { type: 'RELEASE_OF_FUNDS', label: 'Release of funds / completion certificate' },
   { type: 'FINANCING_PAPERWORK', label: 'Financing paperwork' },
   { type: 'OTHER', label: 'Other (type a name)' },

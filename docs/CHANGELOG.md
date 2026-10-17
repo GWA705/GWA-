@@ -38,6 +38,17 @@ source of truth; this file is the human-readable index.
 | HD Resolution ↔ Gmail email link | ✅ **Live & verified** (2026-10-07, Sean) | Read-only Gmail via the existing service account (`gwa-journal-writer@gwa-portal-504012…`, project **"GWA Portal"** `gwa-portal-504012`, Unique ID `100470797238569934976`), impersonating `sean@ghsbarrie.ca` + the `HD Resolution` label. All switches done: Gmail API enabled, Workspace domain-wide delegation (`…/auth/gmail.readonly`), `GMAIL_RESOLUTION_USER=sean@ghsbarrie.ca` on EB. **Verified end-to-end** — the Email inbox lists real HD threads and "Open as case" links the thread + auto-fills. 30-min sync `resolution-email-sync.yml` (reuses `CRON_SECRET`). Steps/facts: `HD-RESOLUTION-EMAIL.md`, `BUILD-FACTS.md`. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### Deal page: tax line, bigger section headings, drop redundant HD Waiver upload box (2026-10-17)
+- The reviewer/deal view (`ReviewerEntryView`) now shows a **Tax** line (gross − net pre-tax)
+  right under the pre-tax amount, so Requested → Net pre-tax → Tax read together. New i18n key
+  `reviewerEntry.taxAmount` (EN/FR). Only shown when the province has a tax rate.
+- **Bigger section headings** on the deal page (EMPLOYMENT & INCOME, FINANCING / DEAL, …):
+  `text-xs` → `text-lg`, bold, with a bottom rule and more spacing, so the page is easier to
+  navigate while doing apps.
+- Removed the **HD Waiver** box from the staff→dealer paperwork uploader
+  (`REVIEWER_PAPERWORK_TYPES`): the Home Depot Customer Approval Waiver is already attached
+  automatically to HD deals, so there's no need to upload/send it manually.
+
 ### Training certificate: fix the broken Print button + add a reusable Certificate PDF (2026-10-17)
 - The certificate record pages (`/dealer/training/[id]`, `/admin/training/[id]`) had a
   "Print / save PDF" button wired through an inline `<script>`, which the production CSP

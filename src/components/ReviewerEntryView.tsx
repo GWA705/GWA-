@@ -66,8 +66,8 @@ function Field({ label, value, mono, raw }: { label: string; value: React.ReactN
 
 function Group({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="mt-5 first:mt-0">
-      <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-brand-700">{title}</h3>
+    <div className="mt-8 first:mt-0">
+      <h3 className="mb-2 border-b-2 border-brand-100 pb-1.5 text-lg font-bold uppercase tracking-wide text-brand-700">{title}</h3>
       <dl>{children}</dl>
     </div>
   );
@@ -222,9 +222,16 @@ export function ReviewerEntryView({
         {(() => {
           const total = Number(app.approvedAmount ?? app.requestedAmount) || 0;
           const n = netBeforeTax(total, app.province);
-          const net = `$${n.net.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+          const fmt = (x: number) => `$${x.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
           const label = n.rate > 0 ? t('reviewerEntry.netPreTaxWithRate', { province: app.province, rate: n.ratePct }) : t('reviewerEntry.netPreTax');
-          return <Field label={label} value={net} />;
+          return (
+            <>
+              <Field label={label} value={fmt(n.net)} />
+              {n.rate > 0 && (
+                <Field label={t('reviewerEntry.taxAmount', { province: app.province, rate: n.ratePct })} value={fmt(total - n.net)} />
+              )}
+            </>
+          );
         })()}
         <Field label={t('reviewerEntry.field.approvedAmount')} value={money(app.approvedAmount)} />
         <Field label={t('reviewerEntry.field.paymentMethod')} value={app.paymentMethod ? paymentMethodLabel(t, app.paymentMethod) : t('reviewerEntry.notSpecified')} />
