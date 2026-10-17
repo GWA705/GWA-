@@ -4,9 +4,10 @@ import { requireAdminSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import {
   listAllIdTags, idTagCounts, ID_TAG_STATUS_LABEL, ID_TAG_STATUS_TONE, TONE_CLASS, isIdTagStatus,
+  getIdTagEnabledOffices,
 } from '@/lib/idTag';
 import { getIdTagSettings } from '@/lib/settings';
-import { updateIdTagStatusAction, saveIdTagSettingsAction } from './actions';
+import { updateIdTagStatusAction, saveIdTagSettingsAction, saveIdTagOfficesAction } from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,12 +19,14 @@ export default async function AdminIdTagsPage({ searchParams }: { searchParams: 
   const statusFilter = searchParams.status && isIdTagStatus(searchParams.status) ? searchParams.status : undefined;
   const dealerFilter = searchParams.dealerId || undefined;
 
-  const [rows, counts, dealers, settings] = await Promise.all([
+  const [rows, counts, dealers, settings, enabledOffices] = await Promise.all([
     listAllIdTags({ status: statusFilter, dealerId: dealerFilter }),
     idTagCounts(),
     prisma.dealer.findMany({ where: { active: true }, select: { id: true, name: true }, orderBy: { name: 'asc' } }),
     getIdTagSettings(),
+    getIdTagEnabledOffices(),
   ]);
+  const enabledSet = new Set(enabledOffices || []);
 
   const tiles: { n: number; label: string; color: string }[] = [
     { n: counts.needsTraining, label: 'Needs training', color: 'text-amber-700' },
@@ -118,6 +121,27 @@ export default async function AdminIdTagsPage({ searchParams }: { searchParams: 
           </table>
         </div>
       </div>
+
+      {/* Rollout: who can use it */}
+      <details className={`${card} mt-6 p-5`} open={rows.length === 0}>
+        <summary className="cursor-pointer text-sm font-bold text-slate-900">Who can use it (office rollout)</summary>
+        <p className="mt-2 text-xs text-slate-500">
+          Check the offices that can see and use HD ID Tags. With <strong>none checked</strong> it defaults to the
+          <strong> Georgian Water &amp; Air</strong> office only — so it stays hidden from every other office while you build it.
+          Check more offices to roll it out when you’re ready.
+        </p>
+        <form action={saveIdTagOfficesAction} className="mt-3">
+          <div className="grid gap-1.5 sm:grid-cols-2">
+            {dealers.map((d) => (
+              <label key={d.id} className="flex items-center gap-2 text-sm text-slate-700">
+                <input type="checkbox" name="offices" value={d.id} defaultChecked={enabledSet.has(d.id)} className="rounded border-slate-300" />
+                {d.name}
+              </label>
+            ))}
+          </div>
+          <button type="submit" className="mt-3 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Save rollout</button>
+        </form>
+      </details>
 
       {/* Onboarding settings */}
       <details className={`${card} mt-6 p-5`}>

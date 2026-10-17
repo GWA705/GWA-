@@ -1,6 +1,7 @@
+import { notFound } from 'next/navigation';
 import { requireDealerAccess } from '@/lib/session';
 import { prisma } from '@/lib/db';
-import { listIdTagForDealer, ID_TAG_STATUS_LABEL, ID_TAG_STATUS_TONE, TONE_CLASS } from '@/lib/idTag';
+import { listIdTagForDealer, isIdTagEnabledForDealer, ID_TAG_STATUS_LABEL, ID_TAG_STATUS_TONE, TONE_CLASS } from '@/lib/idTag';
 import { IdTagSubmitForm } from './IdTagSubmitForm';
 
 export const dynamic = 'force-dynamic';
@@ -15,6 +16,8 @@ export default async function DealerIdTagsPage() {
     return <main className="mx-auto max-w-2xl px-4 py-10 text-center text-sm text-slate-500">No office is linked to your account.</main>;
   }
   const dealerId = session.dealerId;
+  // Rollout gate: hidden from offices not enabled for the feature (GWA-only by default).
+  if (!(await isIdTagEnabledForDealer(dealerId))) notFound();
   const [rows, dealer] = await Promise.all([
     listIdTagForDealer(dealerId),
     prisma.dealer.findUnique({ where: { id: dealerId }, select: { name: true, trainingToken: true } }),

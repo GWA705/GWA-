@@ -1,6 +1,40 @@
 import 'server-only';
 import { prisma } from './db';
+import { getSetting, setSetting } from './settings';
 import type { IdTagKind, IdTagStatus } from '@prisma/client';
+
+// Rollout gate for the whole HD ID Tag feature (independent of training), so it
+// can be hidden while it's being built. Stored as a JSON array of dealer ids:
+//   non-empty list -> ONLY those offices see it,
+//   unset / empty  -> default to the Georgian Water & Air office only (by name),
+//                     so it stays hidden from every other office until an admin
+//                     explicitly opens it up.
+export const ID_TAG_OFFICES_KEY = 'idTag.enabledOffices';
+
+export async function getIdTagEnabledOffices(): Promise<string[] | null> {
+  const raw = await getSetting(ID_TAG_OFFICES_KEY);
+  if (!raw) return null;
+  try {
+    const a = JSON.parse(raw);
+    return Array.isArray(a) ? a.filter((x): x is string => typeof x === 'string') : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function setIdTagEnabledOffices(ids: string[]): Promise<void> {
+  await setSetting(ID_TAG_OFFICES_KEY, ids.length ? JSON.stringify(ids) : '');
+}
+
+/** Whether an office can see/use the HD ID Tag feature. Non-empty allowlist =
+ *  only those offices; no allowlist = the Georgian Water & Air office only. */
+export async function isIdTagEnabledForDealer(dealerId: string | null | undefined): Promise<boolean> {
+  if (!dealerId) return false;
+  const list = await getIdTagEnabledOffices();
+  if (list && list.length) return list.includes(dealerId);
+  const dealer = await prisma.dealer.findUnique({ where: { id: dealerId }, select: { name: true } });
+  return /georgian\s*water/i.test(dealer?.name || '');
+}
 
 // Home Depot ID-tag requests. Each person an office submits is matched against
 // their training certificates (by office + normalized name / email). Training is

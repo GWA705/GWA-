@@ -38,6 +38,15 @@ source of truth; this file is the human-readable index.
 | HD Resolution ↔ Gmail email link | ✅ **Live & verified** (2026-10-07, Sean) | Read-only Gmail via the existing service account (`gwa-journal-writer@gwa-portal-504012…`, project **"GWA Portal"** `gwa-portal-504012`, Unique ID `100470797238569934976`), impersonating `sean@ghsbarrie.ca` + the `HD Resolution` label. All switches done: Gmail API enabled, Workspace domain-wide delegation (`…/auth/gmail.readonly`), `GMAIL_RESOLUTION_USER=sean@ghsbarrie.ca` on EB. **Verified end-to-end** — the Email inbox lists real HD threads and "Open as case" links the thread + auto-fills. 30-min sync `resolution-email-sync.yml` (reuses `CRON_SECRET`). Steps/facts: `HD-RESOLUTION-EMAIL.md`, `BUILD-FACTS.md`. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### HD ID Tags: own rollout gate (GWA-only while being built) (2026-10-17)
+- The HD ID Tag feature now has its **own office rollout gate** (`idTag.enabledOffices`),
+  independent of the training rollout. Default (no allowlist set): only the **Georgian Water
+  & Air** office (matched by name) — hidden from every other office while it's built. The
+  dealer nav entry AND the `/dealer/id-tags` page are both gated (direct-URL access 404s for
+  offices not enabled). Admins (GWA staff) always see the board.
+- Added a **"Who can use it" office checklist** on Admin → ID Tags to open it to more offices
+  later (`saveIdTagOfficesAction`), same pattern as the training rollout.
+
 ### Direct sale: HD store + HD number on GWA sales too (2026-10-16)
 - The Direct Sale entry's Home Depot store picker now shows for **Georgian Water & Air**
   program sales, not just HD. It's **required for an HD deal** (unchanged) and **optional for

@@ -12,6 +12,7 @@ import { hasDealerReportAccess, canViewAllLeads } from '@/lib/reporting/access';
 import { isGlobalSearchEnabled } from '@/lib/settings';
 import { dealerHasGiftCardUnread } from '@/lib/giftCardAccess';
 import { isTrainingEnabledForDealer } from '@/lib/training-content';
+import { isIdTagEnabledForDealer } from '@/lib/idTag';
 import { prisma } from '@/lib/db';
 import { stopViewAsAction } from '@/app/(admin)/actions';
 
@@ -44,7 +45,7 @@ export default async function DealerLayout({ children }: { children: React.React
   }
 
   // Attention dots: content sections with something new, and unread mail.
-  const [freshSections, unreadMail, calcAccess, reportAccess, leadsAccess, searchEnabled, giftCardUnread, dealerProfile, recordingsCount, trainingEnabled] = await Promise.all([
+  const [freshSections, unreadMail, calcAccess, reportAccess, leadsAccess, searchEnabled, giftCardUnread, dealerProfile, recordingsCount, trainingEnabled, idTagEnabled] = await Promise.all([
     newContentSectionsForUser(user.userId),
     user.dealerId ? unreadMailCountForUser(user.userId, user.dealerId, user.isDistributor) : Promise.resolve(0),
     hasCalculatorAccess(user),
@@ -59,6 +60,8 @@ export default async function DealerLayout({ children }: { children: React.React
     prisma.zoomRecording.count({ where: { status: 'PUBLISHED' } }),
     // Lead Gen Training is rolled out office-by-office (starts with GWA only).
     isTrainingEnabledForDealer(user.dealerId),
+    // HD ID Tags: its own rollout gate (GWA-only by default while it's built).
+    isIdTagEnabledForDealer(user.dealerId),
   ]);
   // The dealer's own uploaded logo (falls back to the Georgian wordmark in the
   // header when none is set). Cache-busted on profile update.
@@ -118,7 +121,7 @@ export default async function DealerLayout({ children }: { children: React.React
           { href: '/dealer/marketplace', label: 'Marketplace', labelKey: 'nav.marketplace' },
           { href: '/dealer/leads', label: 'Leads', labelKey: 'nav.leads' },
           ...(trainingEnabled ? [{ href: '/dealer/training', label: 'Lead Gen Training' }] : []),
-          ...(trainingEnabled ? [{ href: '/dealer/id-tags', label: 'HD ID Tags' }] : []),
+          ...(idTagEnabled ? [{ href: '/dealer/id-tags', label: 'HD ID Tags' }] : []),
           { href: '/dealer/gift-cards', label: 'Gift cards', labelKey: 'nav.giftCards', badge: giftCardUnread },
           {
             label: 'Resources',
