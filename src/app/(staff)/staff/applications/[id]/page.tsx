@@ -12,6 +12,7 @@ import { HdWaiverCard } from '@/components/HdWaiverCard';
 import { FundingChecklist } from '@/components/FundingChecklist';
 import { VerificationChecklist, type VerificationState } from '@/components/VerificationChecklist';
 import { ReviewerEntryView } from '@/components/ReviewerEntryView';
+import { HdEntrySheet, type HdSection } from '@/components/HdEntrySheet';
 import { CollapsibleEntry } from '@/components/CollapsibleEntry';
 import { CollapsibleSection } from '@/components/CollapsibleSection';
 import { PayoutReceipt } from '@/components/PayoutReceipt';
@@ -45,7 +46,7 @@ import { StatusChangeForm } from './StatusChangeForm';
 import { CancellationReviewCard, type CancellationReviewVM } from './CancellationReviewCard';
 import { ReviewerWorkspace } from './ReviewerWorkspace';
 import { reviewerPhaseStates, dealerFacingStatusLabel, currentPhaseIndex, hasDealerReturned, type PhaseState } from '@/lib/reviewerFlow';
-import { exemptionSummary } from '@/lib/tax';
+import { exemptionSummary, netBeforeTax } from '@/lib/tax';
 import { dealHasFinancing, financedAmountOf } from '@/lib/payments';
 import { journalEnabled } from '@/lib/journal';
 import { PaymentBreakdown } from '@/components/PaymentBreakdown';
@@ -240,6 +241,130 @@ export default async function StaffApplicationDetail({
   const cityProvPostal = [[addrCity, addrProv].filter(Boolean).join(', '), addrPostal].filter(Boolean).join(' ');
   const streetShown = revealOk && pv.address !== '—' ? pv.address : null;
   const fullAddress = [streetShown, cityProvPostal].filter(Boolean).join(', ');
+
+  // "Copy to Home Depot" sheet: the two HD screens we re-key by hand, laid out in
+  // field order so staff copy instead of retype. Page 1 is the lead / customer
+  // entry; page 2 is the "Proposal and Agreement" (the install contract). Text is
+  // pre-cased to match HD (UPPERCASE, email as-is). HD's own system IDs (Customer
+  // / Lead ID / Service ID) are assigned by Home Depot, so they aren't copied from
+  // us. The street stays behind the audited reveal.
+  const hdUp = (s?: string | null) => (s && s.trim() ? s.trim().toUpperCase() : null);
+  // HD phone fields want +1XXXXXXXXXX. Fall back to the raw value when it isn't a
+  // clean 10/11-digit number.
+  const hdPhone = (s?: string | null) => {
+    const d = (s || '').replace(/\D/g, '');
+    if (d.length === 10) return `+1${d}`;
+    if (d.length === 11 && d.startsWith('1')) return `+${d}`;
+    return s?.trim() || null;
+  };
+  const fmtMdy = (d: Date) => `${d.getUTCMonth() + 1}/${d.getUTCDate()}/${d.getUTCFullYear()}`;
+  const hdStoreValue = app.homeDepotStore
+    ? `${app.homeDepotStore.name ? `${app.homeDepotStore.name} - ` : ''}${app.homeDepotStore.number}`.toUpperCase()
+    : null;
+  const hdInstall = app.installationDate ? fmtMdy(app.installationDate) : null;
+  // The proposal/signing date — date of sale when we have it, else today (the day
+  // staff produce the paperwork).
+  const hdSaleDate = app.dateOfSale ? fmtMdy(app.dateOfSale) : fmtMdy(new Date());
+  const hdFullName = hdUp([app.applicantFirstName, app.applicantLastName].filter((p) => p && p.trim()).join(' '));
+  const hdInitials =
+    [app.applicantFirstName, app.applicantLastName]
+      .map((n) => (n && n.trim() ? n.trim()[0].toUpperCase() : ''))
+      .join('') || null;
+  const hdProducts = app.productsSold.length ? `SUPPLY AND INSTALL ${app.productsSold.join(' AND ').toUpperCase()}` : null;
+
+  // The sale total we hold is tax-INCLUDED. HD wants the pre-tax net in the lead's
+  // "Retail Value" and the agreement's "Products/Sub Total", the tax split across
+  // the HST/GST/PST boxes by province, and the tax-included total in the
+  // agreement's "Total Payable"/"Payment #1".
+  const hdSaleTotal = Number(app.approvedAmount ?? app.requestedAmount) || 0;
+  const hdNet = netBeforeTax(hdSaleTotal, app.province);
+  const hasAmount = hdSaleTotal > 0;
+  const money2 = (n: number) => n.toFixed(2); // HD's charge boxes take plain numbers, no commas
+  const hdRetail = hasAmount
+    ? hdNet.net.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : null;
+  // Split the tax into HD's three boxes: HST provinces put it all in H.S.T.;
+  // everywhere else the federal 5% GST goes in GST/TPS and any provincial part
+  // (BC/MB/SK PST, QC QST) in PST/TVQ. GST-only provinces leave PST blank.
+  const HD_HST_PROVINCES = new Set(['ON', 'NB', 'NL', 'NS', 'PE']);
+  const round2 = (n: number) => Math.round(n * 100) / 100;
+  const hdTax = (() => {
+    if (!hasAmount || hdNet.rate <= 0) return { hst: 0, gst: 0, pst: 0 };
+    if (HD_HST_PROVINCES.has(app.province)) return { hst: hdNet.tax, gst: 0, pst: 0 };
+    const gst = round2(hdNet.net * 0.05);
+    return { hst: 0, gst, pst: round2(hdNet.tax - gst) };
+  })();
+
+  const hdSections: HdSection[] = [
+    // ——— Page 1: lead / customer entry ———
+    { title: 'Lead — Customer Details', fields: [
+      { label: 'First Name', value: hdUp(app.applicantFirstName) },
+      { label: 'Last Name', value: hdUp(app.applicantLastName) },
+      { label: 'Street Address', value: hdUp(streetShown), missingHint: 'Reveal the street first (link above)' },
+      { label: 'City', value: hdUp(addrCity) },
+      { label: 'Region', value: hdUp(addrProv) },
+      { label: 'Country', value: 'CA' },
+      { label: 'Postal Code', value: hdUp(addrPostal) },
+      { label: 'Phone Number', value: app.applicantPhone?.trim() || null },
+      { label: 'Cell Phone', value: app.applicantPhone?.trim() || null },
+      { label: 'E-Mail', value: app.applicantEmail?.trim() || null },
+      { label: 'Language', value: 'EN' },
+    ] },
+    { title: 'Lead — Lead Details', fields: [
+      { label: 'Store', value: hdStoreValue },
+      { label: 'Service Provider', value: 'Georgian Water & Air' },
+      { label: 'Origin', value: 'Service Provider' },
+      { label: 'Install Start Date', value: hdInstall },
+      { label: 'Install End Date', value: hdInstall },
+      { label: 'Notes', value: hdProducts },
+      { label: 'Status', value: 'Sold' },
+      { label: 'Retail Value', value: hdRetail },
+      { label: 'HD reference (ours)', value: app.hdReference?.trim() || null },
+    ] },
+    // ——— Page 2: Proposal and Agreement (the install contract) ———
+    { title: 'Agreement — Customer', fields: [
+      { label: 'Customer Name', value: hdFullName },
+      { label: 'Installation Address', value: hdUp(streetShown), missingHint: 'Reveal the street first (link above)' },
+      { label: 'City', value: hdUp(addrCity) },
+      { label: 'Province', value: hdUp(addrProv) },
+      { label: 'Postal Code', value: hdUp(addrPostal) },
+      { label: 'Day Phone', value: hdPhone(app.applicantPhone) },
+      { label: 'Evening Phone', value: hdPhone(app.applicantPhone) },
+      { label: 'Date', value: hdSaleDate },
+    ] },
+    { title: 'Agreement — Service Provider', fields: [
+      // GWA's fixed provider-record values as entered in HD's portal — these match
+      // Home Depot's existing service-provider record (not the brand-kit print
+      // block); the fax is a placeholder HD's form requires.
+      { label: 'Service Provider Representative', value: 'Georgian Water & Air' },
+      { label: 'Service Provider Name', value: 'Georgian Water & Air' },
+      { label: 'Phone No.', value: '+17058120320' },
+      { label: 'Service Provider Address', value: '11 King St, Unit 10' },
+      { label: 'Fax No.', value: '+19999999999' },
+    ] },
+    { title: 'Agreement — Charges', fields: [
+      { label: 'Description of Products', value: hdProducts },
+      { label: 'Commencement Date', value: hdInstall },
+      { label: 'Products and Services $', value: hasAmount ? money2(hdNet.net) : null },
+      { label: 'Promo Discount $', value: hasAmount ? '0.00' : null },
+      { label: 'Sub Total $', value: hasAmount ? money2(hdNet.net) : null },
+      { label: 'H.S.T. $', value: hdTax.hst > 0 ? money2(hdTax.hst) : null },
+      { label: 'GST/TPS $', value: hdTax.gst > 0 ? money2(hdTax.gst) : null },
+      { label: 'PST/TVQ $', value: hdTax.pst > 0 ? money2(hdTax.pst) : null },
+      { label: 'Total Payable $', value: hasAmount ? money2(hdSaleTotal) : null },
+      { label: 'Payment #1 $', value: hasAmount ? money2(hdSaleTotal) : null },
+    ] },
+    { title: 'Agreement — Signatures', fields: [
+      { label: "Buyer's Signature", value: hdFullName },
+      { label: 'Date Signed', value: hdSaleDate },
+      { label: 'Signed at Location', value: hdUp(addrCity) },
+      { label: "Service Provider's Authorized Signature", value: 'SEAN JAIKO' },
+      { label: 'SP Date Signed', value: hdSaleDate },
+      { label: 'SP Signed at Location', value: 'BARRIE' },
+      { label: 'Initials', value: hdInitials },
+      { label: 'Date', value: hdSaleDate },
+    ] },
+  ];
 
   const applicationDocs = app.documents.filter((d) => d.stage === 'APPLICATION');
   const fundingDocs = app.documents.filter((d) => d.stage === 'FUNDING');
@@ -575,6 +700,25 @@ export default async function StaffApplicationDetail({
                   hint={t('staffDeal.produce.hdWaiverHint')}
                 />
               </div>
+            )}
+            {app.programType === 'HD' && (
+              <details className="mb-4 rounded-lg border border-gray-200 bg-white">
+                <summary className="cursor-pointer select-none rounded-lg px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50">
+                  Copy to Home Depot — lead &amp; agreement fields
+                </summary>
+                <div className="border-t border-gray-100 px-4 py-4">
+                  {!revealOk && app.applicantAddressEnc && (
+                    <p className="mb-3 rounded bg-amber-50 p-2 text-xs text-amber-700">
+                      The street address is hidden.{' '}
+                      <a href={`/staff/applications/${app.id}?reveal=1`} className="font-medium text-brand-700 hover:underline">
+                        Reveal street address →
+                      </a>{' '}
+                      (logged), then the address fields will fill in.
+                    </p>
+                  )}
+                  <HdEntrySheet sections={hdSections} />
+                </div>
+              </details>
             )}
             <p className="mb-4 text-xs text-gray-500">{t('staffDeal.produce.uploadHint')}</p>
             <div className="mb-4">

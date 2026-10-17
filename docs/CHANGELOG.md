@@ -38,6 +38,30 @@ source of truth; this file is the human-readable index.
 | HD Resolution ↔ Gmail email link | ✅ **Live & verified** (2026-10-07, Sean) | Read-only Gmail via the existing service account (`gwa-journal-writer@gwa-portal-504012…`, project **"GWA Portal"** `gwa-portal-504012`, Unique ID `100470797238569934976`), impersonating `sean@ghsbarrie.ca` + the `HD Resolution` label. All switches done: Gmail API enabled, Workspace domain-wide delegation (`…/auth/gmail.readonly`), `GMAIL_RESOLUTION_USER=sean@ghsbarrie.ca` on EB. **Verified end-to-end** — the Email inbox lists real HD threads and "Open as case" links the thread + auto-fills. 30-min sync `resolution-email-sync.yml` (reuses `CRON_SECRET`). Steps/facts: `HD-RESOLUTION-EMAIL.md`, `BUILD-FACTS.md`. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### "Copy to Home Depot" sheet on the staff deal page (2026-10-17)
+- HD deals have **no public lead-entry API**, so staff re-type the whole deal into Home Depot's
+  Service-Provider portal twice — once on the **lead** screen, once on the **Proposal and
+  Agreement** (install contract). New `HdEntrySheet` (`src/components/HdEntrySheet.tsx`, CSP-safe
+  client copy — `navigator.clipboard` with an `execCommand` fallback) lays out **exactly** those
+  HD fields, in HD's order, each a one-click Copy, plus a **Copy all** button. Shown as a
+  collapsible **"Copy to Home Depot — lead & agreement fields"** panel in the *Produce install
+  documents* step, HD deals only.
+- Six sections mirror the two HD screens: **Lead — Customer Details / Lead Details**;
+  **Agreement — Customer / Service Provider / Charges / Signatures**. Values are pre-cased to
+  match HD (UPPERCASE text, email as-is), phones formatted `+1XXXXXXXXXX` for the agreement, dates
+  `M/D/YYYY`, customer initials derived for the sign-off.
+- **Tax-aware money:** our stored sale amount is tax-INCLUDED, so the sheet shows the **pre-tax
+  net** in the lead's *Retail Value* and the agreement's *Products / Sub Total* (this corrected
+  the lead's Retail Value, which HD wants pre-tax), the **tax-included total** in *Total Payable /
+  Payment #1*, and splits the tax into HD's **H.S.T. / GST/TPS / PST/TVQ** boxes by province
+  (HST provinces → H.S.T.; GST-only → GST; BC/MB/SK/QC → 5% GST + provincial PST/QST).
+- The street address stays behind the existing audited reveal — the address fields show a
+  "Reveal street address →" prompt until revealed (logged), never an un-audited decrypt.
+- GWA's fixed provider-record values (Service Provider name/phone `+17058120320`/address
+  `11 King St, Unit 10`/fax placeholder, Barrie sign-off) are reproduced as entered in HD's portal
+  so they copy in one click too. Phase 2 (later): a browser extension/bookmarklet that autofills
+  HD's form from the **Copy all** payload.
+
 ### Deal page: tax line, bigger section headings, drop redundant HD Waiver upload box (2026-10-17)
 - The reviewer/deal view (`ReviewerEntryView`) now shows a **Tax** line (gross − net pre-tax)
   right under the pre-tax amount, so Requested → Net pre-tax → Tax read together. New i18n key
