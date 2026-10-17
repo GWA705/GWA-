@@ -62,6 +62,17 @@ source of truth; this file is the human-readable index.
   so they copy in one click too. Phase 2 (later): a browser extension/bookmarklet that autofills
   HD's form from the **Copy all** payload.
 
+### Upload page-count "laws" — groundwork, parked / not enforced yet (2026-10-17)
+- New `src/lib/uploadRules.ts`: a per-document-type **expected page count** with a `block` or
+  `warn` mode, so a mis-filed upload (e.g. a 26-page file in the 1-page HD-waiver box) can be
+  caught. Admin-editable via an `AppSetting` (`upload.docRules`) so a form/scanner change can be
+  loosened **without a deploy**. **Fail-open:** a file we can't read the page count of is never
+  blocked. Defaults: HD waiver 1/block, HD agreement 4/warn, FinanceIt contract 25/warn.
+- **Status: parked groundwork only.** The lib + defaults are committed and tested, but **not
+  wired** into the dealer funding uploader (`uploadFundingBatchAction`) and there's **no admin
+  editor UI yet** — nothing enforces these rules in production until that wiring lands. Logged
+  here so the half-built piece isn't forgotten.
+
 ### Deal page: tax line, bigger section headings, drop redundant HD Waiver upload box (2026-10-17)
 - The reviewer/deal view (`ReviewerEntryView`) now shows a **Tax** line (gross − net pre-tax)
   right under the pre-tax amount, so Requested → Net pre-tax → Tax read together. New i18n key
