@@ -38,6 +38,15 @@ source of truth; this file is the human-readable index.
 | HD Resolution ↔ Gmail email link | ✅ **Live & verified** (2026-10-07, Sean) | Read-only Gmail via the existing service account (`gwa-journal-writer@gwa-portal-504012…`, project **"GWA Portal"** `gwa-portal-504012`, Unique ID `100470797238569934976`), impersonating `sean@ghsbarrie.ca` + the `HD Resolution` label. All switches done: Gmail API enabled, Workspace domain-wide delegation (`…/auth/gmail.readonly`), `GMAIL_RESOLUTION_USER=sean@ghsbarrie.ca` on EB. **Verified end-to-end** — the Email inbox lists real HD threads and "Open as case" links the thread + auto-fills. 30-min sync `resolution-email-sync.yml` (reuses `CRON_SECRET`). Steps/facts: `HD-RESOLUTION-EMAIL.md`, `BUILD-FACTS.md`. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### Fix: "Copy to Home Depot" sheet was hidden when it was needed most (2026-10-18)
+- The copy sheet was gated behind `!hdBlocksPaperwork`, so on any HD deal **without an HD Customer #
+  yet it didn't show at all** — exactly when you're creating the HD lead to *get* that number. It
+  was also a collapsed grey bar buried below the gate, so staff couldn't find it.
+- Now it shows for **every HD deal** (HD # present or not), **open by default**, as a prominent
+  orange **"📋 Copy to Home Depot — lead & agreement fields"** panel at the top of the *Produce
+  install documents* step. Since that step is the deal's active phase right after approval, the
+  panel is visible as soon as you open an approved HD deal.
+
 ### Admin: "Reconcile deals → Funded" tool for legacy approved deals (2026-10-18)
 - Some deals (GWA direct sales and older deals that predate the current flow) sit at
   **Approved/Conditional** but were never carried through to **Funded** — they're settled in real

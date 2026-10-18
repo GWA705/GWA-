@@ -681,6 +681,29 @@ export default async function StaffApplicationDetail({
     // 2 · Produce install documents
     produce: (
       <div>
+        {/* Copy to Home Depot — shown for EVERY HD deal, including before the HD
+            Customer # exists (that's exactly when you're creating the HD
+            paperwork to GET the number), so it's never hidden behind the gate
+            below. Open by default so it's impossible to miss. */}
+        {app.programType === 'HD' && (
+          <details open className="mb-4 overflow-hidden rounded-lg border-2 border-orange-300 bg-orange-50/40">
+            <summary className="flex cursor-pointer select-none items-center gap-2 px-4 py-3 text-sm font-bold text-orange-900 hover:bg-orange-50">
+              <span aria-hidden>📋</span> Copy to Home Depot — lead &amp; agreement fields
+            </summary>
+            <div className="border-t border-orange-200 bg-white px-4 py-4">
+              {!revealOk && app.applicantAddressEnc && (
+                <p className="mb-3 rounded bg-amber-50 p-2 text-xs text-amber-700">
+                  The street address is hidden.{' '}
+                  <a href={`/staff/applications/${app.id}?reveal=1`} className="font-medium text-brand-700 hover:underline">
+                    Reveal street address →
+                  </a>{' '}
+                  (logged), then the address fields will fill in.
+                </p>
+              )}
+              <HdEntrySheet sections={hdSections} />
+            </div>
+          </details>
+        )}
         {hdBlocksPaperwork ? (
           <div className="rounded-md border border-amber-300 bg-amber-50 p-4 text-sm">
             <p className="font-semibold text-amber-900">{t('staffDeal.produce.addHdFirst')}</p>
@@ -700,25 +723,6 @@ export default async function StaffApplicationDetail({
                   hint={t('staffDeal.produce.hdWaiverHint')}
                 />
               </div>
-            )}
-            {app.programType === 'HD' && (
-              <details className="mb-4 rounded-lg border border-gray-200 bg-white">
-                <summary className="cursor-pointer select-none rounded-lg px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50">
-                  Copy to Home Depot — lead &amp; agreement fields
-                </summary>
-                <div className="border-t border-gray-100 px-4 py-4">
-                  {!revealOk && app.applicantAddressEnc && (
-                    <p className="mb-3 rounded bg-amber-50 p-2 text-xs text-amber-700">
-                      The street address is hidden.{' '}
-                      <a href={`/staff/applications/${app.id}?reveal=1`} className="font-medium text-brand-700 hover:underline">
-                        Reveal street address →
-                      </a>{' '}
-                      (logged), then the address fields will fill in.
-                    </p>
-                  )}
-                  <HdEntrySheet sections={hdSections} />
-                </div>
-              </details>
             )}
             <p className="mb-4 text-xs text-gray-500">{t('staffDeal.produce.uploadHint')}</p>
             <div className="mb-4">
