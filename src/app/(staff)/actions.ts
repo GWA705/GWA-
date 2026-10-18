@@ -44,7 +44,7 @@ import {
 import { dealHasFinancing, financedAmountOf, nonFinancedAmountOf, journalPayCode } from '@/lib/payments';
 import { syncApplicationToJournal } from '@/lib/journalSync';
 import { getT } from '@/i18n/server';
-import type { ApplicationStatus, DecisionType, DocumentType, VerificationStatus } from '@prisma/client';
+import type { ApplicationStatus, DecisionType, DocumentType, VerificationStatus, ProgramType } from '@prisma/client';
 
 export interface ActionState {
   error?: string;
@@ -1053,6 +1053,104 @@ export async function advanceReadyFundingDealsAction(): Promise<{ moved: number 
   revalidatePath('/admin');
   revalidatePath('/staff');
   return { moved };
+}
+
+// --- Legacy-deal reconciliation (admin) -----------------------------------
+// Some deals were approved but never carried through to Funded in the portal —
+// e.g. GWA direct sales and older deals that predate the current flow. They're
+// settled in real life; staff just need to mark them Funded here, then fill in
+// the sales journal as usual (the journal paid-sync then marks them Paid). This
+// is a deliberate, reviewed, admin-only bulk action — never automatic.
+
+export interface ReconcileCandidate {
+  id: string;
+  name: string;
+  dealerName: string;
+  programType: ProgramType;
+  status: ApplicationStatus;
+  amount: number;
+  dateOfSale: string | null; // ISO
+  createdAt: string; // ISO
+  hdReference: string | null;
+  financeItNumber: string | null;
+  // When set, the deal can't be marked Funded until this is fixed (same gate as
+  // the normal "mark funded" — e.g. a missing HD Customer # or financing number).
+  blockedReason: string | null;
+}
+
+/** Deals sitting at Approved/Conditional that haven't been funded or paid. */
+export async function listReconcileCandidates(): Promise<ReconcileCandidate[]> {
+  await requireAdminSection('overview');
+  const rows = await prisma.application.findMany({
+    where: { status: { in: ['APPROVED', 'CONDITIONAL'] }, journalPaidOn: null },
+    orderBy: { createdAt: 'asc' },
+    include: { dealer: { select: { name: true } }, _count: { select: { payouts: true } } },
+  });
+  return rows
+    .filter((a) => a._count.payouts === 0) // not already paid out
+    .map((a) => {
+      const financed = dealHasFinancing(a);
+      const blockedReason = referenceGateError(
+        { hdReference: a.hdReference, financeItNumber: a.financeItNumber, financed, programType: a.programType },
+        'marking it Funded',
+      );
+      return {
+        id: a.id,
+        name: `${a.applicantFirstName} ${a.applicantLastName}`.trim(),
+        dealerName: a.dealer.name,
+        programType: a.programType,
+        status: a.status,
+        amount: Number(a.approvedAmount ?? a.requestedAmount) || 0,
+        dateOfSale: a.dateOfSale ? a.dateOfSale.toISOString() : null,
+        createdAt: a.createdAt.toISOString(),
+        hdReference: a.hdReference,
+        financeItNumber: a.financeItNumber,
+        blockedReason,
+      };
+    });
+}
+
+/**
+ * Mark the selected deals Funded (legacy reconciliation). Reuses the same
+ * reference gate as the single-deal mark-funded, skipping and reporting any deal
+ * that isn't eligible instead of forcing it through. Dealer notifications are
+ * deliberately NOT sent — these are old settled deals, not live status changes.
+ */
+export async function markDealsFundedAction(
+  ids: string[],
+): Promise<{ funded: number; skipped: { name: string; reason: string }[] }> {
+  const session = await requireAdminSection('overview');
+  const skipped: { name: string; reason: string }[] = [];
+  let funded = 0;
+  if (!Array.isArray(ids) || ids.length === 0) return { funded, skipped };
+  const unique = Array.from(new Set(ids)).slice(0, 500); // guard against a runaway batch
+  for (const id of unique) {
+    const app = await prisma.application.findUnique({ where: { id } });
+    if (!app) { skipped.push({ name: id, reason: 'not found' }); continue; }
+    const name = `${app.applicantFirstName} ${app.applicantLastName}`.trim() || id;
+    if (app.status === 'FUNDED') { skipped.push({ name, reason: 'already funded' }); continue; }
+    const refErr = referenceGateError({ ...app, financed: dealHasFinancing(app) }, 'marking this deal Funded');
+    if (refErr) { skipped.push({ name, reason: refErr }); continue; }
+    await prisma.$transaction([
+      prisma.application.update({ where: { id }, data: { status: 'FUNDED' } }),
+      prisma.statusEvent.create({
+        data: { applicationId: id, from: app.status, to: 'FUNDED', actorId: session.userId, note: 'Marked Funded — legacy reconciliation' },
+      }),
+    ]);
+    await audit({
+      actorId: session.userId,
+      action: 'STATUS_CHANGE',
+      entityType: 'Application',
+      entityId: id,
+      detail: `Reconcile: marked Funded (${app.status} -> FUNDED)`,
+    });
+    await markReviewerAction(id);
+    funded += 1;
+  }
+  revalidatePath('/admin');
+  revalidatePath('/admin/reconcile');
+  revalidatePath('/staff');
+  return { funded, skipped };
 }
 
 export interface BackfillUnitsSummary {

@@ -38,6 +38,22 @@ source of truth; this file is the human-readable index.
 | HD Resolution ↔ Gmail email link | ✅ **Live & verified** (2026-10-07, Sean) | Read-only Gmail via the existing service account (`gwa-journal-writer@gwa-portal-504012…`, project **"GWA Portal"** `gwa-portal-504012`, Unique ID `100470797238569934976`), impersonating `sean@ghsbarrie.ca` + the `HD Resolution` label. All switches done: Gmail API enabled, Workspace domain-wide delegation (`…/auth/gmail.readonly`), `GMAIL_RESOLUTION_USER=sean@ghsbarrie.ca` on EB. **Verified end-to-end** — the Email inbox lists real HD threads and "Open as case" links the thread + auto-fills. 30-min sync `resolution-email-sync.yml` (reuses `CRON_SECRET`). Steps/facts: `HD-RESOLUTION-EMAIL.md`, `BUILD-FACTS.md`. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### Admin: "Reconcile deals → Funded" tool for legacy approved deals (2026-10-18)
+- Some deals (GWA direct sales and older deals that predate the current flow) sit at
+  **Approved/Conditional** but were never carried through to **Funded** — they're settled in real
+  life. New admin tool **`/admin/reconcile`** lists them (oldest first: applicant, dealer, program,
+  amount, sold/entered dates, status), you tick the settled ones, and mark them **Funded** in one
+  reviewed action (two-step confirm; nothing changes on a single click).
+- After marking Funded, **you fill the sales journal as usual** and the existing paid-sync marks
+  them **Paid** — the portal does **not** write to the journal (per Sean: just advance to Funded,
+  we fill the journal ourselves).
+- Reuses the same **reference gate** as the normal mark-funded: a deal missing its HD Customer # or
+  financing number can't be selected and shows why, and the bulk action skips + reports any that
+  aren't eligible rather than forcing them through. Admin-only (reuses the Overview permission; no
+  new section to grant). Dealer notifications are deliberately suppressed. Linked from the admin
+  **Funding queue** card. New server actions `listReconcileCandidates` / `markDealsFundedAction`;
+  no schema change.
+
 ### Staff dashboard: new "Send dealer paperwork" lane (2026-10-17)
 - **The gap this closes:** approving a deal moved it straight from *Needs approval* into the big
   *In Funding* pile, so an approved-overnight deal whose install paperwork hadn't been produced/sent

@@ -136,7 +136,11 @@ export default async function AdminOverview() {
         <p className="mb-3 text-xs text-gray-500">
           Deals waiting to move to In for funding — both submitted packages and out-of-band ones still at Approved.
           Green ones are ready to advance now; amber ones need their uploaded documents confirmed first; red ones have
-          no documents yet.
+          no documents yet.{' '}
+          <Link href="/admin/reconcile" className="font-medium text-brand-700 hover:underline">
+            Reconcile old Approved deals → Funded
+          </Link>{' '}
+          (GWA direct sales &amp; legacy deals that are already settled).
         </p>
 
         <AdvanceReadyDealsButton readyCount={readyFundingCount} />
