@@ -55,6 +55,10 @@ source of truth; this file is the human-readable index.
 - Deals that *also* need reviewer attention (a new dealer doc, a Problem flag) stay in the
   *Needs attention* band as before — the new lane is specifically "approved, nothing else pending,
   we owe the docs." No schema change; EN + FR strings added.
+- **HD-only (refinement, same day):** the lane now applies to **HD-program deals only**. A GWA
+  direct sale is entered and funded by GWA staff itself — there's no dealer to produce and send
+  install paperwork to — so GWA-program deals never enter this lane. (Fixes legacy/GWA approved
+  deals from piling up in it.)
 
 ### "Copy to Home Depot" sheet on the staff deal page (2026-10-17)
 - HD deals have **no public lead-entry API**, so staff re-type the whole deal into Home Depot's

@@ -36,9 +36,13 @@ function isPaid(a: Deal): boolean {
 // document exists. This is the step that used to get lost between approval and
 // funding. `_count.documents` here counts ONLY reviewer-stage docs (see the
 // query). Clears itself the moment that paperwork is sent.
+//
+// HD deals only: a GWA direct sale is entered (and funded) by GWA staff itself —
+// there's no dealer to produce and send install paperwork to — so GWA-program
+// deals never belong in this lane.
 const NEEDS_PAPERWORK: ApplicationStatus[] = ['APPROVED', 'CONDITIONAL'];
 function paperworkOwed(a: Deal): boolean {
-  return NEEDS_PAPERWORK.includes(a.status) && a._count.documents === 0 && !isPaid(a);
+  return a.programType === 'HD' && NEEDS_PAPERWORK.includes(a.status) && a._count.documents === 0 && !isPaid(a);
 }
 
 // Sort for the flat "All deals" list + search results (the urgency lanes keep
