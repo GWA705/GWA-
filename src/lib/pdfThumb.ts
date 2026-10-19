@@ -17,11 +17,10 @@ export async function pdfFirstPageThumb(pdfBytes: Buffer): Promise<Buffer | null
 
 async function pdfFirstPageThumbInner(pdfBytes: Buffer): Promise<Buffer | null> {
   try {
-    const { pdf } = await import('pdf-to-img');
-    const doc = await pdf(pdfBytes, { scale: 1.5 });
+    const { renderPdfPngs } = await import('./pdfRender');
     let firstPng: Buffer | null = null;
-    for await (const page of doc) {
-      firstPng = page as Buffer;
+    for await (const page of renderPdfPngs(pdfBytes, { scale: 1.5, maxPages: 1 })) {
+      firstPng = page;
       break; // first page only
     }
     if (!firstPng) return null;
@@ -61,16 +60,15 @@ const SAFE_MAX_H = 60000;
 
 async function renderPdfPagesStackedInner(pdfBytes: Buffer, maxPages: number): Promise<Buffer | null> {
   try {
-    const { pdf } = await import('pdf-to-img');
-    const doc = await pdf(pdfBytes, { scale: 2 });
+    const { renderPdfPngs } = await import('./pdfRender');
     const width = 1100;
     const gap = 14;
 
     const pageBufs: Buffer[] = [];
     const heights: number[] = [];
     let stackedH = 0;
-    for await (const page of doc) {
-      const norm = await sharp(page as Buffer)
+    for await (const page of renderPdfPngs(pdfBytes, { scale: 2, maxPages })) {
+      const norm = await sharp(page)
         .flatten({ background: '#ffffff' })
         .resize({ width, withoutEnlargement: true })
         .toBuffer();

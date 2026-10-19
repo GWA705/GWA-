@@ -38,6 +38,19 @@ source of truth; this file is the human-readable index.
 | HD Resolution ↔ Gmail email link | ✅ **Live & verified** (2026-10-07, Sean) | Read-only Gmail via the existing service account (`gwa-journal-writer@gwa-portal-504012…`, project **"GWA Portal"** `gwa-portal-504012`, Unique ID `100470797238569934976`), impersonating `sean@ghsbarrie.ca` + the `HD Resolution` label. All switches done: Gmail API enabled, Workspace domain-wide delegation (`…/auth/gmail.readonly`), `GMAIL_RESOLUTION_USER=sean@ghsbarrie.ca` on EB. **Verified end-to-end** — the Email inbox lists real HD threads and "Open as case" links the thread + auto-fills. 30-min sync `resolution-email-sync.yml` (reuses `CRON_SECRET`). Steps/facts: `HD-RESOLUTION-EMAIL.md`, `BUILD-FACTS.md`. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### Fix: PDF previews failed everywhere ("Couldn't render a preview") (2026-10-19)
+- **Root cause:** `pdf-to-img` (the PDF→image rasterizer) depends on **node-canvas** (`canvas`), a
+  native addon that `dlopen()`s a stack of system libraries. In the slim production container that
+  load failed, so **every** PDF thumbnail and full-page preview threw and fell back to
+  download-only — across deal documents, resource library, mail attachments and content.
+- **Fix:** new `src/lib/pdfRender.ts` rasterizes PDFs with **pdfjs-dist + @napi-rs/canvas** instead.
+  `@napi-rs/canvas` is a prebuilt, self-contained binding (bundles its own graphics, no system
+  libs), so it renders identically in dev and in the production image. Points pdfjs at its shipped
+  `standard_fonts/` + `cmaps/` so text PDFs (agreements, bills of sale) render with real text, not
+  blank. `pdfThumb.ts` (first-page thumbnail + stacked full-page view) now uses it; node-canvas is
+  out of the render path. Both routes render **on demand**, so every existing document gets working
+  previews once this deploys — no re-upload needed. Verified end-to-end locally (text renders).
+
 ### HD Resolution inbox: redesigned as a report (2026-10-19)
 - Reworked the "Unlinked HD emails" page from a plain list into a report: a bold header, a 3-tile
   summary strip (**Waiting to open**, **New (24 h)**, **Oldest waiting** with an age like "16d"),
