@@ -331,6 +331,7 @@ export async function loadResolutionCase(id: string): Promise<CaseDetail | null>
       application: {
         select: {
           applicantEmail: true, applicantAddressEnc: true,
+          applicantCity: true, province: true, applicantPostal: true,
           programType: true, status: true,
           requestedAmount: true, approvedAmount: true, financedAmount: true,
           dateOfSale: true, installationDate: true,
@@ -411,7 +412,19 @@ export async function loadResolutionCase(id: string): Promise<CaseDetail | null>
     })(),
     // Contact card: case value wins, else the linked deal's.
     customerEmail: c.customerEmail ?? c.application?.applicantEmail ?? null,
-    customerAddress: c.customerAddress ?? decryptOptional(c.application?.applicantAddressEnc ?? null) ?? null,
+    // Case override wins (free text); otherwise build the FULL address from the
+    // linked deal — street + city, province, postal — so the city shows, not just
+    // the street line.
+    customerAddress:
+      c.customerAddress ??
+      (() => {
+        const street = decryptOptional(c.application?.applicantAddressEnc ?? null);
+        const city = c.application?.applicantCity?.trim() || null;
+        const prov = (c.application?.province as string | null | undefined)?.trim() || null;
+        const postal = c.application?.applicantPostal?.trim() || null;
+        const cityLine = [[city, prov].filter(Boolean).join(', '), postal].filter(Boolean).join(' ').trim();
+        return [street, cityLine].filter(Boolean).join(', ') || null;
+      })(),
     spouseName: c.spouseName,
     spousePhone: c.spousePhone,
     hdRepName: c.hdRepName,
