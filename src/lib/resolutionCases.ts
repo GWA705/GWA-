@@ -157,6 +157,8 @@ export interface CaseDealDoc {
   id: string;
   label: string;
   mime: string;
+  type: string;
+  verified: boolean;
 }
 
 export interface CaseAttachmentVM {
@@ -353,7 +355,8 @@ export async function loadResolutionCase(id: string): Promise<CaseDetail | null>
         select: { id: true, label: true, fileName: true, mimeType: true, type: true, verifiedAt: true },
       })
     : [];
-  const dealDocs = docs;
+  // Everything except the install photos (those get their own big-tile section).
+  const dealDocs = docs.filter((d) => d.type !== 'INSTALL_PHOTO');
 
   // The whole customer file, assembled from the linked deal.
   const file: CaseFileVM = buildCaseFile(c.application, docs);
@@ -385,7 +388,7 @@ export async function loadResolutionCase(id: string): Promise<CaseDetail | null>
       statusFrom: n.statusFrom,
       statusTo: n.statusTo,
     })),
-    dealDocs: dealDocs.map((d) => ({ id: d.id, label: d.label || d.fileName, mime: d.mimeType })),
+    dealDocs: dealDocs.map((d) => ({ id: d.id, label: d.label || d.fileName, mime: d.mimeType, type: d.type, verified: !!d.verifiedAt })),
     file,
     attachments: c.attachments.map((a) => ({
       id: a.id,

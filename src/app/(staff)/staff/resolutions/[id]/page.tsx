@@ -56,6 +56,20 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
+// Friendly caption for a deal-document tile: a clean type name for the known
+// paperwork, otherwise the document's own label (e.g. "Bill of Sale").
+const DEAL_DOC_TYPE_LABEL: Record<string, string> = {
+  SIGNED_CONTRACT: 'Signed contract',
+  SIGNED_HD_DOCUMENT: 'HD agreement',
+  HD_WAIVER: 'HD waiver',
+  VOID_CHEQUE_OR_PAP: 'Void cheque / PAP',
+  GOVERNMENT_ID: 'Government ID',
+  PROOF_OF_HOMEOWNERSHIP: 'Proof of homeownership',
+};
+function docTileLabel(type: string, label: string): string {
+  return DEAL_DOC_TYPE_LABEL[type] ?? label;
+}
+
 export default async function CaseDetailPage({ params }: { params: { id: string } }) {
   await requireRole('REVIEWER', 'ADMIN');
   const t = getT();
@@ -206,13 +220,25 @@ export default async function CaseDetailPage({ params }: { params: { id: string 
                 ))}
               </div>
               {c.dealDocs.length > 0 && (
-                <div className="mt-4 flex flex-wrap gap-2 border-t border-gray-100 pt-3 dark:border-slate-700">
-                  {c.dealDocs.map((d) => (
-                    <DocViewer key={d.id} id={d.id} fileName={d.label} mimeType={d.mime} title={d.label}
-                      className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:border-brand-300 hover:text-brand-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200">
-                      <FileText size={13} /> {d.label}
-                    </DocViewer>
-                  ))}
+                <div className="mt-4 border-t border-gray-100 pt-4 dark:border-slate-700">
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    {c.dealDocs.map((d) => (
+                      <DocViewer key={d.id} id={d.id} fileName={d.label} mimeType={d.mime} title={d.label}
+                        className="group block overflow-hidden rounded-xl border border-gray-200 bg-white text-left transition hover:border-brand-400 hover:shadow-md dark:border-slate-700 dark:bg-slate-800">
+                        <div className="relative aspect-[3/4] w-full bg-gray-100 dark:bg-slate-700">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={`/api/documents/${d.id}/thumb`} alt={d.label} className="h-full w-full object-cover object-top transition group-hover:opacity-90" loading="lazy" />
+                          {d.verified && (
+                            <span className="absolute right-1.5 top-1.5 inline-flex items-center gap-0.5 rounded-full bg-green-600 px-1.5 py-0.5 text-[10px] font-bold text-white shadow">✓</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1.5 px-2.5 py-2">
+                          <FileText size={13} className="shrink-0 text-gray-400 group-hover:text-brand-600 dark:text-slate-500" />
+                          <span className="truncate text-xs font-medium text-gray-700 dark:text-slate-200">{docTileLabel(d.type, d.label)}</span>
+                        </div>
+                      </DocViewer>
+                    ))}
+                  </div>
                 </div>
               )}
             </Section>

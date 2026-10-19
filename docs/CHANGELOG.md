@@ -38,6 +38,13 @@ source of truth; this file is the human-readable index.
 | HD Resolution ↔ Gmail email link | ✅ **Live & verified** (2026-10-07, Sean) | Read-only Gmail via the existing service account (`gwa-journal-writer@gwa-portal-504012…`, project **"GWA Portal"** `gwa-portal-504012`, Unique ID `100470797238569934976`), impersonating `sean@ghsbarrie.ca` + the `HD Resolution` label. All switches done: Gmail API enabled, Workspace domain-wide delegation (`…/auth/gmail.readonly`), `GMAIL_RESOLUTION_USER=sean@ghsbarrie.ca` on EB. **Verified end-to-end** — the Email inbox lists real HD threads and "Open as case" links the thread + auto-fills. 30-min sync `resolution-email-sync.yml` (reuses `CRON_SECRET`). Steps/facts: `HD-RESOLUTION-EMAIL.md`, `BUILD-FACTS.md`. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### HD Resolution case file: deal documents shown as big preview tiles (2026-10-19)
+- The linked deal's documents (Bill of Sale, signed contract, HD agreement, etc.) were tucked below
+  the checklist as tiny text chips. They now render as **big preview tiles** — a first-page
+  thumbnail, a green ✓ when verified, and a clean caption (type name, or the doc's own label for a
+  Bill of Sale) — matching the Install photos grid. Install photos are no longer duplicated in that
+  list (they have their own section). Pairs with the PDF-render fix so the tiles actually show pages.
+
 ### Fix: PDF previews failed everywhere ("Couldn't render a preview") (2026-10-19)
 - **Root cause:** `pdf-to-img` (the PDF→image rasterizer) depends on **node-canvas** (`canvas`), a
   native addon that `dlopen()`s a stack of system libraries. In the slim production container that
