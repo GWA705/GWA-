@@ -255,28 +255,58 @@ export async function fetchLatestInboundText(threadId: string): Promise<string |
 }
 
 /**
- * Recent threads under the label, newest-first, excluding any already linked to a
- * case — the "unlinked HD emails" inbox. Best-effort; returns [] if unconfigured.
+ * The "unlinked HD emails" inbox: recent HD resolution threads not yet linked to a
+ * case, newest-first. Best-effort; returns [] if unconfigured.
+ *
+ * Robust by design — it does NOT rely on the "HD Resolution" label alone. HD's
+ * resolution emails are unmistakable by their subject ("CASE #…") plus "Home
+ * Depot" in the body, and some arrive via the info@ group and never get the label
+ * (From is info@…, not resolutions_canada@homedepot.com), so a label-only pull
+ * silently drops them. We take the UNION of the label and HD's own signature, so
+ * a case can't be missed just because a Gmail filter didn't fire.
  */
 export async function listUnlinkedThreads(linkedThreadIds: Set<string>, limit = 25): Promise<GmailThreadSummary[]> {
-  const res = await gmailClient().users.threads.list({ userId: 'me', q: labelQuery(), maxResults: Math.min(limit * 2, 100) });
-  const threads = res.data.threads || [];
+  const gmail = gmailClient();
+  // (a) the label, as before; (b) HD's signature — a "CASE #…" subject on a Home
+  // Depot email — which catches the ones the label missed. De-duped by thread id.
+  const queries = [labelQuery(), 'subject:case "home depot" newer_than:1y'];
+  const candidateIds: string[] = [];
+  const seen = new Set<string>();
+  for (const q of queries) {
+    try {
+      const res = await gmail.users.threads.list({ userId: 'me', q, maxResults: 40 });
+      for (const th of res.data.threads || []) {
+        if (!th.id || seen.has(th.id) || linkedThreadIds.has(th.id)) continue;
+        seen.add(th.id);
+        candidateIds.push(th.id);
+      }
+    } catch (e) {
+      // One query failing (e.g. an odd search error) must not blank the whole
+      // inbox — keep whatever the other query found.
+      console.error('[gmailResolution] thread list query failed', q, e);
+    }
+  }
   const out: GmailThreadSummary[] = [];
-  for (const t of threads) {
-    if (!t.id || linkedThreadIds.has(t.id)) continue;
-    const full = await gmailClient().users.threads.get({
-      userId: 'me', id: t.id, format: 'metadata', metadataHeaders: ['From', 'Date', 'Subject'],
+  for (const id of candidateIds.slice(0, 60)) {
+    const full = await gmail.users.threads.get({
+      userId: 'me', id, format: 'metadata', metadataHeaders: ['From', 'Date', 'Subject'],
     });
     const msgs = full.data.messages || [];
     const latest = msgs[msgs.length - 1];
+    const subject = header(latest?.payload, 'Subject') || '(no subject)';
+    // Keep only genuine HD cases — a "CASE #…" subject. This drops any stray
+    // "case" email the broad query caught; real HD threads (incl. replies that
+    // keep "Re: … CASE #…") always carry it.
+    if (!parseHdCaseNumber(subject)) continue;
     out.push({
-      threadId: t.id,
-      subject: header(latest?.payload, 'Subject') || '(no subject)',
+      threadId: id,
+      subject,
       fromAddr: header(latest?.payload, 'From') || '(unknown sender)',
       sentAt: parseDate(header(latest?.payload, 'Date')),
-      snippet: (t.snippet || latest?.snippet || '').trim(),
+      snippet: (latest?.snippet || '').trim(),
     });
-    if (out.length >= limit) break;
   }
-  return out;
+  // Newest first by the latest message's arrival time.
+  out.sort((a, b) => (b.sentAt?.getTime() ?? 0) - (a.sentAt?.getTime() ?? 0));
+  return out.slice(0, limit);
 }

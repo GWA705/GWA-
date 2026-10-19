@@ -38,6 +38,25 @@ source of truth; this file is the human-readable index.
 | HD Resolution ↔ Gmail email link | ✅ **Live & verified** (2026-10-07, Sean) | Read-only Gmail via the existing service account (`gwa-journal-writer@gwa-portal-504012…`, project **"GWA Portal"** `gwa-portal-504012`, Unique ID `100470797238569934976`), impersonating `sean@ghsbarrie.ca` + the `HD Resolution` label. All switches done: Gmail API enabled, Workspace domain-wide delegation (`…/auth/gmail.readonly`), `GMAIL_RESOLUTION_USER=sean@ghsbarrie.ca` on EB. **Verified end-to-end** — the Email inbox lists real HD threads and "Open as case" links the thread + auto-fills. 30-min sync `resolution-email-sync.yml` (reuses `CRON_SECRET`). Steps/facts: `HD-RESOLUTION-EMAIL.md`, `BUILD-FACTS.md`. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### HD Resolution inbox: catch every HD email, newest-first, with New badges (2026-10-19)
+- **Root cause of missed cases:** the "Unlinked HD emails" inbox only pulled threads carrying the
+  **"HD Resolution" Gmail label**. HD emails that arrive **via the info@ group** (From
+  `info@georgianwaterandair.ca`, not `resolutions_canada@homedepot.com`) never get labelled by the
+  filter, so they were silently dropped — e.g. CASE #08335060 (Lynn Peters). This is why cases went
+  missing (reported twice).
+- **Fix — bulletproof pull:** `listUnlinkedThreads` now takes the **union** of (a) the label and
+  (b) HD's own unmistakable signature — a `CASE #…` subject on a "Home Depot" email
+  (`subject:case "home depot" newer_than:1y`) — then keeps only threads whose subject parses an HD
+  CASE #. So a case can't be missed just because a Gmail filter didn't fire, and a delegated staff
+  member can work entirely in the portal without touching the mailbox. One query failing no longer
+  blanks the whole inbox.
+- **Display:** sorted **newest-first** by arrival; the **date + time is bold and prominent** on the
+  right of each row; a green **"New"** badge + emerald ring flags anything that arrived in the last
+  24 h; a "{n} waiting" count sits above the list.
+- Still relies on the HD emails landing in the impersonated mailbox (`GMAIL_RESOLUTION_USER`); that
+  holds as long as that account receives the info@ group mail (it does today). Adding a Gmail filter
+  to label these is now optional, not required.
+
 ### Fix: "Copy to Home Depot" sheet was hidden when it was needed most (2026-10-18)
 - The copy sheet was gated behind `!hdBlocksPaperwork`, so on any HD deal **without an HD Customer #
   yet it didn't show at all** — exactly when you're creating the HD lead to *get* that number. It

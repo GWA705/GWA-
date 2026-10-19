@@ -58,23 +58,44 @@ export default async function ResolutionInboxPage() {
       ) : threads.length === 0 ? (
         <div className="card p-5 text-sm text-gray-500 dark:text-slate-400">{t('resolution.inbox.none')}</div>
       ) : (
-        <ul className="space-y-2">
-          {threads.map((th) => (
-            <li key={th.threadId} className="card flex flex-wrap items-center justify-between gap-3 p-3">
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-medium text-gray-900 dark:text-slate-100">{decodeEntities(th.subject)}</div>
-                <div className="truncate text-xs text-gray-500 dark:text-slate-400">✉️ {th.fromAddr}{th.sentAt ? ` · ${th.sentAt.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })}` : ''}</div>
-                {th.snippet && <div className="mt-0.5 truncate text-xs text-gray-400 dark:text-slate-500">{decodeEntities(th.snippet)}</div>}
-              </div>
-              <Link
-                href={openAsCaseHref(th.threadId, th.subject)}
-                className="btn-secondary shrink-0 text-sm"
-              >
-                ＋ {t('resolution.inbox.openAsCase')}
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <>
+          <p className="text-xs font-medium text-gray-500 dark:text-slate-400">{t('resolution.inbox.waiting', { n: threads.length })}</p>
+          <ul className="space-y-2">
+            {threads.map((th) => {
+              // "New" = arrived in the last 24h, so this-morning's emails stand out
+              // from the backlog (everything here is still unaddressed).
+              const isNew = !!th.sentAt && Date.now() - th.sentAt.getTime() < 24 * 3_600_000;
+              const dateLabel = th.sentAt
+                ? th.sentAt.toLocaleString('en-CA', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+                : null;
+              return (
+                <li key={th.threadId} className={`card flex flex-wrap items-center justify-between gap-3 p-3 ${isNew ? 'ring-2 ring-emerald-400' : ''}`}>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      {isNew && <span className="shrink-0 rounded bg-emerald-500 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">{t('resolution.inbox.new')}</span>}
+                      <span className="truncate text-sm font-medium text-gray-900 dark:text-slate-100">{decodeEntities(th.subject)}</span>
+                    </div>
+                    <div className="truncate text-xs text-gray-500 dark:text-slate-400">✉️ {th.fromAddr}</div>
+                    {th.snippet && <div className="mt-0.5 truncate text-xs text-gray-400 dark:text-slate-500">{decodeEntities(th.snippet)}</div>}
+                  </div>
+                  <div className="flex shrink-0 flex-col items-end gap-1.5">
+                    {dateLabel && (
+                      <span className={`whitespace-nowrap text-sm font-bold tabular-nums ${isNew ? 'text-emerald-700 dark:text-emerald-400' : 'text-gray-700 dark:text-slate-200'}`}>
+                        {dateLabel}
+                      </span>
+                    )}
+                    <Link
+                      href={openAsCaseHref(th.threadId, th.subject)}
+                      className="btn-secondary text-sm"
+                    >
+                      ＋ {t('resolution.inbox.openAsCase')}
+                    </Link>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </>
       )}
     </div>
   );
