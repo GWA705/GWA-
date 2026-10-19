@@ -38,6 +38,15 @@ source of truth; this file is the human-readable index.
 | HD Resolution ↔ Gmail email link | ✅ **Live & verified** (2026-10-07, Sean) | Read-only Gmail via the existing service account (`gwa-journal-writer@gwa-portal-504012…`, project **"GWA Portal"** `gwa-portal-504012`, Unique ID `100470797238569934976`), impersonating `sean@ghsbarrie.ca` + the `HD Resolution` label. All switches done: Gmail API enabled, Workspace domain-wide delegation (`…/auth/gmail.readonly`), `GMAIL_RESOLUTION_USER=sean@ghsbarrie.ca` on EB. **Verified end-to-end** — the Email inbox lists real HD threads and "Open as case" links the thread + auto-fills. 30-min sync `resolution-email-sync.yml` (reuses `CRON_SECRET`). Steps/facts: `HD-RESOLUTION-EMAIL.md`, `BUILD-FACTS.md`. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### HD Resolution inbox: redesigned as a report (2026-10-19)
+- Reworked the "Unlinked HD emails" page from a plain list into a report: a bold header, a 3-tile
+  summary strip (**Waiting to open**, **New (24 h)**, **Oldest waiting** with an age like "16d"),
+  and clean case rows. Each row pulls the **CASE #** out into a mono chip, shows the customer name
+  and store when parseable, a colour **age accent bar** (green new / amber ≥5d / red ≥10d), the bold
+  date+time with a waiting-age, a **New** badge for the last 24 h, and a primary **Open as case**
+  button. Empty state is a friendly "All caught up". Matches the portal's card/brand styling and
+  dark mode. EN/FR strings added.
+
 ### HD Resolution inbox: catch every HD email, newest-first, with New badges (2026-10-19)
 - **Root cause of missed cases:** the "Unlinked HD emails" inbox only pulled threads carrying the
   **"HD Resolution" Gmail label**. HD emails that arrive **via the info@ group** (From
