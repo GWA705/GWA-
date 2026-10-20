@@ -700,6 +700,13 @@ export default async function StaffApplicationDetail({
                   (logged), then the address fields will fill in.
                 </p>
               )}
+              <p className="mb-3 rounded bg-sky-50 p-2 text-xs text-sky-800">
+                ⚡ <strong>One-click autofill (beta):</strong>{' '}
+                <a href="/hd-autofill.user.js" target="_blank" rel="noopener noreferrer" className="font-medium text-brand-700 hover:underline">
+                  install the HD autofill helper →
+                </a>{' '}
+                (needs the free <em>Tampermonkey</em> browser extension). Then on the HD form: Copy all here → paste into the helper → Fill. Plain fields fill automatically; dropdowns you still pick by hand.
+              </p>
               <HdEntrySheet sections={hdSections} />
             </div>
           </details>
