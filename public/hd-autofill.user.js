@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         GWA → Home Depot Autofill (beta)
 // @namespace    https://portal.ghsbarrie.ca/
-// @version      0.1.0
+// @version      0.1.1
 // @description  Fills the Home Depot SAP form from the GWA portal "Copy all" text. Best-effort: plain text fields fill by label; dropdowns / lookup fields may still need to be done by hand.
 // @match        https://samex.homedepot.com/*
 // @run-at       document-idle
@@ -51,6 +51,13 @@
       .trim()
       .replace(/[\s:*]+$/g, '')
       .toLowerCase();
+
+  // HD fields we must NEVER overwrite — Home Depot assigns or pre-fills these, and
+  // changing them can break the record. Matched against a field's own label.
+  const SKIP_LABELS = new Set([
+    'customer', 'customer id', 'customer no', 'customer number',
+    'store', 'service id', 'lead id', 'id / description', 'version',
+  ]);
 
   function parsePairs(text) {
     return text
@@ -129,18 +136,22 @@
 
   function fillDoc(doc, pairs, filled) {
     let n = 0;
-    const indexed = settable(doc).map((el) => ({
-      el,
-      keys: [norm(ownLabel(el)), norm(nearbyLabel(el))].filter(Boolean),
-    }));
+    const indexed = settable(doc)
+      .map((el) => ({
+        el,
+        keys: [norm(ownLabel(el)), norm(nearbyLabel(el))].filter(Boolean),
+      }))
+      // Never fill HD-assigned / pre-filled fields (Customer #, Store, …).
+      .filter((x) => !x.keys.some((k) => SKIP_LABELS.has(k)));
     for (const p of pairs) {
       // Prefer exact label matches (can be more than one, e.g. two "City" boxes);
-      // otherwise fall back to the first partial match.
+      // otherwise fall back to a field whose label CONTAINS our label (e.g.
+      // "* Street Address:"). We deliberately do NOT match the other direction
+      // (our label containing the field's), so "Customer Name" can't land in a
+      // generic "Customer" box.
       let targets = indexed.filter((x) => !filled.has(x.el) && x.keys.includes(p.key));
       if (targets.length === 0) {
-        const c = indexed.find(
-          (x) => !filled.has(x.el) && x.keys.some((k) => k && (k.includes(p.key) || p.key.includes(k))),
-        );
+        const c = indexed.find((x) => !filled.has(x.el) && x.keys.some((k) => k && k.includes(p.key)));
         if (c) targets = [c];
       }
       for (const t of targets) {
