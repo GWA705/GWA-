@@ -75,12 +75,26 @@ export async function* renderPdfPngs(
   const canvasFactory = new CanvasFactory();
   const dir = pdfjsDir();
 
+  // Let @napi-rs/canvas pick up the container's installed fonts (DejaVu, etc.) so
+  // pdfjs can substitute fonts a PDF references but doesn't embed — otherwise that
+  // text renders blank. (This is what node-canvas did via fontconfig; we do it
+  // explicitly here.) Best-effort: ignore if the build lacks the helper.
+  try {
+    (napi.GlobalFonts as unknown as { loadSystemFonts?: () => void }).loadSystemFonts?.();
+  } catch {
+    /* system fonts already loaded, or unavailable — substitution still tries */
+  }
+
   const doc = await pdfjs.getDocument({
     data: new Uint8Array(pdfBytes),
     standardFontDataUrl: path.join(dir, `standard_fonts${path.sep}`),
     cMapUrl: path.join(dir, `cmaps${path.sep}`),
     cMapPacked: true,
     isEvalSupported: false,
+    // Substitute non-embedded fonts with the system fonts above — without this a
+    // form that references e.g. Arial without embedding it comes out with blank
+    // text, which is what broke an HD "Proposal and Agreement" PDF.
+    useSystemFonts: true,
     canvasFactory,
   }).promise;
 

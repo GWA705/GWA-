@@ -99,6 +99,18 @@ export function DocViewer({
               {t('docViewer.close')}
             </button>
             <span className="min-w-0 flex-1 truncate text-center text-sm font-medium text-gray-700">{fileName}</span>
+            {isPdf && (
+              <a
+                href={src}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-none rounded-md px-2.5 py-1.5 text-sm font-medium text-brand-700 hover:bg-gray-100"
+                title={t('docViewer.openNewTab')}
+                onClick={(e) => e.stopPropagation()}
+              >
+                ↗
+              </a>
+            )}
             <DownloadButton
               url={`${src}?download=1`}
               fileName={fileName}
