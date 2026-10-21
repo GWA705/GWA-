@@ -772,6 +772,7 @@ model User {
   confirmations       Confirmation[]
   verificationChecks  VerificationCheck[]
   callRecordings      CallRecording[]     @relation("CallRecordingCreator")
+  confirmationAttempts ConfirmationAttempt[] @relation("ConfirmationAttemptCreator")
   dashboardHeroes     DashboardHero[]     @relation("DashboardHeroCreator")
   loginThemes         LoginTheme[]        @relation("LoginThemeCreator")
   pushSubscriptions   PushSubscription[]
@@ -1420,6 +1421,7 @@ model Application {
   dealNotes       Note[]
   conversation    Conversation?
   confirmation    Confirmation?
+  confirmationAttempts ConfirmationAttempt[]
   verificationChecks VerificationCheck[]
   dealerReminders DealerReminder[]
   cancellations   DealCancellation[]
@@ -1840,6 +1842,23 @@ model Confirmation {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// A single confirmation-call attempt — one tap in the confirmer flow. Replaces
+// hand-typed call dates ("10/06, 10/15- vm") with structured, countable outcomes,
+// so attempts / reach-rate / days-to-confirm roll up for free. Logged with the
+// confirmer and the time. outcome ∈ NO_ANSWER | LEFT_VM | BUSY | REACHED.
+model ConfirmationAttempt {
+  id            String      @id @default(cuid())
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  outcome       String
+  note          String?
+  createdById   String?
+  createdBy     User?       @relation("ConfirmationAttemptCreator", fields: [createdById], references: [id])
+  createdAt     DateTime    @default(now())
+
+  @@index([applicationId])
 }
 
 // A recording of a phone call about a deal — e.g. the confirmation call — placed

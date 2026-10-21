@@ -1324,6 +1324,15 @@ exhausting the single instance). No behaviour change for normal use.
   free-text via DeepL.
 
 ## 2026-10-21
+- **Confirmer flow — tap-to-log call attempts (Concept 1).** The confirmation step
+  now has a **Call attempts** logger: one tap records an outcome (**No answer / Left
+  VM / Busy / ✓ Reached**), time-stamped and logged with the confirmer — replacing
+  the hand-typed call dates ("10/06, 10/15- vm") in the notes box. New
+  `ConfirmationAttempt` model + migration; `logConfirmationAttemptAction` /
+  `removeConfirmationAttemptAction`; `CallAttemptLog.tsx` on the deal's confirm step.
+  The confirmation's call count now auto-derives from the attempts (no typed number),
+  so attempts / reach-rate / days-to-confirm are captured as real data for reporting.
+  Mis-taps are removable. Mockup: the "Confirmer Flow" artifact.
 - **Security fix — dealer lead reports were showing every office.** A dealer opening
   the **All-office leads** / **Lead funnel** report saw *all* offices' HD leads, not
   just their own. `buildLeadsReport()` now takes a `scopeDealerId`; the dealer pages

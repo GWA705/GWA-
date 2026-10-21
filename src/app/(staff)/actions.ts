@@ -307,6 +307,52 @@ export async function pullFinanceitInfoAction(_prev: ActionState, formData: Form
   return { ok: true, message: body + fundedNote };
 }
 
+// The confirmer flow's tap-to-log call attempts (replaces hand-typed call dates).
+const ATTEMPT_OUTCOMES = ['NO_ANSWER', 'LEFT_VM', 'BUSY', 'REACHED'] as const;
+
+/** Log one confirmation-call attempt (a single tap). The confirmation's call
+ *  count is kept in step automatically, so reporting never needs a typed number. */
+export async function logConfirmationAttemptAction(applicationId: string, outcome: string): Promise<void> {
+  const session = await requireStaffSection('review-queue');
+  if (!applicationId || !(ATTEMPT_OUTCOMES as readonly string[]).includes(outcome)) return;
+  await prisma.confirmationAttempt.create({
+    data: { applicationId, outcome, createdById: session.userId },
+  });
+  const count = await prisma.confirmationAttempt.count({ where: { applicationId } });
+  await prisma.confirmation.upsert({
+    where: { applicationId },
+    create: { applicationId, numberOfCalls: count },
+    update: { numberOfCalls: count },
+  });
+  await markReviewerAction(applicationId);
+  await audit({
+    actorId: session.userId,
+    action: 'STATUS_CHANGE',
+    entityType: 'Application',
+    entityId: applicationId,
+    detail: `Confirmation attempt: ${outcome.toLowerCase().replace('_', ' ')}`,
+  });
+  revalidatePath(`/staff/applications/${applicationId}`);
+}
+
+/** Remove a logged attempt (mis-tap). Re-derives the call count. */
+export async function removeConfirmationAttemptAction(attemptId: string): Promise<void> {
+  const session = await requireStaffSection('review-queue');
+  const row = await prisma.confirmationAttempt.findUnique({ where: { id: attemptId }, select: { applicationId: true } });
+  if (!row) return;
+  await prisma.confirmationAttempt.delete({ where: { id: attemptId } });
+  const count = await prisma.confirmationAttempt.count({ where: { applicationId: row.applicationId } });
+  await prisma.confirmation.updateMany({ where: { applicationId: row.applicationId }, data: { numberOfCalls: count } });
+  await audit({
+    actorId: session.userId,
+    action: 'STATUS_CHANGE',
+    entityType: 'Application',
+    entityId: row.applicationId,
+    detail: 'Confirmation attempt removed',
+  });
+  revalidatePath(`/staff/applications/${row.applicationId}`);
+}
+
 // Which current statuses permit which decision.
 function isTransitionAllowed(current: ApplicationStatus, type: DecisionType): boolean {
   const preDecision: ApplicationStatus[] = ['SUBMITTED', 'UNDER_REVIEW', 'CONDITIONAL'];

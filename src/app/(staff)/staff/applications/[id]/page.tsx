@@ -38,6 +38,7 @@ import { programCategoryLabel, paymentMethodLabel } from '@/lib/enumLabels';
 import { getT } from '@/i18n/server';
 import { ConfirmationForm } from './ConfirmationForm';
 import { FinanceitPullButton } from './FinanceitPullButton';
+import { CallAttemptLog } from './CallAttemptLog';
 import { financeitEmailConfigured } from '@/lib/financeitEmail';
 import { CallRecordingPanel } from './CallRecordingPanel';
 import { DealReferencesForm } from './DealReferencesForm';
@@ -142,6 +143,7 @@ export default async function StaffApplicationDetail({
       payouts: { orderBy: { paidOn: 'desc' }, include: { createdBy: true } },
       dealNotes: { orderBy: { createdAt: 'asc' }, include: { author: true } },
       confirmation: { include: { confirmedBy: true } },
+      confirmationAttempts: { orderBy: { createdAt: 'asc' }, include: { createdBy: { select: { name: true } } } },
       verificationChecks: { include: { checkedBy: true } },
       paymentSplits: { orderBy: { sortOrder: 'asc' } },
       cancellations: { orderBy: { createdAt: 'desc' }, take: 1, include: { requestedBy: true, handledBy: true } },
@@ -835,6 +837,15 @@ export default async function StaffApplicationDetail({
           <ConfirmationBadge status={app.confirmationStatus} />
         </div>
         <p className="mb-4 text-xs text-gray-500">{t('staffDeal.confirm.scriptHint')}</p>
+        <CallAttemptLog
+          applicationId={app.id}
+          attempts={app.confirmationAttempts.map((a) => ({
+            id: a.id,
+            outcome: a.outcome,
+            at: a.createdAt.toLocaleString('en-CA', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }),
+            by: a.createdBy?.name ?? null,
+          }))}
+        />
         <ConfirmationForm
           applicationId={app.id}
           data={app.confirmation}
