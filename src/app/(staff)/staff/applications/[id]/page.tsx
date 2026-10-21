@@ -568,6 +568,11 @@ export default async function StaffApplicationDetail({
           verifiedAt={app.financeNumberVerifiedAt ? app.financeNumberVerifiedAt.toLocaleString('en-CA') : null}
         />
       )}
+      {dealFinanced && financeitEmailConfigured() && (
+        <div className="mt-3">
+          <FinanceitPullButton applicationId={app.id} />
+        </div>
+      )}
     </div>
   );
 
@@ -830,7 +835,6 @@ export default async function StaffApplicationDetail({
           <ConfirmationBadge status={app.confirmationStatus} />
         </div>
         <p className="mb-4 text-xs text-gray-500">{t('staffDeal.confirm.scriptHint')}</p>
-        {dealFinanced && financeitEmailConfigured() && <FinanceitPullButton applicationId={app.id} />}
         <ConfirmationForm
           applicationId={app.id}
           data={app.confirmation}

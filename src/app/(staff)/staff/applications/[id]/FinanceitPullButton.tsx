@@ -23,7 +23,7 @@ function Button() {
 export function FinanceitPullButton({ applicationId }: { applicationId: string }) {
   const [state, action] = useFormState(pullFinanceitInfoAction, {} as ActionState);
   return (
-    <form action={action} className="mb-4 rounded-lg border border-gray-200 bg-white p-3">
+    <form action={action} className="rounded-lg border border-gray-200 bg-white p-3">
       <div className="flex flex-wrap items-center gap-3">
         <input type="hidden" name="applicationId" value={applicationId} />
         <Button />
