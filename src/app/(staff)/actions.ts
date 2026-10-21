@@ -43,6 +43,7 @@ import {
 } from '@/lib/constants';
 import { dealHasFinancing, financedAmountOf, nonFinancedAmountOf, journalPayCode } from '@/lib/payments';
 import { syncApplicationToJournal } from '@/lib/journalSync';
+import { findFinanceitEmailForDeal, financeitEmailConfigured } from '@/lib/financeitEmail';
 import { getT } from '@/i18n/server';
 import type { ApplicationStatus, DecisionType, DocumentType, VerificationStatus, ProgramType } from '@prisma/client';
 
@@ -173,6 +174,137 @@ export async function toggleFinanceNumberVerifiedAction(applicationId: string): 
       : 'Financing number verification cleared',
   });
   revalidatePath(`/staff/applications/${applicationId}`);
+}
+
+/**
+ * Pull the deal's details from FinanceIt's own approval/funding email and fill in
+ * anything the confirmer is missing — financing amount, term, monthly payment,
+ * phone — and confirm the FinanceIt loan number straight from the lender. Only
+ * fills BLANK fields (never overwrites a human's entry), and matches the email to
+ * the deal by loan number, then phone, then name. Read-only on the mailbox side.
+ */
+export async function pullFinanceitInfoAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const session = await requireStaffSection('review-queue');
+  const applicationId = String(formData.get('applicationId') ?? '');
+  if (!applicationId) return { error: 'Missing deal id.' };
+  if (!financeitEmailConfigured()) {
+    return { error: 'FinanceIt email lookup isn’t set up on this environment yet.' };
+  }
+
+  const app = await prisma.application.findUnique({
+    where: { id: applicationId },
+    include: { confirmation: true },
+  });
+  if (!app) return { error: 'Deal not found.' };
+
+  const { best, finalized, matchedBy } = await findFinanceitEmailForDeal({
+    loanNumber: app.financeItNumber,
+    firstName: app.applicantFirstName,
+    lastName: app.applicantLastName,
+    phone: app.applicantPhone,
+  });
+
+  if (!best) {
+    return {
+      ok: true,
+      message:
+        'No FinanceIt email found for this customer yet (searched by loan number, phone and name). It usually arrives within a minute of approval.',
+    };
+  }
+
+  const filled: string[] = [];
+
+  // Application-level fields — only fill blanks, never overwrite.
+  const appData: {
+    financeItNumber?: string;
+    applicantEmail?: string;
+    applicantPhone?: string;
+    financeNumberVerifiedAt?: Date;
+    financeNumberVerifiedById?: string;
+  } = {};
+  let confirmNumber = false;
+  const dealNumber = (app.financeItNumber ?? '').replace(/\D/g, '');
+
+  if (!app.financeItNumber?.trim() && best.loanNumber) {
+    appData.financeItNumber = best.loanNumber;
+    filled.push(`FinanceIt # ${best.loanNumber}`);
+    confirmNumber = true;
+  } else if (dealNumber && best.loanNumber && dealNumber === best.loanNumber) {
+    confirmNumber = true; // the deal's number matches the lender's record
+  }
+
+  if ((!app.applicantEmail || !app.applicantEmail.includes('@')) && best.email) {
+    appData.applicantEmail = best.email;
+    filled.push(`email ${best.email}`);
+  }
+  if (!app.applicantPhone?.trim() && best.phone) {
+    appData.applicantPhone = best.phone;
+    filled.push(`phone ${best.phone}`);
+  }
+  if (confirmNumber && !app.financeNumberVerifiedAt) {
+    appData.financeNumberVerifiedAt = new Date();
+    appData.financeNumberVerifiedById = session.userId;
+    filled.push('verified the FinanceIt number');
+  }
+  if (Object.keys(appData).length) {
+    await prisma.application.update({ where: { id: applicationId }, data: appData });
+  }
+
+  // Confirmer's sheet — fill the terms block where it's still blank.
+  const c = app.confirmation;
+  const confData: {
+    phoneNumber?: string;
+    financingAmount?: number;
+    termMonths?: number;
+    firstInstallmentAmount?: number;
+    productName?: string;
+  } = {};
+  if (c?.phoneNumber == null && best.phone) {
+    confData.phoneNumber = best.phone;
+  }
+  if (c?.financingAmount == null && best.purchaseAmount != null) {
+    confData.financingAmount = best.purchaseAmount;
+    filled.push(`financing amount $${best.purchaseAmount.toFixed(2)}`);
+  }
+  if (c?.termMonths == null && best.termMonths != null) {
+    confData.termMonths = best.termMonths;
+    filled.push(`term ${best.termMonths} months`);
+  }
+  if (c?.firstInstallmentAmount == null && best.monthlyPayment != null) {
+    confData.firstInstallmentAmount = best.monthlyPayment;
+    filled.push(`monthly payment $${best.monthlyPayment.toFixed(2)}`);
+  }
+  if (!c?.productName && best.purchaseType) {
+    confData.productName = best.purchaseType;
+  }
+  if (Object.keys(confData).length) {
+    await prisma.confirmation.upsert({
+      where: { applicationId },
+      create: { applicationId, ...confData },
+      update: confData,
+    });
+  }
+
+  await markReviewerAction(applicationId);
+  await audit({
+    actorId: session.userId,
+    action: 'STATUS_CHANGE',
+    entityType: 'Application',
+    entityId: applicationId,
+    detail: `Pulled FinanceIt email (matched by ${matchedBy}); ${filled.length ? `filled ${filled.join(', ')}` : 'nothing missing'}`,
+  });
+  revalidatePath(`/staff/applications/${applicationId}`);
+  revalidatePath(`/dealer/applications/${applicationId}`);
+
+  const fundedNote =
+    finalized && app.status !== 'FUNDED'
+      ? ' FinanceIt shows this loan is FUNDED & finalized — you may want to mark the deal Funded.'
+      : '';
+  const matchNote = matchedBy ? ` (matched by ${matchedBy.replace('-', ' ')})` : '';
+  const body = filled.length
+    ? `Pulled from FinanceIt${matchNote}. Filled: ${filled.join(', ')}.`
+    : `FinanceIt email found${matchNote}, but everything was already filled in.`;
+  return { ok: true, message: body + fundedNote };
 }
 
 // Which current statuses permit which decision.

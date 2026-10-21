@@ -84,6 +84,13 @@ N/A).
 ## HD Resolution — Gmail email link (read-only)
 Reuses the **same** Google Cloud project + service account as Sheets (no new
 credential). Lets an HD Resolution case follow its Home Depot email chain.
+> **Shared read-only Gmail client (2026-10-21):** the service-account Gmail access
+> (impersonating `GMAIL_RESOLUTION_USER`, `gmail.readonly`) is factored into
+> `src/lib/gmailClient.ts` and now serves **two** readers: HD Resolution
+> (`gmailResolution.ts`) and **FinanceIt email lookup** (`financeitEmail.ts`, the
+> reviewer "Pull from FinanceIt" button — parses `partners@financeit.io` deal
+> emails to fill confirmer fields + verify the loan number). Same mailbox, same
+> scope, no extra config — both are inert until `GMAIL_RESOLUTION_USER` is set.
 - **Google Cloud project:** **"GWA Portal"** — Project ID `gwa-portal-504012`,
   project number `736448322505`, org `georgianwaterandair.ca`.
 - **Service account (shared with Sheets):**

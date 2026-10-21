@@ -37,6 +37,8 @@ import {
 import { programCategoryLabel, paymentMethodLabel } from '@/lib/enumLabels';
 import { getT } from '@/i18n/server';
 import { ConfirmationForm } from './ConfirmationForm';
+import { FinanceitPullButton } from './FinanceitPullButton';
+import { financeitEmailConfigured } from '@/lib/financeitEmail';
 import { CallRecordingPanel } from './CallRecordingPanel';
 import { DealReferencesForm } from './DealReferencesForm';
 import { WriteToJournalButton } from './WriteToJournalButton';
@@ -828,6 +830,7 @@ export default async function StaffApplicationDetail({
           <ConfirmationBadge status={app.confirmationStatus} />
         </div>
         <p className="mb-4 text-xs text-gray-500">{t('staffDeal.confirm.scriptHint')}</p>
+        {dealFinanced && financeitEmailConfigured() && <FinanceitPullButton applicationId={app.id} />}
         <ConfirmationForm
           applicationId={app.id}
           data={app.confirmation}

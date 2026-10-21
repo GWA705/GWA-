@@ -1323,6 +1323,29 @@ exhausting the single instance). No behaviour change for normal use.
   `testSingleLead()` on a French lead first. Portal display auto-translates lead
   free-text via DeepL.
 
+## 2026-10-21
+- **"Pull from FinanceIt email" — reviewer-side one-click fill + verify.** FinanceIt
+  emails the office (`partners@financeit.io`) at every stage of a deal — approval
+  ("pre-qualified"), conditions cleared, authorized, and **finalized/funded** — each
+  with clean labelled fields (loan #, phone, email, purchase amount, program/rate/term,
+  monthly payment, credit limit, salesperson, source). A new button on the reviewer
+  deal page (**Confirmation step**, financed deals only) reads the matching email and
+  **fills any BLANK confirmer fields** — financing amount, term (months), monthly
+  payment, phone — plus the deal's email/phone, and **verifies the FinanceIt loan
+  number** straight from the lender (stamps `financeNumberVerifiedAt`). Only fills
+  blanks (never overwrites a human entry); matches the email to the deal by **loan
+  number → phone → name**; reports when FinanceIt shows the loan already funded.
+  - Reuses the **existing read-only Gmail service account** (the HD Resolution
+    mailbox, `GMAIL_RESOLUTION_USER`) — **no new credential or external setup**;
+    inert until that's configured (it's live in prod). New shared client
+    `src/lib/gmailClient.ts`; pure parser `src/lib/financeitEmailParse.ts`
+    (unit-tested, `tests/financeitEmail.test.ts`, 7 tests); Gmail fetch + deal match
+    `src/lib/financeitEmail.ts`; action `pullFinanceitInfoAction`; button
+    `FinanceitPullButton.tsx`. Read-only on the mailbox; writes are audited. Status
+    changes (e.g. → Funded) are intentionally **not** automatic — surfaced as a note
+    for the reviewer to action. This is the email-based counterpart to the dormant
+    `/api/webhooks/financeit` endpoint (which needs FinanceIt to push signed webhooks).
+
 ## 2026-10-10
 - **Lead pipeline Phase 2 — live-agent "talk to a booker now" (click-to-call).** On
   the customer self-booking page, during staffed hours the "call me" option becomes
