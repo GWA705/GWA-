@@ -180,7 +180,7 @@ function topKinds(map: Map<string, number>): { kind: string; count: number }[] {
 
 export async function buildLeadsReport(
   generatedAtISO: string,
-  opts: { from?: Date; to?: Date; label?: string } = {},
+  opts: { from?: Date; to?: Date; label?: string; scopeDealerId?: string | null } = {},
 ): Promise<LeadsReport> {
   const emptyGroup = { total: 0, noGood: 0, dealers: 0, byKind: [], outcomes: emptyOutcomes() };
 
@@ -205,7 +205,15 @@ export async function buildLeadsReport(
 
   // The full set drives the trend chart (history); the tiles + per-dealer table
   // scope to the selected period window when one is given.
-  const allLeads = read.leads;
+  // When scoped to one office (a dealer without the leads-oversight grant), keep
+  // only that office's stores — so every figure (funnel, trend, totals, per-office
+  // table) reflects their office alone and never another office's leads.
+  const scopeStores = opts.scopeDealerId
+    ? new Set([...storeToDealer.entries()].filter(([, dd]) => dd.id === opts.scopeDealerId).map(([num]) => num))
+    : null;
+  const allLeads = scopeStores
+    ? read.leads.filter((l) => scopeStores.has((l.storeNumber || '').trim()))
+    : read.leads;
   const { from, to } = opts;
   const leads =
     from || to
@@ -281,7 +289,10 @@ export async function buildLeadsReport(
   // Scanned HD Mail In Test cards in the same window (by upload/createdAt), so the
   // report shows mail-in alongside the HD store leads. All offices (staff view).
   const mailInCount = await prisma.scannedLead.count({
-    where: from || to ? { createdAt: { ...(from ? { gte: from } : {}), ...(to ? { lt: to } : {}) } } : {},
+    where: {
+      ...(from || to ? { createdAt: { ...(from ? { gte: from } : {}), ...(to ? { lt: to } : {}) } } : {}),
+      ...(scopeStores ? { storeNumber: { in: [...scopeStores] } } : {}),
+    },
   });
 
   return {

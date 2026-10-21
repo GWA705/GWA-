@@ -1324,6 +1324,14 @@ exhausting the single instance). No behaviour change for normal use.
   free-text via DeepL.
 
 ## 2026-10-21
+- **Security fix — dealer lead reports were showing every office.** A dealer opening
+  the **All-office leads** / **Lead funnel** report saw *all* offices' HD leads, not
+  just their own. `buildLeadsReport()` now takes a `scopeDealerId`; the dealer pages
+  and the leads PDF pass the viewer's own `dealerId` **unless** they hold the
+  leads-oversight grant (`canViewAllLeads`), so a regular dealer's funnel, trend,
+  totals and per-office table all reflect **their office only** (the oversight grant
+  still sees everything). Scoping is applied at the data source, not just the table,
+  so no aggregate figure leaks another office. Staff reports are unchanged.
 - **"Pull from FinanceIt email" — reviewer-side one-click fill + verify.** FinanceIt
   emails the office (`partners@financeit.io`) at every stage of a deal — approval
   ("pre-qualified"), conditions cleared, authorized, and **finalized/funded** — each

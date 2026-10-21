@@ -18,7 +18,9 @@ export default async function DealerLeadFunnelPage() {
   if (!(await canViewReport(user, 'leadFunnel'))) notFound();
 
   const t = getT();
-  const report = await buildLeadsReport(new Date().toISOString());
+  const report = await buildLeadsReport(new Date().toISOString(), {
+    scopeDealerId: (await canViewAllLeads(user)) ? null : user.dealerId,
+  });
 
   return (
     <div className="space-y-5">

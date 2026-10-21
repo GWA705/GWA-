@@ -24,7 +24,10 @@ export default async function DealerAllLeadsPage({ searchParams }: { searchParam
   const period = searchParams.p === 'week' || searchParams.p === 'month' ? searchParams.p : 'all';
   const offset = Number.parseInt(searchParams.o ?? '0', 10) || 0;
   const win = leadsPeriodWindow(period, offset);
-  const report = await buildLeadsReport(new Date().toISOString(), win);
+  const report = await buildLeadsReport(new Date().toISOString(), {
+    ...win,
+    scopeDealerId: (await canViewAllLeads(user)) ? null : user.dealerId,
+  });
 
   return (
     <div className="space-y-5">
