@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { requireRole } from '@/lib/session';
-import { loadResolutionQueue } from '@/lib/resolutionCases';
+import { loadResolutionQueue, loadResolutionStats } from '@/lib/resolutionCases';
+import { ResolutionStatsHeader } from './ResolutionStatsHeader';
 import { RESOLUTION_STATUSES, STATUS_LABEL, statusChipClass } from '@/lib/resolutionStatus';
 import { gmailResolutionConfigured } from '@/lib/gmailResolution';
 import { getT } from '@/i18n/server';
@@ -20,7 +21,10 @@ export default async function ResolutionQueuePage({
 }) {
   await requireRole('REVIEWER', 'ADMIN');
   const t = getT();
-  const queue = await loadResolutionQueue({ status: searchParams.status, q: searchParams.q });
+  const [queue, stats] = await Promise.all([
+    loadResolutionQueue({ status: searchParams.status, q: searchParams.q }),
+    loadResolutionStats(),
+  ]);
   const active = queue.status;
 
   // Count chips (click to filter). "Live" = the default open-only view.
@@ -40,6 +44,9 @@ export default async function ResolutionQueuePage({
           <Link href="/staff/resolutions/new" className="btn-primary">＋ {t('resolution.queue.newCase')}</Link>
         </div>
       </div>
+
+      {/* At-a-glance overview */}
+      <ResolutionStatsHeader stats={stats} />
 
       {/* Status filter chips */}
       <div className="flex flex-wrap gap-2">

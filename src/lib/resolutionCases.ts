@@ -1,7 +1,7 @@
 import 'server-only';
 import { prisma } from './db';
 import type { ResolutionStatus, Prisma } from '@prisma/client';
-import { RESOLUTION_STATUSES, OPEN_STATUSES, isResolutionStatus, ageLevel, type AgeLevel } from './resolutionStatus';
+import { RESOLUTION_STATUSES, OPEN_STATUSES, isResolutionStatus, ageLevel, STATUS_LABEL, type AgeLevel } from './resolutionStatus';
 import { decryptOptional } from './crypto';
 import { decodeEntities } from './htmlEntities';
 
@@ -141,6 +141,125 @@ export async function loadResolutionQueue(filters: { status?: string; q?: string
     counts,
     status: statusFilter,
     q,
+  };
+}
+
+// ---- Dashboard stats (the "at a glance" header on the queue page) ----------
+
+export interface ResolutionStatsVM {
+  live: number; // open-status cases
+  aging: number; // live & amber (3–6 days open)
+  overdue: number; // live & red (7+ days open)
+  awaitingReply: number; // live cases whose latest email is from HD (we owe a reply)
+  longestWaitDays: number | null; // worst awaiting-reply wait
+  avgResolveDays: number | null; // mean days open→resolved, resolved in the last 180d
+  resolvedThisMonth: number;
+  openedThisMonth: number;
+  resolvedTotal: number;
+  pipeline: { status: ResolutionStatus; label: string; count: number }[]; // live mix
+  weeks: { label: string; opened: number; resolved: number }[]; // last 8 weeks, old→new
+  topOffices: { name: string; count: number }[]; // live cases by office, top 4
+}
+
+/**
+ * The headline metrics for the HD Resolution Centre overview — independent of the
+ * current status/search filter, so the "at a glance" header always reflects the
+ * whole picture. One cases read + one latest-email read; everything else is
+ * computed in memory.
+ */
+export async function loadResolutionStats(): Promise<ResolutionStatsVM> {
+  const cases = await prisma.resolutionCase.findMany({
+    select: { id: true, status: true, createdAt: true, resolvedAt: true, officeDealerId: true },
+    orderBy: { createdAt: 'desc' },
+    take: 2000,
+  });
+
+  const now = Date.now();
+  const weekMs = 7 * 86_400_000;
+  const d0 = new Date();
+  const monthStart = new Date(d0.getFullYear(), d0.getMonth(), 1);
+  const WEEKS = 8;
+
+  let live = 0, aging = 0, overdue = 0, resolvedThisMonth = 0, openedThisMonth = 0, resolvedTotal = 0;
+  const pipelineCounts = Object.fromEntries(OPEN_STATUSES.map((s) => [s, 0])) as Record<ResolutionStatus, number>;
+  const officeLive = new Map<string, number>();
+  const openedByWk = new Array(WEEKS).fill(0) as number[];
+  const resolvedByWk = new Array(WEEKS).fill(0) as number[];
+  const resolveDurations: number[] = [];
+  const liveIds: string[] = [];
+
+  for (const c of cases) {
+    if (OPEN_STATUSES.includes(c.status)) {
+      live += 1;
+      liveIds.push(c.id);
+      pipelineCounts[c.status] += 1;
+      const lvl = ageLevel(c.createdAt, c.status);
+      if (lvl === 'red') overdue += 1;
+      else if (lvl === 'amber') aging += 1;
+      if (c.officeDealerId) officeLive.set(c.officeDealerId, (officeLive.get(c.officeDealerId) ?? 0) + 1);
+    }
+    if (c.createdAt >= monthStart) openedThisMonth += 1;
+    const owk = Math.floor((now - c.createdAt.getTime()) / weekMs);
+    if (owk >= 0 && owk < WEEKS) openedByWk[owk] += 1;
+    if (c.resolvedAt) {
+      resolvedTotal += 1;
+      if (c.resolvedAt >= monthStart) resolvedThisMonth += 1;
+      const rwk = Math.floor((now - c.resolvedAt.getTime()) / weekMs);
+      if (rwk >= 0 && rwk < WEEKS) resolvedByWk[rwk] += 1;
+      if (now - c.resolvedAt.getTime() <= 180 * 86_400_000) {
+        resolveDurations.push((c.resolvedAt.getTime() - c.createdAt.getTime()) / 86_400_000);
+      }
+    }
+  }
+
+  const avgResolveDays = resolveDurations.length
+    ? Math.round((resolveDurations.reduce((a, b) => a + b, 0) / resolveDurations.length) * 10) / 10
+    : null;
+
+  // "Awaiting our reply" among live cases: latest email per case is inbound (HD).
+  let awaitingReply = 0;
+  let longestWaitDays: number | null = null;
+  if (liveIds.length) {
+    const latest = await prisma.resolutionEmail.findMany({
+      where: { caseId: { in: liveIds } },
+      orderBy: [{ sentAt: 'desc' }, { createdAt: 'desc' }],
+      select: { caseId: true, inbound: true, sentAt: true, createdAt: true },
+    });
+    const seen = new Set<string>();
+    for (const e of latest) {
+      if (seen.has(e.caseId)) continue;
+      seen.add(e.caseId);
+      if (e.inbound) {
+        awaitingReply += 1;
+        const dd = daysSince(e.sentAt ?? e.createdAt);
+        longestWaitDays = longestWaitDays == null ? dd : Math.max(longestWaitDays, dd);
+      }
+    }
+  }
+
+  // Weekly buckets, oldest → newest, labelled by each week's start day.
+  const weeks = Array.from({ length: WEEKS }, (_, j) => {
+    const bucket = WEEKS - 1 - j;
+    const startMs = now - (bucket + 1) * weekMs;
+    return {
+      label: new Date(startMs).toLocaleDateString('en-CA', { month: 'short', day: 'numeric' }),
+      opened: openedByWk[bucket],
+      resolved: resolvedByWk[bucket],
+    };
+  });
+
+  const names = await dealerNames([...officeLive.keys()]);
+  const topOffices = [...officeLive.entries()]
+    .map(([id, count]) => ({ name: names.get(id) ?? '—', count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 4);
+
+  return {
+    live, aging, overdue, awaitingReply, longestWaitDays, avgResolveDays,
+    resolvedThisMonth, openedThisMonth, resolvedTotal,
+    pipeline: OPEN_STATUSES.map((s) => ({ status: s, label: STATUS_LABEL[s], count: pipelineCounts[s] })),
+    weeks,
+    topOffices,
   };
 }
 
