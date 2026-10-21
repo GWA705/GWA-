@@ -1346,6 +1346,23 @@ exhausting the single instance). No behaviour change for normal use.
     for the reviewer to action. This is the email-based counterpart to the dormant
     `/api/webhooks/financeit` endpoint (which needs FinanceIt to push signed webhooks).
 
+- **HD Resolution Centre — "at a glance" overview header.** The top of the queue
+  page now leads with a showcase panel: a navy KPI hero (Live cases with aging/overdue
+  split · Awaiting our reply with the longest wait · Avg. time to resolve · Resolved
+  this month), a **live-pipeline** bar (Open / In progress / Waiting on office /
+  Escalated, colour-coded, with a by-office breakdown), and an **8-week opened-vs-resolved
+  trend** chart (inline SVG, no new library). New `loadResolutionStats()` in
+  `resolutionCases.ts` (one cases read + one latest-email read) and a server-rendered
+  `ResolutionStatsHeader.tsx`. Theme-aware; the filter chips + table are unchanged below it.
+- **Scheduled syncs trimmed to business hours.**
+  - **journal-paid-sync** (journal Result "OK" + Date Paid → deal Funded + paid receipt)
+    now runs **~7am–9pm ET, Monday–Friday only** (was every 2h around the clock) —
+    `.github/workflows/journal-paid-sync.yml`. No overnight or weekend runs. (GitHub cron
+    is UTC and can't track DST, so it's set for EDT; winter lands ~1h earlier local.)
+  - **resolution-email-sync** now runs **twice a day, 8am & noon ET** (was every 30 min)
+    — `.github/workflows/resolution-email-sync.yml`.
+  - Both still have the manual **"Run workflow"** button for an immediate pull.
+
 ## 2026-10-10
 - **Lead pipeline Phase 2 — live-agent "talk to a booker now" (click-to-call).** On
   the customer self-booking page, during staffed hours the "call me" option becomes

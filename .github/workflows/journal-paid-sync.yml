@@ -18,7 +18,11 @@ name: Journal paid sync (cron)
 
 on:
   schedule:
-    - cron: '10 */2 * * *'   # every 2 hours, at :10 (UTC) — staggered off the hour
+    # Business hours only — ~7am to 9pm Eastern, Monday–Friday (no overnight, no
+    # weekends). GitHub Actions cron is UTC and can't track DST, so these are set
+    # for EDT (UTC-4); in winter (EST) they land ~1h earlier local. Every 2 hours.
+    - cron: '10 11,13,15,17,19,21,23 * * 1-5'  # 7:10am–7:10pm ET, Mon–Fri
+    - cron: '10 1 * * 2-6'                      # 9:10pm ET, Mon–Fri (01:10 UTC next day)
   workflow_dispatch: {}       # manual "Run workflow" button
 
 concurrency:

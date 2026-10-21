@@ -1,7 +1,7 @@
 name: Resolution email sync (cron)
 
 # Pulls new replies from each HD resolution case's linked Gmail thread into the
-# portal, every ~30 minutes. The app runs NO scheduler, so this workflow is what
+# portal, twice a day (8am & noon ET). The app runs NO scheduler, so this is what
 # actually calls src/app/api/cron/resolution-email-sync/route.ts in production.
 # It is inert (the endpoint returns ok/skipped) until the Gmail integration is
 # configured on Elastic Beanstalk (GMAIL_RESOLUTION_USER + read-only delegation
@@ -17,7 +17,11 @@ name: Resolution email sync (cron)
 
 on:
   schedule:
-    - cron: '17,47 * * * *'   # every 30 minutes, at :17/:47 (UTC) — staggered off the hour
+    # Twice a day — 8am and noon Eastern, every day. GitHub Actions cron is UTC and
+    # can't track DST, so set for EDT (UTC-4); in winter (EST) they land ~1h earlier
+    # local. Run on demand any time from the Actions tab.
+    - cron: '15 12 * * *'   # 8:15am ET daily
+    - cron: '15 16 * * *'   # 12:15pm (noon) ET daily
   workflow_dispatch: {}
 
 concurrency:
