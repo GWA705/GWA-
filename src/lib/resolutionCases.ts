@@ -178,7 +178,7 @@ export async function loadResolutionStats(): Promise<ResolutionStatsVM> {
   const weekMs = 7 * 86_400_000;
   const d0 = new Date();
   const monthStart = new Date(d0.getFullYear(), d0.getMonth(), 1);
-  const WEEKS = 8;
+  const WEEKS = 10; // compute a wider window, then trim leading empty weeks below
 
   let live = 0, aging = 0, overdue = 0, resolvedThisMonth = 0, openedThisMonth = 0, resolvedTotal = 0;
   const pipelineCounts = Object.fromEntries(OPEN_STATUSES.map((s) => [s, 0])) as Record<ResolutionStatus, number>;
@@ -248,6 +248,11 @@ export async function loadResolutionStats(): Promise<ResolutionStatsVM> {
     };
   });
 
+  // Trim leading empty weeks so a young centre doesn't show a sparse chart —
+  // start at the first week with any activity (keep the last 4 if there's none yet).
+  const firstData = weeks.findIndex((w) => w.opened > 0 || w.resolved > 0);
+  const trimmedWeeks = firstData >= 0 ? weeks.slice(firstData) : weeks.slice(-4);
+
   const names = await dealerNames([...officeLive.keys()]);
   const topOffices = [...officeLive.entries()]
     .map(([id, count]) => ({ name: names.get(id) ?? '—', count }))
@@ -258,7 +263,7 @@ export async function loadResolutionStats(): Promise<ResolutionStatsVM> {
     live, aging, overdue, awaitingReply, longestWaitDays, avgResolveDays,
     resolvedThisMonth, openedThisMonth, resolvedTotal,
     pipeline: OPEN_STATUSES.map((s) => ({ status: s, label: STATUS_LABEL[s], count: pipelineCounts[s] })),
-    weeks,
+    weeks: trimmedWeeks,
     topOffices,
   };
 }

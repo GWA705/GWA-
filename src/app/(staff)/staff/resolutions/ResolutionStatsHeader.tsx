@@ -130,7 +130,7 @@ export function ResolutionStatsHeader({ stats }: { stats: ResolutionStatsVM }) {
       {/* Pipeline + trend */}
       <div className="grid gap-4 lg:grid-cols-2">
         {/* Live pipeline */}
-        <div className="card p-4">
+        <div className="card flex flex-col p-4">
           <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400">Live pipeline</h3>
           {pipelineTotal === 0 ? (
             <p className="mt-4 text-sm text-gray-500 dark:text-slate-400">No live cases — the board is clear. 🎉</p>
@@ -159,7 +159,7 @@ export function ResolutionStatsHeader({ stats }: { stats: ResolutionStatsVM }) {
             </>
           )}
           {topOffices.length > 0 && (
-            <div className="mt-4 border-t border-gray-100 pt-3 dark:border-slate-700">
+            <div className="mt-auto border-t border-gray-100 pt-3 dark:border-slate-700">
               <h4 className="text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-slate-500">Live by office</h4>
               <div className="mt-2 space-y-1.5">
                 {topOffices.map((o) => (
@@ -174,7 +174,7 @@ export function ResolutionStatsHeader({ stats }: { stats: ResolutionStatsVM }) {
         </div>
 
         {/* Trend */}
-        <div className="card p-4">
+        <div className="card flex flex-col p-4">
           <div className="flex items-center justify-between">
             <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400">Opened vs resolved · 8 weeks</h3>
             <div className="flex items-center gap-3 text-[11px]">
@@ -182,7 +182,7 @@ export function ResolutionStatsHeader({ stats }: { stats: ResolutionStatsVM }) {
               <span className="flex items-center gap-1 text-gray-600 dark:text-slate-300"><span className="h-2.5 w-2.5 rounded-sm" style={{ background: '#16a34a' }} />Resolved</span>
             </div>
           </div>
-          <div className="mt-2">
+          <div className="mt-2 flex flex-1 items-center">
             <TrendChart weeks={weeks} />
           </div>
         </div>
