@@ -12,8 +12,26 @@ export interface ContactOverride {
   phone: string | null;
   address: string | null;
   email: string | null;
+  customerName: string | null; // the customer this correction was saved for
   updatedByName: string | null;
   updatedAt: Date;
+}
+
+function normName(s: string | null | undefined): string {
+  return (s ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+/**
+ * Whether a journal-ROW override still applies to the row it's keyed to. A row
+ * override is positional (`row:<year>|<tab>|<row>`), and journal rows shift when
+ * the sheet is edited or re-imported — so the same position can later hold a
+ * DIFFERENT customer. We only overlay a row override when its saved customer name
+ * still matches the row, so one customer's correction can never bleed onto another.
+ * (Portal `app:` overrides are keyed by a stable id and don't need this check.)
+ */
+export function rowOverrideApplies(ov: Pick<ContactOverride, 'customerName'>, currentName: string): boolean {
+  const saved = normName(ov.customerName);
+  return saved !== '' && saved === normName(currentName);
 }
 
 /** Override key for a portal deal. */
@@ -34,7 +52,7 @@ export async function getOverrides(keys: string[]): Promise<Map<string, ContactO
   return new Map(
     rows.map((r) => [
       r.key,
-      { phone: r.phone, address: r.address, email: r.email, updatedByName: r.updatedByName, updatedAt: r.updatedAt },
+      { phone: r.phone, address: r.address, email: r.email, customerName: r.customerName, updatedByName: r.updatedByName, updatedAt: r.updatedAt },
     ]),
   );
 }
@@ -43,7 +61,7 @@ export async function getOverrides(keys: string[]): Promise<Map<string, ContactO
 export async function getOverride(key: string): Promise<ContactOverride | null> {
   const r = await prisma.customerContactOverride.findUnique({ where: { key } });
   if (!r) return null;
-  return { phone: r.phone, address: r.address, email: r.email, updatedByName: r.updatedByName, updatedAt: r.updatedAt };
+  return { phone: r.phone, address: r.address, email: r.email, customerName: r.customerName, updatedByName: r.updatedByName, updatedAt: r.updatedAt };
 }
 
 /** Overlay an override field on top of an original value (override wins when set). */

@@ -1324,6 +1324,15 @@ exhausting the single instance). No behaviour change for normal use.
   free-text via DeepL.
 
 ## 2026-10-22
+- **Fix: Find-customer pasted the wrong customer's address/phone/email onto another.**
+  A saved "Edit info" correction (`CustomerContactOverride`) for a **journal row** is keyed
+  by position (`row:<year>|<tab>|<row>`). Journal rows shift when the sheet is edited or
+  re-imported, so a correction saved for one customer (e.g. Marie Fossheim, Cochrane AB)
+  could land on whoever now occupies that row (e.g. Satwinder Chana, Windsor). Now a row
+  override is only overlaid when its **saved customer name still matches the row**
+  (`rowOverrideApplies`); a stale/mismatched override is ignored, so one customer's contact
+  can never bleed onto another. Portal `app:` overrides are id-stable and unaffected. Test:
+  `tests/customerOverride.test.ts`.
 - **Office attribution now follows the journal's own Dealer column (fixes Platinum Air Care → HSP).**
   When a dealer was removed from the HD program and its stores reassigned, the portal
   re-credited that office's **historical** customers to whoever owns the store now — so

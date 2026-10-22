@@ -12,7 +12,7 @@ import { isInternal, isSuperAdmin, canAdminSection } from './rbac';
 import { readJournal, sheetIdFor, EARLIEST_JOURNAL_YEAR } from './reporting/journalRead';
 import { nameTokens, DEALER_ALIASES } from './reporting/dealerSnapshot';
 import { searchOfficeJournalArchive, searchOfficeLiveJournal, type ArchiveMatch } from './journalArchive';
-import { appOverrideKey, rowOverrideKey, getOverrides, overlay } from './customerOverride';
+import { appOverrideKey, rowOverrideKey, getOverrides, overlay, rowOverrideApplies } from './customerOverride';
 import { pickLinkedApp, type LinkCandidate } from './customerSearchLink';
 
 interface DealerContact { name: string; phone: string; address: string }
@@ -379,6 +379,10 @@ async function searchJournalDeals(query: string): Promise<JournalMatch[]> {
   for (const m of top) {
     const ov = overrides.get(keyFor(m));
     if (!ov) continue;
+    // A journal-row override is positional, so only apply it when its saved name
+    // still matches this row — rows shift, and a stale key must never paste one
+    // customer's contact onto another. Portal (app:) overrides are id-stable.
+    if (!m.applicationId && !rowOverrideApplies(ov, m.name)) continue;
     m.phone = overlay(m.phone, ov.phone);
     m.address = overlay(m.address, ov.address);
     m.email = overlay(m.email, ov.email);
