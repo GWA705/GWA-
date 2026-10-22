@@ -45,8 +45,9 @@ async function buildResourceLinkLookup(): Promise<Record<string, string>> {
  * their profile.
  */
 async function buildDealerContactLookup(): Promise<(storeNumber: string | null, location: string) => DealerContact | null> {
+  // Include archived dealers: an archived office (e.g. Platinum Air Care) must still
+  // be resolvable so its historical customers keep crediting — and showing — them.
   const dealers = await prisma.dealer.findMany({
-    where: { active: true },
     select: { id: true, name: true, homeDepotStores: { select: { number: true } }, profile: { select: { phone: true, supportPhone: true, address: true } } },
   });
   const info = new Map<string, DealerContact>();
@@ -77,24 +78,25 @@ async function buildDealerContactLookup(): Promise<(storeNumber: string | null, 
 
   const store4 = (raw: string | null): string => (raw ? (raw.match(/\d{3,}/)?.[0] ?? '') : '');
   return (storeNumber, location) => {
+    // Office/dealer label first (correct across store hand-offs), store as fallback.
     let id: string | null = null;
-    const sn = store4(storeNumber);
-    if (sn && byStore.has(sn)) id = byStore.get(sn)!;
+    const toks = nameTokens(location);
+    const set = new Set(toks);
+    for (const m of aliasMatchers) if (m.tokens.every((t) => set.has(t))) { id = m.dealerId; break; }
     if (!id) {
-      const toks = nameTokens(location);
-      const set = new Set(toks);
-      for (const m of aliasMatchers) if (m.tokens.every((t) => set.has(t))) { id = m.dealerId; break; }
-      if (!id) {
-        let hit: string | null = null;
-        for (const tok of toks) {
-          if (ambiguous.has(tok)) continue;
-          const d = byToken.get(tok);
-          if (!d) continue;
-          if (hit && hit !== d) { hit = null; break; }
-          hit = d;
-        }
-        id = hit;
+      let hit: string | null = null;
+      for (const tok of toks) {
+        if (ambiguous.has(tok)) continue;
+        const d = byToken.get(tok);
+        if (!d) continue;
+        if (hit && hit !== d) { hit = null; break; }
+        hit = d;
       }
+      id = hit;
+    }
+    if (!id) {
+      const sn = store4(storeNumber);
+      if (sn && byStore.has(sn)) id = byStore.get(sn)!;
     }
     return id ? info.get(id) ?? null : null;
   };

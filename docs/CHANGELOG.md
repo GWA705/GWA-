@@ -1323,6 +1323,25 @@ exhausting the single instance). No behaviour change for normal use.
   `testSingleLead()` on a French lead first. Portal display auto-translates lead
   free-text via DeepL.
 
+## 2026-10-22
+- **Office attribution now follows the journal's own Dealer column (fixes Platinum Air Care → HSP).**
+  When a dealer was removed from the HD program and its stores reassigned, the portal
+  re-credited that office's **historical** customers to whoever owns the store now — so
+  Platinum Air Care's London/Sarnia/Chatham/Woodstock customers were all showing as
+  **Home Service Providers**. Root cause: the office matcher keyed on the *current*
+  store→dealer map first. A store changes hands over time; the journal's **per-row
+  Dealer/office label is the real "who sold it"** and stays correct across hand-offs.
+  So `buildDealerMatcher` and the customer-search matcher now trust a confident
+  office-label match **first**, with the store-number map only as a fallback. Unit
+  tests: `tests/dealerMatch.test.ts`.
+- **Archived dealers stay creditable + searchable.** The journal matcher and customer
+  search previously loaded only `active: true` dealers, so an archived office would drop
+  its history into "Unassigned." They now include archived dealers — "archived" means
+  *not an active participant* (no login, not routed new leads), **not** "erased."
+  Together these let **Platinum Air Care** be re-created as an archived dealer and keep
+  every customer it sold. (Remaining operator steps: re-create Platinum Air Care and
+  archive it, then re-sync the closed years so its rows re-credit it.)
+
 ## 2026-10-21
 - **Confirmer flow — tap-to-log call attempts (Concept 1).** The confirmation step
   now has a **Call attempts** logger: one tap records an outcome (**No answer / Left

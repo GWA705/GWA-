@@ -61,12 +61,21 @@ export function buildDealerMatcher(dealers: MatchableDealer[]) {
     return hit;
   };
 
-  /** Resolve a journal deal to a dealerId: store number first, then location. */
+  /**
+   * Resolve a journal deal to a dealerId. The journal's own office/dealer column
+   * (the "location") is the source of truth for WHO sold a deal — it stays correct
+   * even when a store later changes hands between offices (e.g. a store that was
+   * Platinum Air Care's and then became HSP's). So trust a confident office-label
+   * match first, and fall back to the store-number map only when the label is blank
+   * or ambiguous.
+   */
   return function matchDeal(deal: { storeNumber?: string | null; location?: string | null }): string | null {
+    const byLocation = matchByLocation(deal.location || '');
+    if (byLocation) return byLocation;
     if (deal.storeNumber) {
       const byStore = storeToDealer.get(deal.storeNumber.trim());
       if (byStore) return byStore;
     }
-    return matchByLocation(deal.location || '');
+    return null;
   };
 }

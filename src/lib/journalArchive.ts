@@ -91,8 +91,8 @@ export async function searchOfficeLiveJournal(
   const years = [now + 1, now].filter((y) => sheetIdFor(y));
   if (years.length === 0) return [];
 
+  // Archived dealers included: their historical rows must still match + resolve.
   const dealers = await prisma.dealer.findMany({
-    where: { active: true },
     select: { id: true, name: true, homeDepotStores: { select: { number: true } } },
   });
   const matchDeal = buildDealerMatcher(dealers);
