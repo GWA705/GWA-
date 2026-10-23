@@ -2,11 +2,12 @@
 
 import { useEffect, useRef, useState, useTransition } from 'react';
 import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, ChevronDown } from 'lucide-react';
 import { customerSearchAction, updateCustomerInfoAction } from '@/app/(dealer)/dealer/find-customer/actions';
 import { StatusBadge } from '@/components/StatusBadge';
 import { useT, useI18n } from '@/i18n/client';
 import type { CustomerSearchResult, JournalMatch } from '@/lib/customerSearch';
+import type { ArchiveMatch } from '@/lib/journalArchive';
 
 function initials(name: string): string {
   return name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase()).join('') || '?';
@@ -124,7 +125,6 @@ export function CustomerSearch({
 
 function Results({ result }: { result: CustomerSearchResult }) {
   const t = useT();
-  const { locale } = useI18n();
   if (result.status === 'disabled')
     return <Note>{t('findCustomer.disabled')}</Note>;
   if (result.status === 'not_granted')
@@ -239,33 +239,7 @@ function Results({ result }: { result: CustomerSearchResult }) {
           <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">{t('findCustomer.thisYearJournal')}</h3>
           <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
             {result.liveJournal.map((m) => (
-              <div key={m.id} className="rounded-2xl border border-sky-200 bg-sky-50/50 p-3 shadow-sm">
-                <div className="flex items-center gap-3">
-                  <span className="flex h-11 w-11 flex-none items-center justify-center rounded-full bg-sky-100 text-sm font-bold text-sky-700">{initials(m.customerName)}</span>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="truncate text-sm font-semibold text-gray-900">{m.customerName}</span>
-                      {m.result && (
-                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${RESULT_STYLE[m.result] ?? 'bg-gray-100 text-gray-600'}`}>{m.result}</span>
-                      )}
-                    </div>
-                    <div className="truncate text-xs text-gray-400">
-                      {[m.product, m.hdStore, m.finance, m.amount].filter(Boolean).join(' · ')}
-                    </div>
-                    {m.saleDate && (
-                      <div className="mt-0.5 text-xs font-medium text-gray-600">
-                        🗓 {t('findCustomer.sold')} {fmtSold(m.saleDate, locale)}
-                      </div>
-                    )}
-                  </div>
-                </div>
-                {(m.phone || m.address) && (
-                  <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-0.5 border-t border-sky-100 pt-2 text-xs">
-                    {m.phone && <a href={`tel:${m.phone.replace(/[^0-9+]/g, '')}`} className="font-medium text-sky-700 hover:underline">📞 {m.phone}</a>}
-                    {m.address && <span className="text-gray-500">{m.address}</span>}
-                  </div>
-                )}
-              </div>
+              <JournalResultCard key={m.id} m={m} tone="live" />
             ))}
           </div>
         </div>
@@ -276,31 +250,7 @@ function Results({ result }: { result: CustomerSearchResult }) {
           <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">{t('findCustomer.fromYourPastJournals')}</h3>
           <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
             {result.journal.map((m) => (
-              <div key={m.id} className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm">
-                <div className="flex items-center gap-3">
-                  <span className="flex h-11 w-11 flex-none items-center justify-center rounded-full bg-gray-100 text-sm font-bold text-gray-500">{initials(m.customerName)}</span>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="truncate text-sm font-semibold text-gray-900">{m.customerName}</span>
-                      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-500">{m.year}</span>
-                    </div>
-                    <div className="truncate text-xs text-gray-400">
-                      {[m.product, m.hdStore, m.finance, m.amount].filter(Boolean).join(' · ')}
-                    </div>
-                    {m.saleDate && (
-                      <div className="mt-0.5 text-xs font-medium text-gray-600">
-                        🗓 {t('findCustomer.sold')} {fmtSold(m.saleDate, locale)}
-                      </div>
-                    )}
-                  </div>
-                </div>
-                {(m.phone || m.address) && (
-                  <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-0.5 border-t border-gray-100 pt-2 text-xs">
-                    {m.phone && <a href={`tel:${m.phone.replace(/[^0-9+]/g, '')}`} className="font-medium text-sky-700 hover:underline">📞 {m.phone}</a>}
-                    {m.address && <span className="text-gray-500">{m.address}</span>}
-                  </div>
-                )}
-              </div>
+              <JournalResultCard key={m.id} m={m} tone="past" />
             ))}
           </div>
         </div>
@@ -314,6 +264,82 @@ const RESULT_STYLE: Record<string, string> = {
   'PE/OK': 'bg-amber-100 text-amber-800',
   RB: 'bg-gray-200 text-gray-700',
 };
+
+/**
+ * A dealer "Find a customer" sales-journal result card. When the row corresponds
+ * to a portal deal in this office (matched by HD reference) the whole card links
+ * to that deal; otherwise it's a journal-only customer, so the card expands in
+ * place to show the full detail we have for that sale.
+ */
+function JournalResultCard({ m, tone }: { m: ArchiveMatch; tone: 'live' | 'past' }) {
+  const t = useT();
+  const { locale } = useI18n();
+  const [open, setOpen] = useState(false);
+  const linked = !!m.applicationId;
+  const ring = tone === 'live' ? 'border-sky-200 bg-sky-50/50' : 'border-gray-200 bg-white';
+  const avatar = tone === 'live' ? 'bg-sky-100 text-sky-700' : 'bg-gray-100 text-gray-500';
+
+  const head = (
+    <div className="flex items-center gap-3">
+      <span className={`flex h-11 w-11 flex-none items-center justify-center rounded-full text-sm font-bold ${avatar}`}>{initials(m.customerName)}</span>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <span className="truncate text-sm font-semibold text-gray-900">{m.customerName}</span>
+          {tone === 'live' ? (
+            m.result ? (
+              <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${RESULT_STYLE[m.result] ?? 'bg-gray-100 text-gray-600'}`}>{m.result}</span>
+            ) : null
+          ) : (
+            <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-500">{m.year}</span>
+          )}
+        </div>
+        <div className="truncate text-xs text-gray-400">{[m.product, m.hdStore, m.finance, m.amount].filter(Boolean).join(' · ')}</div>
+        {m.saleDate && <div className="mt-0.5 text-xs font-medium text-gray-600">🗓 {t('findCustomer.sold')} {fmtSold(m.saleDate, locale)}</div>}
+      </div>
+      {linked ? (
+        <ArrowRight size={16} className="flex-none text-gray-300 transition group-hover:text-sky-500" />
+      ) : (
+        <ChevronDown size={16} className={`flex-none text-gray-300 transition ${open ? 'rotate-180' : ''}`} />
+      )}
+    </div>
+  );
+
+  const contact =
+    m.phone || m.address ? (
+      <div className={`mt-2 flex flex-wrap items-center gap-x-3 gap-y-0.5 border-t pt-2 text-xs ${tone === 'live' ? 'border-sky-100' : 'border-gray-100'}`}>
+        {m.phone && <a href={`tel:${m.phone.replace(/[^0-9+]/g, '')}`} className="font-medium text-sky-700 hover:underline">📞 {m.phone}</a>}
+        {m.address && <span className="text-gray-500">{m.address}</span>}
+      </div>
+    ) : null;
+
+  if (linked) {
+    return (
+      <Link href={`/dealer/applications/${m.applicationId}`} className={`group block rounded-2xl border p-3 shadow-sm transition hover:shadow-md ${ring}`}>
+        {head}
+        {contact}
+      </Link>
+    );
+  }
+
+  return (
+    <div className={`rounded-2xl border p-3 shadow-sm ${ring}`}>
+      <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} className="block w-full text-left">
+        {head}
+      </button>
+      {open && (
+        <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2.5 border-t border-gray-100 pt-3 sm:grid-cols-3">
+          <Field label={t('findCustomer.hdStore')} value={m.hdStore} />
+          <Field label={t('findCustomer.dateOfSale')} value={m.saleDate ? fmtSold(m.saleDate, locale) : ''} />
+          <Field label={t('findCustomer.datePaid')} value={m.datePaid ? fmtSold(m.datePaid, locale) : ''} />
+          <Field label={t('findCustomer.paidBy')} value={m.finance} />
+          <Field label={t('findCustomer.hdRef')} value={m.hdRef} />
+          <Field label={t('findCustomer.products')} value={m.product} wide />
+        </dl>
+      )}
+      {contact}
+    </div>
+  );
+}
 
 // A detailed, GWA-team-facing card for one sales-journal deal.
 function JournalCard({ m }: { m: JournalMatch }) {

@@ -12,14 +12,46 @@ export interface ArchiveMatch {
   address: string;
   product: string;
   hdStore: string;
+  hdRef: string;
   result: string;
   finance: string;
+  source: string; // HD Program / outside-HD bucket
   amount: string; // formatted, or ''
   saleDate: string; // yyyy-mm-dd or ''
+  datePaid: string; // yyyy-mm-dd or ''
   year: number;
+  // A portal deal in THIS office that this journal row corresponds to (matched by
+  // HD reference), so the card can open the full deal. null = journal-only row.
+  applicationId: string | null;
 }
 
 const money = (n: number) => `$${Math.round(n).toLocaleString('en-CA')}`;
+
+const onlyDigits = (s: string) => s.replace(/\D/g, '');
+
+/**
+ * Fill each row's `applicationId` by matching its HD reference to a portal deal
+ * in the same office, so a journal row that IS a portal deal links to it. Mutates
+ * the rows in place. Rows with no matching portal deal stay journal-only (null).
+ */
+async function attachPortalDealIds(dealerId: string, rows: ArchiveMatch[]): Promise<void> {
+  const refs = Array.from(new Set(rows.map((r) => onlyDigits(r.hdRef)).filter((r) => r.length >= 6)));
+  if (refs.length === 0) return;
+  const apps = await prisma.application.findMany({
+    where: { dealerId, hdReference: { in: refs } },
+    select: { id: true, hdReference: true },
+    orderBy: { createdAt: 'desc' },
+  });
+  const byRef = new Map<string, string>();
+  for (const a of apps) {
+    const k = onlyDigits(a.hdReference ?? '');
+    if (k && !byRef.has(k)) byRef.set(k, a.id);
+  }
+  for (const r of rows) {
+    const id = byRef.get(onlyDigits(r.hdRef));
+    if (id) r.applicationId = id;
+  }
+}
 
 /**
  * Search a dealer's OWN office's archived past-journal customers by name or
@@ -48,19 +80,25 @@ export async function searchOfficeJournalArchive(dealerId: string | null | undef
     take: 25,
   });
 
-  return rows.map((r) => ({
+  const matches: ArchiveMatch[] = rows.map((r) => ({
     id: r.id,
     customerName: r.customerName || `${r.firstName} ${r.lastName}`.trim() || '(no name)',
     phone: r.phone,
     address: r.address,
     product: r.product,
     hdStore: r.hdStore,
+    hdRef: r.hdRef,
     result: r.result,
     finance: r.financeBucket && r.financeBucket !== 'Unknown' ? r.financeBucket : '',
+    source: r.sourceCategory || '',
     amount: r.gross != null && Number(r.gross) > 0 ? money(Number(r.gross)) : '',
     saleDate: r.saleDate ? r.saleDate.toISOString().slice(0, 10) : '',
+    datePaid: r.datePaid ? r.datePaid.toISOString().slice(0, 10) : '',
     year: r.year,
+    applicationId: null,
   }));
+  await attachPortalDealIds(dealerId, matches);
+  return matches;
 }
 
 /**
@@ -127,11 +165,15 @@ export async function searchOfficeLiveJournal(
       address: d.address || '',
       product: d.product || '',
       hdStore: d.hdStore || d.storeNumber || '',
+      hdRef: d.hdRef || '',
       result: d.result || '',
       finance: d.financeBucket && d.financeBucket !== 'Unknown' ? d.financeBucket : '',
+      source: d.sourceCategory || '',
       amount: d.gross != null && Number(d.gross) > 0 ? money(Number(d.gross)) : '',
       saleDate: d.date ? d.date.toISOString().slice(0, 10) : '',
+      datePaid: d.datePaid ? d.datePaid.toISOString().slice(0, 10) : '',
       year: d.year,
+      applicationId: null,
       sort: d.date?.getTime() ?? 0,
       tab: d.tab,
       row: d.rowNum,
@@ -155,8 +197,10 @@ export async function searchOfficeLiveJournal(
     }
   }
 
-  return rows
+  const finalRows: ArchiveMatch[] = rows
     .sort((a, b) => b.sort - a.sort)
     .slice(0, 25)
     .map(({ sort: _s, tab: _t, row: _r, ...m }) => m);
+  await attachPortalDealIds(dealerId, finalRows);
+  return finalRows;
 }
