@@ -110,6 +110,16 @@ export const DEALER_ALIASES: { dealer: string; aliases: string[] }[] = [
   { dealer: 'Indig', aliases: ['Winnipeg'] },
   // The Aurora branch trades as Swift; binds once a "Swift" dealer exists.
   { dealer: 'Swift', aliases: ['Aurora'] },
+  // TWA = Toronto Water & Air, its own office; binds once that dealer exists.
+  // (The plain "TORONTO" label matches it by name once the dealer is named
+  // "Toronto …".)
+  { dealer: 'Toronto', aliases: ['TWA'] },
+  // SSM = the Sault Ste. Marie office, its own; binds once that dealer exists.
+  { dealer: 'Sault', aliases: ['SSM'] },
+  // NOTE: the "SIMPLO" journal label is intentionally NOT mapped — per the owner
+  // it is not a tracked office, so it stays in the Unassigned bucket on purpose.
+  // Nippissing Water & Air (took North Bay over from Georgian; journal label
+  // "NIPPISING"/"NIPISSING") still needs an alias bound to its exact Admin name.
 ];
 
 const FILLER = new Set([
