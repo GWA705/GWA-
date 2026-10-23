@@ -127,7 +127,7 @@ async function readAndMap(year: number): Promise<
   // Include archived dealers in the matcher: an archived office (e.g. Platinum Air
   // Care) must keep its historical journal rows, by its journal "Dealer" label.
   const dealers = await prisma.dealer.findMany({
-    select: { id: true, name: true, homeDepotStores: { select: { number: true } } },
+    select: { id: true, name: true, journalName: true, homeDepotStores: { select: { number: true } } },
   });
   const matchDeal = buildDealerMatcher(dealers);
   const officeById = new Map(dealers.map((d) => [d.id, d.name]));

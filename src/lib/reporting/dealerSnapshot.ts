@@ -194,7 +194,7 @@ export async function buildDealerSnapshot(year: number, monthIndex: number): Pro
   // over its store numbers).
   const dealers = await prisma.dealer.findMany({
     orderBy: { name: 'asc' },
-    select: { id: true, name: true, homeDepotStores: { select: { number: true } } },
+    select: { id: true, name: true, journalName: true, homeDepotStores: { select: { number: true } } },
   });
 
   // Attribution indexes.
@@ -230,6 +230,14 @@ export async function buildDealerSnapshot(year: number, monthIndex: number): Pro
     for (const alias of entry.aliases) {
       const toks = nameTokens(alias);
       if (toks.length) aliasMatchers.push({ dealerId: dealer.id, tokens: toks });
+    }
+  }
+  // Admin-managed journal labels (Dealer.journalName) are authoritative aliases
+  // too, so a new/oddly-spelled label is fixed from Admin, not in code.
+  for (const d of dealers) {
+    for (const label of (d.journalName ?? '').split(',')) {
+      const toks = nameTokens(label);
+      if (toks.length) aliasMatchers.push({ dealerId: d.id, tokens: toks });
     }
   }
   aliasMatchers.sort((a, b) => b.tokens.length - a.tokens.length);

@@ -38,6 +38,22 @@ source of truth; this file is the human-readable index.
 | HD Resolution ↔ Gmail email link | ✅ **Live & verified** (2026-10-07, Sean) | Read-only Gmail via the existing service account (`gwa-journal-writer@gwa-portal-504012…`, project **"GWA Portal"** `gwa-portal-504012`, Unique ID `100470797238569934976`), impersonating `sean@ghsbarrie.ca` + the `HD Resolution` label. All switches done: Gmail API enabled, Workspace domain-wide delegation (`…/auth/gmail.readonly`), `GMAIL_RESOLUTION_USER=sean@ghsbarrie.ca` on EB. **Verified end-to-end** — the Email inbox lists real HD threads and "Open as case" links the thread + auto-fills. 30-min sync `resolution-email-sync.yml` (reuses `CRON_SECRET`). Steps/facts: `HD-RESOLUTION-EMAIL.md`, `BUILD-FACTS.md`. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### Admin "Journal name" now drives report attribution — self-service office labels (2026-10-23)
+- `Dealer.journalName` (Admin → Dealers → **Journal name**) was only used on the WRITE side (what the
+  portal writes into the journal's Location column). Now the **reporting matcher reads it too**, as an
+  authoritative alias: whatever label an office is given there (comma-separated for several labels)
+  attributes that journal label to the office — **no code change per office**. This makes read/write
+  symmetric and lets the owner fix a new or oddly-spelled journal label (e.g. the journal writes
+  `NIPPISING` while the dealer is named "Nipissing Water and Air") straight from Admin.
+- Wired into `buildDealerMatcher` (`dealerMatch.ts`, used by Monthly / Office-Range / Store ↔ Dealer /
+  journal import) and the Dealer Snapshot's own matcher (`dealerSnapshot.ts`); `loadDealerMatchIndex`,
+  `journalImport` and `dealerSnapshot` all now select `journalName`. Hardcoded `DEALER_ALIASES` stay as
+  built-in defaults/fallbacks. Test added (`dealerMatch.test.ts`): a `journalName` that differs from the
+  dealer name still matches, and comma-separated labels both match. Full suite green (556), build green.
+- Practical upshot: to attribute an office in reports, set its **Journal name** in Admin to the exact
+  journal label (e.g. Nipissing → `Nippising`). Nipissing Water & Air is already Active with Journal
+  name `Nippising`, so its ~$100,908 binds once this deploys.
+
 ### Office attribution: North Bay → Georgian, Aurora → Swift (journal label aliases) (2026-10-23)
 - Mapped two more journal Dealer-column labels to offices in `DEALER_ALIASES` (`dealerSnapshot.ts`):
   **`North Bay` → Georgian Water** (North Bay was Georgian's territory until Nippissing Water & Air

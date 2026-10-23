@@ -11,6 +11,15 @@ import { nameTokens, DEALER_ALIASES } from './dealerSnapshot';
 export interface MatchableDealer {
   id: string;
   name: string;
+  /**
+   * The dealer's sales-journal "Location" name (Admin → Dealers → Journal name),
+   * i.e. how this office is written in the journal's Dealer/Location column. When
+   * set, it is an AUTHORITATIVE match for this dealer (comma-separated for an
+   * office that appears under more than one label) — so an admin can fix a new or
+   * oddly-spelled label from Admin with no code change. The same field is already
+   * used on the write side; this makes read/reporting symmetric with it.
+   */
+  journalName?: string | null;
   homeDepotStores: { number: string }[];
 }
 
@@ -41,6 +50,15 @@ export function buildDealerMatcher(dealers: MatchableDealer[]) {
     for (const alias of entry.aliases) {
       const toks = nameTokens(alias);
       if (toks.length) aliasMatchers.push({ dealerId: dealer.id, tokens: toks });
+    }
+  }
+  // Admin-managed journal labels (Dealer.journalName) are authoritative aliases
+  // too — so a new/oddly-spelled label (e.g. "Nippising") is fixed from Admin,
+  // not in code. Comma-separated supports an office written under several labels.
+  for (const d of dealers) {
+    for (const label of (d.journalName ?? '').split(',')) {
+      const toks = nameTokens(label);
+      if (toks.length) aliasMatchers.push({ dealerId: d.id, tokens: toks });
     }
   }
   aliasMatchers.sort((a, b) => b.tokens.length - a.tokens.length);
@@ -101,7 +119,7 @@ export interface DealerMatchIndex {
 export async function loadDealerMatchIndex(): Promise<DealerMatchIndex> {
   const dealers = await prisma.dealer.findMany({
     orderBy: { name: 'asc' },
-    select: { id: true, name: true, active: true, homeDepotStores: { select: { number: true } } },
+    select: { id: true, name: true, active: true, journalName: true, homeDepotStores: { select: { number: true } } },
   });
   return {
     matchDeal: buildDealerMatcher(dealers),

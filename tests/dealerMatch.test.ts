@@ -47,6 +47,34 @@ describe('buildDealerMatcher — journal Dealer column wins', () => {
 });
 
 /**
+ * Dealer.journalName (Admin → Dealers → Journal name) is an authoritative label
+ * for the office. It lets an admin fix a new or oddly-spelled journal label from
+ * Admin with no code change — including one whose spelling differs from the
+ * dealer's own name (e.g. the journal writes "Nippising", the dealer is named
+ * "Nipissing Water and Air").
+ */
+describe('buildDealerMatcher — Admin journalName drives matching', () => {
+  const dealers = [
+    { id: 'nip', name: 'Nipissing Water and Air', journalName: 'Nippising', homeDepotStores: [] },
+    { id: 'tor', name: 'Toronto Water and Air', journalName: 'TWA, Toronto', homeDepotStores: [] },
+  ];
+  const match = buildDealerMatcher(dealers);
+
+  it('matches a journal label by the dealer journalName even when it differs from the name', () => {
+    expect(match({ storeNumber: null, location: 'NIPPISING' })).toBe('nip');
+  });
+
+  it('supports several comma-separated labels on one office', () => {
+    expect(match({ storeNumber: null, location: 'TWA' })).toBe('tor');
+    expect(match({ storeNumber: null, location: 'Toronto' })).toBe('tor');
+  });
+
+  it('still returns null for a label no office claims', () => {
+    expect(match({ storeNumber: null, location: 'SIMPLO' })).toBeNull();
+  });
+});
+
+/**
  * The Brantford case the owner raised: store 7138 moved from Oasis to the
  * Hamilton office (Hydra). The journal's Dealer column labels each row, so the
  * old rows credit Oasis and the new ones credit Hamilton/Hydra — no store-by-store
