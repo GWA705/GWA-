@@ -113,8 +113,13 @@ function toOffice(d: { id: string; name: string; active: boolean; homeDepotStore
 }
 
 export async function listReportOffices(): Promise<Office[]> {
+  // A reportable office is one that: has HD stores, OR is archived (a historical
+  // office we still report on, e.g. Platinum / Pristine / Oshawa), OR has an
+  // explicit journal label set (Journal name). This lets archived and outside-HD
+  // offices appear in the pickers even with no store assigned — attribution is by
+  // the journal's Dealer column, not the store, so their reports still work.
   const dealers = await prisma.dealer.findMany({
-    where: { homeDepotStores: { some: {} } },
+    where: { OR: [{ homeDepotStores: { some: {} } }, { active: false }, { journalName: { not: null } }] },
     orderBy: { name: 'asc' },
     select: { id: true, name: true, active: true, homeDepotStores: { select: { number: true, name: true } } },
   });
