@@ -1124,6 +1124,7 @@ export async function syncDealFromJournalAction(applicationId: string): Promise<
     return { error: t('actionMsg.staff.notWrittenToJournal') };
   }
   if (out.skipped) return { error: out.skipped };
+  if (out.cancelled) return { message: t('actionMsg.staff.journalCancelled') };
   if (out.funded) return { message: t('actionMsg.staff.journalPaidFunded') };
   if (out.paid) return { message: t('actionMsg.staff.journalPaid') };
   return { message: t('actionMsg.staff.checkedNotPaid', { reason: out.reason ?? t('actionMsg.staff.journalNotPaidReason') }) };

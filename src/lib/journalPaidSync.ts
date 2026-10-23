@@ -1,9 +1,18 @@
 import 'server-only';
-import type { ApplicationStatus } from '@prisma/client';
+import type { ApplicationStatus, Prisma } from '@prisma/client';
 import { prisma } from './db';
 import { readDealJournalStatus, findDealRowByIdentity } from './journal';
 import { notifyStatusChange } from './notify';
 import { audit } from './audit';
+
+/**
+ * Journal Result codes that mean the deal was returned/cancelled (the "RB"
+ * family), matching the reporting reader's normalization (RD/BR/TD/PE-TD → RB).
+ */
+function isReturnedResult(result: string | null | undefined): boolean {
+  const r = String(result ?? '').trim().toUpperCase();
+  return r === 'RB' || r === 'RD' || r === 'BR' || r === 'TD' || r === 'PE/TD';
+}
 
 /**
  * Journal → portal paid sync (the reverse of "Write to Journal").
@@ -24,6 +33,7 @@ export interface JournalSyncOutcome {
   ok: boolean;
   paid: boolean; // journal shows OK + Date Paid
   funded: boolean; // we advanced it to FUNDED this run
+  cancelled?: boolean; // we cancelled it this run (journal shows RB)
   skipped?: string;
   error?: string;
   // When we read the row but it isn't "paid", this says exactly what was
@@ -153,6 +163,44 @@ export async function syncApplicationFromJournal(applicationId: string, actorId:
     },
   });
 
+  // Journal shows the deal returned/cancelled (RB) ⟹ cancel it in the portal if
+  // it isn't already closed — the reverse of "paid ⟹ Funded", for when the office
+  // marks RB in the journal but the portal deal was never cancelled. We do NOT
+  // silently reverse a FUNDED deal (it owes a Home Depot refund) — that must go
+  // through the deal-page cancellation flow which confirms the refund; for those
+  // we surface the mismatch and leave the status for a human. A DealCancellation
+  // record is written so the "Reactivate deal" action can undo this if it was a
+  // mistake. Same confident-row safety as the paid sync (Last Name already matched).
+  let cancelled = false;
+  if (isReturnedResult(read.result) && !TERMINAL.includes(app.status)) {
+    if (app.status === 'FUNDED') {
+      reason = 'Journal shows RB (cancelled) but this deal is FUNDED — cancel it on the deal page so the Home Depot refund is confirmed first.';
+    } else {
+      const actor = actorId ?? ((await systemActorId()) || null);
+      const ops: Prisma.PrismaPromise<unknown>[] = [
+        prisma.application.update({ where: { id: app.id }, data: { status: 'WITHDRAWN' } }),
+      ];
+      if (actor) {
+        ops.push(
+          prisma.statusEvent.create({
+            data: { applicationId: app.id, from: app.status, to: 'WITHDRAWN', actorId: actor, note: 'Journal marked RB — cancelled to match the sales journal' },
+          }),
+          prisma.note.create({
+            data: { applicationId: app.id, authorId: actor, body: '↩️ This deal was cancelled to match the sales journal (Result = RB). If that was a mistake, use “Reactivate deal” on the deal page.', internal: false },
+          }),
+          prisma.dealCancellation.create({
+            data: { applicationId: app.id, requestedById: actor, reason: 'Reconciled from the sales journal (Result marked RB).', priorStatus: app.status, wasFunded: false, status: 'CONFIRMED', handledById: actor, handledAt: new Date() },
+          }),
+        );
+      }
+      await prisma.$transaction(ops);
+      await audit({ actorId, action: 'STATUS_CHANGE', entityType: 'Application', entityId: app.id, detail: `Auto-cancelled from journal RB (${app.status} → WITHDRAWN)` });
+      await notifyStatusChange(app.id, 'WITHDRAWN');
+      cancelled = true;
+      reason = undefined; // we acted on the RB; the "needs OK" hint no longer applies
+    }
+  }
+
   // Paid in the journal ⟹ Funded in the portal. Advance it if we can.
   let funded = false;
   if (paid && app.status !== 'FUNDED' && !TERMINAL.includes(app.status)) {
@@ -196,7 +244,7 @@ export async function syncApplicationFromJournal(applicationId: string, actorId:
     }
   }
 
-  return { applicationId, ok: true, paid, funded, reason };
+  return { applicationId, ok: true, paid, funded, cancelled, reason };
 }
 
 /**
@@ -207,7 +255,7 @@ export async function syncApplicationFromJournal(applicationId: string, actorId:
 // looks at these, so it never scans brand-new (pre-journal) deals.
 const SETTLING: ApplicationStatus[] = ['APPROVED', 'CONDITIONAL', 'DOCS_SENT', 'FUNDING_SUBMITTED', 'FUNDING_REVIEW', 'FUNDED'];
 
-export async function sweepJournalPaid(): Promise<{ checked: number; funded: number; paid: number; errors: number }> {
+export async function sweepJournalPaid(): Promise<{ checked: number; funded: number; paid: number; cancelled: number; errors: number }> {
   // Includes deals with NO stored journal pointer — those were typed into the
   // journal by hand and are matched by identity (see syncApplicationFromJournal).
   // Capped per run to keep Google Sheets reads within quota; once a deal's row is
@@ -225,16 +273,17 @@ export async function sweepJournalPaid(): Promise<{ checked: number; funded: num
     take: 200,
   });
 
-  let funded = 0, paid = 0, errors = 0;
+  let funded = 0, paid = 0, cancelled = 0, errors = 0;
   for (const c of candidates) {
     try {
       const out = await syncApplicationFromJournal(c.id);
       if (out.paid) paid += 1;
       if (out.funded) funded += 1;
+      if (out.cancelled) cancelled += 1;
       if (out.error) errors += 1;
     } catch {
       errors += 1;
     }
   }
-  return { checked: candidates.length, funded, paid, errors };
+  return { checked: candidates.length, funded, paid, cancelled, errors };
 }
