@@ -11,7 +11,7 @@ import { markReviewerAction } from '@/lib/activity';
 import { encryptOptional, decryptOptional } from '@/lib/crypto';
 import { toTitleCase, titleOrNull } from '@/lib/textcase';
 import { mergeProductsSold, journalProductNames } from '@/lib/products';
-import { writeDealToJournal, writeCancellationToJournal, clearJournalRow, journalEnabled, backfillJournalUnits, type JournalDeal, type BackfillUnitsDeal, type BackfillUnitsPlanRow } from '@/lib/journal';
+import { writeDealToJournal, writeCancellationToJournal, writeResultToJournal, clearJournalRow, journalEnabled, backfillJournalUnits, type JournalDeal, type BackfillUnitsDeal, type BackfillUnitsPlanRow } from '@/lib/journal';
 import { storeFiles } from '@/lib/upload';
 import { deleteDocument, getDocument } from '@/lib/storage';
 import { notifyStatusChange, notifyNewNote, notifyCancellationResolved, notifyConfirmationIssue } from '@/lib/notify';
@@ -45,7 +45,7 @@ import { dealHasFinancing, financedAmountOf, nonFinancedAmountOf, journalPayCode
 import { syncApplicationToJournal } from '@/lib/journalSync';
 import { findFinanceitEmailForDeal, financeitEmailConfigured } from '@/lib/financeitEmail';
 import { getT } from '@/i18n/server';
-import type { ApplicationStatus, DecisionType, DocumentType, VerificationStatus, ProgramType } from '@prisma/client';
+import type { ApplicationStatus, DecisionType, DocumentType, VerificationStatus, ProgramType, Prisma } from '@prisma/client';
 
 export interface ActionState {
   error?: string;
@@ -654,6 +654,116 @@ export async function rejectCancellationAction(
   await audit({ actorId: session.userId, action: 'STATUS_CHANGE', entityType: 'DealCancellation', entityId: cancellationId, detail: 'Cancellation rejected' });
   await notifyCancellationResolved(c.applicationId, false, note);
   revalidatePath(`/staff/applications/${c.applicationId}`);
+  revalidatePath('/staff');
+  return { ok: true };
+}
+
+/**
+ * Reactivate a cancelled deal — turn a WITHDRAWN deal back into an active deal.
+ * Reverses a confirmed cancellation that was entered by mistake (or fell through).
+ * Restores the deal to the status it held immediately before it was withdrawn,
+ * records the reversal on the cancellation record + the status history, leaves a
+ * dealer-visible note, and best-effort un-marks the journal row (RB → OK/PE-OK)
+ * so the sheet matches the portal again and the paid/RB syncs don't re-cancel it.
+ */
+export async function reactivateDealAction(
+  applicationId: string,
+  _prev: CancellationActionState,
+  formData: FormData,
+): Promise<CancellationActionState> {
+  const t = getT();
+  const session = await requireStaffSection('review-queue');
+  const app = await prisma.application.findUnique({
+    where: { id: applicationId },
+    include: {
+      statusEvents: { orderBy: { createdAt: 'desc' } },
+      cancellations: { orderBy: { createdAt: 'desc' } },
+    },
+  });
+  if (!app) return { error: t('actionMsg.notFound') };
+  if (app.status !== 'WITHDRAWN') {
+    return { error: t('actionMsg.staff.notCancelled') };
+  }
+
+  const note = (formData.get('note') ?? '').toString().trim().slice(0, 2000) || null;
+
+  // Restore to the status the deal held right before it was withdrawn: the `from`
+  // of the most recent "→ WITHDRAWN" status event, else the cancellation's stored
+  // priorStatus, else a safe default of UNDER_REVIEW.
+  const withdrawnEvent = app.statusEvents.find((e) => e.to === 'WITHDRAWN');
+  const lastCancellation = app.cancellations.find((c) => c.status === 'CONFIRMED') ?? app.cancellations[0];
+  const restoreStatus: ApplicationStatus = withdrawnEvent?.from ?? lastCancellation?.priorStatus ?? 'UNDER_REVIEW';
+
+  const confirmer = await prisma.user.findUnique({ where: { id: session.userId }, select: { name: true } });
+  const statusWords = restoreStatus.replace(/_/g, ' ').toLowerCase();
+  const trail = [
+    `↩️ Deal reactivated by ${confirmer?.name ?? 'a reviewer'} — it is active again (${statusWords}).`,
+    note ? `Note: ${note}` : null,
+  ].filter(Boolean).join(' ');
+
+  const ops: Prisma.PrismaPromise<unknown>[] = [
+    prisma.application.update({ where: { id: applicationId }, data: { status: restoreStatus } }),
+    prisma.statusEvent.create({
+      data: {
+        applicationId,
+        from: 'WITHDRAWN',
+        to: restoreStatus,
+        actorId: session.userId,
+        note: `Deal reactivated${note ? ` — ${note}` : ''}`,
+      },
+    }),
+    prisma.note.create({ data: { applicationId, authorId: session.userId, body: trail, internal: false } }),
+  ];
+  // Mark the confirmed cancellation as reversed so history stays honest.
+  if (lastCancellation && lastCancellation.status === 'CONFIRMED') {
+    ops.push(
+      prisma.dealCancellation.update({
+        where: { id: lastCancellation.id },
+        data: { status: 'REVERSED', reviewerNote: note },
+      }),
+    );
+  }
+  await prisma.$transaction(ops);
+
+  await audit({
+    actorId: session.userId,
+    action: 'STATUS_CHANGE',
+    entityType: 'Application',
+    entityId: applicationId,
+    detail: `Deal reactivated (WITHDRAWN → ${restoreStatus})`,
+  });
+
+  // Best-effort: put the journal Result back (OK if already paid, else PE/OK) with
+  // a note, so the sheet matches the portal and the paid/RB syncs don't re-cancel.
+  if (journalEnabled() && app.journalTab && app.journalRow) {
+    try {
+      const today = new Date().toLocaleDateString('en-CA');
+      const resultValue = app.datePaid ? 'OK' : 'PE/OK';
+      const noteLines = [
+        `Reactivated (${today}) — cancellation reversed in the portal.`,
+        `By: ${confirmer?.name ?? 'a reviewer'}.`,
+        note ? `Note: ${note}` : null,
+      ].filter(Boolean).join('\n');
+      const saleYear = (app.dateOfSale ?? app.createdAt).getFullYear();
+      const r = await writeResultToJournal(
+        { knownTab: app.journalTab, knownRow: app.journalRow, lastName: app.applicantLastName, saleYear },
+        resultValue,
+        noteLines,
+      );
+      await audit({
+        actorId: session.userId,
+        action: 'STATUS_CHANGE',
+        entityType: 'Application',
+        entityId: applicationId,
+        detail: r.ok ? `Journal result restored to ${resultValue}` : `Journal restore skipped: ${r.error}`,
+      });
+    } catch (e) {
+      console.error('[reactivate] journal result write failed', e);
+    }
+  }
+
+  await notifyStatusChange(applicationId, restoreStatus);
+  revalidatePath(`/staff/applications/${applicationId}`);
   revalidatePath('/staff');
   return { ok: true };
 }

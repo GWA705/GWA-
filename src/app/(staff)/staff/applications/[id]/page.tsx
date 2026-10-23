@@ -47,6 +47,7 @@ import { DecisionForm } from './DecisionForm';
 import { PayoutForm } from './PayoutForm';
 import { StatusChangeForm } from './StatusChangeForm';
 import { CancellationReviewCard, type CancellationReviewVM } from './CancellationReviewCard';
+import { ReactivateDealCard } from './ReactivateDealCard';
 import { ReviewerWorkspace } from './ReviewerWorkspace';
 import { reviewerPhaseStates, dealerFacingStatusLabel, currentPhaseIndex, hasDealerReturned, type PhaseState } from '@/lib/reviewerFlow';
 import { exemptionSummary, netBeforeTax } from '@/lib/tax';
@@ -1069,7 +1070,7 @@ export default async function StaffApplicationDetail({
   );
 
   const cx = app.cancellations[0] ?? null;
-  const cancellationVM: CancellationReviewVM | null = cx
+  const cancellationVM: CancellationReviewVM | null = cx && cx.status !== 'REVERSED'
     ? {
         id: cx.id,
         status: cx.status as 'PENDING' | 'CONFIRMED' | 'REJECTED',
@@ -1158,6 +1159,9 @@ export default async function StaffApplicationDetail({
 
         {/* Dealer-requested cancellation — reviewer confirms (or rejects) it. */}
         {cancellationVM && <CancellationReviewCard c={cancellationVM} />}
+
+        {/* Cancelled deal — reviewer can reactivate it (turn it back to active). */}
+        {app.status === 'WITHDRAWN' && <ReactivateDealCard applicationId={app.id} />}
 
         {/* Progress tracker */}
         <DealProgress

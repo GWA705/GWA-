@@ -38,6 +38,23 @@ source of truth; this file is the human-readable index.
 | HD Resolution ↔ Gmail email link | ✅ **Live & verified** (2026-10-07, Sean) | Read-only Gmail via the existing service account (`gwa-journal-writer@gwa-portal-504012…`, project **"GWA Portal"** `gwa-portal-504012`, Unique ID `100470797238569934976`), impersonating `sean@ghsbarrie.ca` + the `HD Resolution` label. All switches done: Gmail API enabled, Workspace domain-wide delegation (`…/auth/gmail.readonly`), `GMAIL_RESOLUTION_USER=sean@ghsbarrie.ca` on EB. **Verified end-to-end** — the Email inbox lists real HD threads and "Open as case" links the thread + auto-fills. 30-min sync `resolution-email-sync.yml` (reuses `CRON_SECRET`). Steps/facts: `HD-RESOLUTION-EMAIL.md`, `BUILD-FACTS.md`. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### Reactivate a cancelled deal (reverse a WITHDRAWN deal back to active) (2026-10-23)
+- There was no way to undo a confirmed cancellation. New reviewer action `reactivateDealAction`
+  (`(staff)/actions.ts`) + a **"Reactivate deal"** card on the staff deal page (shown only when status
+  is `WITHDRAWN`, right under the cancellation card). It restores the deal to the status it held
+  immediately before it was withdrawn (from the `→ WITHDRAWN` StatusEvent's `from`, falling back to the
+  cancellation's `priorStatus`, then `UNDER_REVIEW`), writes a StatusEvent + dealer-visible note, marks
+  the confirmed `DealCancellation` as **REVERSED** (new `CancellationStatus` value), audits it, and
+  notifies the dealer.
+- Journal stays in sync: the cancel path wrote `RB`; reactivation best-effort writes the Result **back**
+  (`OK` if the deal is already paid, else `PE/OK`) with a note, so the sheet matches the portal and the
+  paid/RB syncs don't re-cancel it. Generalized `writeCancellationToJournal` → `writeResultToJournal`
+  (the RB writer is now a thin wrapper). The reversed cancellation is hidden from the cancellation
+  review card. Migration `20261023040000_cancellation_reversed`. Tests green (559), build green.
+- Scope note: only `WITHDRAWN` (cancelled) deals reactivate here — a `DECLINED` deal is a separate case.
+  A cancellation that involved a Home Depot refund (`wasFunded`) still reactivates; the reviewer sees
+  the restored status in the history.
+
 ### FIX: 2024 paid-basis reports were empty — reader grabbed the wrong "Date Paid" column (2026-10-23)
 - **Symptom:** office reports on a paid-on-funded basis (Office-Range, Monthly, Dealer Snapshot) showed
   **no money for any 2024 month** (e.g. Essential Water & Air's Nov 2024 $61,818 / Dec 2024 $93,239 were

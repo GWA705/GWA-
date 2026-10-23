@@ -1128,6 +1128,7 @@ enum CancellationStatus {
   PENDING
   CONFIRMED
   REJECTED
+  REVERSED // a confirmed cancellation that was later reactivated (deal put back active)
 }
 
 // How we get paid by Home Depot: a "remittance" arrives Mon/Wed/Fri listing the

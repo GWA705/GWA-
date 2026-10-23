@@ -1088,13 +1088,14 @@ export interface JournalRbResult {
 }
 
 /**
- * On a confirmed cancellation, mark the deal's journal row Result = "RB" and
- * attach a cell NOTE on that same cell explaining why (reason, who confirmed it,
- * who at the dealer requested it, dated). Best-effort and safety-gated: writes
- * nothing unless the row's Last Name still matches the deal. Never throws.
+ * Write a value into a deal's journal Result cell and attach a cell NOTE on that
+ * same cell explaining why. Used both to cancel ("RB") and to reinstate a deal
+ * ("OK"/"PE/OK" on reactivation). Best-effort and safety-gated: writes nothing
+ * unless the row's Last Name still matches the deal. Never throws.
  */
-export async function writeCancellationToJournal(
+export async function writeResultToJournal(
   deal: { knownTab: string | null; knownRow: number | null; lastName: string; saleYear: number },
+  resultValue: string,
   noteText: string,
 ): Promise<JournalRbResult> {
   if (!deal.knownTab || !deal.knownRow) return { ok: false, error: 'not written to the journal' };
@@ -1126,12 +1127,12 @@ export async function writeCancellationToJournal(
     const sheetId = (meta.data.sheets || []).find((s) => s.properties?.title === deal.knownTab)?.properties?.sheetId;
     if (sheetId == null) return { ok: false, error: 'sheet tab not found' };
 
-    // 1) Write "RB" into the Result cell.
+    // 1) Write the result value ("RB" to cancel; "OK"/"PE/OK" to reinstate).
     await sheets.spreadsheets.values.update({
       spreadsheetId: ssId,
       range: `'${deal.knownTab}'!${colLetter(resultCol)}${deal.knownRow}`,
       valueInputOption: 'USER_ENTERED',
-      requestBody: { values: [['RB']] },
+      requestBody: { values: [[resultValue]] },
     });
 
     // 2) Attach the explanation as a cell NOTE on that same cell.
@@ -1160,6 +1161,17 @@ export async function writeCancellationToJournal(
   } catch (e) {
     return { ok: false, error: (e as Error).message };
   }
+}
+
+/**
+ * On a confirmed cancellation, mark the deal's journal row Result = "RB" with an
+ * explanatory cell note. Thin wrapper over writeResultToJournal.
+ */
+export async function writeCancellationToJournal(
+  deal: { knownTab: string | null; knownRow: number | null; lastName: string; saleYear: number },
+  noteText: string,
+): Promise<JournalRbResult> {
+  return writeResultToJournal(deal, 'RB', noteText);
 }
 
 /**
