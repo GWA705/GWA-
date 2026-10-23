@@ -1,6 +1,7 @@
 import 'server-only';
 import { readJournal, type ReportDeal } from './journalRead';
-import { listReportOffices, reportStoreScope } from './monthly';
+import { reportStoreScope } from './monthly';
+import { loadDealerMatchIndex } from './dealerMatch';
 
 /**
  * Custom-range office report. Pick an office (or All offices) and a start→end
@@ -107,30 +108,23 @@ export async function buildOfficeRangeReport(
   // Read every journal year the range touches.
   const years: number[] = [];
   for (let y = s.year; y <= e.year; y += 1) years.push(y);
-  const reads = await Promise.all(years.map((y) => readJournal(y)));
+  const [reads, index] = await Promise.all([
+    Promise.all(years.map((y) => readJournal(y))),
+    loadDealerMatchIndex(),
+  ]);
   const configured = reads.length > 0 ? reads[0].configured : false;
   const error = reads.find((r) => r.error)?.error;
   const deals: ReportDeal[] = reads.flatMap((r) => r.deals);
-
-  // For the all-offices aggregate, map each store number to the office it
-  // belongs to so deals can be grouped by office.
-  const storeToOffice = new Map<string, { key: string; label: string }>();
-  if (isAll) {
-    const offices = await listReportOffices();
-    for (const o of offices) {
-      for (const num of o.storeNumbers) {
-        if (!storeToOffice.has(num)) storeToOffice.set(num, { key: o.dealerId, label: o.name });
-      }
-    }
-  }
 
   const rowByKey = new Map<string, RangeRow>();
   const monthTotals: Record<string, number> = {};
   for (const m of months) monthTotals[m.ym] = 0;
 
+  // Attribution is by the journal's Dealer column (store number only as a
+  // fallback), so a shared store splits between the offices that sold there.
   const inScope = (d: ReportDeal): boolean => {
     if (isAll) return true;
-    return d.storeNumber ? scope.storeSet.has(d.storeNumber) : false;
+    return index.matchDeal(d) === dealerId;
   };
 
   for (const d of deals) {
@@ -142,10 +136,9 @@ export async function buildOfficeRangeReport(
     let key: string;
     let label: string;
     if (groupBy === 'office') {
-      const store = d.storeNumber ?? '';
-      const off = store ? storeToOffice.get(store) : undefined;
-      key = off?.key ?? 'unassigned';
-      label = off?.label ?? 'Unassigned (no office match)';
+      const dealerMatch = index.matchDeal(d);
+      key = dealerMatch ?? 'unassigned';
+      label = dealerMatch ? index.nameById.get(dealerMatch) ?? dealerMatch : 'Unassigned (no office match)';
     } else {
       const store = d.storeNumber || d.hdStore || 'Unknown';
       key = store;

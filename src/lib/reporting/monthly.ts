@@ -1,6 +1,7 @@
 import 'server-only';
 import { prisma } from '@/lib/db';
 import { readJournal, type ReportDeal } from './journalRead';
+import { loadDealerMatchIndex } from './dealerMatch';
 
 /**
  * Per-office "Monthly Performance Report" — the format from the office's HD
@@ -192,15 +193,22 @@ export async function buildOfficeMonthlyReport(
 ): Promise<OfficeMonthlyReport> {
   const office = await getOffice(dealerId);
 
-  const [cur, prev] = await Promise.all([readJournal(year), readJournal(year - 1)]);
+  const [cur, prev, index] = await Promise.all([
+    readJournal(year),
+    readJournal(year - 1),
+    loadDealerMatchIndex(),
+  ]);
   const configured = cur.configured;
   const error = cur.error || prev.error;
   const allDeals = [...cur.deals, ...prev.deals];
 
   const monthLabel = new Date(year, monthIndex, 1).toLocaleString('en-US', { month: 'long', year: 'numeric' });
 
-  const storeSet = new Set((office?.storeNumbers ?? []).map((s) => s));
-  const belongsToOffice = (d: ReportDeal) => (d.storeNumber ? storeSet.has(d.storeNumber) : false);
+  // A deal belongs to this office when the journal's own Dealer column attributes
+  // it here (store number only as a fallback for blank/ambiguous labels). This is
+  // what lets a store that changed hands between offices credit each office for
+  // its own rows instead of the office that currently owns the store number.
+  const belongsToOffice = (d: ReportDeal) => index.matchDeal(d) === dealerId;
 
   // Date-Paid windows.
   const monthStart = new Date(year, monthIndex, 1);

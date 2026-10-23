@@ -1,10 +1,12 @@
+import { prisma } from '@/lib/db';
 import { nameTokens, DEALER_ALIASES } from './dealerSnapshot';
 
 /**
  * Reusable office/dealer matcher for sales-journal rows — the same store-number,
  * name-token and alias logic the Dealer Snapshot uses, extracted so the journal
- * import can attribute each archived row to a dealer. Store number wins; then an
- * explicit alias; then an unambiguous distinctive name-token match.
+ * import and the office/store reports all attribute a row the SAME way. The
+ * journal's own office/dealer column (the "location") wins; then the store-number
+ * map as a fallback for rows whose label is blank or ambiguous.
  */
 export interface MatchableDealer {
   id: string;
@@ -77,5 +79,33 @@ export function buildDealerMatcher(dealers: MatchableDealer[]) {
       if (byStore) return byStore;
     }
     return null;
+  };
+}
+
+/** A built matcher plus the dealer-id → name lookup the reports render with. */
+export interface DealerMatchIndex {
+  matchDeal: (deal: { storeNumber?: string | null; location?: string | null }) => string | null;
+  nameById: Map<string, string>;
+  /** Dealer ids that are archived (shown with an "(archived)" hint in pickers). */
+  archived: Set<string>;
+}
+
+/**
+ * Load EVERY dealer — active and archived — and build the shared matcher from
+ * them. Archived dealers (e.g. an office that left the Home Depot program and
+ * handed its stores to another office) must still attribute their historical
+ * journal rows, so the reports that use this never filter on `active`. The
+ * journal's Dealer column decides who a row belongs to, so a store that changed
+ * hands splits correctly between the offices that sold there.
+ */
+export async function loadDealerMatchIndex(): Promise<DealerMatchIndex> {
+  const dealers = await prisma.dealer.findMany({
+    orderBy: { name: 'asc' },
+    select: { id: true, name: true, active: true, homeDepotStores: { select: { number: true } } },
+  });
+  return {
+    matchDeal: buildDealerMatcher(dealers),
+    nameById: new Map(dealers.map((d) => [d.id, d.name] as const)),
+    archived: new Set(dealers.filter((d) => !d.active).map((d) => d.id)),
   };
 }

@@ -45,3 +45,27 @@ describe('buildDealerMatcher — journal Dealer column wins', () => {
     expect(match({ storeNumber: '9999', location: 'Someone Unknown' })).toBeNull();
   });
 });
+
+/**
+ * The Brantford case the owner raised: store 7138 moved from Oasis to the
+ * Hamilton office (Hydra). The journal's Dealer column labels each row, so the
+ * old rows credit Oasis and the new ones credit Hamilton/Hydra — no store-by-store
+ * direction needed, even though the store number stays the same throughout.
+ */
+describe('buildDealerMatcher — a store that changed hands (Brantford: Oasis → Hamilton)', () => {
+  const dealers = [
+    { id: 'oasis', name: 'Oasis Heating and Cooling', homeDepotStores: [{ number: '7138' }] },
+    { id: 'hydra', name: 'Hydra Home Comfort', homeDepotStores: [{ number: '7020' }] },
+  ];
+  const match = buildDealerMatcher(dealers);
+
+  it('credits Oasis for the old rows and Hamilton/Hydra for the new ones at the same store', () => {
+    expect(match({ storeNumber: '7138', location: 'Oasis' })).toBe('oasis');
+    // "Hamilton" / "Brantford" are the Hydra office's journal labels (aliases),
+    // so a row at Oasis's old store credits Hydra when the label says so.
+    expect(match({ storeNumber: '7138', location: 'Hamilton' })).toBe('hydra');
+    expect(match({ storeNumber: '7138', location: 'Brantford' })).toBe('hydra');
+    // A blank label falls back to the store map (still Oasis's number).
+    expect(match({ storeNumber: '7138', location: '' })).toBe('oasis');
+  });
+});

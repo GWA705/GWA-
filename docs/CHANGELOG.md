@@ -38,6 +38,29 @@ source of truth; this file is the human-readable index.
 | HD Resolution ↔ Gmail email link | ✅ **Live & verified** (2026-10-07, Sean) | Read-only Gmail via the existing service account (`gwa-journal-writer@gwa-portal-504012…`, project **"GWA Portal"** `gwa-portal-504012`, Unique ID `100470797238569934976`), impersonating `sean@ghsbarrie.ca` + the `HD Resolution` label. All switches done: Gmail API enabled, Workspace domain-wide delegation (`…/auth/gmail.readonly`), `GMAIL_RESOLUTION_USER=sean@ghsbarrie.ca` on EB. **Verified end-to-end** — the Email inbox lists real HD threads and "Open as case" links the thread + auto-fills. 30-min sync `resolution-email-sync.yml` (reuses `CRON_SECRET`). Steps/facts: `HD-RESOLUTION-EMAIL.md`, `BUILD-FACTS.md`. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### Reports attribute by the journal's Dealer column + new Store ↔ Dealer report (2026-10-23)
+- **$ office reports now follow the Dealer column, not the store number, and include archived
+  dealers.** The Monthly report (`monthly.ts`), the custom Office-Range report (`officeRange.ts`)
+  and the Dealer Snapshot (`dealerSnapshot.ts`) used to attribute a journal row to an office by its
+  **HD store number** and only looked at `active` dealers. They now use the shared matcher
+  (`dealerMatch.ts`, location-first) so a row credits whichever office the **journal's Dealer column**
+  names, with the store number only as a fallback for blank/ambiguous labels. New helper
+  `loadDealerMatchIndex()` loads **every** dealer (active **and** archived) so an office that left the
+  HD program (e.g. Platinum Air Care) still gets credit for its historical rows, and a store that
+  changed hands between offices (e.g. Brantford 7138: Oasis → Hamilton/Hydra) **splits correctly** —
+  each office keeps its own rows, no store-by-store direction needed. This makes the customer-search
+  attribution (already Dealer-column-based) and the $ reports agree.
+- **New report: Store ↔ Dealer** (`/staff/reports/store-dealer`, `storeDealer.ts` + `StoreDealerView.tsx`,
+  Super-Admin gate like the Dealer Snapshot). Reads every journal year the portal keeps (2024→current)
+  and cross-references **stores × offices**. Two lenses: **By store → offices** (pick a store, see every
+  office that sold there with deals/units/sold $/paid $ and the **date span** each was active — and an
+  all-stores overview that flags stores worked by 2+ offices, i.e. the **handover trail**); and **By
+  office → stores** (pick an office — including archived — see every store it sold at). Answers "which
+  offices dealt with Barrie/Orillia/Newmarket/Bradford?" and "which stores did Home Service Providers
+  sell at?", and keeps offices that share a store reported separately.
+- Tests: `tests/dealerMatch.test.ts` extended with the Brantford (Oasis → Hamilton) handover case.
+  `npm run test` + `tsc --noEmit` green.
+
 ### HD autofill helper (beta) — Tampermonkey userscript (2026-10-20)
 - The HD "Proposal and Agreement" form is **SAP CRM WebClient** in nested cross-origin frames, so a
   bookmarklet can't reach it. New **`public/hd-autofill.user.js`** (a Tampermonkey userscript, hosted

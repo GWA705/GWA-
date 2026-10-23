@@ -165,8 +165,10 @@ function newAccum(dealerId: string, name: string): Accum {
  * @param year full year, @param monthIndex 0–11
  */
 export async function buildDealerSnapshot(year: number, monthIndex: number): Promise<DealerSnapshot> {
+  // Every dealer, active AND archived — an office that left the HD program still
+  // has historical journal rows that must attribute to it (not to whoever took
+  // over its store numbers).
   const dealers = await prisma.dealer.findMany({
-    where: { active: true },
     orderBy: { name: 'asc' },
     select: { id: true, name: true, homeDepotStores: { select: { number: true } } },
   });
@@ -249,9 +251,12 @@ export async function buildDealerSnapshot(year: number, monthIndex: number): Pro
   const locAgg = new Map<string, { count: number; gross: number; dealerId: string | null }>();
   const storeAgg = new Map<string, { count: number; gross: number; deals: StoreGap['deals'] }>();
 
+  // The journal's Dealer column is the source of truth for WHO sold a deal; the
+  // store-number map is only a fallback for rows whose label is blank/ambiguous.
+  // (Store-first would mis-credit a store that changed hands between offices.)
   const attribute = (deal: ReportDeal): Accum => {
-    let dealerId: string | null = deal.storeNumber ? storeToDealer.get(deal.storeNumber) ?? null : null;
-    if (!dealerId) dealerId = matchByLocation(deal.location);
+    let dealerId: string | null = matchByLocation(deal.location);
+    if (!dealerId && deal.storeNumber) dealerId = storeToDealer.get(deal.storeNumber) ?? null;
     return (dealerId && accums.get(dealerId)) || unmatched;
   };
 

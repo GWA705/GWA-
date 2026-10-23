@@ -136,6 +136,15 @@ export default async function ReportsLandingPage() {
       available: true,
     },
     {
+      href: '/staff/reports/store-dealer',
+      title: 'Store ↔ Dealer',
+      blurb:
+        'Which offices sold at each Home Depot store, and which stores each office sold at — with date spans. Shows stores that changed hands between offices (the handover trail).',
+      accent: '#0f766e',
+      badge: 'Per store',
+      available: canDealerSnapshot,
+    },
+    {
       href: '/staff/reports/leads',
       title: t('staffReportsHub.leads.title'),
       blurb: t('staffReportsHub.leads.blurb'),
