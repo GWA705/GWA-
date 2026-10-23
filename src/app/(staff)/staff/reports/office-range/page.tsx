@@ -4,7 +4,7 @@ import { requireRole } from '@/lib/session';
 import { canViewReport } from '@/lib/reporting/visibility';
 import { canViewReportsArea } from '@/lib/reporting/access';
 import { reportingJournalEnabled } from '@/lib/reporting/journalRead';
-import { listReportOffices, ALL_OFFICES } from '@/lib/reporting/monthly';
+import { listReportOffices, ALL_OFFICES, officeOptionLabel } from '@/lib/reporting/monthly';
 import { buildOfficeRangeReport } from '@/lib/reporting/officeRange';
 import { OfficeRangeView } from '../OfficeRangeView';
 import { getT } from '@/i18n/server';
@@ -44,7 +44,7 @@ export default async function OfficeRangeReportPage({
   const to = searchParams.to && valid.has(searchParams.to) ? searchParams.to : thisYm;
   const from = searchParams.from && valid.has(searchParams.from) ? searchParams.from : janYm;
 
-  const officeChoices = [{ dealerId: ALL_OFFICES, name: t('reportsUi.common.allOffices') }, ...offices];
+  const officeChoices = [{ dealerId: ALL_OFFICES, name: t('reportsUi.common.allOffices'), archived: false }, ...offices];
   const officeId = officeChoices.some((o) => o.dealerId === searchParams.office)
     ? (searchParams.office as string)
     : ALL_OFFICES;
@@ -60,7 +60,7 @@ export default async function OfficeRangeReportPage({
           <label className="label" htmlFor="office">{t('staffReports.office')}</label>
           <select id="office" name="office" defaultValue={officeId} className="input min-w-[200px]">
             {officeChoices.map((o) => (
-              <option key={o.dealerId} value={o.dealerId}>{o.name}</option>
+              <option key={o.dealerId} value={o.dealerId}>{officeOptionLabel(o)}</option>
             ))}
           </select>
         </div>

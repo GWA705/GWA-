@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { requireRole } from '@/lib/session';
 import { canViewReport } from '@/lib/reporting/visibility';
 import { canViewDealerSnapshot } from '@/lib/reporting/access';
-import { listReportOffices } from '@/lib/reporting/monthly';
+import { listReportOffices, officeOptionLabel } from '@/lib/reporting/monthly';
 import { productPricing } from '@/lib/reporting/productPricing';
 import { SectionHero } from '@/components/SectionHero';
 import { ProductPricingReport } from '@/components/reporting/ProductPricingReport';
@@ -38,7 +38,7 @@ export default async function StaffProductPricingReport({ searchParams }: { sear
             <select id="office" name="office" defaultValue={officeId} className="input min-w-[220px]">
               <option value="">{t('staffReports.allOffices')}</option>
               {offices.map((o) => (
-                <option key={o.dealerId} value={o.dealerId}>{o.name}</option>
+                <option key={o.dealerId} value={o.dealerId}>{officeOptionLabel(o)}</option>
               ))}
             </select>
           </div>

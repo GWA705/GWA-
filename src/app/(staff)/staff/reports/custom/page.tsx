@@ -4,7 +4,7 @@ import { requireRole } from '@/lib/session';
 import { isAdmin } from '@/lib/rbac';
 import { canViewReportsArea } from '@/lib/reporting/access';
 import { reportDataset } from '@/lib/reporting/reportDataset';
-import { listReportOffices, ALL_OFFICES } from '@/lib/reporting/monthly';
+import { listReportOffices, ALL_OFFICES, officeOptionLabel } from '@/lib/reporting/monthly';
 import { CustomReportBuilder } from '@/components/reporting/CustomReportBuilder';
 import { ReportHeader, ReportStamp, reportGeneratedLabel } from '@/components/reporting/kit';
 import { getT } from '@/i18n/server';
@@ -22,7 +22,7 @@ export default async function StaffCustomReportPage({ searchParams }: { searchPa
 
   const t = getT();
   const offices = await listReportOffices();
-  const choices = [{ dealerId: ALL_OFFICES, name: t('reportsUi.common.allOffices') }, ...offices];
+  const choices = [{ dealerId: ALL_OFFICES, name: t('reportsUi.common.allOffices'), archived: false }, ...offices];
   const officeId = choices.some((o) => o.dealerId === searchParams.office) ? (searchParams.office as string) : ALL_OFFICES;
   const officeName = choices.find((o) => o.dealerId === officeId)?.name ?? t('reportsUi.common.allOffices');
 
@@ -37,7 +37,7 @@ export default async function StaffCustomReportPage({ searchParams }: { searchPa
           <label className="label" htmlFor="office">{t('reportsUi.common.office')}</label>
           <select id="office" name="office" defaultValue={officeId} className="input min-w-[200px]">
             {choices.map((o) => (
-              <option key={o.dealerId} value={o.dealerId}>{o.name}</option>
+              <option key={o.dealerId} value={o.dealerId}>{officeOptionLabel(o)}</option>
             ))}
           </select>
         </div>

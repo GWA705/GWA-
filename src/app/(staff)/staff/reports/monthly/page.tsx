@@ -4,7 +4,7 @@ import { requireRole } from '@/lib/session';
 import { canViewReport } from '@/lib/reporting/visibility';
 import { canViewReportsArea } from '@/lib/reporting/access';
 import { reportingJournalEnabled } from '@/lib/reporting/journalRead';
-import { listReportOffices, buildOfficeMonthlyReport } from '@/lib/reporting/monthly';
+import { listReportOffices, buildOfficeMonthlyReport, officeOptionLabel } from '@/lib/reporting/monthly';
 import { MonthlyReportView } from '../MonthlyReportView';
 import { getT, getLocale } from '@/i18n/server';
 
@@ -62,7 +62,7 @@ export default async function MonthlyReportPage({
             {offices.length === 0 && <option value="">{t('staffReports.noOfficesWithStores')}</option>}
             {offices.map((o) => (
               <option key={o.dealerId} value={o.dealerId}>
-                {o.name}
+                {officeOptionLabel(o)}
               </option>
             ))}
           </select>

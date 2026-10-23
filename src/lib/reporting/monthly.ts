@@ -16,8 +16,14 @@ import { loadDealerMatchIndex } from './dealerMatch';
 export interface Office {
   dealerId: string;
   name: string;
+  archived: boolean; // dealer is archived (shown with an "(archived)" hint in pickers)
   storeNumbers: string[];
   storeNames: Record<string, string>; // store number → name (from Admin → Dealers)
+}
+
+/** Office name for a dropdown: the archived ones carry an "(archived)" hint. */
+export function officeOptionLabel(o: { name: string; archived: boolean }): string {
+  return o.archived ? `${o.name} (archived)` : o.name;
 }
 
 // One paid-OK sale that makes up a store's "this month" number — shown when a
@@ -93,7 +99,7 @@ function pct(cur: number, base: number): number | null {
 }
 
 /** Offices that can appear in a monthly report: portal dealers with HD stores. */
-function toOffice(d: { id: string; name: string; homeDepotStores: { number: string; name: string | null }[] }): Office {
+function toOffice(d: { id: string; name: string; active: boolean; homeDepotStores: { number: string; name: string | null }[] }): Office {
   const storeNumbers: string[] = [];
   const storeNames: Record<string, string> = {};
   for (const s of d.homeDepotStores) {
@@ -103,14 +109,14 @@ function toOffice(d: { id: string; name: string; homeDepotStores: { number: stri
     const nm = (s.name ?? '').trim();
     if (nm && !storeNames[num]) storeNames[num] = nm;
   }
-  return { dealerId: d.id, name: d.name, storeNumbers, storeNames };
+  return { dealerId: d.id, name: d.name, archived: !d.active, storeNumbers, storeNames };
 }
 
 export async function listReportOffices(): Promise<Office[]> {
   const dealers = await prisma.dealer.findMany({
     where: { homeDepotStores: { some: {} } },
     orderBy: { name: 'asc' },
-    select: { id: true, name: true, homeDepotStores: { select: { number: true, name: true } } },
+    select: { id: true, name: true, active: true, homeDepotStores: { select: { number: true, name: true } } },
   });
   return dealers.map(toOffice);
 }
@@ -118,7 +124,7 @@ export async function listReportOffices(): Promise<Office[]> {
 export async function getOffice(dealerId: string): Promise<Office | null> {
   const d = await prisma.dealer.findUnique({
     where: { id: dealerId },
-    select: { id: true, name: true, homeDepotStores: { select: { number: true, name: true } } },
+    select: { id: true, name: true, active: true, homeDepotStores: { select: { number: true, name: true } } },
   });
   return d ? toOffice(d) : null;
 }

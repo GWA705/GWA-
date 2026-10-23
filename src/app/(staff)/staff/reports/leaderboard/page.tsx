@@ -4,7 +4,7 @@ import { requireRole } from '@/lib/session';
 import { canViewReport } from '@/lib/reporting/visibility';
 import { canViewReportsArea, canViewDealerSnapshot } from '@/lib/reporting/access';
 import { reportingJournalEnabled } from '@/lib/reporting/journalRead';
-import { listReportOffices, ALL_OFFICES } from '@/lib/reporting/monthly';
+import { listReportOffices, ALL_OFFICES, officeOptionLabel } from '@/lib/reporting/monthly';
 import { buildSalespersonLeaderboard } from '@/lib/reporting/salespersonLeaderboard';
 import { LeaderboardView } from './LeaderboardView';
 import { SectionHero } from '@/components/SectionHero';
@@ -56,7 +56,7 @@ export default async function LeaderboardPage({
             {offices.length === 0 && <option value="">{t('staffReports.noOfficesWithStores')}</option>}
             {canAll && <option value={ALL_OFFICES}>{t('staffReports.allOffices')}</option>}
             {offices.map((o) => (
-              <option key={o.dealerId} value={o.dealerId}>{o.name}</option>
+              <option key={o.dealerId} value={o.dealerId}>{officeOptionLabel(o)}</option>
             ))}
           </select>
         </div>

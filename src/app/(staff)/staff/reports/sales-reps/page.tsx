@@ -5,7 +5,7 @@ import { isAdmin } from '@/lib/rbac';
 import { canViewReportsArea } from '@/lib/reporting/access';
 import { reportDataset } from '@/lib/reporting/reportDataset';
 import { journalUnitsByRep, repKey } from '@/lib/reporting/salespersonLeaderboard';
-import { listReportOffices } from '@/lib/reporting/monthly';
+import { listReportOffices, officeOptionLabel } from '@/lib/reporting/monthly';
 import { SalesRepReport, type RepStat } from '@/components/reporting/SalesRepReport';
 import { ReportHeader, ReportStamp, reportGeneratedLabel } from '@/components/reporting/kit';
 import { getT } from '@/i18n/server';
@@ -88,7 +88,7 @@ export default async function StaffSalesRepsPage({ searchParams }: { searchParam
           <label className="label" htmlFor="office">{t('reportsUi.common.office')}</label>
           <select id="office" name="office" defaultValue={officeId} className="input min-w-[200px]">
             {offices.map((o) => (
-              <option key={o.dealerId} value={o.dealerId}>{o.name}</option>
+              <option key={o.dealerId} value={o.dealerId}>{officeOptionLabel(o)}</option>
             ))}
           </select>
         </div>
