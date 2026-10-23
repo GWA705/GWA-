@@ -91,7 +91,13 @@ export interface DealerSnapshot {
 export const DEALER_ALIASES: { dealer: string; aliases: string[] }[] = [
   // `dealer` is a case-insensitive substring of the dealer's portal name; the
   // shortest reliable fragment is used so small spelling differences still bind.
-  { dealer: 'Georgian', aliases: ['Barrie'] },
+  // North Bay was Georgian Water's territory until Nippissing Water & Air took it
+  // over. In the journals that shows as the "NORTH BAY" label (2025, = Georgian)
+  // becoming "Nippising"/"Nippissing" (2026, = Nippissing's own label) — the two
+  // never overlap in a year, so attributing by label alone splits the handover
+  // correctly. "North Bay" → Georgian lives here; Nippissing matches by its own
+  // name once that dealer exists.
+  { dealer: 'Georgian', aliases: ['Barrie', 'North Bay'] },
   { dealer: 'Lakehead', aliases: ['Thunder Bay'] },
   { dealer: 'True North', aliases: ['Sudbury'] },
   { dealer: 'Home Service Providers', aliases: ['London'] },
@@ -102,6 +108,8 @@ export const DEALER_ALIASES: { dealer: string; aliases: string[] }[] = [
   { dealer: 'Hydra', aliases: ['Hamilton', 'Brantford'] },
   { dealer: 'Essential', aliases: ['Kingston', 'Ottawa'] },
   { dealer: 'Indig', aliases: ['Winnipeg'] },
+  // The Aurora branch trades as Swift; binds once a "Swift" dealer exists.
+  { dealer: 'Swift', aliases: ['Aurora'] },
 ];
 
 const FILLER = new Set([

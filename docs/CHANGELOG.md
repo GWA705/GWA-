@@ -38,6 +38,20 @@ source of truth; this file is the human-readable index.
 | HD Resolution ↔ Gmail email link | ✅ **Live & verified** (2026-10-07, Sean) | Read-only Gmail via the existing service account (`gwa-journal-writer@gwa-portal-504012…`, project **"GWA Portal"** `gwa-portal-504012`, Unique ID `100470797238569934976`), impersonating `sean@ghsbarrie.ca` + the `HD Resolution` label. All switches done: Gmail API enabled, Workspace domain-wide delegation (`…/auth/gmail.readonly`), `GMAIL_RESOLUTION_USER=sean@ghsbarrie.ca` on EB. **Verified end-to-end** — the Email inbox lists real HD threads and "Open as case" links the thread + auto-fills. 30-min sync `resolution-email-sync.yml` (reuses `CRON_SECRET`). Steps/facts: `HD-RESOLUTION-EMAIL.md`, `BUILD-FACTS.md`. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### Office attribution: North Bay → Georgian, Aurora → Swift (journal label aliases) (2026-10-23)
+- Mapped two more journal Dealer-column labels to offices in `DEALER_ALIASES` (`dealerSnapshot.ts`):
+  **`North Bay` → Georgian Water** (North Bay was Georgian's territory until Nippissing Water & Air
+  took it over; the journal shows "NORTH BAY" in 2025 = Georgian, then "Nippising/Nippissing" in 2026
+  = Nippissing's own label — the two never overlap in a year, so label-based attribution splits the
+  handover cleanly), and **`Aurora` → Swift** (the Aurora branch trades as Swift; binds once a
+  "Swift" dealer exists). Confirmed from the journals: offices present in the Location column are
+  Pristine (`PRISTINE`, 2024–25, stores 7116/7251/7009/7237/7228) and Oshawa (`OSHAWA`, 2024 only,
+  stores 7116/7133). **Pure Eco is NOT in any journal's Location column** — all "pure"/"eco" strings
+  are product names — so it has nothing to attribute until its rows carry a label.
+- Still pending owner confirmation before wiring: `TWA` (Toronto Water & Air vs True North), `SIMPLO`,
+  `SSM` (Sault Ste. Marie). Dealers for TWA / Swift / Nippissing / Oshawa / Simplo / SSM must be
+  created in Admin (active or archived) for their aliases to bind.
+
 ### Reports attribute by the journal's Dealer column + new Store ↔ Dealer report (2026-10-23)
 - **$ office reports now follow the Dealer column, not the store number, and include archived
   dealers.** The Monthly report (`monthly.ts`), the custom Office-Range report (`officeRange.ts`)
