@@ -247,11 +247,34 @@ export function buildColumnMap(headerRow: string[], rowAbove: string[]): Record<
       }
     }
   }
-  // Date-paid column: the nearest "paid" (not "amt") header at/after the result column.
+  // Date-paid column = the deal's FUNDING "Date Paid". Several OTHER columns also
+  // contain the word "paid" and must not be mistaken for it — the dealer's and
+  // manager's commission-payout dates ("Date Dealer Paid", "Date Mgr. Paid"), the
+  // Amex processor columns ("PAID ON JJ'S AMEX", "DATE PAID TO AMEX") and the
+  // "Amt. Paid By Finance Co." money column. The wide 2024 book has ALL of these
+  // sitting before the real "Date Paid" (the clean one next to "Balance Of Sale"),
+  // so a plain nearest-"paid"-after-Result rule used to land on "Date Dealer Paid"
+  // — which is mostly blank — making every 2024 OK deal look unpaid and vanish
+  // from paid-basis reports. Exclude the impostor columns, then take the nearest
+  // real funding-paid column at/after Result.
   if (map.result !== -1) {
+    const isFundingPaid = (h: string) =>
+      h.indexOf('paid') !== -1 &&
+      h.indexOf('amt') === -1 && // "Amt. Paid By Finance Co." — a money column
+      h.indexOf('dealer') === -1 && // "Date Dealer Paid" — dealer commission payout
+      h.indexOf('mgr') === -1 && // "Date Mgr. Paid" — manager commission payout
+      h.indexOf('amex') === -1; // "PAID ON JJ'S AMEX" / "DATE PAID TO AMEX"
     const paidCandidates: number[] = [];
     for (let k = 0; k < combined.length; k += 1) {
-      if (combined[k].indexOf('paid') !== -1 && combined[k].indexOf('amt') === -1) paidCandidates.push(k);
+      if (isFundingPaid(combined[k])) paidCandidates.push(k);
+    }
+    // Safety net: if an unusual layout excluded every "paid" header, fall back to
+    // the old rule (any "paid" that isn't an "amt" column) so we never regress to
+    // no date-paid column at all.
+    if (paidCandidates.length === 0) {
+      for (let k = 0; k < combined.length; k += 1) {
+        if (combined[k].indexOf('paid') !== -1 && combined[k].indexOf('amt') === -1) paidCandidates.push(k);
+      }
     }
     let best = -1;
     for (const p of paidCandidates) {

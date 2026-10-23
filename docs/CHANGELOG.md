@@ -38,6 +38,26 @@ source of truth; this file is the human-readable index.
 | HD Resolution ↔ Gmail email link | ✅ **Live & verified** (2026-10-07, Sean) | Read-only Gmail via the existing service account (`gwa-journal-writer@gwa-portal-504012…`, project **"GWA Portal"** `gwa-portal-504012`, Unique ID `100470797238569934976`), impersonating `sean@ghsbarrie.ca` + the `HD Resolution` label. All switches done: Gmail API enabled, Workspace domain-wide delegation (`…/auth/gmail.readonly`), `GMAIL_RESOLUTION_USER=sean@ghsbarrie.ca` on EB. **Verified end-to-end** — the Email inbox lists real HD threads and "Open as case" links the thread + auto-fills. 30-min sync `resolution-email-sync.yml` (reuses `CRON_SECRET`). Steps/facts: `HD-RESOLUTION-EMAIL.md`, `BUILD-FACTS.md`. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### FIX: 2024 paid-basis reports were empty — reader grabbed the wrong "Date Paid" column (2026-10-23)
+- **Symptom:** office reports on a paid-on-funded basis (Office-Range, Monthly, Dealer Snapshot) showed
+  **no money for any 2024 month** (e.g. Essential Water & Air's Nov 2024 $61,818 / Dec 2024 $93,239 were
+  blank), while 2025–26 were fine. Verified against the journals: the money is really there in the 2024
+  workbook — ~$155k of OK/paid Kingston-Ottawa deals for those two months alone.
+- **Root cause:** the 2024 book's wide two-row header has **six** columns containing "paid" after the
+  Result column — `Date Dealer Paid`, `Date Mgr. Paid`, `PAID ON JJ'S AMEX`, `DATE PAID TO AMEX`,
+  `Amt. Paid By Finance Co.`, and finally the real funding `Date Paid` (idx 41, next to `Balance Of
+  Sale`). `buildColumnMap` (`journalRead.ts`) took the **nearest** "paid" column after Result, which is
+  `Date Dealer Paid` (idx 23) — a commission-payout date that's mostly blank — so every 2024 OK deal
+  read as **unpaid** and was dropped from paid-basis reports. The 2025/26 books don't have that column
+  clutter, so only 2024 was hit.
+- **Fix:** exclude the impostor "paid" columns (`dealer`, `mgr`, `amex`, `amt`) when choosing the
+  date-paid column, then take the nearest real funding-paid column at/after Result; safety-net falls
+  back to the old rule if an unusual layout excludes them all. Locked with a unit test
+  (`tests/journalColumns.test.ts`) built from the **verbatim 2024 November header** — asserts datePaid =
+  idx 41, not 23 — plus a modern-header regression. Full suite green (559), build green.
+- **Impact:** corrects **2024 paid-basis numbers for every office**, not just Essential. After deploy,
+  2024 columns populate and YTD/averages that span 2024 go up accordingly.
+
 ### Report office pickers tag archived offices "(archived)" + include them even with no stores (2026-10-23)
 - `listReportOffices` previously listed only offices **with HD stores**, so an archived office that
   attributes purely by its journal label (e.g. Pristine with no stores assigned yet) never appeared in
