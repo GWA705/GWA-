@@ -48,9 +48,15 @@ source of truth; this file is the human-readable index.
   Pristine (`PRISTINE`, 2024–25, stores 7116/7251/7009/7237/7228) and Oshawa (`OSHAWA`, 2024 only,
   stores 7116/7133). **Pure Eco is NOT in any journal's Location column** — all "pure"/"eco" strings
   are product names — so it has nothing to attribute until its rows carry a label.
-- Still pending owner confirmation before wiring: `TWA` (Toronto Water & Air vs True North), `SIMPLO`,
-  `SSM` (Sault Ste. Marie). Dealers for TWA / Swift / Nippissing / Oshawa / Simplo / SSM must be
-  created in Admin (active or archived) for their aliases to bind.
+- Owner confirmations (now wired): `TWA` → **Toronto Water & Air** (its own office, NOT True North);
+  `SSM` → **Sault Ste. Marie** (its own office); `SIMPLO` → **intentionally untracked** (stays in
+  Unassigned); **Pure Eco = Oshawa** (no separate office — its business is the Oshawa office).
+- Added from the Dealer Snapshot's unmatched list: `TBAY` → **Lakehead**, `BARIRE` (a Barrie typo) →
+  **Georgian**, and `NIPPISING`/`NIPISSING` → **Nippissing Water & Air** (covers both one- and two-p
+  spellings on each side; ~$100,908 of outside-HD business was sitting unmatched). The NIPPISING alias
+  binds once a Nippissing office is created in Admin. Dealers still to create in Admin for their
+  aliases to bind: Toronto Water & Air, Swift, Sault Ste. Marie, Nippissing, Oshawa, Platinum
+  (Pristine and Swift already created & matching as of this date).
 
 ### Reports attribute by the journal's Dealer column + new Store ↔ Dealer report (2026-10-23)
 - **$ office reports now follow the Dealer column, not the store number, and include archived

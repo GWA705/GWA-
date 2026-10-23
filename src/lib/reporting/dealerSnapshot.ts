@@ -97,8 +97,8 @@ export const DEALER_ALIASES: { dealer: string; aliases: string[] }[] = [
   // never overlap in a year, so attributing by label alone splits the handover
   // correctly. "North Bay" → Georgian lives here; Nippissing matches by its own
   // name once that dealer exists.
-  { dealer: 'Georgian', aliases: ['Barrie', 'North Bay'] },
-  { dealer: 'Lakehead', aliases: ['Thunder Bay'] },
+  { dealer: 'Georgian', aliases: ['Barrie', 'North Bay', 'Barire'] },
+  { dealer: 'Lakehead', aliases: ['Thunder Bay', 'TBAY'] },
   { dealer: 'True North', aliases: ['Sudbury'] },
   { dealer: 'Home Service Providers', aliases: ['London'] },
   { dealer: 'Platinum', aliases: ['Platinum'] },
@@ -118,8 +118,14 @@ export const DEALER_ALIASES: { dealer: string; aliases: string[] }[] = [
   { dealer: 'Sault', aliases: ['SSM'] },
   // NOTE: the "SIMPLO" journal label is intentionally NOT mapped — per the owner
   // it is not a tracked office, so it stays in the Unassigned bucket on purpose.
-  // Nippissing Water & Air (took North Bay over from Georgian; journal label
-  // "NIPPISING"/"NIPISSING") still needs an alias bound to its exact Admin name.
+  // Nippissing Water & Air took North Bay over from Georgian. The journal spells
+  // its label "NIPPISING"/"NIPISSING" (and the town itself is "Nipissing"), so we
+  // cover both the one- and two-p spellings on BOTH sides: the `dealer` needle
+  // matches whatever the Admin dealer is named, the aliases match the label. Only
+  // the one whose needle is in the dealer's name binds; the other is inert. Binds
+  // once the Nippissing office exists in Admin.
+  { dealer: 'Nipiss', aliases: ['Nippising', 'Nipissing', 'Nippissing'] },
+  { dealer: 'Nippiss', aliases: ['Nippising', 'Nipissing', 'Nippissing'] },
 ];
 
 const FILLER = new Set([
