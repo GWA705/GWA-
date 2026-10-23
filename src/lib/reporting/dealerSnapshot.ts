@@ -165,11 +165,32 @@ function newAccum(dealerId: string, name: string): Accum {
  * @param year full year, @param monthIndex 0–11
  */
 export async function buildDealerSnapshot(year: number, monthIndex: number): Promise<DealerSnapshot> {
-  const dealers = await prisma.dealer.findMany({
-    where: { active: true },
-    orderBy: { name: 'asc' },
-    select: { id: true, name: true, homeDepotStores: { select: { number: true } } },
-  });
+  const [activeDealers, archivedDealers] = await Promise.all([
+    prisma.dealer.findMany({
+      where: { active: true },
+      orderBy: { name: 'asc' },
+      select: { id: true, name: true, homeDepotStores: { select: { number: true } } },
+    }),
+    prisma.dealer.findMany({
+      where: { active: false },
+      orderBy: { name: 'asc' },
+      select: { id: true, name: true, homeDepotStores: { select: { number: true } } },
+    }),
+  ]);
+  // Active dealers, plus any archived dealer the journals still attribute to by an
+  // explicit alias (e.g. Platinum — left the program, but its historical customers
+  // must stay with it instead of folding into the active dealer who took over its
+  // Home Depot stores). Archived dealers attribute by explicit alias ONLY — never
+  // by store number (their old stores now belong to the active dealer) or by loose
+  // name token — so a current London row is never pulled off its live dealer.
+  const aliasNeedles = DEALER_ALIASES.map((a) => a.dealer.toLowerCase());
+  const dealers = [
+    ...activeDealers.map((d) => ({ ...d, archived: false })),
+    ...archivedDealers
+      .filter((d) => aliasNeedles.some((n) => d.name.toLowerCase().includes(n)))
+      .map((d) => ({ ...d, archived: true })),
+  ];
+  const archivedIds = new Set(dealers.filter((d) => d.archived).map((d) => d.id));
 
   // Attribution indexes.
   const storeToDealer = new Map<string, string>(); // store number → dealerId
@@ -181,6 +202,7 @@ export async function buildDealerSnapshot(year: number, monthIndex: number): Pro
     else tokenToDealer.set(tok, dealerId);
   };
   for (const d of dealers) {
+    if (d.archived) continue; // archived stores are reassigned; no loose-token steal
     for (const s of d.homeDepotStores) {
       const num = s.number.trim();
       if (num) storeToDealer.set(num, d.id);
@@ -192,7 +214,7 @@ export async function buildDealerSnapshot(year: number, monthIndex: number): Pro
   // are AUTHORITATIVE — they win over name-token matching — and match on the
   // whole phrase (every alias token must be present) so "Thunder Bay" can't leak
   // into "North Bay". More-specific (multi-word) aliases are checked first.
-  const aliasMatchers: { dealerId: string; tokens: string[] }[] = [];
+  const aliasMatchers: { dealerId: string; tokens: string[]; archived: boolean }[] = [];
   const unboundAliases: string[] = [];
   for (const entry of DEALER_ALIASES) {
     const needle = entry.dealer.toLowerCase();
@@ -203,18 +225,33 @@ export async function buildDealerSnapshot(year: number, monthIndex: number): Pro
     }
     for (const alias of entry.aliases) {
       const toks = nameTokens(alias);
-      if (toks.length) aliasMatchers.push({ dealerId: dealer.id, tokens: toks });
+      if (toks.length) aliasMatchers.push({ dealerId: dealer.id, tokens: toks, archived: archivedIds.has(dealer.id) });
     }
   }
   aliasMatchers.sort((a, b) => b.tokens.length - a.tokens.length);
+  const archivedAliasMatchers = aliasMatchers.filter((m) => m.archived);
+  const activeAliasMatchers = aliasMatchers.filter((m) => !m.archived);
 
-  // Match an outside-HD deal's location label to a dealer: explicit aliases
-  // first, then an unambiguous distinctive-name-token match.
+  // An archived dealer explicitly named in the location (e.g. "Platinum") keeps
+  // its historical rows even though its old store now belongs to an active dealer
+  // — so this is checked before store number in attribute().
+  const matchArchivedAlias = (location: string): string | null => {
+    const toks = nameTokens(location);
+    if (toks.length === 0) return null;
+    const tokSet = new Set(toks);
+    for (const m of archivedAliasMatchers) {
+      if (m.tokens.every((t) => tokSet.has(t))) return m.dealerId;
+    }
+    return null;
+  };
+
+  // Match an outside-HD deal's location label to a dealer: explicit (active)
+  // aliases first, then an unambiguous distinctive-name-token match.
   const matchByLocation = (location: string): string | null => {
     const toks = nameTokens(location);
     if (toks.length === 0) return null;
     const tokSet = new Set(toks);
-    for (const m of aliasMatchers) {
+    for (const m of activeAliasMatchers) {
       if (m.tokens.every((t) => tokSet.has(t))) return m.dealerId;
     }
     let hit: string | null = null;
@@ -250,7 +287,10 @@ export async function buildDealerSnapshot(year: number, monthIndex: number): Pro
   const storeAgg = new Map<string, { count: number; gross: number; deals: StoreGap['deals'] }>();
 
   const attribute = (deal: ReportDeal): Accum => {
-    let dealerId: string | null = deal.storeNumber ? storeToDealer.get(deal.storeNumber) ?? null : null;
+    // An archived dealer named in the location keeps its own historical rows,
+    // ahead of the store number that has since been reassigned to an active dealer.
+    let dealerId: string | null = matchArchivedAlias(deal.location);
+    if (!dealerId) dealerId = deal.storeNumber ? storeToDealer.get(deal.storeNumber) ?? null : null;
     if (!dealerId) dealerId = matchByLocation(deal.location);
     return (dealerId && accums.get(dealerId)) || unmatched;
   };
@@ -274,7 +314,7 @@ export async function buildDealerSnapshot(year: number, monthIndex: number): Pro
         storeAgg.set(deal.storeNumber, e);
       } else if (!deal.isHD) {
         const label = (deal.location || '(blank)').trim() || '(blank)';
-        const e = locAgg.get(label) || { count: 0, gross: 0, dealerId: matchByLocation(label) };
+        const e = locAgg.get(label) || { count: 0, gross: 0, dealerId: matchArchivedAlias(label) ?? matchByLocation(label) };
         e.count += 1;
         e.gross += deal.gross;
         locAgg.set(label, e);

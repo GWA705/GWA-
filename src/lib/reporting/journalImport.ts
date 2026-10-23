@@ -2,6 +2,7 @@ import 'server-only';
 import { prisma } from '@/lib/db';
 import { readJournal, sheetIdFor } from './journalRead';
 import { buildDealerMatcher } from './dealerMatch';
+import { DEALER_ALIASES } from './dealerSnapshot';
 
 /**
  * Upload one closed sales-journal year from Google Sheets into the Postgres
@@ -124,10 +125,28 @@ async function readAndMap(year: number): Promise<
   const read = await readJournal(year, true); // force live Sheets read (bypass cache)
   if (read.error) return { ok: false, error: read.error };
 
-  const dealers = await prisma.dealer.findMany({
-    where: { active: true },
-    select: { id: true, name: true, homeDepotStores: { select: { number: true } } },
-  });
+  // Active dealers, plus any archived dealer the journals still attribute to by an
+  // explicit alias (e.g. Platinum) — so its historical rows stay with it instead
+  // of falling under the active dealer who took over its Home Depot stores.
+  // Archived dealers are flagged so the matcher uses them for alias attribution
+  // only, never by store number (those stores now belong to the active dealer).
+  const [activeDealers, archivedDealers] = await Promise.all([
+    prisma.dealer.findMany({
+      where: { active: true },
+      select: { id: true, name: true, homeDepotStores: { select: { number: true } } },
+    }),
+    prisma.dealer.findMany({
+      where: { active: false },
+      select: { id: true, name: true, homeDepotStores: { select: { number: true } } },
+    }),
+  ]);
+  const aliasNeedles = DEALER_ALIASES.map((a) => a.dealer.toLowerCase());
+  const dealers = [
+    ...activeDealers.map((d) => ({ ...d, archived: false })),
+    ...archivedDealers
+      .filter((d) => aliasNeedles.some((n) => d.name.toLowerCase().includes(n)))
+      .map((d) => ({ ...d, archived: true })),
+  ];
   const matchDeal = buildDealerMatcher(dealers);
   const officeById = new Map(dealers.map((d) => [d.id, d.name]));
 

@@ -45,10 +45,28 @@ async function buildResourceLinkLookup(): Promise<Record<string, string>> {
  * their profile.
  */
 async function buildDealerContactLookup(): Promise<(storeNumber: string | null, location: string) => DealerContact | null> {
-  const dealers = await prisma.dealer.findMany({
-    where: { active: true },
-    select: { id: true, name: true, homeDepotStores: { select: { number: true } }, profile: { select: { phone: true, supportPhone: true, address: true } } },
-  });
+  const [activeDealers, archivedDealers] = await Promise.all([
+    prisma.dealer.findMany({
+      where: { active: true },
+      select: { id: true, name: true, homeDepotStores: { select: { number: true } }, profile: { select: { phone: true, supportPhone: true, address: true } } },
+    }),
+    prisma.dealer.findMany({
+      where: { active: false },
+      select: { id: true, name: true, homeDepotStores: { select: { number: true } }, profile: { select: { phone: true, supportPhone: true, address: true } } },
+    }),
+  ]);
+  // Active dealers, plus any archived dealer the journals still attribute to by an
+  // explicit alias (e.g. Platinum) — so a historical customer resolves to their own
+  // dealer rather than the active dealer who took over its store. Archived dealers
+  // match by alias ONLY (their store/name tokens are not registered).
+  const aliasNeedles = DEALER_ALIASES.map((a) => a.dealer.toLowerCase());
+  const dealers = [
+    ...activeDealers.map((d) => ({ ...d, archived: false })),
+    ...archivedDealers
+      .filter((d) => aliasNeedles.some((n) => d.name.toLowerCase().includes(n)))
+      .map((d) => ({ ...d, archived: true })),
+  ];
+  const archivedIds = new Set(dealers.filter((d) => d.archived).map((d) => d.id));
   const info = new Map<string, DealerContact>();
   const byStore = new Map<string, string>(); // store number → dealerId
   const byToken = new Map<string, string>(); // name token → dealerId
@@ -60,30 +78,38 @@ async function buildDealerContactLookup(): Promise<(storeNumber: string | null, 
   };
   for (const d of dealers) {
     info.set(d.id, { name: d.name, phone: (d.profile?.phone || d.profile?.supportPhone || '').trim(), address: (d.profile?.address || '').trim() });
+    if (d.archived) continue; // archived stores are reassigned; no loose-token steal
     for (const s of d.homeDepotStores) { const n = s.number.trim(); if (n) byStore.set(n, d.id); }
     for (const tok of nameTokens(d.name)) register(tok, d.id);
   }
   // Authoritative city/name aliases (Barrie → Georgian, etc.), whole-phrase.
-  const aliasMatchers: { dealerId: string; tokens: string[] }[] = [];
+  const aliasMatchers: { dealerId: string; tokens: string[]; archived: boolean }[] = [];
   for (const entry of DEALER_ALIASES) {
     const dealer = dealers.find((d) => d.name.toLowerCase().includes(entry.dealer.toLowerCase()));
     if (!dealer) continue;
     for (const alias of entry.aliases) {
       const toks = nameTokens(alias);
-      if (toks.length) aliasMatchers.push({ dealerId: dealer.id, tokens: toks });
+      if (toks.length) aliasMatchers.push({ dealerId: dealer.id, tokens: toks, archived: archivedIds.has(dealer.id) });
     }
   }
   aliasMatchers.sort((a, b) => b.tokens.length - a.tokens.length);
+  const archivedAliasMatchers = aliasMatchers.filter((m) => m.archived);
+  const activeAliasMatchers = aliasMatchers.filter((m) => !m.archived);
 
   const store4 = (raw: string | null): string => (raw ? (raw.match(/\d{3,}/)?.[0] ?? '') : '');
   return (storeNumber, location) => {
     let id: string | null = null;
+    // An archived dealer explicitly named in the location keeps its own customers,
+    // ahead of the store number that has since been reassigned to an active dealer.
+    const locToks = nameTokens(location);
+    const locSet = new Set(locToks);
+    for (const m of archivedAliasMatchers) if (m.tokens.every((t) => locSet.has(t))) { id = m.dealerId; break; }
     const sn = store4(storeNumber);
-    if (sn && byStore.has(sn)) id = byStore.get(sn)!;
+    if (!id && sn && byStore.has(sn)) id = byStore.get(sn)!;
     if (!id) {
       const toks = nameTokens(location);
       const set = new Set(toks);
-      for (const m of aliasMatchers) if (m.tokens.every((t) => set.has(t))) { id = m.dealerId; break; }
+      for (const m of activeAliasMatchers) if (m.tokens.every((t) => set.has(t))) { id = m.dealerId; break; }
       if (!id) {
         let hit: string | null = null;
         for (const tok of toks) {
