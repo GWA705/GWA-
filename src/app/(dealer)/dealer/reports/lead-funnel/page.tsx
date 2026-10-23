@@ -16,10 +16,14 @@ export const dynamic = 'force-dynamic';
 export default async function DealerLeadFunnelPage() {
   const user = await requireDealerAccess();
   if (!(await canViewReport(user, 'leadFunnel'))) notFound();
+  const canAllLeads = await canViewAllLeads(user);
+  // Fail closed: without the cross-office grant, a viewer must be tied to an
+  // office, so scopeDealerId can never fall back to null (= every office's leads).
+  if (!canAllLeads && !user.dealerId) notFound();
 
   const t = getT();
   const report = await buildLeadsReport(new Date().toISOString(), {
-    scopeDealerId: (await canViewAllLeads(user)) ? null : user.dealerId,
+    scopeDealerId: canAllLeads ? null : user.dealerId,
   });
 
   return (

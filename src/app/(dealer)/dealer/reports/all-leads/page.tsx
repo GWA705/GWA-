@@ -19,6 +19,10 @@ export const dynamic = 'force-dynamic';
 export default async function DealerAllLeadsPage({ searchParams }: { searchParams: { p?: string; o?: string } }) {
   const user = await requireDealerAccess();
   if (!(await canViewReport(user, 'allLeads'))) notFound();
+  const canAllLeads = await canViewAllLeads(user);
+  // Fail closed: a viewer WITHOUT the cross-office grant must be tied to an
+  // office, so scopeDealerId can never fall back to null (= every office's leads).
+  if (!canAllLeads && !user.dealerId) notFound();
 
   const t = getT();
   const period = searchParams.p === 'week' || searchParams.p === 'month' ? searchParams.p : 'all';
@@ -26,7 +30,7 @@ export default async function DealerAllLeadsPage({ searchParams }: { searchParam
   const win = leadsPeriodWindow(period, offset);
   const report = await buildLeadsReport(new Date().toISOString(), {
     ...win,
-    scopeDealerId: (await canViewAllLeads(user)) ? null : user.dealerId,
+    scopeDealerId: canAllLeads ? null : user.dealerId,
   });
 
   return (

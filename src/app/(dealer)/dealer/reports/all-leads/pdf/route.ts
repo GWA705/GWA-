@@ -13,13 +13,17 @@ export const dynamic = 'force-dynamic';
 export async function GET(req: NextRequest) {
   const user = await requireDealerAccess();
   if (!(await canViewReport(user, 'allLeads'))) return new NextResponse('Not found', { status: 404 });
+  const canAllLeads = await canViewAllLeads(user);
+  // Fail closed: without the cross-office grant, a viewer must be tied to an
+  // office, so scopeDealerId can never fall back to null (= every office's leads).
+  if (!canAllLeads && !user.dealerId) return new NextResponse('Not found', { status: 404 });
 
   const p = req.nextUrl.searchParams.get('p');
   const period = p === 'week' || p === 'month' ? p : 'all';
   const offset = Number.parseInt(req.nextUrl.searchParams.get('o') ?? '0', 10) || 0;
   const report = await buildLeadsReport(new Date().toISOString(), {
     ...leadsPeriodWindow(period, offset),
-    scopeDealerId: (await canViewAllLeads(user)) ? null : user.dealerId,
+    scopeDealerId: canAllLeads ? null : user.dealerId,
   });
 
   const t = getT();

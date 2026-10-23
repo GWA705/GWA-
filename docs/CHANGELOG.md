@@ -38,6 +38,24 @@ source of truth; this file is the human-readable index.
 | HD Resolution ↔ Gmail email link | ✅ **Live & verified** (2026-10-07, Sean) | Read-only Gmail via the existing service account (`gwa-journal-writer@gwa-portal-504012…`, project **"GWA Portal"** `gwa-portal-504012`, Unique ID `100470797238569934976`), impersonating `sean@ghsbarrie.ca` + the `HD Resolution` label. All switches done: Gmail API enabled, Workspace domain-wide delegation (`…/auth/gmail.readonly`), `GMAIL_RESOLUTION_USER=sean@ghsbarrie.ca` on EB. **Verified end-to-end** — the Email inbox lists real HD threads and "Open as case" links the thread + auto-fills. 30-min sync `resolution-email-sync.yml` (reuses `CRON_SECRET`). Steps/facts: `HD-RESOLUTION-EMAIL.md`, `BUILD-FACTS.md`. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### Security: full dealer tenant-isolation audit + fail-closed the leads reports (2026-10-23)
+- Ran a full read-only cross-dealer leak audit across every dealer-reachable surface (reports, leads,
+  deals, documents, all `/api/**` routes, find-customer, chat/notes, products, gift cards).
+  **No confirmed cross-dealer leak** — deal/doc/API access consistently fetches-then-checks ownership
+  (`canAccessApplication` / `canAccessAsDealer` / `dealerPortalScopeWhere`), find-customer own-results
+  are `dealerId`-scoped, and the "Whose customer?" bucket exposes only the other office's name/contact
+  (no amounts/products/deal data), gated behind an exact 10-digit phone.
+- **Fix (defense-in-depth):** `all-leads`, `lead-funnel`, and `all-leads/pdf` computed
+  `scopeDealerId = canViewAllLeads ? null : user.dealerId` but — unlike every sibling report — lacked
+  the `!user.dealerId` guard, so a (non-default) `DEALER_USER` with a null `dealerId` and no grant would
+  fall back to `null` = **all offices' leads**. Added a fail-closed guard to all three (`notFound` /
+  404) while preserving the intended cross-office `canViewAllLeads` grant. This is the exact surface of
+  the earlier lead-report leak. tsc + 559 tests green.
+- Flagged for business sign-off (by-design cross-tenant, not bugs): the exact-phone "Whose customer?"
+  reveal; any signed-in user can fetch a dealer **logo** or a **published training recording** by id
+  (no PII); the public `/d/[token]` link only resolves marketing-library files. Noted (not displayed,
+  so no leak): the VOC payload carries two unscoped raw counts the view never renders.
+
 ### Find-customer sales-journal cards are now clickable (open the deal, or expand detail) (2026-10-23)
 - On the dealer "Find a customer" screen, the **This year's** and **Past sales journal** cards were
   dead (not clickable). Now each is interactive: a row that corresponds to a portal deal in the office
