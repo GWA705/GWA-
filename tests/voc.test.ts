@@ -94,4 +94,23 @@ describe('buildVocBreakdown', () => {
     expect(r.totalVocs).toBe(1);
     expect(r.matchRatePct).toBe(100);
   });
+
+  it('credits a VOC to the matched deal office (Dealer column), not the store owner, on a shared store', () => {
+    // Store 7228 is shared by two offices; the store→office map resolves to d1
+    // (listed last), but the deal was actually SOLD by d3 (its Dealer column).
+    const sharedOffices = [
+      { dealerId: 'd3', name: 'Shared Co', storeNumbers: ['7228'] },
+      { dealerId: 'd1', name: 'Windsor Office', storeNumbers: ['7228'] }, // owns 7228 in the store map
+    ];
+    const sharedDeals = [{ hdRef: '800237993', storeNumber: '7228', salesperson: 'Sam', dealerId: 'd3' }];
+    const vocs = [{ leadRef: '800237993', storeNumber: '7228', overallRating: 5 }];
+
+    const r = buildVocBreakdown({ vocs, deals: sharedDeals, offices: sharedOffices });
+    const sold = r.offices.find((o) => o.total > 0)!;
+    expect(sold.dealerId).toBe('d3'); // the seller, NOT the store owner d1
+
+    // A d1-scoped report must NOT see d3's review (no cross-office leak).
+    const scoped = buildVocBreakdown({ vocs, deals: sharedDeals, offices: sharedOffices }, { restrictDealerIds: ['d1'] });
+    expect(scoped.offices.reduce((s, o) => s + o.total, 0)).toBe(0);
+  });
 });

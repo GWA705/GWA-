@@ -248,6 +248,11 @@ interface DealInput {
   hdRef: string;
   storeNumber: string | null;
   salesperson: string;
+  // The office that actually sold this deal (by the journal's Dealer column). When
+  // set, a VOC that matches this deal attributes to THIS office — not to whoever
+  // owns the store number — so a store shared by two offices doesn't leak one
+  // office's reviews into the other's report.
+  dealerId?: string | null;
 }
 interface OfficeInput {
   dealerId: string;
@@ -277,9 +282,11 @@ export function buildVocBreakdown(
     const existing = refToDeal.get(key);
     if (!existing || (!existing.salesperson.trim() && d.salesperson.trim())) refToDeal.set(key, d);
   }
-  // storeNumber → office
+  // storeNumber → office, and dealerId → office
   const storeToOffice = new Map<string, OfficeInput>();
   for (const o of input.offices) for (const s of o.storeNumbers) storeToOffice.set(String(s).trim(), o);
+  const officeById = new Map<string, OfficeInput>();
+  for (const o of input.offices) officeById.set(o.dealerId, o);
 
   interface Acc {
     dealerId: string | null;
@@ -304,7 +311,12 @@ export function buildVocBreakdown(
   let totalMatched = 0;
   for (const v of input.vocs) {
     const deal = refToDeal.get(normalizeRef(v.leadRef));
+    // Attribute the VOC to the office that actually SOLD the matched deal (the
+    // journal's Dealer column) first, so a store shared by two offices credits
+    // each office only for its own reviews. Fall back to the store→office map
+    // (and the deal's store) only when there's no matched deal to go by.
     const office =
+      (deal?.dealerId ? officeById.get(deal.dealerId) : undefined) ||
       (v.storeNumber && storeToOffice.get(v.storeNumber)) ||
       (deal?.storeNumber ? storeToOffice.get(deal.storeNumber) : undefined) ||
       null;

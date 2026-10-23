@@ -10,6 +10,7 @@ import {
 } from './vocMatch';
 import { readJournal, EARLIEST_JOURNAL_YEAR } from './journalRead';
 import { listReportOffices } from './monthly';
+import { loadDealerMatchIndex } from './dealerMatch';
 
 /**
  * Import a Home Depot VOC export (.xlsx buffer). Upserts by leadRef, so
@@ -80,10 +81,14 @@ interface DealLite {
   hdRef: string;
   storeNumber: string | null;
   salesperson: string;
+  dealerId: string | null; // office that sold it, by the journal's Dealer column
 }
 
 async function readAllDeals(): Promise<{ deals: DealLite[]; configured: boolean; journalError?: string }> {
   const currentYear = new Date().getUTCFullYear();
+  // Attribute each deal to its selling office by the journal's Dealer column, so a
+  // VOC matched to a deal credits the right office even on a shared store.
+  const index = await loadDealerMatchIndex();
   const deals: DealLite[] = [];
   let configured = false;
   let journalError: string | undefined;
@@ -94,7 +99,7 @@ async function readAllDeals(): Promise<{ deals: DealLite[]; configured: boolean;
       journalError = read.error;
       continue;
     }
-    for (const d of read.deals) deals.push({ hdRef: d.hdRef, storeNumber: d.storeNumber, salesperson: d.salesperson });
+    for (const d of read.deals) deals.push({ hdRef: d.hdRef, storeNumber: d.storeNumber, salesperson: d.salesperson, dealerId: index.matchDeal(d) });
   }
   return { deals, configured, journalError };
 }
@@ -144,17 +149,34 @@ export async function loadVocReport(
     readAllDeals(),
   ]);
 
-  // Per-store counts — straight from the VOC file's store number, so a location's
-  // total is shown even when no VOC on it could be matched to a rep. Dealer scope
-  // sees only its own stores.
+  // Per-store counts — a location's total, even when no VOC on it matched a rep.
+  // A VOC is attributed to the office that SOLD its matched deal (the journal's
+  // Dealer column); only when there's no matched deal does it fall back to the
+  // store→office map. The dealer view counts only its OWN office's reviews — so a
+  // shared store never shows a co-tenant office's reviews.
   const storeToOfficeName = new Map<string, string>();
-  for (const o of offices) for (const s of o.storeNumbers) storeToOfficeName.set(String(s).trim(), o.name);
-  const dealerStores = opts.dealerId
-    ? new Set((offices.find((o) => o.dealerId === opts.dealerId)?.storeNumbers ?? []).map((s) => String(s).trim()))
-    : null;
+  const storeToDealerId = new Map<string, string>();
+  for (const o of offices) for (const s of o.storeNumbers) {
+    const sn = String(s).trim();
+    if (!storeToOfficeName.has(sn)) storeToOfficeName.set(sn, o.name);
+    if (!storeToDealerId.has(sn)) storeToDealerId.set(sn, o.dealerId);
+  }
+  // VOC lead ref → the dealerId that sold the matched deal (Dealer column).
+  const refToDealerId = new Map<string, string | null>();
+  for (const d of journal.deals) {
+    const key = normalizeRef(d.hdRef);
+    if (key.length < 6) continue;
+    if (!refToDealerId.has(key) || (refToDealerId.get(key) == null && d.dealerId != null)) {
+      refToDealerId.set(key, d.dealerId);
+    }
+  }
+  const vocDealerId = (e: { leadRef: string; storeNumber: string | null }): string | null =>
+    refToDealerId.get(normalizeRef(e.leadRef)) ?? (e.storeNumber ? storeToDealerId.get(e.storeNumber) ?? null : null);
+
   const storeAcc = new Map<string, { storeName: string; storeNumber: string | null; office: string | null; count: number; ratingSum: number; ratingN: number }>();
   for (const e of entries) {
-    if (dealerStores && (!e.storeNumber || !dealerStores.has(e.storeNumber))) continue;
+    // Dealer scope: only reviews that attribute to THIS office (by matched deal).
+    if (opts.dealerId && vocDealerId(e) !== opts.dealerId) continue;
     const key = e.storeNumber || e.storeName || 'Unknown';
     let a = storeAcc.get(key);
     if (!a) {
@@ -194,11 +216,13 @@ export async function loadVocReport(
   );
 
   const lastImportedAt = entries.reduce<Date | null>((max, e) => (!max || e.importedAt > max ? e.importedAt : max), null);
+  // Count only this office's reviews for the dealer view (the empty-state check).
+  const scopedCount = opts.dealerId ? entries.filter((e) => vocDealerId(e) === opts.dealerId).length : entries.length;
 
   return {
     ...breakdown,
     configured: journal.configured,
-    count: entries.length,
+    count: scopedCount,
     totalStored,
     stores,
     lastImportedAt,

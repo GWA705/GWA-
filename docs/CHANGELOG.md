@@ -38,6 +38,26 @@ source of truth; this file is the human-readable index.
 | HD Resolution ↔ Gmail email link | ✅ **Live & verified** (2026-10-07, Sean) | Read-only Gmail via the existing service account (`gwa-journal-writer@gwa-portal-504012…`, project **"GWA Portal"** `gwa-portal-504012`, Unique ID `100470797238569934976`), impersonating `sean@ghsbarrie.ca` + the `HD Resolution` label. All switches done: Gmail API enabled, Workspace domain-wide delegation (`…/auth/gmail.readonly`), `GMAIL_RESOLUTION_USER=sean@ghsbarrie.ca` on EB. **Verified end-to-end** — the Email inbox lists real HD threads and "Open as case" links the thread + auto-fills. 30-min sync `resolution-email-sync.yml` (reuses `CRON_SECRET`). Steps/facts: `HD-RESOLUTION-EMAIL.md`, `BUILD-FACTS.md`. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### Journal RB → auto-cancel the portal deal (reverse of OK+paid → Funded) (2026-10-23)
+- The journal→portal sweep (`journalPaidSync.ts`, cron + on-demand) already advanced a deal to Funded
+  when the journal showed OK+paid. Now it also **cancels** the portal deal when the journal shows the
+  deal returned (`RB` family: RB/RD/BR/TD/PE-TD) and the portal wasn't cancelled — for when the office
+  marks RB in the journal but never cancelled in the portal. Same confident-row safety as the paid sync
+  (Last Name must still match). It records a StatusEvent + dealer note + a `DealCancellation` (so the
+  **Reactivate deal** action can undo it) and notifies the dealer.
+- **Never silently reverses a FUNDED deal** (it owes a Home Depot refund) — those surface a mismatch
+  message and are left for the deal-page cancellation flow that confirms the refund. On-demand "check
+  journal" now reports the cancel; `journalCancelled` i18n string added. tsc + 559 tests green.
+
+### VOC report: scope strictly per dealer (shared-store reviews no longer leak) (2026-10-23)
+- The VOC report attributed each review to an office **by store number only**, so on a store shared by
+  two offices, all its reviews — and the co-tenant office's **reps** — showed in both offices' reports.
+  Now a VOC is attributed to the office that **sold its matched deal** (the journal's Dealer column,
+  via `loadDealerMatchIndex`), falling back to store→office only when there's no matched deal. The
+  dealer view counts only its own office's reviews, the by-store table and the `count` are scoped the
+  same way. Fixes a real cross-dealer leak for offices that share Home Depot stores. Locked with a test
+  (`tests/voc.test.ts`): a shared-store review credits the seller, and a co-tenant-scoped report sees 0.
+
 ### Security: full dealer tenant-isolation audit + fail-closed the leads reports (2026-10-23)
 - Ran a full read-only cross-dealer leak audit across every dealer-reachable surface (reports, leads,
   deals, documents, all `/api/**` routes, find-customer, chat/notes, products, gift cards).
