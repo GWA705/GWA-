@@ -13,6 +13,7 @@ import { leadsGeoData, storeGeos, unplacedStoresForMap } from '@/lib/leadGeo';
 import { MailInTestWorkspace } from '@/components/MailInTestWorkspace';
 import { type ScannedLeadRow } from '@/components/ScannedLeadsList';
 import { BackfillBookingButton } from '@/components/BackfillBookingButton';
+import { BackfillSoldButton } from '@/components/BackfillSoldButton';
 import { PostalFillButton } from '@/components/PostalFillButton';
 import { scannedLeadKey } from '@/lib/scannedLeadKey';
 import { listScannedLeads } from '@/lib/scannedLeads';
@@ -76,7 +77,7 @@ export default async function StaffLeadsPage({
     <div>
       <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">{t('staffMisc.leads.mailInTest')}</h2>
       {canManageLeads && (
-        <div className="mb-3 grid gap-3 md:grid-cols-2"><PostalFillButton /><BackfillBookingButton /></div>
+        <div className="mb-3 grid gap-3 md:grid-cols-2"><PostalFillButton /><BackfillBookingButton /><BackfillSoldButton /></div>
       )}
       <MailInTestWorkspace leads={scanned} callsByKey={scannedCalls} showOffice={!officeId} canScan={aiConfigured()} />
     </div>
@@ -161,7 +162,7 @@ export default async function StaffLeadsPage({
       {view === 'all' ? (
         <div className="space-y-3">
           {canManageLeads && (
-            <div className="grid gap-3 md:grid-cols-2"><PostalFillButton /><BackfillBookingButton /></div>
+            <div className="grid gap-3 md:grid-cols-2"><PostalFillButton /><BackfillBookingButton /><BackfillSoldButton /></div>
           )}
           {/* View toggle (page-level here, since the combined list replaces LeadsView) */}
           <div className="inline-flex rounded-full bg-gray-100 p-0.5" role="group" aria-label={t('leads.viewAria')}>

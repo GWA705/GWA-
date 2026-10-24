@@ -14,7 +14,8 @@ import { mergeProductsSold, journalProductNames } from '@/lib/products';
 import { writeDealToJournal, writeCancellationToJournal, writeResultToJournal, clearJournalRow, journalEnabled, backfillJournalUnits, type JournalDeal, type BackfillUnitsDeal, type BackfillUnitsPlanRow } from '@/lib/journal';
 import { storeFiles } from '@/lib/upload';
 import { deleteDocument, getDocument } from '@/lib/storage';
-import { notifyStatusChange, notifyNewNote, notifyCancellationResolved, notifyConfirmationIssue } from '@/lib/notify';
+import { notifyStatusChange, notifyNewNote, notifyCancellationResolved, notifyConfirmationIssue, notifyInBackground } from '@/lib/notify';
+import { syncApplicationSoldStateToBooking } from '@/lib/bookingSold';
 import { sendEmail, emailEnabled } from '@/lib/email';
 import { sendSms, smsEnabled, toE164 } from '@/lib/sms';
 import { buildReviewEmail, buildReviewSms } from '@/lib/reviewRequest';
@@ -590,6 +591,12 @@ export async function confirmCancellationAction(
   ]);
 
   await audit({ actorId: session.userId, action: 'STATUS_CHANGE', entityType: 'DealCancellation', entityId: cancellationId, detail: 'Cancellation confirmed → WITHDRAWN' });
+
+  // Reverse the sale in the booking system (this path withdraws the deal — a
+  // funded one included — without going through notifyStatusChange, so the
+  // booking sync is triggered explicitly here). Fire-and-forget, inert until the
+  // booking feed is configured.
+  notifyInBackground('booking sold reverse', () => syncApplicationSoldStateToBooking(c.applicationId, 'WITHDRAWN'));
 
   // Mark the deal RB in the sales journal, with a cell note explaining why —
   // reason, who confirmed it, and which dealer user requested it, dated. Best-

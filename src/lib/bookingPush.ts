@@ -47,6 +47,14 @@ function bookingStatusUrl(): string | null {
   return base.replace(/\/api\/intake\/portal\/?$/, '/api/intake/portal-status');
 }
 
+/** Booking's sold-customer URL, derived the same way:
+ * .../api/intake/portal -> .../api/intake/portal/sold. */
+function bookingSoldUrl(): string | null {
+  const base = process.env.BOOKING_INTAKE_URL?.trim();
+  if (!base) return null;
+  return base.replace(/\/api\/intake\/portal\/?$/, '/api/intake/portal/sold');
+}
+
 /** The shared coarse status vocabulary the two systems agree on. */
 export type CoarseStatus = 'new' | 'working' | 'spoke' | 'booked' | 'sold' | 'nogood';
 
@@ -204,6 +212,125 @@ export async function pushLeadsToBooking(leads: BookingLead[]): Promise<BookingB
       }
     } catch (e) {
       console.error('[bookingPush] backfill could not reach the booking system', e);
+      result.failed += chunk.length;
+    }
+  }
+
+  return result;
+}
+
+// ---------------------------------------------------------------------------
+// Sold customers → the booking system's CUSTOMER list (not the call board)
+// ---------------------------------------------------------------------------
+
+/** One equipment line on a sold deal, as the booking catalogue matches it. */
+export interface BookingProduct {
+  /** The portal's journal code (booking's Product.sku) — the stable match key. */
+  sku?: string | null;
+  /** Friendly name — the fallback match key, and the name on create. */
+  name?: string | null;
+}
+
+/**
+ * A funded portal deal, shaped for the booking system's sold-customer feed. It
+ * lands as a CUSTOMER (the post-sale household record), never a call-board lead.
+ * `cancelled: true` reverses a sale we previously sent (the deal was withdrawn).
+ */
+export interface BookingSoldCustomer {
+  /** The portal application id — booking's stable key for this sale. */
+  applicationId: string;
+  cancelled?: boolean;
+  name?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  address?: string | null;
+  city?: string | null;
+  province?: string | null;
+  postalCode?: string | null;
+  spouseName?: string | null;
+  spousePhone?: string | null;
+  /** ISO date the deal funded; booking defaults to "now" if absent. */
+  soldAt?: string | null;
+  products?: BookingProduct[];
+}
+
+/**
+ * Send one sold customer to booking. Fire-and-forget and fully fail-safe (a
+ * booking outage never affects the portal), and inert until BOOKING_INTAKE_URL +
+ * PORTAL_INTAKE_TOKEN are set. A sold push needs a name and a phone; a cancel
+ * (reverse) needs only the applicationId.
+ */
+export async function pushSoldCustomerToBooking(sale: BookingSoldCustomer): Promise<void> {
+  const url = bookingSoldUrl();
+  const token = process.env.PORTAL_INTAKE_TOKEN?.trim();
+  if (!url || !token || !sale.applicationId) return;
+  if (!sale.cancelled && (!sale.name || !sale.phone)) return; // nothing worth a customer record
+
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 5000);
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+      body: JSON.stringify(sale),
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+    if (!res.ok) console.error(`[bookingPush] sold feed returned ${res.status} for ${sale.applicationId}`);
+  } catch (e) {
+    console.error('[bookingPush] could not push sold customer to booking', e);
+  }
+}
+
+/** Reverse a previously-sent sold customer in booking (the portal deal was
+ *  cancelled). Fire-and-forget, inert until configured. */
+export async function pushCancelledSaleToBooking(applicationId: string): Promise<void> {
+  if (!applicationId) return;
+  await pushSoldCustomerToBooking({ applicationId, cancelled: true });
+}
+
+/**
+ * Sweep a set of sold customers to booking in one go — for the one-time backfill
+ * of deals that funded before the sold feed was switched on. Safe to re-run:
+ * booking dedupes a customer by phone and stamps each sale's equipment with the
+ * portal deal id, so a resend never doubles anyone. Reports what happened.
+ */
+export async function pushSoldCustomersToBooking(sales: BookingSoldCustomer[]): Promise<BookingBackfillResult> {
+  const url = bookingSoldUrl();
+  const token = process.env.PORTAL_INTAKE_TOKEN?.trim();
+  const configured = Boolean(url && token);
+  const result: BookingBackfillResult = { configured, sent: 0, created: 0, duplicate: 0, skipped: 0, failed: 0 };
+  if (!configured || !url || !token) return result;
+
+  const sendable = sales.filter((s) => s.applicationId && (s.cancelled || (s.name && s.phone)));
+  const SOLD_BATCH = 100; // the booking sold endpoint's per-request limit
+
+  for (let i = 0; i < sendable.length; i += SOLD_BATCH) {
+    const chunk = sendable.slice(i, i + SOLD_BATCH);
+    result.sent += chunk.length;
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 20000);
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+        body: JSON.stringify({ sales: chunk }),
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
+      if (!res.ok) {
+        console.error(`[bookingPush] sold backfill batch returned ${res.status}`);
+        result.failed += chunk.length;
+        continue;
+      }
+      const json = (await res.json()) as { results?: { outcome?: string }[] };
+      for (const r of json.results ?? []) {
+        if (r.outcome === 'CREATED') result.created += 1;
+        else if (r.outcome === 'MERGED' || r.outcome === 'CANCELLED') result.duplicate += 1;
+        else result.skipped += 1; // REJECTED / SKIPPED
+      }
+    } catch (e) {
+      console.error('[bookingPush] sold backfill could not reach the booking system', e);
       result.failed += chunk.length;
     }
   }

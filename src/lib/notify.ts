@@ -5,6 +5,7 @@ import { renderEmail } from './email-templates';
 import { STATUS_LABELS, DOCUMENT_TYPE_LABELS } from './constants';
 import { sendPushToRoles, sendPushToUser } from './push';
 import { recordNotifications } from './notifications';
+import { syncApplicationSoldStateToBooking } from './bookingSold';
 
 // Reviewers/admins who should receive activity notifications.
 const STAFF_ROLES: Role[] = ['REVIEWER', 'ADMIN'];
@@ -93,6 +94,12 @@ export async function notifyStatusChange(applicationId: string, toStatus: Applic
   } catch (e) {
     console.error('[notify] status change failed', e);
   }
+
+  // Mirror the sold/withdrawn state into the booking system: FUNDED adds the
+  // customer there, WITHDRAWN reverses the sale (everything else is a no-op).
+  // Fire-and-forget and inert until the booking feed is configured; kept outside
+  // the try above so a dealer-notification failure can't skip it, and vice-versa.
+  notifyInBackground('booking sold sync', () => syncApplicationSoldStateToBooking(applicationId, toStatus));
 }
 
 // Group uploaded document types into a human list like

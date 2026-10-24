@@ -37,6 +37,25 @@ source of truth; this file is the human-readable index.
 | Desktop/phone push notifications | ✅ Keys set (2026-09-11, Sean) — confirm with a test | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` set on EB. The client fetches the public key at **runtime** (`GET /api/push/key`) so it survives rebuilds. Reviewers get push on new dealer docs / activity. iOS needs the app installed to the Home Screen. **To confirm:** Account → Enable desktop notifications → Send a test. |
 | HD Resolution ↔ Gmail email link | ✅ **Live & verified** (2026-10-07, Sean) | Read-only Gmail via the existing service account (`gwa-journal-writer@gwa-portal-504012…`, project **"GWA Portal"** `gwa-portal-504012`, Unique ID `100470797238569934976`), impersonating `sean@ghsbarrie.ca` + the `HD Resolution` label. All switches done: Gmail API enabled, Workspace domain-wide delegation (`…/auth/gmail.readonly`), `GMAIL_RESOLUTION_USER=sean@ghsbarrie.ca` on EB. **Verified end-to-end** — the Email inbox lists real HD threads and "Open as case" links the thread + auto-fills. 30-min sync `resolution-email-sync.yml` (reuses `CRON_SECRET`). Steps/facts: `HD-RESOLUTION-EMAIL.md`, `BUILD-FACTS.md`. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
+| Booking-site **sold-customer** push (funded deals → booking customers) | ⏳ Ready, not switched on | A funded deal pushes the customer into booking as a **customer/household** (not a call-board lead); a cancellation reverses it. Portal side: `src/lib/bookingSold.ts` + `bookingPush.ts`, hooked in `notifyStatusChange` (FUNDED/WITHDRAWN) + `confirmCancellationAction`, with a leadership backfill button on the staff Leads page. **Uses the SAME `BOOKING_INTAKE_URL` + `PORTAL_INTAKE_TOKEN`** as the lead push — no new env var; the sold endpoint is derived (`…/api/intake/portal/sold`). **Needs the booking side deployed too** (booking PR: sold-customer feed). Inert until both env vars are set AND the booking endpoint is live. After go-live, run the backfill once to send historical funded deals. |
+
+### Booking sync: funded deals push into the booking system as CUSTOMERS (2026-10-24)
+- Completes the portal→booking link so sold customers show on their booking profile / household
+  without retyping. A deal that reaches **FUNDED** is pushed to the booking app as a **customer** (the
+  post-sale household record) — **never** a call-board lead — matched to an existing household by phone;
+  a **WITHDRAWN** (cancelled) deal **reverses** that sale in booking.
+- Portal side (this repo): `src/lib/bookingSold.ts` (maps an Application → the booking payload:
+  decrypts the address, resolves `productsSold` names to their journal codes/SKUs, maps the
+  co-applicant to the household co-owner, stamps the funded date) + sold-customer transport in
+  `src/lib/bookingPush.ts`. Hooked in one place for all funding writers — `notifyStatusChange`
+  (FUNDED → push, WITHDRAWN → reverse, covers reactivate-to-funded and the journal RB path) — plus an
+  explicit reverse in `confirmCancellationAction` (it withdraws funded deals without going through
+  notify). All fire-and-forget and inert until the booking feed is configured.
+- One-time **backfill** for deals funded before go-live: leadership button "Send sold customers to
+  booking" on the staff Leads page (`backfillSoldCustomersToBookingAction`, cursor-paged, re-run-safe).
+- Transport reuses the existing `BOOKING_INTAKE_URL` + `PORTAL_INTAKE_TOKEN` (the sold endpoint is
+  derived: `…/api/intake/portal/sold`) — no new env var. Needs the **booking side deployed** (separate
+  booking-repo PR). Pure mapping covered by `tests/bookingSold.test.ts`.
 
 ### FIX: reports fragmented a store across mistyped store numbers (Orillia looked tiny) (2026-10-24)
 - A store shows in the journals as free text ("ORILLIA - 7137"); the reader pulls the first 4-digit

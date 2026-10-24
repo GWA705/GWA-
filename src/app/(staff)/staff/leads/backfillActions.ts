@@ -5,6 +5,7 @@ import { isSuperAdmin, canAdminSection } from '@/lib/rbac';
 import { prisma } from '@/lib/db';
 import { audit } from '@/lib/audit';
 import { pushLeadsToBooking, type BookingBackfillResult } from '@/lib/bookingPush';
+import { backfillSoldCustomersPage, type SoldBackfillResult } from '@/lib/bookingSold';
 
 export interface BackfillState {
   ok?: boolean;
@@ -12,6 +13,14 @@ export interface BackfillState {
   result?: BookingBackfillResult;
   lastId?: string | null; // cursor for the next chunk
   done?: boolean; // no more scanned leads beyond the cursor
+}
+
+export interface SoldBackfillState {
+  ok?: boolean;
+  error?: string;
+  result?: SoldBackfillResult;
+  lastId?: string | null; // cursor for the next chunk
+  done?: boolean; // no more funded deals beyond the cursor
 }
 
 const CHUNK = 100; // leads per call (two booking batches of 50) — one short request
@@ -67,4 +76,36 @@ export async function backfillScannedLeadsToBookingAction(afterId?: string | nul
   });
 
   return { ok: true, result, lastId: leads[leads.length - 1].id, done: leads.length < CHUNK };
+}
+
+/**
+ * One-time sweep of the deals that FUNDED before the booking sold-customer feed
+ * was switched on, so every historical sold customer reaches the booking app's
+ * customer list / household — from then on a deal pushes itself the moment it
+ * funds. Cursor-paged; the button drives it to the end. Safe to run again: the
+ * booking side dedupes a customer by phone and stamps each sale's equipment with
+ * the portal deal id, so nothing is ever doubled. Leadership only.
+ */
+export async function backfillSoldCustomersToBookingAction(afterId?: string | null): Promise<SoldBackfillState> {
+  const user = await requireRole('REVIEWER', 'ADMIN');
+  if (!isSuperAdmin(user) && !canAdminSection(user, 'leads')) {
+    return { error: 'You don’t have access to do this.' };
+  }
+
+  const result = await backfillSoldCustomersPage(afterId ?? null);
+
+  if (!result.configured) {
+    return { error: 'The booking feed isn’t switched on here yet (BOOKING_INTAKE_URL / PORTAL_INTAKE_TOKEN).' };
+  }
+
+  if (result.sent > 0) {
+    await audit({
+      actorId: user.userId,
+      action: 'STATUS_CHANGE',
+      entityType: 'Application',
+      detail: `Sold-customer backfill to booking — sent:${result.sent} created:${result.created} merged:${result.merged} skipped:${result.skipped} failed:${result.failed}`,
+    });
+  }
+
+  return { ok: true, result, lastId: result.nextId, done: result.done };
 }
