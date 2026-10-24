@@ -2,6 +2,7 @@ import 'server-only';
 import { readJournal, EARLIEST_JOURNAL_YEAR } from './journalRead';
 import { loadDealerMatchIndex } from './dealerMatch';
 import { listReportOffices } from './monthly';
+import { loadStoreCanon, type StoreCanon } from './storeCanon';
 
 /**
  * "Store ↔ Dealer" report — the cross-reference between Home Depot stores and the
@@ -93,22 +94,6 @@ interface Cell {
   lastSale: Date | null;
 }
 
-/** Derive a readable store name from a raw "HD Store" label (e.g. "BARRIE - 7024" → "Barrie"). */
-function deriveStoreName(hdStoreRaw: string): string {
-  const stripped = (hdStoreRaw || '')
-    .replace(/\d{3,}/g, '')
-    .replace(/[-–—#]/g, ' ')
-    .replace(/\bstore\b/gi, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-  if (!stripped) return '';
-  return stripped
-    .toLowerCase()
-    .split(' ')
-    .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : w))
-    .join(' ');
-}
-
 function minDate(a: Date | null, b: Date | null): Date | null {
   if (!a) return b;
   if (!b) return a;
@@ -122,7 +107,7 @@ function maxDate(a: Date | null, b: Date | null): Date | null {
 
 interface Matrix {
   cells: Map<string, Cell>; // key `${store}||${dealerId}`
-  storeNames: Map<string, string>; // store number → best name
+  canon: StoreCanon; // canonical store numbers + names (rolls up mistyped numbers)
   dealers: Map<string, { name: string; archived: boolean }>; // dealers with activity
   yearsRead: number[];
   configured: boolean;
@@ -135,22 +120,13 @@ async function buildMatrix(): Promise<Matrix> {
   const years: number[] = [];
   for (let y = EARLIEST_JOURNAL_YEAR; y <= currentYear; y += 1) years.push(y);
 
-  const [reads, index, offices] = await Promise.all([
+  const [reads, index, canon] = await Promise.all([
     Promise.all(years.map((y) => readJournal(y))),
     loadDealerMatchIndex(),
-    listReportOffices(),
+    loadStoreCanon(),
   ]);
   const configured = reads.some((r) => r.configured);
   const error = reads.find((r) => r.error)?.error;
-
-  // Store names: prefer the name set in Admin → Dealers, fall back to the name
-  // embedded in the journal's HD Store label.
-  const storeNames = new Map<string, string>();
-  for (const o of offices) {
-    for (const [num, nm] of Object.entries(o.storeNames)) {
-      if (nm && !storeNames.has(num)) storeNames.set(num, nm);
-    }
-  }
 
   const cells = new Map<string, Cell>();
   const dealers = new Map<string, { name: string; archived: boolean }>();
@@ -159,12 +135,10 @@ async function buildMatrix(): Promise<Matrix> {
     for (const d of read.deals) {
       if (d.result === 'RB') continue; // cancelled
       if (d.gross <= 0) continue; // dead/placeholder rows
-      const store = d.storeNumber || '';
+      // Roll a mistyped store number into the real store it belongs to, so one
+      // store isn't fragmented across phantom numbers (see storeCanon.ts).
+      const store = canon.canonical(d.storeNumber, d.hdStore) || '';
       if (!store) continue; // non-store (outside-HD) rows belong to the office reports, not this cross-ref
-      if (!storeNames.has(store)) {
-        const nm = deriveStoreName(d.hdStore);
-        if (nm) storeNames.set(store, nm);
-      }
 
       const dealerId = index.matchDeal(d) ?? '';
       const dealerName = dealerId ? index.nameById.get(dealerId) ?? dealerId : '(unmatched)';
@@ -197,16 +171,11 @@ async function buildMatrix(): Promise<Matrix> {
     }
   }
 
-  return { cells, storeNames, dealers, yearsRead: years, configured, error };
-}
-
-function labelFor(storeNumber: string, storeNames: Map<string, string>): string {
-  const nm = storeNames.get(storeNumber) || '';
-  return nm ? `${storeNumber} — ${nm}` : storeNumber;
+  return { cells, canon, dealers, yearsRead: years, configured, error };
 }
 
 function toStoreGroup(storeNumber: string, m: Matrix): StoreGroup {
-  const storeName = m.storeNames.get(storeNumber) || '';
+  const storeName = m.canon.nameFor(storeNumber);
   const dealers: StoreDealerStat[] = [];
   for (const cell of m.cells.values()) {
     if (cell.storeNumber !== storeNumber) continue;
@@ -228,7 +197,7 @@ function toStoreGroup(storeNumber: string, m: Matrix): StoreGroup {
   );
   return {
     storeNumber,
-    storeLabel: labelFor(storeNumber, m.storeNames),
+    storeLabel: m.canon.labelFor(storeNumber),
     storeName,
     dealers,
     totalDeals: dealers.reduce((acc, d) => acc + d.deals, 0),
@@ -243,8 +212,8 @@ function toDealerGroup(dealerId: string, m: Matrix): DealerGroup {
     if (cell.dealerId !== dealerId) continue;
     stores.push({
       storeNumber: cell.storeNumber,
-      storeLabel: labelFor(cell.storeNumber, m.storeNames),
-      storeName: m.storeNames.get(cell.storeNumber) || '',
+      storeLabel: m.canon.labelFor(cell.storeNumber),
+      storeName: m.canon.nameFor(cell.storeNumber),
       deals: cell.deals,
       gross: cell.gross,
       paidGross: cell.paidGross,
@@ -277,7 +246,7 @@ export async function buildStoreDealerReport(
 
   const storeNumbers = Array.from(new Set(Array.from(m.cells.values()).map((c) => c.storeNumber)));
   const stores = storeNumbers
-    .map((num) => ({ number: num, label: labelFor(num, m.storeNames) }))
+    .map((num) => ({ number: num, label: m.canon.labelFor(num) }))
     .sort((a, b) => a.label.localeCompare(b.label, 'en', { numeric: true }));
 
   const dealers = Array.from(m.dealers.entries())

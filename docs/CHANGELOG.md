@@ -38,6 +38,24 @@ source of truth; this file is the human-readable index.
 | HD Resolution ↔ Gmail email link | ✅ **Live & verified** (2026-10-07, Sean) | Read-only Gmail via the existing service account (`gwa-journal-writer@gwa-portal-504012…`, project **"GWA Portal"** `gwa-portal-504012`, Unique ID `100470797238569934976`), impersonating `sean@ghsbarrie.ca` + the `HD Resolution` label. All switches done: Gmail API enabled, Workspace domain-wide delegation (`…/auth/gmail.readonly`), `GMAIL_RESOLUTION_USER=sean@ghsbarrie.ca` on EB. **Verified end-to-end** — the Email inbox lists real HD threads and "Open as case" links the thread + auto-fills. 30-min sync `resolution-email-sync.yml` (reuses `CRON_SECRET`). Steps/facts: `HD-RESOLUTION-EMAIL.md`, `BUILD-FACTS.md`. |
 | Booking-site lead push (scanned leads → bookers) | ⏳ Ready, not switched on | Code shipped (`src/lib/bookingPush.ts`, hooked in `scanActions.ts`). Turn on by setting `BOOKING_INTAKE_URL` (`https://gwa-booking-staging.fly.dev/api/intake/portal`) + `PORTAL_INTAKE_TOKEN` (shared secret, matches the booking app) on EB, then redeploy. Inert until both are set. |
 
+### FIX: reports fragmented a store across mistyped store numbers (Orillia looked tiny) (2026-10-24)
+- A store shows in the journals as free text ("ORILLIA - 7137"); the reader pulls the first 4-digit
+  number out of that cell, so a single mistyped digit ("ORILLIA - **7124**") invented a brand-new
+  "store". The **Store ↔ Dealer** report read all years and so showed a phantom "7124 — Orillia / 1
+  deal / $6,773" while the real Orillia (**7137**, ≈$783K across 2024–26) sat on a separate line.
+  Seen in the real data: Orillia 7137 also typed 7124/7127/7138 and even "7264 - ORILLIA".
+- New shared canonicaliser `src/lib/reporting/storeCanon.ts` (`loadStoreCanon` / pure
+  `computeStoreCanon`): **auto-rolls a mistyped store number into the real store by matching the store
+  NAME**, driven by the configured store registry (Admin → Dealers) as the authority. Rules are
+  conservative so a typo can never BRIDGE two real stores: a configured number is never folded away
+  and anchors its name; a stray number folds into the canonical (configured, else highest-deal) number
+  of the **same** name; a lone row typed with another store's number (e.g. "7264 - ORILLIA", where
+  7264 is really Bradford) stays under its own number. Name-only typos ("BARRE - 7024") need nothing —
+  the number is already right. Folded numbers are shown for audit: "7137 — Orillia (incl. 7124)".
+- Applied in the **Store ↔ Dealer** report (`storeDealer.ts`) and the **custom-range store report**
+  (`officeRange.ts`); both now key stores by the canonical number. Pure logic covered by
+  `tests/storeCanon.test.ts`. No journal data is changed — this is read-side only.
+
 ### Journal RB → auto-cancel the portal deal (reverse of OK+paid → Funded) (2026-10-23)
 - The journal→portal sweep (`journalPaidSync.ts`, cron + on-demand) already advanced a deal to Funded
   when the journal showed OK+paid. Now it also **cancels** the portal deal when the journal shows the

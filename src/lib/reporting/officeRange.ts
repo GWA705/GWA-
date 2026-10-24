@@ -2,6 +2,7 @@ import 'server-only';
 import { readJournal, type ReportDeal } from './journalRead';
 import { reportStoreScope } from './monthly';
 import { loadDealerMatchIndex } from './dealerMatch';
+import { loadStoreCanon } from './storeCanon';
 
 /**
  * Custom-range office report. Pick an office (or All offices) and a start→end
@@ -108,9 +109,10 @@ export async function buildOfficeRangeReport(
   // Read every journal year the range touches.
   const years: number[] = [];
   for (let y = s.year; y <= e.year; y += 1) years.push(y);
-  const [reads, index] = await Promise.all([
+  const [reads, index, canon] = await Promise.all([
     Promise.all(years.map((y) => readJournal(y))),
     loadDealerMatchIndex(),
+    loadStoreCanon(),
   ]);
   const configured = reads.length > 0 ? reads[0].configured : false;
   const error = reads.find((r) => r.error)?.error;
@@ -140,10 +142,17 @@ export async function buildOfficeRangeReport(
       key = dealerMatch ?? 'unassigned';
       label = dealerMatch ? index.nameById.get(dealerMatch) ?? dealerMatch : 'Unassigned (no office match)';
     } else {
-      const store = d.storeNumber || d.hdStore || 'Unknown';
+      // Roll a mistyped store number into the real store (see storeCanon.ts) so
+      // one store isn't split across phantom numbers.
+      const canonNum = canon.canonical(d.storeNumber, d.hdStore);
+      const store = canonNum || d.hdStore || 'Unknown';
       key = store;
-      const nm = scope.storeNames[store] || deriveStoreName(d.hdStore);
-      label = nm ? `${store} — ${nm}` : store;
+      if (canonNum) {
+        label = canon.labelFor(canonNum);
+      } else {
+        const nm = deriveStoreName(d.hdStore);
+        label = nm ? `${store} — ${nm}` : store;
+      }
     }
 
     let row = rowByKey.get(key);
@@ -162,8 +171,7 @@ export async function buildOfficeRangeReport(
   if (!isAll && scope.office) {
     for (const num of scope.office.storeNumbers) {
       if (!rowByKey.has(num)) {
-        const nm = scope.storeNames[num] || '';
-        rowByKey.set(num, { key: num, label: nm ? `${num} — ${nm}` : num, total: 0, count: 0, byMonth: {} });
+        rowByKey.set(num, { key: num, label: canon.labelFor(num), total: 0, count: 0, byMonth: {} });
       }
     }
   }
