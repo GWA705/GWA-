@@ -37,6 +37,17 @@ export default async function AdminUserRequestsPage() {
   const done = requests.filter((r) => r.status !== 'PENDING');
   const pendingPeople = pending.reduce((n, r) => n + r.items.filter((i) => i.status === 'PENDING').length, 0);
 
+  // Flag pending people whose email already has a login, so the queue offers
+  // "Resend welcome email" (get them started) instead of creating a second one.
+  const pendingEmails = Array.from(
+    new Set(pending.flatMap((r) => r.items.filter((i) => i.status === 'PENDING').map((i) => i.email.toLowerCase().trim()))),
+  );
+  const existingUsers = pendingEmails.length
+    ? await prisma.user.findMany({ where: { email: { in: pendingEmails } }, select: { email: true } })
+    : [];
+  const loginEmails = new Set(existingUsers.map((u) => u.email.toLowerCase()));
+  const hasLogin = (email: string) => loginEmails.has(email.toLowerCase().trim());
+
   // New-dealer intake (public link) — the shareable link, current code, and requests.
   const [onboardCode, onboardRequests, activeDealers] = await Promise.all([
     getSetting(ONBOARD_CODE_KEY),
@@ -183,7 +194,7 @@ export default async function AdminUserRequestsPage() {
               </div>
               <div className="flex-none">
                 {it.status === 'PENDING' ? (
-                  <ItemActions itemId={it.id} email={it.email} />
+                  <ItemActions itemId={it.id} email={it.email} alreadyHasLogin={hasLogin(it.email)} />
                 ) : (
                   <div className="text-right">
                     <span className={`badge ${ITEM_BADGE[it.status]}`}>{ITEM_LABEL[it.status]}</span>

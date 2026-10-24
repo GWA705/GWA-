@@ -45,6 +45,9 @@ export interface ActionState {
   error?: string;
   ok?: boolean;
   message?: string;
+  /** Set when an action needs the admin to confirm a destructive follow-up
+   *  (e.g. resending a welcome email resets an already-active password). */
+  needsConfirm?: boolean;
 }
 
 // Save the email identity — the From display name, the group address emails
@@ -2307,6 +2310,91 @@ export async function rejectUserRequestItemAction(_prev: ActionState, formData: 
   await settleUserRequest(item.requestId, session.userId);
   revalidatePath('/admin/user-requests');
   return { ok: true };
+}
+
+/**
+ * Re-send the getting-started (welcome) email to an existing user — for someone
+ * who never received it or misplaced it. Regenerates a temporary password (the
+ * invite email carries a usable one), forces a change at next sign-in, and
+ * re-sends the same invite the approval uses.
+ *
+ * Because it regenerates the password, it RESETS whatever password the user had.
+ * That's exactly right for someone who never got started; for a user who has
+ * already signed in or chosen a password, the caller must pass `confirmReset`
+ * so an active login is never reset by accident.
+ */
+export async function resendWelcomeEmailAction(
+  userId: string,
+  inviteLang: 'en' | 'fr' = 'en',
+  confirmReset = false,
+): Promise<ActionState> {
+  const session = await requireAdminSection('users');
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, email: true, name: true, lastLoginAt: true, passwordChangedAt: true },
+  });
+  if (!user) return { error: 'User not found.' };
+
+  // Already set up? Resending resets their password — make the admin confirm.
+  const hasStarted = Boolean(user.lastLoginAt || user.passwordChangedAt);
+  if (hasStarted && !confirmReset) {
+    return {
+      needsConfirm: true,
+      error: `${user.email} has already signed in — resending gives them a new temporary password and resets their current one. Confirm to continue.`,
+    };
+  }
+
+  const tempPassword = generateTempPassword();
+  await prisma.user.update({
+    where: { id: userId },
+    data: { passwordHash: await hashPassword(tempPassword), passwordChangedAt: null },
+  });
+  await audit({ actorId: session.userId, action: 'USER_UPDATE', entityType: 'User', entityId: userId, detail: `welcome email resent to ${user.email}` });
+  revalidatePath('/admin/users');
+
+  if (emailEnabled()) {
+    const portalUrl = process.env.APP_URL || 'https://portal.ghsbarrie.ca';
+    const built = buildInviteEmail(inviteLang, { name: user.name, email: user.email, portalUrl, password: tempPassword });
+    const sent = await sendEmail({ to: user.email, subject: built.subject, html: built.html });
+    if (sent.sent) return { ok: true, message: `Welcome email resent to ${user.email}.` };
+    return { ok: true, message: `Login reset, but the email could not be sent (${sent.reason || 'error'}). Temporary password: ${tempPassword} — share it securely.` };
+  }
+  return { ok: true, message: `Email is off — share this temporary password securely: ${tempPassword}` };
+}
+
+/**
+ * Resolve a duplicate request item whose email already has a login by re-sending
+ * that existing user their welcome email, then clearing the request item. This
+ * is the one-click path for the common case: someone re-requests a login only
+ * because the person never got started. Falls back to an error if the email does
+ * NOT actually have a login (the caller should just Approve in that case).
+ */
+export async function resendWelcomeForRequestItemAction(
+  itemId: string,
+  inviteLang: 'en' | 'fr' = 'en',
+  confirmReset = false,
+): Promise<ActionState> {
+  const session = await requireAdminSection('user-requests');
+  const item = await prisma.userRequestItem.findUnique({ where: { id: itemId }, include: { request: true } });
+  if (!item) return { error: 'Request item not found.' };
+  if (item.status !== 'PENDING') return { error: 'This person has already been handled.' };
+
+  const email = item.email.toLowerCase().trim();
+  const existing = await prisma.user.findUnique({ where: { email }, select: { id: true } });
+  if (!existing) return { error: `${email} doesn’t have a login yet — use Approve & create instead.` };
+
+  const res = await resendWelcomeEmailAction(existing.id, inviteLang, confirmReset);
+  if (res.needsConfirm || res.error) return res; // bubble up the confirm / failure, leave the item PENDING
+
+  // Sent — clear the duplicate request item so it leaves the queue.
+  await prisma.userRequestItem.update({
+    where: { id: itemId },
+    data: { status: 'REJECTED', rejectReason: 'Already had a login — welcome email resent.', decidedById: session.userId, decidedAt: new Date() },
+  });
+  await audit({ actorId: session.userId, action: 'USER_REQUEST_DECISION', entityType: 'UserRequestItem', entityId: itemId, detail: `resent welcome (already had login): ${email}` });
+  await settleUserRequest(item.requestId, session.userId);
+  revalidatePath('/admin/user-requests');
+  return { ok: true, message: res.message ?? `Welcome email resent to ${email}.` };
 }
 
 // --- Office directory (admin edits any dealer's profile) --------------------

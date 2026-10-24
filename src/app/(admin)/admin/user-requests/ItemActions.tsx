@@ -1,18 +1,44 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { approveUserRequestItemAction, rejectUserRequestItemAction } from '@/app/(admin)/actions';
+import {
+  approveUserRequestItemAction,
+  rejectUserRequestItemAction,
+  resendWelcomeForRequestItemAction,
+} from '@/app/(admin)/actions';
 
-export function ItemActions({ itemId, email }: { itemId: string; email: string }) {
+export function ItemActions({
+  itemId,
+  email,
+  alreadyHasLogin = false,
+}: {
+  itemId: string;
+  email: string;
+  alreadyHasLogin?: boolean;
+}) {
   const [pending, start] = useTransition();
   const [rejecting, setRejecting] = useState(false);
   const [reason, setReason] = useState('');
   const [lang, setLang] = useState<'en' | 'fr'>('en');
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  // Set when a resend needs confirming (the person already signed in → reset).
+  const [confirmResend, setConfirmResend] = useState<string | null>(null);
 
   function approve() {
     start(async () => {
       const res = await approveUserRequestItemAction(itemId, lang);
+      setMsg({ ok: !!res.ok, text: res.message || res.error || '' });
+    });
+  }
+
+  function resend(confirmReset = false) {
+    start(async () => {
+      const res = await resendWelcomeForRequestItemAction(itemId, lang, confirmReset);
+      if (res.needsConfirm) {
+        setConfirmResend(res.error || 'This person has already signed in — resending resets their password. Continue?');
+        return;
+      }
+      setConfirmResend(null);
       setMsg({ ok: !!res.ok, text: res.message || res.error || '' });
     });
   }
@@ -28,7 +54,7 @@ export function ItemActions({ itemId, email }: { itemId: string; email: string }
     });
   }
 
-  // After approval, show the result (which may carry a temporary password to
+  // After a decision, show the result (which may carry a temporary password to
   // share when email is off) as a persistent, copyable note.
   if (msg?.ok) {
     return (
@@ -59,8 +85,28 @@ export function ItemActions({ itemId, email }: { itemId: string; email: string }
     );
   }
 
+  // The resend would reset an already-active password — confirm first.
+  if (confirmResend) {
+    return (
+      <div className="flex max-w-xs flex-col items-end gap-2">
+        <span className="text-right text-xs text-amber-700">{confirmResend}</span>
+        <div className="flex gap-2">
+          <button type="button" disabled={pending} className="btn-danger text-xs" onClick={() => resend(true)}>
+            {pending ? 'Sending…' : 'Reset & resend'}
+          </button>
+          <button type="button" className="btn-secondary text-xs" onClick={() => setConfirmResend(null)}>Cancel</button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col items-end gap-1">
+      {alreadyHasLogin && (
+        <span className="text-xs font-medium text-amber-700" title={`${email} already has a login`}>
+          Already has a login
+        </span>
+      )}
       <div className="flex items-center gap-2">
         <select
           aria-label="Invite email language"
@@ -72,9 +118,15 @@ export function ItemActions({ itemId, email }: { itemId: string; email: string }
           <option value="en">English</option>
           <option value="fr">Français</option>
         </select>
-        <button type="button" disabled={pending} className="btn-primary text-xs" onClick={approve}>
-          {pending ? 'Creating…' : 'Approve & create'}
-        </button>
+        {alreadyHasLogin ? (
+          <button type="button" disabled={pending} className="btn-primary text-xs" onClick={() => resend(false)} title="Re-send this person their getting-started email">
+            {pending ? 'Sending…' : 'Resend welcome email'}
+          </button>
+        ) : (
+          <button type="button" disabled={pending} className="btn-primary text-xs" onClick={approve}>
+            {pending ? 'Creating…' : 'Approve & create'}
+          </button>
+        )}
         <button type="button" disabled={pending} className="btn-secondary text-xs" onClick={() => setRejecting(true)}>
           Decline
         </button>

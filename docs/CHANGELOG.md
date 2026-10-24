@@ -39,6 +39,21 @@ source of truth; this file is the human-readable index.
 | Booking-site lead push (scanned leads → bookers) | ✅ **Live** — leads flowing portal → booking (Sean, confirmed 2026-10-24) | `PORTAL_INTAKE_TOKEN` is set on **both** EB environments (portal `Gwa-portal-env` **and** the booking env) and the two match — verified by screenshot 2026-10-24, and by the fact that scanned leads already cross over. Code: `src/lib/bookingPush.ts`, hooked in `scanActions.ts`. **Booking's production host is `office.ghsbarrie.ca` (AWS Elastic Beanstalk)** — the earlier `gwa-booking-staging.fly.dev` here was a stale staging example. ✅ Confirmed (Sean, 2026-10-24): portal `BOOKING_INTAKE_URL` = `https://office.ghsbarrie.ca/api/intake/portal` (prod). |
 | Booking-site **sold-customer** push (funded deals → booking customers) | ✅ Code live both sides — **no new config** (shares the lead feed's) | A funded deal pushes the customer into booking as a **customer/household** (not a call-board lead); a cancellation reverses it. Portal side (this repo): `src/lib/bookingSold.ts` + `bookingPush.ts`, hooked in `notifyStatusChange` (FUNDED/WITHDRAWN) + `confirmCancellationAction`, with a leadership backfill button on the staff Leads page. Booking side: PR **#276 merged → GWA705/GWA-webiste-** (2026-10-24), deploys to `office.ghsbarrie.ca`. **It reuses the SAME `BOOKING_INTAKE_URL` + `PORTAL_INTAKE_TOKEN` as the already-live lead push — nothing new to set.** The sold endpoint is derived: `…/api/intake/portal/sold`. **Remaining:** (1) let the booking deploy of #276 finish so the endpoint exists; (2) run the staff-Leads **"Send sold customers to booking"** backfill once to send historical funded deals. From then on it's automatic. |
 
+### Resend welcome email (get a stuck user started) + one-click fix for duplicate login requests (2026-10-24)
+- People often re-request a login only because the person never received or misplaced their original
+  welcome email. New **"Resend welcome email"** makes that a one-click fix instead of a duplicate account.
+- `resendWelcomeEmailAction(userId, lang, confirmReset)` — regenerates a temporary password, forces a
+  change at next sign-in, and re-sends the same getting-started email the approval uses. Because it
+  resets the password, a user who has **already signed in** (has `lastLoginAt`/`passwordChangedAt`)
+  triggers a confirm first, so an active login is never reset by accident. Email-off fallback hands back
+  the temp password to share.
+- **Admin → Users:** a "Resend welcome" button on each user row (with the reset-confirm).
+- **Admin → User requests:** when a pending request's email **already has a login** (the exact dupe in
+  the queue — e.g. a second request for the same person), the row now shows **"Already has a login"** and
+  a **"Resend welcome email"** button (`resendWelcomeForRequestItemAction`) that re-sends the existing
+  user their welcome and clears the duplicate item — no second account created. (The approve step already
+  refused to create a duplicate; this replaces that dead-end with a useful action.)
+
 ### Booking sync: funded deals push into the booking system as CUSTOMERS (2026-10-24)
 - Completes the portal→booking link so sold customers show on their booking profile / household
   without retyping. A deal that reaches **FUNDED** is pushed to the booking app as a **customer** (the
