@@ -73,11 +73,24 @@ export const ID_TAG_SETTING_KEYS = {
   screeningPassword: 'idTag.screeningPassword', // the shared password for the screening portal
   newEmailBody: 'idTag.newEmailBody',       // background-check setup email (new reps)
   existingEmailBody: 'idTag.existingEmailBody', // welcome email (reps who already have a tag)
+  billingRecipients: 'idTag.billingRecipients', // who the monthly ID-tag billing list goes to
 } as const;
 
 /** The background-screening (Entuitive) portal the new-rep email links to, used
  *  when an admin hasn't set an override. Editable in Admin → ID tags. */
 export const DEFAULT_ID_TAG_SCREENING_LINK = 'https://hdis.entuitivetracker.com';
+
+/** Default recipients for the monthly ID-tag billing/activation list (editable
+ *  in Staff → ID tags). */
+export const DEFAULT_ID_TAG_BILLING_RECIPIENTS = ['vanita@ghsbarrie.ca', 'info@ghsbarrie.ca', 'Mona@respiraide.com'];
+
+/** The monthly billing-list recipients — the saved override, or the defaults. */
+export async function getIdTagBillingRecipients(): Promise<string[]> {
+  const raw = await getSetting(ID_TAG_SETTING_KEYS.billingRecipients);
+  if (!raw) return [...DEFAULT_ID_TAG_BILLING_RECIPIENTS];
+  const list = raw.split(/[\s,;]+/).map((s) => s.trim()).filter(Boolean);
+  return list.length ? list : [...DEFAULT_ID_TAG_BILLING_RECIPIENTS];
+}
 
 export interface IdTagSettings {
   screeningLink: string | null;

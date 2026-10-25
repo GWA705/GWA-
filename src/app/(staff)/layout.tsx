@@ -57,7 +57,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
   if ((await isGlobalSearchEnabled()) && (await canSearchAllCustomers(user)))
     tools.push({ href: '/staff/find-customer', label: 'Find customer' });
   if (user.role === 'REVIEWER' || isSuperAdmin(user) || canAdminSection(user, 'leads')) tools.push({ href: '/staff/leads', label: 'Leads' });
-  if (canIdTags) tools.push({ href: '/staff/id-tags', label: 'ID tag passwords' });
+  if (canIdTags) tools.push({ href: '/staff/id-tags', label: 'ID tag setup' });
   if (await canViewReportsArea(user)) tools.push({ href: '/staff/reports', label: 'Reports' });
   if (tools.length > 0) nav.push({ label: 'Tools', children: tools });
 

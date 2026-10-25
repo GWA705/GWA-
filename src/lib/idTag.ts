@@ -118,6 +118,75 @@ export async function setDealerIdTagPassword(dealerId: string, password: string)
   });
 }
 
+// ── Per-office Entuitive "New User" profile ───────────────────────────────────
+// Entered once per office; every person's Entuitive setup sheet auto-fills from
+// it (plus the person's own name/email/cell and the office password above).
+
+export interface OfficeEntuitiveProfile {
+  companyName?: string;  // "Company Name" as Entuitive expects it
+  street?: string;       // Street #
+  streetName?: string;   // Street Name
+  unit?: string;         // Unit/Apt #
+  city?: string;
+  province?: string;     // default Ontario
+  postal?: string;
+  phone?: string;        // office Phone #
+  ext?: string;
+  service?: string;      // e.g. "Water Treatment (Home Depot Canada)"
+}
+
+export const OFFICE_PROFILE_FIELDS: (keyof OfficeEntuitiveProfile)[] = [
+  'companyName', 'street', 'streetName', 'unit', 'city', 'province', 'postal', 'phone', 'ext', 'service',
+];
+
+export async function getDealerEntuitiveProfile(dealerId: string | null | undefined): Promise<OfficeEntuitiveProfile> {
+  if (!dealerId) return {};
+  const d = await prisma.dealer.findUnique({ where: { id: dealerId }, select: { idTagOfficeProfile: true } });
+  const p = d?.idTagOfficeProfile;
+  return p && typeof p === 'object' && !Array.isArray(p) ? (p as OfficeEntuitiveProfile) : {};
+}
+
+/** Save one office's Entuitive profile (empty fields are dropped). */
+export async function setDealerEntuitiveProfile(dealerId: string, profile: OfficeEntuitiveProfile): Promise<void> {
+  const clean: Record<string, string> = {};
+  for (const k of OFFICE_PROFILE_FIELDS) {
+    const v = (profile[k] ?? '').toString().trim();
+    if (v) clean[k] = v;
+  }
+  await prisma.dealer.update({
+    where: { id: dealerId },
+    data: { idTagOfficeProfile: clean },
+  });
+}
+
+export interface OfficeIdTagSetup {
+  id: string;
+  name: string;
+  password: string;         // saved password ('' when unset)
+  suggestion: string;       // suggested default password
+  profile: OfficeEntuitiveProfile;
+}
+
+/** Every active office with its ID-tag password + Entuitive profile, for the
+ *  staff setup screen. */
+export async function listOfficeIdTagSetup(): Promise<OfficeIdTagSetup[]> {
+  const dealers = await prisma.dealer.findMany({
+    where: { active: true },
+    select: { id: true, name: true, idTagTempPassword: true, idTagOfficeProfile: true },
+    orderBy: { name: 'asc' },
+  });
+  return dealers.map((d) => {
+    const p = d.idTagOfficeProfile;
+    return {
+      id: d.id,
+      name: d.name,
+      password: (d.idTagTempPassword || '').trim(),
+      suggestion: suggestIdTagPassword(d.name),
+      profile: p && typeof p === 'object' && !Array.isArray(p) ? (p as OfficeEntuitiveProfile) : {},
+    };
+  });
+}
+
 export const ID_TAG_STATUS_LABEL: Record<IdTagStatus, string> = {
   AWAITING_TRAINING: 'Needs training',
   SUBMITTED: 'Submitted',
