@@ -72,11 +72,11 @@ export function newRepEmailHtml(a: NewRepEmailArgs): string {
     body = `
       <p style="margin:0 0 14px;">Hi ${first},</p>
       <p style="margin:0 0 16px;">Welcome to the <strong>Georgian Water &amp; Air</strong> &amp; Home Depot Home Services team! To get your Home Depot ID tag, the next step is to complete your <strong>background screening</strong>.</p>
-      <p style="margin:0 0 10px;">Follow the link below (or the one sent to you from Entuitive) and sign in:</p>
+      <p style="margin:0 0 10px;">Open the <strong>Home Depot background-screening portal (Entuitive)</strong> at the link below and sign in with the credentials here. (These are only for the screening portal — not for the Georgian Water &amp; Air dealer portal.)</p>
       <p style="margin:0 0 14px;"><a href="${link || '#'}" style="color:#1d4ed8;font-weight:700;">${link || '[screening link]'}</a></p>
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;margin:0 0 16px;">
-        ${credRow('Login', login || '[your email]')}
-        ${credRow('Password', password || '[provided separately]')}
+        ${credRow('Entuitive login', login || '[your email]')}
+        ${credRow('Entuitive password', password || '[provided separately]')}
       </table>
       <p style="margin:0 0 14px;">Click the <strong>question mark</strong> beside “background screening” and follow the prompts. Once you’ve completed it, let us know so we can send your ID tag.</p>
       <p style="margin:16px 0 0;">Welcome aboard!</p>`;

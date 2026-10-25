@@ -5,7 +5,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { rateLimit, clientIp } from '@/lib/ratelimit';
 import { sendTrainingCertificationEmails } from '@/lib/training-email';
-import { advancePendingIdTagsForCert, markIdTagEmailed } from '@/lib/idTag';
+import { advancePendingIdTagsForCert, markIdTagEmailed, getDealerIdTagPassword } from '@/lib/idTag';
 import { sendIdTagNewRepEmail } from '@/lib/idTag-email';
 import { getEffectiveContent, getTrainingAskCount } from '@/lib/training-content';
 import {
@@ -112,9 +112,10 @@ export async function submitTrainingAction(
           traineeEmail: (payload.traineeEmail || '').trim(),
           certId: cert.id,
         });
+        const officePassword = advanced.length ? await getDealerIdTagPassword(dealer.id) : null;
         for (const a of advanced) {
           if (a.personEmail) {
-            const sent = await sendIdTagNewRepEmail(a.personEmail, a.personName);
+            const sent = await sendIdTagNewRepEmail(a.personEmail, a.personName, { password: officePassword });
             if (sent) await markIdTagEmailed(a.id);
           }
         }

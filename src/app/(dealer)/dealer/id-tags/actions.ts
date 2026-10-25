@@ -40,10 +40,10 @@ export async function submitIdTagAction(_prev: IdTagSubmitState, formData: FormD
 
   // Fire the appropriate email (best-effort — never fails the submission).
   if (email) {
-    const dealer = await prisma.dealer.findUnique({ where: { id: session.dealerId }, select: { name: true } });
+    const dealer = await prisma.dealer.findUnique({ where: { id: session.dealerId }, select: { name: true, idTagTempPassword: true } });
     const office = dealer?.name || 'your office';
     if (res.sendScreeningEmail) {
-      const sent = await sendIdTagNewRepEmail(email, name);
+      const sent = await sendIdTagNewRepEmail(email, name, { password: dealer?.idTagTempPassword });
       if (sent) await markIdTagEmailed(res.id);
     } else if (res.sendWelcomeEmail) {
       const sent = await sendIdTagExistingRepEmail(email, name, office);

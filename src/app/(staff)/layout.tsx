@@ -24,6 +24,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
   const canMail = user.role === 'REVIEWER' || canAdminSection(user, 'mail');
   const canDirectory = user.role === 'REVIEWER' || canAdminSection(user, 'directory');
   const canConfirmations = user.role === 'REVIEWER' || canAdminSection(user, 'confirmations');
+  const canIdTags = user.role === 'REVIEWER' || canAdminSection(user, 'id-tags');
 
   interface NavItem {
     href?: string;
@@ -56,6 +57,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
   if ((await isGlobalSearchEnabled()) && (await canSearchAllCustomers(user)))
     tools.push({ href: '/staff/find-customer', label: 'Find customer' });
   if (user.role === 'REVIEWER' || isSuperAdmin(user) || canAdminSection(user, 'leads')) tools.push({ href: '/staff/leads', label: 'Leads' });
+  if (canIdTags) tools.push({ href: '/staff/id-tags', label: 'ID tag passwords' });
   if (await canViewReportsArea(user)) tools.push({ href: '/staff/reports', label: 'Reports' });
   if (tools.length > 0) nav.push({ label: 'Tools', children: tools });
 

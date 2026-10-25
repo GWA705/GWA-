@@ -375,6 +375,12 @@ model Dealer {
   // page. Lets an office share the training with a new lead generator who has no
   // portal login; every completion is auto-tagged to this dealer.
   trainingToken String? @unique
+  // Standardized temporary password used in THIS office's Home Depot ID-tag
+  // onboarding emails, so the Entuitive screening sign-in is the same every time
+  // for everyone from this location (e.g. "Winnipeg123!" / "CAWS123!"). Reviewers
+  // set it in Staff → ID tags. When blank, the global screening password
+  // (Admin → ID tags → settings) is used instead, so existing offices keep working.
+  idTagTempPassword String?
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 

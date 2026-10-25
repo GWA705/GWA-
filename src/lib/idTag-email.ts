@@ -14,16 +14,23 @@ function firstNameOf(name: string): string {
  * New rep — background-check setup email (the Entuitive screening link + shared
  * login/password, all from editable settings). Best-effort; never throws.
  */
-export async function sendIdTagNewRepEmail(to: string, personName: string): Promise<boolean> {
+export async function sendIdTagNewRepEmail(
+  to: string,
+  personName: string,
+  opts?: { password?: string | null },
+): Promise<boolean> {
   if (!to) return false;
   try {
     const s = await getIdTagSettings();
+    // The office's standardized password (passed in by the caller) wins; the
+    // global screening password is the fallback when an office hasn't set one.
+    const password = (opts?.password || '').trim() || s.screeningPassword || '';
     const html = newRepEmailHtml({
       appUrl: appUrl(),
       firstName: firstNameOf(personName),
       link: s.screeningLink || '',
       login: s.screeningLogin || 'your email address',
-      password: s.screeningPassword || '',
+      password,
       customBody: s.newEmailBody,
     });
     const res = await sendEmail({

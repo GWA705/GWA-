@@ -46,6 +46,78 @@ export function normName(s: string): string {
   return String(s ?? '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 }
 
+// ── Per-office standardized temporary password (Home Depot ID-tag onboarding) ──
+// Each office gets ONE password that goes into every new-rep onboarding email,
+// so the Entuitive screening sign-in is identical for everyone from that
+// location. Reviewers set/override it in Staff → ID tags; a blank value falls
+// back to the global screening password.
+
+/**
+ * Suggest a standardized password from an office name: a single location word
+ * plus "123!", matching the house convention (e.g. "Georgian Water and Air,
+ * Winnipeg" → "Winnipeg123!", "CAWS" → "CAWS123!"). The reviewer can edit it —
+ * this is only a prefill.
+ */
+export function suggestIdTagPassword(name: string): string {
+  const raw = String(name || '').trim();
+  // Prefer the location after a comma ("… , Winnipeg"); else drop the common
+  // "Georgian Water & Air" / "GWA" company prefix and take the first real word.
+  let token = '';
+  if (raw.includes(',')) {
+    token = raw.split(',').pop()!.trim();
+  } else {
+    token = raw
+      .replace(/georgian\s*water\s*(&|and)?\s*air/gi, '')
+      .replace(/\bGWA\b/g, '')
+      .trim();
+  }
+  token = (token.split(/\s+/).find(Boolean) || token).replace(/[^A-Za-z0-9]/g, '');
+  if (!token) return 'Office123!';
+  // Keep a short all-caps acronym as-is (CAWS); otherwise Title-case (Winnipeg).
+  const isAcronym = token.length <= 5 && token === token.toUpperCase();
+  const cased = isAcronym ? token : token.charAt(0).toUpperCase() + token.slice(1).toLowerCase();
+  return `${cased}123!`;
+}
+
+/** This office's standardized ID-tag password, or null when not set. */
+export async function getDealerIdTagPassword(dealerId: string | null | undefined): Promise<string | null> {
+  if (!dealerId) return null;
+  const d = await prisma.dealer.findUnique({ where: { id: dealerId }, select: { idTagTempPassword: true } });
+  return (d?.idTagTempPassword || '').trim() || null;
+}
+
+export interface OfficeIdTagPassword {
+  id: string;
+  name: string;
+  /** The saved password (empty string when the office hasn't set one). */
+  password: string;
+  /** The suggested default, shown as a placeholder when none is saved. */
+  suggestion: string;
+}
+
+/** Every active office with its saved ID-tag password + a suggested default. */
+export async function listOfficeIdTagPasswords(): Promise<OfficeIdTagPassword[]> {
+  const dealers = await prisma.dealer.findMany({
+    where: { active: true },
+    select: { id: true, name: true, idTagTempPassword: true },
+    orderBy: { name: 'asc' },
+  });
+  return dealers.map((d) => ({
+    id: d.id,
+    name: d.name,
+    password: (d.idTagTempPassword || '').trim(),
+    suggestion: suggestIdTagPassword(d.name),
+  }));
+}
+
+/** Save (or clear, when blank) one office's standardized ID-tag password. */
+export async function setDealerIdTagPassword(dealerId: string, password: string): Promise<void> {
+  await prisma.dealer.update({
+    where: { id: dealerId },
+    data: { idTagTempPassword: (password || '').trim() || null },
+  });
+}
+
 export const ID_TAG_STATUS_LABEL: Record<IdTagStatus, string> = {
   AWAITING_TRAINING: 'Needs training',
   SUBMITTED: 'Submitted',
