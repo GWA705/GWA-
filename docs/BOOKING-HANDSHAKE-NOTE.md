@@ -99,3 +99,27 @@ it to `Office.portalDealerId`. The coarse-status back-channel (`/api/intake/book
 already exists; let's extend it (or add one sibling) for appointment/install/opt-out
 events. Send us the field names for those three event kinds and the opt-out rule, and
 the portal side will wire to them.
+
+---
+
+## ✅ Receive-side built (2026-10-25) — post away
+
+Answers received and implemented. The portal now exposes **`POST /api/intake/booking-event`**
+(Bearer `PORTAL_INTAKE_TOKEN`; same auth as `/api/intake/booking-status`). Live-inert until you start
+posting — go whenever your emit side is ready.
+
+- **Envelope:** one event or `{ "events": [...] }` (≤100). Each: `{ eventId, type, applicationId,
+  phoneLast4?, ...typeFields }`. **Idempotent on `eventId`.**
+- **appointment** — `{ stage, outcome, startAt, ranAt, saleAmountCents, soldUnits, repName }`
+  (occurredAt = `ranAt` else `startAt`).
+- **install** — `{ stage, installDate, installerName }`.
+- **service** — `{ stage|kind, date, note }`.
+- **optout** — `{ channel, optedOut, reason }`. `channel: sms|all` + `optedOut:true` → portal SMS
+  opt-out (add-only, no silent re-opt-in); `calls` → no-op. Phone resolved from `applicationId`
+  (send one if you have it).
+- **Matching:** `applicationId` resolves against both a ScannedLead id and an Application id;
+  `phoneLast4` is the fallback and stitches a lead's appointments to its later funded deal.
+- **Response:** `{ ok, results: [{ eventId, outcome }] }`, outcome ∈ `stored | duplicate |
+  optout_applied | optout_noop | skipped | rejected`.
+
+Shows on the portal deal page as a "Booking activity" card. (`office-summary` stays a GET you pull.)

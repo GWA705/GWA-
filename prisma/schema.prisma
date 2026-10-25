@@ -2330,6 +2330,41 @@ model SmsOptOut {
   createdAt DateTime @default(now())
 }
 
+// Richer booking activity streamed back from the booking app
+// (POST /api/intake/booking-event): appointments, installs and service visits
+// for a deal/lead. Booking owns these; the portal stores and displays them.
+//
+// Reference is kept loose on purpose: `portalRef` is whatever id booking was
+// given (a ScannedLead id for a lead it's working, an Application id for a sold
+// customer), with `phoneLast4` as a fallback match — the view resolves it rather
+// than a hard FK, since one id space spans two portal models. Idempotent on
+// `eventId` (booking repeats the same id on a re-send). Opt-out events are
+// applied to SmsOptOut and not stored here.
+model BookingEvent {
+  id         String    @id @default(cuid())
+  /// Stable unique id from booking — the dedupe key.
+  eventId    String    @unique
+  /// The portal id booking referenced (a ScannedLead id or an Application id).
+  portalRef  String?
+  /// Fallback match key when portalRef doesn't resolve (last 4 phone digits).
+  phoneLast4 String?
+  /// appointment | install | service
+  type       String
+  /// appointment: booked|confirmed|ran|no_show|cancelled · install: booked|scheduled|completed · service: retest|service_visit
+  stage      String?
+  /// appointment outcome: sold|not_sold|not_qualified (null otherwise)
+  outcome    String?
+  /// When the event happened on booking's side (startAt/ranAt/installDate/date).
+  occurredAt DateTime?
+  /// The full event body as sent, for anything not promoted to a column.
+  payload    Json
+  receivedAt DateTime  @default(now())
+
+  @@index([portalRef])
+  @@index([phoneLast4])
+  @@index([type])
+}
+
 /// A Zoom cloud recording synced from the Zoom API. New recordings land as
 /// PENDING (review queue); an admin PUBLISHes the ones that go live, and dealers
 /// see the published ones in the portal with a "Watch on Zoom" link + passcode.

@@ -48,6 +48,7 @@ import { PayoutForm } from './PayoutForm';
 import { StatusChangeForm } from './StatusChangeForm';
 import { CancellationReviewCard, type CancellationReviewVM } from './CancellationReviewCard';
 import { ReactivateDealCard } from './ReactivateDealCard';
+import { BookingActivityCard } from './BookingActivityCard';
 import { ReviewerWorkspace } from './ReviewerWorkspace';
 import { reviewerPhaseStates, dealerFacingStatusLabel, currentPhaseIndex, hasDealerReturned, type PhaseState } from '@/lib/reviewerFlow';
 import { exemptionSummary, netBeforeTax } from '@/lib/tax';
@@ -1174,6 +1175,10 @@ export default async function StaffApplicationDetail({
           journalPaidOn={app.journalPaidOn}
           stageDates={stageDates}
         />
+
+        {/* Booking activity streamed back from the booking app (appointments,
+            installs, service) — renders only when there's activity. */}
+        <BookingActivityCard applicationId={app.id} phone={app.applicantPhone} />
 
         {confirmationIssue && <ConfirmationIssueBanner side="staff" issue={confirmationIssue} />}
 

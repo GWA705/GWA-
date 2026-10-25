@@ -39,6 +39,26 @@ source of truth; this file is the human-readable index.
 | Booking-site lead push (scanned leads → bookers) | ✅ **Live** — leads flowing portal → booking (Sean, confirmed 2026-10-24) | `PORTAL_INTAKE_TOKEN` is set on **both** EB environments (portal `Gwa-portal-env` **and** the booking env) and the two match — verified by screenshot 2026-10-24, and by the fact that scanned leads already cross over. Code: `src/lib/bookingPush.ts`, hooked in `scanActions.ts`. **Booking's production host is `office.ghsbarrie.ca` (AWS Elastic Beanstalk)** — the earlier `gwa-booking-staging.fly.dev` here was a stale staging example. ✅ Confirmed (Sean, 2026-10-24): portal `BOOKING_INTAKE_URL` = `https://office.ghsbarrie.ca/api/intake/portal` (prod). |
 | Booking-site **sold-customer** push (funded deals → booking customers) | ✅ Code live both sides — **no new config** (shares the lead feed's) | A funded deal pushes the customer into booking as a **customer/household** (not a call-board lead); a cancellation reverses it. Portal side (this repo): `src/lib/bookingSold.ts` + `bookingPush.ts`, hooked in `notifyStatusChange` (FUNDED/WITHDRAWN) + `confirmCancellationAction`, with a leadership backfill button on the staff Leads page. Booking side: PR **#276 merged → GWA705/GWA-webiste-** (2026-10-24), deploys to `office.ghsbarrie.ca`. **It reuses the SAME `BOOKING_INTAKE_URL` + `PORTAL_INTAKE_TOKEN` as the already-live lead push — nothing new to set.** The sold endpoint is derived: `…/api/intake/portal/sold`. **Remaining:** (1) let the booking deploy of #276 finish so the endpoint exists; (2) run the staff-Leads **"Send sold customers to booking"** backfill once to send historical funded deals. From then on it's automatic. |
 
+### Booking → portal activity feed received (appointments, installs, service, opt-out) (2026-10-25)
+- Built the portal **receive-side** of the agreed two-way back-channel (`docs/BOOKING-HANDSHAKE-NOTE.md`
+  / booking's `docs/BOOKING-HANDSHAKE-ANSWERS.md`). New **`POST /api/intake/booking-event`**
+  (shared-token via `portalPeer`, idempotent on `eventId`, fail-soft, inert until configured) accepts
+  the event types booking emits: **appointment** (booked → ran → sold/$), **install**, **service**,
+  and **optout**.
+- `src/lib/bookingEvents.ts` normalises + applies each event. appointment/install/service → a new
+  **`BookingEvent`** table — a standalone log matched to a deal/lead at display time by `portalRef`
+  (the id booking was given — a ScannedLead id for a lead, an Application id for a sold customer) or
+  `phoneLast4`, since one id space spans two portal models. **optout** → the existing `SmsOptOut`
+  (add-only: `sms`/`all` opt out, `calls` is a no-op here; most-restrictive-wins, no silent
+  re-opt-in).
+- New migration `20261025010000_booking_events` (CREATE TABLE `BookingEvent`) — auto-applies via
+  `prisma migrate deploy` on deploy (no manual step).
+- Deal view: a **"Booking activity"** card (`/staff/applications/[id]`) lists a deal's appointments /
+  installs / service visits (matched by id **and** customer phone, so a lead's appointments and its
+  later funded deal stitch together). Renders only when there's activity.
+- Inert until booking starts posting (their emit side lands with the multi-tenant build). Pure logic
+  covered by `tests/bookingEvents.test.ts`. tsc clean, 578 tests green, build compiles.
+
 ### Booking payloads now carry the dealer key (multi-tenant routing groundwork) (2026-10-25)
 - Per the agreed multi-tenant design (`docs/BOOKING-MULTITENANT-PLAN.md`), every portal → booking
   payload is now tagged with the dealer so the one, multi-tenant booking app can file it under the
