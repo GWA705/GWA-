@@ -368,9 +368,34 @@ export interface IdTagRow {
   status: IdTagStatus;
   certified: boolean;
   hasHeadshot: boolean;
+  hasCard: boolean;
+  validUntil: Date | null;
   dealerId: string;
   dealerName?: string;
   createdAt: Date;
+}
+
+/** Whole days until `d` (negative once past); null when no date. */
+export function daysUntil(d: Date | null | undefined): number | null {
+  if (!d) return null;
+  return Math.ceil((new Date(d).getTime() - Date.now()) / 86_400_000);
+}
+
+/** Tone for a days-to-expiry value: green > 30, amber ≤ 30, red once past. */
+export function expiryTone(days: number | null): StatusTone {
+  if (days === null) return 'slate';
+  if (days < 0) return 'red';
+  if (days <= 30) return 'amber';
+  return 'green';
+}
+
+/** Short human label for a days-to-expiry value. */
+export function expiryLabel(days: number | null): string {
+  if (days === null) return '—';
+  if (days < 0) return `expired ${Math.abs(days)}d ago`;
+  if (days === 0) return 'expires today';
+  if (days === 1) return '1 day left';
+  return `${days} days left`;
 }
 
 /** All requests for one office, newest first. */
@@ -379,9 +404,11 @@ export async function listIdTagForDealer(dealerId: string): Promise<IdTagRow[]> 
     where: { dealerId },
     orderBy: { createdAt: 'desc' },
     take: 500,
-    select: { id: true, personName: true, personEmail: true, personPhone: true, kind: true, status: true, certificationId: true, headshotKey: true, dealerId: true, createdAt: true },
+    select: { id: true, personName: true, personEmail: true, personPhone: true, kind: true, status: true, certificationId: true, headshotKey: true, cardFileKey: true, validUntil: true, dealerId: true, createdAt: true },
   });
-  return rows.map(({ certificationId, headshotKey, ...r }) => ({ ...r, certified: !!certificationId, hasHeadshot: !!headshotKey }));
+  return rows.map(({ certificationId, headshotKey, cardFileKey, ...r }) => ({
+    ...r, certified: !!certificationId, hasHeadshot: !!headshotKey, hasCard: !!cardFileKey,
+  }));
 }
 
 /** All requests across every office (admin/reviewer board). `q` searches the
@@ -405,15 +432,93 @@ export async function listAllIdTags(filter?: { dealerId?: string; status?: IdTag
     take: 1000,
     select: {
       id: true, personName: true, personEmail: true, personPhone: true, kind: true, status: true,
-      certificationId: true, headshotKey: true, dealerId: true, createdAt: true,
+      certificationId: true, headshotKey: true, cardFileKey: true, validUntil: true, dealerId: true, createdAt: true,
       dealer: { select: { name: true } },
     },
   });
   return rows.map((r) => ({
     id: r.id, personName: r.personName, personEmail: r.personEmail, personPhone: r.personPhone,
     kind: r.kind, status: r.status, certified: !!r.certificationId, hasHeadshot: !!r.headshotKey,
+    hasCard: !!r.cardFileKey, validUntil: r.validUntil,
     dealerId: r.dealerId, dealerName: r.dealer?.name, createdAt: r.createdAt,
   }));
+}
+
+// ── Person detail (reviewer workspace) ────────────────────────────────────────
+
+export interface IdTagDetail {
+  id: string;
+  dealerId: string;
+  dealerName: string;
+  personName: string;
+  personFirst: string | null;
+  personLast: string | null;
+  personEmail: string | null;
+  personPhone: string | null;
+  kind: IdTagKind;
+  status: IdTagStatus;
+  certified: boolean;
+  hasHeadshot: boolean;
+  hasCard: boolean;
+  validUntil: Date | null;
+  badgeNumber: string | null;
+  entuitiveStatus: string | null;
+  /** The office's standardized Entuitive password (for the setup sheet). */
+  password: string | null;
+  /** The office's Entuitive "New User" profile (company, address, etc.). */
+  profile: OfficeEntuitiveProfile;
+  createdAt: Date;
+}
+
+/** Full detail for one person — the reviewer's Entuitive setup sheet + card. */
+export async function getIdTagDetail(id: string): Promise<IdTagDetail | null> {
+  const r = await prisma.homeDepotIdTag.findUnique({
+    where: { id },
+    select: {
+      id: true, dealerId: true, personName: true, personFirst: true, personLast: true,
+      personEmail: true, personPhone: true, kind: true, status: true, certificationId: true,
+      headshotKey: true, cardFileKey: true, validUntil: true, badgeNumber: true, entuitiveStatus: true, createdAt: true,
+      dealer: { select: { name: true, idTagTempPassword: true, idTagOfficeProfile: true } },
+    },
+  });
+  if (!r) return null;
+  const p = r.dealer?.idTagOfficeProfile;
+  return {
+    id: r.id, dealerId: r.dealerId, dealerName: r.dealer?.name || '',
+    personName: r.personName, personFirst: r.personFirst, personLast: r.personLast,
+    personEmail: r.personEmail, personPhone: r.personPhone,
+    kind: r.kind, status: r.status, certified: !!r.certificationId,
+    hasHeadshot: !!r.headshotKey, hasCard: !!r.cardFileKey,
+    validUntil: r.validUntil, badgeNumber: r.badgeNumber, entuitiveStatus: r.entuitiveStatus,
+    password: (r.dealer?.idTagTempPassword || '').trim() || null,
+    profile: p && typeof p === 'object' && !Array.isArray(p) ? (p as OfficeEntuitiveProfile) : {},
+    createdAt: r.createdAt,
+  };
+}
+
+/** Update the card-side fields read off / set against the Entuitive card. Pass a
+ *  key only to change it (undefined leaves it as-is). */
+export async function setIdTagCardInfo(
+  id: string,
+  data: { validUntil?: Date | null; badgeNumber?: string | null; entuitiveStatus?: string | null; cardFileKey?: string | null },
+): Promise<void> {
+  await prisma.homeDepotIdTag.update({
+    where: { id },
+    data: {
+      ...(data.validUntil !== undefined ? { validUntil: data.validUntil } : {}),
+      ...(data.badgeNumber !== undefined ? { badgeNumber: data.badgeNumber } : {}),
+      ...(data.entuitiveStatus !== undefined ? { entuitiveStatus: data.entuitiveStatus } : {}),
+      ...(data.cardFileKey !== undefined ? { cardFileKey: data.cardFileKey } : {}),
+    },
+  });
+}
+
+/** Look up just the storage keys + owning dealer for a person (for file downloads). */
+export async function getIdTagFileKeys(id: string): Promise<{ dealerId: string; headshotKey: string | null; cardFileKey: string | null; personName: string } | null> {
+  return prisma.homeDepotIdTag.findUnique({
+    where: { id },
+    select: { dealerId: true, headshotKey: true, cardFileKey: true, personName: true },
+  });
 }
 
 /** Summary counts for the admin board tiles. */

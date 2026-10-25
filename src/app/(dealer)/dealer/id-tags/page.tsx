@@ -82,9 +82,11 @@ export default async function DealerIdTagsPage() {
                       </td>
                       <td className="px-5 py-3 text-xs text-slate-400">{new Date(r.createdAt).toLocaleDateString('en-CA')}</td>
                       <td className="px-5 py-3">
-                        {r.kind === 'NEW' && !r.certified && r.personEmail
-                          ? <SendTrainingButton id={r.id} label="Send training" small />
-                          : null}
+                        {r.hasCard
+                          ? <a href={`/api/id-tags/${r.id}/card`} className="rounded-lg bg-brand-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-brand-700">⬇ Download card</a>
+                          : r.kind === 'NEW' && !r.certified && r.personEmail
+                            ? <SendTrainingButton id={r.id} label="Send training" small />
+                            : null}
                       </td>
                     </tr>
                   ))}

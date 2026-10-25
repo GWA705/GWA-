@@ -1,101 +1,132 @@
+import Link from 'next/link';
+import type { IdTagStatus } from '@prisma/client';
 import { requireStaffSection } from '@/lib/session';
-import { listOfficeIdTagSetup, type OfficeEntuitiveProfile } from '@/lib/idTag';
-import { getIdTagBillingRecipients } from '@/lib/settings';
-import { saveOfficeSetupAction, saveBillingRecipientsAction } from './actions';
+import { prisma } from '@/lib/db';
+import {
+  listAllIdTags, idTagCounts, ID_TAG_STATUS_LABEL, ID_TAG_STATUS_TONE, TONE_CLASS, isIdTagStatus,
+  daysUntil, expiryTone, expiryLabel,
+} from '@/lib/idTag';
 
 export const dynamic = 'force-dynamic';
 
-/**
- * Staff → ID tags → Office setup. Reviewers (and admins with the 'id-tags'
- * section) set, per office: the standardized Entuitive screening password and
- * the Entuitive "New User" profile (company name, address, phone, province,
- * service). That office data auto-fills every person's Entuitive setup sheet, so
- * it's entered once here. Also: who the monthly billing list is emailed to.
- */
-export default async function StaffIdTagSetupPage() {
-  await requireStaffSection('id-tags');
-  const [offices, recipients] = await Promise.all([
-    listOfficeIdTagSetup(),
-    getIdTagBillingRecipients(),
-  ]);
-  const card = 'rounded-2xl bg-white shadow-sm ring-1 ring-slate-200';
-  const inp = 'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm';
-  const lab = 'mb-1 block text-xs font-semibold text-slate-600';
+const STATUS_KEYS = Object.keys(ID_TAG_STATUS_LABEL) as IdTagStatus[];
 
-  // Per-office "profile" fields (mirroring the Entuitive New User form).
-  const fields: { key: keyof OfficeEntuitiveProfile; label: string; placeholder: string; wide?: boolean }[] = [
-    { key: 'companyName', label: 'Company name (as Entuitive expects)', placeholder: 'Georgian Water and Air — Barrie', wide: true },
-    { key: 'street', label: 'Street #', placeholder: '11' },
-    { key: 'streetName', label: 'Street name', placeholder: 'King St' },
-    { key: 'unit', label: 'Unit / Apt #', placeholder: '10' },
-    { key: 'city', label: 'City', placeholder: 'Barrie' },
-    { key: 'province', label: 'Province', placeholder: 'Ontario' },
-    { key: 'postal', label: 'Postal code', placeholder: 'L3C 3H6' },
-    { key: 'phone', label: 'Office phone', placeholder: '705-812-0320' },
-    { key: 'ext', label: 'Ext', placeholder: '' },
-    { key: 'service', label: 'Service', placeholder: 'Water Treatment (Home Depot Canada)' },
+/**
+ * Staff → ID tags — the reviewer tracking centre. Any reviewer (and admins with
+ * the 'id-tags' section) sees everyone across every office, searches by name /
+ * email / phone / badge #, and opens a person to run their Entuitive setup,
+ * upload the card and set the expiry.
+ */
+export default async function StaffIdTagBoardPage({ searchParams }: { searchParams: { q?: string; status?: string; dealerId?: string } }) {
+  await requireStaffSection('id-tags');
+
+  const q = (searchParams.q || '').trim();
+  const statusFilter = searchParams.status && isIdTagStatus(searchParams.status) ? searchParams.status : undefined;
+  const dealerFilter = searchParams.dealerId || undefined;
+
+  const [rows, counts, dealers] = await Promise.all([
+    listAllIdTags({ q, status: statusFilter, dealerId: dealerFilter }),
+    idTagCounts(),
+    prisma.dealer.findMany({ where: { active: true }, select: { id: true, name: true }, orderBy: { name: 'asc' } }),
+  ]);
+
+  const card = 'rounded-2xl bg-white shadow-sm ring-1 ring-slate-200';
+  const tiles = [
+    { n: counts.needsTraining, label: 'Needs training', color: 'text-amber-700' },
+    { n: counts.awaitingScreening, label: 'In screening', color: 'text-blue-700' },
+    { n: counts.approved, label: 'Approved', color: 'text-indigo-700' },
+    { n: counts.issued, label: 'Tags issued', color: 'text-green-700' },
+    { n: counts.hasTag, label: 'Active', color: 'text-slate-700' },
   ];
 
-  const isComplete = (o: (typeof offices)[number]) => !!o.password && !!(o.profile.companyName && o.profile.street && o.profile.streetName);
-
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8">
-      <h1 className="text-2xl font-bold text-slate-900">ID Tag — office setup</h1>
-      <p className="mt-1 text-sm text-slate-500">
-        Set each office once: its standardized Entuitive password and the Entuitive “New User” details.
-        That office data auto-fills every person’s setup sheet, so a dealer only ever enters the person.
-      </p>
+    <div className="mx-auto max-w-6xl px-4 py-8">
+      <div className="flex flex-wrap items-center gap-3">
+        <h1 className="text-2xl font-bold text-slate-900">HD ID Tags</h1>
+        <Link href="/staff/id-tags/setup" className="ml-auto rounded-lg bg-slate-800 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-900">Office setup</Link>
+      </div>
+      <p className="mt-1 text-sm text-slate-500">Everyone across all offices. Open a person to run their Entuitive setup, upload the card and set the expiry.</p>
 
-      {/* Billing recipients */}
-      <details className={`${card} mt-5 p-5`}>
-        <summary className="cursor-pointer text-sm font-bold text-slate-900">Monthly billing recipients</summary>
-        <p className="mt-2 text-xs text-slate-500">
-          Who the monthly ID-tag activation/billing list is emailed to (on the 1st). One address per line or comma-separated.
-          Leave blank to use the defaults.
-        </p>
-        <form action={saveBillingRecipientsAction} className="mt-3">
-          <textarea name="recipients" rows={3} defaultValue={recipients.join('\n')} className={inp} placeholder="vanita@ghsbarrie.ca&#10;info@ghsbarrie.ca&#10;Mona@respiraide.com" />
-          <button type="submit" className="mt-3 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Save recipients</button>
-        </form>
-      </details>
-
-      <h2 className="mt-7 text-sm font-bold text-slate-900">Offices</h2>
-      <p className="mb-2 text-xs text-slate-500">Expand an office to set its Entuitive password and profile.</p>
-
-      <div className="space-y-3">
-        {offices.length === 0 && <div className={`${card} p-6 text-center text-sm text-slate-400`}>No active offices.</div>}
-        {offices.map((o) => (
-          <details key={o.id} className={`${card} p-0 overflow-hidden`}>
-            <summary className="flex cursor-pointer items-center gap-3 px-5 py-3.5">
-              <span className="font-semibold text-slate-900">{o.name}</span>
-              <span className="ml-auto flex items-center gap-1.5">
-                <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${o.password ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
-                  {o.password ? 'Password set' : 'No password'}
-                </span>
-                <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${isComplete(o) ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-                  {isComplete(o) ? 'Profile ready' : 'Profile incomplete'}
-                </span>
-              </span>
-            </summary>
-            <form action={saveOfficeSetupAction} className="border-t border-slate-100 px-5 py-4">
-              <input type="hidden" name="dealerId" value={o.id} />
-              <label className="mb-4 block max-w-xs">
-                <span className={lab}>Entuitive password</span>
-                <input name="password" defaultValue={o.password} placeholder={o.suggestion} autoComplete="off" spellCheck={false} className={`${inp} font-mono`} />
-                <span className="mt-1 block text-[11px] text-slate-400">Goes in the new-rep email and the Entuitive “Password” field. Suggested: <code className="rounded bg-slate-100 px-1">{o.suggestion}</code></span>
-              </label>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {fields.map((f) => (
-                  <label key={f.key} className={`block ${f.wide ? 'sm:col-span-2' : ''}`}>
-                    <span className={lab}>{f.label}</span>
-                    <input name={f.key} defaultValue={o.profile[f.key] || ''} placeholder={f.placeholder} className={inp} />
-                  </label>
-                ))}
-              </div>
-              <button type="submit" className="mt-4 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Save office</button>
-            </form>
-          </details>
+      <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-5">
+        {tiles.map((t) => (
+          <div key={t.label} className={`${card} px-4 py-3`}>
+            <div className={`text-2xl font-extrabold ${t.color}`}>{t.n}</div>
+            <div className="mt-0.5 text-xs text-slate-500">{t.label}</div>
+          </div>
         ))}
+      </div>
+
+      <form method="get" className="mt-5 flex flex-wrap items-center gap-2">
+        <input name="q" defaultValue={q} placeholder="Search name, email, phone or badge #"
+          className="w-full max-w-xs rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+        <select name="dealerId" defaultValue={dealerFilter || ''} className="rounded-lg border border-slate-300 px-3 py-2 text-sm">
+          <option value="">All offices</option>
+          {dealers.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+        </select>
+        <select name="status" defaultValue={statusFilter || ''} className="rounded-lg border border-slate-300 px-3 py-2 text-sm">
+          <option value="">All statuses</option>
+          {STATUS_KEYS.map((s) => <option key={s} value={s}>{ID_TAG_STATUS_LABEL[s]}</option>)}
+        </select>
+        <button type="submit" className="rounded-lg bg-brand-600 px-3 py-2 text-sm font-semibold text-white hover:bg-brand-700">Search</button>
+        {(q || statusFilter || dealerFilter) && <Link href="/staff/id-tags" className="px-2 py-2 text-sm text-slate-500 hover:text-slate-800">Clear</Link>}
+      </form>
+
+      <div className={`${card} mt-4 overflow-hidden`}>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[820px] border-collapse text-sm">
+            <thead>
+              <tr className="bg-slate-50 text-left text-[11px] uppercase tracking-wide text-slate-500">
+                <th className="px-4 py-2.5 font-semibold">Person</th>
+                <th className="px-4 py-2.5 font-semibold">Office</th>
+                <th className="px-4 py-2.5 font-semibold">Training</th>
+                <th className="px-4 py-2.5 font-semibold">Headshot</th>
+                <th className="px-4 py-2.5 font-semibold">Status</th>
+                <th className="px-4 py-2.5 font-semibold">Expiry</th>
+                <th className="px-4 py-2.5 font-semibold"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.length === 0 && (
+                <tr><td colSpan={7} className="px-4 py-10 text-center text-sm text-slate-400">No one matches this search.</td></tr>
+              )}
+              {rows.map((r) => {
+                const d = daysUntil(r.validUntil);
+                return (
+                  <tr key={r.id} className="border-t border-slate-100 align-middle">
+                    <td className="px-4 py-3">
+                      <div className="font-semibold text-slate-900">{r.personName}</div>
+                      {r.personEmail && <div className="text-xs text-slate-400">{r.personEmail}</div>}
+                    </td>
+                    <td className="px-4 py-3 text-slate-600">{r.dealerName || '—'}</td>
+                    <td className="px-4 py-3">
+                      {r.certified
+                        ? <span className="text-xs font-bold text-green-700">✓</span>
+                        : <span className="text-xs font-bold text-red-600">✗</span>}
+                    </td>
+                    <td className="px-4 py-3">
+                      {r.hasHeadshot
+                        ? <span className="text-xs font-bold text-green-700">✓</span>
+                        : <span className="text-xs font-bold text-amber-600">Missing</span>}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${TONE_CLASS[ID_TAG_STATUS_TONE[r.status]]}`}>
+                        {ID_TAG_STATUS_LABEL[r.status]}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      {r.validUntil
+                        ? <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${TONE_CLASS[expiryTone(d)]}`}>{expiryLabel(d)}</span>
+                        : <span className="text-xs text-slate-300">—</span>}
+                    </td>
+                    <td className="px-4 py-3">
+                      <Link href={`/staff/id-tags/${r.id}`} className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700">Open</Link>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
