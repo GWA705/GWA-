@@ -1,9 +1,70 @@
 # Plan: portal ↔ booking, per dealer location
 
-**Status:** design / discussion draft (2026-10-24). Nothing here is built yet —
-this is the plan to review (including with the booking-side Claude) before we
-implement. Today everything goes to **one** booking site; this describes how to
-make the portal talk to **each dealer's own** booking site as we expand.
+**Status:** design / discussion. Draft 2026-10-24; **decision reached 2026-10-25
+— go with B** (see below) after the booking side's reply
+(`gwa705/gwa-webiste-`, `docs/PORTAL-MULTITENANT-RESPONSE.md`). Nothing built yet.
+Today everything goes to **one** booking site; this describes how the portal talks
+to **each dealer's** booking as we expand.
+
+---
+
+## DECISION (2026-10-25): B — one multi-tenant booking app (tenant = Office = dealer)
+
+The booking side's reply makes the call clear: **B, not A.** Booking already has an
+`Office` model that owns its users, leads and appointments, with `officeId` threaded
+through the schema — so B is "finish the existing tenant seam," while A would mean N
+deployments + N databases + N secrets + N catalogs. Each dealer still gets "their own
+site" via a **branded subdomain pointing at the one booking app**; data is isolated by
+office inside it. Agreed.
+
+**B makes the _portal_ side much simpler than the A design below:**
+
+- **No** per-dealer `BookingSite` model, **no** per-dealer URL/token storage, **no**
+  encrypted-token admin UI. The portal keeps the **one** `BOOKING_INTAKE_URL` +
+  `PORTAL_INTAKE_TOKEN` it already has.
+- The portal's whole job becomes: **tag every payload with the dealer**, and **scope
+  inbound booking data by that dealer**.
+
+### The contract — the dealer key
+- The portal adds **`dealerId` = the portal's `Dealer.id`** (stable, unique) to **every**
+  outbound payload (lead push, status sync, sold-customer push), plus `dealerName` (and a
+  short `dealerCode` if booking wants one) so booking can create/label the `Office` the
+  first time.
+- Booking stores it as `Office.portalDealerId` (unique) and resolves dealer → office on
+  intake. Unknown / not-accepting dealer → **skip, never default to Georgian** (mirrors
+  our "null → skip, no fallback" rule). `storeNumber` stays supplementary; `dealerId` is
+  authoritative.
+
+### Back-channel — converge on what already exists
+Booking already posts lead status to the portal's **existing `/api/intake/booking-status`**
+(`{applicationId, status}`, Bearer `PORTAL_INTAKE_TOKEN`); the portal receives it and
+writes `bookingStatus`/`bookingStatusAt`. There's also `/api/intake/office-summary`. So we
+**drop the proposed new `/api/intake/booking/...` path** and instead **extend the existing
+`/api/intake/*` endpoints** for the richer booking → portal events (appointment outcomes,
+install/service, opt-out), keyed on `applicationId` (+ phone blind index) and scoped to
+that application's dealer.
+
+### Portal-side task list (B)
+1. Add `dealerId` / `dealerName` to the three outbound payloads (`bookingPush.ts`,
+   `bookingSold.ts`). Small — the dealer is known at every send point (the sold path
+   already loads `dealerId`).
+2. Extend inbound `/api/intake/*` to accept appointment outcomes / install + service /
+   opt-out from booking, attach to the Application/customer, scoped by applicationId →
+   dealer; mirror opt-out back to booking.
+3. Keep the **SKU contract**: portal journal-name == booking `Product.sku` (already how
+   sold-customer product matching works). Unchanged.
+4. **Not** needed under B: the `BookingSite` model, per-dealer tokens, portal-side host
+   routing (all A-only — see the reference design below).
+
+### Still to confirm with the booking side (before building)
+- Exact field names / a small shared schema for the richer back-channel events.
+- Whether a human-readable `dealerCode` is wanted alongside `dealerId`.
+- Opt-out semantics both ways (what counts as "stop", and precedence).
+
+_The design below was written for A and is kept for reference; under B its per-dealer-site
+parts don't apply._
+
+---
 
 ## The goal (in plain terms)
 
