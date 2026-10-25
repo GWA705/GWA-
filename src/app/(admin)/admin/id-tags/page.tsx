@@ -8,6 +8,7 @@ import {
 } from '@/lib/idTag';
 import { getIdTagSettings } from '@/lib/settings';
 import { updateIdTagStatusAction, saveIdTagSettingsAction, saveIdTagOfficesAction } from './actions';
+import { IdTagPreviewButton } from './IdTagPreviewButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -167,6 +168,10 @@ export default async function AdminIdTagsPage({ searchParams }: { searchParams: 
             <button type="submit" className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Save settings</button>
           </div>
         </form>
+        <div className="mt-4 border-t border-slate-200 pt-4">
+          <p className="mb-2 text-xs text-slate-500">See exactly what a rep receives (with the current settings &amp; screening link) — sent to your own inbox.</p>
+          <IdTagPreviewButton />
+        </div>
       </details>
     </div>
   );

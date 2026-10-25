@@ -75,6 +75,10 @@ export const ID_TAG_SETTING_KEYS = {
   existingEmailBody: 'idTag.existingEmailBody', // welcome email (reps who already have a tag)
 } as const;
 
+/** The background-screening (Entuitive) portal the new-rep email links to, used
+ *  when an admin hasn't set an override. Editable in Admin → ID tags. */
+export const DEFAULT_ID_TAG_SCREENING_LINK = 'https://hdis.entuitivetracker.com';
+
 export interface IdTagSettings {
   screeningLink: string | null;
   screeningLogin: string | null;
@@ -93,7 +97,7 @@ export async function getIdTagSettings(): Promise<IdTagSettings> {
     ID_TAG_SETTING_KEYS.existingEmailBody,
   ]);
   return {
-    screeningLink: m[ID_TAG_SETTING_KEYS.screeningLink],
+    screeningLink: m[ID_TAG_SETTING_KEYS.screeningLink] || DEFAULT_ID_TAG_SCREENING_LINK,
     screeningLogin: m[ID_TAG_SETTING_KEYS.screeningLogin],
     screeningPassword: m[ID_TAG_SETTING_KEYS.screeningPassword],
     newEmailBody: m[ID_TAG_SETTING_KEYS.newEmailBody],

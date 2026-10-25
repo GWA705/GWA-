@@ -39,6 +39,15 @@ source of truth; this file is the human-readable index.
 | Booking-site lead push (scanned leads → bookers) | ✅ **Live** — leads flowing portal → booking (Sean, confirmed 2026-10-24) | `PORTAL_INTAKE_TOKEN` is set on **both** EB environments (portal `Gwa-portal-env` **and** the booking env) and the two match — verified by screenshot 2026-10-24, and by the fact that scanned leads already cross over. Code: `src/lib/bookingPush.ts`, hooked in `scanActions.ts`. **Booking's production host is `office.ghsbarrie.ca` (AWS Elastic Beanstalk)** — the earlier `gwa-booking-staging.fly.dev` here was a stale staging example. ✅ Confirmed (Sean, 2026-10-24): portal `BOOKING_INTAKE_URL` = `https://office.ghsbarrie.ca/api/intake/portal` (prod). |
 | Booking-site **sold-customer** push (funded deals → booking customers) | ✅ Code live both sides — **no new config** (shares the lead feed's) | A funded deal pushes the customer into booking as a **customer/household** (not a call-board lead); a cancellation reverses it. Portal side (this repo): `src/lib/bookingSold.ts` + `bookingPush.ts`, hooked in `notifyStatusChange` (FUNDED/WITHDRAWN) + `confirmCancellationAction`, with a leadership backfill button on the staff Leads page. Booking side: PR **#276 merged → GWA705/GWA-webiste-** (2026-10-24), deploys to `office.ghsbarrie.ca`. **It reuses the SAME `BOOKING_INTAKE_URL` + `PORTAL_INTAKE_TOKEN` as the already-live lead push — nothing new to set.** The sold endpoint is derived: `…/api/intake/portal/sold`. **Remaining:** (1) let the booking deploy of #276 finish so the endpoint exists; (2) run the staff-Leads **"Send sold customers to booking"** backfill once to send historical funded deals. From then on it's automatic. |
 
+### HD ID-tag email: default Entuitive screening link + "email me a preview" (2026-10-25)
+- The new-rep background-screening email now defaults its link to **`https://hdis.entuitivetracker.com`**
+  (`DEFAULT_ID_TAG_SCREENING_LINK`, used when no admin override is set) so the tracker link is in the
+  email automatically — still editable in Admin → ID tags → Onboarding settings.
+- New **"Email me a preview"** button on the admin ID-tags settings (`sendIdTagEmailPreviewAction` +
+  `IdTagPreviewButton`): sends the admin the real generated new-rep (screening) and existing-rep
+  emails, with the live settings, to their own inbox — so you can see exactly what a rep receives.
+  tsc clean, tests green, build compiles.
+
 ### Admin "Confirmation team" report — per-person activity (2026-10-25)
 - New admin-only report at **`/staff/reports/confirmation-team`** (linked from the reports hub): a
   per-person table over a chosen range (this month / last month / last 30 days / this year) showing
