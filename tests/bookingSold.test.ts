@@ -13,6 +13,9 @@ const base: SoldAppRecord = {
   address: '12 Lake St',
   coApplicantName: 'John Doe',
   productsSold: ['Reverse Osmosis', 'Whole Home Carbon'],
+  dealerId: 'dealer_georgian',
+  dealerName: 'Georgian Water and Air',
+  dealerCode: 'GWA',
 };
 
 describe('buildSoldPayloadFrom — Application → booking sold-customer payload', () => {
@@ -21,6 +24,9 @@ describe('buildSoldPayloadFrom — Application → booking sold-customer payload
     const payload = buildSoldPayloadFrom(base, ['RO', 'WHCCF'], soldAt);
     expect(payload).toEqual({
       applicationId: 'app_1',
+      dealerId: 'dealer_georgian',
+      dealerName: 'Georgian Water and Air',
+      dealerCode: 'GWA',
       name: 'Jane Doe',
       phone: '705-555-0100',
       email: 'jane@example.com',

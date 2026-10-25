@@ -1,4 +1,41 @@
 import 'server-only';
+import { prisma } from './db';
+
+/**
+ * The stable dealer key the booking app maps to its Office (its tenant). Every
+ * payload carries it so a shared, multi-tenant booking instance files each lead
+ * / sale under the right dealer. `dealerId` is the portal's `Dealer.id` — the
+ * authoritative key; name + code just help booking label the office. A null id
+ * means "not yet attributed to a dealer" — booking must skip it, never default.
+ */
+export interface DealerTag {
+  dealerId: string | null;
+  dealerName: string | null;
+  dealerCode: string | null;
+}
+
+const EMPTY_TAG: DealerTag = { dealerId: null, dealerName: null, dealerCode: null };
+
+let _dealerDir: { at: number; map: Map<string, { name: string; code: string | null }> } | null = null;
+const DEALER_DIR_TTL_MS = 5 * 60 * 1000;
+
+/** Resolve a dealer id to its {dealerId, name, code} tag, from a short-lived cache. */
+export async function dealerTag(dealerId: string | null | undefined): Promise<DealerTag> {
+  const id = (dealerId ?? '').trim();
+  if (!id) return EMPTY_TAG;
+  const now = Date.now();
+  if (!_dealerDir || now - _dealerDir.at > DEALER_DIR_TTL_MS) {
+    try {
+      const rows = await prisma.dealer.findMany({ select: { id: true, name: true, journalName: true } });
+      _dealerDir = { at: now, map: new Map(rows.map((d) => [d.id, { name: d.name, code: d.journalName ?? null }])) };
+    } catch {
+      // A lookup hiccup must never break a fire-and-forget push — send the id alone.
+      return { dealerId: id, dealerName: null, dealerCode: null };
+    }
+  }
+  const d = _dealerDir.map.get(id);
+  return { dealerId: id, dealerName: d?.name ?? null, dealerCode: d?.code ?? null };
+}
 
 /**
  * Push a confirmed scanned lead to the booking system so it lands on a booker's
@@ -29,6 +66,8 @@ export interface BookingLead {
   bestTimeToContact?: string | null;
   waterNotes?: string | null;
   storeNumber?: string | null;
+  /** The owning dealer (portal Dealer.id) — booking maps it to an Office. */
+  dealerId?: string | null;
 }
 
 /** Where the booking feed lives and the secret to sign with — null if not set up. */
@@ -88,6 +127,7 @@ export async function pushScannedStatusToBooking(
   applicationId: string,
   status: CoarseStatus,
   bookingRef?: string | null,
+  dealerId?: string | null,
 ): Promise<void> {
   const url = bookingStatusUrl();
   const token = process.env.PORTAL_INTAKE_TOKEN?.trim();
@@ -95,13 +135,14 @@ export async function pushScannedStatusToBooking(
   // Need something to match on: a portal application id, or the Home Depot
   // booking id (which reaches a lead that came into booking via the HD feed).
   if (!url || !token || (!applicationId && !ref)) return;
+  const tag = await dealerTag(dealerId);
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 5000);
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
-      body: JSON.stringify({ applicationId, status, ...(ref ? { bookingRef: ref } : {}) }),
+      body: JSON.stringify({ applicationId, status, ...tag, ...(ref ? { bookingRef: ref } : {}) }),
       signal: controller.signal,
     });
     clearTimeout(timer);
@@ -112,9 +153,10 @@ export async function pushScannedStatusToBooking(
 }
 
 /** Shape one scanned lead the way the booking intake expects it. */
-function toBookingPayload(lead: BookingLead) {
+function toBookingPayload(lead: BookingLead, tag: DealerTag) {
   return {
     applicationId: lead.id,
+    ...tag,
     name: lead.customerName,
     phone: lead.phone,
     address: lead.address ?? null,
@@ -135,13 +177,14 @@ export async function pushLeadToBooking(lead: BookingLead): Promise<void> {
   if (!cfg) return;
   if (!lead.customerName || !lead.phone) return;
 
+  const tag = await dealerTag(lead.dealerId);
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 5000);
     const res = await fetch(cfg.url, {
       method: 'POST',
       headers: { 'content-type': 'application/json', authorization: `Bearer ${cfg.token}` },
-      body: JSON.stringify(toBookingPayload(lead)),
+      body: JSON.stringify(toBookingPayload(lead, tag)),
       signal: controller.signal,
     });
     clearTimeout(timer);
@@ -195,7 +238,7 @@ export async function pushLeadsToBooking(leads: BookingLead[]): Promise<BookingB
       const res = await fetch(cfg.url, {
         method: 'POST',
         headers: { 'content-type': 'application/json', authorization: `Bearer ${cfg.token}` },
-        body: JSON.stringify({ leads: chunk.map(toBookingPayload) }),
+        body: JSON.stringify({ leads: await Promise.all(chunk.map(async (l) => toBookingPayload(l, await dealerTag(l.dealerId)))) }),
         signal: controller.signal,
       });
       clearTimeout(timer);
@@ -240,6 +283,10 @@ export interface BookingSoldCustomer {
   /** The portal application id — booking's stable key for this sale. */
   applicationId: string;
   cancelled?: boolean;
+  /** The owning dealer (portal Dealer.id) — booking maps it to an Office. */
+  dealerId?: string | null;
+  dealerName?: string | null;
+  dealerCode?: string | null;
   name?: string | null;
   phone?: string | null;
   email?: string | null;

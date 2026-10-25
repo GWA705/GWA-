@@ -63,7 +63,7 @@ export async function logLeadCallAction(input: {
   // booker's screen. Fail-safe and inert until configured.
   if (leadKey.startsWith('scanned:')) {
     const coarse = coarseFromCallOutcome(input.outcome);
-    if (coarse) await pushScannedStatusToBooking(leadKey.slice('scanned:'.length), coarse);
+    if (coarse) await pushScannedStatusToBooking(leadKey.slice('scanned:'.length), coarse, undefined, isInternal(user) ? null : user.dealerId ?? null);
   } else if (leadKey.startsWith('b:')) {
     // An HD-feed lead (keyed by Home Depot booking id). When it's sold or booked
     // here, record it on the shared HD Leads Log (col U) so the booking system

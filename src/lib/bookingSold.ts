@@ -7,6 +7,7 @@ import {
   pushSoldCustomerToBooking,
   pushCancelledSaleToBooking,
   pushSoldCustomersToBooking,
+  dealerTag,
   type BookingSoldCustomer,
 } from './bookingPush';
 
@@ -35,6 +36,10 @@ export interface SoldAppRecord {
   address: string | null;
   coApplicantName: string | null;
   productsSold: string[];
+  /** The owning dealer, resolved to its tag — booking maps it to an Office. */
+  dealerId: string | null;
+  dealerName: string | null;
+  dealerCode: string | null;
 }
 
 /**
@@ -58,6 +63,9 @@ export function buildSoldPayloadFrom(
   }));
   return {
     applicationId: app.id,
+    dealerId: app.dealerId,
+    dealerName: app.dealerName,
+    dealerCode: app.dealerCode,
     name: name || null,
     phone: app.applicantPhone ?? null,
     email: app.applicantEmail ?? null,
@@ -113,7 +121,10 @@ async function fundedAt(applicationId: string): Promise<Date | null> {
 
 /** Turn one Application row into a booking payload (decrypt address, map codes). */
 async function toSoldPayload(row: SoldAppRow, soldAt: Date | null): Promise<BookingSoldCustomer> {
-  const codes = row.productsSold.length ? await journalProductNames(row.productsSold, row.dealerId) : [];
+  const [codes, tag] = await Promise.all([
+    row.productsSold.length ? journalProductNames(row.productsSold, row.dealerId) : Promise.resolve([]),
+    dealerTag(row.dealerId),
+  ]);
   return buildSoldPayloadFrom(
     {
       id: row.id,
@@ -127,6 +138,9 @@ async function toSoldPayload(row: SoldAppRow, soldAt: Date | null): Promise<Book
       address: decryptOptional(row.applicantAddressEnc),
       coApplicantName: row.coApplicantName,
       productsSold: row.productsSold,
+      dealerId: tag.dealerId,
+      dealerName: tag.dealerName,
+      dealerCode: tag.dealerCode,
     },
     codes,
     soldAt,

@@ -52,7 +52,7 @@ export async function backfillScannedLeadsToBookingAction(afterId?: string | nul
     select: {
       id: true, customerName: true, phone: true, address: true, city: true, postalCode: true,
       occupation: true, spouseName: true, spousePhone: true, bestTimeToContact: true,
-      waterNotes: true, storeNumber: true,
+      waterNotes: true, storeNumber: true, dealerId: true,
     },
     orderBy: { id: 'asc' },
     take: CHUNK,

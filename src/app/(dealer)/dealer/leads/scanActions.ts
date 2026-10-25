@@ -215,7 +215,7 @@ export async function setScannedLeadStatusAction(id: string, status: string): Pr
   // Reflect the office's status onto the booker's screen (fail-safe, inert until
   // configured; booking applies it with guardrails so it never downgrades a
   // booker's own progress).
-  await pushScannedStatusToBooking(id, coarseFromScannedStatus(status));
+  await pushScannedStatusToBooking(id, coarseFromScannedStatus(status), undefined, lead.dealerId);
   revalidatePath('/dealer/leads');
   revalidatePath('/staff/leads');
   return {};

@@ -44,10 +44,25 @@ writes `bookingStatus`/`bookingStatusAt`. There's also `/api/intake/office-summa
 install/service, opt-out), keyed on `applicationId` (+ phone blind index) and scoped to
 that application's dealer.
 
+### ✅ Implemented 2026-10-25 — the dealer tag booking asked for
+Every portal → booking payload now carries a **dealer tag**, so booking can map it to an
+`Office`. Resolved by a cached `dealerTag(dealerId)` (`src/lib/bookingPush.ts`) and added to
+**all three feeds + both backfills** (scanned-lead push, status sync, sold-customer push):
+
+```jsonc
+{
+  "dealerId":   "<portal Dealer.id>",   // authoritative key → Office.portalDealerId (null = skip, never default)
+  "dealerName": "Georgian Water and Air", // = Dealer.name, for labelling the office
+  "dealerCode": "GWA"                      // = Dealer.journalName (may be null)
+}
+```
+These sit alongside the existing fields on `/api/intake/portal` (leads), `/api/intake/portal-status`
+(status), and `/api/intake/portal/sold` (sold customers). No behaviour change for the single-site
+setup today — booking can start reading `dealerId` whenever it's ready. **Booking side:** add
+`Office.portalDealerId` (unique) and resolve `dealerId` → office on intake.
+
 ### Portal-side task list (B)
-1. Add `dealerId` / `dealerName` to the three outbound payloads (`bookingPush.ts`,
-   `bookingSold.ts`). Small — the dealer is known at every send point (the sold path
-   already loads `dealerId`).
+1. ✅ Add the dealer tag to the three outbound payloads (done — see above).
 2. Extend inbound `/api/intake/*` to accept appointment outcomes / install + service /
    opt-out from booking, attach to the Application/customer, scoped by applicationId →
    dealer; mirror opt-out back to booking.
