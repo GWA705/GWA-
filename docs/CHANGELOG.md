@@ -39,6 +39,16 @@ source of truth; this file is the human-readable index.
 | Booking-site lead push (scanned leads → bookers) | ✅ **Live** — leads flowing portal → booking (Sean, confirmed 2026-10-24) | `PORTAL_INTAKE_TOKEN` is set on **both** EB environments (portal `Gwa-portal-env` **and** the booking env) and the two match — verified by screenshot 2026-10-24, and by the fact that scanned leads already cross over. Code: `src/lib/bookingPush.ts`, hooked in `scanActions.ts`. **Booking's production host is `office.ghsbarrie.ca` (AWS Elastic Beanstalk)** — the earlier `gwa-booking-staging.fly.dev` here was a stale staging example. ✅ Confirmed (Sean, 2026-10-24): portal `BOOKING_INTAKE_URL` = `https://office.ghsbarrie.ca/api/intake/portal` (prod). |
 | Booking-site **sold-customer** push (funded deals → booking customers) | ✅ Code live both sides — **no new config** (shares the lead feed's) | A funded deal pushes the customer into booking as a **customer/household** (not a call-board lead); a cancellation reverses it. Portal side (this repo): `src/lib/bookingSold.ts` + `bookingPush.ts`, hooked in `notifyStatusChange` (FUNDED/WITHDRAWN) + `confirmCancellationAction`, with a leadership backfill button on the staff Leads page. Booking side: PR **#276 merged → GWA705/GWA-webiste-** (2026-10-24), deploys to `office.ghsbarrie.ca`. **It reuses the SAME `BOOKING_INTAKE_URL` + `PORTAL_INTAKE_TOKEN` as the already-live lead push — nothing new to set.** The sold endpoint is derived: `…/api/intake/portal/sold`. **Remaining:** (1) let the booking deploy of #276 finish so the endpoint exists; (2) run the staff-Leads **"Send sold customers to booking"** backfill once to send historical funded deals. From then on it's automatic. |
 
+### Dealer digest email redesigned — looks like a report, not a plain list (2026-10-25)
+- Reworked the weekly/monthly dealer digest body (`src/lib/reporting/dealerDigestEmail.ts`) into a
+  proper dashboard email: a 2×2 row of **KPI tiles** (Funded $ as the accented hero, Leads + delta
+  pill, Booked/Sold, Avg rating with stars), a **trend sparkline** of lead counts over the last 8
+  periods (that `trend` data was already computed but never shown), a **highlights callout**, then
+  cleaner Leads / Financing / VOC sections. All table-based + inline-styled (renders in every mail
+  client); palette stays within the existing email BRAND blue + greyscale + the current up/down
+  green/red — no invented brand colours (per the brand kit). Sends unchanged (same cron, recipients,
+  dedupe); only the look changed.
+
 ### Booking → portal activity feed received (appointments, installs, service, opt-out) (2026-10-25)
 - Built the portal **receive-side** of the agreed two-way back-channel (`docs/BOOKING-HANDSHAKE-NOTE.md`
   / booking's `docs/BOOKING-HANDSHAKE-ANSWERS.md`). New **`POST /api/intake/booking-event`**
