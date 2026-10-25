@@ -120,6 +120,14 @@ export default async function ReportsLandingPage() {
       available: isAdmin,
     },
     {
+      href: '/staff/reports/confirmation-team',
+      title: 'Confirmation team',
+      blurb: 'Per-person activity: deals confirmed, issues found, call attempts, calls logged and review requests sent.',
+      accent: '#1a2e44',
+      badge: 'Operations',
+      available: isAdmin,
+    },
+    {
       href: '/staff/reports/lead-funnel',
       title: t('staffReportsHub.leadFunnel.title'),
       blurb: t('staffReportsHub.leadFunnel.blurb'),

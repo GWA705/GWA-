@@ -1772,17 +1772,23 @@ export async function saveConfirmationAction(
   };
 
   const completing = d.intent === 'complete';
+  const handlingIssue = d.intent === 'issue';
+  // Record who HANDLED this confirmation for both outcomes (completed or issue),
+  // so the confirmation-team report can attribute each. completedAt stays set
+  // only on a clean completion; the deal's confirmationStatus says which it was.
+  const stampHandler = completing || handlingIssue;
   await prisma.confirmation.upsert({
     where: { applicationId: d.applicationId },
     create: {
       applicationId: d.applicationId,
       ...fields,
-      confirmedById: completing ? session.userId : null,
+      confirmedById: stampHandler ? session.userId : null,
       completedAt: completing ? new Date() : null,
     },
     update: {
       ...fields,
-      ...(completing ? { confirmedById: session.userId, completedAt: new Date() } : {}),
+      ...(stampHandler ? { confirmedById: session.userId } : {}),
+      ...(completing ? { completedAt: new Date() } : {}),
     },
   });
 
@@ -2140,7 +2146,7 @@ export async function sendReviewRequestAction(
   const via = [sentEmail && 'email', sentSms && 'sms'].filter(Boolean).join('+');
   await prisma.application.update({
     where: { id: applicationId },
-    data: { reviewRequestSentAt: new Date(), reviewRequestVia: via, reviewRequestByName: session.name },
+    data: { reviewRequestSentAt: new Date(), reviewRequestVia: via, reviewRequestByName: session.name, reviewRequestById: session.userId },
   });
   await audit({
     actorId: session.userId,

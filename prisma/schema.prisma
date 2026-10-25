@@ -754,6 +754,7 @@ model User {
   passwordResetTokens  PasswordResetToken[]
   applicationsCreated  Application[]   @relation("ApplicationCreatedBy")
   applicationsApproved Application[]   @relation("ApplicationApprover")
+  reviewRequestsSent   Application[]   @relation("ApplicationReviewRequestedBy")
   financeNumbersVerified Application[] @relation("FinanceNumberVerifier")
   documentsUploaded    Document[]      @relation("DocumentUploader")
   documentsVerified    Document[]      @relation("DocumentVerifier")
@@ -1402,6 +1403,10 @@ model Application {
   reviewRequestSentAt DateTime?
   reviewRequestVia    String?
   reviewRequestByName String?
+  // Who sent it (exact attribution for the confirmation-team report). Name is
+  // kept too for the historical rows sent before this was added.
+  reviewRequestById   String?
+  reviewRequestBy     User?    @relation("ApplicationReviewRequestedBy", fields: [reviewRequestById], references: [id])
 
   // When a confirmer flags an issue to the dealer, we send a portal Mail that
   // requires the office to acknowledge they've read it. This holds that mail's id
