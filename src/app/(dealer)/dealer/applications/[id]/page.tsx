@@ -355,7 +355,7 @@ export default async function DealerApplicationDetail({
       {app.programType === 'HD' && !['DECLINED', 'WITHDRAWN'].includes(app.status) && !teamProvidedWaiver && (
         <section className="card p-6">
           <h2 className="mb-3 border-l-4 border-brand-500 pl-2.5 text-lg font-bold text-gray-900">{t('dealDetail.hdWaiverTitle')}</h2>
-          <HdWaiverCard title={t('dealDetail.hdWaiverTitle')} hint={t('dealDetail.hdWaiverHint')} />
+          <HdWaiverCard title={t('dealDetail.hdWaiverTitle')} hint={t('dealDetail.hdWaiverHint')} applicationId={app.id} />
         </section>
       )}
 

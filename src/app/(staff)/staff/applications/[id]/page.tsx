@@ -739,6 +739,7 @@ export default async function StaffApplicationDetail({
                 <HdWaiverCard
                   title={t('staffDeal.produce.hdWaiverTitle')}
                   hint={t('staffDeal.produce.hdWaiverHint')}
+                  applicationId={app.id}
                 />
               </div>
             )}

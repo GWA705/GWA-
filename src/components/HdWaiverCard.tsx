@@ -16,7 +16,18 @@ import { DocViewer } from '@/components/DocViewer';
 const WAIVER_PDF = '/hd-customer-approval-waiver.pdf';
 const WAIVER_IMG = '/hd-customer-approval-waiver.png';
 
-export function HdWaiverCard({ title, hint }: { title: string; hint: string }) {
+export function HdWaiverCard({
+  title,
+  hint,
+  applicationId,
+}: {
+  title: string;
+  hint: string;
+  /** When set, Download hands over this job's PRE-FILLED waiver (store, customer,
+   *  job address + the dealer's name) instead of the blank template. */
+  applicationId?: string;
+}) {
+  const downloadHref = applicationId ? `/api/applications/${applicationId}/hd-waiver` : WAIVER_PDF;
   return (
     <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
       <span className="flex h-11 w-11 flex-none items-center justify-center rounded-lg bg-gray-100 text-xl" aria-hidden>
@@ -37,8 +48,8 @@ export function HdWaiverCard({ title, hint }: { title: string; hint: string }) {
             View
           </DocViewer>
           <a
-            href={WAIVER_PDF}
-            download="HD-Customer-Approval-Waiver.pdf"
+            href={downloadHref}
+            {...(applicationId ? {} : { download: 'HD-Customer-Approval-Waiver.pdf' })}
             className="rounded-md bg-green-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-green-700"
           >
             Download
