@@ -493,6 +493,11 @@ model HomeDepotIdTag {
   badgeNumber     String?
   entuitiveStatus String?
 
+  // Expiry-reminder progress: the smallest days-before threshold already sent
+  // (30/15/10/3). Reset to null when validUntil changes so a renewal restarts
+  // the reminder cycle.
+  expiryRemindStage Int?
+
   kind   IdTagKind   @default(NEW)
   status IdTagStatus @default(AWAITING_TRAINING)
 

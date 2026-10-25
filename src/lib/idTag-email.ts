@@ -1,5 +1,6 @@
 import 'server-only';
 import { sendEmail } from './email';
+import { renderEmail } from './email-templates';
 import { getIdTagSettings } from './settings';
 import { newRepEmailHtml, existingRepEmailHtml, trainingInviteEmailHtml } from './idTag-email-template';
 
@@ -41,6 +42,36 @@ export async function sendIdTagNewRepEmail(
     return res.sent;
   } catch (e) {
     console.error('[idTag] new-rep email failed', e);
+    return false;
+  }
+}
+
+/**
+ * Notify the dedicated ID-tag inbox that a new request came in, so whoever looks
+ * after ID tags sees it and can work it from the board. Best-effort.
+ */
+export async function sendIdTagInboxNotice(
+  to: string,
+  a: { personName: string; office: string; kind: 'NEW' | 'EXISTING'; certified: boolean; hasHeadshot: boolean },
+): Promise<boolean> {
+  if (!to) return false;
+  try {
+    const flags = [
+      a.kind === 'NEW' ? 'New rep' : 'Already has a tag',
+      a.certified ? 'certified' : 'needs training',
+      a.hasHeadshot ? 'headshot ✓' : 'no headshot',
+    ].join(' · ');
+    const html = renderEmail({
+      heading: 'New Home Depot ID-tag request',
+      intro: `${a.personName} was submitted by ${a.office}.`,
+      bodyHtml: `<p style="margin:0 0 12px;font-size:14px;line-height:1.6;color:#374151;">${flags}.</p>`,
+      ctaLabel: 'Open the ID-tag board',
+      ctaUrl: `${appUrl()}/staff/id-tags`,
+    });
+    const res = await sendEmail({ to, subject: `New HD ID-tag request — ${a.personName} (${a.office})`, html });
+    return res.sent;
+  } catch (e) {
+    console.error('[idTag] inbox notice failed', e);
     return false;
   }
 }

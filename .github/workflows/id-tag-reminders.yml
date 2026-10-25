@@ -1,0 +1,49 @@
+name: HD ID-tag reminders (cron)
+
+# Calls src/app/api/cron/id-tag-reminders/route.ts in production on a schedule.
+# Drives HD ID-tag expiry reminders (30/15/10/3 days) + the monthly office roster
+# check-up. The app runs NO in-app scheduler, so this workflow is what fires it.
+# Staggered minute so the portal's crons never all hit the single instance at once.
+#
+# Needs repo secret CRON_SECRET (must match the EB env var). Optional repo variable
+# PORTAL_BASE_URL overrides the production URL. Run on demand from the Actions tab.
+
+on:
+  schedule:
+    - cron: '47 13 * * *'   # daily 13:47 (UTC) — within sending hours in Toronto
+  workflow_dispatch: {}
+
+concurrency:
+  group: id-tag-reminders
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call id-tag-reminders endpoint
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          BASE_URL: ${{ vars.PORTAL_BASE_URL || 'https://portal.ghsbarrie.ca' }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "::error::CRON_SECRET repo secret is not set (Settings -> Secrets and variables -> Actions). It must match the CRON_SECRET env var on Elastic Beanstalk."
+            exit 1
+          fi
+          url="${BASE_URL%/}/api/cron/id-tag-reminders"
+          echo "POST $url"
+          code=$(curl -sS -o /tmp/body.txt -w '%{http_code}' -X POST "$url" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            --retry 3 --retry-delay 5 --max-time 120 || echo "000")
+          echo "HTTP status: $code"
+          echo "Response body: $(cat /tmp/body.txt 2>/dev/null)"
+          case "$code" in
+            200) echo "OK." ;;
+            401) echo "::error::401 Unauthorized - CRON_SECRET repo secret does not match the one on Elastic Beanstalk."; exit 1 ;;
+            503) echo "::error::503 - CRON_SECRET is not configured on Elastic Beanstalk."; exit 1 ;;
+            000) echo "::error::Could not reach $url (network/DNS/timeout). Check PORTAL_BASE_URL."; exit 1 ;;
+            *)   echo "::error::id-tag-reminders returned HTTP $code"; exit 1 ;;
+          esac

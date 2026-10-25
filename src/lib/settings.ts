@@ -74,7 +74,14 @@ export const ID_TAG_SETTING_KEYS = {
   newEmailBody: 'idTag.newEmailBody',       // background-check setup email (new reps)
   existingEmailBody: 'idTag.existingEmailBody', // welcome email (reps who already have a tag)
   billingRecipients: 'idTag.billingRecipients', // who the monthly ID-tag billing list goes to
+  inboxEmail: 'idTag.inboxEmail',               // dedicated inbox new ID-tag requests are copied to
 } as const;
+
+/** The dedicated inbox that new ID-tag requests are copied to (editable). */
+export const DEFAULT_ID_TAG_INBOX_EMAIL = 'HDIDTags@ghsbarrie.ca';
+export async function getIdTagInboxEmail(): Promise<string> {
+  return (await getSetting(ID_TAG_SETTING_KEYS.inboxEmail)) || DEFAULT_ID_TAG_INBOX_EMAIL;
+}
 
 /** The background-screening (Entuitive) portal the new-rep email links to, used
  *  when an admin hasn't set an override. Editable in Admin → ID tags. */

@@ -505,7 +505,8 @@ export async function setIdTagCardInfo(
   await prisma.homeDepotIdTag.update({
     where: { id },
     data: {
-      ...(data.validUntil !== undefined ? { validUntil: data.validUntil } : {}),
+      // Changing validUntil restarts the reminder cycle (a renewal resets it).
+      ...(data.validUntil !== undefined ? { validUntil: data.validUntil, expiryRemindStage: null } : {}),
       ...(data.badgeNumber !== undefined ? { badgeNumber: data.badgeNumber } : {}),
       ...(data.entuitiveStatus !== undefined ? { entuitiveStatus: data.entuitiveStatus } : {}),
       ...(data.cardFileKey !== undefined ? { cardFileKey: data.cardFileKey } : {}),
