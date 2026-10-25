@@ -84,6 +84,28 @@ export function newRepEmailHtml(a: NewRepEmailArgs): string {
   return shell(a.appUrl, 'Your Home Depot ID tag — next step', body);
 }
 
+export interface TrainingInviteEmailArgs {
+  appUrl: string; firstName: string; link: string; office: string;
+}
+
+/** New rep — "complete your Home Depot in-store training" invite (sent before
+ *  screening). Guides them to the training link; once they pass, they move into
+ *  the ID-tag queue automatically. */
+export function trainingInviteEmailHtml(a: TrainingInviteEmailArgs): string {
+  const first = escHtml(a.firstName || 'there');
+  const link = escHtml(a.link);
+  const office = escHtml(a.office || 'your office');
+  const body = `
+    <p style="margin:0 0 14px;">Hi ${first},</p>
+    <p style="margin:0 0 16px;">Welcome to the <strong>Georgian Water &amp; Air</strong> &amp; Home Depot Home Services team! Before we can set up your Home Depot ID badge, the first step is to complete the <strong>Home Depot in-store training</strong> for ${office}.</p>
+    <p style="margin:0 0 10px;">It takes about 20 minutes. Open the link below, work through it, and finish the short quiz &amp; sign-off:</p>
+    <p style="margin:0 0 18px;"><a href="${link || '#'}" style="display:inline-block;background:#f96302;color:#ffffff;font-weight:700;text-decoration:none;padding:11px 20px;border-radius:8px;">Start the Home Depot training</a></p>
+    <p style="margin:0 0 14px;font-size:13px;color:#64748b;">Or paste this into your browser:<br><span style="word-break:break-all;">${link || '[training link]'}</span></p>
+    <p style="margin:0 0 14px;">As soon as you pass, you’re cleared for the next step and we’ll email you your background-screening details.</p>
+    <p style="margin:16px 0 0;">Welcome aboard!</p>`;
+  return shell(a.appUrl, 'Your first step — Home Depot training', body);
+}
+
 export interface ExistingRepEmailArgs {
   appUrl: string; firstName: string; office: string; customBody?: string | null;
 }

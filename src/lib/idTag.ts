@@ -259,8 +259,12 @@ export interface CreateIdTagInput {
   dealerId: string;
   submittedById?: string | null;
   personName: string;
+  personFirst?: string | null;
+  personLast?: string | null;
   personEmail?: string | null;
   personPhone?: string | null;
+  /** S3 key for the rep's headshot, when the dealer uploaded one at submit. */
+  headshotKey?: string | null;
   kind: IdTagKind;
 }
 
@@ -287,8 +291,11 @@ export async function createIdTagRequest(input: CreateIdTagInput): Promise<Creat
       dealerId: input.dealerId,
       submittedById: input.submittedById || null,
       personName: input.personName.trim(),
+      personFirst: (input.personFirst || '').trim() || null,
+      personLast: (input.personLast || '').trim() || null,
       personEmail: (input.personEmail || '').trim() || null,
       personPhone: (input.personPhone || '').trim() || null,
+      headshotKey: (input.headshotKey || '').trim() || null,
       kind: input.kind,
       status,
       certificationId: cert?.id || null,
@@ -360,6 +367,7 @@ export interface IdTagRow {
   kind: IdTagKind;
   status: IdTagStatus;
   certified: boolean;
+  hasHeadshot: boolean;
   dealerId: string;
   dealerName?: string;
   createdAt: Date;
@@ -371,30 +379,40 @@ export async function listIdTagForDealer(dealerId: string): Promise<IdTagRow[]> 
     where: { dealerId },
     orderBy: { createdAt: 'desc' },
     take: 500,
-    select: { id: true, personName: true, personEmail: true, personPhone: true, kind: true, status: true, certificationId: true, dealerId: true, createdAt: true },
+    select: { id: true, personName: true, personEmail: true, personPhone: true, kind: true, status: true, certificationId: true, headshotKey: true, dealerId: true, createdAt: true },
   });
-  return rows.map((r) => ({ ...r, certified: !!r.certificationId }));
+  return rows.map(({ certificationId, headshotKey, ...r }) => ({ ...r, certified: !!certificationId, hasHeadshot: !!headshotKey }));
 }
 
-/** All requests across every office (admin board). */
-export async function listAllIdTags(filter?: { dealerId?: string; status?: IdTagStatus }): Promise<IdTagRow[]> {
+/** All requests across every office (admin/reviewer board). `q` searches the
+ *  person's name and email (case-insensitive) so anyone can be found later. */
+export async function listAllIdTags(filter?: { dealerId?: string; status?: IdTagStatus; q?: string }): Promise<IdTagRow[]> {
+  const q = (filter?.q || '').trim();
   const rows = await prisma.homeDepotIdTag.findMany({
     where: {
       ...(filter?.dealerId ? { dealerId: filter.dealerId } : {}),
       ...(filter?.status ? { status: filter.status } : {}),
+      ...(q
+        ? { OR: [
+            { personName: { contains: q, mode: 'insensitive' } },
+            { personEmail: { contains: q, mode: 'insensitive' } },
+            { personPhone: { contains: q } },
+            { badgeNumber: { contains: q, mode: 'insensitive' } },
+          ] }
+        : {}),
     },
     orderBy: { createdAt: 'desc' },
     take: 1000,
     select: {
       id: true, personName: true, personEmail: true, personPhone: true, kind: true, status: true,
-      certificationId: true, dealerId: true, createdAt: true,
+      certificationId: true, headshotKey: true, dealerId: true, createdAt: true,
       dealer: { select: { name: true } },
     },
   });
   return rows.map((r) => ({
     id: r.id, personName: r.personName, personEmail: r.personEmail, personPhone: r.personPhone,
-    kind: r.kind, status: r.status, certified: !!r.certificationId, dealerId: r.dealerId,
-    dealerName: r.dealer?.name, createdAt: r.createdAt,
+    kind: r.kind, status: r.status, certified: !!r.certificationId, hasHeadshot: !!r.headshotKey,
+    dealerId: r.dealerId, dealerName: r.dealer?.name, createdAt: r.createdAt,
   }));
 }
 

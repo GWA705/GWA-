@@ -3,6 +3,7 @@ import { requireDealerAccess } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { listIdTagForDealer, isIdTagEnabledForDealer, ID_TAG_STATUS_LABEL, ID_TAG_STATUS_TONE, TONE_CLASS } from '@/lib/idTag';
 import { IdTagSubmitForm } from './IdTagSubmitForm';
+import { SendTrainingButton } from './SendTrainingButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,14 +44,16 @@ export default async function DealerIdTagsPage() {
             <p className="px-5 py-10 text-center text-sm text-slate-400">No one submitted yet. Add your first person on the left.</p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[520px] border-collapse text-sm">
+              <table className="w-full min-w-[680px] border-collapse text-sm">
                 <thead>
                   <tr className="bg-slate-50 text-left text-[11px] uppercase tracking-wide text-slate-500">
                     <th className="px-5 py-2.5 font-semibold">Name</th>
                     <th className="px-5 py-2.5 font-semibold">Type</th>
                     <th className="px-5 py-2.5 font-semibold">Training</th>
+                    <th className="px-5 py-2.5 font-semibold">Headshot</th>
                     <th className="px-5 py-2.5 font-semibold">ID tag status</th>
                     <th className="px-5 py-2.5 font-semibold">Added</th>
+                    <th className="px-5 py-2.5 font-semibold"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -68,11 +71,21 @@ export default async function DealerIdTagsPage() {
                           : <span className="text-xs font-bold text-red-600">✗ Needs training</span>}
                       </td>
                       <td className="px-5 py-3">
+                        {r.hasHeadshot
+                          ? <span className="text-xs font-bold text-green-700">✓</span>
+                          : <span className="text-xs font-bold text-amber-600">Missing</span>}
+                      </td>
+                      <td className="px-5 py-3">
                         <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${TONE_CLASS[ID_TAG_STATUS_TONE[r.status]]}`}>
                           {ID_TAG_STATUS_LABEL[r.status]}
                         </span>
                       </td>
                       <td className="px-5 py-3 text-xs text-slate-400">{new Date(r.createdAt).toLocaleDateString('en-CA')}</td>
+                      <td className="px-5 py-3">
+                        {r.kind === 'NEW' && !r.certified && r.personEmail
+                          ? <SendTrainingButton id={r.id} label="Send training" small />
+                          : null}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

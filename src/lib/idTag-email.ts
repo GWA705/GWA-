@@ -1,7 +1,7 @@
 import 'server-only';
 import { sendEmail } from './email';
 import { getIdTagSettings } from './settings';
-import { newRepEmailHtml, existingRepEmailHtml } from './idTag-email-template';
+import { newRepEmailHtml, existingRepEmailHtml, trainingInviteEmailHtml } from './idTag-email-template';
 
 function appUrl(): string {
   return (process.env.APP_URL || 'https://portal.ghsbarrie.ca').replace(/\/$/, '');
@@ -41,6 +41,27 @@ export async function sendIdTagNewRepEmail(
     return res.sent;
   } catch (e) {
     console.error('[idTag] new-rep email failed', e);
+    return false;
+  }
+}
+
+/**
+ * New rep — "complete your Home Depot in-store training" invite. The dealer
+ * sends this from their ID-tags list so the person can start training without a
+ * portal login. Best-effort; never throws.
+ */
+export async function sendIdTagTrainingInviteEmail(to: string, personName: string, link: string, office: string): Promise<boolean> {
+  if (!to || !link) return false;
+  try {
+    const html = trainingInviteEmailHtml({ appUrl: appUrl(), firstName: firstNameOf(personName), link, office });
+    const res = await sendEmail({
+      to,
+      subject: 'Your first step — Home Depot in-store training',
+      html,
+    });
+    return res.sent;
+  } catch (e) {
+    console.error('[idTag] training-invite email failed', e);
     return false;
   }
 }
