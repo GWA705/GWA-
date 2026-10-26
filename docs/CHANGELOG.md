@@ -1693,6 +1693,28 @@ exhausting the single instance). No behaviour change for normal use.
   `testSingleLead()` on a French lead first. Portal display auto-translates lead
   free-text via DeepL.
 
+## 2026-10-26 (weekly reports — code-review hardening)
+Review pass over the weekly-report send path before go-live, all send/privacy
+correctness:
+- **Double-send is now impossible, atomically.** The sent-log row is written
+  *before* the email (the unique `(week,kind,store)` index is the lock) instead
+  of after, so two overlapping runs — the Tuesday cron and a manual click, or two
+  clicks — can never both deliver the same store/national email. The loser of the
+  race skips. A failed send *releases* its own reservation so a later run retries;
+  a transient DB error never deletes a prior successful send's row.
+- **A store with no contacts is never "sent" or logged.** Previously a store with
+  sales but no `HdStoreContact` row would send to the internal BCC list only and
+  mark the week done — which then **blocked the real report forever** once contacts
+  were added. Now a store with no external recipient (store/distributor/office/ISM)
+  is skipped without logging, so adding its contacts later lets it send.
+- **The manual "Send this week now" button now also respects the master switch.**
+  It refused nothing before; now it returns an error unless the switch is ON, so
+  "nothing sends until I turn it on" holds for the button too (Test buttons still
+  preview to yourself regardless).
+- Honest UTC note on the cron (`weekly-reports.yml`): 13:00/11:00 UTC = 9am Mon /
+  7am Tue ET in summer, an hour earlier in winter (EST); both before the HD
+  business day, send stays idempotent. Removed an unused `weekAlreadySent` export.
+
 ## 2026-10-26 (weekly reports — attribution + Tuesday auto-send)
 - **Associate-attribution screen** (Admin → Weekly HD reports → Credit associates).
   Lists every **701 store-lead** sale paid in the week; for each you credit the

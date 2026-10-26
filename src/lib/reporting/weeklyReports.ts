@@ -357,47 +357,78 @@ export async function sendWeeklyReports(week: Week): Promise<WeeklySendSummary> 
   const summary: WeeklySendSummary = { week: week.label, national: 'no-recipients', storesSent: 0, storesSkipped: 0, storesNoRecipients: 0, recipients: 0, errors: [] };
 
   // National
+  let reservedNational = false; // true only while THIS call holds an unsent slot
   try {
-    const already = await prisma.hdWeeklyReportLog.findUnique({ where: { weekStart_kind_storeNumber: { weekStart, kind: 'NATIONAL', storeNumber: '' } } });
-    if (already) summary.national = 'skipped-sent-already';
+    const bcc = uniqEmails(await getNationalRecipients(), extra);
+    if (bcc.length === 0) summary.national = 'no-recipients';
     else {
-      const bcc = uniqEmails(await getNationalRecipients(), extra);
-      if (bcc.length === 0) summary.national = 'no-recipients';
+      // Reserve the slot BEFORE sending: the unique (week,kind,store) index is
+      // the lock, so two overlapping runs (cron + a manual click) can never both
+      // deliver the same email. If the reservation loses the race, skip.
+      reservedNational = await reserveSend(weekStart, 'NATIONAL', '', bcc.length);
+      if (!reservedNational) summary.national = 'skipped-sent-already';
       else {
         const html = renderNationalEmailHtml(await assembleNational(week));
         const res = await sendEmail({ to: replyTo, bcc: bcc.join(','), subject: `Georgian Water and Air Weekly National Sales Update — ${week.label}`, html, from, replyTo });
         if (!res.sent) { summary.national = 'error'; summary.errors.push(`national: ${res.reason}`); }
-        else { summary.national = 'sent'; summary.recipients += bcc.length; await logSent(weekStart, 'NATIONAL', '', bcc.length); }
+        else { summary.national = 'sent'; summary.recipients += bcc.length; reservedNational = false; } // keep the row
       }
     }
-  } catch (e) { summary.national = 'error'; summary.errors.push(`national: ${String(e)}`); }
+  } catch (e) {
+    summary.national = 'error'; summary.errors.push(`national: ${String(e)}`);
+  } finally {
+    // Any outcome other than a successful send releases the slot we claimed, so
+    // the next run can retry. reserveSend failures never set the flag, so we
+    // never delete a prior successful send's row.
+    if (reservedNational) await releaseSend(weekStart, 'NATIONAL', '');
+  }
 
   // Stores
   const reports = await assembleStoreReports(week);
   for (const r of reports) {
     if (!r.active) { summary.storesSkipped += 1; continue; }
+    // A store must have its OWN external recipients (store/distributor/office/
+    // ISM). Without them there is nobody at Home Depot to send to, so we do NOT
+    // send (and do NOT log) — otherwise the week would be marked done and the
+    // real report would be blocked once contacts are added for that store.
+    if (uniqEmails(r.to, r.cc).length === 0) { summary.storesNoRecipients += 1; continue; }
     const bcc = uniqEmails(r.to, r.cc, extra);
-    if (bcc.length === 0) { summary.storesNoRecipients += 1; continue; }
+    let reserved = false;
     try {
-      const exists = await prisma.hdWeeklyReportLog.findUnique({ where: { weekStart_kind_storeNumber: { weekStart, kind: 'STORE', storeNumber: r.storeNumber } } });
-      if (exists) { summary.storesSkipped += 1; continue; }
+      reserved = await reserveSend(weekStart, 'STORE', r.storeNumber, bcc.length);
+      if (!reserved) { summary.storesSkipped += 1; continue; }
       const res = await sendEmail({ to: replyTo, bcc: bcc.join(','), subject: 'Georgian Water and Air Weekly HD Sales Update', html: renderStoreEmailHtml(r), from, replyTo });
       if (!res.sent) { summary.errors.push(`${r.storeNumber}: ${res.reason}`); continue; }
-      summary.storesSent += 1; summary.recipients += bcc.length;
-      await logSent(weekStart, 'STORE', r.storeNumber, bcc.length);
-    } catch (e) { summary.errors.push(`${r.storeNumber}: ${String(e)}`); }
+      summary.storesSent += 1; summary.recipients += bcc.length; reserved = false; // keep the row
+    } catch (e) {
+      summary.errors.push(`${r.storeNumber}: ${String(e)}`);
+    } finally {
+      if (reserved) await releaseSend(weekStart, 'STORE', r.storeNumber);
+    }
   }
   return summary;
 }
 
-async function logSent(weekStart: Date, kind: string, storeNumber: string, recipientCount: number): Promise<void> {
-  await prisma.hdWeeklyReportLog.create({ data: { weekStart, kind, storeNumber, recipientCount } }).catch(() => {});
+/**
+ * Atomically claim the (week, kind, store) send slot. Returns true if this call
+ * won the slot (caller should send), false if it was already taken (duplicate —
+ * caller must NOT send). A real DB error throws, so the caller treats it as an
+ * error and does not send. The row is written first on purpose: if the write
+ * fails we never send, which is the safe failure.
+ */
+async function reserveSend(weekStart: Date, kind: string, storeNumber: string, recipientCount: number): Promise<boolean> {
+  try {
+    await prisma.hdWeeklyReportLog.create({ data: { weekStart, kind, storeNumber, recipientCount } });
+    return true;
+  } catch (e) {
+    if ((e as { code?: string })?.code === 'P2002') return false; // already reserved/sent
+    throw e;
+  }
 }
 
-/** Has this week already been sent (any store or national)? */
-export async function weekAlreadySent(week: Week): Promise<number> {
-  const weekStart = new Date(week.start); weekStart.setHours(0, 0, 0, 0);
-  return prisma.hdWeeklyReportLog.count({ where: { weekStart } });
+/** Release a reservation when the send itself failed, so a later run can retry. */
+async function releaseSend(weekStart: Date, kind: string, storeNumber: string): Promise<void> {
+  await prisma.hdWeeklyReportLog.delete({ where: { weekStart_kind_storeNumber: { weekStart, kind, storeNumber } } }).catch(() => {});
 }
 
 /** Monday reminder: email internal staff if any 701 store leads still need an

@@ -9,7 +9,7 @@ import { sendEmail } from '@/lib/email';
 import {
   lastFullWeek, assembleNational, renderNationalEmailHtml,
   assembleStoreReports, renderStoreEmailHtml, weeklySenderIdentity,
-  sendWeeklyReports,
+  sendWeeklyReports, weeklyReportsEnabled,
 } from '@/lib/reporting/weeklyReports';
 
 export interface WeeklyActionState { error?: string; ok?: boolean; summary?: string }
@@ -77,6 +77,11 @@ export async function setLeadCreditAction(hdRef: string, _prev: WeeklyActionStat
 /** Send this week's reports for real, now (to all recipients, BCC'd). Idempotent. */
 export async function sendWeeklyNowAction(): Promise<WeeklyActionState> {
   const session = await requireAdminSection('weekly-reports');
+  // The master switch gates the manual send too: nothing reaches a real Home
+  // Depot recipient until it is turned on. Use the Test buttons to preview.
+  if (!(await weeklyReportsEnabled())) {
+    return { error: 'Weekly auto-send is OFF. Turn the master switch ON first — or use a Test button to preview without sending.' };
+  }
   const week = lastFullWeek();
   const res = await sendWeeklyReports(week);
   await audit({ actorId: session.userId, action: 'STATUS_CHANGE', entityType: 'HdWeeklyReport', entityId: week.label, detail: `Manual weekly send — national ${res.national}, ${res.storesSent} stores, ${res.recipients} recipients${res.errors.length ? `, ${res.errors.length} errors` : ''}` });

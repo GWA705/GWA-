@@ -1,10 +1,16 @@
 name: Weekly HD reports (cron)
 
 # Drives the in-portal weekly Home Depot reports:
-#   • Monday  ~9am ET  → mode=remind (email staff about any 701 store leads that
+#   • Monday  13:00 UTC → mode=remind (email staff about any 701 store leads that
 #                        still need an associate credited)
-#   • Tuesday ~7am ET  → mode=send  (send national + each store's report, BCC'd),
+#   • Tuesday 11:00 UTC → mode=send  (send national + each store's report, BCC'd),
 #                        but ONLY if the master switch is ON in the portal.
+#
+# NOTE: GitHub Actions cron is always UTC and does not observe daylight saving.
+# 13:00/11:00 UTC land at 9am Mon / 7am Tue ET during EDT (summer) and an hour
+# earlier — 8am Mon / 6am Tue ET — during EST (winter). Both are before the HD
+# business day, so the hour of drift is harmless. The send is idempotent per
+# week regardless of when it fires.
 # The send is idempotent per week (sent-log), so a re-run never double-sends.
 # Inert until CRON_SECRET matches the Elastic Beanstalk env var, store contacts
 # are imported, and (for sending) the master switch is turned on.
