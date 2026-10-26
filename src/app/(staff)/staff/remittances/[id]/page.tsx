@@ -14,6 +14,7 @@ const CHIP: Record<string, string> = {
   MATCHED: 'bg-green-100 text-green-800',
   UNMATCHED: 'bg-amber-100 text-amber-800',
   CHARGEBACK: 'bg-red-100 text-red-700',
+  DEDUCTION: 'bg-purple-100 text-purple-700',
 };
 
 export default async function RemittanceDetailPage({ params }: { params: { id: string } }) {

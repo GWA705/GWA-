@@ -24,12 +24,16 @@ import { computeDealerPayout } from './payoutCalc';
 // Statuses we never auto-advance from.
 const TERMINAL: ApplicationStatus[] = ['DECLINED', 'WITHDRAWN', 'DRAFT'];
 
+export type RemittanceLineType = 'INVOICE' | 'CHARGEBACK' | 'DEDUCTION';
+
 export interface RemittanceLineInput {
-  hdIdNumber: string;
-  amount: number; // signed net; negative (or isChargeback) = chargeback
+  hdIdNumber: string; // HD ID # for invoices/chargebacks; the fee code for deductions
+  amount: number; // signed net; negative = money OUT (chargeback or deduction)
   customerName?: string | null;
   invoiceDate?: string | null; // MM/DD/YYYY or ISO
   isChargeback?: boolean;
+  type?: RemittanceLineType; // defaults to INVOICE (positive) / CHARGEBACK (negative w/ HD id)
+  description?: string | null; // free text (deduction label)
 }
 
 export interface RemittanceInput {
@@ -39,6 +43,13 @@ export interface RemittanceInput {
   source: 'WEBHOOK' | 'MANUAL';
   processedById?: string | null;
   lines: RemittanceLineInput[];
+  /**
+   * HD's own printed grand total (the bottom "… 0.00 <net>" row). When provided,
+   * ingest REFUSES to process unless the sum of the parsed line amounts equals it
+   * (within a cent) — the integrity guard that makes a mis-parse impossible to
+   * fund. Omit it (webhook/manual) to skip the check.
+   */
+  grandTotal?: number | null;
 }
 
 export interface RemittanceResult {
@@ -50,6 +61,7 @@ export interface RemittanceResult {
   funded: number;
   partial?: number; // split-payment deals that received a partial HD payment
   chargebacks: number;
+  deductions?: number; // non-deal fees HD withheld (lead/program fees)
   unmatched: { hdIdNumber: string; amount: number }[];
   error?: string;
 }
@@ -72,10 +84,22 @@ function toDate(raw?: string | null): Date | null {
  * names (those come from the Google matcher), so names are left blank here — the
  * portal still matches each line to a deal by HD #.
  */
+// A money token like 2,146.96 or 490.00- or $1,000.00. A trailing (or leading)
+// minus marks money going OUT (HD withholding it from the payment).
+const MONEY = /-?\$?[\d,]+\.\d{2}-?/g;
+const DATE = /\b(\d{1,2}\/\d{1,2}\/\d{4})\b/;
+/** A money token → signed number; a '-' anywhere in the token means negative. */
+function signedMoney(tok: string): number {
+  const val = parseFloat(tok.replace(/[^0-9.]/g, ''));
+  if (!Number.isFinite(val)) return NaN;
+  return /-/.test(tok) ? -Math.abs(val) : Math.abs(val);
+}
+
 export function parseHdRemittanceText(text: string): {
   documentNumber: string | null;
   documentDate: string | null;
   paymentDate: string | null;
+  grandTotal: number | null;
   lines: RemittanceLineInput[];
 } {
   const grab = (re: RegExp): string | null => {
@@ -87,23 +111,53 @@ export function parseHdRemittanceText(text: string): {
   const paymentDate = grab(/Payment Date\/Date de Paiement:\s*(\d{1,2}\/\d{1,2}\/\d{4})/i);
 
   const lines: RemittanceLineInput[] = [];
+  let grandTotal: number | null = null;
+
   for (const raw of text.split(/\r?\n/)) {
-    // A data row starts with an 8+ digit HD ID and an invoice date, followed by
-    // the money columns. Anything else (headers, totals, the address block) is
-    // skipped because it doesn't start with an HD ID + date.
-    const m = raw.match(/^\s*(\d{8,})\s+(\d{1,2}\/\d{1,2}\/\d{4})\s+(.+)$/);
-    if (!m) continue;
-    const hdIdNumber = m[1];
-    const invoiceDate = m[2];
-    // The net amount is the last money token on the row (gross, adjmt, NET).
-    const nums = m[3].match(/-?\$?[\d,]+\.\d{2}/g);
-    if (!nums || nums.length === 0) continue;
-    const net = Number(nums[nums.length - 1].replace(/[^0-9.\-]/g, ''));
+    const t = raw.trim();
+    if (!t) continue;
+    const monies = t.match(MONEY);
+    if (!monies || monies.length === 0) continue;
+    const dateM = t.match(DATE);
+
+    // No date on the row → it's a header/address/total line, never a deal row.
+    // The grand-total row is the money-only "<gross> 0.00 <net>" at the bottom;
+    // keep the largest-magnitude one as HD's own printed total (our integrity ref).
+    if (!dateM) {
+      const tot = t.match(/^(-?[\d,]+\.\d{2})\s+0\.00\s+(-?[\d,]+\.\d{2})$/);
+      if (tot) {
+        const v = signedMoney(tot[2]);
+        if (Number.isFinite(v) && (grandTotal === null || Math.abs(v) > Math.abs(grandTotal))) grandTotal = v;
+      }
+      continue;
+    }
+
+    // Data row. The NET is the last money token on the row (gross, adjmt, NET).
+    const net = signedMoney(monies[monies.length - 1]);
     if (!Number.isFinite(net) || net === 0) continue;
-    lines.push({ hdIdNumber, amount: net, invoiceDate, isChargeback: net < 0 });
+
+    // The HD ID #: the leading token when it's a 7–12 digit number, else a
+    // chargeback reference embedded in the row (GRGA#800…, G800…, or a bare 7/8 id).
+    const lead = t.split(/\s+/)[0];
+    let hdId = /^\d{7,12}$/.test(lead) ? lead : '';
+    if (!hdId) {
+      const g = t.match(/\bG?RGA?#?\s*([78]\d{7,9})\b/i) || t.match(/\b([78]\d{8})\b/);
+      if (g) hdId = g[1];
+    }
+
+    if (net < 0 && !hdId) {
+      // A deduction HD withheld (lead fee / program fee) — matches no deal, but
+      // must reduce the net. Keep the row's own code + description.
+      const after = t.slice((dateM.index ?? 0) + dateM[0].length);
+      const desc = after.replace(MONEY, '').replace(/\s+/g, ' ').trim();
+      lines.push({ hdIdNumber: lead.slice(0, 60), amount: net, invoiceDate: dateM[1], isChargeback: false, type: 'DEDUCTION', description: desc || lead });
+    } else if (hdId) {
+      lines.push({ hdIdNumber: hdId, amount: net, invoiceDate: dateM[1], isChargeback: net < 0, type: net < 0 ? 'CHARGEBACK' : 'INVOICE' });
+    }
+    // A positive amount with no HD id and a date shouldn't occur; ignore it.
   }
 
-  return { documentNumber, documentDate, paymentDate, lines };
+  return { documentNumber, documentDate, paymentDate, grandTotal, lines };
 }
 
 export async function ingestRemittance(input: RemittanceInput): Promise<RemittanceResult> {
@@ -118,8 +172,30 @@ export async function ingestRemittance(input: RemittanceInput): Promise<Remittan
     }
   }
 
-  const lines = (input.lines || []).filter((l) => l && digits(l.hdIdNumber).length >= 8);
+  // Keep every real line, including non-deal deductions (lead/program fees). Only
+  // drop blanks and zero-dollar rows.
+  const lines = (input.lines || []).filter((l) => l && Number.isFinite(Number(l.amount)) && Number(l.amount) !== 0);
   if (lines.length === 0) return { ok: false, error: 'No valid lines.', lineCount: 0, matched: 0, funded: 0, chargebacks: 0, unmatched: [] };
+
+  // A deduction is a non-deal fee HD withheld: tagged DEDUCTION, or a negative
+  // line whose "HD ID" isn't a real 8+ digit deal reference.
+  const isDeduction = (l: RemittanceLineInput) =>
+    l.type === 'DEDUCTION' || (digits(l.hdIdNumber).length < 8 && Number(l.amount) < 0);
+
+  // INTEGRITY GUARD — the sum of every parsed line must equal HD's own printed
+  // grand total, within a cent. If it doesn't, the parse is wrong: refuse to
+  // process so a mis-parse can never fund a deal with the wrong amount. (This is
+  // exactly what a positional mis-read would trip.)
+  if (input.grandTotal != null) {
+    const sum = lines.reduce((s, l) => s + (Number(l.amount) || 0), 0);
+    if (Math.abs(sum - input.grandTotal) > 0.02) {
+      return {
+        ok: false,
+        error: `Integrity check failed — the ${lines.length} parsed lines add to $${sum.toFixed(2)}, but Home Depot's printed grand total is $${input.grandTotal.toFixed(2)} (off by $${Math.abs(sum - input.grandTotal).toFixed(2)}). Nothing was funded — please review the remittance PDF.`,
+        lineCount: lines.length, matched: 0, funded: 0, chargebacks: 0, unmatched: [],
+      };
+    }
+  }
 
   // Content-based dedupe fail-safe: catch a re-entry that used a DIFFERENT (or no)
   // document number — the same set of HD #s + amounts is almost certainly the same
@@ -146,7 +222,7 @@ export async function ingestRemittance(input: RemittanceInput): Promise<Remittan
 
   // Look up all referenced deals in one query, newest first so a re-used HD number
   // maps to the most recent deal.
-  const refs = Array.from(new Set(lines.map((l) => digits(l.hdIdNumber))));
+  const refs = Array.from(new Set(lines.filter((l) => !isDeduction(l)).map((l) => digits(l.hdIdNumber)).filter((r) => r.length >= 8)));
   const apps = await prisma.application.findMany({
     where: { hdReference: { in: refs } },
     select: {
@@ -206,11 +282,33 @@ export async function ingestRemittance(input: RemittanceInput): Promise<Remittan
   let funded = 0;
   let partial = 0;
   let chargebacks = 0;
+  let deductions = 0;
   const unmatched: { hdIdNumber: string; amount: number }[] = [];
 
   for (const l of lines) {
-    const ref = digits(l.hdIdNumber);
     const amount = Number(l.amount) || 0;
+
+    // Non-deal deduction (lead/program fee): record it so the net reconciles and
+    // it shows on the report; it matches no deal and funds nothing.
+    if (isDeduction(l)) {
+      deductions += 1;
+      await prisma.hdRemittanceLine.create({
+        data: {
+          remittanceId: remittance.id,
+          hdIdNumber: String(l.hdIdNumber || 'DEDUCTION').slice(0, 60),
+          customerName: (l.description || '').toString().slice(0, 120) || null,
+          amount: new Prisma.Decimal(amount.toFixed(2)),
+          invoiceDate: toDate(l.invoiceDate),
+          isChargeback: false,
+          status: 'DEDUCTION',
+          applicationId: null,
+          fundedNow: false,
+        },
+      });
+      continue;
+    }
+
+    const ref = digits(l.hdIdNumber);
     const isChargeback = !!l.isChargeback || amount < 0;
     const app = byRef.get(ref);
     let status: 'MATCHED' | 'UNMATCHED' | 'CHARGEBACK' = 'UNMATCHED';
@@ -320,10 +418,10 @@ export async function ingestRemittance(input: RemittanceInput): Promise<Remittan
     action: 'STATUS_CHANGE',
     entityType: 'HdRemittance',
     entityId: remittance.id,
-    detail: `Remittance ${docNumber ?? '(manual)'}: ${lines.length} lines, ${funded} funded, ${partial} partial, ${chargebacks} chargebacks, ${unmatched.length} unmatched`,
+    detail: `Remittance ${docNumber ?? '(manual)'}: ${lines.length} lines, ${funded} funded, ${partial} partial, ${chargebacks} chargebacks, ${deductions} deductions, ${unmatched.length} unmatched`,
   });
 
-  return { ok: true, remittanceId: remittance.id, lineCount: lines.length, matched, funded, partial, chargebacks, unmatched };
+  return { ok: true, remittanceId: remittance.id, lineCount: lines.length, matched, funded, partial, chargebacks, deductions, unmatched };
 }
 
 export interface ReMatchResult {

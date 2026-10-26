@@ -349,7 +349,7 @@ export const en = {
   },
   remit: {
     manualTag: '(manual)', funded: 'Funded', paymentDate: 'Payment date', lines: 'Lines', processed: '✓ Processed — {summary}',
-    status: { MATCHED: 'MATCHED', UNMATCHED: 'UNMATCHED', CHARGEBACK: 'CHARGEBACK' },
+    status: { MATCHED: 'MATCHED', UNMATCHED: 'UNMATCHED', CHARGEBACK: 'CHARGEBACK', DEDUCTION: 'FEE' },
     manual: { submit: 'Process remittance', docNumberLabel: 'HD document #', docNumberHint: '(optional — dedupes re-entries)', optionalHint: '(optional)', linesHintBefore: 'One per line: ', linesHintAfter: '. A negative amount is a chargeback.' },
     upload: { reading: 'Reading PDF…', submit: 'Upload & process', remittanceAdvice: 'Remittance Advice', blurbBefore: 'Upload the Home Depot ', blurbAfter: ' PDF — the portal reads the invoices and processes it automatically. (The raw HD PDF has no customer names, so lines show the HD # and amount; each still matches to a deal by HD #.)' },
     reconcile: { submit: 'Re-check unmatched against current deals' },

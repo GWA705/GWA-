@@ -75,6 +75,7 @@ export async function ingestRemittancePdfAction(_prev: RemittanceActionState, fo
     source: 'MANUAL',
     processedById: session.userId,
     lines: parsed.lines,
+    grandTotal: parsed.grandTotal, // enables the net-total integrity guard
   });
 
   if (!result.ok) return { error: result.error || 'Could not process the remittance.' };
@@ -83,7 +84,7 @@ export async function ingestRemittancePdfAction(_prev: RemittanceActionState, fo
   revalidatePath('/staff/remittances');
   return {
     ok: true,
-    summary: `${result.lineCount} lines · ${result.funded} funded · ${result.partial ?? 0} partial · ${result.chargebacks} chargebacks · ${result.unmatched.length} unmatched`,
+    summary: `${result.lineCount} lines · ${result.funded} funded · ${result.partial ?? 0} partial · ${result.chargebacks} chargebacks · ${result.deductions ?? 0} fees · ${result.unmatched.length} unmatched`,
   };
 }
 

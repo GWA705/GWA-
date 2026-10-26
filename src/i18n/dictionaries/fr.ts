@@ -354,7 +354,7 @@ export const fr: Dictionary = {
   },
   remit: {
     manualTag: '(manuel)', funded: 'Financé', paymentDate: 'Date de paiement', lines: 'Lignes', processed: '✓ Traité — {summary}',
-    status: { MATCHED: 'Rapprochée', UNMATCHED: 'Non rapprochée', CHARGEBACK: 'Rétrofacturation' },
+    status: { MATCHED: 'Rapprochée', UNMATCHED: 'Non rapprochée', CHARGEBACK: 'Rétrofacturation', DEDUCTION: 'Frais' },
     manual: { submit: 'Traiter le versement', docNumberLabel: 'N° de document HD', docNumberHint: '(optionnel — évite les doublons de ressaisie)', optionalHint: '(optionnel)', linesHintBefore: 'Une par ligne : ', linesHintAfter: '. Un montant négatif correspond à une rétrofacturation.' },
     upload: { reading: 'Lecture du PDF…', submit: 'Téléverser et traiter', remittanceAdvice: 'avis de versement', blurbBefore: 'Téléversez l’', blurbAfter: ' PDF de Home Depot — le portail lit les factures et le traite automatiquement. (Le PDF HD brut ne contient pas les noms de clients, donc les lignes affichent le n° HD et le montant; chacune se rapproche tout de même d’un dossier par n° HD.)' },
     reconcile: { submit: 'Revérifier les non rapprochées par rapport aux dossiers actuels' },

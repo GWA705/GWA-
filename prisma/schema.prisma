@@ -1178,6 +1178,7 @@ enum RemittanceLineStatus {
   MATCHED    // matched to a deal and funded
   UNMATCHED  // no deal found for this HD ID (needs attention)
   CHARGEBACK // HD clawed money back — flagged into the refund flow
+  DEDUCTION  // a non-deal fee HD withheld (lead fee / program fee) — reduces net, matches no deal
 }
 
 model HdRemittance {

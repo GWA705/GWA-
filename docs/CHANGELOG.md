@@ -1693,6 +1693,31 @@ exhausting the single instance). No behaviour change for normal use.
   `testSingleLead()` on a French lead first. Portal display auto-translates lead
   free-text via DeepL.
 
+## 2026-10-26 (remittance accuracy)
+- **HD remittance parsing hardened — fixes the amount-shuffle and the dropped lead fee.**
+  Root cause of the shuffle: the Google Apps Script OCRs the PDF (reflowing the
+  columns) and then zips IDs to amounts positionally, so one extra line (a lead
+  fee) slides every amount onto the wrong deal — and because the grand total still
+  matched, its check passed. The portal already parses the real text (`unpdf`,
+  no OCR) one row per line, so **no shuffle is possible there**; this change makes
+  that path correct and complete and makes it the source of truth:
+  - `parseHdRemittanceText` now (a) captures non-deal **deduction/lead-fee rows**
+    (e.g. `SEPT26LEADFEES31 … 490.00-`) as negative lines instead of dropping them,
+    so the net reconciles; (b) classifies embedded **GRGA chargebacks** to their HD
+    deal; (c) returns HD's **printed grand total**.
+  - `ingestRemittance` gains an **integrity guard**: the parsed lines must sum to
+    HD's grand total (±$0.01) or it **refuses to fund anything** and flags for
+    review — a mis-parse can no longer fund a deal with the wrong amount. Deductions
+    are recorded on a new `DEDUCTION` line status (purple “FEE” badge) and netted.
+  - Proven against the real 2026-10-26 file (doc 2000160840): `tests/hdRemittanceParse.test.ts`
+    (each HD ID → its own amount, fee = −$490, reconciles to $33,919.10) and the
+    DB-backed `tests/hdRemittanceIngest.e2e.test.ts` (7 deals funded with the
+    correct amounts; integrity guard refuses a bad total). Migration
+    `20261026030000_remittance_deduction_status`.
+  - **Operational:** process remittances in the portal (Staff → Remittances →
+    upload the HD PDF) instead of trusting the Apps Script push. Next step to go
+    fully hands-off in-portal: a Gmail auto-pull cron (not yet built).
+
 ## 2026-10-26 (scanning)
 - **Scanned leads: hard duplicate block — the same card can't be scanned in twice.**
   On save, a scanned lead is checked against what's already in the list and
