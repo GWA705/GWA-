@@ -1,0 +1,66 @@
+name: HD remittance auto-pull (cron)
+
+# Pulls Home Depot "Remittance Advice" emails into the portal, parses the PDF
+# in-portal (no OCR, so amounts can't shuffle) and funds matched deals. This is
+# the in-portal replacement for the old Google Apps Script. The app runs NO
+# scheduler, so this workflow is what calls
+# src/app/api/cron/hd-remittance-sync/route.ts in production.
+#
+# Idempotent: ingest dedupes by HD document number, so running it several times a
+# morning is safe. Inert (endpoint returns ok/skipped) until Gmail read access is
+# configured on Elastic Beanstalk (GMAIL_RESOLUTION_USER + the read-only
+# delegation HD Resolution already uses).
+#
+# Setup (one-time):
+#   1. Repo secret CRON_SECRET must match the CRON_SECRET env var on Elastic
+#      Beanstalk (the same one the other crons use). If they differ → 401.
+#   2. (Optional) Repo variable PORTAL_BASE_URL to override the production URL.
+#   3. (Optional) EB env REMITTANCE_ALERT_EMAIL — where "needs manual review"
+#      alerts go (defaults to the HD Resolution mailbox / sean@ghsbarrie.ca).
+#
+# Run on demand any time from the Actions tab → "HD remittance auto-pull (cron)".
+
+on:
+  schedule:
+    # HD sends Mon/Wed/Fri mornings. GitHub cron is UTC and can't track DST; these
+    # are set for EDT (UTC-4) and land ~1h earlier local in winter. A few passes
+    # catch it whenever it arrives that morning.
+    - cron: '15 12 * * 1,3,5'  # ~8:15am ET
+    - cron: '15 14 * * 1,3,5'  # ~10:15am ET
+    - cron: '15 16 * * 1,3,5'  # ~12:15pm ET
+  workflow_dispatch: {}
+
+concurrency:
+  group: hd-remittance-sync
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call hd-remittance-sync endpoint
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          BASE_URL: ${{ vars.PORTAL_BASE_URL || 'https://portal.ghsbarrie.ca' }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "::error::CRON_SECRET repo secret is not set. Add it under Settings -> Secrets and variables -> Actions. It must match the CRON_SECRET env var on Elastic Beanstalk."
+            exit 1
+          fi
+          url="${BASE_URL%/}/api/cron/hd-remittance-sync"
+          echo "POST $url"
+          code=$(curl -sS -o /tmp/body.txt -w '%{http_code}' -X POST "$url" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            --retry 3 --retry-delay 5 --max-time 120 || echo "000")
+          echo "HTTP status: $code"
+          echo "Response body: $(cat /tmp/body.txt 2>/dev/null)"
+          case "$code" in
+            200) echo "Auto-pull started (or skipped — inert until Gmail is configured)." ;;
+            401) echo "::error::401 Unauthorized - CRON_SECRET repo secret does not match the one on Elastic Beanstalk."; exit 1 ;;
+            503) echo "::error::503 - CRON_SECRET is not configured on the Elastic Beanstalk environment."; exit 1 ;;
+            000) echo "::error::Could not reach $url (network/DNS/timeout). Check PORTAL_BASE_URL."; exit 1 ;;
+            *)   echo "::error::hd-remittance-sync returned HTTP $code"; exit 1 ;;
+          esac

@@ -1693,6 +1693,27 @@ exhausting the single instance). No behaviour change for normal use.
   `testSingleLead()` on a French lead first. Portal display auto-translates lead
   free-text via DeepL.
 
+## 2026-10-26 (remittance auto-pull — retires the Apps Script)
+- **HD remittances now auto-process inside the portal** — the in-portal replacement
+  for the Google Apps Script. A scheduled job reads the HD “Remittance Advice”
+  emails from the shared read-only mailbox (same Gmail delegation HD Resolution
+  uses), extracts the PDF text with `unpdf` (**no OCR**, so columns stay intact and
+  amounts can’t shuffle), parses each row with its own net, and funds matched
+  deals through the same hardened `ingestRemittance` (grand-total integrity guard,
+  lead-fee netting, chargebacks). Idempotent by HD document number, so it runs
+  several times a morning safely and needs only read-only Gmail (no label writes).
+  - Code: `src/lib/hdRemittanceSync.ts` (`sweepHdRemittances`), cron route
+    `src/app/api/cron/hd-remittance-sync/route.ts` (Bearer `CRON_SECRET`), workflow
+    `.github/workflows/hd-remittance-sync.yml` (Mon/Wed/Fri mornings + manual run).
+  - **Needs manual review → email alert**: anything that can’t be auto-processed
+    (integrity mismatch, unreadable PDF) is NOT funded and triggers an alert email
+    to `REMITTANCE_ALERT_EMAIL` (falls back to the HD Resolution mailbox), so a bad
+    file never fails silently.
+  - **To go live:** the workflow is inert until it runs on the default branch with
+    the `CRON_SECRET` repo secret (already set) and Gmail read access
+    (`GMAIL_RESOLUTION_USER`, already live). Then **turn off the Google Apps Script
+    trigger** so the two don’t both fund. Optional EB env `REMITTANCE_ALERT_EMAIL`.
+
 ## 2026-10-26 (remittance accuracy)
 - **HD remittance parsing hardened — fixes the amount-shuffle and the dropped lead fee.**
   Root cause of the shuffle: the Google Apps Script OCRs the PDF (reflowing the
