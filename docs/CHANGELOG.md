@@ -1693,6 +1693,32 @@ exhausting the single instance). No behaviour change for normal use.
   `testSingleLead()` on a French lead first. Portal display auto-translates lead
   free-text via DeepL.
 
+## 2026-10-26
+- **New report: Sales projection (year-end revenue estimate).** Staff → Reports →
+  **Sales projection** (Super Admin), with an office picker (any office or All
+  offices) and a year picker. Answers "where does the year land?" off the **sales
+  journal** — the same basis as the **Total Sales** report (OK deals, gross, by
+  **Date Paid**) — so the actual months reconcile exactly with what the team
+  already trusts. Method is deliberately honest: completed months are banked
+  actuals; the rest of the year is scaled to a full year **weighted by the prior
+  year's month-by-month seasonal shape** (a July-heavy year isn't projected as a
+  flat average); the headline is a **range (low / expected / high)** derived three
+  independent ways (seasonal pace, flat run-rate, prior-year pace), with a stated
+  **confidence** note and an "estimate, not a guarantee" disclaimer. Also projects
+  the full-year **paid-deal count**. Chart shows each month banked (solid) + still
+  -to-come (striped) to year-end.
+  - Code: pure math in `src/lib/reporting/salesProjection.ts` (`projectYear`,
+    unit-tested in `tests/salesProjection.test.ts`), journal read + office scoping
+    in `src/lib/reporting/salesProjectionData.ts` (`journalMonthlyPaid`), view
+    `src/components/reporting/SalesProjectionView.tsx`, page
+    `src/app/(staff)/staff/reports/projection/page.tsx`. i18n `salesProjection.*`
+    + `reportsUi.projection.title` (EN + FR).
+  - Note: the existing **Sales forecast** report is unchanged but reads **portal
+    applications** (pipeline), not the journal, so its numbers won't match Total
+    Sales — its hub blurb now says so, and Projection is the one that reconciles.
+    Dealer-side projection tab is a quick follow-up (this ships admin-side first,
+    where all-office totals live).
+
 ## 2026-10-22
 - **Fix: Find-customer pasted the wrong customer's address/phone/email onto another.**
   A saved "Edit info" correction (`CustomerContactOverride`) for a **journal row** is keyed

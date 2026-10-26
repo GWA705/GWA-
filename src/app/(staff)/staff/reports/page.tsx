@@ -187,9 +187,17 @@ export default async function ReportsLandingPage() {
     // Owner tools, previously dealer-side only — now available to admins across
     // any office (or all offices), with an office picker on each.
     {
+      href: '/staff/reports/projection',
+      title: 'Sales projection',
+      blurb: 'Year-end revenue estimate for any office (or all offices) — built on the sales journal, so it ties out to Total Sales. Expected / low / high.',
+      accent: '#0f766e',
+      badge: 'Super Admin',
+      available: isAdmin,
+    },
+    {
       href: '/staff/reports/forecast',
       title: 'Sales forecast',
-      blurb: 'Projected sales for any office (or all offices), based on recent monthly history.',
+      blurb: 'Pipeline view from portal applications (not the journal), based on recent monthly history.',
       accent: '#1a5fa8',
       badge: 'Super Admin',
       available: isAdmin,
