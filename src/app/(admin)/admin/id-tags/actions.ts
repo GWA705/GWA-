@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { requireAdminSection } from '@/lib/session';
-import { setIdTagStatus, isIdTagStatus, setIdTagEnabledOffices } from '@/lib/idTag';
+import { setIdTagStatus, isIdTagStatus, setIdTagEnabledOffices, deleteIdTag } from '@/lib/idTag';
 import { setSetting, ID_TAG_SETTING_KEYS } from '@/lib/settings';
 import { sendIdTagNewRepEmail, sendIdTagExistingRepEmail } from '@/lib/idTag-email';
 import { emailEnabled } from '@/lib/email';
@@ -46,6 +46,14 @@ export async function updateIdTagStatusAction(formData: FormData): Promise<void>
   const id = String(formData.get('id') || '');
   const status = String(formData.get('status') || '');
   if (id && isIdTagStatus(status)) await setIdTagStatus(id, status);
+  revalidatePath('/admin/id-tags');
+}
+
+/** Permanently delete one ID-tag request (and its stored files). */
+export async function deleteIdTagAction(formData: FormData): Promise<void> {
+  await requireAdminSection('id-tags');
+  const id = String(formData.get('id') || '').trim();
+  if (id) await deleteIdTag(id);
   revalidatePath('/admin/id-tags');
 }
 

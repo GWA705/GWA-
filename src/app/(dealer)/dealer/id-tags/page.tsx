@@ -4,6 +4,8 @@ import { prisma } from '@/lib/db';
 import { listIdTagForDealer, isIdTagEnabledForDealer, ID_TAG_STATUS_LABEL, ID_TAG_STATUS_TONE, TONE_CLASS } from '@/lib/idTag';
 import { IdTagSubmitForm } from './IdTagSubmitForm';
 import { SendTrainingButton } from './SendTrainingButton';
+import { IdTagHeadshotButton } from '@/components/IdTagHeadshotButton';
+import { changeIdTagHeadshotAction } from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -71,9 +73,12 @@ export default async function DealerIdTagsPage() {
                           : <span className="text-xs font-bold text-red-600">✗ Needs training</span>}
                       </td>
                       <td className="px-5 py-3">
-                        {r.hasHeadshot
-                          ? <span className="text-xs font-bold text-green-700">✓</span>
-                          : <span className="text-xs font-bold text-amber-600">Missing</span>}
+                        <div className="flex items-center gap-2">
+                          {r.hasHeadshot
+                            ? <span className="text-xs font-bold text-green-700">✓</span>
+                            : <span className="text-xs font-bold text-amber-600">Missing</span>}
+                          <IdTagHeadshotButton id={r.id} action={changeIdTagHeadshotAction} label={r.hasHeadshot ? 'Change' : 'Add'} small />
+                        </div>
                       </td>
                       <td className="px-5 py-3">
                         <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${TONE_CLASS[ID_TAG_STATUS_TONE[r.status]]}`}>

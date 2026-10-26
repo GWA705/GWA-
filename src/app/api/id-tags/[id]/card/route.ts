@@ -15,7 +15,7 @@ function mimeFor(key: string): string {
 
 /** Serve the finished Entuitive QR card so the dealer can download & print it.
  *  Internal staff, or the owning office, may fetch it. */
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(req: Request, { params }: { params: { id: string } }) {
   const session = await getSession();
   if (!session) return new NextResponse('Unauthorized', { status: 401 });
 
@@ -29,12 +29,12 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   const bytes = await getDocument(tag.cardFileKey);
   const mime = mimeFor(tag.cardFileKey);
   const ext = mime === 'application/pdf' ? 'pdf' : mime === 'image/png' ? 'png' : 'jpg';
-  const fname = idTagFileName({ personName: tag.personName, date: tag.createdAt, badgeNumber: tag.badgeNumber }, 'card', ext);
+  const fname = idTagFileName({ personName: tag.personName, date: tag.startedDate, badgeNumber: tag.badgeNumber }, 'card', ext);
   await audit({ actorId: session.userId, action: 'DOC_DOWNLOAD', entityType: 'HomeDepotIdTag', entityId: params.id, detail: 'ID-tag card downloaded' });
   return new NextResponse(new Uint8Array(bytes), {
     headers: {
       'Content-Type': mime,
-      'Content-Disposition': `attachment; filename="${fname}"`,
+      'Content-Disposition': `${new URL(req.url).searchParams.get('view') === '1' ? 'inline' : 'attachment'}; filename="${fname}"`,
       'Cache-Control': 'no-store',
     },
   });

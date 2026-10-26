@@ -1,10 +1,11 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 import { requireStaffSection } from '@/lib/session';
 import {
   setDealerIdTagPassword, setDealerEntuitiveProfile, OFFICE_PROFILE_FIELDS,
-  setIdTagStatus, isIdTagStatus, setIdTagCardInfo,
+  setIdTagStatus, isIdTagStatus, setIdTagCardInfo, saveIdTagHeadshot, deleteIdTag,
   type OfficeEntuitiveProfile,
 } from '@/lib/idTag';
 import { setSetting, ID_TAG_SETTING_KEYS } from '@/lib/settings';
@@ -46,6 +47,26 @@ export async function updateIdTagStatusStaffAction(formData: FormData): Promise<
   const status = String(formData.get('status') || '');
   if (id && isIdTagStatus(status)) await setIdTagStatus(id, status);
   if (id) revalidatePath(`/staff/id-tags/${id}`);
+  revalidatePath('/staff/id-tags');
+}
+
+/** Reviewer: permanently delete an ID-tag record (and its files), then return
+ *  to the board. */
+export async function deleteIdTagStaffAction(formData: FormData): Promise<void> {
+  await requireStaffSection('id-tags');
+  const id = String(formData.get('id') || '').trim();
+  if (id) await deleteIdTag(id);
+  revalidatePath('/staff/id-tags');
+  redirect('/staff/id-tags');
+}
+
+/** Reviewer: change/replace a person's headshot. */
+export async function uploadIdTagHeadshotStaffAction(formData: FormData): Promise<void> {
+  await requireStaffSection('id-tags');
+  const id = String(formData.get('id') || '').trim();
+  if (!id) return;
+  await saveIdTagHeadshot(id, formData.get('headshot') as File | null);
+  revalidatePath(`/staff/id-tags/${id}`);
   revalidatePath('/staff/id-tags');
 }
 

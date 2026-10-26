@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { requireDealerAccess } from '@/lib/session';
 import { prisma } from '@/lib/db';
-import { createIdTagRequest, markIdTagEmailed } from '@/lib/idTag';
+import { createIdTagRequest, markIdTagEmailed, saveIdTagHeadshot } from '@/lib/idTag';
 import { sendIdTagNewRepEmail, sendIdTagExistingRepEmail, sendIdTagTrainingInviteEmail, sendIdTagInboxNotice } from '@/lib/idTag-email';
 import { getIdTagInboxEmail } from '@/lib/settings';
 import { putDocument } from '@/lib/storage';
@@ -112,6 +112,18 @@ export async function submitIdTagAction(_prev: IdTagSubmitState, formData: FormD
       ? `${name} added to your roster${email ? ' and emailed a welcome' : ''}.`
       : `${name} submitted${email ? ' — the background-check email is on its way' : ''}.`) + delayNote,
   };
+}
+
+/** Dealer: change/add the headshot for one of their submitted people. */
+export async function changeIdTagHeadshotAction(formData: FormData): Promise<void> {
+  const session = await requireDealerAccess();
+  if (!session.dealerId) return;
+  const id = String(formData.get('id') || '').trim();
+  if (!id) return;
+  const tag = await prisma.homeDepotIdTag.findFirst({ where: { id, dealerId: session.dealerId }, select: { id: true } });
+  if (!tag) return;
+  await saveIdTagHeadshot(id, formData.get('headshot') as File | null);
+  revalidatePath('/dealer/id-tags');
 }
 
 export interface TrainingInviteState {

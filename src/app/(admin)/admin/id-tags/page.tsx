@@ -7,8 +7,9 @@ import {
   getIdTagEnabledOffices,
 } from '@/lib/idTag';
 import { getIdTagSettings } from '@/lib/settings';
-import { updateIdTagStatusAction, saveIdTagSettingsAction, saveIdTagOfficesAction } from './actions';
+import { updateIdTagStatusAction, saveIdTagSettingsAction, saveIdTagOfficesAction, deleteIdTagAction } from './actions';
 import { IdTagPreviewButton } from './IdTagPreviewButton';
+import { IdTagDeleteButton } from '@/components/IdTagDeleteButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,6 +43,12 @@ export default async function AdminIdTagsPage({ searchParams }: { searchParams: 
     <div className="mx-auto max-w-6xl px-4 py-8">
       <h1 className="text-2xl font-bold text-slate-900">ID Tag Requests</h1>
       <p className="mt-1 text-sm text-slate-500">Everyone submitted across all offices. Move each person along as they go through screening.</p>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Link href="/staff/id-tags/billing" className="rounded-lg bg-brand-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-brand-700">Billing &amp; invoices</Link>
+        <Link href="/staff/id-tags/setup" className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Office setup</Link>
+        <Link href="/staff/id-tags" className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Reviewer centre — search &amp; detail</Link>
+      </div>
 
       <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-5">
         {tiles.map((t) => (
@@ -107,13 +114,16 @@ export default async function AdminIdTagsPage({ searchParams }: { searchParams: 
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <form action={updateIdTagStatusAction} className="flex items-center gap-1.5">
-                      <input type="hidden" name="id" value={r.id} />
-                      <select name="status" defaultValue={r.status} className="rounded-lg border border-slate-300 px-2 py-1 text-xs">
-                        {STATUS_KEYS.map((s) => <option key={s} value={s}>{ID_TAG_STATUS_LABEL[s]}</option>)}
-                      </select>
-                      <button type="submit" className="rounded-lg bg-slate-800 px-2.5 py-1 text-xs font-semibold text-white hover:bg-slate-900">Save</button>
-                    </form>
+                    <div className="flex items-center gap-2">
+                      <form action={updateIdTagStatusAction} className="flex items-center gap-1.5">
+                        <input type="hidden" name="id" value={r.id} />
+                        <select name="status" defaultValue={r.status} className="rounded-lg border border-slate-300 px-2 py-1 text-xs">
+                          {STATUS_KEYS.map((s) => <option key={s} value={s}>{ID_TAG_STATUS_LABEL[s]}</option>)}
+                        </select>
+                        <button type="submit" className="rounded-lg bg-slate-800 px-2.5 py-1 text-xs font-semibold text-white hover:bg-slate-900">Save</button>
+                      </form>
+                      <IdTagDeleteButton id={r.id} action={deleteIdTagAction} small />
+                    </div>
                   </td>
                   <td className="px-4 py-3 text-xs text-slate-400">{new Date(r.createdAt).toLocaleDateString('en-CA')}</td>
                 </tr>

@@ -6,7 +6,9 @@ import {
   getIdTagDetail, ID_TAG_STATUS_LABEL, ID_TAG_STATUS_TONE, TONE_CLASS,
   daysUntil, expiryTone, expiryLabel,
 } from '@/lib/idTag';
-import { updateIdTagStatusStaffAction, saveIdTagCardAction } from '../actions';
+import { updateIdTagStatusStaffAction, saveIdTagCardAction, uploadIdTagHeadshotStaffAction, deleteIdTagStaffAction } from '../actions';
+import { IdTagHeadshotButton } from '@/components/IdTagHeadshotButton';
+import { IdTagDeleteButton } from '@/components/IdTagDeleteButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -53,20 +55,41 @@ export default async function StaffIdTagDetailPage({ params }: { params: { id: s
         <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${TONE_CLASS[ID_TAG_STATUS_TONE[t.status]]}`}>{ID_TAG_STATUS_LABEL[t.status]}</span>
         {t.validUntil && <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${TONE_CLASS[expiryTone(d)]}`}>{expiryLabel(d)}</span>}
         <span className="text-sm text-slate-500">{t.dealerName}</span>
+        <div className="ml-auto"><IdTagDeleteButton id={t.id} action={deleteIdTagStaffAction} /></div>
       </div>
 
       <div className="mt-5 grid gap-5 lg:grid-cols-[160px_1fr]">
-        {/* Headshot */}
+        {/* Photo — hidden as a big image once the finished card is in (the card
+            already shows the photo); kept as a small manage control. */}
         <div>
-          <div className="aspect-[3/4] overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
-            {t.hasHeadshot
-              // eslint-disable-next-line @next/next/no-img-element
-              ? <img src={`/api/id-tags/${t.id}/headshot`} alt={`${t.personName} headshot`} className="h-full w-full object-cover" />
-              : <div className="flex h-full items-center justify-center p-3 text-center text-xs text-amber-600">No headshot — card will be delayed</div>}
-          </div>
-          {t.hasHeadshot && (
-            <a href={`/api/id-tags/${t.id}/headshot`} target="_blank" rel="noreferrer"
-              className="mt-2 block rounded-lg border border-slate-300 px-3 py-1.5 text-center text-xs font-semibold text-slate-700 hover:bg-slate-50">⬇ Download photo</a>
+          {t.hasCard ? (
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-center">
+              <div className="text-xs font-semibold text-slate-600">ID card issued</div>
+              <div className="mt-0.5 text-[11px] text-slate-400">Shown below.</div>
+              <div className="mt-2 flex flex-col gap-1.5">
+                {t.hasHeadshot && (
+                  <a href={`/api/id-tags/${t.id}/headshot`} target="_blank" rel="noreferrer"
+                    className="rounded-lg border border-slate-300 px-3 py-1.5 text-center text-xs font-semibold text-slate-700 hover:bg-slate-50">⬇ Photo</a>
+                )}
+                <IdTagHeadshotButton id={t.id} action={uploadIdTagHeadshotStaffAction} label={t.hasHeadshot ? 'Change photo' : 'Add photo'} />
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="aspect-[3/4] overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+                {t.hasHeadshot
+                  // eslint-disable-next-line @next/next/no-img-element
+                  ? <img src={`/api/id-tags/${t.id}/headshot`} alt={`${t.personName} headshot`} className="h-full w-full object-cover" />
+                  : <div className="flex h-full items-center justify-center p-3 text-center text-xs text-amber-600">No headshot — card will be delayed</div>}
+              </div>
+              {t.hasHeadshot && (
+                <a href={`/api/id-tags/${t.id}/headshot`} target="_blank" rel="noreferrer"
+                  className="mt-2 block rounded-lg border border-slate-300 px-3 py-1.5 text-center text-xs font-semibold text-slate-700 hover:bg-slate-50">⬇ Download photo</a>
+              )}
+              <div className="mt-2">
+                <IdTagHeadshotButton id={t.id} action={uploadIdTagHeadshotStaffAction} label={t.hasHeadshot ? 'Change photo' : 'Add photo'} />
+              </div>
+            </>
           )}
         </div>
 
@@ -127,6 +150,22 @@ export default async function StaffIdTagDetailPage({ params }: { params: { id: s
           </form>
         </div>
       </div>
+
+      {t.hasCard && (
+        <div className={`${card} mt-5 p-5`}>
+          <h2 className="text-sm font-bold text-slate-900">HD ID card</h2>
+          <p className="mt-0.5 text-xs text-slate-500">The finished Entuitive card for {t.personName}.</p>
+          <div className="mt-3 flex flex-col items-center">
+            {t.cardIsImage ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={`/api/id-tags/${t.id}/card?view=1`} alt="HD ID card" className="w-full max-w-xs rounded-xl border border-slate-200 bg-white object-contain" />
+            ) : (
+              <iframe src={`/api/id-tags/${t.id}/card?view=1`} title="HD ID card" className="h-[520px] w-full max-w-sm rounded-xl border border-slate-200" />
+            )}
+            <a href={`/api/id-tags/${t.id}/card`} className="mt-3 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">⬇ Download card</a>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

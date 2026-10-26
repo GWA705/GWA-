@@ -1,6 +1,7 @@
 import 'server-only';
 import { prisma } from './db';
 import { getSetting, setSetting } from './settings';
+import { putDocument, deleteDocument } from './storage';
 import type { IdTagKind, IdTagStatus } from '@prisma/client';
 
 // Rollout gate for the whole HD ID Tag feature (independent of training), so it
@@ -466,6 +467,7 @@ export interface IdTagDetail {
   certified: boolean;
   hasHeadshot: boolean;
   hasCard: boolean;
+  cardIsImage: boolean;
   validUntil: Date | null;
   badgeNumber: string | null;
   entuitiveStatus: string | null;
@@ -495,6 +497,7 @@ export async function getIdTagDetail(id: string): Promise<IdTagDetail | null> {
     personEmail: r.personEmail, personPhone: r.personPhone,
     kind: r.kind, status: r.status, certified: !!r.certificationId,
     hasHeadshot: !!r.headshotKey, hasCard: !!r.cardFileKey,
+    cardIsImage: /\.(png|jpe?g|webp|gif)$/i.test(r.cardFileKey || ''),
     validUntil: r.validUntil, badgeNumber: r.badgeNumber, entuitiveStatus: r.entuitiveStatus,
     password: (r.dealer?.idTagTempPassword || '').trim() || null,
     profile: p && typeof p === 'object' && !Array.isArray(p) ? (p as OfficeEntuitiveProfile) : {},
@@ -520,27 +523,71 @@ export async function setIdTagCardInfo(
   });
 }
 
-/** Look up the storage keys + the bits needed to auto-name a downloaded file. */
+/** Look up the storage keys + the bits needed to auto-name a downloaded file.
+ *  `startedDate` is the rep's training start date (from their certificate), or
+ *  the added date as a fallback. */
 export async function getIdTagFileKeys(id: string): Promise<{
   dealerId: string; headshotKey: string | null; cardFileKey: string | null;
-  personName: string; badgeNumber: string | null; createdAt: Date;
+  personName: string; badgeNumber: string | null; startedDate: string;
 } | null> {
-  return prisma.homeDepotIdTag.findUnique({
+  const r = await prisma.homeDepotIdTag.findUnique({
     where: { id },
-    select: { dealerId: true, headshotKey: true, cardFileKey: true, personName: true, badgeNumber: true, createdAt: true },
+    select: { dealerId: true, headshotKey: true, cardFileKey: true, personName: true, badgeNumber: true, certificationId: true, createdAt: true },
   });
+  if (!r) return null;
+  let started = '';
+  if (r.certificationId) {
+    const cert = await prisma.trainingCertification.findUnique({ where: { id: r.certificationId }, select: { startDate: true } });
+    started = (cert?.startDate || '').trim();
+  }
+  if (!started) started = r.createdAt.toISOString().slice(0, 10);
+  return {
+    dealerId: r.dealerId, headshotKey: r.headshotKey, cardFileKey: r.cardFileKey,
+    personName: r.personName, badgeNumber: r.badgeNumber, startedDate: started,
+  };
 }
 
-/** Auto-name an uploaded ID-tag file: rep name + the date they were added +
- *  their HD badge #, e.g. "Warren-Ryckman_2026-10-23_HD1043317_card.pdf". */
+/** Replace (or set) a person's headshot: store the new image to S3, delete the
+ *  old one, and update headshotKey. Returns false on a bad/missing/too-big file.
+ *  Access is enforced by the caller (dealer owns it, or internal staff). */
+export async function saveIdTagHeadshot(id: string, file: File | null | undefined): Promise<boolean> {
+  if (!file || typeof file !== 'object' || !('arrayBuffer' in file) || file.size === 0) return false;
+  if (file.size > 8 * 1024 * 1024) return false;
+  try {
+    const cur = await prisma.homeDepotIdTag.findUnique({ where: { id }, select: { dealerId: true, headshotKey: true } });
+    if (!cur) return false;
+    const buf = Buffer.from(await file.arrayBuffer());
+    const ext = (file.name.match(/\.[a-zA-Z0-9]+$/)?.[0] || '.jpg').toLowerCase();
+    const key = `idtags/${cur.dealerId}/${Date.now()}-headshot${ext}`;
+    await putDocument(key, buf);
+    if (cur.headshotKey) { try { await deleteDocument(cur.headshotKey); } catch { /* best-effort */ } }
+    await prisma.homeDepotIdTag.update({ where: { id }, data: { headshotKey: key } });
+    return true;
+  } catch (e) {
+    console.error('[idTag] headshot save failed', e);
+    return false;
+  }
+}
+
+/** Permanently delete an ID-tag record and its stored files (headshot + card). */
+export async function deleteIdTag(id: string): Promise<void> {
+  const r = await prisma.homeDepotIdTag.findUnique({ where: { id }, select: { headshotKey: true, cardFileKey: true } });
+  if (!r) return;
+  if (r.headshotKey) { try { await deleteDocument(r.headshotKey); } catch { /* best-effort */ } }
+  if (r.cardFileKey) { try { await deleteDocument(r.cardFileKey); } catch { /* best-effort */ } }
+  await prisma.homeDepotIdTag.delete({ where: { id } }).catch(() => {});
+}
+
+/** Auto-name an uploaded ID-tag file: rep name + their start date (post-training)
+ *  + their HD badge #, e.g. "Warren-Ryckman_2026-10-23_HD1043317_card.pdf". */
 export function idTagFileName(
-  parts: { personName: string; date: Date | null | undefined; badgeNumber: string | null | undefined },
+  parts: { personName: string; date: string | Date | null | undefined; badgeNumber: string | null | undefined },
   suffix: string,
   ext: string,
 ): string {
   const clean = (s: string) => (s || '').replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-+|-+$/g, '');
   const name = clean(parts.personName) || 'rep';
-  const d = parts.date ? new Date(parts.date).toISOString().slice(0, 10) : '';
+  const d = parts.date ? (typeof parts.date === 'string' ? parts.date.slice(0, 10) : new Date(parts.date).toISOString().slice(0, 10)) : '';
   const hd = parts.badgeNumber ? `HD${clean(parts.badgeNumber)}` : '';
   const base = [name, d, hd, suffix].filter(Boolean).join('_');
   return `${base}.${ext.replace(/^\./, '')}`;

@@ -29,7 +29,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
 
   const bytes = await getDocument(tag.headshotKey);
   const ext = (tag.headshotKey.match(/\.[a-zA-Z0-9]+$/)?.[0] || '.jpg').replace('.', '').toLowerCase();
-  const fname = idTagFileName({ personName: tag.personName, date: tag.createdAt, badgeNumber: tag.badgeNumber }, 'photo', ext);
+  const fname = idTagFileName({ personName: tag.personName, date: tag.startedDate, badgeNumber: tag.badgeNumber }, 'photo', ext);
   await audit({ actorId: session.userId, action: 'DOC_DOWNLOAD', entityType: 'HomeDepotIdTag', entityId: params.id, detail: 'ID-tag headshot viewed' });
   return new NextResponse(new Uint8Array(bytes), {
     headers: { 'Content-Type': mimeFor(tag.headshotKey), 'Content-Disposition': `inline; filename="${fname}"`, 'Cache-Control': 'no-store' },
