@@ -6,17 +6,20 @@ import { getT } from '@/i18n/server';
 import { DeleteRemittanceButton } from '../DeleteRemittanceButton';
 import { ReprocessRemittanceButton } from '../ReprocessRemittanceButton';
 import { RemittanceReportButtons } from '../RemittanceReportButtons';
+import { loadJournalHdRefIndex, remittanceLineDisplay } from '@/lib/remittanceEnrich';
 
 export const dynamic = 'force-dynamic';
 
 const money = (n: number) => `${n < 0 ? '-' : ''}$${Math.abs(n).toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const fmt = (d: Date | null) => (d ? new Date(d).toLocaleDateString('en-CA', { year: 'numeric', month: 'short', day: 'numeric' }) : '—');
+const digits = (s: string) => (s || '').replace(/\D/g, '');
 
 const CHIP: Record<string, string> = {
-  MATCHED: 'bg-green-100 text-green-800',
-  UNMATCHED: 'bg-amber-100 text-amber-800',
+  FUNDED: 'bg-green-100 text-green-800',
+  'IN JOURNAL': 'bg-blue-100 text-blue-800',
+  ATTENTION: 'bg-amber-100 text-amber-800',
   CHARGEBACK: 'bg-red-100 text-red-700',
-  DEDUCTION: 'bg-purple-100 text-purple-700',
+  FEE: 'bg-purple-100 text-purple-700',
 };
 
 export default async function RemittanceDetailPage({ params }: { params: { id: string } }) {
@@ -33,6 +36,8 @@ export default async function RemittanceDetailPage({ params }: { params: { id: s
     },
   });
   if (!r) notFound();
+  // Fill unmatched lines from the sales journal (most historical deals live there).
+  const journalIdx = await loadJournalHdRefIndex();
 
   return (
     <div className="max-w-5xl space-y-5">
@@ -75,16 +80,18 @@ export default async function RemittanceDetailPage({ params }: { params: { id: s
           <tbody className="divide-y divide-gray-100">
             {r.lines.map((l) => {
               const amt = Number(l.amount);
+              const app = l.application
+                ? { name: `${l.application.applicantFirstName} ${l.application.applicantLastName}`.trim(), office: '', store: '' }
+                : null;
+              const d = remittanceLineDisplay(l, app, journalIdx.get(digits(l.hdIdNumber)));
               return (
-                <tr key={l.id} className={l.status === 'UNMATCHED' ? 'bg-amber-50/40' : ''}>
+                <tr key={l.id} className={d.label === 'ATTENTION' ? 'bg-amber-50/40' : ''}>
                   <td className="px-4 py-3 font-mono text-xs text-gray-700">{l.hdIdNumber}</td>
-                  <td className="px-4 py-3 text-gray-800">
-                    {l.application ? `${l.application.applicantFirstName} ${l.application.applicantLastName}` : (l.customerName ?? '—')}
-                  </td>
+                  <td className="px-4 py-3 text-gray-800">{d.customer}</td>
                   <td className="px-4 py-3 text-gray-600">{fmt(l.invoiceDate)}</td>
                   <td className={`px-4 py-3 text-right font-medium ${amt < 0 ? 'text-red-600' : 'text-gray-900'}`}>{money(amt)}</td>
                   <td className="px-4 py-3">
-                    <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${CHIP[l.status] ?? 'bg-gray-100 text-gray-600'}`}>{t(`remit.status.${l.status}`)}</span>
+                    <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${CHIP[d.label] ?? 'bg-gray-100 text-gray-600'}`}>{d.label}</span>
                     {l.fundedNow && <span className="ml-1 text-xs text-green-600">{t('remit.detail.fundedNow')}</span>}
                   </td>
                   <td className="px-4 py-3">

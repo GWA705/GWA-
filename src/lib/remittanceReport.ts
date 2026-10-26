@@ -2,6 +2,7 @@ import 'server-only';
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from 'pdf-lib';
 import { prisma } from './db';
 import { sendEmail } from './email';
+import { loadJournalHdRefIndex, remittanceLineDisplay } from './remittanceEnrich';
 
 /**
  * The matched Home Depot remittance report — a clean PDF for the office team,
@@ -39,15 +40,6 @@ interface ReportMeta {
   paymentDate: Date | null;
   totalNet: number;
   lineCount: number;
-}
-
-function statusLabelFor(status: string): string {
-  switch (status) {
-    case 'MATCHED': return 'FUNDED';
-    case 'CHARGEBACK': return 'CHARGEBACK';
-    case 'DEDUCTION': return 'FEE';
-    default: return 'ATTENTION';
-  }
 }
 
 export function buildRemittanceReportPdf(rows: ReportRow[], meta: ReportMeta): Promise<Uint8Array> {
@@ -116,7 +108,11 @@ export function buildRemittanceReportPdf(rows: ReportRow[], meta: ReportMeta): P
       text(clip(r.office || '—', 70, 8.5, font), cOffice, 8.5, font);
       text(clip(r.store || '—', 100, 8.5, font), cStore, 8.5, font);
       rightText(money(r.amount), cAmt, 8.5, font, neg ? RED : INK);
-      rightText(r.statusLabel, cStat, 8, bold, r.statusLabel === 'FUNDED' ? rgb(0.1, 0.45, 0.2) : r.statusLabel === 'FEE' ? rgb(0.4, 0.2, 0.55) : RED);
+      const stColor = r.statusLabel === 'FUNDED' ? rgb(0.1, 0.45, 0.2)
+        : r.statusLabel === 'FEE' ? rgb(0.4, 0.2, 0.55)
+        : r.statusLabel === 'IN JOURNAL' ? rgb(0.15, 0.35, 0.6)
+        : RED;
+      rightText(r.statusLabel, cStat, 8, bold, stColor);
       y -= 14;
       page.drawLine({ start: { x: M, y: y + 4 }, end: { x: W - M, y: y + 4 }, thickness: 0.5, color: rgb(0.9, 0.9, 0.92) });
     }
@@ -181,15 +177,17 @@ export async function buildRemittanceReportForId(
   });
   if (!r) return null;
 
-  const rows: ReportRow[] = r.lines.map((l) => ({
-    invoiceDate: l.invoiceDate,
-    hdId: l.hdIdNumber,
-    customer: l.application ? `${l.application.applicantFirstName} ${l.application.applicantLastName}`.trim() : (l.customerName ?? '—'),
-    office: l.application?.dealer?.name ?? '—',
-    store: l.application?.homeDepotStore?.number ?? '—',
-    amount: Number(l.amount),
-    statusLabel: statusLabelFor(l.status),
-  }));
+  // Fill unmatched lines from the sales journal (most historical deals live there,
+  // not as portal applications).
+  const digits = (s: string) => (s || '').replace(/\D/g, '');
+  const journalIdx = await loadJournalHdRefIndex();
+  const rows: ReportRow[] = r.lines.map((l) => {
+    const app = l.application
+      ? { name: `${l.application.applicantFirstName} ${l.application.applicantLastName}`.trim(), office: l.application.dealer?.name ?? '', store: l.application.homeDepotStore?.number ?? '' }
+      : null;
+    const d = remittanceLineDisplay(l, app, journalIdx.get(digits(l.hdIdNumber)));
+    return { invoiceDate: l.invoiceDate, hdId: l.hdIdNumber, customer: d.customer, office: d.office, store: d.store, amount: Number(l.amount), statusLabel: d.label };
+  });
 
   const totalNet = Number(r.totalNet ?? rows.reduce((s, x) => s + x.amount, 0));
   const pdf = await buildRemittanceReportPdf(rows, {

@@ -1212,11 +1212,18 @@ model HdRemittanceLine {
   applicationId String?
   application   Application?         @relation(fields: [applicationId], references: [id])
   fundedNow     Boolean              @default(false) // this line advanced the deal to FUNDED
+  // Chargeback/fee tracking: mark when HD's clawback has been settled/paid back,
+  // with a reference, so the office can look it up later.
+  resolvedAt    DateTime?
+  resolvedRef   String? // cheque #, EFT ref, credit note, etc.
+  resolvedNote  String? @db.Text
+  resolvedById  String?
   createdAt     DateTime             @default(now())
 
   @@index([remittanceId])
   @@index([hdIdNumber])
   @@index([applicationId])
+  @@index([status])
 }
 
 model DealCancellation {

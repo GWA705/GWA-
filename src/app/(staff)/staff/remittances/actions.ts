@@ -212,3 +212,31 @@ export async function emailRemittanceReportAction(id: string): Promise<Remittanc
 export async function remittanceReportRecipientsAction(): Promise<string[]> {
   return remittanceReportRecipients();
 }
+
+/** Mark a chargeback (or fee) line as settled/paid back, with a reference. */
+export async function setLineResolutionAction(lineId: string, _prev: RemittanceActionState, formData: FormData): Promise<RemittanceActionState> {
+  const session = await requireStaffSection('remittances');
+  const ref = String(formData.get('ref') || '').trim().slice(0, 120) || null;
+  const note = String(formData.get('note') || '').trim().slice(0, 2000) || null;
+  const line = await prisma.hdRemittanceLine.findUnique({ where: { id: lineId }, select: { id: true, hdIdNumber: true } });
+  if (!line) return { error: 'Line not found.' };
+  await prisma.hdRemittanceLine.update({
+    where: { id: lineId },
+    data: { resolvedAt: new Date(), resolvedRef: ref, resolvedNote: note, resolvedById: session.userId },
+  });
+  await audit({ actorId: session.userId, action: 'STATUS_CHANGE', entityType: 'HdRemittanceLine', entityId: lineId, detail: `Chargeback/fee marked settled (HD ${line.hdIdNumber})${ref ? ` ref ${ref}` : ''}` });
+  revalidatePath('/staff/remittances/chargebacks');
+  return { ok: true, summary: 'Marked settled.' };
+}
+
+/** Re-open a line previously marked settled. */
+export async function clearLineResolutionAction(lineId: string): Promise<RemittanceActionState> {
+  const session = await requireStaffSection('remittances');
+  await prisma.hdRemittanceLine.update({
+    where: { id: lineId },
+    data: { resolvedAt: null, resolvedRef: null, resolvedNote: null, resolvedById: null },
+  });
+  await audit({ actorId: session.userId, action: 'STATUS_CHANGE', entityType: 'HdRemittanceLine', entityId: lineId, detail: 'Chargeback/fee re-opened' });
+  revalidatePath('/staff/remittances/chargebacks');
+  return { ok: true };
+}

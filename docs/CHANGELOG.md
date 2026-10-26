@@ -1693,6 +1693,26 @@ exhausting the single instance). No behaviour change for normal use.
   `testSingleLead()` on a French lead first. Portal display auto-translates lead
   free-text via DeepL.
 
+## 2026-10-26 (remittance journal match + chargeback/fee tracking)
+- **Unmatched lines now fill in from the sales journal.** Most historical deals
+  live in the journal, not as portal applications, so remittance lines for them
+  showed as blank “ATTENTION”. The report + detail view now look each HD # up in
+  the journal (`loadJournalHdRefIndex`) and fill the **customer, office and store**,
+  labelling them **IN JOURNAL** (blue). True “ATTENTION” now means not found in the
+  portal *or* the journal. Funding is unchanged (only portal applications advance
+  to FUNDED). `src/lib/remittanceEnrich.ts`.
+- **Chargeback tracker** — Staff → Remittances → **Chargebacks**: every clawback
+  across all remittances, with customer (portal/journal), amount, source remittance,
+  and a **Mark settled** control (reference + note + date) so the office can record
+  when HD's clawback was paid back and look it up later; re-openable. Open count +
+  **outstanding $** up top.
+- **Lead & program fees section** — Staff → Remittances → **Lead & program fees**:
+  every fee HD withheld, with a total and a by-month breakdown, so they can be
+  tracked and reconciled.
+  - New `HdRemittanceLine` fields `resolvedAt/resolvedRef/resolvedNote/resolvedById`
+    (migration `20261026040000_remittance_line_resolution`); actions
+    `setLineResolutionAction` / `clearLineResolutionAction`; links on the index.
+
 ## 2026-10-26 (remittance parse double-check)
 - **Three independent parse checks before any remittance funds** — so a mis-read
   can never fund the wrong amount. `parseHdRemittanceText` now returns a

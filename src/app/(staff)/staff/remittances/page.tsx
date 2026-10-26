@@ -40,11 +40,17 @@ export default async function RemittancesPage() {
 
   return (
     <div className="max-w-5xl space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold text-gray-900">{t('remit.list.title')}</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          {t('remit.list.introBefore')}<strong>{t('remit.funded')}</strong>{t('remit.list.introAfter')}
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold text-gray-900">{t('remit.list.title')}</h1>
+          <p className="mt-1 text-sm text-gray-500">
+            {t('remit.list.introBefore')}<strong>{t('remit.funded')}</strong>{t('remit.list.introAfter')}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Link href="/staff/remittances/chargebacks" className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Chargebacks</Link>
+          <Link href="/staff/remittances/fees" className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Lead &amp; program fees</Link>
+        </div>
       </div>
 
       <section className="card p-5">
