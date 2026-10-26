@@ -636,6 +636,28 @@ model DealerCustomProduct {
 // Home Depot stores available to a given dealer. The store field on an
 // application is chosen from the dealer's assigned stores (a dropdown, not
 // free text). Admins manage which stores belong to each dealer.
+// Recipient directory for the weekly Home Depot store reports — a portal-managed
+// table (seeded from the GWA contacts sheet) that admins edit anytime. Keyed by
+// HD store number. Each group is free text (names + emails, as the sheet has it);
+// the mailer extracts the email addresses at send time. `district` drives the
+// National report roll-up. This is the recipient source of truth, replacing the
+// Google Sheet the old Apps Script read.
+model HdStoreContact {
+  id            String   @id @default(cuid())
+  storeNumber   String   @unique
+  storeName     String?
+  district      String? // e.g. "Central Ontario" — National report roll-up group
+  storeContacts String?  @db.Text // HD store managers/ASM/prodesk (To)
+  ism           String?  @db.Text // Home Depot ISM (Cc)
+  distributor   String?  @db.Text // GWA distributor/office (To)
+  officeManager String?  @db.Text // office manager (To)
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([district])
+}
+
 model HomeDepotStore {
   id        String   @id @default(cuid())
   dealerId  String

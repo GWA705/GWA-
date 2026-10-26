@@ -1693,6 +1693,23 @@ exhausting the single instance). No behaviour change for normal use.
   `testSingleLead()` on a French lead first. Portal display auto-translates lead
   free-text via DeepL.
 
+## 2026-10-26 (HD store contacts — weekly-report recipients)
+- **New admin area: HD Store contacts** (`/admin/store-contacts`) — the portal's own,
+  editable copy of the weekly-report contacts sheet, like offices/stores. Per store:
+  store name, **district** (for the National roll-up), and four recipient groups
+  (store contacts, ISM, distributor, office manager) as free text (names + emails),
+  with a live "this store sends to: To / Cc" preview. **Import** pastes the GWA
+  contacts CSV (upserts every 7xxx store, pre-fills districts, sets the National
+  list); add/edit/delete a store anytime. Model `HdStoreContact` (migration
+  `20261026050000`), lib `src/lib/hdStoreContacts.ts` (CSV parse, email extraction,
+  `resolveStoreRecipients`, district seed), tests in `tests/hdStoreContacts.test.ts`.
+  This is the recipient source of truth for the weekly reports (replaces the Google
+  Sheet); store→office ownership still follows the portal's stores.
+- **Weekly-report sender spec (for the build):** From + Reply-To =
+  **reporter@ghsbarrie.ca** (the only address shown); **every recipient BCC'd** so
+  no one sees the others; and a **preview-in-portal + test-send** step before the
+  real Tuesday send, all behind the master off switch. (Matches the mockup.)
+
 ## 2026-10-26 (remittance journal match + chargeback/fee tracking)
 - **Unmatched lines now fill in from the sales journal.** Most historical deals
   live in the journal, not as portal applications, so remittance lines for them
