@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { requireAdminSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { journalCodeFromName } from '@/lib/journalCode';
@@ -19,13 +20,16 @@ export default async function ProductsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
         <h1 className="text-xl font-semibold text-gray-900">Products</h1>
         <p className="mt-1 text-sm text-gray-500">
           These power the “Product(s) sold” picker dealers use on a deal. The <strong>full name</strong> shows
           in the app; the <strong>journal name</strong> (short code) is what gets written to the sales journal.
           Use the arrows to set the order dealers see. Add, rename, archive, or delete anytime.
         </p>
+        </div>
+        <Link href="/admin/products/cleanup" className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Clean up codes</Link>
       </div>
       <div className="card p-6">
         <ProductForm />

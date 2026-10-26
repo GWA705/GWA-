@@ -1,6 +1,7 @@
 import 'server-only';
 import { readJournal, type ReportDeal } from './journalRead';
 import { reportStoreScope, type Office } from './monthly';
+import { getProductAliases, makeProductCanon, normProductCode } from './productCanon';
 
 /**
  * Product mix & attach rate — for one office in a year, which products were sold,
@@ -42,6 +43,9 @@ export async function buildProductMix(dealerId: string, year: number): Promise<P
   const scope = await reportStoreScope(dealerId);
   const office = scope.office;
   const cur = await readJournal(year);
+  // Fold look-alike product codes (case/spacing/typo/variant) into one canonical
+  // via the admin-managed alias map, so the same product isn't counted twice.
+  const canon = makeProductCanon(await getProductAliases());
 
   const belongs = (d: ReportDeal) => scope.isAll || (d.storeNumber ? scope.storeSet.has(d.storeNumber) : false);
   const isPaidOk = (d: ReportDeal) => d.result === 'OK' && !!d.datePaid && (d.datePaid as Date).getFullYear() === year;
@@ -52,7 +56,7 @@ export async function buildProductMix(dealerId: string, year: number): Promise<P
   let codeInstances = 0;
   for (const d of deals) {
     totalGross += d.gross;
-    const codes = new Set(codesOf(d.product)); // unique per deal
+    const codes = new Set(codesOf(d.product).map(canon)); // canonicalised, unique per deal
     codeInstances += codes.size;
     for (const c of codes) {
       const r = map.get(c) ?? { code: c, deals: 0, sharePct: 0, gross: 0 };
@@ -77,4 +81,19 @@ export async function buildProductMix(dealerId: string, year: number): Promise<P
     avgProductsPerDeal: totalDeals > 0 ? Math.round((codeInstances / totalDeals) * 10) / 10 : 0,
     products,
   };
+}
+
+/** Every distinct RAW product code in the journal for a year (all offices), with
+ *  how many deals mention each — the input to the admin dedupe tool. Not
+ *  canonicalised, so the admin can see and map the look-alikes. */
+export async function listJournalProductCodes(year: number): Promise<{ code: string; count: number }[]> {
+  const cur = await readJournal(year);
+  const map = new Map<string, number>();
+  for (const d of cur.deals) {
+    for (const c of new Set(codesOf(d.product))) {
+      const n = normProductCode(c);
+      if (n) map.set(n, (map.get(n) ?? 0) + 1);
+    }
+  }
+  return Array.from(map.entries()).map(([code, count]) => ({ code, count })).sort((a, b) => b.count - a.count);
 }
