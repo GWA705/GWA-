@@ -4,7 +4,6 @@ import { sendEmail } from '@/lib/email';
 import { renderEmail } from '@/lib/email-templates';
 import { buildDealerDigest, type DigestPeriod } from './dealerDigest';
 import { renderDigestBodyHtml } from './dealerDigestEmail';
-import { getDealerReportBrand } from './dealerBrand';
 import { weekWindow, monthWindow } from './fundingReport';
 
 function appUrl(): string {
@@ -54,7 +53,7 @@ export async function sendDealerDigest(
   const recipients = opts.testTo ? [opts.testTo.trim().toLowerCase()].filter(Boolean) : await officeRecipients(dealerId);
   if (recipients.length === 0) return { dealerId, recipients: 0, sent: 0, skipped: 'no recipients' };
 
-  const [digest, brand] = await Promise.all([buildDealerDigest(dealerId, period, offset), getDealerReportBrand(dealerId)]);
+  const digest = await buildDealerDigest(dealerId, period, offset);
   const label = period === 'week' ? 'Weekly' : 'Monthly';
   const html = renderEmail({
     heading: `${label} snapshot — ${digest.periodLabel}`,
@@ -63,7 +62,7 @@ export async function sendDealerDigest(
     ctaLabel: 'Open the full report',
     ctaUrl: `${appUrl()}/dealer/reports/digest?p=${period}`,
   });
-  const subject = `${brand.name} — ${label.toLowerCase()} snapshot (${digest.periodLabel})`;
+  const subject = `GWA HD ${label} Dealer Snapshot (${digest.periodLabel})`;
 
   let sent = 0;
   for (const to of recipients) {
