@@ -1291,6 +1291,7 @@ export const en = {
     tabReps: 'By sales rep',
     tabCustom: 'Custom report',
     tabForecast: 'Sales forecast',
+    tabProjection: 'Sales projection',
     tabAccounting: 'Accounting export',
     month: 'Month',
     week: 'Week',

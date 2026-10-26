@@ -59,6 +59,7 @@ export const REPORT_REGISTRY: ReportDef[] = [
   { key: 'reps', label: 'Sales reps (owner)', group: 'dealer', defaultLevel: 'grant', grant: canViewOwnerPricingReport, grantNote: 'Office owner + reports enabled' },
   { key: 'custom', label: 'Custom builder (owner)', group: 'dealer', defaultLevel: 'grant', grant: canViewOwnerPricingReport, grantNote: 'Office owner + reports enabled' },
   { key: 'forecast', label: 'Forecast (owner)', group: 'dealer', defaultLevel: 'grant', grant: canViewOwnerPricingReport, grantNote: 'Office owner + reports enabled' },
+  { key: 'projection', label: 'Projection (owner)', group: 'dealer', defaultLevel: 'grant', grant: canViewOwnerPricingReport, grantNote: 'Office owner + reports enabled' },
   { key: 'accounting', label: 'Accounting export (owner)', group: 'dealer', defaultLevel: 'grant', grant: canViewOwnerPricingReport, grantNote: 'Office owner + reports enabled' },
   // Staff
   { key: 'staffReports', label: 'Staff reports (Monthly, Weekly, Overall, Funding, Products, Leaderboard, VOC, Gift cards, Cycle times…)', group: 'staff', defaultLevel: 'staff', grant: canViewReportsArea, grantNote: 'Reports access' },

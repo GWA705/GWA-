@@ -5,7 +5,7 @@ import { getSession } from '@/lib/session';
 import { visibleReports } from '@/lib/reporting/visibility';
 import { ReportTabSelect } from './ReportTabSelect';
 
-type Tab = 'digest' | 'monthly' | 'weekly' | 'overall' | 'funding' | 'products' | 'leaderboard' | 'voc' | 'allLeads' | 'leadFunnel' | 'pricing' | 'custom' | 'forecast' | 'reps' | 'accounting';
+type Tab = 'digest' | 'monthly' | 'weekly' | 'overall' | 'funding' | 'products' | 'leaderboard' | 'voc' | 'allLeads' | 'leadFunnel' | 'pricing' | 'custom' | 'forecast' | 'projection' | 'reps' | 'accounting';
 
 // Tab header for the dealer reports area. On phones this is a single dropdown
 // (the strip used to scroll sideways and hide tabs); on wider screens it's a
@@ -17,7 +17,7 @@ export async function DealerReportTabs({ active }: { active: Tab; showOwner?: bo
   const user = await getSession();
   // Tab visibility is resolved centrally (Admin → Report visibility), so the tab
   // set is identical on every report page and matches each page's own gate.
-  const dealerKeys = ['digest', 'monthly', 'weekly', 'overall', 'funding', 'products', 'leaderboard', 'voc', 'allLeads', 'leadFunnel', 'pricing', 'reps', 'custom', 'forecast', 'accounting'];
+  const dealerKeys = ['digest', 'monthly', 'weekly', 'overall', 'funding', 'products', 'leaderboard', 'voc', 'allLeads', 'leadFunnel', 'pricing', 'reps', 'custom', 'forecast', 'projection', 'accounting'];
   const vis = user ? await visibleReports(user, dealerKeys) : new Set<string>();
 
   const items: { href: string; label: string; key: Tab }[] = [
@@ -35,6 +35,7 @@ export async function DealerReportTabs({ active }: { active: Tab; showOwner?: bo
     { href: '/dealer/reports/sales-reps', label: t('reports.tabReps'), key: 'reps' },
     { href: '/dealer/reports/custom', label: t('reports.tabCustom'), key: 'custom' },
     { href: '/dealer/reports/forecast', label: t('reports.tabForecast'), key: 'forecast' },
+    { href: '/dealer/reports/projection', label: t('reports.tabProjection'), key: 'projection' },
     { href: '/dealer/reports/accounting', label: t('reports.tabAccounting'), key: 'accounting' },
   ];
   const visible = items.filter((i) => vis.has(i.key));

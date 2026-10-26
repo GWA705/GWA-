@@ -1295,6 +1295,7 @@ export const fr: Dictionary = {
     tabReps: 'Par représentant',
     tabCustom: 'Rapport personnalisé',
     tabForecast: 'Prévision des ventes',
+    tabProjection: 'Projection des ventes',
     tabAccounting: 'Exportation comptable',
     month: 'Mois',
     week: 'Semaine',
