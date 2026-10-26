@@ -6,7 +6,7 @@ import { requireStaffSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { audit } from '@/lib/audit';
 import { ingestRemittance, parseHdRemittanceText, reMatchUnmatchedLines, type RemittanceLineInput } from '@/lib/hdRemittance';
-import { sendRemittanceReport } from '@/lib/remittanceReport';
+import { sendRemittanceReport, remittanceReportRecipients } from '@/lib/remittanceReport';
 import { reprocessRemittanceByDoc } from '@/lib/hdRemittanceSync';
 
 /**
@@ -192,4 +192,23 @@ export async function reprocessRemittanceAction(id: string): Promise<RemittanceA
   revalidatePath('/staff/remittances');
   // The fixed remittance is a NEW record; send the user back to the list.
   redirect('/staff/remittances');
+}
+
+/** Email the matched-remittance report PDF to the office team, on demand. */
+export async function emailRemittanceReportAction(id: string): Promise<RemittanceActionState> {
+  await requireStaffSection('remittances');
+  const res = await sendRemittanceReport(id);
+  if (!res.sent) {
+    return {
+      error: res.reason === 'log-only'
+        ? 'Email is in log-only mode on this environment, so nothing was sent.'
+        : `Could not send the report${res.reason ? ` — ${res.reason}` : ''}.`,
+    };
+  }
+  return { ok: true, summary: `Report emailed to ${res.to.join(', ')}.` };
+}
+
+/** Who the report goes to (default office team, or REMITTANCE_REPORT_RECIPIENTS). */
+export async function remittanceReportRecipientsAction(): Promise<string[]> {
+  return remittanceReportRecipients();
 }

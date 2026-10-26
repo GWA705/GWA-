@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db';
 import { getT } from '@/i18n/server';
 import { DeleteRemittanceButton } from '../DeleteRemittanceButton';
 import { ReprocessRemittanceButton } from '../ReprocessRemittanceButton';
+import { RemittanceReportButtons } from '../RemittanceReportButtons';
 
 export const dynamic = 'force-dynamic';
 
@@ -56,6 +57,8 @@ export default async function RemittanceDetailPage({ params }: { params: { id: s
         <span className="rounded-lg bg-red-50 px-3 py-2 text-red-700"><span className="font-bold">{r.chargebackCount}</span> {t('remit.detail.chipChargebacks')}</span>
         {r.totalNet != null && <span className="rounded-lg bg-gray-900 px-3 py-2 font-bold text-white">{money(Number(r.totalNet))} {t('remit.detail.chipNet')}</span>}
       </div>
+
+      <RemittanceReportButtons id={r.id} />
 
       <section className="card overflow-x-auto">
         <table className="min-w-full text-sm">

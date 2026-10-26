@@ -156,59 +156,71 @@ export function buildRemittanceReportPdf(rows: ReportRow[], meta: ReportMeta): P
 }
 
 /**
+ * Load one remittance and build its matched-report PDF (no email). Shared by the
+ * downloader (view the PDF now) and the emailer (send it to the office team).
+ */
+export async function buildRemittanceReportForId(
+  remittanceId: string,
+): Promise<{ pdf: Uint8Array; filename: string; subject: string; html: string } | null> {
+  const r = await prisma.hdRemittance.findUnique({
+    where: { id: remittanceId },
+    include: {
+      lines: {
+        orderBy: [{ status: 'asc' }, { createdAt: 'asc' }],
+        include: {
+          application: {
+            select: {
+              applicantFirstName: true, applicantLastName: true,
+              dealer: { select: { name: true } },
+              homeDepotStore: { select: { number: true } },
+            },
+          },
+        },
+      },
+    },
+  });
+  if (!r) return null;
+
+  const rows: ReportRow[] = r.lines.map((l) => ({
+    invoiceDate: l.invoiceDate,
+    hdId: l.hdIdNumber,
+    customer: l.application ? `${l.application.applicantFirstName} ${l.application.applicantLastName}`.trim() : (l.customerName ?? '—'),
+    office: l.application?.dealer?.name ?? '—',
+    store: l.application?.homeDepotStore?.number ?? '—',
+    amount: Number(l.amount),
+    statusLabel: statusLabelFor(l.status),
+  }));
+
+  const totalNet = Number(r.totalNet ?? rows.reduce((s, x) => s + x.amount, 0));
+  const pdf = await buildRemittanceReportPdf(rows, {
+    documentNumber: r.documentNumber, paymentDate: r.paymentDate, totalNet, lineCount: r.lineCount,
+  });
+
+  const attention = rows.filter((x) => x.statusLabel === 'ATTENTION').length;
+  const fundedCount = rows.filter((x) => x.statusLabel === 'FUNDED').length;
+  const subject = `GWA Home Depot Remittance — ${money(totalNet)} — doc ${r.documentNumber ?? '(manual)'}${attention ? ` — ⚠ ${attention} need attention` : ''}`;
+  const html = `
+    <p>The attached report matches Home Depot remittance <b>${r.documentNumber ?? '(manual)'}</b> (payment date ${fmtDate(r.paymentDate)}).</p>
+    <p><b>Net payment: ${money(totalNet)}</b> · ${r.lineCount} lines · ${fundedCount} funded${attention ? ` · <b style="color:#b00">${attention} need attention</b>` : ''}.</p>
+    <p>Every amount is taken straight from the funded line in the portal, so it reconciles to Home Depot's own grand total.</p>`;
+
+  return { pdf, filename: `GWA_Remittance_${r.documentNumber ?? 'manual'}.pdf`, subject, html };
+}
+
+/**
  * Build and email the matched-remittance report for one remittance. Best-effort:
  * returns {sent, to} and never throws, so a mail hiccup can't undo the funding.
  */
 export async function sendRemittanceReport(remittanceId: string, to?: string[]): Promise<{ sent: boolean; to: string[]; reason?: string }> {
   const recipients = (to && to.length ? to : remittanceReportRecipients());
   try {
-    const r = await prisma.hdRemittance.findUnique({
-      where: { id: remittanceId },
-      include: {
-        lines: {
-          orderBy: [{ status: 'asc' }, { createdAt: 'asc' }],
-          include: {
-            application: {
-              select: {
-                applicantFirstName: true, applicantLastName: true,
-                dealer: { select: { name: true } },
-                homeDepotStore: { select: { number: true } },
-              },
-            },
-          },
-        },
-      },
-    });
-    if (!r) return { sent: false, to: recipients, reason: 'not found' };
-
-    const rows: ReportRow[] = r.lines.map((l) => ({
-      invoiceDate: l.invoiceDate,
-      hdId: l.hdIdNumber,
-      customer: l.application ? `${l.application.applicantFirstName} ${l.application.applicantLastName}`.trim() : (l.customerName ?? '—'),
-      office: l.application?.dealer?.name ?? '—',
-      store: l.application?.homeDepotStore?.number ?? '—',
-      amount: Number(l.amount),
-      statusLabel: statusLabelFor(l.status),
-    }));
-
-    const totalNet = Number(r.totalNet ?? rows.reduce((s, x) => s + x.amount, 0));
-    const pdf = await buildRemittanceReportPdf(rows, {
-      documentNumber: r.documentNumber, paymentDate: r.paymentDate, totalNet, lineCount: r.lineCount,
-    });
-
-    const attention = rows.filter((x) => x.statusLabel === 'ATTENTION').length;
-    const subject = `GWA Home Depot Remittance — ${money(totalNet)} — doc ${r.documentNumber ?? '(manual)'}${attention ? ` — ⚠ ${attention} need attention` : ''}`;
-    const fundedCount = rows.filter((x) => x.statusLabel === 'FUNDED').length;
-    const html = `
-      <p>The attached report matches Home Depot remittance <b>${r.documentNumber ?? '(manual)'}</b> (payment date ${fmtDate(r.paymentDate)}).</p>
-      <p><b>Net payment: ${money(totalNet)}</b> · ${r.lineCount} lines · ${fundedCount} funded${attention ? ` · <b style="color:#b00">${attention} need attention</b>` : ''}.</p>
-      <p>Every amount is taken straight from the funded line in the portal, so it reconciles to Home Depot's own grand total.</p>`;
-
+    const built = await buildRemittanceReportForId(remittanceId);
+    if (!built) return { sent: false, to: recipients, reason: 'not found' };
     const res = await sendEmail({
       to: recipients.join(', '),
-      subject,
-      html,
-      attachments: [{ filename: `GWA_Remittance_${r.documentNumber ?? 'manual'}.pdf`, content: Buffer.from(pdf) }],
+      subject: built.subject,
+      html: built.html,
+      attachments: [{ filename: built.filename, content: Buffer.from(built.pdf) }],
     });
     return { sent: res.sent, to: recipients, reason: res.reason };
   } catch (e) {
