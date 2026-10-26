@@ -1693,6 +1693,28 @@ exhausting the single instance). No behaviour change for normal use.
   `testSingleLead()` on a French lead first. Portal display auto-translates lead
   free-text via DeepL.
 
+## 2026-10-26 (weekly reports — generation + preview/test-send)
+- **Weekly HD reports now generate in the portal** (Admin → Weekly HD reports).
+  Off the sales journal, paid (OK) deals only, for the last full Mon–Sun week:
+  - **Per-store email** — same look as the mock (white GWA logo on dark, name up
+    top, blue sub-bar, sale cards, orange total), with **associate recognition on
+    701 store leads** (shows the credited associate, or “associate to be credited”
+    / “homedepot.ca”). Bulletproof table HTML (Outlook/Gmail safe), logo loaded
+    from `portal.ghsbarrie.ca/gwa-logo-dark.png`.
+  - **National email** — district roll-up, TY vs LY week + YTD, grand total.
+  - **Preview in the portal** (national inline + per-store open-in-new-tab) and
+    **“Send test to me”** for national and any store — test goes only to the
+    signed-in user. **From/Reply-To `reporter@ghsbarrie.ca`**; the real send BCCs
+    every recipient.
+  - **Master on/off switch** (default OFF) — nothing auto-sends yet; the Tuesday
+    cron + the per-701 associate-attribution screen are the next pieces.
+  - Code: `src/lib/reporting/weeklyReports.ts` (week window, journal assembly,
+    bulletproof renderers), `HdStoreLeadCredit` model (migration `20261026060000`),
+    admin pages/routes/actions under `/admin/weekly-reports`, `sendEmail` gains
+    `cc`/`bcc`, logo saved to `public/gwa-logo-dark.png`. Tests:
+    `tests/weeklyReports.test.ts` (caught + fixed a cents-rounding bug in money
+    formatting).
+
 ## 2026-10-26 (HD store contacts — weekly-report recipients)
 - **New admin area: HD Store contacts** (`/admin/store-contacts`) — the portal's own,
   editable copy of the weekly-report contacts sheet, like offices/stores. Per store:

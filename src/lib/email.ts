@@ -36,6 +36,11 @@ export interface SendEmailArgs {
   from?: string;
   /** Per-message Reply-To override; defaults to the configured reply-to. */
   replyTo?: string;
+  /** Cc recipients (comma-separated). Visible to all recipients. */
+  cc?: string;
+  /** Bcc recipients (comma-separated). Hidden from everyone — used so a report's
+   *  recipients never see each other's addresses. */
+  bcc?: string;
 }
 
 export function emailEnabled(): boolean {
@@ -132,6 +137,8 @@ export async function sendEmail(
       from,
       replyTo,
       to: args.to,
+      ...(args.cc ? { cc: args.cc } : {}),
+      ...(args.bcc ? { bcc: args.bcc } : {}),
       subject: args.subject,
       html: args.html,
       text,

@@ -658,6 +658,18 @@ model HdStoreContact {
   @@index([district])
 }
 
+// Which Home Depot associate gets credit for a store-lead (701) sale, set each
+// week before the store report goes out. Keyed by the deal's HD ref.
+model HdStoreLeadCredit {
+  id            String   @id @default(cuid())
+  hdRef         String   @unique
+  associateName String?
+  source        String? // IN_STORE | ONLINE
+  setById       String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
 model HomeDepotStore {
   id        String   @id @default(cuid())
   dealerId  String
