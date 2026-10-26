@@ -520,12 +520,30 @@ export async function setIdTagCardInfo(
   });
 }
 
-/** Look up just the storage keys + owning dealer for a person (for file downloads). */
-export async function getIdTagFileKeys(id: string): Promise<{ dealerId: string; headshotKey: string | null; cardFileKey: string | null; personName: string } | null> {
+/** Look up the storage keys + the bits needed to auto-name a downloaded file. */
+export async function getIdTagFileKeys(id: string): Promise<{
+  dealerId: string; headshotKey: string | null; cardFileKey: string | null;
+  personName: string; badgeNumber: string | null; createdAt: Date;
+} | null> {
   return prisma.homeDepotIdTag.findUnique({
     where: { id },
-    select: { dealerId: true, headshotKey: true, cardFileKey: true, personName: true },
+    select: { dealerId: true, headshotKey: true, cardFileKey: true, personName: true, badgeNumber: true, createdAt: true },
   });
+}
+
+/** Auto-name an uploaded ID-tag file: rep name + the date they were added +
+ *  their HD badge #, e.g. "Warren-Ryckman_2026-10-23_HD1043317_card.pdf". */
+export function idTagFileName(
+  parts: { personName: string; date: Date | null | undefined; badgeNumber: string | null | undefined },
+  suffix: string,
+  ext: string,
+): string {
+  const clean = (s: string) => (s || '').replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  const name = clean(parts.personName) || 'rep';
+  const d = parts.date ? new Date(parts.date).toISOString().slice(0, 10) : '';
+  const hd = parts.badgeNumber ? `HD${clean(parts.badgeNumber)}` : '';
+  const base = [name, d, hd, suffix].filter(Boolean).join('_');
+  return `${base}.${ext.replace(/^\./, '')}`;
 }
 
 /** Summary counts for the admin board tiles. */

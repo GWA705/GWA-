@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/session';
-import { getIdTagFileKeys } from '@/lib/idTag';
+import { getIdTagFileKeys, idTagFileName } from '@/lib/idTag';
 import { getDocument } from '@/lib/storage';
 import { audit } from '@/lib/audit';
 
@@ -28,8 +28,10 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   if (!isStaff && !isOwner) return new NextResponse('Not found', { status: 404 });
 
   const bytes = await getDocument(tag.headshotKey);
+  const ext = (tag.headshotKey.match(/\.[a-zA-Z0-9]+$/)?.[0] || '.jpg').replace('.', '').toLowerCase();
+  const fname = idTagFileName({ personName: tag.personName, date: tag.createdAt, badgeNumber: tag.badgeNumber }, 'photo', ext);
   await audit({ actorId: session.userId, action: 'DOC_DOWNLOAD', entityType: 'HomeDepotIdTag', entityId: params.id, detail: 'ID-tag headshot viewed' });
   return new NextResponse(new Uint8Array(bytes), {
-    headers: { 'Content-Type': mimeFor(tag.headshotKey), 'Content-Disposition': 'inline', 'Cache-Control': 'no-store' },
+    headers: { 'Content-Type': mimeFor(tag.headshotKey), 'Content-Disposition': `inline; filename="${fname}"`, 'Cache-Control': 'no-store' },
   });
 }
