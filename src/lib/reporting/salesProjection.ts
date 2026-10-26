@@ -54,8 +54,25 @@ export interface ProjectionResult {
   fullYearDeals: number; // projected full-year paid deals (expected)
   remainingGross: number; // expected − banked-to-date
   months: ProjectedMonth[];
+  firstHalf: number; // Jan–Jun gross (actual + projected)
+  backHalf: number; // Jul–Dec gross
+  firstHalfDeals: number;
+  backHalfDeals: number;
   confidence: 'higher' | 'moderate' | 'lower';
   isComplete: boolean; // the whole year is in the past → actuals are final
+  isFuture: boolean; // a forward plan for a year that hasn't started
+  growthPct: number; // the year-over-year growth assumption used (future years)
+}
+
+function halves(months: ProjectedMonth[]): Pick<ProjectionResult, 'firstHalf' | 'backHalf' | 'firstHalfDeals' | 'backHalfDeals'> {
+  const h1 = months.slice(0, 6);
+  const h2 = months.slice(6);
+  return {
+    firstHalf: Math.round(h1.reduce((s, m) => s + m.projected, 0)),
+    backHalf: Math.round(h2.reduce((s, m) => s + m.projected, 0)),
+    firstHalfDeals: h1.reduce((s, m) => s + m.projectedCount, 0),
+    backHalfDeals: h2.reduce((s, m) => s + m.projectedCount, 0),
+  };
 }
 
 const MONTH_ABBR = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -200,7 +217,77 @@ export function projectYear(
     fullYearDeals,
     remainingGross: Math.max(0, band.expected - Math.round(ytd)),
     months,
+    ...halves(months),
     confidence,
     isComplete,
+    isFuture: false,
+    growthPct: 0,
+  };
+}
+
+/**
+ * Forward-year PLAN (e.g. 2027) for a year with no sales yet. You can't measure
+ * then scale, so this grows a base annual figure by a year-over-year trend and
+ * distributes it across the year by the prior season's shape. Presented as a
+ * Flat / Expected / Stretch range so it can be defended to a partner (Home Depot).
+ */
+export function projectFutureYear(args: {
+  year: number;
+  baseAnnualGross: number; // the base year's full-year total (actual, or its projection)
+  baseAnnualDeals: number;
+  priorYearGross: number; // the year before the base — for the growth trend (0 if unknown)
+  shape: number[]; // 12 monthly weights (seasonality); normalized here
+  growthPct?: number; // explicit override in %, e.g. 12 for +12%
+}): ProjectionResult {
+  const { year, baseAnnualGross, baseAnnualDeals, priorYearGross } = args;
+  const rawShape = args.shape.slice(0, 12);
+  const shapeSum = sum(rawShape);
+  const shape = shapeSum > 0 ? rawShape.map((n) => n / shapeSum) : new Array(12).fill(1 / 12);
+
+  // Growth: explicit override, else the observed base-vs-prior trend, clamped to
+  // a sane planning band (−50%…+100%).
+  const trend = priorYearGross > 0 ? baseAnnualGross / priorYearGross - 1 : 0;
+  const g = Math.max(-0.5, Math.min(1, args.growthPct != null ? args.growthPct / 100 : trend));
+
+  const expectedAnnual = baseAnnualGross * (1 + g);
+  const gLow = Math.min(0, g); // flat if growing; the decline itself if shrinking
+  const gHigh = g >= 0 ? g * 2 : 0; // stretch = trend continuing to compound
+  const dealsAnnual = Math.round(baseAnnualDeals * (1 + g));
+
+  const months: ProjectedMonth[] = [];
+  for (let m = 0; m < 12; m += 1) {
+    months.push({
+      index: m,
+      label: MONTH_ABBR[m],
+      actual: 0,
+      actualCount: 0,
+      projected: Math.round(expectedAnnual * shape[m]),
+      projectedCount: Math.round(dealsAnnual * shape[m]),
+      isProjected: true,
+      isPartial: false,
+    });
+  }
+
+  return {
+    year,
+    seasonal: shapeSum > 0,
+    priorYearTotal: baseAnnualGross,
+    completedMonths: 0,
+    ytd: 0,
+    ytdCount: 0,
+    runRateMonthly: expectedAnnual / 12,
+    fullYear: {
+      low: Math.round(Math.min(baseAnnualGross * (1 + gLow), expectedAnnual)),
+      expected: Math.round(expectedAnnual),
+      high: Math.round(Math.max(baseAnnualGross * (1 + gHigh), expectedAnnual)),
+    },
+    fullYearDeals: dealsAnnual,
+    remainingGross: Math.round(expectedAnnual),
+    months,
+    ...halves(months),
+    confidence: priorYearGross > 0 ? 'moderate' : 'lower',
+    isComplete: false,
+    isFuture: true,
+    growthPct: Math.round(g * 100),
   };
 }

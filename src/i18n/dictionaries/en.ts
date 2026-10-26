@@ -1966,6 +1966,13 @@ export const en = {
   },
   salesProjection: {
     yearLabel: 'Year',
+    growthLabel: 'Growth assumption',
+    growthHint: 'Applied to a {base} base year',
+    growthFieldLabel: 'Growth % (future years)',
+    firstHalfLabel: 'First half (Jan–Jun)',
+    backHalfLabel: 'Back half (Jul–Dec)',
+    halfHint: '≈ {deals} paid deals',
+    methodFuture: 'A forward plan for {year}: {base}’s full-year total grown by {growth}% (your year-over-year trend, editable above), spread across the year by last season’s month-by-month shape. Range {low} – {high} = flat (no growth) through stretch (trend continuing). Change the Growth % to model a target you’re committing to Home Depot.',
     notConfigured: 'The sales journal isn’t connected for this year, so there’s nothing to project yet.',
     ytdLabel: 'Banked so far',
     ytdHint: '{deals} paid deals year-to-date',

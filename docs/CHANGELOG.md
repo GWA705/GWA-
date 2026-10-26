@@ -1693,6 +1693,25 @@ exhausting the single instance). No behaviour change for normal use.
   `testSingleLead()` on a French lead first. Portal display auto-translates lead
   free-text via DeepL.
 
+## 2026-10-26 (later)
+- **Sales projection: forward-year plans (e.g. 2027) + First-half / Back-half split.**
+  The year picker now includes **next year** (marked ★). A future year has no
+  sales yet, so instead of measure-and-scale it builds a **forward plan**:
+  the base year's full-year total (actuals if the base year is closed, else its
+  own projection) grown by the **year-over-year trend**, spread across the year by
+  last season's month-by-month shape. An editable **Growth %** field lets you model
+  a target you're committing to Home Depot (blank = auto from trend; clamped
+  −50…+100%). Range is **Flat (no growth) / Expected (trend) / Stretch (trend
+  continuing)**. Every year now also shows **First half (Jan–Jun)** and **Back half
+  (Jul–Dec)** tiles with dollars + deal counts — the split HD asks for. Works on
+  both the admin (any/all offices) and dealer (own office) projection pages.
+  - Code: `projectFutureYear()` + FH/BH on `ProjectionResult` in
+    `salesProjection.ts`; `buildOfficeProjection(year, dealerId, growthPct)` in
+    `salesProjectionData.ts` routes current/past → projectYear, future → plan.
+    View gains FH/BH tiles + a growth tile/method note; pages gain the Growth %
+    input and next-year option. i18n `salesProjection.{growth*,firstHalf,backHalf,
+    halfHint,methodFuture}` (EN+FR). Tests: 7 in `tests/salesProjection.test.ts`.
+
 ## 2026-10-26
 - **New report: Sales projection (year-end revenue estimate).** Staff → Reports →
   **Sales projection** (Super Admin), with an office picker (any office or All

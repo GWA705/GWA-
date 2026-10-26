@@ -15,13 +15,23 @@ export function SalesProjectionView({ data }: { data: ProjectionResult }) {
 
   return (
     <div className="space-y-4">
-      {/* Headline band: banked → projected full year */}
+      {/* Headline band: banked / plan basis → projected full year → run rate */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-          <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t('salesProjection.ytdLabel')}</div>
-          <div className="mt-1 text-2xl font-bold tabular-nums text-gray-900">{money0(data.ytd)}</div>
-          <div className="text-xs text-gray-500">{t('salesProjection.ytdHint', { deals: data.ytdCount })}</div>
-        </div>
+        {data.isFuture ? (
+          <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+            <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t('salesProjection.growthLabel')}</div>
+            <div className={`mt-1 text-2xl font-bold tabular-nums ${data.growthPct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              {data.growthPct >= 0 ? '+' : ''}{data.growthPct}%
+            </div>
+            <div className="text-xs text-gray-500">{t('salesProjection.growthHint', { base: money0(data.priorYearTotal) })}</div>
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+            <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t('salesProjection.ytdLabel')}</div>
+            <div className="mt-1 text-2xl font-bold tabular-nums text-gray-900">{money0(data.ytd)}</div>
+            <div className="text-xs text-gray-500">{t('salesProjection.ytdHint', { deals: data.ytdCount })}</div>
+          </div>
+        )}
         <div className="rounded-2xl border-2 border-gray-900 bg-white p-4 shadow-sm">
           <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t('salesProjection.projectedYearLabel', { year: data.year })}</div>
           <div className="mt-1 text-2xl font-bold tabular-nums text-gray-900">{money0(data.fullYear.expected)}</div>
@@ -35,6 +45,20 @@ export function SalesProjectionView({ data }: { data: ProjectionResult }) {
           <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t('salesProjection.runRateLabel')}</div>
           <div className="mt-1 text-2xl font-bold tabular-nums text-gray-900">{money0(data.runRateMonthly)}</div>
           <div className="text-xs text-gray-500">{t('salesProjection.runRateHint', { deals: data.fullYearDeals })}</div>
+        </div>
+      </div>
+
+      {/* First half / back half — the split Home Depot asks for */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+          <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t('salesProjection.firstHalfLabel')}</div>
+          <div className="mt-1 text-2xl font-bold tabular-nums text-gray-900">{money0(data.firstHalf)}</div>
+          <div className="text-xs text-gray-500">{t('salesProjection.halfHint', { deals: data.firstHalfDeals })}</div>
+        </div>
+        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+          <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">{t('salesProjection.backHalfLabel')}</div>
+          <div className="mt-1 text-2xl font-bold tabular-nums text-gray-900">{money0(data.backHalf)}</div>
+          <div className="text-xs text-gray-500">{t('salesProjection.halfHint', { deals: data.backHalfDeals })}</div>
         </div>
       </div>
 
@@ -85,9 +109,11 @@ export function SalesProjectionView({ data }: { data: ProjectionResult }) {
       <section className="rounded-2xl border border-gray-200 bg-gray-50 p-4 text-xs leading-relaxed text-gray-600">
         <p className="font-semibold text-gray-700">{t('salesProjection.methodHeading')}</p>
         <p className="mt-1">
-          {data.seasonal
-            ? t('salesProjection.methodSeasonal', { completed: data.completedMonths, year: data.year, prior: data.year - 1 })
-            : t('salesProjection.methodFlat', { completed: data.completedMonths })}
+          {data.isFuture
+            ? t('salesProjection.methodFuture', { year: data.year, base: data.year - 1, growth: data.growthPct, low: money0(data.fullYear.low), high: money0(data.fullYear.high) })
+            : data.seasonal
+              ? t('salesProjection.methodSeasonal', { completed: data.completedMonths, year: data.year, prior: data.year - 1 })
+              : t('salesProjection.methodFlat', { completed: data.completedMonths })}
         </p>
         <p className="mt-1">{confText}</p>
         <p className="mt-1 italic">{t('salesProjection.disclaimer')}</p>

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { projectYear, type MonthCell } from '@/lib/reporting/salesProjection';
+import { projectYear, projectFutureYear, type MonthCell } from '@/lib/reporting/salesProjection';
 
 const cells = (gross: number[], counts?: number[]): MonthCell[] =>
   gross.map((g, i) => ({ gross: g, count: counts ? counts[i] : Math.round(g / 10000) }));
@@ -65,5 +65,41 @@ describe('sales projection', () => {
     const r = projectYear(actual, PRIOR, 2026, now);
     expect(r.fullYearDeals).toBeGreaterThanOrEqual(r.ytdCount);
     expect(r.fullYearDeals).toBeLessThan(400); // sanity ceiling
+  });
+
+  it('splits the year into first half and back half', () => {
+    const now = new Date(2026, 9, 15);
+    const actual = cells([70, 85, 100, 115, 140, 170, 250, 190, 130, 40, 0, 0].map((n) => n * 1000));
+    const r = projectYear(actual, PRIOR, 2026, now);
+    // H1 + H2 should reconcile with the whole-year series (within rounding).
+    const whole = r.months.reduce((s, m) => s + m.projected, 0);
+    expect(Math.abs(r.firstHalf + r.backHalf - whole)).toBeLessThanOrEqual(2);
+    // This office is summer-heavy, so the back half (Jul–Dec) outweighs H1.
+    expect(r.backHalf).toBeGreaterThan(r.firstHalf);
+  });
+
+  it('builds a forward plan for a future year grown by the trend', () => {
+    // 2025 full = 1.5M, base (2026) = 1.8M → +20% trend carried into 2027.
+    const plan = projectFutureYear({
+      year: 2027,
+      baseAnnualGross: 1_800_000,
+      baseAnnualDeals: 180,
+      priorYearGross: 1_500_000,
+      shape: [80, 90, 110, 120, 150, 180, 260, 200, 140, 120, 100, 90],
+    });
+    expect(plan.isFuture).toBe(true);
+    expect(plan.growthPct).toBe(20);
+    expect(plan.fullYear.expected).toBe(Math.round(1_800_000 * 1.2)); // 2.16M
+    // Flat (low) ≤ expected ≤ stretch (high); here flat = base, stretch = +40%.
+    expect(plan.fullYear.low).toBe(1_800_000);
+    expect(plan.fullYear.high).toBe(Math.round(1_800_000 * 1.4));
+    expect(plan.firstHalf + plan.backHalf).toBeGreaterThan(0);
+    expect(plan.backHalf).toBeGreaterThan(plan.firstHalf); // seasonal shape preserved
+  });
+
+  it('honours an explicit growth override and clamps absurd values', () => {
+    const base = { year: 2027, baseAnnualGross: 1_000_000, baseAnnualDeals: 100, priorYearGross: 1_000_000, shape: new Array(12).fill(1) };
+    expect(projectFutureYear({ ...base, growthPct: 10 }).fullYear.expected).toBe(1_100_000);
+    expect(projectFutureYear({ ...base, growthPct: 999 }).growthPct).toBe(100); // clamped to +100%
   });
 });

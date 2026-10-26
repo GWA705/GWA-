@@ -1970,6 +1970,13 @@ export const fr: Dictionary = {
   },
   salesProjection: {
     yearLabel: 'Année',
+    growthLabel: 'Hypothèse de croissance',
+    growthHint: 'Appliquée à une année de base de {base}',
+    growthFieldLabel: 'Croissance % (années futures)',
+    firstHalfLabel: 'Premier semestre (jan.–juin)',
+    backHalfLabel: 'Second semestre (juil.–déc.)',
+    halfHint: '≈ {deals} ventes payées',
+    methodFuture: 'Un plan prévisionnel pour {year} : le total annuel de {base} augmenté de {growth} % (votre tendance d’une année à l’autre, modifiable ci-dessus), réparti sur l’année selon la forme mois par mois de la dernière saison. Fourchette {low} – {high} = stable (aucune croissance) jusqu’à ambitieux (tendance maintenue). Modifiez le % de croissance pour modéliser une cible que vous vous engagez à atteindre auprès de Home Depot.',
     notConfigured: 'Le journal des ventes n’est pas connecté pour cette année : il n’y a rien à projeter pour l’instant.',
     ytdLabel: 'Encaissé à ce jour',
     ytdHint: '{deals} ventes payées depuis le début de l’année',
