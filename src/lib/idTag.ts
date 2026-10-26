@@ -376,6 +376,7 @@ export interface IdTagRow {
   certified: boolean;
   hasHeadshot: boolean;
   hasCard: boolean;
+  cardIsImage: boolean;
   validUntil: Date | null;
   dealerId: string;
   dealerName?: string;
@@ -415,6 +416,7 @@ export async function listIdTagForDealer(dealerId: string): Promise<IdTagRow[]> 
   });
   return rows.map(({ certificationId, headshotKey, cardFileKey, ...r }) => ({
     ...r, certified: !!certificationId, hasHeadshot: !!headshotKey, hasCard: !!cardFileKey,
+    cardIsImage: /\.(png|jpe?g|webp|gif)$/i.test(cardFileKey || ''),
   }));
 }
 
@@ -446,7 +448,7 @@ export async function listAllIdTags(filter?: { dealerId?: string; status?: IdTag
   return rows.map((r) => ({
     id: r.id, personName: r.personName, personEmail: r.personEmail, personPhone: r.personPhone,
     kind: r.kind, status: r.status, certified: !!r.certificationId, hasHeadshot: !!r.headshotKey,
-    hasCard: !!r.cardFileKey, validUntil: r.validUntil,
+    hasCard: !!r.cardFileKey, cardIsImage: /\.(png|jpe?g|webp|gif)$/i.test(r.cardFileKey || ''), validUntil: r.validUntil,
     dealerId: r.dealerId, dealerName: r.dealer?.name, createdAt: r.createdAt,
   }));
 }

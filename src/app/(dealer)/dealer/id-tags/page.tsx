@@ -46,7 +46,7 @@ export default async function DealerIdTagsPage() {
             <p className="px-5 py-10 text-center text-sm text-slate-400">No one submitted yet. Add your first person on the left.</p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[620px] border-collapse text-sm">
+              <table className="w-full min-w-[720px] border-collapse text-sm">
                 <thead>
                   <tr className="bg-slate-50 text-left text-[11px] uppercase tracking-wide text-slate-500">
                     <th className="px-5 py-2.5 font-semibold">Name</th>
@@ -87,11 +87,22 @@ export default async function DealerIdTagsPage() {
                       </td>
                       <td className="px-5 py-3 text-xs text-slate-400 whitespace-nowrap">{new Date(r.createdAt).toLocaleDateString('en-CA')}</td>
                       <td className="px-5 py-3">
-                        {r.hasCard
-                          ? <a href={`/api/id-tags/${r.id}/card`} className="rounded-lg bg-brand-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-brand-700">⬇ Download card</a>
-                          : r.kind === 'NEW' && !r.certified && r.personEmail
-                            ? <SendTrainingButton id={r.id} label="Send training" small />
-                            : null}
+                        {r.hasCard ? (
+                          <div className="flex items-center gap-2">
+                            {r.cardIsImage && (
+                              <a href={`/api/id-tags/${r.id}/card?view=1`} target="_blank" rel="noreferrer" title="View / print card">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={`/api/id-tags/${r.id}/card?view=1`} alt="ID card" className="h-11 w-auto rounded border border-slate-200 bg-white" />
+                              </a>
+                            )}
+                            <div className="flex flex-col gap-1">
+                              <a href={`/api/id-tags/${r.id}/card?view=1`} target="_blank" rel="noreferrer" className="rounded-lg border border-slate-300 px-2.5 py-1 text-center text-xs font-semibold text-slate-700 hover:bg-slate-50">View / print</a>
+                              <a href={`/api/id-tags/${r.id}/card`} className="rounded-lg bg-brand-600 px-2.5 py-1 text-center text-xs font-semibold text-white hover:bg-brand-700">⬇ Download</a>
+                            </div>
+                          </div>
+                        ) : r.kind === 'NEW' && !r.certified && r.personEmail ? (
+                          <SendTrainingButton id={r.id} label="Send training" small />
+                        ) : null}
                       </td>
                     </tr>
                   ))}
