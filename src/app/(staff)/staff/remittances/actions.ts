@@ -69,6 +69,11 @@ export async function ingestRemittancePdfAction(_prev: RemittanceActionState, fo
   if (parsed.lines.length === 0) {
     return { error: 'No invoice rows found in that PDF. Is it the Home Depot remittance advice? You can still paste the lines below.' };
   }
+  // Double-check: per-row math, full coverage, and reconciliation to HD's printed
+  // grand total must all pass before anything is funded.
+  if (!parsed.verification.ok) {
+    return { error: `Double-check failed — this remittance was NOT processed. ${parsed.verification.issues.join(' ')} Please review the PDF or enter it by hand.` };
+  }
 
   const result = await ingestRemittance({
     documentNumber: parsed.documentNumber,

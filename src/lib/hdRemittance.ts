@@ -95,12 +95,23 @@ function signedMoney(tok: string): number {
   return /-/.test(tok) ? -Math.abs(val) : Math.abs(val);
 }
 
+export interface RemittanceVerification {
+  ok: boolean; // all checks passed — safe to fund
+  grandTotalFound: boolean; // HD's printed grand total was present
+  reconciles: boolean; // parsed lines sum to that grand total
+  rowsSeen: number; // data rows the parser encountered
+  linesCaptured: number; // lines it turned into records (should equal rowsSeen)
+  sumNet: number; // sum of captured line amounts
+  issues: string[]; // human-readable reasons it isn't OK
+}
+
 export function parseHdRemittanceText(text: string): {
   documentNumber: string | null;
   documentDate: string | null;
   paymentDate: string | null;
   grandTotal: number | null;
   lines: RemittanceLineInput[];
+  verification: RemittanceVerification;
 } {
   const grab = (re: RegExp): string | null => {
     const m = text.match(re);
@@ -112,6 +123,11 @@ export function parseHdRemittanceText(text: string): {
 
   const lines: RemittanceLineInput[] = [];
   let grandTotal: number | null = null;
+  // Double-check bookkeeping: every data row must be captured, and each row's own
+  // gross − adjustment must equal its net (an independent per-row check on top of
+  // the whole-page grand-total check).
+  const issues: string[] = [];
+  let rowsSeen = 0;
 
   for (const raw of text.split(/\r?\n/)) {
     const t = raw.trim();
@@ -135,6 +151,17 @@ export function parseHdRemittanceText(text: string): {
     // Data row. The NET is the last money token on the row (gross, adjmt, NET).
     const net = signedMoney(monies[monies.length - 1]);
     if (!Number.isFinite(net) || net === 0) continue;
+    rowsSeen += 1;
+
+    // Double-check #1 — per-row math: when the row carries all three money
+    // columns, gross − adjustment must equal the net we're about to record.
+    if (monies.length >= 3) {
+      const gross = signedMoney(monies[monies.length - 3]);
+      const adjmt = signedMoney(monies[monies.length - 2]);
+      if ([gross, adjmt, net].every(Number.isFinite) && Math.abs(gross - adjmt - net) > 0.01) {
+        issues.push(`Row doesn't add up (gross ${gross} − adjmt ${adjmt} ≠ net ${net}): "${t.slice(0, 48)}"`);
+      }
+    }
 
     // The HD ID #: the leading token when it's a 7–12 digit number, else a
     // chargeback reference embedded in the row (GRGA#800…, G800…, or a bare 7/8 id).
@@ -145,6 +172,7 @@ export function parseHdRemittanceText(text: string): {
       if (g) hdId = g[1];
     }
 
+    const before = lines.length;
     if (net < 0 && !hdId) {
       // A deduction HD withheld (lead fee / program fee) — matches no deal, but
       // must reduce the net. Keep the row's own code + description.
@@ -154,10 +182,35 @@ export function parseHdRemittanceText(text: string): {
     } else if (hdId) {
       lines.push({ hdIdNumber: hdId, amount: net, invoiceDate: dateM[1], isChargeback: net < 0, type: net < 0 ? 'CHARGEBACK' : 'INVOICE' });
     }
-    // A positive amount with no HD id and a date shouldn't occur; ignore it.
+    // Double-check #2 — coverage: a money-bearing data row that produced no line
+    // (e.g. a positive amount with no readable HD ID) must never be silently
+    // dropped; flag it so the remittance goes to manual review instead of funding
+    // an incomplete set.
+    if (lines.length === before) {
+      issues.push(`Row not captured (no HD ID / unrecognized): "${t.slice(0, 60)}"`);
+    }
   }
 
-  return { documentNumber, documentDate, paymentDate, grandTotal, lines };
+  // Double-check #3 — whole-page: the printed grand total must exist and the
+  // captured lines must sum to it.
+  const sumNet = lines.reduce((s, l) => s + (Number(l.amount) || 0), 0);
+  const grandTotalFound = grandTotal !== null;
+  const reconciles = grandTotalFound && Math.abs(sumNet - (grandTotal as number)) <= 0.02;
+  if (!grandTotalFound) issues.push('No printed grand total found on the remittance to verify against.');
+  else if (!reconciles) issues.push(`Lines sum to ${sumNet.toFixed(2)} but the printed grand total is ${(grandTotal as number).toFixed(2)}.`);
+  if (lines.length === 0) issues.push('No invoice/deduction rows were read.');
+
+  const verification: RemittanceVerification = {
+    ok: issues.length === 0,
+    grandTotalFound,
+    reconciles,
+    rowsSeen,
+    linesCaptured: lines.length,
+    sumNet,
+    issues,
+  };
+
+  return { documentNumber, documentDate, paymentDate, grandTotal, lines, verification };
 }
 
 export async function ingestRemittance(input: RemittanceInput): Promise<RemittanceResult> {

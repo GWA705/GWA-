@@ -1693,6 +1693,23 @@ exhausting the single instance). No behaviour change for normal use.
   `testSingleLead()` on a French lead first. Portal display auto-translates lead
   free-text via DeepL.
 
+## 2026-10-26 (remittance parse double-check)
+- **Three independent parse checks before any remittance funds** — so a mis-read
+  can never fund the wrong amount. `parseHdRemittanceText` now returns a
+  `verification` block and every ingest path (auto-pull, upload, re-pull) refuses
+  unless it passes:
+  1. **Per-row math** — each row's `gross − adjustment = net` (catches any single
+     mis-read number even if the page total still happened to match).
+  2. **Full coverage** — every money-bearing data row must become a line; a row
+     the parser can't place (bad/garbled HD ID) blocks the whole file instead of
+     being silently dropped.
+  3. **Grand-total reconciliation** — HD's printed grand total must be present and
+     equal the sum of the parsed lines (±$0.01); a missing total blocks too.
+  On failure nothing is funded: the upload shows the reasons, and the auto-pull
+  emails the "needs manual review" alert. Tests in `tests/hdRemittanceParse.test.ts`
+  (clean file passes; a tampered amount, a missing total, and an uncapturable row
+  each fail).
+
 ## 2026-10-26 (remittance report email + re-pull/fix)
 - **Matched report emailed to the office team.** Whenever a remittance is processed
   (auto-pull OR manual upload), the portal builds a clean PDF — every HD line with

@@ -70,6 +70,38 @@ describe("Home Depot remittance parser — the file that shuffled", () => {
     expect(sum).toBeCloseTo(parsed.grandTotal!, 2); // the integrity guard passes
   });
 
+  it('the double-check passes on the clean file', () => {
+    expect(parsed.verification.ok).toBe(true);
+    expect(parsed.verification.grandTotalFound).toBe(true);
+    expect(parsed.verification.reconciles).toBe(true);
+    expect(parsed.verification.rowsSeen).toBe(8); // 7 invoices + 1 fee
+    expect(parsed.verification.linesCaptured).toBe(8);
+    expect(parsed.verification.issues).toHaveLength(0);
+  });
+
+  it('the double-check CATCHES a misread amount (row math + reconciliation)', () => {
+    // Corrupt one net so gross − adjmt ≠ net AND the page no longer reconciles.
+    const bad = REAL.replace('800256358 10/23/2026 2,146.96 0.00 2,146.96', '800256358 10/23/2026 2,146.96 0.00 9,999.99');
+    const p = parseHdRemittanceText(bad);
+    expect(p.verification.ok).toBe(false);
+    expect(p.verification.issues.join(' ')).toMatch(/add up|grand total/i);
+  });
+
+  it('the double-check REFUSES when the printed grand total is missing', () => {
+    const noTotal = REAL.replace('33,919.10 0.00 33,919.10', '');
+    const p = parseHdRemittanceText(noTotal);
+    expect(p.verification.grandTotalFound).toBe(false);
+    expect(p.verification.ok).toBe(false);
+  });
+
+  it('the double-check flags a row it could not capture (no HD ID)', () => {
+    // A positive money row with a date but no HD ID / recognizable reference.
+    const orphan = REAL + '\nUNKNOWNROW 10/23/2026 1,234.56 0.00 1,234.56';
+    const p = parseHdRemittanceText(orphan);
+    expect(p.verification.ok).toBe(false);
+    expect(p.verification.issues.join(' ')).toMatch(/not captured/i);
+  });
+
   it('classifies an embedded GRGA chargeback to its HD deal', () => {
     const p = parseHdRemittanceText(
       '800300001 10/23/2026 1,000.00 0.00 1,000.00\n' +

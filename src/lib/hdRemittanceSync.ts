@@ -94,6 +94,13 @@ export async function sweepHdRemittances(opts: { days?: number; max?: number } =
         result.details.push({ documentNumber: parsed.documentNumber, status: 'no_lines' });
         continue;
       }
+      // Double-check gate — don't fund anything that fails per-row math, coverage,
+      // or reconciliation to HD's printed grand total; it alerts for manual review.
+      if (!parsed.verification.ok) {
+        result.failed += 1;
+        result.details.push({ documentNumber: parsed.documentNumber, status: 'verification_failed', error: parsed.verification.issues.join(' ') });
+        continue;
+      }
 
       let res: RemittanceResult;
       try {
@@ -178,6 +185,12 @@ export async function reprocessRemittanceByDoc(documentNumber: string, opts: { d
         parsed = parseHdRemittanceText(await extractPdfText(bytes));
       } catch { continue; }
       if ((parsed.documentNumber || '').trim() !== doc) continue;
+
+      // Double-check before we delete+re-fund: never replace a stored record with
+      // a parse that fails the per-row/coverage/grand-total checks.
+      if (!parsed.verification.ok) {
+        return { ok: false, reason: `Double-check failed on the re-pull: ${parsed.verification.issues.join(' ')}`, documentNumber: doc, deletedOld: false };
+      }
 
       // Found it — delete the stored record (cascade lines), then re-ingest clean.
       const existing = await prisma.hdRemittance.findUnique({ where: { documentNumber: doc }, select: { id: true } });
