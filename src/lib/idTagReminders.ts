@@ -3,8 +3,9 @@ import { sendEmail } from './email';
 import { renderEmail } from './email-templates';
 import { sendPushToUser } from './push';
 import { currentHourInTz } from './sla';
-import { getSetting, setSetting } from './settings';
+import { getSetting, setSetting, getIdTagBillingRecipients } from './settings';
 import { daysUntil } from './idTag';
+import { monthlyActivations, money, previousMonthKey } from './idTagBilling';
 
 /**
  * Home Depot ID-tag expiry reminders + the monthly office roster check-up.
@@ -270,7 +271,59 @@ async function runMonthlyCheckup(now: Date, tz: string): Promise<{ offices: numb
   return { offices, emails };
 }
 
-/** Full Phase-3 sweep: expiry reminders + (first-of-month) roster check-up. */
+const BILLING_KEY = 'idTag.billing.lastRun';
+
+/** Monthly billing list — on the first run each month, email the recipients the
+ *  PREVIOUS month's per-office activation totals (invoices live in the portal). */
+async function runMonthlyBilling(now: Date, tz: string): Promise<{ emails: number }> {
+  const key = monthKey(now, tz);
+  if ((await getSetting(BILLING_KEY)) === key) return { emails: 0 };
+
+  const month = previousMonthKey(now);
+  const billing = await monthlyActivations(month);
+  await setSetting(BILLING_KEY, key); // mark done up-front (no double-send)
+
+  const recipients = await getIdTagBillingRecipients();
+  if (!recipients.length || billing.offices.length === 0) return { emails: 0 };
+
+  const monthName = new Date(`${month}-01T00:00:00`).toLocaleDateString('en-CA', { year: 'numeric', month: 'long' });
+  const rowsHtml = billing.offices.map((o) => `<tr>
+      <td style="padding:8px 10px;border-bottom:1px solid #eef0f2;font-size:13px;color:#111827;">${escapeHtml(o.office)}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid #eef0f2;font-size:13px;color:#111827;text-align:right;">${o.count}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid #eef0f2;font-size:13px;color:#6b7280;">${escapeHtml(o.taxLabel)}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid #eef0f2;font-size:13px;color:#111827;text-align:right;font-weight:600;">${money(o.totalCents)}</td>
+    </tr>`).join('');
+  const body = `
+    <p style="margin:0 0 14px;font-size:14px;line-height:1.6;color:#374151;">${billing.count} rep${billing.count === 1 ? '' : 's'} activated across ${billing.offices.length} office${billing.offices.length === 1 ? '' : 's'} in ${monthName}, billed at $35/rep + each office's provincial tax. Per-office invoices (with every name, date/time and who created it) are in the portal.</p>
+    <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;border:1px solid #eef0f2;border-radius:8px;overflow:hidden;">
+      <thead><tr style="background:#f8fafc;">
+        <th align="left" style="padding:8px 10px;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#6b7280;">Office</th>
+        <th align="right" style="padding:8px 10px;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#6b7280;">Reps</th>
+        <th align="left" style="padding:8px 10px;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#6b7280;">Tax</th>
+        <th align="right" style="padding:8px 10px;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#6b7280;">Total</th>
+      </tr></thead>
+      <tbody>${rowsHtml}</tbody>
+    </table>
+    <p style="margin:14px 0 0;font-size:14px;color:#111827;"><strong>Grand total: ${money(billing.totalCents)}</strong> (incl. tax)</p>`;
+
+  const html = renderEmail({
+    heading: `Home Depot ID-tag billing — ${monthName}`,
+    intro: `${billing.count} rep${billing.count === 1 ? '' : 's'} activated across ${billing.offices.length} office${billing.offices.length === 1 ? '' : 's'}.`,
+    bodyHtml: body,
+    ctaLabel: 'Open billing & invoices',
+    ctaUrl: `${appUrl()}/staff/id-tags/billing?month=${month}`,
+  });
+  const subject = `HD ID-tag billing — ${monthName} (${billing.count} reps · ${money(billing.totalCents)})`;
+
+  let emails = 0;
+  for (const to of recipients) {
+    const res = await sendEmail({ to, subject, html });
+    if (res.sent) emails += 1;
+  }
+  return { emails };
+}
+
+/** Full sweep: expiry reminders + (first-of-month) roster check-up + billing. */
 export async function runIdTagReminders(now: Date = new Date()): Promise<IdTagReminderRunResult> {
   const cfg = await getIdTagReminderConfig();
   if (!cfg.enabled) return { ran: false, reason: 'id-tag reminders are turned off', reminded: 0, emails: 0, monthlyOffices: 0 };
@@ -282,5 +335,6 @@ export async function runIdTagReminders(now: Date = new Date()): Promise<IdTagRe
 
   const expiry = await runExpiryReminders(now);
   const monthly = await runMonthlyCheckup(now, cfg.timezone);
-  return { ran: true, reminded: expiry.reminded, emails: expiry.emails + monthly.emails, monthlyOffices: monthly.offices };
+  const billing = await runMonthlyBilling(now, cfg.timezone);
+  return { ran: true, reminded: expiry.reminded, emails: expiry.emails + monthly.emails + billing.emails, monthlyOffices: monthly.offices };
 }

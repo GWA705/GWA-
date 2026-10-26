@@ -498,6 +498,11 @@ model HomeDepotIdTag {
   // the reminder cycle.
   expiryRemindStage Int?
 
+  // When this rep first became active (status → TAG_ISSUED/ACTIVE, or created as
+  // an existing-tag rep). This is the billable event: billing counts reps
+  // activated within a month. Set once.
+  activatedAt DateTime?
+
   kind   IdTagKind   @default(NEW)
   status IdTagStatus @default(AWAITING_TRAINING)
 

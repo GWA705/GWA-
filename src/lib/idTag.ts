@@ -300,6 +300,8 @@ export async function createIdTagRequest(input: CreateIdTagInput): Promise<Creat
       status,
       certificationId: cert?.id || null,
       emailSentAt: null,
+      // Existing-tag reps are active the moment they're added (billable event).
+      activatedAt: status === 'ACTIVE' ? new Date() : null,
     },
     select: { id: true, status: true },
   });
@@ -318,8 +320,12 @@ export async function markIdTagEmailed(id: string): Promise<void> {
   await prisma.homeDepotIdTag.update({ where: { id }, data: { emailSentAt: new Date() } }).catch(() => {});
 }
 
-/** Manually set a request's status (admin control). */
+/** Manually set a request's status (admin/reviewer control). Stamps activatedAt
+ *  the first time a rep reaches an active state (the billable event). */
 export async function setIdTagStatus(id: string, status: IdTagStatus): Promise<void> {
+  if (status === 'TAG_ISSUED' || status === 'ACTIVE') {
+    await prisma.homeDepotIdTag.updateMany({ where: { id, activatedAt: null }, data: { activatedAt: new Date() } });
+  }
   await prisma.homeDepotIdTag.update({ where: { id }, data: { status } });
 }
 

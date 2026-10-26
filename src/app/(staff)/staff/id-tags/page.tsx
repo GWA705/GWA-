@@ -43,7 +43,8 @@ export default async function StaffIdTagBoardPage({ searchParams }: { searchPara
     <div className="mx-auto max-w-6xl px-4 py-8">
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="text-2xl font-bold text-slate-900">HD ID Tags</h1>
-        <Link href="/staff/id-tags/setup" className="ml-auto rounded-lg bg-slate-800 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-900">Office setup</Link>
+        <Link href="/staff/id-tags/billing" className="ml-auto rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Billing</Link>
+        <Link href="/staff/id-tags/setup" className="rounded-lg bg-slate-800 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-900">Office setup</Link>
       </div>
       <p className="mt-1 text-sm text-slate-500">Everyone across all offices. Open a person to run their Entuitive setup, upload the card and set the expiry.</p>
 
