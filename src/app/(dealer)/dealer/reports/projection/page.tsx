@@ -55,6 +55,15 @@ export default async function DealerSalesProjection({ searchParams }: { searchPa
           <input id="growth" name="growth" type="number" min={-50} max={100} defaultValue={data.isFuture ? String(data.growthPct) : ''} placeholder="auto" className="input w-28" />
         </div>
         <button type="submit" className="btn-primary h-10">{t('common.view')}</button>
+        {configured && (
+          <a
+            href={`/dealer/reports/projection/pdf?year=${year}${growth != null ? `&growth=${growth}` : ''}`}
+            title={t('reportsUi.leads.downloadPdfTitle')}
+            className="inline-flex h-10 items-center rounded-lg border border-gray-300 px-3 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+          >
+            {t('reportsUi.leads.downloadPdf')}
+          </a>
+        )}
       </form>
 
       {!configured ? (

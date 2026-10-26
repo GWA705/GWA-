@@ -1693,6 +1693,20 @@ exhausting the single instance). No behaviour change for normal use.
   `testSingleLead()` on a French lead first. Portal display auto-translates lead
   free-text via DeepL.
 
+## 2026-10-26 (later still)
+- **Sales projection: one-click PDF export (for Home Depot).** A **⬇ Download PDF**
+  button on both the admin and dealer projection pages produces a greyscale,
+  print-ready PDF (pdf-lib, no browser): the projected full-year total + Flat/
+  Expected/Stretch range, the **First-half / Back-half** split with deal counts,
+  a month-by-month table (banked vs projected), and the stated assumptions
+  (growth %, season basis, confidence, disclaimer) — the same copy as the screen.
+  The button carries the current office / year / growth, so the PDF matches what's
+  on screen (including a 2027 forward plan at whatever growth % you set).
+  - Code: `buildProjectionPdf()` + `projectionNotes()` in
+    `src/lib/reporting/projectionPdf.ts`; routes `…/staff/reports/projection/pdf`
+    and `…/dealer/reports/projection/pdf` (dealer scoped to own office). Reuses the
+    existing `reportsUi.leads.downloadPdf` label. Smoke-tested (valid `%PDF-`).
+
 ## 2026-10-26 (later)
 - **Sales projection: forward-year plans (e.g. 2027) + First-half / Back-half split.**
   The year picker now includes **next year** (marked ★). A future year has no

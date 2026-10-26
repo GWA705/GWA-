@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { projectYear, projectFutureYear, type MonthCell } from '@/lib/reporting/salesProjection';
+import { buildProjectionPdf, projectionNotes } from '@/lib/reporting/projectionPdf';
 
 const cells = (gross: number[], counts?: number[]): MonthCell[] =>
   gross.map((g, i) => ({ gross: g, count: counts ? counts[i] : Math.round(g / 10000) }));
@@ -101,5 +102,16 @@ describe('sales projection', () => {
     const base = { year: 2027, baseAnnualGross: 1_000_000, baseAnnualDeals: 100, priorYearGross: 1_000_000, shape: new Array(12).fill(1) };
     expect(projectFutureYear({ ...base, growthPct: 10 }).fullYear.expected).toBe(1_100_000);
     expect(projectFutureYear({ ...base, growthPct: 999 }).growthPct).toBe(100); // clamped to +100%
+  });
+
+  it('renders a valid PDF for a future-year plan', async () => {
+    const plan = projectFutureYear({
+      year: 2027, baseAnnualGross: 1_800_000, baseAnnualDeals: 180, priorYearGross: 1_500_000,
+      shape: [80, 90, 110, 120, 150, 180, 260, 200, 140, 120, 100, 90],
+    });
+    const notes = projectionNotes(plan, (k: string) => k); // stub translator
+    const bytes = await buildProjectionPdf(plan, { brandName: 'Georgian Water & Air', scopeLabel: 'All offices', generated: 'October 26, 2026', footer: 'GWA', notes });
+    expect(bytes.length).toBeGreaterThan(1000);
+    expect(Buffer.from(bytes.slice(0, 5)).toString()).toBe('%PDF-'); // real PDF header
   });
 });

@@ -61,6 +61,15 @@ export default async function StaffProjectionPage({ searchParams }: { searchPara
           <input id="growth" name="growth" type="number" min={-50} max={100} defaultValue={data.isFuture ? String(data.growthPct) : ''} placeholder="auto" className="input w-28" />
         </div>
         <button type="submit" className="btn-primary h-10">{t('common.view')}</button>
+        {configured && (
+          <a
+            href={`/staff/reports/projection/pdf?office=${encodeURIComponent(officeId)}&year=${year}${growth != null ? `&growth=${growth}` : ''}`}
+            title={t('reportsUi.leads.downloadPdfTitle')}
+            className="inline-flex h-10 items-center rounded-lg border border-gray-300 px-3 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+          >
+            {t('reportsUi.leads.downloadPdf')}
+          </a>
+        )}
       </form>
 
       <ReportHeader org={officeName} title={t('reportsUi.projection.title')} generated={t('reportsUi.common.generated', { date: reportGeneratedLabel() })} />
