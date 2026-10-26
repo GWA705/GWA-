@@ -1693,6 +1693,23 @@ exhausting the single instance). No behaviour change for normal use.
   `testSingleLead()` on a French lead first. Portal display auto-translates lead
   free-text via DeepL.
 
+## 2026-10-26 (remittance report email + re-pull/fix)
+- **Matched report emailed to the office team.** Whenever a remittance is processed
+  (auto-pull OR manual upload), the portal builds a clean PDF — every HD line with
+  customer, office, store, amount and status, net total, and a per-office summary —
+  and emails it with the PDF attached. Default recipients **Vanita@, jj@, Alex@,
+  Sean@ghsbarrie.ca** (override with EB env `REMITTANCE_REPORT_RECIPIENTS`). Built
+  from the funded lines in the portal, so it always reconciles to what was funded
+  and to HD's grand total. Code: `src/lib/remittanceReport.ts`
+  (`buildRemittanceReportPdf` + `sendRemittanceReport`); smoke-tested.
+- **Re-pull & fix** (repairs the ones the old script shuffled). A button on each
+  remittance — Staff → Remittances → open one → **“Re-pull & fix from HD email”** —
+  deletes the stored record, finds that document's original HD email, re-parses the
+  PDF with the accurate parser, re-funds, and emails the corrected report. Deals
+  already funded stay funded; the recorded amounts, netted fee and report are
+  corrected. `reprocessRemittanceByDoc` (hdRemittanceSync) + `reprocessRemittanceAction`.
+  Needs the HD document number (auto/PDF remittances have it) + Gmail read access.
+
 ## 2026-10-26 (remittance auto-pull — retires the Apps Script)
 - **HD remittances now auto-process inside the portal** — the in-portal replacement
   for the Google Apps Script. A scheduled job reads the HD “Remittance Advice”

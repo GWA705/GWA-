@@ -4,6 +4,7 @@ import { requireStaffSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { getT } from '@/i18n/server';
 import { DeleteRemittanceButton } from '../DeleteRemittanceButton';
+import { ReprocessRemittanceButton } from '../ReprocessRemittanceButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,7 +44,10 @@ export default async function RemittanceDetailPage({ params }: { params: { id: s
             {r.processedBy?.name ? t('remit.detail.byName', { name: r.processedBy.name }) : ''} · {fmt(r.createdAt)} · {t('remit.paymentDate')} {fmt(r.paymentDate)}
           </p>
         </div>
-        <DeleteRemittanceButton id={r.id} docNumber={r.documentNumber} />
+        <div className="flex flex-col items-end gap-2">
+          <ReprocessRemittanceButton id={r.id} docNumber={r.documentNumber} />
+          <DeleteRemittanceButton id={r.id} docNumber={r.documentNumber} />
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-3 text-sm">

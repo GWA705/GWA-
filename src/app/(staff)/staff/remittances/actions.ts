@@ -6,6 +6,8 @@ import { requireStaffSection } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { audit } from '@/lib/audit';
 import { ingestRemittance, parseHdRemittanceText, reMatchUnmatchedLines, type RemittanceLineInput } from '@/lib/hdRemittance';
+import { sendRemittanceReport } from '@/lib/remittanceReport';
+import { reprocessRemittanceByDoc } from '@/lib/hdRemittanceSync';
 
 /**
  * Delete a remittance record (and its lines, via cascade). For clearing a
@@ -81,10 +83,13 @@ export async function ingestRemittancePdfAction(_prev: RemittanceActionState, fo
   if (!result.ok) return { error: result.error || 'Could not process the remittance.' };
   if (result.duplicate) return { error: `This remittance (document #${parsed.documentNumber}) was already processed.` };
 
+  // Email the matched report to the office team (best-effort).
+  if (result.remittanceId) await sendRemittanceReport(result.remittanceId);
+
   revalidatePath('/staff/remittances');
   return {
     ok: true,
-    summary: `${result.lineCount} lines · ${result.funded} funded · ${result.partial ?? 0} partial · ${result.chargebacks} chargebacks · ${result.deductions ?? 0} fees · ${result.unmatched.length} unmatched`,
+    summary: `${result.lineCount} lines · ${result.funded} funded · ${result.partial ?? 0} partial · ${result.chargebacks} chargebacks · ${result.deductions ?? 0} fees · ${result.unmatched.length} unmatched · report emailed`,
   };
 }
 
@@ -148,9 +153,38 @@ export async function ingestManualRemittanceAction(_prev: RemittanceActionState,
   if (!result.ok) return { error: result.error || 'Could not process the remittance.' };
   if (result.duplicate) return { error: `Remittance ${documentNumber} was already processed.` };
 
+  if (result.remittanceId) await sendRemittanceReport(result.remittanceId);
+
   revalidatePath('/staff/remittances');
   return {
     ok: true,
-    summary: `${result.lineCount} lines · ${result.funded} funded · ${result.partial ?? 0} partial · ${result.chargebacks} chargebacks · ${result.unmatched.length} unmatched`,
+    summary: `${result.lineCount} lines · ${result.funded} funded · ${result.partial ?? 0} partial · ${result.chargebacks} chargebacks · ${result.unmatched.length} unmatched · report emailed`,
   };
+}
+
+/**
+ * Re-pull ONE remittance from the Home Depot email and fix it: delete the stored
+ * record, re-parse the original PDF with the current accurate parser, re-fund,
+ * and email the corrected report. For repairing the ones the old Google Apps
+ * Script shuffled. Deals already funded stay funded. Needs the HD document number
+ * (auto-pulled remittances have it) and Gmail read access.
+ */
+export async function reprocessRemittanceAction(id: string): Promise<RemittanceActionState> {
+  const session = await requireStaffSection('remittances');
+  const r = await prisma.hdRemittance.findUnique({ where: { id }, select: { documentNumber: true } });
+  if (!r?.documentNumber) {
+    return { error: 'This remittance has no Home Depot document number to re-pull by (it was entered manually). Delete it and upload the PDF instead.' };
+  }
+  const res = await reprocessRemittanceByDoc(r.documentNumber);
+  await audit({
+    actorId: session.userId,
+    action: 'STATUS_CHANGE',
+    entityType: 'HdRemittance',
+    entityId: id,
+    detail: `Re-pull from HD email (${r.documentNumber}): ${res.ok ? 'fixed & re-funded' : 'failed'}${res.reason ? ' — ' + res.reason : ''}`,
+  });
+  if (!res.ok) return { error: res.reason || 'Could not re-pull this remittance from the Home Depot email.' };
+  revalidatePath('/staff/remittances');
+  // The fixed remittance is a NEW record; send the user back to the list.
+  redirect('/staff/remittances');
 }

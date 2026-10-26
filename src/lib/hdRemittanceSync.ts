@@ -2,6 +2,8 @@ import 'server-only';
 import type { gmail_v1 } from 'googleapis';
 import { gmailReadClient, gmailReadConfigured } from './gmailClient';
 import { parseHdRemittanceText, ingestRemittance, type RemittanceResult } from './hdRemittance';
+import { sendRemittanceReport } from './remittanceReport';
+import { prisma } from './db';
 
 /**
  * Auto-pull Home Depot remittances straight into the portal — the in-portal
@@ -126,8 +128,69 @@ export async function sweepHdRemittances(opts: { days?: number; max?: number } =
         status: 'processed',
         summary: `${res.lineCount} lines · ${res.funded} funded · ${res.chargebacks} chargebacks · ${res.deductions ?? 0} fees · ${res.unmatched.length} unmatched`,
       });
+      // Email the matched report to the office team (best-effort — never blocks).
+      if (res.remittanceId) await sendRemittanceReport(res.remittanceId);
     }
   }
 
   return result;
+}
+
+export interface ReprocessResult {
+  ok: boolean;
+  reason?: string;
+  documentNumber: string;
+  deletedOld: boolean;
+  result?: RemittanceResult;
+}
+
+/**
+ * Re-pull ONE remittance from the Home Depot email and correct it: delete the
+ * stored (possibly mis-parsed) record, find that document's email again, and
+ * re-ingest it with the current, accurate parser — then email the fixed report.
+ * Deals already FUNDED stay funded; this corrects the recorded line amounts, the
+ * netted fee and the report. Used to fix the ones the old Apps Script shuffled.
+ */
+export async function reprocessRemittanceByDoc(documentNumber: string, opts: { days?: number } = {}): Promise<ReprocessResult> {
+  const doc = (documentNumber || '').trim();
+  if (!doc) return { ok: false, reason: 'No document number.', documentNumber, deletedOld: false };
+  if (!gmailReadConfigured()) return { ok: false, reason: 'Gmail read access is not configured.', documentNumber: doc, deletedOld: false };
+
+  const gmail = gmailReadClient();
+  const days = Math.min(120, Math.max(1, opts.days ?? 60));
+  const q = `subject:"${SUBJECT}" has:attachment filename:pdf newer_than:${days}d`;
+  const list = await gmail.users.messages.list({ userId: 'me', q, maxResults: 50 });
+  const msgs = list.data.messages ?? [];
+
+  // Find the email whose PDF parses to this document number.
+  for (const m of msgs) {
+    if (!m.id) continue;
+    const full = await gmail.users.messages.get({ userId: 'me', id: m.id, format: 'full' }).then((r) => r.data).catch(() => null);
+    if (!full) continue;
+    for (const p of flattenParts(full.payload)) {
+      const fn = (p.filename || '').toLowerCase();
+      const isPdf = fn.endsWith('.pdf') || (p.mimeType || '').toLowerCase().includes('pdf');
+      if (!isPdf || !p.body?.attachmentId) continue;
+      let parsed;
+      try {
+        const att = await gmail.users.messages.attachments.get({ userId: 'me', messageId: m.id, id: p.body.attachmentId });
+        const bytes = new Uint8Array(Buffer.from((att.data.data || '').replace(/-/g, '+').replace(/_/g, '/'), 'base64'));
+        parsed = parseHdRemittanceText(await extractPdfText(bytes));
+      } catch { continue; }
+      if ((parsed.documentNumber || '').trim() !== doc) continue;
+
+      // Found it — delete the stored record (cascade lines), then re-ingest clean.
+      const existing = await prisma.hdRemittance.findUnique({ where: { documentNumber: doc }, select: { id: true } });
+      let deletedOld = false;
+      if (existing) { await prisma.hdRemittance.delete({ where: { id: existing.id } }); deletedOld = true; }
+
+      const result = await ingestRemittance({
+        documentNumber: parsed.documentNumber, documentDate: parsed.documentDate, paymentDate: parsed.paymentDate,
+        source: 'WEBHOOK', lines: parsed.lines, grandTotal: parsed.grandTotal,
+      });
+      if (result.ok && !result.duplicate && result.remittanceId) await sendRemittanceReport(result.remittanceId);
+      return { ok: result.ok, reason: result.error, documentNumber: doc, deletedOld, result };
+    }
+  }
+  return { ok: false, reason: `No Home Depot email found for document ${doc} in the last ${days} days.`, documentNumber: doc, deletedOld: false };
 }
