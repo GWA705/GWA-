@@ -14,6 +14,7 @@ import { sweepNewLeads } from '@/lib/leadNotify';
 import crypto from 'crypto';
 import path from 'path';
 import { putDocument, getDocument, deleteDocument } from '@/lib/storage';
+import { getDigestFlyer, setDigestFlyer } from '@/lib/settings';
 import { ALLOWED_MIME_TYPES, MAX_FILE_BYTES } from '@/lib/constants';
 import { HERO_SLOT_HOURS } from '@/lib/heroSlots';
 import { backupRoutingToSheet, readRoutingFromSheet, routingSheetConfigured } from '@/lib/storeRoutingSheet';
@@ -936,6 +937,43 @@ export async function sendDigestTestAction(dealerId: string): Promise<void> {
   const { sendDealerDigest } = await import('@/lib/reporting/digestSend');
   const r = await sendDealerDigest(dealerId, 'week', { testTo: to, offset: -1 });
   await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'Dealer', entityId: dealerId, detail: `digest test to ${to} (sent ${r.sent})` });
+  revalidatePath('/admin/dealers');
+}
+
+/** Save the dealer-snapshot "What's new" flyer (one global announcement that
+ *  rides on the next sends until cleared). Optional image upload → S3. */
+export async function saveSnapshotFlyerAction(formData: FormData): Promise<void> {
+  const session = await requireAdminSection('dealers');
+  const title = String(formData.get('title') || '').trim();
+  const blurb = String(formData.get('blurb') || '').trim();
+  const buttonLabel = String(formData.get('buttonLabel') || '').trim();
+  const buttonUrl = String(formData.get('buttonUrl') || '').trim();
+
+  const current = await getDigestFlyer();
+  let imageKey = current?.imageKey || null;
+  const file = formData.get('image');
+  if (file && typeof file === 'object' && 'arrayBuffer' in file && (file as File).size > 0) {
+    const f = file as File;
+    if (f.size <= 5 * 1024 * 1024) {
+      const buf = Buffer.from(await f.arrayBuffer());
+      const ext = (f.name.match(/\.[a-zA-Z0-9]+$/)?.[0] || '.png').toLowerCase();
+      if (imageKey) { try { await deleteDocument(imageKey); } catch { /* best-effort */ } }
+      imageKey = `digest/flyer-${Date.now()}${ext}`;
+      await putDocument(imageKey, buf);
+    }
+  }
+  await setDigestFlyer({ title, blurb, buttonLabel, buttonUrl, imageKey });
+  await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'AppSetting', entityId: 'digest.flyer', detail: 'snapshot flyer saved' });
+  revalidatePath('/admin/dealers');
+}
+
+/** Remove the current snapshot flyer (and its image). */
+export async function clearSnapshotFlyerAction(): Promise<void> {
+  const session = await requireAdminSection('dealers');
+  const current = await getDigestFlyer();
+  if (current?.imageKey) { try { await deleteDocument(current.imageKey); } catch { /* best-effort */ } }
+  await setDigestFlyer(null);
+  await audit({ actorId: session.userId, action: 'DEALER_UPDATE', entityType: 'AppSetting', entityId: 'digest.flyer', detail: 'snapshot flyer cleared' });
   revalidatePath('/admin/dealers');
 }
 

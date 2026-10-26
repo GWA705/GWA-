@@ -1,9 +1,9 @@
 import 'server-only';
 import { prisma } from '@/lib/db';
 import { sendEmail } from '@/lib/email';
-import { renderEmail } from '@/lib/email-templates';
 import { buildDealerDigest, type DigestPeriod } from './dealerDigest';
-import { renderDigestBodyHtml } from './dealerDigestEmail';
+import { renderDigestEmail } from './dealerDigestEmail';
+import { getDigestFlyer } from '@/lib/settings';
 import { weekWindow, monthWindow } from './fundingReport';
 
 function appUrl(): string {
@@ -55,13 +55,7 @@ export async function sendDealerDigest(
 
   const digest = await buildDealerDigest(dealerId, period, offset);
   const label = period === 'week' ? 'Weekly' : 'Monthly';
-  const html = renderEmail({
-    heading: `${label} snapshot — ${digest.periodLabel}`,
-    intro: `Here’s how ${digest.office} did over the ${period === 'week' ? 'week' : 'month'}.${opts.testTo ? ' (This is a test preview.)' : ''}`,
-    bodyHtml: renderDigestBodyHtml(digest),
-    ctaLabel: 'Open the full report',
-    ctaUrl: `${appUrl()}/dealer/reports/digest?p=${period}`,
-  });
+  const html = renderDigestEmail(digest, { appUrl: appUrl(), flyer: await getDigestFlyer(), isTest: !!opts.testTo });
   const subject = `GWA HD ${label} Dealer Snapshot (${digest.periodLabel})`;
 
   let sent = 0;

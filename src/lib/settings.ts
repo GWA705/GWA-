@@ -83,6 +83,43 @@ export async function getIdTagInboxEmail(): Promise<string> {
   return (await getSetting(ID_TAG_SETTING_KEYS.inboxEmail)) || DEFAULT_ID_TAG_INBOX_EMAIL;
 }
 
+// The weekly/monthly dealer-snapshot "What's new" announcement (flyer). One
+// global announcement that rides on the next sends until cleared. The image is
+// stored in S3 (imageKey) and served publicly so email clients can load it.
+export const DIGEST_FLYER_KEY = 'digest.flyer';
+
+export interface DigestFlyer {
+  title: string;
+  blurb: string;
+  buttonLabel: string;
+  buttonUrl: string;
+  imageKey: string | null;
+}
+
+/** The current snapshot flyer, or null when nothing is set to show. */
+export async function getDigestFlyer(): Promise<DigestFlyer | null> {
+  const raw = await getSetting(DIGEST_FLYER_KEY);
+  if (!raw) return null;
+  try {
+    const f = JSON.parse(raw) as Partial<DigestFlyer>;
+    const flyer: DigestFlyer = {
+      title: (f.title || '').trim(),
+      blurb: (f.blurb || '').trim(),
+      buttonLabel: (f.buttonLabel || '').trim(),
+      buttonUrl: (f.buttonUrl || '').trim(),
+      imageKey: (f.imageKey || '').trim() || null,
+    };
+    if (!flyer.title && !flyer.blurb && !flyer.imageKey) return null;
+    return flyer;
+  } catch {
+    return null;
+  }
+}
+
+export async function setDigestFlyer(flyer: DigestFlyer | null): Promise<void> {
+  await setSetting(DIGEST_FLYER_KEY, flyer ? JSON.stringify(flyer) : '');
+}
+
 /** The background-screening (Entuitive) portal the new-rep email links to, used
  *  when an admin hasn't set an override. Editable in Admin → ID tags. */
 export const DEFAULT_ID_TAG_SCREENING_LINK = 'https://hdis.entuitivetracker.com';

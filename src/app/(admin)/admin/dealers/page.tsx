@@ -4,6 +4,8 @@ import { prisma } from '@/lib/db';
 import { DealerForm } from './DealerForm';
 import { DealerRowActions } from './DealerRowActions';
 import { DealerJournalNameForm } from './DealerJournalNameForm';
+import { getDigestFlyer } from '@/lib/settings';
+import { saveSnapshotFlyerAction, clearSnapshotFlyerAction } from '../../actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,6 +15,7 @@ export default async function DealersPage() {
     orderBy: { createdAt: 'desc' },
     include: { _count: { select: { users: true, applications: true } } },
   });
+  const flyer = await getDigestFlyer();
   // Pin the Georgian Water & Air house account(s) to the top — it's the
   // most-used "View as" target. Stable sort keeps newest-first within each group.
   const isHouse = (name: string) => /georgian\s+water/i.test(name);
@@ -43,6 +46,46 @@ export default async function DealersPage() {
       <div className="card p-6">
         <DealerForm />
       </div>
+      {/* Weekly/monthly snapshot "What's new" flyer — one global announcement. */}
+      <details className="card p-5" open={!flyer}>
+        <summary className="cursor-pointer text-sm font-semibold text-gray-900">
+          Dealer snapshot announcement (flyer)
+          {flyer
+            ? <span className="ml-2 rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-semibold text-green-700">Active</span>
+            : <span className="ml-2 text-xs font-normal text-gray-400">none set</span>}
+        </summary>
+        <p className="mt-2 text-xs text-gray-500">
+          Shown in the “What’s new in the portal” block at the bottom of the next dealer snapshot emails, until you clear it. One announcement at a time.
+        </p>
+        <form action={saveSnapshotFlyerAction} className="mt-3 grid gap-3 sm:grid-cols-2">
+          <label className="block sm:col-span-2"><span className="mb-1 block text-xs font-semibold text-gray-600">Headline</span>
+            <input name="title" defaultValue={flyer?.title || ''} placeholder="The HD ID Tag Centre is live" className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" /></label>
+          <label className="block sm:col-span-2"><span className="mb-1 block text-xs font-semibold text-gray-600">Blurb</span>
+            <textarea name="blurb" defaultValue={flyer?.blurb || ''} rows={3} placeholder="Submit your team, send training in one click, and download their ID card — all in the portal." className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" /></label>
+          <label className="block"><span className="mb-1 block text-xs font-semibold text-gray-600">Button label</span>
+            <input name="buttonLabel" defaultValue={flyer?.buttonLabel || ''} placeholder="See what’s changed" className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" /></label>
+          <label className="block"><span className="mb-1 block text-xs font-semibold text-gray-600">Button link</span>
+            <input name="buttonUrl" defaultValue={flyer?.buttonUrl || ''} placeholder="https://portal.ghsbarrie.ca/dealer/id-tags" className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" /></label>
+          <label className="block sm:col-span-2"><span className="mb-1 block text-xs font-semibold text-gray-600">Flyer image {flyer?.imageKey ? <span className="font-normal text-green-600">(current image kept unless you upload a new one)</span> : <span className="font-normal text-gray-400">(optional)</span>}</span>
+            <input name="image" type="file" accept="image/*" className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm file:mr-3 file:rounded file:border-0 file:bg-gray-100 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-gray-700" /></label>
+          <div className="sm:col-span-2">
+            <button type="submit" className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Save announcement</button>
+          </div>
+        </form>
+        {flyer && (
+          <form action={clearSnapshotFlyerAction} className="mt-2">
+            <button type="submit" className="text-xs font-semibold text-red-600 hover:underline">Clear announcement</button>
+          </form>
+        )}
+        {flyer?.imageKey && (
+          <div className="mt-3">
+            <div className="mb-1 text-[11px] font-medium uppercase tracking-wide text-gray-400">Current image</div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/api/digest/flyer-image" alt="Current flyer" className="max-h-40 rounded-lg border border-gray-200" />
+          </div>
+        )}
+      </details>
+
       {/* Mobile: a card per dealer so nothing scrolls off-screen. */}
       <div className="space-y-3 sm:hidden">
         {dealers.map((d) => (
