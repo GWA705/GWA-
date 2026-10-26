@@ -33,7 +33,7 @@ export default async function DealerIdTagsPage() {
         training certificate — if they don’t yet, we’ll flag it and give you the link to send them.
       </p>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,360px)_1fr]">
+      <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,380px)_1fr]">
         <IdTagSubmitForm trainingLink={trainingLink} />
 
         <div className="overflow-hidden rounded-2xl bg-white shadow-lg shadow-slate-300/30 ring-1 ring-slate-200">
@@ -44,15 +44,15 @@ export default async function DealerIdTagsPage() {
             <p className="px-5 py-10 text-center text-sm text-slate-400">No one submitted yet. Add your first person on the left.</p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[680px] border-collapse text-sm">
+              <table className="w-full min-w-[620px] border-collapse text-sm">
                 <thead>
                   <tr className="bg-slate-50 text-left text-[11px] uppercase tracking-wide text-slate-500">
                     <th className="px-5 py-2.5 font-semibold">Name</th>
                     <th className="px-5 py-2.5 font-semibold">Type</th>
                     <th className="px-5 py-2.5 font-semibold">Training</th>
                     <th className="px-5 py-2.5 font-semibold">Headshot</th>
-                    <th className="px-5 py-2.5 font-semibold">ID tag status</th>
-                    <th className="px-5 py-2.5 font-semibold">Added</th>
+                    <th className="px-5 py-2.5 font-semibold whitespace-nowrap">ID tag status</th>
+                    <th className="px-5 py-2.5 font-semibold whitespace-nowrap">Added</th>
                     <th className="px-5 py-2.5 font-semibold"></th>
                   </tr>
                 </thead>
@@ -80,7 +80,7 @@ export default async function DealerIdTagsPage() {
                           {ID_TAG_STATUS_LABEL[r.status]}
                         </span>
                       </td>
-                      <td className="px-5 py-3 text-xs text-slate-400">{new Date(r.createdAt).toLocaleDateString('en-CA')}</td>
+                      <td className="px-5 py-3 text-xs text-slate-400 whitespace-nowrap">{new Date(r.createdAt).toLocaleDateString('en-CA')}</td>
                       <td className="px-5 py-3">
                         {r.hasCard
                           ? <a href={`/api/id-tags/${r.id}/card`} className="rounded-lg bg-brand-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-brand-700">⬇ Download card</a>
