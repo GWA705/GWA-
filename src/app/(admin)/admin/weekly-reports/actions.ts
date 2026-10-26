@@ -9,6 +9,7 @@ import { sendEmail } from '@/lib/email';
 import {
   lastFullWeek, assembleNational, renderNationalEmailHtml,
   assembleStoreReports, renderStoreEmailHtml, weeklySenderIdentity,
+  sendWeeklyReports,
 } from '@/lib/reporting/weeklyReports';
 
 export interface WeeklyActionState { error?: string; ok?: boolean; summary?: string }
@@ -53,4 +54,34 @@ export async function sendTestStoreAction(storeNumber: string): Promise<WeeklyAc
   const res = await sendEmail({ to, subject: `[TEST] Georgian Water and Air Weekly HD Sales Update — ${r.storeName}`, html, from, replyTo });
   if (!res.sent) return { error: res.reason === 'log-only' ? 'Email is in log-only mode here — nothing was actually sent (works on production).' : `Could not send — ${res.reason}` };
   return { ok: true, summary: `Test ${r.storeName} report sent to ${to}.` };
+}
+
+/** Credit (or re-credit) the Home Depot associate for a 701 store-lead sale. */
+export async function setLeadCreditAction(hdRef: string, _prev: WeeklyActionState, fd: FormData): Promise<WeeklyActionState> {
+  const session = await requireAdminSection('weekly-reports');
+  const ref = hdRef.replace(/\D/g, '');
+  if (!ref) return { error: 'Missing lead id.' };
+  const source = String(fd.get('source') || 'IN_STORE') === 'ONLINE' ? 'ONLINE' : 'IN_STORE';
+  const associateName = String(fd.get('associateName') || '').trim().slice(0, 120) || null;
+  if (source === 'IN_STORE' && !associateName) return { error: 'Enter the associate name, or switch the source to Online.' };
+  await prisma.hdStoreLeadCredit.upsert({
+    where: { hdRef: ref },
+    create: { hdRef: ref, associateName, source, setById: session.userId },
+    update: { associateName, source, setById: session.userId },
+  });
+  revalidatePath('/admin/weekly-reports/attribution');
+  revalidatePath('/admin/weekly-reports');
+  return { ok: true, summary: 'Saved.' };
+}
+
+/** Send this week's reports for real, now (to all recipients, BCC'd). Idempotent. */
+export async function sendWeeklyNowAction(): Promise<WeeklyActionState> {
+  const session = await requireAdminSection('weekly-reports');
+  const week = lastFullWeek();
+  const res = await sendWeeklyReports(week);
+  await audit({ actorId: session.userId, action: 'STATUS_CHANGE', entityType: 'HdWeeklyReport', entityId: week.label, detail: `Manual weekly send — national ${res.national}, ${res.storesSent} stores, ${res.recipients} recipients${res.errors.length ? `, ${res.errors.length} errors` : ''}` });
+  revalidatePath('/admin/weekly-reports');
+  if (res.errors.length) return { error: `Sent with ${res.errors.length} error(s): ${res.errors.slice(0, 3).join('; ')}` };
+  const parts = [`National: ${res.national}`, `${res.storesSent} stores sent`, res.storesSkipped ? `${res.storesSkipped} skipped` : '', res.storesNoRecipients ? `${res.storesNoRecipients} no recipients` : '', `${res.recipients} recipients`].filter(Boolean);
+  return { ok: true, summary: parts.join(' · ') };
 }

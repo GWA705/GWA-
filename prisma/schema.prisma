@@ -658,6 +658,19 @@ model HdStoreContact {
   @@index([district])
 }
 
+// One row per weekly report actually sent, so a re-run (cron + manual) never
+// double-sends. storeNumber is '' for the National summary.
+model HdWeeklyReportLog {
+  id             String   @id @default(cuid())
+  weekStart      DateTime // the Monday of the reported week (00:00)
+  kind           String // STORE | NATIONAL
+  storeNumber    String   @default("")
+  recipientCount Int      @default(0)
+  sentAt         DateTime @default(now())
+
+  @@unique([weekStart, kind, storeNumber])
+}
+
 // Which Home Depot associate gets credit for a store-lead (701) sale, set each
 // week before the store report goes out. Keyed by the deal's HD ref.
 model HdStoreLeadCredit {

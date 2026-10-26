@@ -1693,6 +1693,24 @@ exhausting the single instance). No behaviour change for normal use.
   `testSingleLead()` on a French lead first. Portal display auto-translates lead
   free-text via DeepL.
 
+## 2026-10-26 (weekly reports — attribution + Tuesday auto-send)
+- **Associate-attribution screen** (Admin → Weekly HD reports → Credit associates).
+  Lists every **701 store-lead** sale paid in the week; for each you credit the
+  Home Depot associate (or mark it an **online homedepot.ca** lead). The credit
+  then shows on that store's email ribbon. Shows how many still need an associate;
+  `HdStoreLeadCredit` keyed by HD ref.
+- **Tuesday auto-send + Monday reminder** (`/api/cron/weekly-reports`, workflow
+  `weekly-reports.yml`): Monday ~9am ET emails staff if any 701 leads still need an
+  associate; Tuesday ~7am ET sends the national summary + each active store's
+  report — **only when the master switch is ON**. Every recipient is **BCC'd**
+  (To shows only reporter@ghsbarrie.ca); From/Reply-To reporter@. **Idempotent per
+  week** via `HdWeeklyReportLog` (migration `20261026070000`) so cron + the manual
+  button never double-send.
+- **Manual "Send this week now"** button on the reports page (same real send,
+  behind a confirm) for sending on demand once previewed/approved. `sendWeeklyReports`
+  + `sendAttributionReminder` in `weeklyReports.ts`; `hdReport.alwaysBcc` /
+  `hdReport.reminderTo` settings. Nothing sends until the switch is on.
+
 ## 2026-10-26 (weekly reports — generation + preview/test-send)
 - **Weekly HD reports now generate in the portal** (Admin → Weekly HD reports).
   Off the sales journal, paid (OK) deals only, for the last full Mon–Sun week:

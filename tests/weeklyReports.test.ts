@@ -12,7 +12,7 @@ describe('weekly report rendering', () => {
   it('store email shows the logo, store, totals, and the 701 associate ribbon', () => {
     const html = renderStoreEmailHtml({
       storeNumber: '7024', storeName: 'Barrie', weekLabel: 'Oct 12 – Oct 18, 2026',
-      to: ['sm@x.com'], cc: [], needsAssociate: 0, total: 9372.03,
+      to: ['sm@x.com'], cc: [], needsAssociate: 0, active: true, total: 9372.03,
       sales: [
         { hdRef: '701890413', customer: 'Doe, Jane', datePaid: 'Oct 14, 2026', products: 'PH600+', value: 9033.22, is701: true, associateName: 'Jordan M.', associateSource: 'IN_STORE' },
         { hdRef: '800022577', customer: 'Roe, Rick', datePaid: 'Oct 13, 2026', products: 'CITY', value: 338.81, is701: false, associateName: null, associateSource: null },

@@ -2,7 +2,8 @@ import 'server-only';
 import { prisma } from '../db';
 import { readJournal, type ReportDeal } from './journalRead';
 import { getSetting } from '../settings';
-import { listStoreContacts, resolveStoreRecipients, DISTRICT_SEED, type StoreContact } from '../hdStoreContacts';
+import { sendEmail } from '../email';
+import { listStoreContacts, resolveStoreRecipients, getNationalRecipients, extractEmails, DISTRICT_SEED, type StoreContact } from '../hdStoreContacts';
 
 /**
  * Weekly Home Depot reports (per-store + national), generated in-portal off the
@@ -80,6 +81,7 @@ export interface StoreReport {
   storeNumber: string; storeName: string; weekLabel: string;
   sales: StoreSale[]; total: number; to: string[]; cc: string[];
   needsAssociate: number; // 701 sales with no associate credited yet
+  active: boolean; // the store contact is active (included in the send)
 }
 
 export async function assembleStoreReports(week: Week): Promise<StoreReport[]> {
@@ -106,7 +108,7 @@ export async function assembleStoreReports(week: Week): Promise<StoreReport[]> {
       g = {
         storeNumber: storeNum,
         storeName: c?.storeName || d.hdStore.replace(/\b7\d{3}\b/, '').replace(/[-–#]/g, ' ').replace(/\s+/g, ' ').trim() || storeNum,
-        weekLabel: week.label, sales: [], total: 0, to: rec.to, cc: rec.cc, needsAssociate: 0,
+        weekLabel: week.label, sales: [], total: 0, to: rec.to, cc: rec.cc, needsAssociate: 0, active: c?.active ?? true,
       };
       groups.set(storeNum, g);
     }
@@ -299,4 +301,117 @@ export function renderNationalEmailHtml(n: NationalReport): string {
     <p style="margin:0;font-family:Arial,sans-serif;font-size:11px;color:#7a9bbf;">Georgian Water &amp; Air &middot; Home Depot Home Services Partner &middot; Canada</p>
   </td></tr>
 </table></td></tr></table></body></html>`;
+}
+
+// ---------------------------------------------------------------------------
+// Associate attribution (701 store leads)
+// ---------------------------------------------------------------------------
+export interface LeadSale {
+  hdRef: string; customer: string; storeNumber: string; storeName: string;
+  value: number; datePaid: string; associateName: string | null; associateSource: string | null;
+}
+
+/** Every 701 store-lead sale in the week, for the attribution screen. */
+export async function listStoreLeadSales(week: Week): Promise<LeadSale[]> {
+  const reports = await assembleStoreReports(week);
+  const out: LeadSale[] = [];
+  for (const r of reports) {
+    for (const s of r.sales) {
+      if (!s.is701) continue;
+      out.push({ hdRef: s.hdRef, customer: s.customer, storeNumber: r.storeNumber, storeName: r.storeName, value: s.value, datePaid: s.datePaid, associateName: s.associateName, associateSource: s.associateSource });
+    }
+  }
+  return out.sort((a, b) => a.storeName.localeCompare(b.storeName) || b.value - a.value);
+}
+
+/** A 701 sale still needs attention unless it's marked ONLINE or has an associate. */
+export function leadNeedsAssociate(s: { associateName: string | null; associateSource: string | null }): boolean {
+  return s.associateSource !== 'ONLINE' && !(s.associateName && s.associateName.trim());
+}
+
+// ---------------------------------------------------------------------------
+// The real send (BCC every recipient; From/Reply-To reporter@; log-guarded)
+// ---------------------------------------------------------------------------
+async function alwaysBcc(): Promise<string[]> {
+  return extractEmails(await getSetting('hdReport.alwaysBcc'));
+}
+const uniqEmails = (...lists: string[][]) => Array.from(new Set(lists.flat().map((e) => e.trim()).filter(Boolean)));
+
+export interface WeeklySendSummary {
+  week: string;
+  national: 'sent' | 'skipped-sent-already' | 'no-recipients' | 'error';
+  storesSent: number; storesSkipped: number; storesNoRecipients: number;
+  recipients: number; errors: string[];
+}
+
+/**
+ * Send the week's reports for real: the National summary + every active store
+ * with recipients. Every address is BCC'd (To shows only reporter@). Idempotent
+ * per week via HdWeeklyReportLog, so a cron re-run or a manual click can't
+ * double-send.
+ */
+export async function sendWeeklyReports(week: Week): Promise<WeeklySendSummary> {
+  const { from, replyTo } = weeklySenderIdentity();
+  const weekStart = new Date(week.start); weekStart.setHours(0, 0, 0, 0);
+  const extra = await alwaysBcc();
+  const summary: WeeklySendSummary = { week: week.label, national: 'no-recipients', storesSent: 0, storesSkipped: 0, storesNoRecipients: 0, recipients: 0, errors: [] };
+
+  // National
+  try {
+    const already = await prisma.hdWeeklyReportLog.findUnique({ where: { weekStart_kind_storeNumber: { weekStart, kind: 'NATIONAL', storeNumber: '' } } });
+    if (already) summary.national = 'skipped-sent-already';
+    else {
+      const bcc = uniqEmails(await getNationalRecipients(), extra);
+      if (bcc.length === 0) summary.national = 'no-recipients';
+      else {
+        const html = renderNationalEmailHtml(await assembleNational(week));
+        const res = await sendEmail({ to: replyTo, bcc: bcc.join(','), subject: `Georgian Water and Air Weekly National Sales Update — ${week.label}`, html, from, replyTo });
+        if (!res.sent) { summary.national = 'error'; summary.errors.push(`national: ${res.reason}`); }
+        else { summary.national = 'sent'; summary.recipients += bcc.length; await logSent(weekStart, 'NATIONAL', '', bcc.length); }
+      }
+    }
+  } catch (e) { summary.national = 'error'; summary.errors.push(`national: ${String(e)}`); }
+
+  // Stores
+  const reports = await assembleStoreReports(week);
+  for (const r of reports) {
+    if (!r.active) { summary.storesSkipped += 1; continue; }
+    const bcc = uniqEmails(r.to, r.cc, extra);
+    if (bcc.length === 0) { summary.storesNoRecipients += 1; continue; }
+    try {
+      const exists = await prisma.hdWeeklyReportLog.findUnique({ where: { weekStart_kind_storeNumber: { weekStart, kind: 'STORE', storeNumber: r.storeNumber } } });
+      if (exists) { summary.storesSkipped += 1; continue; }
+      const res = await sendEmail({ to: replyTo, bcc: bcc.join(','), subject: 'Georgian Water and Air Weekly HD Sales Update', html: renderStoreEmailHtml(r), from, replyTo });
+      if (!res.sent) { summary.errors.push(`${r.storeNumber}: ${res.reason}`); continue; }
+      summary.storesSent += 1; summary.recipients += bcc.length;
+      await logSent(weekStart, 'STORE', r.storeNumber, bcc.length);
+    } catch (e) { summary.errors.push(`${r.storeNumber}: ${String(e)}`); }
+  }
+  return summary;
+}
+
+async function logSent(weekStart: Date, kind: string, storeNumber: string, recipientCount: number): Promise<void> {
+  await prisma.hdWeeklyReportLog.create({ data: { weekStart, kind, storeNumber, recipientCount } }).catch(() => {});
+}
+
+/** Has this week already been sent (any store or national)? */
+export async function weekAlreadySent(week: Week): Promise<number> {
+  const weekStart = new Date(week.start); weekStart.setHours(0, 0, 0, 0);
+  return prisma.hdWeeklyReportLog.count({ where: { weekStart } });
+}
+
+/** Monday reminder: email internal staff if any 701 store leads still need an
+ *  associate credited for the week. Recipients from hdReport.reminderTo. */
+export async function sendAttributionReminder(week: Week): Promise<{ needing: number; sent: boolean }> {
+  const leads = await listStoreLeadSales(week);
+  const needing = leads.filter(leadNeedsAssociate).length;
+  if (needing === 0) return { needing: 0, sent: false };
+  const to = extractEmails(await getSetting('hdReport.reminderTo'));
+  const list = to.length ? to : ['sean@ghsbarrie.ca'];
+  const { from, replyTo } = weeklySenderIdentity();
+  const url = appUrl();
+  const html = `<p style="font-family:Arial,sans-serif;font-size:14px;color:#2c3e50;">${needing} Home Depot <b>store-lead (701)</b> sale${needing === 1 ? '' : 's'} for the week of <b>${week.label}</b> still need an associate credited before the store reports go out.</p>
+  <p style="font-family:Arial,sans-serif;font-size:14px;"><a href="${url}/admin/weekly-reports/attribution" style="color:#1a5fa8;">Credit the associates →</a></p>`;
+  const res = await sendEmail({ to: list.join(','), subject: `⚠ ${needing} store-lead${needing === 1 ? '' : 's'} need an associate — week of ${week.label}`, html, from, replyTo });
+  return { needing, sent: res.sent };
 }

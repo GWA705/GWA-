@@ -1,0 +1,65 @@
+name: Weekly HD reports (cron)
+
+# Drives the in-portal weekly Home Depot reports:
+#   • Monday  ~9am ET  → mode=remind (email staff about any 701 store leads that
+#                        still need an associate credited)
+#   • Tuesday ~7am ET  → mode=send  (send national + each store's report, BCC'd),
+#                        but ONLY if the master switch is ON in the portal.
+# The send is idempotent per week (sent-log), so a re-run never double-sends.
+# Inert until CRON_SECRET matches the Elastic Beanstalk env var, store contacts
+# are imported, and (for sending) the master switch is turned on.
+#
+# Run on demand from the Actions tab → "Weekly HD reports (cron)" (pick a mode).
+
+on:
+  schedule:
+    - cron: '0 13 * * 1'  # Mon 09:00 ET (EDT) — reminder
+    - cron: '0 11 * * 2'  # Tue 07:00 ET (EDT) — send
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'send or remind'
+        default: 'send'
+
+concurrency:
+  group: weekly-reports
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call weekly-reports endpoint
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          BASE_URL: ${{ vars.PORTAL_BASE_URL || 'https://portal.ghsbarrie.ca' }}
+          INPUT_MODE: ${{ github.event.inputs.mode }}
+          SCHEDULE: ${{ github.event.schedule }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "::error::CRON_SECRET repo secret is not set."; exit 1
+          fi
+          MODE="$INPUT_MODE"
+          if [ -z "$MODE" ]; then
+            case "$SCHEDULE" in
+              "0 13 * * 1") MODE=remind ;;
+              "0 11 * * 2") MODE=send ;;
+              *) MODE=send ;;
+            esac
+          fi
+          url="${BASE_URL%/}/api/cron/weekly-reports?mode=$MODE"
+          echo "POST $url"
+          code=$(curl -sS -o /tmp/body.txt -w '%{http_code}' -X POST "$url" \
+            -H "Authorization: Bearer $CRON_SECRET" --retry 3 --retry-delay 5 --max-time 180 || echo "000")
+          echo "HTTP status: $code"
+          echo "Response: $(cat /tmp/body.txt 2>/dev/null)"
+          case "$code" in
+            200) echo "OK ($MODE)." ;;
+            401) echo "::error::401 Unauthorized — CRON_SECRET mismatch."; exit 1 ;;
+            503) echo "::error::503 — CRON_SECRET not set on Elastic Beanstalk."; exit 1 ;;
+            000) echo "::error::Could not reach $url."; exit 1 ;;
+            *)   echo "::error::weekly-reports returned HTTP $code"; exit 1 ;;
+          esac

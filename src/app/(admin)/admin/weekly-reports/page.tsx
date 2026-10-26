@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { requireAdminSection } from '@/lib/session';
 import { emailEnabled } from '@/lib/email';
 import { lastFullWeek, assembleStoreReports, weeklyReportsEnabled } from '@/lib/reporting/weeklyReports';
-import { MasterSwitch, TestNationalButton, TestStoreButton } from './WeeklyReportsButtons';
+import { MasterSwitch, TestNationalButton, TestStoreButton, SendNowButton } from './WeeklyReportsButtons';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,10 +23,16 @@ export default async function WeeklyReportsPage() {
           <h1 className="text-xl font-semibold text-gray-900">Weekly HD reports</h1>
           <p className="mt-1 text-sm text-gray-500">Last full week: <strong>{week.label}</strong> · paid (OK) deals only. From/Reply-To <strong>reporter@ghsbarrie.ca</strong>; every recipient BCC'd.</p>
         </div>
-        <Link href="/admin/store-contacts" className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Store contacts →</Link>
+        <div className="flex gap-2">
+          <Link href="/admin/weekly-reports/attribution" className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Credit associates{needsAssociate ? ` (${needsAssociate})` : ''} →</Link>
+          <Link href="/admin/store-contacts" className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Store contacts →</Link>
+        </div>
       </div>
 
-      <section className="card p-5"><MasterSwitch enabled={enabled} /></section>
+      <section className="card flex flex-wrap items-center justify-between gap-4 p-5">
+        <MasterSwitch enabled={enabled} />
+        <SendNowButton />
+      </section>
 
       {logOnly && <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">Email is in <strong>log-only</strong> mode in this environment — test sends are simulated. On production they send for real.</div>}
 
