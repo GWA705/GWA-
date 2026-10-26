@@ -2513,11 +2513,16 @@ model ScannedLead {
   bookingCallNow     Boolean   @default(false) // they asked to be called ASAP
   bookingNote        String?   @db.Text // optional note from the customer
 
+  // Duplicate guard: normalised phone (or name+store) so the same card can't be
+  // scanned in twice. Computed on save; see src/lib/scannedLeadDedupe.ts.
+  dedupeKey String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([dealerId])
   @@index([createdAt])
+  @@index([dedupeKey])
 }
 
 // ---- Chat / conversations -------------------------------------------------

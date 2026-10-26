@@ -7,6 +7,7 @@ import { prisma } from '@/lib/db';
 import { audit } from '@/lib/audit';
 import { putDocument, newScannedLeadStorageKey } from '@/lib/storage';
 import { resolveDealerIdForStore, getScannedLeadForViewer } from '@/lib/scannedLeads';
+import { scannedLeadDedupeKey } from '@/lib/scannedLeadDedupe';
 import { pushLeadToBooking, pushScannedStatusToBooking, coarseFromScannedStatus } from '@/lib/bookingPush';
 import { enqueueLeadText, provinceFromPostalCode, cancelLeadFollowups } from '@/lib/leadText';
 import { newBookingToken } from '@/lib/leadBooking';
@@ -55,6 +56,28 @@ export async function createScannedLeadAction(_prev: ScanSaveState, fd: FormData
   const customerName = str(fd, 'customerName');
   const phone = str(fd, 'phone');
   if (!customerName && !phone) return { error: t('actionMsg.scan.enterNameOrPhone') };
+
+  // Duplicate guard — never scan the same lead in twice. A match on phone (or,
+  // when there's no phone, name + store) is already in the list, so refuse and
+  // point to the existing one rather than creating a double.
+  const dedupeKey = scannedLeadDedupeKey({ phone, customerName, storeNumber });
+  if (dedupeKey) {
+    const dup = await prisma.scannedLead.findFirst({
+      where: { dedupeKey },
+      orderBy: { createdAt: 'asc' },
+      select: { customerName: true, storeNumber: true, collectedOn: true, scannedByName: true },
+    });
+    if (dup) {
+      return {
+        error: t('actionMsg.scan.duplicate', {
+          name: dup.customerName || customerName || phone || t('leadUi.scan.untitledCard'),
+          store: dup.storeNumber || '—',
+          date: dup.collectedOn || '—',
+          who: dup.scannedByName || '—',
+        }),
+      };
+    }
+  }
 
   // Store the primary photo (best-effort — a storage hiccup shouldn't lose the lead).
   let photoStorageKey: string | null = null;
@@ -111,6 +134,7 @@ export async function createScannedLeadAction(_prev: ScanSaveState, fd: FormData
       photoStorageKey,
       photoMime,
       note: str(fd, 'note'),
+      dedupeKey,
       // Unguessable token for the customer self-booking link (/book/<token>).
       bookingToken: newBookingToken(),
     },
@@ -166,6 +190,7 @@ export async function updateScannedLeadAction(id: string, fd: FormData): Promise
   const customerName = str(fd, 'customerName');
   const phone = str(fd, 'phone');
   if (!customerName && !phone) return { error: t('actionMsg.scan.enterNameOrPhone') };
+  const storeNumber = str(fd, 'storeNumber');
 
   await prisma.scannedLead.update({
     where: { id },
@@ -175,7 +200,9 @@ export async function updateScannedLeadAction(id: string, fd: FormData): Promise
       address: str(fd, 'address'),
       city: str(fd, 'city'),
       postalCode: str(fd, 'postalCode'),
-      storeNumber: str(fd, 'storeNumber'),
+      storeNumber,
+      // Keep the duplicate key in sync with the edited fields.
+      dedupeKey: scannedLeadDedupeKey({ phone, customerName, storeNumber }),
       collectedOn: str(fd, 'collectedOn'),
       householdSize: str(fd, 'householdSize'),
       ownsHome: str(fd, 'ownsHome'),

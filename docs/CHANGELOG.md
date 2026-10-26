@@ -1693,6 +1693,28 @@ exhausting the single instance). No behaviour change for normal use.
   `testSingleLead()` on a French lead first. Portal display auto-translates lead
   free-text via DeepL.
 
+## 2026-10-26 (scanning)
+- **Scanned leads: hard duplicate block — the same card can't be scanned in twice.**
+  On save, a scanned lead is checked against what's already in the list and
+  **refused** if it's a duplicate, with a message naming the existing one
+  (“Already scanned in — ‘Betty Bray’ … store 7054, collected 2026-09-30, by
+  Sean”). The scan screen already shows that per-card in red and leaves it
+  unsaved, so a batch saves the new cards and blocks only the doubles. Match rule:
+  **phone number** (digits only, last 10 — ignores formatting); when there's no
+  usable phone, **name + store**. Catches both a card scanned twice and a lead a
+  colleague already entered.
+  - New `ScannedLead.dedupeKey` (normalised phone, else name+store), indexed;
+    computed on every save/edit (`src/lib/scannedLeadDedupe.ts`) and enforced in
+    `createScannedLeadAction`. Migration `20261026020000_scanned_lead_dedupe`
+    backfills existing leads with the IDENTICAL normalisation (verified on
+    Postgres to match the app) and adds a **plain** index — no unique constraint,
+    so the deploy can't fail on data that already contains duplicates. Tests:
+    `tests/scannedLeadDedupe.test.ts`.
+  - Note (by design): the block is permanent, not time-boxed — re-scanning the
+    same person later is refused too. If a lead genuinely needs re-adding, delete
+    the old record first. Say the word if you'd rather it only block within a
+    recent window.
+
 ## 2026-10-26 (later still)
 - **Sales projection: one-click PDF export (for Home Depot).** A **⬇ Download PDF**
   button on both the admin and dealer projection pages produces a greyscale,
