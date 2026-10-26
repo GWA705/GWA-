@@ -341,6 +341,11 @@ export interface CaseDetail {
   officeName: string;
   hdReference: string | null;
   applicationId: string | null;
+  // Auto-filled from the linked deal's journal fields (display-only on the card).
+  salespersonName: string | null;
+  leadGenerator: string | null;
+  installerName: string | null;
+  officeDealerId: string | null;
   openedBy: string;
   assignedToId: string | null;
   assignedTo: string | null;
@@ -463,6 +468,7 @@ export async function loadResolutionCase(id: string): Promise<CaseDetail | null>
           dateOfSale: true, installationDate: true,
           loanReference: true, financeReference: true, financeItNumber: true,
           financeNumberVerifiedAt: true, productsSold: true, journalSourced: true,
+          leadGenerator: true, salespersonName: true, installerName: true,
           financeCompany: { select: { name: true } },
           homeDepotStore: { select: { number: true, name: true } },
         },
@@ -497,6 +503,10 @@ export async function loadResolutionCase(id: string): Promise<CaseDetail | null>
     officeName: c.officeDealerId ? names.get(c.officeDealerId) ?? '—' : '—',
     hdReference: c.hdReference,
     applicationId: c.applicationId,
+    salespersonName: c.application?.salespersonName ?? null,
+    leadGenerator: c.application?.leadGenerator ?? null,
+    installerName: c.application?.installerName ?? null,
+    officeDealerId: c.officeDealerId ?? null,
     openedBy: c.openedBy?.name ?? '—',
     assignedToId: c.assignedTo?.id ?? null,
     assignedTo: c.assignedTo?.name ?? null,

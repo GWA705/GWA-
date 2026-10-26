@@ -13,6 +13,10 @@ import { useT } from '@/i18n/client';
 interface ContactData {
   caseId: string;
   applicationId: string | null;
+  salespersonName: string | null;
+  leadGenerator: string | null;
+  installerName: string | null;
+  officeDealerId: string | null;
   customerName: string;
   customerPhone: string;
   customerEmail: string | null;
@@ -97,6 +101,34 @@ export function CaseContactCard(props: ContactData) {
             )}
           </div>
         </div>
+        {(props.salespersonName || props.leadGenerator || props.installerName) && (
+          <div className="mt-4 border-t border-gray-100 pt-3 dark:border-slate-700">
+            <div className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-slate-500">Sold by</div>
+            <div className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-3">
+              <div>
+                <div className="text-[11px] text-gray-400 dark:text-slate-500">Salesperson</div>
+                <div className="text-sm font-medium text-gray-800 dark:text-slate-100">
+                  {props.salespersonName
+                    ? (props.officeDealerId
+                        ? <Link href={`/staff/directory/${props.officeDealerId}`} className="text-brand-700 hover:underline dark:text-sky-300">{props.salespersonName}</Link>
+                        : props.salespersonName)
+                    : <span className="text-gray-400 dark:text-slate-500">—</span>}
+                </div>
+              </div>
+              <div>
+                <div className="text-[11px] text-gray-400 dark:text-slate-500">Lead generator</div>
+                <div className="text-sm font-medium text-gray-800 dark:text-slate-100">{props.leadGenerator || <span className="text-gray-400 dark:text-slate-500">—</span>}</div>
+              </div>
+              <div>
+                <div className="text-[11px] text-gray-400 dark:text-slate-500">Installer</div>
+                <div className="text-sm font-medium text-gray-800 dark:text-slate-100">{props.installerName || <span className="text-gray-400 dark:text-slate-500">—</span>}</div>
+              </div>
+            </div>
+            {props.officeDealerId && props.salespersonName && (
+              <Link href={`/staff/directory/${props.officeDealerId}`} className="mt-2 inline-block text-xs font-medium text-brand-700 hover:underline dark:text-sky-300">View office profile →</Link>
+            )}
+          </div>
+        )}
         {props.extraContacts.length > 0 && (
           <div className="mt-4 border-t border-gray-100 pt-3 dark:border-slate-700">
             <div className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-slate-500">{t('resolution.contact.otherContacts')}</div>

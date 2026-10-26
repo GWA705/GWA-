@@ -253,6 +253,10 @@ export default async function CaseDetailPage({ params }: { params: { id: string 
           <CaseContactCard
             caseId={c.id}
             applicationId={c.applicationId}
+            salespersonName={c.salespersonName}
+            leadGenerator={c.leadGenerator}
+            installerName={c.installerName}
+            officeDealerId={c.officeDealerId}
             customerName={c.customerName}
             customerPhone={c.customerPhone}
             customerEmail={c.customerEmail}
