@@ -1693,6 +1693,24 @@ exhausting the single instance). No behaviour change for normal use.
   `testSingleLead()` on a French lead first. Portal display auto-translates lead
   free-text via DeepL.
 
+## 2026-10-27 (ID-tag office setup auto-fills from the Office directory)
+- The Entuitive "New User" office profile (Staff → ID tags → office setup) **no
+  longer has to be re-typed per office** — it's derived from the **Office
+  directory** (`DealerProfile`): company name ← businessName/name, phone ← phone,
+  and the one-line `address` is **auto-split** into Entuitive's Street #/Street
+  name/Unit/City/Province/Postal boxes; service defaults to "Water Treatment
+  (Home Depot Canada)". Any field an office manually saves still wins (override
+  layered on top). New in `src/lib/idTag.ts`: `parseOfficeAddress` (tolerant
+  Canadian-address splitter, province abbrev→full, postal normalized),
+  `deriveEntuitiveProfile`, `mergeEntuitiveProfile`; `getIdTagDetail` (person's
+  setup sheet) and `listOfficeIdTagSetup` now return the merged profile, so
+  offices with a directory address show **"Ready (from directory)"** with zero
+  entry. Setup page explains the prefill, flags offices whose directory address
+  is missing, and the "Profile ready" badge is now decoupled from the password.
+  Tests: `tests/parseOfficeAddress.test.ts` (6, incl. the real Aerus NS/PE
+  addresses). The screening **password stays a deliberate per-office set** (with
+  a suggested default) — only the profile auto-fills.
+
 ## 2026-10-27 (activity notifications get a dedicated sender)
 - All activity notifications in `src/lib/notify.ts` (deal submitted, funding
   package submitted, paperwork uploaded, status updates, notes, replies,

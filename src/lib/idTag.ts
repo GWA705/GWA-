@@ -140,11 +140,106 @@ export const OFFICE_PROFILE_FIELDS: (keyof OfficeEntuitiveProfile)[] = [
   'companyName', 'street', 'streetName', 'unit', 'city', 'province', 'postal', 'phone', 'ext', 'service',
 ];
 
+// Every office's Entuitive service is the same Home Depot program.
+const ENTUITIVE_SERVICE_DEFAULT = 'Water Treatment (Home Depot Canada)';
+
+// Canadian province abbreviation → the full name Entuitive expects.
+const PROVINCES: Record<string, string> = {
+  on: 'Ontario', qc: 'Quebec', ns: 'Nova Scotia', nb: 'New Brunswick',
+  nl: 'Newfoundland and Labrador', nf: 'Newfoundland and Labrador',
+  pe: 'Prince Edward Island', pei: 'Prince Edward Island', mb: 'Manitoba',
+  sk: 'Saskatchewan', ab: 'Alberta', bc: 'British Columbia', yt: 'Yukon',
+  nt: 'Northwest Territories', nu: 'Nunavut',
+};
+const PROVINCE_NAMES = new Set(Object.values(PROVINCES).map((s) => s.toLowerCase()));
+
+/**
+ * Best-effort split of a one-line office address (as stored in the Office
+ * directory, e.g. "30 Damascus Road Unit 109, Bedford, NS, B4A0C1") into the
+ * separate boxes Entuitive wants. Tolerant of missing pieces — whatever it can't
+ * confidently parse is left blank for a human to fill. Never throws.
+ */
+export function parseOfficeAddress(address: string | null | undefined): Partial<OfficeEntuitiveProfile> {
+  const out: Partial<OfficeEntuitiveProfile> = {};
+  let s = String(address || '').trim();
+  if (!s) return out;
+
+  // Postal code (A1A 1A1, space optional) — pull it out first.
+  const postal = s.match(/\b([A-Za-z]\d[A-Za-z])\s?(\d[A-Za-z]\d)\b/);
+  if (postal) { out.postal = `${postal[1].toUpperCase()} ${postal[2].toUpperCase()}`; s = s.replace(postal[0], '').trim(); }
+
+  let parts = s.split(',').map((p) => p.trim()).filter(Boolean);
+
+  // Province: a whole comma-part that is a province, or the trailing token of one.
+  for (let i = parts.length - 1; i >= 0; i--) {
+    const key = parts[i].toLowerCase().replace(/\./g, '');
+    if (PROVINCES[key]) { out.province = PROVINCES[key]; parts.splice(i, 1); break; }
+    if (PROVINCE_NAMES.has(key)) { out.province = parts[i]; parts.splice(i, 1); break; }
+    const toks = parts[i].split(/\s+/);
+    const last = toks[toks.length - 1].toLowerCase().replace(/\./g, '');
+    if (toks.length > 1 && PROVINCES[last]) { out.province = PROVINCES[last]; toks.pop(); parts[i] = toks.join(' '); break; }
+  }
+
+  const streetLine = parts.shift() || '';
+  if (parts.length) out.city = parts[parts.length - 1]; // last remaining part is the city
+
+  // Unit / Apt / Suite / # out of the street line.
+  let sl = streetLine;
+  const unit = sl.match(/\b(?:unit|apt|apartment|suite|ste|#)\s*\.?\s*([A-Za-z0-9-]+)/i);
+  if (unit) { out.unit = unit[1]; sl = sl.replace(unit[0], ' ').replace(/\s{2,}/g, ' ').replace(/[,\s]+$/,'').trim(); }
+
+  // Leading civic number (may carry a letter, e.g. 11A) then the street name.
+  const m = sl.match(/^(\d+[A-Za-z]?)\s+(.*)$/);
+  if (m) { out.street = m[1]; out.streetName = m[2].trim(); }
+  else if (sl) { out.streetName = sl; }
+
+  return out;
+}
+
+/** The Entuitive profile a directory record implies, before any manual override. */
+export function deriveEntuitiveProfile(args: { name: string; businessName?: string | null; address?: string | null; phone?: string | null }): OfficeEntuitiveProfile {
+  const parsed = parseOfficeAddress(args.address);
+  const companyName = (args.businessName || args.name || '').trim();
+  const phone = (args.phone || '').trim();
+  return {
+    ...(companyName ? { companyName } : {}),
+    ...parsed,
+    ...(phone ? { phone } : {}),
+    service: ENTUITIVE_SERVICE_DEFAULT,
+  };
+}
+
+/** A manually-saved profile layered over the directory-derived one, per field. */
+export function mergeEntuitiveProfile(saved: OfficeEntuitiveProfile, derived: OfficeEntuitiveProfile): OfficeEntuitiveProfile {
+  const out: OfficeEntuitiveProfile = {};
+  for (const k of OFFICE_PROFILE_FIELDS) {
+    const sv = (saved[k] ?? '').toString().trim();
+    const v = sv || derived[k];
+    if (v) out[k] = v;
+  }
+  return out;
+}
+
+/** The raw saved profile JSON (manual overrides only), or {} when unset. */
+function savedProfileOf(json: unknown): OfficeEntuitiveProfile {
+  return json && typeof json === 'object' && !Array.isArray(json) ? (json as OfficeEntuitiveProfile) : {};
+}
+
+/**
+ * The office's effective Entuitive profile: the Office directory's company
+ * name / address / phone (address auto-split), with any manually-saved field
+ * taking precedence. So an office never has to re-type what the directory
+ * already holds — saving is only to override or fill a gap.
+ */
 export async function getDealerEntuitiveProfile(dealerId: string | null | undefined): Promise<OfficeEntuitiveProfile> {
   if (!dealerId) return {};
-  const d = await prisma.dealer.findUnique({ where: { id: dealerId }, select: { idTagOfficeProfile: true } });
-  const p = d?.idTagOfficeProfile;
-  return p && typeof p === 'object' && !Array.isArray(p) ? (p as OfficeEntuitiveProfile) : {};
+  const d = await prisma.dealer.findUnique({
+    where: { id: dealerId },
+    select: { name: true, idTagOfficeProfile: true, profile: { select: { businessName: true, address: true, phone: true } } },
+  });
+  if (!d) return {};
+  const derived = deriveEntuitiveProfile({ name: d.name, businessName: d.profile?.businessName, address: d.profile?.address, phone: d.profile?.phone });
+  return mergeEntuitiveProfile(savedProfileOf(d.idTagOfficeProfile), derived);
 }
 
 /** Save one office's Entuitive profile (empty fields are dropped). */
@@ -165,25 +260,35 @@ export interface OfficeIdTagSetup {
   name: string;
   password: string;         // saved password ('' when unset)
   suggestion: string;       // suggested default password
-  profile: OfficeEntuitiveProfile;
+  profile: OfficeEntuitiveProfile;  // effective: directory-derived, saved fields win
+  /** True when some fields come from the Office directory, not a manual save. */
+  fromDirectory: boolean;
+  /** True when the directory has no address on file (nothing to prefill). */
+  directoryMissing: boolean;
 }
 
 /** Every active office with its ID-tag password + Entuitive profile, for the
- *  staff setup screen. */
+ *  staff setup screen. The profile is directory-derived (company/address/phone
+ *  from the Office directory, address auto-split) with any manual save on top. */
 export async function listOfficeIdTagSetup(): Promise<OfficeIdTagSetup[]> {
   const dealers = await prisma.dealer.findMany({
     where: { active: true },
-    select: { id: true, name: true, idTagTempPassword: true, idTagOfficeProfile: true },
+    select: { id: true, name: true, idTagTempPassword: true, idTagOfficeProfile: true, profile: { select: { businessName: true, address: true, phone: true } } },
     orderBy: { name: 'asc' },
   });
   return dealers.map((d) => {
-    const p = d.idTagOfficeProfile;
+    const saved = savedProfileOf(d.idTagOfficeProfile);
+    const derived = deriveEntuitiveProfile({ name: d.name, businessName: d.profile?.businessName, address: d.profile?.address, phone: d.profile?.phone });
+    const profile = mergeEntuitiveProfile(saved, derived);
+    const savedKeys = OFFICE_PROFILE_FIELDS.filter((k) => (saved[k] ?? '').toString().trim());
     return {
       id: d.id,
       name: d.name,
       password: (d.idTagTempPassword || '').trim(),
       suggestion: suggestIdTagPassword(d.name),
-      profile: p && typeof p === 'object' && !Array.isArray(p) ? (p as OfficeEntuitiveProfile) : {},
+      fromDirectory: savedKeys.length === 0 && OFFICE_PROFILE_FIELDS.some((k) => profile[k]),
+      directoryMissing: !(d.profile?.address || '').trim(),
+      profile,
     };
   });
 }
@@ -488,11 +593,12 @@ export async function getIdTagDetail(id: string): Promise<IdTagDetail | null> {
       id: true, dealerId: true, personName: true, personFirst: true, personLast: true,
       personEmail: true, personPhone: true, kind: true, status: true, certificationId: true,
       headshotKey: true, cardFileKey: true, validUntil: true, badgeNumber: true, entuitiveStatus: true, createdAt: true,
-      dealer: { select: { name: true, idTagTempPassword: true, idTagOfficeProfile: true } },
+      dealer: { select: { name: true, idTagTempPassword: true, idTagOfficeProfile: true, profile: { select: { businessName: true, address: true, phone: true } } } },
     },
   });
   if (!r) return null;
-  const p = r.dealer?.idTagOfficeProfile;
+  const derivedProfile = deriveEntuitiveProfile({ name: r.dealer?.name || '', businessName: r.dealer?.profile?.businessName, address: r.dealer?.profile?.address, phone: r.dealer?.profile?.phone });
+  const effectiveProfile = mergeEntuitiveProfile(savedProfileOf(r.dealer?.idTagOfficeProfile), derivedProfile);
   return {
     id: r.id, dealerId: r.dealerId, dealerName: r.dealer?.name || '',
     personName: r.personName, personFirst: r.personFirst, personLast: r.personLast,
@@ -502,7 +608,7 @@ export async function getIdTagDetail(id: string): Promise<IdTagDetail | null> {
     cardIsImage: /\.(png|jpe?g|webp|gif)$/i.test(r.cardFileKey || ''),
     validUntil: r.validUntil, badgeNumber: r.badgeNumber, entuitiveStatus: r.entuitiveStatus,
     password: (r.dealer?.idTagTempPassword || '').trim() || null,
-    profile: p && typeof p === 'object' && !Array.isArray(p) ? (p as OfficeEntuitiveProfile) : {},
+    profile: effectiveProfile,
     createdAt: r.createdAt,
   };
 }

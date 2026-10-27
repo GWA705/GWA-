@@ -36,7 +36,7 @@ export default async function StaffIdTagSetupPage() {
     { key: 'service', label: 'Service', placeholder: 'Water Treatment (Home Depot Canada)' },
   ];
 
-  const isComplete = (o: (typeof offices)[number]) => !!o.password && !!(o.profile.companyName && o.profile.street && o.profile.streetName);
+  const profileReady = (o: (typeof offices)[number]) => !!(o.profile.companyName && o.profile.street && o.profile.streetName);
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
@@ -45,8 +45,10 @@ export default async function StaffIdTagSetupPage() {
         <Link href="/staff/id-tags" className="ml-auto text-sm font-semibold text-brand-600 hover:underline">← Back to the board</Link>
       </div>
       <p className="mt-1 text-sm text-slate-500">
-        Set each office once: its standardized Entuitive password and the Entuitive “New User” details.
-        That office data auto-fills every person’s setup sheet, so a dealer only ever enters the person.
+        The Entuitive “New User” details are <strong>pulled automatically from the Office directory</strong>
+        (company name, phone, and the address split into Entuitive’s boxes) — you don’t re-enter them here.
+        Open an office only to correct a field or set its screening password; what you save overrides the
+        directory. These details auto-fill every person’s setup sheet.
       </p>
 
       <details className={`${card} mt-5 p-5`}>
@@ -74,8 +76,8 @@ export default async function StaffIdTagSetupPage() {
                 <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${o.password ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
                   {o.password ? 'Password set' : 'No password'}
                 </span>
-                <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${isComplete(o) ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-                  {isComplete(o) ? 'Profile ready' : 'Profile incomplete'}
+                <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${profileReady(o) ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                  {profileReady(o) ? (o.fromDirectory ? 'Ready (from directory)' : 'Profile ready') : 'Profile incomplete'}
                 </span>
               </span>
             </summary>
@@ -86,6 +88,15 @@ export default async function StaffIdTagSetupPage() {
                 <input name="password" defaultValue={o.password} placeholder={o.suggestion} autoComplete="off" spellCheck={false} className={`${inp} font-mono`} />
                 <span className="mt-1 block text-[11px] text-slate-400">Goes in the new-rep email and the Entuitive “Password” field. Suggested: <code className="rounded bg-slate-100 px-1">{o.suggestion}</code></span>
               </label>
+              {o.directoryMissing ? (
+                <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-amber-800">
+                  This office has no address in the <a href="/staff/directory" className="font-semibold underline">Office directory</a> yet — add it there once and it’ll flow in here automatically. For now you can type it below.
+                </div>
+              ) : (
+                <div className="mb-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[12px] text-slate-600">
+                  Pre-filled from the <a href="/staff/directory" className="font-semibold underline">Office directory</a>. The address was split automatically — give the Street #/name/city/province a quick glance, then Save only if you change something.
+                </div>
+              )}
               <div className="grid gap-3 sm:grid-cols-2">
                 {fields.map((f) => (
                   <label key={f.key} className={`block ${f.wide ? 'sm:col-span-2' : ''}`}>
