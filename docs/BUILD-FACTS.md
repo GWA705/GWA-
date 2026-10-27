@@ -13,6 +13,23 @@ pays. Handles sensitive PII (SIN, banking, ID) → built for **PIPEDA + provinci
 privacy law (incl. Quebec Law 25)**. No credit-card data is collected (PCI-DSS
 N/A).
 
+## Where things live (quick reference — read this first)
+One table so nobody has to re-derive it. **Everything runs on Amazon (AWS),
+ca-central-1. We are NOT on Render — Render was shut off 2026-09-06.** Any email
+or doc that says "Render" is out of date and means AWS now.
+
+| What | Where it lives | Notes |
+|---|---|---|
+| The website/app (hosting) | **AWS Elastic Beanstalk** (`Gwa-portal-env`), ca-central-1 | Docker container, **Node 22 LTS**. Behind CloudFront + WAF. `portal.ghsbarrie.ca`. **NOT Render.** |
+| Deploys | Push to branch `claude/pci-credit-application-portal-vi7d6r` → GitHub Actions builds the image → ECR → auto-deploys to EB | No manual step; auto-rollback if the new image is unhealthy. |
+| Database | **AWS RDS PostgreSQL**, ca-central-1 | Nightly backups, 16-day retention. |
+| Uploaded files/documents | **AWS S3** bucket `gwa-portal-documents`, ca-central-1 | Encrypted; served only through app routes. |
+| **Outgoing email (portal → people)** | **Amazon SES**, ca-central-1 | See the From-address list in the Email bullet below. |
+| Incoming email the portal reads (remittance auto-pull) | **Gmail**, read-only, impersonating `sean@ghsbarrie.ca` | Read-only — the portal does not delete or move mail. |
+| Texting (SMS) | **Twilio** | Customer review-request texts. |
+| AI assistant | **Anthropic API** | Separate key from the booking site. |
+| Secrets/config | **EB environment** (Configuration → Software); oversized ones in **AWS SSM Parameter Store** | Not in GitHub (except AWS deploy keys + the two build-time `NEXT_PUBLIC_*`). |
+
 ## Stack & hosting
 - **Next.js 14 (App Router) + TypeScript**, server actions, **Tailwind 3.4**.
 - **Prisma + PostgreSQL** on **AWS RDS, ca-central-1**.
@@ -36,8 +53,17 @@ N/A).
 - **File storage:** S3 **ca-central-1**, bucket **`gwa-portal-documents`**, with
   app-level (envelope) encryption; files served through `/api/...` routes, never
   public URLs.
-- **Email:** SMTP is **LIVE**, sending from **`hello@ghsbarrie.ca`**. (Falls back
-  to log-only if `SMTP_HOST/USER/PASS` are unset.)
+- **Email (outgoing):** **LIVE on Amazon SES** (ca-central-1), via SMTP. Cut over
+  from the `hello@` Gmail mailbox 2026-10-16. From-address depends on what's
+  sending: **customer/portal mail** → `gwadealerportal@ghsbarrie.ca`; **weekly HD
+  reports** → `reporter@ghsbarrie.ca` (From + Reply-To, all recipients BCC'd);
+  **matched-remittance report** → the office list (`REMITTANCE_REPORT_RECIPIENTS`,
+  default Vanita@/jj@/Alex@/Sean@). Set on EB: `SMTP_HOST=email-smtp.ca-central-1.amazonaws.com`,
+  `SMTP_PORT=587`, `SMTP_USER`/`SMTP_PASS` (SES IAM creds), `EMAIL_FROM`/`EMAIL_FROM_NAME`/`EMAIL_REPLY_TO`.
+  Falls back to log-only if `SMTP_HOST/USER/PASS` are unset. **Sent email is not
+  auto-deleted by the portal — a sent message belongs to the recipient's mailbox;
+  any "disappear after N days" behaviour is a rule on the receiving Gmail/Workspace
+  side, not something the portal does.** Runbook: `docs/EMAIL-SES-MIGRATION.md`.
 - **Texting (SMS):** Twilio — `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` /
   `TWILIO_FROM_NUMBER` (E.164, or a `MG…` Messaging Service SID) set on EB
   (2026-10-02). `src/lib/sms.ts` stays inert until all three are set. Powers the
