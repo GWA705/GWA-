@@ -1693,6 +1693,21 @@ exhausting the single instance). No behaviour change for normal use.
   `testSingleLead()` on a French lead first. Portal display auto-translates lead
   free-text via DeepL.
 
+## 2026-10-27 (weekly-report header polish — seamless logo, no double name)
+- The logo no longer looks "pasted on." Its background was solid black (rgb 0,0,0)
+  while the email header is navy `#0a1628`, so it showed as a black box on navy.
+  Recolored the logo background to the exact header navy and saved as a new asset
+  `public/gwa-logo-navy.png` (new filename so no stale black version is cached on
+  CloudFront or in inboxes). Both the **national** and **per-store** headers now
+  use it.
+- Removed the duplicate "Georgian Water & Air" text line that sat under the logo
+  on both reports — the logo already contains the wordmark, so it read twice.
+  Kept the descriptor line (national: "National Weekly Sales Summary · Home Depot
+  Home Services Partner"; store: "Home Depot's Water & Air Treatment Team") and
+  the `alt="Georgian Water & Air"` so the name still shows if images are blocked.
+- No change to send logic: the sent-log (`HdWeeklyReportLog`) and what-sent/
+  what-didn't tracking are untouched — this is header HTML only.
+
 ## 2026-10-27 (fix: Weekly HD reports + HD Store contacts missing from admin menu)
 - Bug from the weekly-reports build: `weekly-reports` and `store-contacts` were
   added to `ADMIN_SECTIONS` (pages reachable, access checks pass) but never added

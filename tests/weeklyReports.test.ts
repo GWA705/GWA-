@@ -18,7 +18,7 @@ describe('weekly report rendering', () => {
         { hdRef: '800022577', customer: 'Roe, Rick', datePaid: 'Oct 13, 2026', products: 'CITY', value: 338.81, is701: false, associateName: null, associateSource: null },
       ],
     });
-    expect(html).toContain('/gwa-logo-dark.png');
+    expect(html).toContain('/gwa-logo-navy.png');
     expect(html).toContain('Georgian Water &amp; Air');
     expect(html).toContain('BARRIE');
     expect(html).toContain('ASSOCIATE CREDIT');
