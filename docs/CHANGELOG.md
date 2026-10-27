@@ -1693,6 +1693,13 @@ exhausting the single instance). No behaviour change for normal use.
   `testSingleLead()` on a French lead first. Portal display auto-translates lead
   free-text via DeepL.
 
+## 2026-10-27 (fix: Weekly HD reports + HD Store contacts missing from admin menu)
+- Bug from the weekly-reports build: `weekly-reports` and `store-contacts` were
+  added to `ADMIN_SECTIONS` (pages reachable, access checks pass) but never added
+  to any `NAV_GROUPS` group in `src/app/(admin)/layout.tsx`, so they never showed
+  in the admin sidebar — even for a super admin. Added both to the **Reporting**
+  menu. Verified no other ADMIN_SECTIONS key is orphaned from the nav.
+
 ## 2026-10-27 (ID-tag office setup auto-fills from the Office directory)
 - The Entuitive "New User" office profile (Staff → ID tags → office setup) **no
   longer has to be re-typed per office** — it's derived from the **Office

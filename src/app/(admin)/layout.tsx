@@ -22,7 +22,7 @@ interface NavItem {
 // are dropped.
 const NAV_GROUPS: { label: string; keys: string[] }[] = [
   { label: 'Deals', keys: ['review-queue', 'confirmations', 'cancellations', 'remittances', 'customer-search'] },
-  { label: 'Reporting', keys: ['reports', 'usage', 'report-visibility', 'leads'] },
+  { label: 'Reporting', keys: ['reports', 'usage', 'report-visibility', 'leads', 'weekly-reports', 'store-contacts'] },
   { label: 'Dealers', keys: ['dealers', 'directory', 'dealer-documents', 'user-requests', 'support-contacts', 'training', 'id-tags'] },
   { label: 'Catalog', keys: ['products', 'finance', 'resource-library'] },
   { label: 'Dealer comms', keys: ['content', 'marketplace', 'announcements', 'dashboard-hero', 'login-screen', 'alerts', 'reminders', 'note-templates', 'lead-texting', 'zoom-recordings'] },
