@@ -1693,6 +1693,21 @@ exhausting the single instance). No behaviour change for normal use.
   `testSingleLead()` on a French lead first. Portal display auto-translates lead
   free-text via DeepL.
 
+## 2026-10-27 (activity notifications get a dedicated sender)
+- All activity notifications in `src/lib/notify.ts` (deal submitted, funding
+  package submitted, paperwork uploaded, status updates, notes, replies,
+  cancellations, login requests, co-applicant, confirmation-issue) now send from
+  a **dedicated From address `portal-notify@ghsbarrie.ca`** instead of the shared
+  `gwadealerportal@`. Implemented as a one-line local `sendEmail` wrapper in
+  notify.ts that injects `from` (override via `NOTIFY_EMAIL_FROM`); **Reply-To is
+  unchanged** (still the real reply mailbox — the notify address is send-only).
+  No new mailbox or SES change needed (domain-verified). **Why:** lets the office
+  auto-delete/auto-file just these notifications with one Gmail rule
+  (`from:portal-notify@ghsbarrie.ca` → Delete → Trash auto-empties after 30 days)
+  **without** ever catching the weekly reports (`reporter@`) or the matched
+  remittance report (`gwadealerportal@`), which keep their own senders. Display
+  name kept brand-correct ("Georgian Water & Air").
+
 ## 2026-10-27 (security — Node 20 → 22 LTS for the Oct 2026 Node CVEs)
 - Bumped the Docker base image from `node:20-bookworm-slim` to
   `node:22-bookworm-slim` (both build + runtime stages). **Node 20 reached

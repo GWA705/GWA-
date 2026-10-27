@@ -58,7 +58,14 @@ or doc that says "Render" is out of date and means AWS now.
   sending: **customer/portal mail** → `gwadealerportal@ghsbarrie.ca`; **weekly HD
   reports** → `reporter@ghsbarrie.ca` (From + Reply-To, all recipients BCC'd);
   **matched-remittance report** → the office list (`REMITTANCE_REPORT_RECIPIENTS`,
-  default Vanita@/jj@/Alex@/Sean@). Set on EB: `SMTP_HOST=email-smtp.ca-central-1.amazonaws.com`,
+  default Vanita@/jj@/Alex@/Sean@); **activity notifications** (deal submitted,
+  paperwork uploaded, status/notes/cancellations — everything in `src/lib/notify.ts`)
+  → a **dedicated send-only address `portal-notify@ghsbarrie.ca`** (override
+  `NOTIFY_EMAIL_FROM`), Reply-To still the normal reply mailbox. The dedicated
+  sender exists so the office can auto-file/auto-delete those activity emails with
+  one Gmail rule (`from:portal-notify@ghsbarrie.ca`) **without** ever catching the
+  reports/remittance mail. No new mailbox needed — SES is domain-verified for
+  ghsbarrie.ca, so any `@ghsbarrie.ca` From sends. Set on EB: `SMTP_HOST=email-smtp.ca-central-1.amazonaws.com`,
   `SMTP_PORT=587`, `SMTP_USER`/`SMTP_PASS` (SES IAM creds), `EMAIL_FROM`/`EMAIL_FROM_NAME`/`EMAIL_REPLY_TO`.
   Falls back to log-only if `SMTP_HOST/USER/PASS` are unset. **Sent email is not
   auto-deleted by the portal — a sent message belongs to the recipient's mailbox;

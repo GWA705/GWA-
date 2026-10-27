@@ -1,7 +1,21 @@
 import type { ApplicationStatus, DocumentType, Role, User } from '@prisma/client';
 import { prisma } from './db';
-import { sendEmail } from './email';
+import { sendEmail as sendEmailRaw } from './email';
 import { renderEmail } from './email-templates';
+
+// Activity notifications (deal submitted, paperwork uploaded, status updates,
+// notes, cancellations, etc.) all send from a DEDICATED address so the office
+// can catch them with ONE mailbox rule — e.g. auto-delete after 30 days —
+// without ever touching the remittance/report emails, which keep the normal
+// portal sender. Only the From address changes; Reply-To is intentionally left
+// to the default so replies land in the real reply mailbox (portal-notify@ is
+// send-only, no mailbox). Override with NOTIFY_EMAIL_FROM on the environment.
+const NOTIFY_FROM = process.env.NOTIFY_EMAIL_FROM || '"Georgian Water & Air" <portal-notify@ghsbarrie.ca>';
+
+/** sendEmail for notifications: injects the dedicated From unless one is given. */
+function sendEmail(args: Parameters<typeof sendEmailRaw>[0]) {
+  return sendEmailRaw({ ...args, from: args.from ?? NOTIFY_FROM });
+}
 import { STATUS_LABELS, DOCUMENT_TYPE_LABELS } from './constants';
 import { sendPushToRoles, sendPushToUser } from './push';
 import { recordNotifications } from './notifications';
