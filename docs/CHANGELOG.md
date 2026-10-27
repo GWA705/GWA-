@@ -1693,6 +1693,20 @@ exhausting the single instance). No behaviour change for normal use.
   `testSingleLead()` on a French lead first. Portal display auto-translates lead
   free-text via DeepL.
 
+## 2026-10-27 (security — Node 20 → 22 LTS for the Oct 2026 Node CVEs)
+- Bumped the Docker base image from `node:20-bookworm-slim` to
+  `node:22-bookworm-slim` (both build + runtime stages). **Node 20 reached
+  end-of-life and does NOT receive the Oct 21 2026 Node.js security fixes**
+  (Brotli decoder RCE "HTTP2Shell" CVE-2026-111497, plus the TLS hostname-bypass
+  CVEs). The floating `22` tag pulls the latest patched 22.x (≥22.23.4) on each
+  rebuild; the existing `apt-get` step refreshes the Debian `ca-certificates`
+  trust store at the same time (covers the eMudhra intermediate-CA distrust).
+  Verified: the full app (Next 14.2.35, Prisma 5, sharp, pdf-to-img) builds +
+  typechecks + tests clean on Node 22. **PHP advisory N/A** — the portal runs no
+  PHP. Prompted by a Render advisory email; note the portal is on **AWS EB**, not
+  Render (decommissioned 2026-09-06), so the action is a rebuild/redeploy of the
+  EB image, not anything in a Render dashboard.
+
 ## 2026-10-27 (weekly reports — "send me everything" review button)
 - **"Send me a copy of everything"** button on the Weekly HD reports page
   (`sendAllTestAction`): one click emails the signed-in user the National summary

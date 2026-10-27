@@ -10,7 +10,13 @@
 # Base image pulled from AWS ECR Public's mirror of the Docker Official Images
 # (not docker.io) so CI builds don't hit Docker Hub's anonymous pull rate limit
 # (429 Too Many Requests), which was randomly failing deploys. Same image/tag.
-FROM public.ecr.aws/docker/library/node:20-bookworm-slim AS build
+#
+# Node 22 (active LTS). Node 20 went end-of-life and does NOT receive the
+# Oct 2026 Node security fixes (Brotli RCE + TLS hostname bypasses), so do not
+# drop back below 22. The floating `22` tag pulls the latest patched 22.x on
+# each rebuild, and the apt step below refreshes the TLS trust store (eMudhra
+# CA distrust) at the same time.
+FROM public.ecr.aws/docker/library/node:22-bookworm-slim AS build
 WORKDIR /app
 
 # openssl is required by Prisma; ca-certificates for outbound TLS (SMTP, Google, S3).
@@ -38,7 +44,7 @@ ENV NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=$NEXT_PUBLIC_GOOGLE_MAPS_API_KEY \
 RUN npm run build
 
 # ---- runtime stage ----
-FROM public.ecr.aws/docker/library/node:20-bookworm-slim AS runtime
+FROM public.ecr.aws/docker/library/node:22-bookworm-slim AS runtime
 WORKDIR /app
 ENV NODE_ENV=production \
     TZ=America/Toronto \
