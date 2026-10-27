@@ -1693,6 +1693,16 @@ exhausting the single instance). No behaviour change for normal use.
   `testSingleLead()` on a French lead first. Portal display auto-translates lead
   free-text via DeepL.
 
+## 2026-10-27 (store-contacts: upload a CSV file, not just paste)
+- The HD Store contacts importer now has a **"Choose CSV file…"** button that reads
+  the file into the import box for review, in addition to pasting. Same server
+  action (`importContactsAction`) — still an **upsert** keyed by 7xxx store
+  number, so re-uploading an updated sheet updates existing stores and adds new
+  ones without disturbing in-portal edits to stores absent from the file. Import
+  button is disabled until there's content. (The list was already fully editable:
+  Add store, Edit per store, and an Active on/off toggle to include/exclude a
+  store from the send.)
+
 ## 2026-10-27 (weekly-report header polish — seamless logo, no double name)
 - The logo no longer looks "pasted on." Its background was solid black (rgb 0,0,0)
   while the email header is navy `#0a1628`, so it showed as a black box on navy.
