@@ -56,6 +56,44 @@ export async function sendTestStoreAction(storeNumber: string): Promise<WeeklyAc
   return { ok: true, summary: `Test ${r.storeName} report sent to ${to}.` };
 }
 
+/**
+ * Send a TEST copy of EVERY report this week — the National summary plus each
+ * store's report — to the signed-in user only (never the real store/BCC lists).
+ * One click to review the whole batch in your own inbox before going live.
+ */
+export async function sendAllTestAction(): Promise<WeeklyActionState> {
+  const session = await requireAdminSection('weekly-reports');
+  const to = await myEmail(session.userId);
+  const week = lastFullWeek();
+  const { from, replyTo } = weeklySenderIdentity();
+  let sent = 0;
+  const errors: string[] = [];
+  let logOnly = false;
+
+  // National
+  {
+    const html = renderNationalEmailHtml(await assembleNational(week));
+    const res = await sendEmail({ to, subject: `[TEST] GWA National Weekly Sales — ${week.label}`, html, from, replyTo });
+    if (res.sent) sent += 1;
+    else if (res.reason === 'log-only') logOnly = true;
+    else errors.push(`national: ${res.reason}`);
+  }
+
+  // Every store with sales this week
+  const reports = await assembleStoreReports(week);
+  for (const r of reports) {
+    const html = renderStoreEmailHtml(r);
+    const res = await sendEmail({ to, subject: `[TEST] Georgian Water and Air Weekly HD Sales Update — ${r.storeName}`, html, from, replyTo });
+    if (res.sent) sent += 1;
+    else if (res.reason === 'log-only') logOnly = true;
+    else errors.push(`${r.storeNumber}: ${res.reason}`);
+  }
+
+  if (logOnly && sent === 0) return { error: 'Email is in log-only mode here — nothing was actually sent (works on production).' };
+  if (errors.length) return { error: `Sent ${sent} to ${to}, but ${errors.length} failed: ${errors.slice(0, 3).join('; ')}` };
+  return { ok: true, summary: `Sent ${sent} report${sent === 1 ? '' : 's'} (National + ${reports.length} store${reports.length === 1 ? '' : 's'}) to ${to}.` };
+}
+
 /** Credit (or re-credit) the Home Depot associate for a 701 store-lead sale. */
 export async function setLeadCreditAction(hdRef: string, _prev: WeeklyActionState, fd: FormData): Promise<WeeklyActionState> {
   const session = await requireAdminSection('weekly-reports');

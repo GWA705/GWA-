@@ -1693,6 +1693,16 @@ exhausting the single instance). No behaviour change for normal use.
   `testSingleLead()` on a French lead first. Portal display auto-translates lead
   free-text via DeepL.
 
+## 2026-10-27 (weekly reports — "send me everything" review button)
+- **"Send me a copy of everything"** button on the Weekly HD reports page
+  (`sendAllTestAction`): one click emails the signed-in user the National summary
+  **plus every store's report** for the week — to **you only**, never the real
+  store/BCC lists — so you can review the whole batch in Outlook/Gmail before
+  flipping the master switch. Complements the per-report Preview (on-screen, no
+  email) and the per-report "Test to me" buttons.
+- Fixed stale footer copy on that page that still said auto-send "is the next
+  piece" — it's live now (gated by the master switch).
+
 ## 2026-10-26 (weekly reports — code-review hardening)
 Review pass over the weekly-report send path before go-live, all send/privacy
 correctness:

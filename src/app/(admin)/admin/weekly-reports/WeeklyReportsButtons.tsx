@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { toggleWeeklyEnabledAction, sendTestNationalAction, sendTestStoreAction, sendWeeklyNowAction } from './actions';
+import { toggleWeeklyEnabledAction, sendTestNationalAction, sendTestStoreAction, sendWeeklyNowAction, sendAllTestAction } from './actions';
 
 function Feedback({ msg, err }: { msg: string | null; err: string | null }) {
   if (err) return <span className="ml-2 text-xs text-red-600">{err}</span>;
@@ -47,6 +47,23 @@ export function SendNowButton() {
         }}
         className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-700 disabled:opacity-50">
         {busy ? 'Sending…' : '🚀 Send this week now (real)'}
+      </button>
+      {msg && <p className="mt-1 text-xs text-green-700">✓ {msg}</p>}
+      {err && <p className="mt-1 text-xs text-red-600">{err}</p>}
+    </div>
+  );
+}
+
+export function TestAllButton() {
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  return (
+    <div>
+      <button type="button" disabled={busy}
+        onClick={async () => { setBusy(true); setMsg(null); setErr(null); const r = await sendAllTestAction(); r.ok ? setMsg(r.summary ?? 'Sent') : setErr(r.error ?? 'Failed'); setBusy(false); }}
+        className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+        {busy ? 'Sending…' : '✉️ Send me a copy of everything'}
       </button>
       {msg && <p className="mt-1 text-xs text-green-700">✓ {msg}</p>}
       {err && <p className="mt-1 text-xs text-red-600">{err}</p>}

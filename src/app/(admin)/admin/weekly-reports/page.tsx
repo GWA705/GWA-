@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { requireAdminSection } from '@/lib/session';
 import { emailEnabled } from '@/lib/email';
 import { lastFullWeek, assembleStoreReports, weeklyReportsEnabled } from '@/lib/reporting/weeklyReports';
-import { MasterSwitch, TestNationalButton, TestStoreButton, SendNowButton } from './WeeklyReportsButtons';
+import { MasterSwitch, TestNationalButton, TestStoreButton, SendNowButton, TestAllButton } from './WeeklyReportsButtons';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,7 +31,10 @@ export default async function WeeklyReportsPage() {
 
       <section className="card flex flex-wrap items-center justify-between gap-4 p-5">
         <MasterSwitch enabled={enabled} />
-        <SendNowButton />
+        <div className="flex flex-wrap items-center gap-3">
+          <TestAllButton />
+          <SendNowButton />
+        </div>
       </section>
 
       {logOnly && <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">Email is in <strong>log-only</strong> mode in this environment — test sends are simulated. On production they send for real.</div>}
@@ -77,7 +80,7 @@ export default async function WeeklyReportsPage() {
         </table>
       </section>
 
-      <p className="text-xs text-gray-400">Live Tuesday auto-send and the per-700 associate-attribution screen are the next pieces. For now this previews and test-sends to you only — nothing goes to stores until the master switch is on and the send step is built.</p>
+      <p className="text-xs text-gray-400">Reports send automatically every Tuesday — but only while the master switch above is <strong>ON</strong>. Nothing reaches a store until you turn it on. Use <strong>Send me a copy of everything</strong> to review the whole batch in your own inbox first; Preview opens any report on screen without emailing.</p>
     </div>
   );
 }
