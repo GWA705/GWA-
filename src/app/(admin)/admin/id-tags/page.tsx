@@ -10,10 +10,14 @@ import { getIdTagSettings } from '@/lib/settings';
 import { updateIdTagStatusAction, saveIdTagSettingsAction, saveIdTagOfficesAction, deleteIdTagAction } from './actions';
 import { IdTagPreviewButton } from './IdTagPreviewButton';
 import { IdTagDeleteButton } from '@/components/IdTagDeleteButton';
+import { SendScreeningButton } from './SendScreeningButton';
 
 export const dynamic = 'force-dynamic';
 
 const STATUS_KEYS = Object.keys(ID_TAG_STATUS_LABEL) as IdTagStatus[];
+
+const sentLabel = (d: Date | null) =>
+  d ? new Intl.DateTimeFormat('en-CA', { month: 'short', day: 'numeric' }).format(new Date(d)) : null;
 
 export default async function AdminIdTagsPage({ searchParams }: { searchParams: { status?: string; dealerId?: string } }) {
   await requireAdminSection('id-tags');
@@ -114,15 +118,21 @@ export default async function AdminIdTagsPage({ searchParams }: { searchParams: 
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <form action={updateIdTagStatusAction} className="flex items-center gap-1.5">
-                        <input type="hidden" name="id" value={r.id} />
-                        <select name="status" defaultValue={r.status} className="rounded-lg border border-slate-300 px-2 py-1 text-xs">
-                          {STATUS_KEYS.map((s) => <option key={s} value={s}>{ID_TAG_STATUS_LABEL[s]}</option>)}
-                        </select>
-                        <button type="submit" className="rounded-lg bg-slate-800 px-2.5 py-1 text-xs font-semibold text-white hover:bg-slate-900">Save</button>
-                      </form>
-                      <IdTagDeleteButton id={r.id} action={deleteIdTagAction} small />
+                    <div className="flex flex-col items-start gap-1.5">
+                      <div className="flex items-center gap-2">
+                        <form action={updateIdTagStatusAction} className="flex items-center gap-1.5">
+                          <input type="hidden" name="id" value={r.id} />
+                          <select name="status" defaultValue={r.status} className="rounded-lg border border-slate-300 px-2 py-1 text-xs">
+                            {STATUS_KEYS.map((s) => <option key={s} value={s}>{ID_TAG_STATUS_LABEL[s]}</option>)}
+                          </select>
+                          <button type="submit" className="rounded-lg bg-slate-800 px-2.5 py-1 text-xs font-semibold text-white hover:bg-slate-900">Save</button>
+                        </form>
+                        <IdTagDeleteButton id={r.id} action={deleteIdTagAction} small />
+                      </div>
+                      {/* Reviewer presses this after setting the rep up in Entuitive — new, trained reps only. */}
+                      {r.kind === 'NEW' && r.certified && (
+                        <SendScreeningButton id={r.id} hasEmail={!!r.personEmail} sentAtLabel={sentLabel(r.emailSentAt)} />
+                      )}
                     </div>
                   </td>
                   <td className="px-4 py-3 text-xs text-slate-400">{new Date(r.createdAt).toLocaleDateString('en-CA')}</td>

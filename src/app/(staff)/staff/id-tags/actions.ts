@@ -6,10 +6,9 @@ import { requireStaffSection } from '@/lib/session';
 import {
   setDealerIdTagPassword, setDealerEntuitiveProfile, OFFICE_PROFILE_FIELDS,
   setIdTagStatus, isIdTagStatus, setIdTagCardInfo, saveIdTagHeadshot, deleteIdTag,
-  getIdTagDetail, markIdTagEmailed,
+  sendIdTagScreeningEmailFor,
   type OfficeEntuitiveProfile,
 } from '@/lib/idTag';
-import { sendIdTagNewRepEmail } from '@/lib/idTag-email';
 import { audit } from '@/lib/audit';
 import { setSetting, ID_TAG_SETTING_KEYS } from '@/lib/settings';
 import { putDocument } from '@/lib/storage';
@@ -127,23 +126,11 @@ export async function sendIdTagScreeningEmailStaffAction(
   const id = String(formData.get('id') || '').trim();
   if (!id) return { error: 'Missing rep id.' };
 
-  const t = await getIdTagDetail(id);
-  if (!t) return { error: 'Rep not found.' };
-  if (!t.personEmail) return { error: 'No email on file for this rep — add one on the dealer’s submission first.' };
-  if (!t.certified) return { error: `${t.personName.split(/\s+/)[0] || 'This rep'} hasn’t finished Home Depot training yet.` };
+  const res = await sendIdTagScreeningEmailFor(id);
+  if (!res.ok) return { error: res.error };
 
-  const sent = await sendIdTagNewRepEmail(t.personEmail, t.personName, { password: t.password });
-  if (!sent) return { error: 'Could not send — check the portal’s email settings and try again.' };
-
-  await markIdTagEmailed(id);
-  await audit({
-    actorId: session.userId,
-    action: 'STATUS_CHANGE',
-    entityType: 'HomeDepotIdTag',
-    entityId: id,
-    detail: `Background-check email ${t.emailSentAt ? 're-sent' : 'sent'} to ${t.personEmail}`,
-  });
+  await audit({ actorId: session.userId, action: 'STATUS_CHANGE', entityType: 'HomeDepotIdTag', entityId: id, detail: 'Background-check email sent (reviewer)' });
   revalidatePath(`/staff/id-tags/${id}`);
   revalidatePath('/staff/id-tags');
-  return { ok: true, message: `Background-check email sent to ${t.personEmail}.` };
+  return { ok: true, message: res.message };
 }

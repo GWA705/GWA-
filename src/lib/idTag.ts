@@ -2,6 +2,7 @@ import 'server-only';
 import { prisma } from './db';
 import { getSetting, setSetting } from './settings';
 import { putDocument, deleteDocument } from './storage';
+import { sendIdTagNewRepEmail } from './idTag-email';
 import type { IdTagKind, IdTagStatus } from '@prisma/client';
 
 // Rollout gate for the whole HD ID Tag feature (independent of training), so it
@@ -426,6 +427,27 @@ export async function markIdTagEmailed(id: string): Promise<void> {
   await prisma.homeDepotIdTag.update({ where: { id }, data: { emailSentAt: new Date() } }).catch(() => {});
 }
 
+/**
+ * Send (or resend) a new rep's background-check / Entuitive intro email and
+ * stamp emailSentAt. Shared by the reviewer detail page and the admin board so
+ * the auth guard lives in each caller; this just does the send. Returns a small
+ * result for the UI. Only NEW reps who have passed training get this email.
+ */
+export async function sendIdTagScreeningEmailFor(
+  id: string,
+): Promise<{ ok: boolean; error?: string; message?: string }> {
+  const t = await getIdTagDetail(id);
+  if (!t) return { ok: false, error: 'Rep not found.' };
+  if (!t.personEmail) return { ok: false, error: 'No email on file for this rep — add one on the dealer’s submission first.' };
+  if (!t.certified) return { ok: false, error: `${t.personName.split(/\s+/)[0] || 'This rep'} hasn’t finished Home Depot training yet.` };
+
+  const sent = await sendIdTagNewRepEmail(t.personEmail, t.personName, { password: t.password });
+  if (!sent) return { ok: false, error: 'Could not send — check the portal’s email settings and try again.' };
+
+  await markIdTagEmailed(id);
+  return { ok: true, message: `Background-check email sent to ${t.personEmail}.` };
+}
+
 /** Manually set a request's status (admin/reviewer control). Stamps activatedAt
  *  the first time a rep reaches an active state (the billable event). */
 export async function setIdTagStatus(id: string, status: IdTagStatus): Promise<void> {
@@ -483,6 +505,7 @@ export interface IdTagRow {
   hasCard: boolean;
   cardIsImage: boolean;
   validUntil: Date | null;
+  emailSentAt: Date | null;
   dealerId: string;
   dealerName?: string;
   createdAt: Date;
@@ -517,7 +540,7 @@ export async function listIdTagForDealer(dealerId: string): Promise<IdTagRow[]> 
     where: { dealerId },
     orderBy: { createdAt: 'desc' },
     take: 500,
-    select: { id: true, personName: true, personEmail: true, personPhone: true, kind: true, status: true, certificationId: true, headshotKey: true, cardFileKey: true, validUntil: true, dealerId: true, createdAt: true },
+    select: { id: true, personName: true, personEmail: true, personPhone: true, kind: true, status: true, certificationId: true, headshotKey: true, cardFileKey: true, validUntil: true, emailSentAt: true, dealerId: true, createdAt: true },
   });
   return rows.map(({ certificationId, headshotKey, cardFileKey, ...r }) => ({
     ...r, certified: !!certificationId, hasHeadshot: !!headshotKey, hasCard: !!cardFileKey,
@@ -546,7 +569,7 @@ export async function listAllIdTags(filter?: { dealerId?: string; status?: IdTag
     take: 1000,
     select: {
       id: true, personName: true, personEmail: true, personPhone: true, kind: true, status: true,
-      certificationId: true, headshotKey: true, cardFileKey: true, validUntil: true, dealerId: true, createdAt: true,
+      certificationId: true, headshotKey: true, cardFileKey: true, validUntil: true, emailSentAt: true, dealerId: true, createdAt: true,
       dealer: { select: { name: true } },
     },
   });
@@ -554,7 +577,7 @@ export async function listAllIdTags(filter?: { dealerId?: string; status?: IdTag
     id: r.id, personName: r.personName, personEmail: r.personEmail, personPhone: r.personPhone,
     kind: r.kind, status: r.status, certified: !!r.certificationId, hasHeadshot: !!r.headshotKey,
     hasCard: !!r.cardFileKey, cardIsImage: /\.(png|jpe?g|webp|gif)$/i.test(r.cardFileKey || ''), validUntil: r.validUntil,
-    dealerId: r.dealerId, dealerName: r.dealer?.name, createdAt: r.createdAt,
+    emailSentAt: r.emailSentAt, dealerId: r.dealerId, dealerName: r.dealer?.name, createdAt: r.createdAt,
   }));
 }
 

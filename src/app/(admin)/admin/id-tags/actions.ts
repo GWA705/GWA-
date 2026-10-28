@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { requireAdminSection } from '@/lib/session';
-import { setIdTagStatus, isIdTagStatus, setIdTagEnabledOffices, deleteIdTag } from '@/lib/idTag';
+import { setIdTagStatus, isIdTagStatus, setIdTagEnabledOffices, deleteIdTag, sendIdTagScreeningEmailFor } from '@/lib/idTag';
 import { setSetting, ID_TAG_SETTING_KEYS } from '@/lib/settings';
 import { sendIdTagNewRepEmail, sendIdTagExistingRepEmail } from '@/lib/idTag-email';
 import { emailEnabled } from '@/lib/email';
@@ -70,4 +70,24 @@ export async function saveIdTagSettingsAction(formData: FormData): Promise<void>
     setSetting(ID_TAG_SETTING_KEYS.existingEmailBody, String(formData.get('existingEmailBody') || '')),
   ]);
   revalidatePath('/admin/id-tags');
+}
+
+export interface ScreeningEmailState { ok?: boolean; error?: string; message?: string }
+
+/**
+ * Send (or resend) the new rep's background-check / Entuitive intro email from
+ * the ID-tag board — pressed once the reviewer has set the rep up in Entuitive.
+ * Never sends on its own; NEW, certified reps only (enforced in the helper).
+ */
+export async function sendIdTagScreeningEmailAdminAction(
+  _prev: ScreeningEmailState,
+  formData: FormData,
+): Promise<ScreeningEmailState> {
+  await requireAdminSection('id-tags');
+  const id = String(formData.get('id') || '').trim();
+  if (!id) return { error: 'Missing rep id.' };
+  const res = await sendIdTagScreeningEmailFor(id);
+  if (!res.ok) return { error: res.error };
+  revalidatePath('/admin/id-tags');
+  return { ok: true, message: res.message };
 }
