@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
-import { ingestRemittance, type RemittanceLineInput } from '@/lib/hdRemittance';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -40,28 +39,19 @@ async function handle(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  let body: {
-    documentNumber?: string; documentDate?: string; paymentDate?: string;
-    lines?: RemittanceLineInput[];
-  };
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
-  }
-  if (!Array.isArray(body.lines) || body.lines.length === 0) {
-    return NextResponse.json({ error: 'lines[] is required' }, { status: 400 });
-  }
-
-  const result = await ingestRemittance({
-    documentNumber: body.documentNumber,
-    documentDate: body.documentDate,
-    paymentDate: body.paymentDate,
-    source: 'WEBHOOK',
-    lines: body.lines.slice(0, 2000),
-  });
-
-  return NextResponse.json(result, { status: result.ok ? 200 : 400 });
+  // RETIRED. The portal now parses Home Depot remittances in-house — the Gmail
+  // auto-pull (sweepHdRemittances) and the manual PDF upload, BOTH gated by the
+  // grand-total integrity check so a mis-parse can never be stored. This endpoint
+  // accepted pre-parsed lines from the old Google Apps Script and ingested them
+  // WITHOUT that guard, so a shuffled/incomplete script parse could land first and
+  // (being idempotent by document number) block the portal's correct parse. It is
+  // disabled: nothing is ingested. Turn off the Apps Script's trigger; use
+  // Admin → HD Remittances for uploads and re-processing.
+  return NextResponse.json({
+    ok: false,
+    disabled: true,
+    error: 'This ingest endpoint is retired. Home Depot remittances are now parsed in-house by the portal (Admin → HD Remittances). No data was ingested. Please disable the Google Apps Script.',
+  }, { status: 410 });
 }
 
 export async function POST(req: NextRequest) {

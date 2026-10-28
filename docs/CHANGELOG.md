@@ -1693,6 +1693,22 @@ exhausting the single instance). No behaviour change for normal use.
   `testSingleLead()` on a French lead first. Portal display auto-translates lead
   free-text via DeepL.
 
+## 2026-10-28 (FIX: retire the ungated remittance webhook — bad-parse source)
+- **Bug:** a Home Depot remittance (doc 2000162108) stored a wrong matched report
+  — net $46,923.60 with 1 chargeback, when the real PDF nets **$34,971.73 with 3
+  chargebacks**. The portal's own parser reads the file perfectly (17 lines,
+  reconciles, verification ok). Root cause: the **old Google Apps Script** still
+  POSTs its own (OCR-shuffled) parse to `/api/hd-remittance/ingest`, and that
+  route called `ingestRemittance` **without `grandTotal`**, so the integrity guard
+  was skipped. The script's bad parse landed first and — ingest being idempotent
+  by document number — blocked the portal's correct Gmail auto-pull as a
+  "duplicate."
+- **Fix:** retired the webhook. `/api/hd-remittance/ingest` now returns 410 and
+  ingests nothing — remittances are parsed in-house only (Gmail auto-pull + manual
+  upload, both gated by the grand-total check). **Go-live:** disable the Apps
+  Script trigger, then re-process doc 2000162108 (Admin → HD Remittances →
+  Reprocess) to replace the bad record with the correct 17-line parse.
+
 ## 2026-10-28 (weekly reports — standing internal BCC copies)
 - Every weekly report (national AND per-store) now BCCs a standing internal list
   so the office always gets a copy: **jj@ghsbarrie.ca, sean@ghsbarrie.ca,
