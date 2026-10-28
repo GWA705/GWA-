@@ -5,6 +5,8 @@ import { useFormState, useFormStatus } from 'react-dom';
 import { saveConfirmationAction, type ActionState } from '@/app/(staff)/actions';
 import { CONFIRMATION_PHONE } from '@/lib/constants';
 import { useT } from '@/i18n/client';
+import { GiftCardConfirmSection } from './GiftCardConfirmSection';
+import type { GiftCardConfirmSummary } from '@/lib/giftCardConfirm';
 import type { Confirmation } from '@prisma/client';
 
 const QUESTIONS: { name: keyof CheckState; labelKey: string; group: 1 | 2 }[] = [
@@ -65,6 +67,8 @@ export function ConfirmationForm({
   applicationId,
   data,
   applicantName,
+  applicantEmail,
+  giftCard,
   defaultProduct,
   defaultCity,
   defaultPhone,
@@ -73,6 +77,8 @@ export function ConfirmationForm({
   applicationId: string;
   data: Confirmation | null;
   applicantName: string;
+  applicantEmail: string;
+  giftCard: GiftCardConfirmSummary | null;
   defaultProduct: string;
   defaultCity: string;
   defaultPhone: string;
@@ -126,6 +132,9 @@ export function ConfirmationForm({
           </label>
         ))}
       </fieldset>
+
+      {/* HD gift card — verify the customer got their card; resend/request if not */}
+      <GiftCardConfirmSection applicationId={applicationId} applicantEmail={applicantEmail} giftCard={giftCard} />
 
       {/* Terms */}
       <div className="rounded border border-gray-100 p-3">

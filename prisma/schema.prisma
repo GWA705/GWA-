@@ -588,6 +588,15 @@ model GiftCardRequest {
   sentById      String?
   sentBy        User?          @relation("GiftCardSentBy", fields: [sentById], references: [id])
   note          String? // optional internal note (e.g. a Guusto reference)
+  // Flagged urgent — e.g. requested or resent straight from a confirmation call
+  // because the customer never got their card. The gift-card team sends these
+  // first.
+  important     Boolean        @default(false)
+  // Set when a confirmer verifies on the call that the customer actually
+  // received the card (the model otherwise only tracks that GWA *sent* it).
+  receivedAt    DateTime?
+  receivedById  String?
+  receivedBy    User?          @relation("GiftCardReceivedBy", fields: [receivedById], references: [id])
   // Unread flags for the two-way note thread: dealerUnread = the dealer has a
   // new message/update from staff to read; staffUnread = staff have a new
   // message/edit from the dealer to look at. Drive the "check gift cards" dots.
@@ -598,6 +607,7 @@ model GiftCardRequest {
 
   @@index([dealerId])
   @@index([status])
+  @@index([important])
 }
 
 // One message in a gift-card request's back-and-forth thread between the dealer
@@ -870,6 +880,7 @@ model User {
   userRequestsReviewed  UserRequest[]     @relation("UserRequestReviewer")
   giftCardsRequested    GiftCardRequest[] @relation("GiftCardRequestedBy")
   giftCardsSent         GiftCardRequest[] @relation("GiftCardSentBy")
+  giftCardsReceived     GiftCardRequest[] @relation("GiftCardReceivedBy")
   giftCardNotes         GiftCardNote[]    @relation("GiftCardNoteAuthor")
   dealerDocsUploaded    DealerDocument[]  @relation("DealerDocUploader")
   cancellationsRequested DealCancellation[] @relation("CancellationRequestedBy")

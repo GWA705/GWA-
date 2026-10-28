@@ -37,6 +37,7 @@ import {
 import { programCategoryLabel, paymentMethodLabel } from '@/lib/enumLabels';
 import { getT } from '@/i18n/server';
 import { ConfirmationForm } from './ConfirmationForm';
+import { lookupGiftCardForConfirmation } from '@/lib/giftCardConfirm';
 import { FinanceitPullButton } from './FinanceitPullButton';
 import { CallAttemptLog } from './CallAttemptLog';
 import { financeitEmailConfigured } from '@/lib/financeitEmail';
@@ -163,6 +164,11 @@ export default async function StaffApplicationDetail({
     }),
   ]);
   if (!app) notFound();
+
+  // Gift-card match for the confirmation call — looked up by the customer's
+  // email on file so the confirmer can verify the card was received (and
+  // resend/request one if not).
+  const giftCard = await lookupGiftCardForConfirmation(app.applicantEmail);
 
   // Rule 2 — funding verification checklist. The serial-match item only applies
   // when the finance company requires a serial per product (e.g. UEI).
@@ -853,6 +859,8 @@ export default async function StaffApplicationDetail({
           applicationId={app.id}
           data={app.confirmation}
           applicantName={`${app.applicantFirstName} ${app.applicantLastName}`}
+          applicantEmail={app.applicantEmail ?? ''}
+          giftCard={giftCard}
           defaultProduct={app.productsSold.length ? app.productsSold.join(', ') : PROGRAM_CATEGORY_LABELS[app.programCategory]}
           defaultCity={app.loanApplication?.city ?? ''}
           defaultPhone={app.applicantPhone}

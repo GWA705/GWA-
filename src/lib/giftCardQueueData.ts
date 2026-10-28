@@ -17,7 +17,8 @@ export async function loadGiftCardQueue() {
   const [pendingRows, flaggedRows, sentRows] = await Promise.all([
     prisma.giftCardRequest.findMany({
       where: { status: 'PENDING' },
-      orderBy: { createdAt: 'asc' },
+      // Urgent (flagged from a confirmation call) float to the top; otherwise oldest-first.
+      orderBy: [{ important: 'desc' }, { createdAt: 'asc' }],
       include: { dealer: { select: { name: true } }, notes: noteInclude },
     }),
     prisma.giftCardRequest.findMany({
@@ -43,6 +44,7 @@ export async function loadGiftCardQueue() {
     requestedAt: dt(r.createdAt),
     requestedAtISO: r.createdAt.toISOString(), // raw date for grouping by day
     staffUnread: r.staffUnread,
+    important: r.important,
     notes: mapNotes(r.notes),
   }));
 

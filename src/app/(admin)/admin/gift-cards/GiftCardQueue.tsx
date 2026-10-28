@@ -15,6 +15,7 @@ export interface PendingCard {
   requestedAt: string; // preformatted
   requestedAtISO: string; // raw, for grouping by day
   staffUnread: boolean;
+  important: boolean; // flagged urgent (e.g. from a confirmation call) — send first
   notes: GiftCardNoteVM[];
 }
 
@@ -296,9 +297,10 @@ function GroupDay({
             {selected.has(c.id) && <input type="hidden" name="ids" value={c.id} />}
           </td>
           <td className="px-4 py-3 align-top font-medium text-gray-900">
-            <span className="flex items-center gap-1.5">
+            <span className="flex flex-wrap items-center gap-1.5">
               {c.staffUnread && <span className="h-2 w-2 rounded-full bg-red-500" aria-label="New message" />}
               {c.customerName}
+              {c.important && <span className="badge bg-red-100 text-red-700">⚡ Important</span>}
             </span>
           </td>
           <td className="px-4 py-3 align-top text-gray-600">
