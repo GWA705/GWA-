@@ -34,7 +34,7 @@ export default async function StoreContactsPage() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <section className="card p-5"><h2 className="mb-2 text-base font-semibold text-gray-900">Import from the contacts sheet</h2><ImportContactsForm /></section>
-        <section className="card p-5"><h2 className="mb-2 text-base font-semibold text-gray-900">National report recipients <span className="text-xs font-normal text-gray-400">· {national.length}</span></h2><NationalRecipientsForm initial={nationalRaw ?? ''} /></section>
+        <section className="card p-5"><h2 className="mb-2 text-base font-semibold text-gray-900">National report recipients <span className="text-xs font-normal text-gray-400">· {national.length}</span></h2><NationalRecipientsForm key={nationalRaw ?? 'empty'} initial={nationalRaw ?? ''} /></section>
       </div>
 
       <div className="flex items-center justify-between">

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useFormState, useFormStatus } from 'react-dom';
 import { importContactsAction, saveNationalRecipientsAction, type ContactsActionState } from './actions';
 
@@ -19,6 +20,10 @@ export function ImportContactsForm() {
   const [state, action] = useFormState<ContactsActionState, FormData>(importContactsAction, {});
   const [csv, setCsv] = useState('');
   const [fileName, setFileName] = useState<string | null>(null);
+  const router = useRouter();
+  // After a successful import, re-fetch the server data so the national
+  // recipients box, the store list and the counts update without a manual reload.
+  useEffect(() => { if (state?.ok) router.refresh(); }, [state?.ok, router]);
 
   function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
