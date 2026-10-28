@@ -1693,6 +1693,19 @@ exhausting the single instance). No behaviour change for normal use.
   `testSingleLead()` on a French lead first. Portal display auto-translates lead
   free-text via DeepL.
 
+## 2026-10-28 (FIX: store-contacts page crash — useActionState on React 18)
+- **Bug:** `/admin/store-contacts` (and the chargeback "resolve" form + weekly
+  attribution row) crashed to the error boundary on every load. Cause: four
+  client components imported **`useActionState`**, a **React 19** hook — this app
+  is on **React 18.3.1**, where it's `undefined` at runtime, so the component
+  threw the moment it rendered. TypeScript compiled it because the *types* ship
+  the hook, which is why the build never caught it.
+- **Fix:** switched all four to the repo's existing React-18 pattern —
+  `useFormState` + `useFormStatus` (from `react-dom`) — keeping the same
+  `<form action=…>` semantics and the pending/disabled button behaviour. Files:
+  `store-contacts/ContactsAdminForms.tsx`, `store-contacts/StoreContactEditForm.tsx`,
+  `remittances/ResolveLineForm.tsx`, `weekly-reports/AttributeRow.tsx`.
+
 ## 2026-10-28 (weekly-report header — Option 2 "navy, modern sans")
 - Reworked the national + per-store email headers to the treatment the user
   picked from the mockup (claude.ai/artifact/GvRZX3VCJRFNVBumikhGdw): dark navy

@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useFormState, useFormStatus } from 'react-dom';
 import { setLineResolutionAction, clearLineResolutionAction } from './actions';
 import type { RemittanceActionState } from './actions';
 
@@ -8,9 +8,20 @@ import type { RemittanceActionState } from './actions';
  * Mark a chargeback/fee line settled (with a reference), or re-open it. Used on
  * the Chargebacks tracker so the office can record when HD's clawback was paid
  * back and look up the reference later.
+ *
+ * NOTE: React 18 has no useActionState — use useFormState + useFormStatus.
  */
+function SettleButton() {
+  const { pending } = useFormStatus();
+  return (
+    <button type="submit" disabled={pending} className="btn-secondary text-sm">
+      {pending ? 'Saving…' : 'Mark settled'}
+    </button>
+  );
+}
+
 export function ResolveLineForm({ lineId, resolvedAt, resolvedRef }: { lineId: string; resolvedAt: string | null; resolvedRef: string | null }) {
-  const [state, action, pending] = useActionState<RemittanceActionState, FormData>(setLineResolutionAction.bind(null, lineId), {});
+  const [state, action] = useFormState<RemittanceActionState, FormData>(setLineResolutionAction.bind(null, lineId), {});
 
   if (resolvedAt) {
     return (
@@ -27,9 +38,7 @@ export function ResolveLineForm({ lineId, resolvedAt, resolvedRef }: { lineId: s
     <form action={action} className="flex flex-wrap items-center gap-2">
       <input name="ref" placeholder="Reference (cheque/EFT/credit note)" className="input h-8 w-56 text-sm" />
       <input name="note" placeholder="Note (optional)" className="input h-8 w-48 text-sm" />
-      <button type="submit" disabled={pending} className="btn-secondary text-sm">
-        {pending ? 'Saving…' : 'Mark settled'}
-      </button>
+      <SettleButton />
       {state?.error && <span className="text-xs text-red-600">{state.error}</span>}
     </form>
   );

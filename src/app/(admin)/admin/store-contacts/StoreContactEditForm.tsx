@@ -1,10 +1,21 @@
 'use client';
 
-import { useActionState, useState } from 'react';
+import { useState } from 'react';
+import { useFormState, useFormStatus } from 'react-dom';
 import { saveStoreContactAction, type ContactsActionState } from './actions';
 
 const emailsIn = (t: string) =>
   Array.from(new Set((t.match(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g) || []).map((e) => e.toLowerCase())));
+
+// React 18 has no useActionState — pending comes from useFormStatus.
+function SaveButton() {
+  const { pending } = useFormStatus();
+  return (
+    <button type="submit" disabled={pending} className="rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50">
+      {pending ? 'Saving…' : 'Save store'}
+    </button>
+  );
+}
 
 export interface StoreInit {
   storeNumber: string;
@@ -19,7 +30,7 @@ export interface StoreInit {
 }
 
 export function StoreContactEditForm({ init }: { init: StoreInit }) {
-  const [state, action, pending] = useActionState<ContactsActionState, FormData>(saveStoreContactAction, {});
+  const [state, action] = useFormState<ContactsActionState, FormData>(saveStoreContactAction, {});
   const [sc, setSc] = useState(init.storeContacts);
   const [ism, setIsm] = useState(init.ism);
   const [dist, setDist] = useState(init.distributor);
@@ -71,9 +82,7 @@ export function StoreContactEditForm({ init }: { init: StoreInit }) {
 
       {state?.error && <p className="text-sm text-red-600">{state.error}</p>}
       <div className="flex gap-2">
-        <button type="submit" disabled={pending} className="rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50">
-          {pending ? 'Saving…' : 'Save store'}
-        </button>
+        <SaveButton />
       </div>
     </form>
   );

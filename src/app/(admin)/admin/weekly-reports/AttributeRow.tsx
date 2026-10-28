@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useFormState, useFormStatus } from 'react-dom';
 import { setLeadCreditAction, type WeeklyActionState } from './actions';
 
 export interface LeadRow {
@@ -8,8 +8,18 @@ export interface LeadRow {
   value: string; datePaid: string; associateName: string; associateSource: string;
 }
 
+// React 18 has no useActionState — pending comes from useFormStatus.
+function SaveButton() {
+  const { pending } = useFormStatus();
+  return (
+    <button type="submit" disabled={pending} className="rounded-lg bg-brand-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50">
+      {pending ? 'Saving…' : 'Save'}
+    </button>
+  );
+}
+
 export function AttributeRow({ lead }: { lead: LeadRow }) {
-  const [state, action, pending] = useActionState<WeeklyActionState, FormData>(setLeadCreditAction.bind(null, lead.hdRef), {});
+  const [state, action] = useFormState<WeeklyActionState, FormData>(setLeadCreditAction.bind(null, lead.hdRef), {});
   const done = state?.ok || (lead.associateSource === 'ONLINE') || !!lead.associateName;
 
   return (
@@ -27,7 +37,7 @@ export function AttributeRow({ lead }: { lead: LeadRow }) {
             <option value="ONLINE">Online (homedepot.ca)</option>
           </select>
           <input name="associateName" defaultValue={lead.associateName} placeholder="Associate name" className="w-48 rounded-lg border border-gray-300 px-2.5 py-1.5 text-sm" />
-          <button type="submit" disabled={pending} className="rounded-lg bg-brand-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50">{pending ? 'Saving…' : 'Save'}</button>
+          <SaveButton />
           {state?.ok && <span className="text-xs text-green-600">✓ saved</span>}
           {state?.error && <span className="text-xs text-red-600">{state.error}</span>}
         </form>
