@@ -5,8 +5,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { rateLimit, clientIp } from '@/lib/ratelimit';
 import { sendTrainingCertificationEmails } from '@/lib/training-email';
-import { advancePendingIdTagsForCert, markIdTagEmailed, getDealerIdTagPassword } from '@/lib/idTag';
-import { sendIdTagNewRepEmail } from '@/lib/idTag-email';
+import { advancePendingIdTagsForCert } from '@/lib/idTag';
 import { getEffectiveContent, getTrainingAskCount } from '@/lib/training-content';
 import {
   CONTENT_VERSION,
@@ -103,22 +102,17 @@ export async function submitTrainingAction(
     });
 
     // If this person had an ID-tag request parked for "needs training", it now
-    // clears: advance it to Submitted and fire their background-check email.
+    // clears: advance it to Submitted so it shows up ready on the reviewer board.
+    // The background-check email is NOT sent here — a reviewer sends it from
+    // /staff/id-tags/[id] once they've set the rep up in Entuitive.
     void (async () => {
       try {
-        const advanced = await advancePendingIdTagsForCert({
+        await advancePendingIdTagsForCert({
           dealerId: dealer.id,
           traineeName: (payload.traineeName || '').trim(),
           traineeEmail: (payload.traineeEmail || '').trim(),
           certId: cert.id,
         });
-        const officePassword = advanced.length ? await getDealerIdTagPassword(dealer.id) : null;
-        for (const a of advanced) {
-          if (a.personEmail) {
-            const sent = await sendIdTagNewRepEmail(a.personEmail, a.personName, { password: officePassword });
-            if (sent) await markIdTagEmailed(a.id);
-          }
-        }
       } catch (e) {
         console.error('[training] id-tag advance failed', e);
       }

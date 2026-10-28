@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { requireDealerAccess } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { createIdTagRequest, markIdTagEmailed, saveIdTagHeadshot } from '@/lib/idTag';
-import { sendIdTagNewRepEmail, sendIdTagExistingRepEmail, sendIdTagTrainingInviteEmail, sendIdTagInboxNotice } from '@/lib/idTag-email';
+import { sendIdTagExistingRepEmail, sendIdTagTrainingInviteEmail, sendIdTagInboxNotice } from '@/lib/idTag-email';
 import { getIdTagInboxEmail } from '@/lib/settings';
 import { putDocument } from '@/lib/storage';
 import { emailEnabled } from '@/lib/email';
@@ -75,15 +75,13 @@ export async function submitIdTagAction(_prev: IdTagSubmitState, formData: FormD
   const dealer = await prisma.dealer.findUnique({ where: { id: session.dealerId }, select: { name: true, idTagTempPassword: true } });
   const office = dealer?.name || 'your office';
 
-  // Fire the appropriate rep email (best-effort — never fails the submission).
-  if (email) {
-    if (res.sendScreeningEmail) {
-      const sent = await sendIdTagNewRepEmail(email, name, { password: dealer?.idTagTempPassword });
-      if (sent) await markIdTagEmailed(res.id);
-    } else if (res.sendWelcomeEmail) {
-      const sent = await sendIdTagExistingRepEmail(email, name, office);
-      if (sent) await markIdTagEmailed(res.id);
-    }
+  // The background-check email for a NEW rep is NOT sent here — a reviewer sends
+  // it from /staff/id-tags/[id] once they've set the rep up in Entuitive, so it
+  // never goes out before the account exists. Existing-tag reps (no screening)
+  // still get their welcome email on submit. Best-effort — never fails the submit.
+  if (email && res.sendWelcomeEmail) {
+    const sent = await sendIdTagExistingRepEmail(email, name, office);
+    if (sent) await markIdTagEmailed(res.id);
   }
 
   // Copy the dedicated ID-tag inbox so the team sees every new request.

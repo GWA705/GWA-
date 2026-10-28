@@ -9,6 +9,7 @@ import {
 import { updateIdTagStatusStaffAction, saveIdTagCardAction, uploadIdTagHeadshotStaffAction, deleteIdTagStaffAction } from '../actions';
 import { IdTagHeadshotButton } from '@/components/IdTagHeadshotButton';
 import { IdTagDeleteButton } from '@/components/IdTagDeleteButton';
+import { SendScreeningButton } from './SendScreeningButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,6 +42,9 @@ export default async function StaffIdTagDetailPage({ params }: { params: { id: s
   ].filter(Boolean).join(', ');
   const d = daysUntil(t.validUntil);
   const validVal = t.validUntil ? new Date(t.validUntil).toISOString().slice(0, 10) : '';
+  const emailSentLabel = t.emailSentAt
+    ? new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(t.emailSentAt))
+    : null;
   const card = 'rounded-2xl bg-white shadow-sm ring-1 ring-slate-200';
   const inp = 'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm';
   const lab = 'mb-1 block text-xs font-semibold text-slate-600';
@@ -114,6 +118,26 @@ export default async function StaffIdTagDetailPage({ params }: { params: { id: s
           </dl>
         </div>
       </div>
+
+      {/* Background-check email — the reviewer sends this AFTER setting the rep
+          up in Entuitive; it never fires on its own. New reps only. */}
+      {t.kind === 'NEW' && (
+        <div className={`${card} mt-5 p-5`}>
+          <h2 className="text-sm font-bold text-slate-900">Background-check email</h2>
+          <p className="mt-0.5 max-w-prose text-xs text-slate-500">
+            Set {first || 'the rep'} up in Entuitive first, then send this. It emails them their
+            background-screening link and the office’s Entuitive login &amp; password. Nothing is sent
+            automatically — it goes only when you press the button.
+          </p>
+          {t.certified ? (
+            <SendScreeningButton id={t.id} hasEmail={!!t.personEmail} sentAtLabel={emailSentLabel} />
+          ) : (
+            <p className="mt-3 text-sm font-medium text-amber-700">
+              {first || 'This rep'} still needs to finish Home Depot training before the background-check email can go out.
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="mt-5 grid gap-5 md:grid-cols-2">
         {/* Status control */}

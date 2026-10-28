@@ -578,6 +578,8 @@ export interface IdTagDetail {
   validUntil: Date | null;
   badgeNumber: string | null;
   entuitiveStatus: string | null;
+  /** When the background-check / onboarding email was last sent, or null. */
+  emailSentAt: Date | null;
   /** The office's standardized Entuitive password (for the setup sheet). */
   password: string | null;
   /** The office's Entuitive "New User" profile (company, address, etc.). */
@@ -592,7 +594,7 @@ export async function getIdTagDetail(id: string): Promise<IdTagDetail | null> {
     select: {
       id: true, dealerId: true, personName: true, personFirst: true, personLast: true,
       personEmail: true, personPhone: true, kind: true, status: true, certificationId: true,
-      headshotKey: true, cardFileKey: true, validUntil: true, badgeNumber: true, entuitiveStatus: true, createdAt: true,
+      headshotKey: true, cardFileKey: true, validUntil: true, badgeNumber: true, entuitiveStatus: true, emailSentAt: true, createdAt: true,
       dealer: { select: { name: true, idTagTempPassword: true, idTagOfficeProfile: true, profile: { select: { businessName: true, address: true, phone: true } } } },
     },
   });
@@ -607,6 +609,7 @@ export async function getIdTagDetail(id: string): Promise<IdTagDetail | null> {
     hasHeadshot: !!r.headshotKey, hasCard: !!r.cardFileKey,
     cardIsImage: /\.(png|jpe?g|webp|gif)$/i.test(r.cardFileKey || ''),
     validUntil: r.validUntil, badgeNumber: r.badgeNumber, entuitiveStatus: r.entuitiveStatus,
+    emailSentAt: r.emailSentAt,
     password: (r.dealer?.idTagTempPassword || '').trim() || null,
     profile: effectiveProfile,
     createdAt: r.createdAt,
