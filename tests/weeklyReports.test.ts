@@ -39,6 +39,6 @@ describe('weekly report rendering', () => {
     expect(html).toContain('Central Ontario');
     expect(html).toContain('GRAND TOTAL');
     expect(html).toContain('New'); // Atlantic had no LY week
-    expect(html).toContain('National Weekly Sales Summary');
+    expect(html).toContain('National Summary');
   });
 });

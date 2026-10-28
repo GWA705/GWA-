@@ -1693,6 +1693,16 @@ exhausting the single instance). No behaviour change for normal use.
   `testSingleLead()` on a French lead first. Portal display auto-translates lead
   free-text via DeepL.
 
+## 2026-10-28 (weekly-report header — Option 2 "navy, modern sans")
+- Reworked the national + per-store email headers to the treatment the user
+  picked from the mockup (claude.ai/artifact/GvRZX3VCJRFNVBumikhGdw): dark navy
+  header, reversed logo sized to sit properly (300px), a tracked blue kicker
+  ("WEEKLY SALES REPORT"), a bold white title ("National Summary"), the
+  "Home Depot Home Services Partner" sub, and a short blue hairline. Store header
+  gets the same logo/sub/hairline (its name/number stay in the blue band below).
+  All email-safe fonts (Arial). Replaces the plain-caps line that read "cheap."
+  Test assertion updated (National header now says "National Summary").
+
 ## 2026-10-28 (clarify recipient privacy wording — no behaviour change)
 - Reassurance/clarity only: the weekly reports already BCC every recipient (the
   To line is only reporter@ghsbarrie.ca, all real recipients go in BCC — nobody
