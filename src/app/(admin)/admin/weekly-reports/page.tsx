@@ -72,7 +72,7 @@ export default async function WeeklyReportsPage() {
                 <td className="px-4 py-3"><span className="font-mono text-gray-500">{r.storeNumber}</span> <span className="font-medium text-gray-900">{r.storeName}</span>{r.needsAssociate > 0 && <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-700">{r.needsAssociate} need associate</span>}</td>
                 <td className="px-4 py-3 text-right tabular-nums">{r.sales.length}</td>
                 <td className="px-4 py-3 text-right font-medium tabular-nums">{money(r.total)}</td>
-                <td className="px-4 py-3 text-gray-600">{r.to.length} to · {r.cc.length} cc{r.to.length + r.cc.length === 0 ? <span className="ml-1 text-amber-600">⚠ none</span> : ''}</td>
+                <td className="px-4 py-3 text-gray-600">{r.to.length + r.cc.length === 0 ? <span className="text-amber-600">⚠ none</span> : <>{r.to.length + r.cc.length} recipient{r.to.length + r.cc.length === 1 ? '' : 's'} <span className="text-gray-400">· all BCC&rsquo;d</span></>}</td>
                 <td className="px-4 py-3 text-right"><div className="flex items-center justify-end gap-3"><a href={`/admin/weekly-reports/preview/store/${r.storeNumber}`} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-brand-700 hover:underline">Preview ↗</a><TestStoreButton storeNumber={r.storeNumber} /></div></td>
               </tr>
             ))}

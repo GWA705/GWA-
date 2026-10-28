@@ -24,7 +24,9 @@ export default async function StoreContactsPage() {
           <p className="mt-1 text-sm text-gray-500 max-w-2xl">
             Who the weekly Home Depot store reports go to, per store — the portal's own copy of your contacts sheet.
             Edit anytime; changes take effect on the next send. Store ownership (which GWA office) still follows the
-            portal's stores, not this list.
+            portal's stores, not this list. <strong>Every recipient is BCC&rsquo;d on every send</strong> — the email shows
+            only <strong>reporter@ghsbarrie.ca</strong> in the To line, so no store, distributor, ISM or office manager
+            ever sees another recipient.
           </p>
         </div>
         <Link href="/admin/store-contacts/new" className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">+ Add store</Link>
@@ -60,7 +62,7 @@ export default async function StoreContactsPage() {
                 <tr key={s.id} className={s.active ? '' : 'opacity-60'}>
                   <td className="px-4 py-3"><span className="font-mono text-gray-500">{s.storeNumber}</span> <span className="font-medium text-gray-900">{s.storeName ?? ''}</span></td>
                   <td className="px-4 py-3 text-gray-600">{s.district ?? <span className="text-gray-300">—</span>}</td>
-                  <td className="px-4 py-3 text-gray-600">{to.length} to · {cc.length} cc{to.length + cc.length === 0 ? <span className="ml-1 text-amber-600">⚠ none</span> : ''}</td>
+                  <td className="px-4 py-3 text-gray-600">{to.length + cc.length === 0 ? <span className="text-amber-600">⚠ none</span> : <>{to.length + cc.length} recipient{to.length + cc.length === 1 ? '' : 's'} <span className="text-gray-400">· all BCC&rsquo;d</span></>}</td>
                   <td className="px-4 py-3">{s.active ? <span className="badge bg-green-100 text-green-800">Active</span> : <span className="badge bg-gray-100 text-gray-600">Off</span>}</td>
                   <td className="px-4 py-3 text-right"><Link href={`/admin/store-contacts/${s.storeNumber}`} className="text-sm font-medium text-brand-700 hover:underline">Edit</Link></td>
                 </tr>

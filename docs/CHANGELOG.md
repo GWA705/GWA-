@@ -1693,6 +1693,15 @@ exhausting the single instance). No behaviour change for normal use.
   `testSingleLead()` on a French lead first. Portal display auto-translates lead
   free-text via DeepL.
 
+## 2026-10-28 (clarify recipient privacy wording — no behaviour change)
+- Reassurance/clarity only: the weekly reports already BCC every recipient (the
+  To line is only reporter@ghsbarrie.ca, all real recipients go in BCC — nobody
+  ever sees another). Replaced the internal "X to · Y cc" recipient counts on the
+  Weekly HD reports and HD Store contacts admin pages with "N recipients · all
+  BCC'd", and spelled out the BCC guarantee in the store-contacts page intro, so
+  the admin screens don't imply recipients are visible to each other. No change
+  to how mail is addressed or sent.
+
 ## 2026-10-27 (store-contacts: upload a CSV file, not just paste)
 - The HD Store contacts importer now has a **"Choose CSV file…"** button that reads
   the file into the import box for review, in addition to pasting. Same server
