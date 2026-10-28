@@ -4,7 +4,7 @@ import { getSession } from '@/lib/session';
 import { canAccessApplication } from '@/lib/rbac';
 import { decryptOptional } from '@/lib/crypto';
 import { getDealerReportBrand } from '@/lib/reporting/dealerBrand';
-import { fillHdWaiver } from '@/lib/hdWaiver';
+import { fillHdWaiver, waiverInstallerCompany } from '@/lib/hdWaiver';
 import { audit } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
@@ -42,8 +42,11 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   }
 
   // The "Installer's Company Name" is the office's own business name (same source
-  // the dealer's branded reports use), falling back to the dealer name.
+  // the dealer's branded reports use), falling back to the dealer name — except
+  // where an office signs the HD waiver under Georgian Water and Air (see
+  // waiverInstallerCompany); that override applies to the waiver only.
   const brand = await getDealerReportBrand(app.dealerId);
+  const installerCompany = waiverInstallerCompany(brand.name);
 
   const street = decryptOptional(app.applicantAddressEnc) ?? '';
   const jobSiteAddress = [street, app.applicantCity, app.province, app.applicantPostal]
@@ -56,7 +59,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
     storeNumber: app.homeDepotStore?.number ?? null,
     customerName: customerName || null,
     jobSiteAddress: jobSiteAddress || null,
-    installerCompany: brand.name,
+    installerCompany,
   });
 
   await audit({

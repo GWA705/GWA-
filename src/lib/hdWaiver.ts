@@ -24,6 +24,25 @@ export interface HdWaiverData {
   installerCompany?: string | null;
 }
 
+/**
+ * A few offices run their deals through the portal under their own brand name,
+ * but the Home Depot installer waiver must be signed in the name of the entity
+ * that actually holds the HD installer agreement — Georgian Water and Air. This
+ * maps the office's brand name to the company name that belongs on *its* waiver.
+ * It affects ONLY the waiver — the office's reports, emails and everything else
+ * keep their own brand. Add a row here for any other office in the same position.
+ */
+const WAIVER_COMPANY_OVERRIDES: { match: RegExp; company: string }[] = [
+  { match: /true\s*north/i, company: 'Georgian Water and Air' },
+];
+
+/** The name to stamp as "Installer's Company Name", applying any office override. */
+export function waiverInstallerCompany(brandName: string | null | undefined): string {
+  const name = (brandName ?? '').trim();
+  const override = WAIVER_COMPANY_OVERRIDES.find((o) => o.match.test(name));
+  return override ? override.company : name;
+}
+
 let _template: Uint8Array | null = null;
 async function templateBytes(): Promise<Uint8Array> {
   if (!_template) {
