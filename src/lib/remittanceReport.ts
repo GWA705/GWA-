@@ -122,22 +122,29 @@ export function buildRemittanceReportPdf(rows: ReportRow[], meta: ReportMeta): P
     y -= 24;
 
     // Summary by office
-    const byOffice = new Map<string, { lines: number; total: number }>();
+    const byOffice = new Map<string, { lines: number; total: number; charge: number; chargeLines: number }>();
     for (const r of rows) {
       const k = r.office && r.office !== '—' ? r.office : 'Unassigned / fees';
-      const b = byOffice.get(k) ?? { lines: 0, total: 0 };
+      const b = byOffice.get(k) ?? { lines: 0, total: 0, charge: 0, chargeLines: 0 };
       b.lines += 1; b.total += r.amount;
+      if (r.statusLabel === 'CHARGEBACK') { b.charge += r.amount; b.chargeLines += 1; }
       byOffice.set(k, b);
     }
     ensure(24);
     text('Summary by office', M, 10, bold, SLATE);
     y -= 16;
     for (const [office, v] of Array.from(byOffice.entries()).sort((a, b) => b[1].total - a[1].total)) {
-      ensure(14);
+      ensure(v.charge < 0 ? 26 : 14);
       text(clip(office, 300, 9, font), M + 2, 9, font);
       rightText(`${v.lines} lines`, cAmt - 70, 9, font, MUTE);
       rightText(money(v.total), cStat, 9, font, v.total < 0 ? RED : INK);
-      y -= 13;
+      y -= 12;
+      // Surface any chargeback(s) even when the office nets positive, so a
+      // clawback is never hidden inside a positive total.
+      if (v.charge < 0) {
+        text(`incl. ${v.chargeLines} chargeback${v.chargeLines === 1 ? '' : 's'} ${money(v.charge)}`, M + 12, 8, font, RED);
+        y -= 12;
+      }
     }
 
     const pages = doc.getPages();

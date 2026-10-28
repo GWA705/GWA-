@@ -1693,6 +1693,14 @@ exhausting the single instance). No behaviour change for normal use.
   `testSingleLead()` on a French lead first. Portal display auto-translates lead
   free-text via DeepL.
 
+## 2026-10-28 (remittance report — surface chargebacks per office)
+- The matched-report "Summary by office" netted chargebacks into each office's
+  total, so an office with funded deals + a chargeback showed a positive figure
+  that hid the clawback (e.g. Edmonton $1,861.73 concealed a −$6,437.42
+  chargeback). Now each office row adds a red "incl. N chargeback(s) −$X" line
+  whenever it has any, so a clawback is never invisible. Re-view/re-download the
+  report to see it (data unchanged; this is report rendering only).
+
 ## 2026-10-28 (FIX: retire the ungated remittance webhook — bad-parse source)
 - **Bug:** a Home Depot remittance (doc 2000162108) stored a wrong matched report
   — net $46,923.60 with 1 chargeback, when the real PDF nets **$34,971.73 with 3
