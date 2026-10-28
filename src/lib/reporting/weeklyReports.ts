@@ -334,8 +334,13 @@ export function leadNeedsAssociate(s: { associateName: string | null; associateS
 // ---------------------------------------------------------------------------
 // The real send (BCC every recipient; From/Reply-To reporter@; log-guarded)
 // ---------------------------------------------------------------------------
+// Internal copies BCC'd on EVERY weekly report — national AND per-store — so the
+// office always gets a copy (hidden, like all recipients). Overridable via the
+// hdReport.alwaysBcc setting; falls back to the standing internal list.
+const WEEKLY_ALWAYS_BCC = ['jj@ghsbarrie.ca', 'sean@ghsbarrie.ca', 'sam@georgianwaterandair.ca'];
 async function alwaysBcc(): Promise<string[]> {
-  return extractEmails(await getSetting('hdReport.alwaysBcc'));
+  const configured = extractEmails(await getSetting('hdReport.alwaysBcc'));
+  return configured.length ? configured : WEEKLY_ALWAYS_BCC;
 }
 const uniqEmails = (...lists: string[][]) => Array.from(new Set(lists.flat().map((e) => e.trim()).filter(Boolean)));
 

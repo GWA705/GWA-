@@ -1693,6 +1693,13 @@ exhausting the single instance). No behaviour change for normal use.
   `testSingleLead()` on a French lead first. Portal display auto-translates lead
   free-text via DeepL.
 
+## 2026-10-28 (weekly reports — standing internal BCC copies)
+- Every weekly report (national AND per-store) now BCCs a standing internal list
+  so the office always gets a copy: **jj@ghsbarrie.ca, sean@ghsbarrie.ca,
+  sam@georgianwaterandair.ca**. Set as the default of `alwaysBcc()` in
+  weeklyReports.ts (still overridable via the `hdReport.alwaysBcc` setting).
+  Hidden like all recipients — the To line stays reporter@ghsbarrie.ca.
+
 ## 2026-10-28 (FIX: store-contacts page crash — useActionState on React 18)
 - **Bug:** `/admin/store-contacts` (and the chargeback "resolve" form + weekly
   attribution row) crashed to the error boundary on every load. Cause: four
