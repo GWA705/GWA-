@@ -6,10 +6,11 @@ import {
   getIdTagDetail, ID_TAG_STATUS_LABEL, ID_TAG_STATUS_TONE, TONE_CLASS,
   daysUntil, expiryTone, expiryLabel,
 } from '@/lib/idTag';
-import { updateIdTagStatusStaffAction, saveIdTagCardAction, uploadIdTagHeadshotStaffAction, deleteIdTagStaffAction } from '../actions';
+import { updateIdTagStatusStaffAction, uploadIdTagHeadshotStaffAction, deleteIdTagStaffAction } from '../actions';
 import { IdTagHeadshotButton } from '@/components/IdTagHeadshotButton';
 import { IdTagDeleteButton } from '@/components/IdTagDeleteButton';
 import { SendScreeningButton } from './SendScreeningButton';
+import { CardForm } from './CardForm';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,7 +48,6 @@ export default async function StaffIdTagDetailPage({ params }: { params: { id: s
     : null;
   const card = 'rounded-2xl bg-white shadow-sm ring-1 ring-slate-200';
   const inp = 'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm';
-  const lab = 'mb-1 block text-xs font-semibold text-slate-600';
   const or = <span className="text-slate-300">—</span>;
 
   return (
@@ -152,26 +152,10 @@ export default async function StaffIdTagDetailPage({ params }: { params: { id: s
           </form>
         </div>
 
-        {/* Card: valid-until, badge #, status, upload */}
+        {/* Card: valid-until, badge #, status, upload — auto-fills from the card */}
         <div className={`${card} p-5`}>
           <h2 className="text-sm font-bold text-slate-900">Entuitive card</h2>
-          <form action={saveIdTagCardAction} className="mt-3 space-y-3">
-            <input type="hidden" name="id" value={t.id} />
-            <div className="grid grid-cols-2 gap-3">
-              <label className="block"><span className={lab}>Valid until</span>
-                <input name="validUntil" type="date" defaultValue={validVal} className={inp} /></label>
-              <label className="block"><span className={lab}>Badge #</span>
-                <input name="badgeNumber" defaultValue={t.badgeNumber || ''} placeholder="1043317" className={inp} /></label>
-            </div>
-            <label className="block"><span className={lab}>Entuitive status</span>
-              <input name="entuitiveStatus" defaultValue={t.entuitiveStatus || ''} placeholder="Approved / Approuvé" className={inp} /></label>
-            <label className="block"><span className={lab}>Upload finished QR card (front + back)</span>
-              <input name="card" type="file" accept="application/pdf,image/*"
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-slate-700" />
-              {t.hasCard && <a href={`/api/id-tags/${t.id}/card`} className="mt-1 inline-block text-xs font-semibold text-brand-600 hover:underline">Current card uploaded — download</a>}
-            </label>
-            <button type="submit" className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Save card</button>
-          </form>
+          <CardForm id={t.id} defaultValidUntil={validVal} defaultBadge={t.badgeNumber || ''} defaultStatus={t.entuitiveStatus || ''} hasCard={t.hasCard} />
         </div>
       </div>
 
