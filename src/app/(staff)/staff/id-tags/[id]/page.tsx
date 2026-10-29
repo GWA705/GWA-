@@ -11,19 +11,21 @@ import { IdTagHeadshotButton } from '@/components/IdTagHeadshotButton';
 import { IdTagDeleteButton } from '@/components/IdTagDeleteButton';
 import { SendScreeningButton } from './SendScreeningButton';
 import { CardForm } from './CardForm';
+import { CopyLine } from './CopyLine';
 
 export const dynamic = 'force-dynamic';
 
 const STATUS_KEYS = Object.keys(ID_TAG_STATUS_LABEL) as IdTagStatus[];
 
-function Row({ label, children, auto }: { label: string; children: React.ReactNode; auto?: boolean }) {
+function Row({ label, children, auto, copy }: { label: string; children: React.ReactNode; auto?: boolean; copy?: string | null }) {
   return (
-    <div className="grid grid-cols-[130px_1fr] gap-x-3 gap-y-1 border-b border-slate-100 px-4 py-2.5 last:border-0">
+    <div className="grid grid-cols-[120px_1fr_auto] items-center gap-x-3 gap-y-1 border-b border-slate-100 px-4 py-2.5 last:border-0">
       <dt className="text-xs text-slate-500">{label}</dt>
-      <dd className="text-sm font-medium text-slate-900">
+      <dd className="min-w-0 text-sm font-medium text-slate-900">
         {children}
         {auto && <span className="ml-2 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-400">office · auto</span>}
       </dd>
+      {copy ? <CopyLine value={copy} label={label} /> : <span />}
     </div>
   );
 }
@@ -41,6 +43,7 @@ export default async function StaffIdTagDetailPage({ params }: { params: { id: s
     p.unit ? `Unit ${p.unit}` : '',
     [p.city, p.province, p.postal].filter(Boolean).join(', '),
   ].filter(Boolean).join(', ');
+  const officePhone = [p.phone, p.ext && `ext ${p.ext}`].filter(Boolean).join(' ');
   const d = daysUntil(t.validUntil);
   const validVal = t.validUntil ? new Date(t.validUntil).toISOString().slice(0, 10) : '';
   const emailSentLabel = t.emailSentAt
@@ -101,18 +104,19 @@ export default async function StaffIdTagDetailPage({ params }: { params: { id: s
         <div className={card}>
           <div className="border-b border-slate-100 px-4 py-3">
             <h2 className="text-sm font-bold text-slate-900">Entuitive setup sheet</h2>
-            <p className="text-xs text-slate-500">Auto-built from the office + this person. “office · auto” fields are set once in <Link href="/staff/id-tags/setup" className="text-brand-600 hover:underline">Office setup</Link>.</p>
+            <p className="text-xs text-slate-500">Auto-built from the office + this person. Use <strong>Copy</strong> on each line to drop it straight into the matching Entuitive field. “office · auto” fields are set once in <Link href="/staff/id-tags/setup" className="text-brand-600 hover:underline">Office setup</Link>.</p>
           </div>
           <dl>
-            <Row label="First / Last">{first} {last}</Row>
-            <Row label="Email (login)">{t.personEmail || or}</Row>
-            <Row label="Cell phone">{t.personPhone || or}</Row>
-            <Row label="Password" auto>{t.password ? <code className="rounded bg-slate-100 px-1">{t.password}</code> : <span className="text-amber-600">not set</span>}</Row>
-            <Row label="Company name" auto>{p.companyName || <span className="text-amber-600">not set</span>}</Row>
-            <Row label="Address" auto>{address || <span className="text-amber-600">not set</span>}</Row>
-            <Row label="Office phone" auto>{[p.phone, p.ext && `ext ${p.ext}`].filter(Boolean).join(' ') || or}</Row>
-            <Row label="Service" auto>{p.service || or}</Row>
-            <Row label="Province" auto>{p.province || or}</Row>
+            <Row label="First name" copy={first || undefined}>{first || or}</Row>
+            <Row label="Last name" copy={last || undefined}>{last || or}</Row>
+            <Row label="Email (login)" copy={t.personEmail || undefined}>{t.personEmail || or}</Row>
+            <Row label="Cell phone" copy={t.personPhone || undefined}>{t.personPhone || or}</Row>
+            <Row label="Password" auto copy={t.password || undefined}>{t.password ? <code className="rounded bg-slate-100 px-1">{t.password}</code> : <span className="text-amber-600">not set</span>}</Row>
+            <Row label="Company name" auto copy={p.companyName || undefined}>{p.companyName || <span className="text-amber-600">not set</span>}</Row>
+            <Row label="Address" auto copy={address || undefined}>{address || <span className="text-amber-600">not set</span>}</Row>
+            <Row label="Office phone" auto copy={officePhone || undefined}>{officePhone || or}</Row>
+            <Row label="Service" auto copy={p.service || undefined}>{p.service || or}</Row>
+            <Row label="Province" auto copy={p.province || undefined}>{p.province || or}</Row>
             <Row label="Status / Notify" auto>Active · Primary email</Row>
             <Row label="Training">{t.certified ? <span className="font-semibold text-green-700">✓ Certified</span> : <span className="font-semibold text-red-600">✗ Needs training</span>}</Row>
           </dl>
