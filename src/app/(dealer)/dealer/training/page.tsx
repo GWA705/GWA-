@@ -45,6 +45,7 @@ export default async function DealerTrainingPage() {
         title="Lead Generator Training"
         subtitle="Send a new lead generator your training link. They enter their details, learn the Home Depot in-store basics, pass a quiz, and sign off on the rules — every completion is recorded here for your office and Home Depot."
         bgImage="/training/trainee-hero.webp"
+        bgPosition="right top"
         tiles={[
           { Icon: UserPlus, title: 'Enter details' },
           { Icon: GraduationCap, title: 'Learn the basics' },
