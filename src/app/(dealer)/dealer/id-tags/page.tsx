@@ -35,7 +35,7 @@ export default async function DealerIdTagsPage() {
         eyebrow="Home Depot · In-store badges"
         title="Home Depot ID Tags"
         subtitle="Submit your team for their in-store Home Depot ID badge. Everyone should have a completed Lead Generator training certificate — if they don’t yet, we’ll flag it and give you the link to send them."
-        bgImage="/HD-Promotions.webp"
+        bgImage="/id-tags-hero.webp"
         tiles={[
           { Icon: UserPlus, title: 'Add your team' },
           { Icon: GraduationCap, title: 'Training checked' },
