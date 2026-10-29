@@ -41,8 +41,8 @@ export default async function DealerTrainingPage() {
   return (
     <div className="space-y-6">
       <SectionHero
-        eyebrow="Home Depot · In-store training"
-        title="Lead Generator Training"
+        eyebrow="Home Depot Home Services"
+        title="HD In-Store Certification"
         subtitle="Send a new lead generator your training link. They enter their details, learn the Home Depot in-store basics, pass a quiz, and sign off on the rules — every completion is recorded here for your office and Home Depot."
         bgImage="/training/trainee-hero.webp"
         bgPosition="right 20%"
