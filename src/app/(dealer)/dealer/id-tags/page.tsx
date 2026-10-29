@@ -1,7 +1,9 @@
 import { notFound } from 'next/navigation';
+import { UserPlus, GraduationCap, Camera, BadgeCheck } from 'lucide-react';
 import { requireDealerAccess } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { listIdTagForDealer, isIdTagEnabledForDealer, ID_TAG_STATUS_LABEL, ID_TAG_STATUS_TONE, TONE_CLASS } from '@/lib/idTag';
+import { SectionHero } from '@/components/SectionHero';
 import { IdTagSubmitForm } from './IdTagSubmitForm';
 import { SendTrainingButton } from './SendTrainingButton';
 import { IdTagHeadshotButton } from '@/components/IdTagHeadshotButton';
@@ -28,14 +30,21 @@ export default async function DealerIdTagsPage() {
   const trainingLink = dealer?.trainingToken ? `${appBase()}/training/${dealer.trainingToken}` : null;
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-8">
-      <h1 className="text-2xl font-bold text-slate-900">Home Depot ID Tags</h1>
-      <p className="mt-1 max-w-2xl text-sm text-slate-500">
-        Submit your team for their in-store Home Depot ID badge. Everyone should have a completed Lead Generator
-        training certificate — if they don’t yet, we’ll flag it and give you the link to send them.
-      </p>
+    <div className="space-y-6">
+      <SectionHero
+        eyebrow="Home Depot · In-store badges"
+        title="Home Depot ID Tags"
+        subtitle="Submit your team for their in-store Home Depot ID badge. Everyone should have a completed Lead Generator training certificate — if they don’t yet, we’ll flag it and give you the link to send them."
+        bgImage="/HD-Promotions.webp"
+        tiles={[
+          { Icon: UserPlus, title: 'Add your team' },
+          { Icon: GraduationCap, title: 'Training checked' },
+          { Icon: Camera, title: 'Headshot' },
+          { Icon: BadgeCheck, title: 'HD badge issued' },
+        ]}
+      />
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,380px)_1fr]">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,360px)_1fr]">
         <IdTagSubmitForm trainingLink={trainingLink} />
 
         <div className="overflow-hidden rounded-2xl bg-white shadow-lg shadow-slate-300/30 ring-1 ring-slate-200">
@@ -112,6 +121,6 @@ export default async function DealerIdTagsPage() {
           )}
         </div>
       </div>
-    </main>
+    </div>
   );
 }

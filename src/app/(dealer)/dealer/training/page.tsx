@@ -1,9 +1,11 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { randomBytes } from 'crypto';
+import { UserPlus, GraduationCap, ClipboardCheck, BadgeCheck } from 'lucide-react';
 import { requireDealerAccess } from '@/lib/session';
 import { isTrainingEnabledForDealer } from '@/lib/training-content';
 import { prisma } from '@/lib/db';
+import { SectionHero } from '@/components/SectionHero';
 import { TrainingLinkCard } from './TrainingLinkCard';
 
 export const dynamic = 'force-dynamic';
@@ -37,14 +39,19 @@ export default async function DealerTrainingPage() {
   });
 
   return (
-    <div className="max-w-3xl space-y-5">
-      <div>
-        <h1 className="text-xl font-semibold text-gray-900">Lead Generator Training</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Send a new lead generator your training link. They enter their details, learn the Home Depot in-store basics,
-          pass a quiz, and sign off on the rules. Every completion is recorded here for your office and Home Depot.
-        </p>
-      </div>
+    <div className="space-y-6">
+      <SectionHero
+        eyebrow="Home Depot · In-store training"
+        title="Lead Generator Training"
+        subtitle="Send a new lead generator your training link. They enter their details, learn the Home Depot in-store basics, pass a quiz, and sign off on the rules — every completion is recorded here for your office and Home Depot."
+        bgImage="/training/trainee-hero.webp"
+        tiles={[
+          { Icon: UserPlus, title: 'Enter details' },
+          { Icon: GraduationCap, title: 'Learn the basics' },
+          { Icon: ClipboardCheck, title: 'Pass the quiz' },
+          { Icon: BadgeCheck, title: 'Sign the rules' },
+        ]}
+      />
 
       {link ? <TrainingLinkCard url={link} /> : (
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">Couldn’t create a training link for this office. Please contact GWA.</div>
