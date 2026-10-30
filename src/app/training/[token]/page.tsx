@@ -13,18 +13,18 @@ const OG_DESC = 'Home Depot in-store training & certification for Georgian Water
 
 export const metadata: Metadata = {
   metadataBase: new URL((process.env.APP_URL || 'https://portal.ghsbarrie.ca').replace(/\/$/, '')),
-  title: 'Lead Generator Training — Home Depot Home Services (Georgian Water & Air)',
+  title: 'HD In-Store Certification — Home Depot Home Services (Georgian Water & Air)',
   description: OG_DESC,
   robots: { index: false, follow: false },
   openGraph: {
-    title: 'Lead Generator Training — Georgian Water & Air',
+    title: 'HD In-Store Certification — Georgian Water & Air',
     description: OG_DESC,
     type: 'website',
-    images: [{ url: '/training/og-training.jpg', width: 1200, height: 630, alt: 'GWA Lead Generator Training' }],
+    images: [{ url: '/training/og-training.jpg', width: 1200, height: 630, alt: 'GWA HD In-Store Certification' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Lead Generator Training — Georgian Water & Air',
+    title: 'HD In-Store Certification — Georgian Water & Air',
     description: OG_DESC,
     images: ['/training/og-training.jpg'],
   },

@@ -33,7 +33,7 @@ export default async function StaffIdTagBillingPage({ searchParams }: { searchPa
         <Link href="/staff/id-tags" className="ml-auto text-sm font-semibold text-brand-600 hover:underline">← Back to the board</Link>
       </div>
       <p className="mt-1 text-sm text-slate-500">
-        {money(ID_TAG_UNIT_PRICE_CENTS)} per rep activated + each office’s local provincial tax. Pick any month to re-open past history.
+        {money(ID_TAG_UNIT_PRICE_CENTS)} per rep + each office’s local provincial tax, counted the month a rep is marked <strong>Approved</strong> (or later) on the board. Pick any month to re-open past history, or download an office’s itemized invoice.
       </p>
 
       <form method="get" className="mt-4 flex flex-wrap items-center gap-2">
@@ -48,51 +48,61 @@ export default async function StaffIdTagBillingPage({ searchParams }: { searchPa
         <div className={`${card} px-4 py-3`}><div className="text-2xl font-extrabold text-slate-900">{money(billing.totalCents)}</div><div className="text-xs text-slate-500">total incl. tax</div></div>
       </div>
 
-      <div className={`${card} mt-4 overflow-hidden`}>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[760px] border-collapse text-sm">
-            <thead>
-              <tr className="bg-slate-50 text-left text-[11px] uppercase tracking-wide text-slate-500">
-                <th className="px-4 py-2.5 font-semibold">Office</th>
-                <th className="px-4 py-2.5 font-semibold">Tax</th>
-                <th className="px-4 py-2.5 font-semibold text-right">Reps</th>
-                <th className="px-4 py-2.5 font-semibold text-right">Subtotal</th>
-                <th className="px-4 py-2.5 font-semibold text-right">Tax</th>
-                <th className="px-4 py-2.5 font-semibold text-right">Total</th>
-                <th className="px-4 py-2.5 font-semibold"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {billing.offices.length === 0 && (
-                <tr><td colSpan={7} className="px-4 py-10 text-center text-sm text-slate-400">No reps activated in {monthName}.</td></tr>
-              )}
-              {billing.offices.map((o) => (
-                <tr key={o.dealerId} className="border-t border-slate-100 align-top">
-                  <td className="px-4 py-3">
-                    <div className="font-semibold text-slate-900">{o.office}</div>
-                    <details className="mt-1">
-                      <summary className="cursor-pointer text-xs text-brand-600">{o.count} rep{o.count === 1 ? '' : 's'} — details</summary>
-                      <ul className="mt-1 space-y-0.5 text-xs text-slate-500">
-                        {o.people.map((p) => (
-                          <li key={p.id}>{p.name} · {new Date(p.activatedAt).toLocaleString('en-CA', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} · by {p.createdBy}</li>
-                        ))}
-                      </ul>
-                    </details>
-                  </td>
-                  <td className="px-4 py-3 text-slate-600">{o.province} <span className="text-slate-400">({o.taxLabel})</span></td>
-                  <td className="px-4 py-3 text-right tabular-nums">{o.count}</td>
-                  <td className="px-4 py-3 text-right tabular-nums">{money(o.subtotalCents)}</td>
-                  <td className="px-4 py-3 text-right tabular-nums">{money(o.taxCents)}</td>
-                  <td className="px-4 py-3 text-right font-semibold tabular-nums">{money(o.totalCents)}</td>
-                  <td className="px-4 py-3">
-                    <a href={`/api/id-tags/invoice?dealerId=${o.dealerId}&month=${month}`} className="rounded-lg border border-slate-300 px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50">🖨 Invoice</a>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {billing.offices.length === 0 ? (
+        <div className={`${card} mt-4 px-4 py-12 text-center text-sm text-slate-400`}>
+          No reps activated in {monthName}. A rep counts here once they’re marked <strong>Approved</strong> (or later) on the ID-tag board.
         </div>
-      </div>
+      ) : (
+        <div className="mt-4 space-y-5">
+          {billing.offices.map((o) => (
+            <div key={o.dealerId} className={`${card} overflow-hidden`}>
+              <div className="flex flex-wrap items-center gap-3 border-b border-slate-100 px-5 py-3.5">
+                <div className="min-w-0">
+                  <div className="text-base font-bold text-slate-900">{o.office || '—'}</div>
+                  <div className="text-xs text-slate-500">{o.province} · {o.taxLabel} · {o.count} rep{o.count === 1 ? '' : 's'} activated in {monthName}</div>
+                </div>
+                <a href={`/api/id-tags/invoice?dealerId=${o.dealerId}&month=${month}`} className="ml-auto rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">🖨 Download invoice (PDF)</a>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[520px] border-collapse text-sm">
+                  <thead>
+                    <tr className="bg-slate-50 text-left text-[11px] uppercase tracking-wide text-slate-500">
+                      <th className="px-5 py-2 font-semibold">Rep name</th>
+                      <th className="px-5 py-2 font-semibold">Date activated</th>
+                      <th className="px-5 py-2 font-semibold">Entered by</th>
+                      <th className="px-5 py-2 font-semibold text-right">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {o.people.map((p) => (
+                      <tr key={p.id} className="border-t border-slate-100">
+                        <td className="px-5 py-2.5 font-medium text-slate-900">{p.name}</td>
+                        <td className="px-5 py-2.5 text-slate-600">{new Date(p.activatedAt).toLocaleDateString('en-CA', { year: 'numeric', month: 'short', day: 'numeric' })}</td>
+                        <td className="px-5 py-2.5 text-slate-400">{p.createdBy}</td>
+                        <td className="px-5 py-2.5 text-right tabular-nums text-slate-700">{money(ID_TAG_UNIT_PRICE_CENTS)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="border-t border-slate-200 bg-slate-50/60">
+                      <td className="px-5 py-2 text-slate-500" colSpan={3}>Subtotal — {o.count} × {money(ID_TAG_UNIT_PRICE_CENTS)}</td>
+                      <td className="px-5 py-2 text-right tabular-nums text-slate-700">{money(o.subtotalCents)}</td>
+                    </tr>
+                    <tr className="bg-slate-50/60">
+                      <td className="px-5 py-1.5 text-slate-500" colSpan={3}>{o.taxLabel}</td>
+                      <td className="px-5 py-1.5 text-right tabular-nums text-slate-700">{money(o.taxCents)}</td>
+                    </tr>
+                    <tr className="border-t border-slate-200 bg-slate-50/60">
+                      <td className="px-5 py-2.5 font-bold text-slate-900" colSpan={3}>Total (incl. tax)</td>
+                      <td className="px-5 py-2.5 text-right font-bold tabular-nums text-slate-900">{money(o.totalCents)}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

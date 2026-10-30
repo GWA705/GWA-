@@ -63,6 +63,10 @@ export default async function DealerLayout({ children }: { children: React.React
     // HD ID Tags: its own rollout gate (GWA-only by default while it's built).
     isIdTagEnabledForDealer(user.dealerId),
   ]);
+
+  // Flag the two HD items "NEW" for ~2 weeks after launch, then auto-hide (this
+  // is re-evaluated on every load, so no cleanup is needed). Through 2026-11-13.
+  const showNavNew = Date.now() < Date.parse('2026-11-14T05:00:00Z');
   // The dealer's own uploaded logo (falls back to the Georgian wordmark in the
   // header when none is set). Cache-busted on profile update.
   const companyLogoUrl =
@@ -120,8 +124,8 @@ export default async function DealerLayout({ children }: { children: React.React
           ...(recordingsCount > 0 ? [{ href: '/dealer/recordings', label: 'Recordings', labelKey: 'nav.recordings' }] : []),
           { href: '/dealer/marketplace', label: 'Marketplace', labelKey: 'nav.marketplace' },
           { href: '/dealer/leads', label: 'Leads', labelKey: 'nav.leads' },
-          ...(trainingEnabled ? [{ href: '/dealer/training', label: 'HD In-Store Certification' }] : []),
-          ...(idTagEnabled ? [{ href: '/dealer/id-tags', label: 'HD ID Tags' }] : []),
+          ...(trainingEnabled ? [{ href: '/dealer/training', label: 'HD In-Store Certification', isNew: showNavNew }] : []),
+          ...(idTagEnabled ? [{ href: '/dealer/id-tags', label: 'HD ID Tags', isNew: showNavNew }] : []),
           { href: '/dealer/gift-cards', label: 'Gift cards', labelKey: 'nav.giftCards', badge: giftCardUnread },
           {
             label: 'Resources',

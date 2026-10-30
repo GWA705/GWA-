@@ -449,9 +449,11 @@ export async function sendIdTagScreeningEmailFor(
 }
 
 /** Manually set a request's status (admin/reviewer control). Stamps activatedAt
- *  the first time a rep reaches an active state (the billable event). */
+ *  the first time a rep reaches a BILLABLE state — Approved onward (Entuitive has
+ *  cleared the screening, so the $35 is incurred), and Tag issued / Active, which
+ *  are past Approved. Stamped once, so it keeps the earliest billable date. */
 export async function setIdTagStatus(id: string, status: IdTagStatus): Promise<void> {
-  if (status === 'TAG_ISSUED' || status === 'ACTIVE') {
+  if (status === 'APPROVED' || status === 'TAG_ISSUED' || status === 'ACTIVE') {
     await prisma.homeDepotIdTag.updateMany({ where: { id, activatedAt: null }, data: { activatedAt: new Date() } });
   }
   await prisma.homeDepotIdTag.update({ where: { id }, data: { status } });

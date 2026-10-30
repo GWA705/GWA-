@@ -396,7 +396,7 @@ export const STRINGS: Record<Lang, TrainingStrings> = {
   en: {
     langName: 'English',
     brandTop: 'Home Depot Home Services', brandSub: 'in-store training — serviced by Georgian Water & Air',
-    title: 'Lead Generator Training', office: 'Office:',
+    title: 'HD In-Store Certification', office: 'Office:',
     steps: { info: 'Your info', learn: 'Learn', quiz: 'Quiz', signoff: 'Sign off' },
     intakeTitle: 'Welcome! Let’s get you store-ready.',
     intakeSub: 'A quick, visual walkthrough of how to work a Home Depot booth, a short quiz, and a sign-off. Takes about 10–15 minutes.',
@@ -429,7 +429,7 @@ export const STRINGS: Record<Lang, TrainingStrings> = {
   fr: {
     langName: 'Français',
     brandTop: 'Home Depot Home Services', brandSub: 'formation en magasin — assurée par Georgian Water & Air',
-    title: 'Formation du générateur de pistes', office: 'Bureau :',
+    title: 'Certification HD en magasin', office: 'Bureau :',
     steps: { info: 'Vos infos', learn: 'Apprendre', quiz: 'Questionnaire', signoff: 'Engagement' },
     intakeTitle: 'Bienvenue! Préparons-vous pour le magasin.',
     intakeSub: 'Un parcours visuel rapide sur la façon de tenir un kiosque Home Depot, un court questionnaire et un engagement. Environ 10 à 15 minutes.',

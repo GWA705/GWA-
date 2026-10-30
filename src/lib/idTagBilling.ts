@@ -175,10 +175,11 @@ export async function buildIdTagInvoicePdf(bill: OfficeBill, month: string): Pro
   y -= 30;
 
   // Table header
-  const cName = left, cDate = 300, cBy = 400;
+  const cName = left, cDate = 280, cBy = 400, cAmt = right;
   text('Rep activated', cName, y, 9, bold, muted);
   text('Activated', cDate, y, 9, bold, muted);
   text('Created by', cBy, y, 9, bold, muted);
+  rightText('Amount', cAmt, y, 9, bold, muted);
   y -= 8;
   page.drawLine({ start: { x: left, y }, end: { x: right, y }, thickness: 1, color: line });
   y -= 16;
@@ -190,14 +191,16 @@ export async function buildIdTagInvoicePdf(bill: OfficeBill, month: string): Pro
       text('Rep activated', cName, y, 9, bold, muted);
       text('Activated', cDate, y, 9, bold, muted);
       text('Created by', cBy, y, 9, bold, muted);
+      rightText('Amount', cAmt, y, 9, bold, muted);
       y -= 8;
       page.drawLine({ start: { x: left, y }, end: { x: right, y }, thickness: 1, color: line });
       y -= 16;
     }
     const when = new Date(p.activatedAt).toLocaleString('en-CA', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-    text(p.name.slice(0, 40), cName, y, 10);
+    text(p.name.slice(0, 38), cName, y, 10);
     text(when, cDate, y, 9, font, muted);
-    text(p.createdBy.slice(0, 24), cBy, y, 9, font, muted);
+    text(p.createdBy.slice(0, 22), cBy, y, 9, font, muted);
+    rightText(money(ID_TAG_UNIT_PRICE_CENTS), cAmt, y, 10);
     y -= 18;
   }
 

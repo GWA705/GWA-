@@ -25,6 +25,8 @@ export interface NavItem {
   /** i18n key for the display label; falls back to `label` (also used for icons). */
   labelKey?: string;
   badge?: boolean;
+  /** Show a "NEW" pill next to the label (set by the layout for a limited window). */
+  isNew?: boolean;
   children?: NavItem[];
 }
 
@@ -78,6 +80,9 @@ function SidebarLink({ item, pathname, collapsed, label }: { item: NavItem; path
       {active && <span className="absolute inset-y-1.5 left-0 w-1 rounded-full bg-sky-300" aria-hidden />}
       <Icon size={18} className={`flex-none transition ${active ? 'text-white' : 'text-sky-300/80 group-hover:text-white'}`} />
       {!collapsed && <span className="nav-label flex-1 truncate">{label}</span>}
+      {!collapsed && item.isNew && (
+        <span className="flex-none rounded-full bg-amber-400 px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wide text-amber-950">New</span>
+      )}
       {item.badge && (
         <span
           className={`flex-none rounded-full bg-sky-300 ${collapsed ? 'absolute right-1.5 top-1.5 h-1.5 w-1.5' : 'h-1.5 w-1.5'}`}
