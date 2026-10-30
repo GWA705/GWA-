@@ -1272,6 +1272,55 @@ export async function writePaymentStatusToJournal(
 }
 
 /**
+ * Attach a time-stamped chargeback comment to a deal's HD Ref # cell (column E) —
+ * "Chargeback requested …" when sent, "Chargeback completed …" when it returns on
+ * a remittance. Additive + safety-gated (writes nothing unless the row's Last
+ * Name still matches); never throws.
+ */
+export async function writeChargebackNoteToJournal(
+  deal: { knownTab: string | null; knownRow: number | null; lastName: string; saleYear: number },
+  noteText: string,
+): Promise<JournalRbResult> {
+  if (!deal.knownTab || !deal.knownRow) return { ok: false, error: 'not written to the journal' };
+  try {
+    const sheets = await sheetsClient();
+    const ssId = await resolveWriteSheetId(deal.saleYear);
+    const layout = await readLayout(sheets, deal.knownTab, ssId);
+
+    const target = layout.rows[deal.knownRow - 1] || [];
+    const lastNameCol = layout.columns['lastName'];
+    const rowLastName = lastNameCol != null ? norm(target[lastNameCol]) : '';
+    if (!rowLastName || rowLastName !== norm(deal.lastName)) {
+      return { ok: false, error: 'journal row no longer matches this customer' };
+    }
+
+    const meta = await sheets.spreadsheets.get({ spreadsheetId: ssId, fields: 'sheets(properties(sheetId,title))' });
+    const sheetId = (meta.data.sheets || []).find((s) => s.properties?.title === deal.knownTab)?.properties?.sheetId;
+    if (sheetId == null) return { ok: false, error: 'sheet tab not found' };
+
+    // The HD Ref # column (E); fall back to Last Name if a tab lacks it.
+    const col = layout.columns['hdRef'] ?? lastNameCol ?? 0;
+    await sheets.spreadsheets.batchUpdate({
+      spreadsheetId: ssId,
+      requestBody: {
+        requests: [
+          {
+            repeatCell: {
+              range: { sheetId, startRowIndex: deal.knownRow - 1, endRowIndex: deal.knownRow, startColumnIndex: col, endColumnIndex: col + 1 },
+              cell: { note: noteText.slice(0, 2000) },
+              fields: 'note',
+            },
+          },
+        ],
+      },
+    });
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: (e as Error).message };
+  }
+}
+
+/**
  * Cheap connectivity check for an admin "Test journal" button: confirm we can
  * authenticate and read the spreadsheet's tab list. Returns the tab titles.
  */

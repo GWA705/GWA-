@@ -11,7 +11,8 @@ import { markReviewerAction } from '@/lib/activity';
 import { encryptOptional, decryptOptional } from '@/lib/crypto';
 import { toTitleCase, titleOrNull } from '@/lib/textcase';
 import { mergeProductsSold, journalProductNames } from '@/lib/products';
-import { writeDealToJournal, writeCancellationToJournal, writeResultToJournal, writePaymentStatusToJournal, clearJournalRow, journalEnabled, backfillJournalUnits, type JournalDeal, type BackfillUnitsDeal, type BackfillUnitsPlanRow } from '@/lib/journal';
+import { writeDealToJournal, writeCancellationToJournal, writeResultToJournal, writePaymentStatusToJournal, writeChargebackNoteToJournal, clearJournalRow, journalEnabled, backfillJournalUnits, type JournalDeal, type BackfillUnitsDeal, type BackfillUnitsPlanRow } from '@/lib/journal';
+import { sendChargebackEmail } from '@/lib/chargeback';
 import { storeFiles } from '@/lib/upload';
 import { deleteDocument, getDocument } from '@/lib/storage';
 import { notifyStatusChange, notifyNewNote, notifyCancellationResolved, notifyConfirmationIssue, notifyInBackground } from '@/lib/notify';
@@ -551,6 +552,7 @@ export async function startFundingReviewAction(applicationId: string): Promise<v
 export interface CancellationActionState {
   error?: string;
   ok?: boolean;
+  message?: string;
 }
 
 /**
@@ -645,6 +647,107 @@ export async function confirmCancellationAction(
   revalidatePath(`/staff/applications/${c.applicationId}`);
   revalidatePath('/staff');
   return { ok: true };
+}
+
+/**
+ * Send the chargeback request to Home Depot Central Settlement and finalize a
+ * FUNDED deal's cancellation in one step. The reviewer reviews/edits the email
+ * first (subject + body come in editable). On send we: email Central Settlement
+ * (CC FinanceIt when the deal is financed), stamp the chargeback as requested,
+ * confirm the cancellation (deal → WITHDRAWN), mark the journal row RB, and add a
+ * dated "Chargeback requested" comment on the HD Ref # cell (column E). The
+ * chargeback completes later, automatically, when it returns on a remittance.
+ */
+export async function sendChargebackRequestAction(
+  cancellationId: string,
+  _prev: CancellationActionState,
+  formData: FormData,
+): Promise<CancellationActionState> {
+  const t = getT();
+  const session = await requireStaffSection('review-queue');
+  const c = await prisma.dealCancellation.findUnique({ where: { id: cancellationId }, include: { application: true, requestedBy: true } });
+  if (!c) return { error: t('actionMsg.notFound') };
+  if (c.status !== 'PENDING') return { error: t('actionMsg.staff.requestAlreadyResolved') };
+  if (!c.wasFunded) return { error: t('actionMsg.staff.chargebackOnlyFunded') };
+
+  const subject = (formData.get('subject') ?? '').toString().trim().slice(0, 250);
+  const body = (formData.get('body') ?? '').toString().trim().slice(0, 8000);
+  const note = (formData.get('note') ?? '').toString().trim().slice(0, 2000) || null;
+  if (!body) return { error: t('actionMsg.staff.chargebackBodyRequired') };
+
+  const app = c.application;
+  // A FinanceIt deal (payment method FinanceIt, or a FinanceIt approval number on
+  // file) gets FinanceIt Central Settlement Canada CC'd so they cancel the loan.
+  const financed = app.paymentMethod === 'FINANCEIT' || !!app.financeItNumber?.trim();
+
+  // Send the chargeback request email the reviewer approved. A real send failure
+  // (not log-only/dev) stops here so they can retry — nothing is finalized.
+  const emailRes = await sendChargebackEmail({ subject, body, financed });
+  if (!emailRes.sent && emailRes.reason !== 'log-only') {
+    return { error: t('actionMsg.staff.chargebackEmailFailed', { reason: emailRes.reason ?? '' }) };
+  }
+
+  const now = new Date();
+  const confirmer = await prisma.user.findUnique({ where: { id: session.userId }, select: { name: true } });
+  const trail = [
+    `✅ Cancellation confirmed by a reviewer. Chargeback requested from Home Depot Central Settlement${financed ? ' (FinanceIt notified)' : ''}.`,
+    note ? `Note: ${note}` : null,
+  ].filter(Boolean).join(' ');
+
+  await prisma.$transaction([
+    prisma.dealCancellation.update({
+      where: { id: cancellationId },
+      data: {
+        status: 'CONFIRMED',
+        handledById: session.userId,
+        handledAt: now,
+        reviewerNote: note,
+        hdRefundConfirmed: true,
+        chargebackRequestedAt: now,
+        chargebackRequestedById: session.userId,
+      },
+    }),
+    prisma.application.update({ where: { id: c.applicationId }, data: { status: 'WITHDRAWN' } }),
+    prisma.statusEvent.create({
+      data: { applicationId: c.applicationId, from: app.status, to: 'WITHDRAWN', actorId: session.userId, note: 'Cancellation confirmed — chargeback requested from Home Depot' },
+    }),
+    prisma.note.create({ data: { applicationId: c.applicationId, authorId: session.userId, body: trail, internal: false } }),
+  ]);
+
+  await audit({ actorId: session.userId, action: 'STATUS_CHANGE', entityType: 'DealCancellation', entityId: cancellationId, detail: `Chargeback requested → WITHDRAWN (email ${emailRes.sent ? 'sent' : 'log-only'})` });
+  notifyInBackground('booking sold reverse', () => syncApplicationSoldStateToBooking(c.applicationId, 'WITHDRAWN'));
+
+  // Journal: RB on the Result cell (as a normal cancellation) + a dated chargeback
+  // comment on the HD Ref # cell (column E). Best-effort.
+  if (journalEnabled() && app.journalTab && app.journalRow) {
+    const saleYear = (app.dateOfSale ?? app.createdAt).getFullYear();
+    const target = { knownTab: app.journalTab, knownRow: app.journalRow, lastName: app.applicantLastName, saleYear };
+    const today = now.toLocaleDateString('en-CA');
+    try {
+      await writeCancellationToJournal(
+        target,
+        [
+          `RB — deal cancelled (${today}).`,
+          `Reason: ${c.reason}`,
+          `Confirmed in the portal by: ${confirmer?.name ?? 'a reviewer'}.`,
+          `Chargeback requested from Home Depot Central Settlement${financed ? ' + FinanceIt' : ''}.`,
+          note ? `Reviewer note: ${note}` : null,
+        ].filter(Boolean).join('\n'),
+      );
+      await writeChargebackNoteToJournal(
+        target,
+        `Chargeback requested ${today} — sent to Central Settlement${financed ? ' + FinanceIt' : ''} (funded-deal cancellation). Awaiting the amount back on a remittance.`,
+      );
+    } catch (e) {
+      console.error('[chargeback] journal write failed', e);
+    }
+  }
+
+  await notifyCancellationResolved(c.applicationId, true, note);
+  revalidatePath(`/staff/applications/${c.applicationId}`);
+  revalidatePath('/staff');
+  revalidatePath('/staff/remittances/chargebacks');
+  return { ok: true, message: emailRes.sent ? t('actionMsg.staff.chargebackSent') : t('actionMsg.staff.chargebackLogged') };
 }
 
 /** A reviewer rejects a dealer's cancellation request; the deal stays active. */

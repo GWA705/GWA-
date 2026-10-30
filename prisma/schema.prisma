@@ -887,6 +887,7 @@ model User {
   dealerDocsUploaded    DealerDocument[]  @relation("DealerDocUploader")
   cancellationsRequested DealCancellation[] @relation("CancellationRequestedBy")
   cancellationsHandled   DealCancellation[] @relation("CancellationHandledBy")
+  chargebacksRequested   DealCancellation[] @relation("ChargebackRequestedBy")
   remittancesProcessed   HdRemittance[]     @relation("RemittanceProcessedBy")
 
   @@index([dealerId])
@@ -1297,6 +1298,9 @@ model HdRemittanceLine {
   resolvedNote  String? @db.Text
   resolvedById  String?
   createdAt     DateTime             @default(now())
+  // Set when a chargeback line on a remittance settles a pending chargeback
+  // request (the funded-deal cancellation it belongs to).
+  chargebackCancellation DealCancellation? @relation("ChargebackLine")
 
   @@index([remittanceId])
   @@index([hdIdNumber])
@@ -1327,11 +1331,24 @@ model DealCancellation {
   // For a funded deal, the reviewer confirms the HD refund was processed (HD
   // emailed + confirmation received) before finalizing the cancellation.
   hdRefundConfirmed Boolean         @default(false)
+
+  // Chargeback (funded-deal cancellations): GWA emails Central Settlement so Home
+  // Depot takes back the money it paid. Requested = the email was sent; completed
+  // = the chargeback came back on a remittance (the linked line). Null requested =
+  // no chargeback (unfunded cancellation, or not yet sent).
+  chargebackRequestedAt   DateTime?
+  chargebackRequestedById String?
+  chargebackRequestedBy   User?             @relation("ChargebackRequestedBy", fields: [chargebackRequestedById], references: [id])
+  chargebackCompletedAt   DateTime?
+  chargebackLineId        String?           @unique
+  chargebackLine          HdRemittanceLine? @relation("ChargebackLine", fields: [chargebackLineId], references: [id])
+
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
 
   @@index([applicationId])
   @@index([status])
+  @@index([chargebackRequestedAt])
 }
 
 enum ApplicationStatus {

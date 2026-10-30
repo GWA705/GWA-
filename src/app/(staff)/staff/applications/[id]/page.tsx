@@ -58,6 +58,7 @@ import { dealHasFinancing, financedAmountOf, nonFinancedAmountOf, dealHasCardPay
 import { journalEnabled } from '@/lib/journal';
 import { PaymentBreakdown } from '@/components/PaymentBreakdown';
 import { PaymentTrackingPanel, type CardPaymentVM, type HdPaymentVM } from '@/components/PaymentTrackingPanel';
+import { buildChargebackDraft, chargebackRecipients } from '@/lib/chargeback';
 import {
   startReviewAction,
   uploadReviewerPaperworkAction,
@@ -1144,6 +1145,16 @@ export default async function StaffApplicationDetail({
   );
 
   const cx = app.cancellations[0] ?? null;
+  // Chargeback request draft (funded deals): a FinanceIt deal CCs FinanceIt.
+  const cbFinanced = app.paymentMethod === 'FINANCEIT' || !!app.financeItNumber?.trim();
+  const cbDraft = buildChargebackDraft({
+    customerName: `${app.applicantFirstName} ${app.applicantLastName}`.trim(),
+    hdReference: app.hdReference,
+    dateOfSale: app.dateOfSale ? app.dateOfSale.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : null,
+    amount: moneyLbl(Number(app.approvedAmount ?? app.requestedAmount)),
+    financed: cbFinanced,
+  });
+  const cbRecipients = chargebackRecipients(cbFinanced);
   const cancellationVM: CancellationReviewVM | null = cx && cx.status !== 'REVERSED'
     ? {
         id: cx.id,
@@ -1157,6 +1168,17 @@ export default async function StaffApplicationDetail({
         handledAt: cx.handledAt ? cx.handledAt.toLocaleString('en-CA') : null,
         handledBy: cx.handledBy?.name ?? null,
         reviewerNote: cx.reviewerNote,
+        chargeback: cx.wasFunded
+          ? {
+              from: cbRecipients.from,
+              to: cbRecipients.to,
+              cc: cbRecipients.cc,
+              subject: cbDraft.subject,
+              body: cbDraft.body,
+              requestedAt: cx.chargebackRequestedAt ? cx.chargebackRequestedAt.toLocaleDateString('en-CA') : null,
+              completedAt: cx.chargebackCompletedAt ? cx.chargebackCompletedAt.toLocaleDateString('en-CA') : null,
+            }
+          : null,
       }
     : null;
 

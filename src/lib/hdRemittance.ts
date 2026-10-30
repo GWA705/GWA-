@@ -4,6 +4,7 @@ import { prisma } from './db';
 import { audit } from './audit';
 import { parseFlexibleDate } from './dateparse';
 import { computeDealerPayout } from './payoutCalc';
+import { completeChargebackFromRemittance } from './chargeback';
 
 /**
  * Home Depot remittance intake.
@@ -446,7 +447,7 @@ export async function ingestRemittance(input: RemittanceInput): Promise<Remittan
       unmatched.push({ hdIdNumber: ref, amount });
     }
 
-    await prisma.hdRemittanceLine.create({
+    const createdLine = await prisma.hdRemittanceLine.create({
       data: {
         remittanceId: remittance.id,
         hdIdNumber: ref,
@@ -459,6 +460,15 @@ export async function ingestRemittance(input: RemittanceInput): Promise<Remittan
         fundedNow,
       },
     });
+
+    // If this chargeback line settles a chargeback we requested (a pending,
+    // funded-deal cancellation), complete it: link the line + add the dated
+    // "completed" comment on the HD Ref # cell. Best-effort.
+    if (isChargeback && app) {
+      await completeChargebackFromRemittance(app.id, createdLine.id).catch((e) =>
+        console.error('[chargeback] complete-from-remittance failed', e),
+      );
+    }
   }
 
   await prisma.hdRemittance.update({
