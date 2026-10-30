@@ -35,6 +35,22 @@ async function pdfPageCount(bytes: Buffer): Promise<number> {
   }
 }
 
+// Keep the bitmap fed to tesseract within sane bounds. A full-resolution phone
+// scan (or a high-scale PDF rasterization of one) produces a huge image that can
+// exhaust memory and stall the OCR worker — which is what made the OCR job fail
+// on deals full of big scans. 2600 px on the long edge is more than enough for
+// tesseract to read, and never upscales a smaller image.
+const OCR_MAX_DIM = 2600;
+async function capForOcr(img: Buffer): Promise<Buffer> {
+  try {
+    return await sharp(img)
+      .resize({ width: OCR_MAX_DIM, height: OCR_MAX_DIM, fit: 'inside', withoutEnlargement: true })
+      .toBuffer();
+  } catch {
+    return img; // never let a resize hiccup drop the page
+  }
+}
+
 async function rasterizePages(bytes: Buffer, pages: number): Promise<Buffer[]> {
   const out: Buffer[] = [];
   for (let i = 1; i <= pages; i += 1) {
@@ -43,7 +59,7 @@ async function rasterizePages(bytes: Buffer, pages: number): Promise<Buffer[]> {
         canvasImport: () => import('@napi-rs/canvas'),
         scale: 2,
       });
-      out.push(Buffer.from(img));
+      out.push(await capForOcr(Buffer.from(img)));
     } catch {
       /* skip a page that won't render */
     }
@@ -72,7 +88,7 @@ async function ocrBytesInner(
     const count = Math.min(await pdfPageCount(bytes), maxPages);
     images = await rasterizePages(bytes, count);
   } else if (mimeType.startsWith('image/')) {
-    images = [await sharp(bytes).png().toBuffer()];
+    images = [await capForOcr(await sharp(bytes).png().toBuffer())];
   }
   if (images.length === 0) return { text: '', pages: 0 };
 

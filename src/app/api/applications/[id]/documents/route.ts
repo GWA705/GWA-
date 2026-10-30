@@ -1,18 +1,25 @@
 import { NextResponse } from 'next/server';
-import JSZip from 'jszip';
 import { prisma } from '@/lib/db';
 import { getSession } from '@/lib/session';
-import { getDocument } from '@/lib/storage';
+import { streamDocumentsZip, type ZipEntry } from '@/lib/zipStream';
 import { audit } from '@/lib/audit';
 
+export const dynamic = 'force-dynamic';
+export const maxDuration = 300;
+
 // Bulk download: all of a deal's documents as a single ZIP, decrypted on the
-// fly. Reviewer/admin only, access-logged. Files are foldered by stage and
-// de-duplicated so nothing is silently overwritten inside the archive.
+// fly and STREAMED (one file at a time) so a deal with many/large files can't
+// exhaust the instance's memory. Reviewer/admin only, access-logged. Files are
+// foldered by stage and de-duplicated so nothing is silently overwritten.
 const STAGE_FOLDER: Record<string, string> = {
   APPLICATION: 'Application documents',
   FUNDING: 'Funding package',
   REVIEWER: 'Paperwork for dealer',
 };
+
+// A generous guard — streaming keeps memory flat regardless, but this bounds a
+// pathological deal. Well above any real deal's file count.
+const MAX_ZIP_FILES = 500;
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   const session = await getSession();
@@ -28,30 +35,14 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   if (!app) return new NextResponse('Not found', { status: 404 });
   if (app.documents.length === 0) return new NextResponse('No documents to download', { status: 404 });
 
-  // Bound the archive so a deal with very many/large files can't exhaust memory.
-  const MAX_ZIP_BYTES = 200 * 1024 * 1024; // 200 MB of decrypted content
-  const MAX_ZIP_FILES = 200;
-
-  const zip = new JSZip();
+  // Resolve archive paths up front (foldered + de-duped); the bytes are fetched
+  // lazily while streaming.
   const used = new Set<string>();
-  let added = 0;
-  let totalBytes = 0;
-  let truncated = false;
-
+  const entries: ZipEntry[] = [];
   for (const doc of app.documents) {
-    if (added >= MAX_ZIP_FILES) { truncated = true; break; }
-    let bytes: Buffer;
-    try {
-      bytes = await getDocument(doc.storageKey);
-    } catch (err) {
-      console.error('[zip] skipping unreadable document', doc.id, err);
-      continue; // an orphaned/missing file shouldn't fail the whole ZIP
-    }
-    if (totalBytes + bytes.length > MAX_ZIP_BYTES) { truncated = true; break; }
-    totalBytes += bytes.length;
+    if (entries.length >= MAX_ZIP_FILES) break;
     const folder = STAGE_FOLDER[doc.stage] || 'Other';
     let name = `${folder}/${doc.fileName}`;
-    // De-dupe identical paths inside the archive.
     if (used.has(name)) {
       const dot = doc.fileName.lastIndexOf('.');
       const base = dot > 0 ? doc.fileName.slice(0, dot) : doc.fileName;
@@ -61,26 +52,23 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
       name = `${folder}/${base} (${n})${ext}`;
     }
     used.add(name);
-    zip.file(name, bytes);
-    added += 1;
+    entries.push({ storageKey: doc.storageKey, name });
   }
 
-  if (added === 0) return new NextResponse('Documents could not be read', { status: 500 });
-
-  const content = await zip.generateAsync({ type: 'nodebuffer' });
+  const { stream } = streamDocumentsZip(entries);
 
   await audit({
     actorId: session.userId,
     action: 'DOC_DOWNLOAD',
     entityType: 'Application',
     entityId: app.id,
-    detail: `Bulk ZIP download (${added} document${added === 1 ? '' : 's'}${truncated ? `, capped at ${added} of ${app.documents.length}` : ''})`,
+    detail: `Bulk ZIP download (${entries.length} of ${app.documents.length} document${app.documents.length === 1 ? '' : 's'})`,
   });
 
   const clean = (s: string) => (s || '').replace(/[^a-zA-Z0-9]+/g, '') || 'x';
   const fileName = `GWA_${clean(app.applicantLastName)}_${clean(app.applicantFirstName)}_documents.zip`;
 
-  return new NextResponse(new Uint8Array(content), {
+  return new NextResponse(stream, {
     status: 200,
     headers: {
       'Content-Type': 'application/zip',

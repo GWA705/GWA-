@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server';
-import JSZip from 'jszip';
 import { prisma } from '@/lib/db';
 import { getSession } from '@/lib/session';
-import { getDocument } from '@/lib/storage';
+import { streamDocumentsZip, type ZipEntry } from '@/lib/zipStream';
 import { audit } from '@/lib/audit';
 import { DOCUMENT_TYPE_LABELS } from '@/lib/constants';
+
+export const dynamic = 'force-dynamic';
+export const maxDuration = 300;
 
 // "Upload package" download: ONLY the dealer's returned FINAL copies — the
 // signed package + install photos + void cheque/PAP — cleanly named, as one flat
@@ -53,28 +55,15 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
     return new NextResponse('No upload-package documents on this deal yet', { status: 404 });
   }
 
-  // Bound the archive so a deal with very many/large files can't exhaust memory.
-  const MAX_ZIP_BYTES = 200 * 1024 * 1024; // 200 MB of decrypted content
-  const MAX_ZIP_FILES = 200;
+  // A generous guard — streaming keeps memory flat regardless of file size.
+  const MAX_ZIP_FILES = 500;
 
-  const zip = new JSZip();
   const used = new Set<string>();
   const customer = `${clean(app.applicantLastName)}_${clean(app.applicantFirstName)}`;
-  let added = 0;
-  let totalBytes = 0;
-  let truncated = false;
+  const entries: ZipEntry[] = [];
 
   for (const doc of app.documents) {
-    if (added >= MAX_ZIP_FILES) { truncated = true; break; }
-    let bytes: Buffer;
-    try {
-      bytes = await getDocument(doc.storageKey);
-    } catch (err) {
-      console.error('[upload-package] skipping unreadable document', doc.id, err);
-      continue; // an orphaned/missing file shouldn't fail the whole ZIP
-    }
-    if (totalBytes + bytes.length > MAX_ZIP_BYTES) { truncated = true; break; }
-    totalBytes += bytes.length;
+    if (entries.length >= MAX_ZIP_FILES) break;
 
     // Proper, funder-friendly name: "Smith_Sean - Home Depot waiver.pdf".
     const typeLabel = doc.label?.trim() || DOCUMENT_TYPE_LABELS[doc.type] || 'Document';
@@ -95,24 +84,21 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
       name = `${baseName} (${n})${ext}`;
     }
     used.add(name);
-    zip.file(name, bytes);
-    added += 1;
+    entries.push({ storageKey: doc.storageKey, name });
   }
 
-  if (added === 0) return new NextResponse('Documents could not be read', { status: 500 });
-
-  const content = await zip.generateAsync({ type: 'nodebuffer' });
+  const { stream } = streamDocumentsZip(entries);
 
   await audit({
     actorId: session.userId,
     action: 'DOC_DOWNLOAD',
     entityType: 'Application',
     entityId: app.id,
-    detail: `Upload package ZIP (${added} document${added === 1 ? '' : 's'}${truncated ? `, capped at ${added} of ${app.documents.length}` : ''})`,
+    detail: `Upload package ZIP (${entries.length} of ${app.documents.length} document${app.documents.length === 1 ? '' : 's'})`,
   });
 
   const fileName = `GWA_${customer}_upload-package.zip`;
-  return new NextResponse(new Uint8Array(content), {
+  return new NextResponse(stream, {
     status: 200,
     headers: {
       'Content-Type': 'application/zip',

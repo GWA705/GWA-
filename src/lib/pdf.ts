@@ -25,7 +25,17 @@ export async function convertToPdf(input: Buffer, mimeType: string): Promise<Con
   if (mimeType.startsWith('image/')) {
     try {
       const sharp = (await import('sharp')).default;
-      const jpg = await sharp(input).rotate().jpeg({ quality: 85 }).toBuffer();
+      // Cap resolution before storing. Phone cameras produce 12 MP+ photos that
+      // balloon each stored doc to 8–15 MB — which is what made a deal with many
+      // scans un-downloadable and slow to open. 2200 px on the long edge keeps
+      // fine print on an ID / cheque / signed form perfectly legible while
+      // cutting each file to a few hundred KB. `withoutEnlargement` never
+      // upscales a smaller image, and `rotate()` first bakes in EXIF orientation.
+      const jpg = await sharp(input)
+        .rotate()
+        .resize({ width: 2200, height: 2200, fit: 'inside', withoutEnlargement: true })
+        .jpeg({ quality: 82 })
+        .toBuffer();
       const pdf = await PDFDocument.create();
       const img = await pdf.embedJpg(jpg);
       const page = pdf.addPage([img.width, img.height]);
