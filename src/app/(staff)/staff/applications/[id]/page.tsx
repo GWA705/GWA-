@@ -269,6 +269,15 @@ export default async function StaffApplicationDetail({
     if (d.length === 11 && d.startsWith('1')) return `+${d}`;
     return s?.trim() || null;
   };
+  // HD's lead "Phone Number"/"Cell Phone" boxes want plain 10 digits — no
+  // dashes, spaces, or country code (e.g. 7052202698) — so a copied value
+  // pastes in clean. Fall back to the raw value if it isn't a 10/11-digit number.
+  const hdPhone10 = (s?: string | null) => {
+    const d = (s || '').replace(/\D/g, '');
+    if (d.length === 11 && d.startsWith('1')) return d.slice(1);
+    if (d.length === 10) return d;
+    return s?.trim() || null;
+  };
   const fmtMdy = (d: Date) => `${d.getUTCMonth() + 1}/${d.getUTCDate()}/${d.getUTCFullYear()}`;
   const hdStoreValue = app.homeDepotStore
     ? `${app.homeDepotStore.name ? `${app.homeDepotStore.name} - ` : ''}${app.homeDepotStore.number}`.toUpperCase()
@@ -317,8 +326,8 @@ export default async function StaffApplicationDetail({
       { label: 'Region', value: hdUp(addrProv) },
       { label: 'Country', value: 'CA' },
       { label: 'Postal Code', value: hdUp(addrPostal) },
-      { label: 'Phone Number', value: app.applicantPhone?.trim() || null },
-      { label: 'Cell Phone', value: app.applicantPhone?.trim() || null },
+      { label: 'Phone Number', value: hdPhone10(app.applicantPhone) },
+      { label: 'Cell Phone', value: hdPhone10(app.applicantPhone) },
       { label: 'E-Mail', value: app.applicantEmail?.trim() || null },
       { label: 'Language', value: 'EN' },
     ] },
