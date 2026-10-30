@@ -69,6 +69,7 @@ export function ConfirmationForm({
   applicantName,
   applicantEmail,
   giftCard,
+  showGiftCard = true,
   defaultProduct,
   defaultCity,
   defaultPhone,
@@ -79,6 +80,8 @@ export function ConfirmationForm({
   applicantName: string;
   applicantEmail: string;
   giftCard: GiftCardConfirmSummary | null;
+  // Gift cards are a Home Depot perk — hidden on GWA deals.
+  showGiftCard?: boolean;
   defaultProduct: string;
   defaultCity: string;
   defaultPhone: string;
@@ -133,8 +136,11 @@ export function ConfirmationForm({
         ))}
       </fieldset>
 
-      {/* HD gift card — verify the customer got their card; resend/request if not */}
-      <GiftCardConfirmSection applicationId={applicationId} applicantEmail={applicantEmail} giftCard={giftCard} />
+      {/* HD gift card — verify the customer got their card; resend/request if not.
+          Home Depot deals only (hidden on GWA / Georgian Water deals). */}
+      {showGiftCard && (
+        <GiftCardConfirmSection applicationId={applicationId} applicantEmail={applicantEmail} giftCard={giftCard} />
+      )}
 
       {/* Terms */}
       <div className="rounded border border-gray-100 p-3">

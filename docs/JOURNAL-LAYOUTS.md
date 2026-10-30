@@ -149,6 +149,17 @@ WHOSE AMEX, SOAP Included, REBATE AMOUNT, HD Discount, Balance Of Sale).
 > The two `Date Paid` columns (M and Q) are why the reader deliberately picks the
 > "paid" header **at or after** the Result column — Q, the real settlement date.
 
+> **Portal-written AMEX columns (2026-10-30).** The current (2026) sheet adds a
+> `$ CHG TO AMEX` column, so the office-payment block reads **L = WHOSE AMEX,
+> M = $ CHG TO AMEX, N = Date Paid (AMEX)**. The portal now writes these three
+> when a reviewer records an office→Home-Depot payment (`hdPaidCard`/`hdPaidAmount`/
+> `hdPaidOn` → `whoseAmex`/`chgToAmex`/`amexDatePaid`). They are matched by header
+> (`whose amex`, `chg…amex`) with N anchored to **M + 1**, so the column shuffle
+> between layouts is handled. They stay null on every other deal, so a normal write
+> never touches them and a re-sync never erases a manual AMEX entry. A **declined**
+> customer card also paints the row the sheet's **CC DECLINED** colour and drops a
+> time-stamped note on the `How Payed` cell (`writePaymentStatusToJournal`).
+
 ---
 
 ## Header → reader-field mapping (the constant)

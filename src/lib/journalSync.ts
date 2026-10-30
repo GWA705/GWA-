@@ -87,6 +87,12 @@ export async function syncApplicationToJournal(
     // Only written when the deal is already paid (Direct sale); null otherwise
     // leaves the office's Date Paid cell untouched.
     datePaid: fmtDate(app.datePaid),
+    // Office payment to Home Depot (HD Enercare/UEI). Null unless a reviewer has
+    // recorded it — so a normal deal never writes L/M/N and a re-sync never
+    // erases a manual AMEX entry.
+    whoseAmex: app.hdPaidCard ?? null,
+    chgToAmex: fmtAmount(app.hdPaidAmount),
+    amexDatePaid: fmtDate(app.hdPaidOn),
     saleDate: app.dateOfSale ?? app.createdAt,
     knownTab: app.journalTab,
     knownRow: app.journalRow,

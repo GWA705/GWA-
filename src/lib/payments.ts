@@ -160,7 +160,9 @@ export function journalPayCode(deal: {
   // Every non-financed method reflects the payment option that was chosen.
   switch (deal.paymentMethod) {
     case 'HD_CREDIT_CARD': return 'HDCC';
-    case 'CREDIT_CARD': return 'CCHD';
+    // A personal credit card: CCHD when the money runs through Home Depot (an HD
+    // deal), plain CC on a Georgian Water (GWA) deal outside Home Depot.
+    case 'CREDIT_CARD': return deal.programType === 'GWA' ? 'CC' : 'CCHD';
     case 'CASH': return 'Cash';
     case 'CHEQUE': return 'Cheque';
     case 'E_TRANSFER': return 'E-Transfer';
@@ -189,4 +191,40 @@ export function dealHasFinancing(app: {
   paymentMethod: PaymentMethod | null;
 }): boolean {
   return financedAmountOf(app) > 0;
+}
+
+// Payment methods that are a customer credit card (personal CC/CCHD or a Home
+// Depot card HDCC) — the ones whose processing a reviewer tracks.
+const CARD_PAYMENT_METHODS: PaymentMethod[] = ['CREDIT_CARD', 'HD_CREDIT_CARD'];
+
+/**
+ * Does this deal have a customer card / deposit payment to track? True when the
+ * deal is paid — in full or as a split deposit — by a personal credit card or a
+ * Home Depot credit card. Cash/cheque/e-transfer and fully-financed deals have
+ * nothing to track, so the reviewer's card-status control (and its funding gate)
+ * doesn't apply to them.
+ */
+export function dealHasCardPayment(app: {
+  isSplitPayment: boolean;
+  paymentMethod: PaymentMethod | null;
+  splitMethods?: PaymentMethod[];
+}): boolean {
+  if (app.isSplitPayment) return (app.splitMethods ?? []).some((m) => CARD_PAYMENT_METHODS.includes(m));
+  return app.paymentMethod != null && CARD_PAYMENT_METHODS.includes(app.paymentMethod);
+}
+
+/**
+ * Does GWA pay Home Depot on this deal? Only HD-program deals financed through
+ * Enercare or UEI — the office pays Home Depot on the Sean/JJ card, then the
+ * finance company funds GWA. FinanceIt, card and cash deals — and every
+ * GWA-program (Georgian Water) deal — do not, so the office-payment box stays
+ * hidden for them.
+ */
+export function dealPaysHomeDepot(app: {
+  programType: ProgramType;
+  financeCompanyName: string | null;
+}): boolean {
+  if (app.programType !== 'HD') return false;
+  const u = String(app.financeCompanyName ?? '').toUpperCase();
+  return u.includes('ENERCARE') || u.includes('ENER') || u.includes('UEI');
 }

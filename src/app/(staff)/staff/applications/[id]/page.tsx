@@ -53,9 +53,10 @@ import { BookingActivityCard } from './BookingActivityCard';
 import { ReviewerWorkspace } from './ReviewerWorkspace';
 import { reviewerPhaseStates, dealerFacingStatusLabel, currentPhaseIndex, hasDealerReturned, type PhaseState } from '@/lib/reviewerFlow';
 import { exemptionSummary, netBeforeTax } from '@/lib/tax';
-import { dealHasFinancing, financedAmountOf } from '@/lib/payments';
+import { dealHasFinancing, financedAmountOf, nonFinancedAmountOf, dealHasCardPayment, dealPaysHomeDepot } from '@/lib/payments';
 import { journalEnabled } from '@/lib/journal';
 import { PaymentBreakdown } from '@/components/PaymentBreakdown';
+import { PaymentTrackingPanel, type CardPaymentVM, type HdPaymentVM } from '@/components/PaymentTrackingPanel';
 import {
   startReviewAction,
   uploadReviewerPaperworkAction,
@@ -148,6 +149,7 @@ export default async function StaffApplicationDetail({
       confirmation: { include: { confirmedBy: true } },
       confirmationAttempts: { orderBy: { createdAt: 'asc' }, include: { createdBy: { select: { name: true } } } },
       verificationChecks: { include: { checkedBy: true } },
+      cardPaymentStatusBy: { select: { name: true } },
       paymentSplits: { orderBy: { sortOrder: 'asc' } },
       cancellations: { orderBy: { createdAt: 'desc' }, take: 1, include: { requestedBy: true, handledBy: true } },
     },
@@ -168,7 +170,49 @@ export default async function StaffApplicationDetail({
   // Gift-card match for the confirmation call — looked up by the customer's
   // email on file so the confirmer can verify the card was received (and
   // resend/request one if not).
-  const giftCard = await lookupGiftCardForConfirmation(app.applicantEmail);
+  // Gift cards are a Home Depot program perk — hidden from reviewers & confirmers
+  // on GWA (Georgian Water) deals.
+  const giftCard = app.programType === 'HD' ? await lookupGiftCardForConfirmation(app.applicantEmail) : null;
+
+  // Payment-tracking panel (Review step). Customer card status when the deal is
+  // paid by credit card / HDCC; the office-to-Home-Depot payment recorder for HD
+  // Enercare/UEI deals. Both write back to the sales journal.
+  const splitMethods = app.paymentSplits.map((s) => s.method);
+  const moneyLbl = (n: number) => `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const cardVM: CardPaymentVM | null = dealHasCardPayment({
+    isSplitPayment: app.isSplitPayment,
+    paymentMethod: app.paymentMethod,
+    splitMethods,
+  })
+    ? {
+        status: (app.cardPaymentStatus ?? 'PENDING') as CardPaymentVM['status'],
+        note: app.cardPaymentNote,
+        byName: app.cardPaymentStatusBy?.name ?? null,
+        at: app.cardPaymentStatusAt ? app.cardPaymentStatusAt.toLocaleString('en-CA') : null,
+        amountLabel: moneyLbl(nonFinancedAmountOf(app)),
+        // The card line's own code (not the deal's financed code): HDCC for a
+        // Home Depot card, CC on a GWA deal, else CCHD.
+        codeLabel: (app.isSplitPayment
+          ? splitMethods.find((m) => m === 'HD_CREDIT_CARD' || m === 'CREDIT_CARD')
+          : app.paymentMethod) === 'HD_CREDIT_CARD'
+          ? 'HDCC'
+          : app.programType === 'GWA'
+            ? 'CC'
+            : 'CCHD',
+      }
+    : null;
+  const hdVM: HdPaymentVM | null = dealPaysHomeDepot({
+    programType: app.programType,
+    financeCompanyName: app.financeCompany?.name ?? null,
+  })
+    ? {
+        financeCompany: app.financeCompany?.name ?? 'Enercare / UEI',
+        card: app.hdPaidCard ?? null,
+        amountLabel: app.hdPaidAmount != null ? moneyLbl(Number(app.hdPaidAmount)) : null,
+        dateLabel: app.hdPaidOn ? app.hdPaidOn.toLocaleDateString('en-CA') : null,
+        defaultAmount: financedAmountOf(app).toFixed(2),
+      }
+    : null;
 
   // Rule 2 — funding verification checklist. The serial-match item only applies
   // when the finance company requires a serial per product (e.g. UEI).
@@ -845,6 +889,7 @@ export default async function StaffApplicationDetail({
             states={verificationStates}
           />
         </div>
+        <PaymentTrackingPanel applicationId={app.id} card={cardVM} hd={hdVM} />
       </div>
     ),
     // 5 · Confirmation call — its own step (often done later, added to over time)
@@ -870,6 +915,7 @@ export default async function StaffApplicationDetail({
           applicantName={`${app.applicantFirstName} ${app.applicantLastName}`}
           applicantEmail={app.applicantEmail ?? ''}
           giftCard={giftCard}
+          showGiftCard={app.programType === 'HD'}
           defaultProduct={app.productsSold.length ? app.productsSold.join(', ') : PROGRAM_CATEGORY_LABELS[app.programCategory]}
           defaultCity={app.loanApplication?.city ?? ''}
           defaultPhone={app.applicantPhone}

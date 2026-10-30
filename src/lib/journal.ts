@@ -224,6 +224,13 @@ const FIELD_SPECS: FieldSpec[] = [
   // office to fill by hand; the portal now seeds them on write.
   { key: 'units', test: (_c, b) => b === 'units' },
   { key: 'result', test: (c, b) => c === 'deal result' || b === 'result' },
+  // Office-payment columns: L "WHOSE AMEX" (top "WHOSE" / bottom "AMEX") and
+  // M "$ CHG TO AMEX" (top "$ CHG" / bottom "TO AMEX"). The AMEX "Date Paid" (N)
+  // shares a header with the settlement Date Paid, so it is derived from M's
+  // position in readLayout rather than matched here. These stay null unless an
+  // office payment is recorded, so a normal write never touches them.
+  { key: 'whoseAmex', test: (c, b) => c === 'whose amex' || b === 'amex' },
+  { key: 'chgToAmex', test: (c) => c.includes('chg') && c.includes('amex') },
 ];
 
 export interface JournalLayout {
@@ -275,6 +282,19 @@ async function readLayout(
         used.add(c);
         break;
       }
+    }
+  }
+
+  // The AMEX group's "Date Paid" (col N) sits immediately after "$ CHG TO AMEX"
+  // (col M) and shares the "Date Paid" header text with the settlement column, so
+  // anchor it to M + 1 rather than matching by header.
+  if (columns.chgToAmex != null) {
+    const n = columns.chgToAmex + 1;
+    const nb = norm(bottom[n] ?? '');
+    const nc = norm(`${top[n] ?? ''} ${bottom[n] ?? ''}`);
+    if (!used.has(n) && (nb === 'paid' || nc.includes('date paid'))) {
+      columns.amexDatePaid = n;
+      used.add(n);
     }
   }
 
@@ -582,6 +602,12 @@ export interface JournalDeal {
   // already-paid deal (e.g. a Direct sale) so the row is complete + consistent
   // with the paid read-back. Null leaves the cell untouched.
   datePaid: string | null;
+  // Office payment to Home Depot (HD Enercare/UEI deals) → columns L / M / N.
+  // Null leaves those cells alone, so manual AMEX entries are never erased on a
+  // re-sync and a normal deal never writes them.
+  whoseAmex?: string | null; // "WHOSE AMEX" (col L) — e.g. "SEAN" / "JJ"
+  chgToAmex?: string | null; // "$ CHG TO AMEX" (col M)
+  amexDatePaid?: string | null; // AMEX "Date Paid" (col N)
   saleDate: Date; // used to pick the month tab
   knownTab: string | null;
   knownRow: number | null;
@@ -679,6 +705,9 @@ export async function writeDealToJournal(deal: JournalDeal): Promise<JournalResu
     dateInstalled: deal.dateInstalled,
     dateOfSale: deal.dateOfSale,
     datePaid: deal.datePaid,
+    whoseAmex: deal.whoseAmex ?? null,
+    chgToAmex: deal.chgToAmex ?? null,
+    amexDatePaid: deal.amexDatePaid ?? null,
   };
 
   const data: sheets_v4.Schema$ValueRange[] = [];
@@ -1172,6 +1201,74 @@ export async function writeCancellationToJournal(
   noteText: string,
 ): Promise<JournalRbResult> {
   return writeResultToJournal(deal, 'RB', noteText);
+}
+
+// The journal's "CC DECLINED" row colour (the cyan in the sheet's status key).
+// If the exact shade is ever adjusted in the sheet, change it here.
+const CC_DECLINED_FILL = { red: 0.0, green: 1.0, blue: 1.0 };
+
+/**
+ * Record a customer-payment outcome on a deal's journal row: attach a
+ * time-stamped NOTE to the "How Payed" cell, and — for a declined card only —
+ * set the row to the sheet's "CC DECLINED" colour. Additive + safety-gated
+ * (writes nothing unless the row's Last Name still matches). To avoid wiping a
+ * status colour the office set by hand, a non-declined outcome updates the note
+ * but never changes the row colour. Never throws.
+ */
+export async function writePaymentStatusToJournal(
+  deal: { knownTab: string | null; knownRow: number | null; lastName: string; saleYear: number },
+  opts: { note: string; declined: boolean },
+): Promise<JournalRbResult> {
+  if (!deal.knownTab || !deal.knownRow) return { ok: false, error: 'not written to the journal' };
+  try {
+    const sheets = await sheetsClient();
+    const ssId = await resolveWriteSheetId(deal.saleYear);
+    const layout = await readLayout(sheets, deal.knownTab, ssId);
+
+    // Safety: only write if the target row still belongs to this customer.
+    const target = layout.rows[deal.knownRow - 1] || [];
+    const lastNameCol = layout.columns['lastName'];
+    const rowLastName = lastNameCol != null ? norm(target[lastNameCol]) : '';
+    if (!rowLastName || rowLastName !== norm(deal.lastName)) {
+      return { ok: false, error: 'journal row no longer matches this customer' };
+    }
+
+    const meta = await sheets.spreadsheets.get({ spreadsheetId: ssId, fields: 'sheets(properties(sheetId,title))' });
+    const sheetId = (meta.data.sheets || []).find((s) => s.properties?.title === deal.knownTab)?.properties?.sheetId;
+    if (sheetId == null) return { ok: false, error: 'sheet tab not found' };
+
+    const top = layout.rows[layout.headerBottomRow - 2] || [];
+    const bottom = layout.rows[layout.headerBottomRow - 1] || [];
+    const width = Math.max(top.length, bottom.length, ...Object.values(layout.columns).map((c) => c + 1));
+    // Note goes on the "How Payed" cell (col F) when present, else Last Name.
+    const noteCol = layout.columns['payCode'] ?? lastNameCol ?? 0;
+
+    const requests: sheets_v4.Schema$Request[] = [
+      {
+        repeatCell: {
+          range: { sheetId, startRowIndex: deal.knownRow - 1, endRowIndex: deal.knownRow, startColumnIndex: noteCol, endColumnIndex: noteCol + 1 },
+          cell: { note: opts.note.slice(0, 2000) },
+          fields: 'note',
+        },
+      },
+    ];
+    // Only paint the row on a decline — never clear/overwrite a colour the office
+    // set by hand (funded, confirmed, etc.).
+    if (opts.declined) {
+      requests.push({
+        repeatCell: {
+          range: { sheetId, startRowIndex: deal.knownRow - 1, endRowIndex: deal.knownRow, startColumnIndex: 0, endColumnIndex: width },
+          cell: { userEnteredFormat: { backgroundColor: CC_DECLINED_FILL } },
+          fields: 'userEnteredFormat.backgroundColor',
+        },
+      });
+    }
+
+    await sheets.spreadsheets.batchUpdate({ spreadsheetId: ssId, requestBody: { requests } });
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: (e as Error).message };
+  }
 }
 
 /**

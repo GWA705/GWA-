@@ -11,7 +11,7 @@ import { markReviewerAction } from '@/lib/activity';
 import { encryptOptional, decryptOptional } from '@/lib/crypto';
 import { toTitleCase, titleOrNull } from '@/lib/textcase';
 import { mergeProductsSold, journalProductNames } from '@/lib/products';
-import { writeDealToJournal, writeCancellationToJournal, writeResultToJournal, clearJournalRow, journalEnabled, backfillJournalUnits, type JournalDeal, type BackfillUnitsDeal, type BackfillUnitsPlanRow } from '@/lib/journal';
+import { writeDealToJournal, writeCancellationToJournal, writeResultToJournal, writePaymentStatusToJournal, clearJournalRow, journalEnabled, backfillJournalUnits, type JournalDeal, type BackfillUnitsDeal, type BackfillUnitsPlanRow } from '@/lib/journal';
 import { storeFiles } from '@/lib/upload';
 import { deleteDocument, getDocument } from '@/lib/storage';
 import { notifyStatusChange, notifyNewNote, notifyCancellationResolved, notifyConfirmationIssue, notifyInBackground } from '@/lib/notify';
@@ -42,11 +42,11 @@ import {
   hdReferenceRequired,
   soapLabel,
 } from '@/lib/constants';
-import { dealHasFinancing, financedAmountOf, nonFinancedAmountOf, journalPayCode } from '@/lib/payments';
+import { dealHasFinancing, financedAmountOf, nonFinancedAmountOf, journalPayCode, dealHasCardPayment } from '@/lib/payments';
 import { syncApplicationToJournal } from '@/lib/journalSync';
 import { findFinanceitEmailForDeal, financeitEmailConfigured } from '@/lib/financeitEmail';
 import { getT } from '@/i18n/server';
-import type { ApplicationStatus, DecisionType, DocumentType, VerificationStatus, ProgramType, Prisma } from '@prisma/client';
+import type { ApplicationStatus, DecisionType, DocumentType, VerificationStatus, ProgramType, Prisma, CardPaymentStatus, OfficeCard } from '@prisma/client';
 
 export interface ActionState {
   error?: string;
@@ -408,7 +408,7 @@ export async function recordDecisionAction(
   if (type === 'FUND') {
     const withChecks = await prisma.application.findUnique({
       where: { id: applicationId },
-      include: { financeCompany: true, verificationChecks: true },
+      include: { financeCompany: true, verificationChecks: true, paymentSplits: true },
     });
     const requiresSerials = !!withChecks?.financeCompany?.requiresSerialPerProduct;
     const applicable = applicableVerificationChecks(requiresSerials, !!withChecks?.taxExempt);
@@ -418,6 +418,17 @@ export async function recordDecisionAction(
       return {
         error: t('actionMsg.staff.completeVerificationChecklist'),
       };
+    }
+    // Hard gate: a deal paid by credit card / HDCC can't be funded until the
+    // reviewer has marked the card APPROVED (received). A declined, still-pending
+    // or needs-authorization card holds the deal.
+    const hasCard = dealHasCardPayment({
+      isSplitPayment: withChecks?.isSplitPayment ?? false,
+      paymentMethod: withChecks?.paymentMethod ?? null,
+      splitMethods: withChecks?.paymentSplits?.map((s) => s.method),
+    });
+    if (hasCard && withChecks?.cardPaymentStatus !== 'APPROVED') {
+      return { error: t('actionMsg.staff.cardPaymentNotApproved') };
     }
   }
 
@@ -1891,6 +1902,142 @@ export async function setVerificationCheckAction(
     detail: `Funding check "${def.label}" → ${status}`,
   });
   revalidatePath(`/staff/applications/${applicationId}`);
+  return { ok: true };
+}
+
+/**
+ * Record what happened with the customer's credit-card / HDCC payment (approved,
+ * needs in-store authorization, declined, or reset to pending). A declined or
+ * needs-auth card posts a dealer-visible note + notifies the dealer to fix it;
+ * every outcome writes a time-stamped note to the journal row, and a decline
+ * paints the row the sheet's "CC DECLINED" colour. Funding stays hard-blocked
+ * until the card is APPROVED (see the FUND gate).
+ */
+export async function setCardPaymentStatusAction(
+  applicationId: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const t = getT();
+  const session = await requireStaffSection('review-queue');
+  const status = String(formData.get('status') || '') as CardPaymentStatus;
+  const note = ((formData.get('note') as string) || '').trim();
+  if (!['PENDING', 'APPROVED', 'NEEDS_AUTH', 'DECLINED'].includes(status)) {
+    return { error: t('actionMsg.staff.invalidStatus') };
+  }
+
+  const app = await prisma.application.findUnique({ where: { id: applicationId } });
+  if (!app) return { error: t('actionMsg.staff.dealNotFound') };
+
+  await prisma.application.update({
+    where: { id: applicationId },
+    data: {
+      cardPaymentStatus: status,
+      cardPaymentNote: note || null,
+      cardPaymentStatusAt: new Date(),
+      cardPaymentStatusById: session.userId,
+    },
+  });
+
+  const actor = await prisma.user.findUnique({ where: { id: session.userId }, select: { name: true } });
+  const amount = nonFinancedAmountOf(app);
+  const amountStr = amount > 0 ? `$${amount.toFixed(2)}` : '';
+
+  // Declined / needs-auth → tell the submitting office to fix it (dealer-visible
+  // note + notify). Approved is quiet (no dealer note).
+  if (status === 'DECLINED' || status === 'NEEDS_AUTH') {
+    const body =
+      status === 'DECLINED'
+        ? `Payment — card declined${amountStr ? ` (${amountStr})` : ''}. Please arrange another payment method with the customer${note ? `: ${note}` : '.'}`
+        : `Payment — the customer's card needs in-store authorization at Home Depot before this deal can fund${note ? `: ${note}` : '.'}`;
+    await prisma.note.create({ data: { applicationId, authorId: session.userId, body, internal: false } });
+    await notifyNewNote(applicationId, 'REVIEWER');
+  }
+
+  // Journal: time-stamped note on the row + CC DECLINED colour on a decline.
+  if (app.journalTab && app.journalRow) {
+    const when = new Date().toLocaleString('en-CA');
+    const by = actor?.name ?? 'reviewer';
+    const noteText =
+      status === 'APPROVED'
+        ? `Payment approved ${when} (${by})${amountStr ? ` — ${amountStr} received` : ''}.`
+        : status === 'DECLINED'
+          ? `NEEDS ATTENTION — card declined ${when} (${by}). Payment not received${note ? `: ${note}` : ''}.`
+          : status === 'NEEDS_AUTH'
+            ? `Card needs in-store authorization ${when} (${by})${note ? `: ${note}` : ''}.`
+            : `Payment status reset to pending ${when} (${by}).`;
+    await writePaymentStatusToJournal(
+      {
+        knownTab: app.journalTab,
+        knownRow: app.journalRow,
+        lastName: app.applicantLastName,
+        saleYear: (app.dateOfSale ?? app.createdAt).getUTCFullYear(),
+      },
+      { note: noteText, declined: status === 'DECLINED' },
+    );
+  }
+
+  await markReviewerAction(applicationId);
+  await audit({
+    actorId: session.userId,
+    action: 'STATUS_CHANGE',
+    entityType: 'Application',
+    entityId: applicationId,
+    detail: `Card payment → ${status}`,
+  });
+  revalidatePath(`/staff/applications/${applicationId}`);
+  return { ok: true };
+}
+
+/**
+ * Record that the office paid Home Depot on Sean's or JJ's card (HD Enercare /
+ * UEI deals). Saves which card, the amount, and the date, then writes them to
+ * the journal's WHOSE AMEX / $ CHG TO AMEX / Date Paid columns (L / M / N) via
+ * the normal sync.
+ */
+export async function recordHdPaymentAction(
+  applicationId: string,
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const t = getT();
+  const session = await requireStaffSection('review-queue');
+  const card = String(formData.get('card') || '') as OfficeCard;
+  const amount = Number(String(formData.get('amount') || '').replace(/[^0-9.]/g, ''));
+  const dateRaw = String(formData.get('date') || '').trim();
+  if (card !== 'SEAN' && card !== 'JJ') return { error: t('actionMsg.staff.pickOfficeCard') };
+  if (!(amount > 0)) return { error: t('actionMsg.staff.enterAmount') };
+  const paidOn = dateRaw ? new Date(`${dateRaw}T00:00:00Z`) : new Date();
+  if (isNaN(paidOn.getTime())) return { error: t('actionMsg.staff.invalidDate') };
+
+  const app = await prisma.application.findUnique({ where: { id: applicationId } });
+  if (!app) return { error: t('actionMsg.staff.dealNotFound') };
+
+  await prisma.application.update({
+    where: { id: applicationId },
+    data: {
+      hdPaidCard: card,
+      hdPaidAmount: amount,
+      hdPaidOn: paidOn,
+      hdPaidAt: new Date(),
+      hdPaidById: session.userId,
+    },
+  });
+
+  await markReviewerAction(applicationId);
+  await audit({
+    actorId: session.userId,
+    action: 'JOURNAL_WRITE',
+    entityType: 'Application',
+    entityId: applicationId,
+    detail: `HD payment recorded — ${card} $${amount.toFixed(2)}${dateRaw ? ` ${dateRaw}` : ''}`,
+  });
+
+  // Push L / M / N to the journal (best-effort; a Sheets failure surfaces as an
+  // error but the record is already saved on the deal).
+  const res = await syncApplicationToJournal(applicationId, session.userId);
+  revalidatePath(`/staff/applications/${applicationId}`);
+  if (res.status === 'error') return { error: t('actionMsg.staff.couldNotWriteJournal', { message: res.message ?? '' }) };
   return { ok: true };
 }
 

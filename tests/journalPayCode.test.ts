@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { journalPayCode, nonFinancedAmountOf } from '../src/lib/payments';
+import { journalPayCode, nonFinancedAmountOf, dealHasCardPayment, dealPaysHomeDepot } from '../src/lib/payments';
 
 describe('journalPayCode — "How They Payed" column', () => {
   it('FinanceIt: HD → HDFINIT, GWA → GHSFINIT', () => {
@@ -15,9 +15,13 @@ describe('journalPayCode — "How They Payed" column', () => {
     expect(journalPayCode({ programType: 'GWA', paymentMethod: null, financeCompanyName: 'UEI', hasFinancedPortion: true })).toBe('GHSUEI');
   });
 
-  it('card deals are fixed codes: CC → CCHD, HD card → HDCC', () => {
+  it('credit-card codes: HD deal → CCHD, GWA deal → CC, HD card → HDCC', () => {
     expect(journalPayCode({ programType: 'HD', paymentMethod: 'CREDIT_CARD', financeCompanyName: null, hasFinancedPortion: false })).toBe('CCHD');
+    // A personal credit card on a Georgian Water (non-HD) deal is plain CC.
+    expect(journalPayCode({ programType: 'GWA', paymentMethod: 'CREDIT_CARD', financeCompanyName: null, hasFinancedPortion: false })).toBe('CC');
     expect(journalPayCode({ programType: 'HD', paymentMethod: 'HD_CREDIT_CARD', financeCompanyName: null, hasFinancedPortion: false })).toBe('HDCC');
+    // HDCC is a Home Depot card regardless of program prefix.
+    expect(journalPayCode({ programType: 'GWA', paymentMethod: 'HD_CREDIT_CARD', financeCompanyName: null, hasFinancedPortion: false })).toBe('HDCC');
   });
 
   it('a split finance+card deal takes the finance code (card amount goes in col J)', () => {
@@ -75,5 +79,32 @@ describe('nonFinancedAmountOf — Cash/Chq/CC amount (column J)', () => {
       paymentMethod: 'CREDIT_CARD',
     });
     expect(j).toBe(3200);
+  });
+});
+
+describe('dealHasCardPayment — when the reviewer tracks a card', () => {
+  it('true for a credit-card or HDCC deal, false for cash/financed', () => {
+    expect(dealHasCardPayment({ isSplitPayment: false, paymentMethod: 'CREDIT_CARD' })).toBe(true);
+    expect(dealHasCardPayment({ isSplitPayment: false, paymentMethod: 'HD_CREDIT_CARD' })).toBe(true);
+    expect(dealHasCardPayment({ isSplitPayment: false, paymentMethod: 'CASH' })).toBe(false);
+    expect(dealHasCardPayment({ isSplitPayment: false, paymentMethod: 'FINANCEIT' })).toBe(false);
+    expect(dealHasCardPayment({ isSplitPayment: false, paymentMethod: null })).toBe(false);
+  });
+  it('true for a split deal with a card line (the deposit)', () => {
+    expect(dealHasCardPayment({ isSplitPayment: true, paymentMethod: null, splitMethods: ['FINANCEIT', 'CREDIT_CARD'] })).toBe(true);
+    expect(dealHasCardPayment({ isSplitPayment: true, paymentMethod: null, splitMethods: ['FINANCEIT', 'CASH'] })).toBe(false);
+  });
+});
+
+describe('dealPaysHomeDepot — office pays HD only for HD Enercare/UEI', () => {
+  it('true for HD Enercare / UEI deals', () => {
+    expect(dealPaysHomeDepot({ programType: 'HD', financeCompanyName: 'Enercare' })).toBe(true);
+    expect(dealPaysHomeDepot({ programType: 'HD', financeCompanyName: 'UEI' })).toBe(true);
+  });
+  it('false for HD FinanceIt/card deals and for every GWA deal', () => {
+    expect(dealPaysHomeDepot({ programType: 'HD', financeCompanyName: 'FinanceIT' })).toBe(false);
+    expect(dealPaysHomeDepot({ programType: 'HD', financeCompanyName: null })).toBe(false);
+    // A GWA Enercare deal (GHSEner) does not pay Home Depot.
+    expect(dealPaysHomeDepot({ programType: 'GWA', financeCompanyName: 'Enercare' })).toBe(false);
   });
 });

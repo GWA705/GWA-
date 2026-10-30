@@ -862,6 +862,8 @@ model User {
   conversationReads   ConversationRead[]
   confirmations       Confirmation[]
   verificationChecks  VerificationCheck[]
+  cardPaymentsSet     Application[]       @relation("ApplicationCardPaymentBy")
+  hdPaymentsRecorded  Application[]       @relation("ApplicationHdPaidBy")
   callRecordings      CallRecording[]     @relation("CallRecordingCreator")
   confirmationAttempts ConfirmationAttempt[] @relation("ConfirmationAttemptCreator")
   dashboardHeroes     DashboardHero[]     @relation("DashboardHeroCreator")
@@ -1179,6 +1181,24 @@ model PaymentSplit {
   @@index([applicationId])
 }
 
+// Outcome of the customer's card / deposit payment on a deal. Only meaningful
+// when the deal has a credit-card (CC / CCHD) or Home-Depot-card (HDCC) line —
+// a reviewer records whether it went through, so a declined or unauthorized card
+// can't slip through to funding. APPROVED means received.
+enum CardPaymentStatus {
+  PENDING
+  APPROVED
+  NEEDS_AUTH // needs in-store authorization
+  DECLINED
+}
+
+// The office credit cards used to pay deals to Home Depot (HD Enercare / UEI
+// deals). Two today; add here if a third is ever used.
+enum OfficeCard {
+  SEAN
+  JJ
+}
+
 enum HousingStatus {
   OWN
   RENT
@@ -1365,6 +1385,26 @@ model Application {
   isSplitPayment Boolean          @default(false)
   financedAmount Decimal?         @db.Decimal(12, 2)
   paymentSplits  PaymentSplit[]
+
+  // Customer card / deposit payment tracking. Set by a reviewer when the deal has
+  // a credit-card or HDCC line (full amount or a split deposit): did the card go
+  // through, is it declined, or does it need in-store authorization. A declined or
+  // unauthorized card hard-blocks funding and notifies the dealer to fix it.
+  cardPaymentStatus     CardPaymentStatus?
+  cardPaymentNote       String?            @db.Text
+  cardPaymentStatusAt   DateTime?
+  cardPaymentStatusById String?
+  cardPaymentStatusBy   User?              @relation("ApplicationCardPaymentBy", fields: [cardPaymentStatusById], references: [id])
+
+  // Office payment to Home Depot (HD deals financed through Enercare / UEI only).
+  // Which office card (Sean / JJ) paid HD, how much, and when — written to the
+  // journal's WHOSE AMEX / $ CHG TO AMEX / Date Paid columns (L / M / N).
+  hdPaidCard   OfficeCard?
+  hdPaidAmount Decimal?    @db.Decimal(12, 2)
+  hdPaidOn     DateTime?
+  hdPaidAt     DateTime?
+  hdPaidById   String?
+  hdPaidBy     User?       @relation("ApplicationHdPaidBy", fields: [hdPaidById], references: [id])
 
   // Confirmation-call status (surfaced to the dealer with a colour badge).
   confirmationStatus ConfirmationStatus @default(PENDING)
