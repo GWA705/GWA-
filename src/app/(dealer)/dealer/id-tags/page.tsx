@@ -1,5 +1,6 @@
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { UserPlus, GraduationCap, Camera, BadgeCheck } from 'lucide-react';
+import { UserPlus, GraduationCap, Camera, BadgeCheck, Wallet } from 'lucide-react';
 import { requireDealerAccess } from '@/lib/session';
 import { prisma } from '@/lib/db';
 import { listIdTagForDealer, isIdTagEnabledForDealer, ID_TAG_STATUS_LABEL, ID_TAG_STATUS_TONE, TONE_CLASS } from '@/lib/idTag';
@@ -43,6 +44,17 @@ export default async function DealerIdTagsPage() {
           { Icon: BadgeCheck, title: 'HD badge issued' },
         ]}
       />
+
+      <div className="flex justify-end">
+        <Link
+          href="/dealer/id-tags/billing"
+          className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-brand-700 shadow-sm ring-1 ring-slate-200 hover:bg-brand-50"
+        >
+          <Wallet className="h-4 w-4" />
+          View your monthly billing &amp; invoices
+          <span aria-hidden>→</span>
+        </Link>
+      </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,360px)_1fr]">
         <IdTagSubmitForm trainingLink={trainingLink} />

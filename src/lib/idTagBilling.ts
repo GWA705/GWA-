@@ -129,6 +129,45 @@ export async function monthlyActivations(month: string): Promise<MonthlyBilling>
   return { month, offices, totalCents, count };
 }
 
+export interface MonthBillSummary {
+  month: string; // YYYY-MM
+  label: string; // "October 2026"
+  count: number;
+  subtotalCents: number;
+  taxCents: number;
+  totalCents: number;
+}
+
+/**
+ * One office's month-by-month ID-tag billing history (newest first) — what the
+ * dealer owes each month. Each month is $35/rep activated + the office's local
+ * provincial tax. Only months with activity are returned.
+ */
+export async function dealerBillingHistory(dealerId: string): Promise<MonthBillSummary[]> {
+  const rows = await prisma.homeDepotIdTag.findMany({
+    where: { dealerId, activatedAt: { not: null } },
+    select: { activatedAt: true, dealer: { select: { idTagOfficeProfile: true } } },
+  });
+  if (rows.length === 0) return [];
+  const prof = rows[0].dealer?.idTagOfficeProfile;
+  const province = (prof && typeof prof === 'object' && !Array.isArray(prof) ? (prof as OfficeEntuitiveProfile).province : '') || '';
+  const tax = provinceTax(province);
+
+  const byMonth = new Map<string, number>();
+  for (const r of rows) {
+    const d = r.activatedAt as Date;
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    byMonth.set(key, (byMonth.get(key) ?? 0) + 1);
+  }
+  return Array.from(byMonth.entries())
+    .sort((a, b) => b[0].localeCompare(a[0]))
+    .map(([month, count]) => {
+      const subtotalCents = count * ID_TAG_UNIT_PRICE_CENTS;
+      const taxCents = Math.round(subtotalCents * tax.rate);
+      return { month, label: monthLabel(month), count, subtotalCents, taxCents, totalCents: subtotalCents + taxCents };
+    });
+}
+
 function monthLabel(month: string): string {
   const d = new Date(`${month}-01T00:00:00`);
   return Number.isNaN(d.getTime()) ? month : d.toLocaleDateString('en-CA', { year: 'numeric', month: 'long' });
