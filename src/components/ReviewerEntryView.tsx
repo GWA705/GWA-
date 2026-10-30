@@ -245,7 +245,17 @@ export function ReviewerEntryView({
         <Field label={t('reviewerEntry.field.installer')} value={nonEmpty(app.installerName)} />
         <Field label={t('reviewerEntry.field.financingDealNumber')} value={nonEmpty(app.financeItNumber)} mono />
         <Field label={t('reviewerEntry.field.hdCustomerNumber')} value={nonEmpty(app.hdReference)} mono />
-        <Field label={t('reviewerEntry.field.entryMethod')} value={app.entryMethod === 'TYPED' ? t('reviewerEntry.entryMethod.TYPED') : app.entryMethod === 'PHOTO' ? t('reviewerEntry.entryMethod.PHOTO') : app.entryMethod === 'DIRECT' ? t('reviewerEntry.entryMethod.DIRECT') : t('reviewerEntry.entryMethod.FINANCEIT')} />
+        <Field label={t('reviewerEntry.field.entryMethod')} value={
+          app.entryMethod === 'TYPED' ? t('reviewerEntry.entryMethod.TYPED')
+          : app.entryMethod === 'PHOTO' ? t('reviewerEntry.entryMethod.PHOTO')
+          : app.entryMethod === 'DIRECT' ? t('reviewerEntry.entryMethod.DIRECT')
+          // Express ("payment arranged") deals all store entryMethod=FINANCEIT, but
+          // that bucket covers credit card / HDCC / cash / cheque / FinanceIt alike.
+          // Reflect the payment method the dealer actually chose instead of always
+          // showing "FinanceIT #".
+          : app.paymentMethod ? paymentMethodLabel(t, app.paymentMethod)
+          : t('reviewerEntry.entryMethod.FINANCEIT')
+        } />
         <Field label={t('reviewerEntry.field.approvedBy')} value={app.approvedBy?.name ?? null} />
       </Group>
 
