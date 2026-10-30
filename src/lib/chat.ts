@@ -203,10 +203,7 @@ export async function markConversationRead(conversationId: string, userId: strin
 }
 
 /** Messages in a conversation, oldest first. Names are anonymised for dealers. */
-export async function conversationMessages(conversationId: string, viewer: SessionUser): Promise<ChatMessageView[]> {
-  // Anonymise staff names for dealers — and for an admin viewing as a dealer, so
-  // the impersonated view matches what the real dealer sees.
-  const forDealer = !isInternalRole(viewer.role) || !!viewer.impersonating;
+export async function conversationMessages(conversationId: string, _viewer: SessionUser): Promise<ChatMessageView[]> {
   const rows = await prisma.chatMessage.findMany({
     where: { conversationId },
     orderBy: { createdAt: 'asc' },
@@ -218,11 +215,50 @@ export async function conversationMessages(conversationId: string, viewer: Sessi
     body: m.body,
     fromStaff: m.fromStaff,
     auto: m.auto,
-    // Automated/assistant message → "Assistant"; otherwise a dealer never sees a
-    // staff member's name — just "Reviewer".
-    authorName: m.auto ? 'Assistant' : forDealer && m.fromStaff ? 'Reviewer' : m.author?.name ?? 'Unknown',
+    // Every GWA team member shows as "Reviewer" — to the dealer AND internally, so
+    // the team presents one identity (the real author is still kept on the row for
+    // audit). Automated messages are "Assistant"; a dealer's own messages keep
+    // their name so staff can tell who at the office wrote them.
+    authorName: m.auto ? 'Assistant' : m.fromStaff ? 'Reviewer' : m.author?.name ?? 'Unknown',
     createdAt: m.createdAt.toISOString(),
   }));
+}
+
+/**
+ * When did the DEALER side last read this conversation? The max lastReadAt across
+ * the conversation's non-staff (dealer) readers. Used for one-way read receipts:
+ * staff see when the dealer has read their messages. Null = never read by a dealer.
+ */
+export async function dealerLastReadAt(conversationId: string): Promise<Date | null> {
+  const reads = await prisma.conversationRead.findMany({
+    where: { conversationId },
+    select: { lastReadAt: true, user: { select: { role: true } } },
+  });
+  let max: Date | null = null;
+  for (const r of reads) {
+    if (isInternalRole(r.user.role)) continue; // staff reads don't count as "dealer read"
+    if (!max || r.lastReadAt > max) max = r.lastReadAt;
+  }
+  return max;
+}
+
+/**
+ * Count of unread DEALER messages in a deal's conversation for a staff viewer —
+ * dealer-authored (fromStaff=false, non-auto) messages newer than this user's
+ * last read. 0 when the conversation doesn't exist yet. Drives floating the chat
+ * to the top of the deal when the dealer has sent something new.
+ */
+export async function dealerUnreadForDeal(applicationId: string, userId: string): Promise<number> {
+  const conv = await prisma.conversation.findUnique({ where: { applicationId }, select: { id: true } });
+  if (!conv) return 0;
+  const read = await prisma.conversationRead.findUnique({
+    where: { conversationId_userId: { conversationId: conv.id, userId } },
+    select: { lastReadAt: true },
+  });
+  const since = read?.lastReadAt ?? new Date(0);
+  return prisma.chatMessage.count({
+    where: { conversationId: conv.id, fromStaff: false, auto: false, createdAt: { gt: since } },
+  });
 }
 
 async function unreadCounts(conversationIds: string[], userId: string): Promise<Map<string, number>> {

@@ -36,6 +36,9 @@ export function ConversationThread({
   const t = useT();
   const [conversationId, setConversationId] = useState<string | undefined>(initialId);
   const [messages, setMessages] = useState<Msg[]>([]);
+  // When the dealer last read this thread (ISO) — sent only to staff viewers, so
+  // dealers never see read status of their own messages (one-way receipts).
+  const [dealerReadAt, setDealerReadAt] = useState<string | null>(null);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const [cardWarn, setCardWarn] = useState(false);
@@ -63,6 +66,7 @@ export function ConversationThread({
         const data = await r.json();
         setConversationId(data.conversationId);
         setMessages(data.messages);
+        setDealerReadAt(data.dealerReadAt ?? null);
       }
     } catch {
       /* offline — keep last */
@@ -113,7 +117,12 @@ export function ConversationThread({
           <div key={m.id} className={`flex ${m.fromStaff ? 'justify-start' : 'justify-end'}`}>
             <div className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${m.fromStaff ? 'rounded-tl-sm bg-white text-gray-800 shadow-sm' : 'rounded-tr-sm bg-brand-600 text-white'}`}>
               <AutoTranslate text={m.body} tone={m.fromStaff ? 'light' : 'dark'} />
-              <p className={`mt-1 text-[10px] ${m.fromStaff ? 'text-gray-400' : 'text-white/70'}`}>{m.authorName} · {fmtTime(m.createdAt)}</p>
+              <p className={`mt-1 text-[10px] ${m.fromStaff ? 'text-gray-400' : 'text-white/70'}`}>
+                {m.authorName} · {fmtTime(m.createdAt)}
+                {m.fromStaff && dealerReadAt && new Date(m.createdAt) <= new Date(dealerReadAt) && (
+                  <span className="font-semibold text-green-600"> · ✓ Seen</span>
+                )}
+              </p>
             </div>
           </div>
         ))}

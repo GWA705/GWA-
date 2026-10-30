@@ -1,7 +1,8 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getSession } from '@/lib/session';
-import { canAccessConversation, conversationMessages, markConversationRead, getOrCreateDealConversation } from '@/lib/chat';
+import { canAccessConversation, conversationMessages, markConversationRead, getOrCreateDealConversation, dealerLastReadAt } from '@/lib/chat';
+import { isInternalRole } from '@/lib/constants';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,6 +28,11 @@ export async function GET(req: NextRequest) {
   if (!canAccessConversation(session, conv)) return new NextResponse('Forbidden', { status: 403 });
 
   const messages = await conversationMessages(conv.id, session);
+  // One-way read receipts: only a staff viewer learns when the dealer last read,
+  // so the dealer never sees read status of their own messages. Computed before
+  // we mark this (staff) viewer's own read, which doesn't affect the dealer's.
+  const viewerIsStaff = isInternalRole(session.role) && !session.impersonating;
+  const dealerReadAt = viewerIsStaff ? (await dealerLastReadAt(conv.id))?.toISOString() ?? null : null;
   await markConversationRead(conv.id, session.userId);
-  return NextResponse.json({ conversationId: conv.id, messages });
+  return NextResponse.json({ conversationId: conv.id, messages, dealerReadAt });
 }

@@ -22,6 +22,7 @@ import { FundingStepActions } from './FundingStepActions';
 import { NoteThread } from '@/components/NoteThread';
 import { NoteForm } from '@/components/NoteForm';
 import { ConversationThread } from '@/components/ConversationThread';
+import { dealerUnreadForDeal } from '@/lib/chat';
 import { ConfirmationBadge } from '@/components/ConfirmationBadge';
 import { ConfirmationIssueBanner } from '@/components/ConfirmationIssueBanner';
 import { loadConfirmationIssue } from '@/lib/confirmationIssue';
@@ -1062,14 +1063,22 @@ export default async function StaffApplicationDetail({
     };
   });
 
-  // Notes + history — always available, not tied to a phase.
+  // When the dealer has sent new messages on this deal, float the chat to the top
+  // of the page so the reviewer sees it first (clears once they've read it).
+  const dealerChatUnread = await dealerUnreadForDeal(app.id, user.userId);
+  const chatBlock = (
+    <div>
+      <h3 className="text-sm font-semibold text-gray-900">{t('staffDeal.comms.chatTitle')}</h3>
+      <p className="mb-3 text-xs text-gray-500">{t('staffDeal.comms.chatHint')}</p>
+      <ConversationThread applicationId={app.id} placeholder={t('staffDeal.comms.chatPlaceholder')} />
+    </div>
+  );
+
+  // Notes + history — always available, not tied to a phase. The chat normally
+  // lives here, but floats to the top (below) when the dealer has new messages.
   const comms = (
     <div className="space-y-6">
-      <div>
-        <h3 className="text-sm font-semibold text-gray-900">{t('staffDeal.comms.chatTitle')}</h3>
-        <p className="mb-3 text-xs text-gray-500">{t('staffDeal.comms.chatHint')}</p>
-        <ConversationThread applicationId={app.id} placeholder={t('staffDeal.comms.chatPlaceholder')} />
-      </div>
+      {dealerChatUnread === 0 && chatBlock}
       <div className="border-t border-gray-100 pt-4">
         <h3 className="mb-3 text-sm font-semibold text-gray-900">{t('staffDeal.comms.history')}</h3>
         <ul className="space-y-2 text-sm">
@@ -1221,6 +1230,14 @@ export default async function StaffApplicationDetail({
 
         {/* Internal staff notes — pinned to the top so reviewers see them first. */}
         {internalNotesPanel}
+
+        {/* The dealer sent new chat — float it to the top so the reviewer sees it. */}
+        {dealerChatUnread > 0 && (
+          <div className="rounded-lg border-2 border-brand-500 bg-brand-50/50 p-4">
+            <span className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-brand-600 px-2.5 py-0.5 text-xs font-semibold text-white">💬 {t('staffDeal.comms.newFromDealer', { n: dealerChatUnread })}</span>
+            {chatBlock}
+          </div>
+        )}
 
         {/* Dealer-requested cancellation — reviewer confirms (or rejects) it. */}
         {cancellationVM && <CancellationReviewCard c={cancellationVM} />}
