@@ -60,7 +60,7 @@ function RenderBlock({ b, firstName }: { b: Block; firstName: string }) {
   if (b.type === 'ul') return (
     <ul className="space-y-2">
       {b.items.map((it, i) => (
-        <li key={i} className="flex items-start gap-3 rounded-xl bg-slate-50/80 px-3.5 py-2.5 text-[15px] leading-relaxed text-slate-700 ring-1 ring-slate-100">
+        <li key={i} className="flex items-start gap-3 rounded-xl bg-slate-100 px-3.5 py-2.5 text-[15px] leading-relaxed text-slate-700 ring-1 ring-slate-200">
           <span className="mt-0.5 flex h-5 w-5 flex-none items-center justify-center rounded-full bg-brand-50 text-brand-600"><CheckMark className="h-3.5 w-3.5" /></span>
           <span className="min-w-0">{personalize(it, firstName)}</span>
         </li>
@@ -87,9 +87,9 @@ function RenderBlock({ b, firstName }: { b: Block; firstName: string }) {
     </div>
   );
   return (
-    <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50/60 p-4">
-      <span className="mt-0.5 flex h-6 w-6 flex-none items-center justify-center rounded-lg bg-amber-100 text-amber-600"><AlertIcon className="h-4 w-4" /></span>
-      <p className="text-[15px] font-medium leading-relaxed text-amber-900">{personalize(b.text, firstName)}</p>
+    <div className="flex items-start gap-3 rounded-xl border border-amber-200 border-l-4 border-l-amber-500 bg-amber-50 p-4">
+      <span className="mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-lg bg-amber-500 text-white"><AlertIcon className="h-4 w-4" /></span>
+      <p className="text-[15px] font-semibold leading-relaxed text-amber-900">{personalize(b.text, firstName)}</p>
     </div>
   );
 }
@@ -474,7 +474,7 @@ export function TrainingFlow({ token, dealerName, bundles }: { token: string; de
                   if (!q) return null;
                   const order = optOrder[qid] || q.options.map((_, i) => i);
                   return (
-                    <div key={qid} className="rounded-2xl bg-slate-50/70 p-4 ring-1 ring-slate-100">
+                    <div key={qid} className="rounded-2xl bg-slate-100 p-4 ring-1 ring-slate-200">
                       <p className="mb-3 flex gap-2 text-sm font-semibold text-slate-900">
                         <span className="flex h-5 w-5 flex-none items-center justify-center rounded-full bg-brand-600 text-[11px] font-bold text-white">{qi + 1}</span>
                         <span className="min-w-0">{q.q}</span>
