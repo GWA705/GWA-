@@ -2459,6 +2459,12 @@ export const fr: Dictionary = {
   },
   confirmationForm: {
     savedMessage: 'Confirmation enregistrée.',
+    sectionCallDetails: 'Détails de l’appel',
+    sectionScript: 'Script — à lire au client',
+    sectionAsk: 'Questions au client',
+    sectionTerms: 'Modalités de financement',
+    sectionVerify: 'Vérifier et confirmer',
+    sectionNotes: 'Notes et arrangements',
     customer: 'Client',
     numberOfCalls: 'Nbre d’appels',
     product: 'Produit',

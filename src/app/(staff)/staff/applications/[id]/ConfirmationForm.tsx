@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import type { ReactNode } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { saveConfirmationAction, type ActionState } from '@/app/(staff)/actions';
 import { CONFIRMATION_PHONE } from '@/lib/constants';
@@ -63,6 +64,17 @@ function Buttons({ remaining }: { remaining: number }) {
   );
 }
 
+// A bordered, titled panel so the confirmation screen reads as distinct steps
+// instead of one flat wall of white fields.
+function Section({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="rounded-xl border border-slate-200 bg-slate-50/70 p-4">
+      <h4 className="mb-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">{title}</h4>
+      {children}
+    </section>
+  );
+}
+
 export function ConfirmationForm({
   applicationId,
   data,
@@ -101,40 +113,46 @@ export function ConfirmationForm({
   const val = (v: string | number | null | undefined) => (v === null || v === undefined ? '' : String(v));
 
   return (
-    <form action={action} className="space-y-5 text-sm">
+    <form action={action} className="space-y-4 text-sm">
       {state.error && <div className="rounded-md bg-red-50 p-2 text-sm text-red-700">{state.error}</div>}
       {state.ok && <div className="rounded-md bg-green-50 p-2 text-sm text-green-700">{t('confirmationForm.savedMessage')}</div>}
       <input type="hidden" name="applicationId" value={applicationId} />
 
-      {/* Header */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <div><label className="label">{t('confirmationForm.customer')}</label><input className="input" value={applicantName} disabled /></div>
-        <div><label className="label">{t('confirmationForm.numberOfCalls')}</label><input name="numberOfCalls" type="number" min="0" defaultValue={val(data?.numberOfCalls)} className="input" /></div>
-        <div><label className="label">{t('confirmationForm.product')}</label><input name="productName" defaultValue={data?.productName ?? defaultProduct} className="input" /></div>
-        <div><label className="label">{t('confirmationForm.city')}</label><input name="city" defaultValue={data?.city ?? defaultCity} className="input" /></div>
-        <div><label className="label">{t('confirmationForm.phone')}</label><input name="phoneNumber" defaultValue={data?.phoneNumber ?? defaultPhone} className="input" /></div>
-      </div>
+      {/* Call details */}
+      <Section title={t('confirmationForm.sectionCallDetails')}>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <div><label className="label">{t('confirmationForm.customer')}</label><input className="input" value={applicantName} disabled /></div>
+          <div><label className="label">{t('confirmationForm.numberOfCalls')}</label><input name="numberOfCalls" type="number" min="0" defaultValue={val(data?.numberOfCalls)} className="input" /></div>
+          <div><label className="label">{t('confirmationForm.product')}</label><input name="productName" defaultValue={data?.productName ?? defaultProduct} className="input" /></div>
+          <div><label className="label">{t('confirmationForm.city')}</label><input name="city" defaultValue={data?.city ?? defaultCity} className="input" /></div>
+          <div><label className="label">{t('confirmationForm.phone')}</label><input name="phoneNumber" defaultValue={data?.phoneNumber ?? defaultPhone} className="input" /></div>
+        </div>
+      </Section>
 
-      <p className="rounded bg-gray-50 p-3 text-xs text-gray-600">
-        {t('confirmationForm.callScript', { name: applicantName })}
-      </p>
+      {/* Script — set off with a left accent so it reads as "say this" */}
+      <section className="rounded-xl border border-brand-100 border-l-4 border-l-brand-500 bg-brand-50/60 p-4">
+        <h4 className="mb-1.5 text-[11px] font-bold uppercase tracking-wider text-brand-700">{t('confirmationForm.sectionScript')}</h4>
+        <p className="text-sm italic leading-relaxed text-slate-700">{t('confirmationForm.callScript', { name: applicantName })}</p>
+      </section>
 
-      {/* Questions 1-3 */}
-      <fieldset className="space-y-2">
-        {QUESTIONS.filter((q) => q.group === 1).map((q) => (
-          <label key={q.name} className="flex items-start gap-2">
-            <input
-              type="checkbox"
-              name={q.name}
-              value="on"
-              checked={checked[q.name]}
-              onChange={(e) => setChecked((c) => ({ ...c, [q.name]: e.target.checked }))}
-              className="mt-0.5 h-4 w-4 rounded border-gray-300"
-            />
-            <span>{t(`confirmationForm.${q.labelKey}`)}</span>
-          </label>
-        ))}
-      </fieldset>
+      {/* Ask the customer (Q1-3) — rows turn green once checked */}
+      <Section title={t('confirmationForm.sectionAsk')}>
+        <div className="space-y-2">
+          {QUESTIONS.filter((q) => q.group === 1).map((q) => (
+            <label key={q.name} className={`flex items-start gap-3 rounded-lg border p-3 cursor-pointer transition ${checked[q.name] ? 'border-green-300 bg-green-50' : 'border-slate-200 hover:bg-slate-50'}`}>
+              <input
+                type="checkbox"
+                name={q.name}
+                value="on"
+                checked={checked[q.name]}
+                onChange={(e) => setChecked((c) => ({ ...c, [q.name]: e.target.checked }))}
+                className="mt-0.5 h-4 w-4 rounded border-gray-300"
+              />
+              <span>{t(`confirmationForm.${q.labelKey}`)}</span>
+            </label>
+          ))}
+        </div>
+      </Section>
 
       {/* HD gift card — verify the customer got their card; resend/request if not.
           Home Depot deals only (hidden on GWA / Georgian Water deals). */}
@@ -142,42 +160,46 @@ export function ConfirmationForm({
         <GiftCardConfirmSection applicationId={applicationId} applicantEmail={applicantEmail} giftCard={giftCard} />
       )}
 
-      {/* Terms */}
-      <div className="rounded border border-gray-100 p-3">
-        <p className="mb-2 text-xs text-gray-600">{t('confirmationForm.termsIntro')}</p>
+      {/* Financing terms */}
+      <Section title={t('confirmationForm.sectionTerms')}>
+        <p className="mb-3 text-xs text-slate-500">{t('confirmationForm.termsIntro')}</p>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <div><label className="label">{t('confirmationForm.financingAmount')}</label><input name="financingAmount" type="number" step="0.01" min="0" defaultValue={data?.financingAmount ? String(data.financingAmount) : defaultAmount} className="input" /></div>
           <div><label className="label">{t('confirmationForm.termMonths')}</label><input name="termMonths" type="number" min="0" defaultValue={val(data?.termMonths)} className="input" /></div>
           <div><label className="label">{t('confirmationForm.firstInstallmentAmount')}</label><input name="firstInstallmentAmount" type="number" step="0.01" min="0" defaultValue={data?.firstInstallmentAmount ? String(data.firstInstallmentAmount) : ''} className="input" /></div>
           <div><label className="label">{t('confirmationForm.firstInstallmentDate')}</label><input name="firstInstallmentDate" type="date" defaultValue={data?.firstInstallmentDate ? new Date(data.firstInstallmentDate).toISOString().slice(0, 10) : ''} className="input" /></div>
         </div>
-      </div>
+      </Section>
 
-      {/* Questions 4-6 */}
-      <fieldset className="space-y-2">
-        <p className="text-xs text-gray-600">{t('confirmationForm.verifyIntro')}</p>
-        {QUESTIONS.filter((q) => q.group === 2).map((q) => (
-          <label key={q.name} className="flex items-start gap-2">
-            <input
-              type="checkbox"
-              name={q.name}
-              value="on"
-              checked={checked[q.name]}
-              onChange={(e) => setChecked((c) => ({ ...c, [q.name]: e.target.checked }))}
-              className="mt-0.5 h-4 w-4 rounded border-gray-300"
-            />
-            <span>{t(`confirmationForm.${q.labelKey}`)}</span>
-          </label>
-        ))}
-      </fieldset>
+      {/* Verify & agree (Q4-6) */}
+      <Section title={t('confirmationForm.sectionVerify')}>
+        <p className="mb-2 text-xs text-slate-500">{t('confirmationForm.verifyIntro')}</p>
+        <div className="space-y-2">
+          {QUESTIONS.filter((q) => q.group === 2).map((q) => (
+            <label key={q.name} className={`flex items-start gap-3 rounded-lg border p-3 cursor-pointer transition ${checked[q.name] ? 'border-green-300 bg-green-50' : 'border-slate-200 hover:bg-slate-50'}`}>
+              <input
+                type="checkbox"
+                name={q.name}
+                value="on"
+                checked={checked[q.name]}
+                onChange={(e) => setChecked((c) => ({ ...c, [q.name]: e.target.checked }))}
+                className="mt-0.5 h-4 w-4 rounded border-gray-300"
+              />
+              <span>{t(`confirmationForm.${q.labelKey}`)}</span>
+            </label>
+          ))}
+        </div>
+      </Section>
 
-      <p className="text-xs text-gray-500">{t('confirmationForm.closing', { phone: CONFIRMATION_PHONE })}</p>
-
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <div><label className="label">{t('confirmationForm.specialArrangements')}</label><textarea name="specialArrangements" rows={2} defaultValue={val(data?.specialArrangements)} className="input" /></div>
-        <div><label className="label">{t('confirmationForm.hdNotes')}</label><textarea name="hdNotes" rows={2} defaultValue={val(data?.hdNotes)} className="input" /></div>
-      </div>
-      <div><label className="label">{t('confirmationForm.issueNote')}</label><input name="issueNote" defaultValue={val(data?.issueNote)} className="input" /></div>
+      {/* Notes & arrangements */}
+      <Section title={t('confirmationForm.sectionNotes')}>
+        <p className="mb-3 text-xs text-slate-500">{t('confirmationForm.closing', { phone: CONFIRMATION_PHONE })}</p>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div><label className="label">{t('confirmationForm.specialArrangements')}</label><textarea name="specialArrangements" rows={2} defaultValue={val(data?.specialArrangements)} className="input" /></div>
+          <div><label className="label">{t('confirmationForm.hdNotes')}</label><textarea name="hdNotes" rows={2} defaultValue={val(data?.hdNotes)} className="input" /></div>
+        </div>
+        <div className="mt-3"><label className="label">{t('confirmationForm.issueNote')}</label><input name="issueNote" defaultValue={val(data?.issueNote)} className="input" /></div>
+      </Section>
 
       <Buttons remaining={remaining} />
     </form>

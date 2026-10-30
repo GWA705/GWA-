@@ -2455,6 +2455,12 @@ export const en = {
   },
   confirmationForm: {
     savedMessage: 'Confirmation saved.',
+    sectionCallDetails: 'Call details',
+    sectionScript: 'Script — read to the customer',
+    sectionAsk: 'Ask the customer',
+    sectionTerms: 'Financing terms',
+    sectionVerify: 'Verify & agree',
+    sectionNotes: 'Notes & arrangements',
     customer: 'Customer',
     numberOfCalls: '# of calls',
     product: 'Product',
