@@ -1,0 +1,51 @@
+name: Re-compress oversized scans (cron)
+
+# Calls src/app/api/cron/recompress/route.ts in production on a schedule. This is
+# a ONE-OFF BACKFILL: it shrinks documents stored at full resolution before the
+# upload-time resolution cap existed, a batch at a time, until none remain — then
+# it no-ops (the upload cap keeps new files small, so the backlog never regrows).
+# Safe to leave enabled; disable it from the Actions tab once the backlog is drained.
+#
+# Staggered minute so the portal's crons never all hit the single instance at once
+# (which caused transient 504s). Needs repo secret CRON_SECRET (must match the EB
+# env var). Optional repo variable PORTAL_BASE_URL overrides the production URL.
+
+on:
+  schedule:
+    - cron: '13,28,43,58 * * * *'   # every 15 min (UTC), offset from the other crons
+  workflow_dispatch: {}
+
+concurrency:
+  group: recompress
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call recompress endpoint
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          BASE_URL: ${{ vars.PORTAL_BASE_URL || 'https://portal.ghsbarrie.ca' }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "::error::CRON_SECRET repo secret is not set (Settings -> Secrets and variables -> Actions). It must match the CRON_SECRET env var on Elastic Beanstalk."
+            exit 1
+          fi
+          url="${BASE_URL%/}/api/cron/recompress"
+          echo "POST $url"
+          code=$(curl -sS -o /tmp/body.txt -w '%{http_code}' -X POST "$url" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            --retry 3 --retry-delay 5 --max-time 120 || echo "000")
+          echo "HTTP status: $code"
+          echo "Response body: $(cat /tmp/body.txt 2>/dev/null)"
+          case "$code" in
+            200) echo "OK." ;;
+            401) echo "::error::401 Unauthorized - CRON_SECRET repo secret does not match the one on Elastic Beanstalk."; exit 1 ;;
+            503) echo "::error::503 - CRON_SECRET is not configured on Elastic Beanstalk."; exit 1 ;;
+            000) echo "::error::Could not reach $url (network/DNS/timeout). Check PORTAL_BASE_URL."; exit 1 ;;
+            *)   echo "::error::recompress returned HTTP $code"; exit 1 ;;
+          esac

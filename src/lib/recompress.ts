@@ -96,6 +96,76 @@ async function shrinkScan(bytes: Buffer, mimeType: string): Promise<{ bytes: Buf
   return null;
 }
 
+interface RecompressableDoc {
+  id: string;
+  storageKey: string;
+  mimeType: string;
+  fileName: string;
+  sizeBytes: number | null;
+}
+
+/** The size threshold above which a stored doc is worth re-compressing. */
+export const RECOMPRESS_THRESHOLD_BYTES = RECOMPRESS_MIN_BYTES;
+
+/**
+ * Re-compress ONE stored document in place. Returns what happened plus the
+ * before/after byte sizes (both 0 unless it was actually shrunk). Never throws —
+ * read/shrink/write failures are reported as 'failed'.
+ */
+async function recompressDoc(
+  doc: RecompressableDoc,
+  actorId: string | null,
+): Promise<{ outcome: 'shrunk' | 'skipped' | 'failed'; before: number; after: number }> {
+  let bytes: Buffer;
+  try {
+    bytes = await getDocument(doc.storageKey);
+  } catch (e) {
+    console.error('[recompress] read failed', doc.id, e);
+    return { outcome: 'failed', before: 0, after: 0 };
+  }
+
+  let result: { bytes: Buffer; mimeType: string } | null = null;
+  try {
+    result = await shrinkScan(bytes, doc.mimeType);
+  } catch (e) {
+    console.error('[recompress] shrink failed', doc.id, e);
+    return { outcome: 'failed', before: 0, after: 0 };
+  }
+  if (!result) {
+    // Deliberately not shrunk (a real text PDF, or no size gain) — mark it done
+    // so the sweep doesn't keep re-reading it. Best-effort.
+    await prisma.document
+      .update({ where: { id: doc.id }, data: { recompressedAt: new Date() } })
+      .catch(() => {});
+    return { outcome: 'skipped', before: 0, after: 0 };
+  }
+
+  try {
+    await putDocument(doc.storageKey, result.bytes); // overwrite in place
+    await prisma.document.update({
+      where: { id: doc.id },
+      data: {
+        sizeBytes: result.bytes.length,
+        checksum: sha256(result.bytes),
+        mimeType: result.mimeType,
+        recompressedAt: new Date(),
+      },
+    });
+  } catch (e) {
+    console.error('[recompress] write failed', doc.id, e);
+    return { outcome: 'failed', before: 0, after: 0 };
+  }
+
+  await audit({
+    actorId,
+    action: 'DOC_RECOMPRESS',
+    entityType: 'Document',
+    entityId: doc.id,
+    detail: `Re-compressed ${doc.fileName}: ${bytes.length} → ${result.bytes.length} bytes`,
+  });
+  return { outcome: 'shrunk', before: bytes.length, after: result.bytes.length };
+}
+
 /** Re-compress a deal's oversized stored scans, up to `limit` per call. */
 export async function recompressApplicationDocuments(
   applicationId: string,
@@ -103,9 +173,56 @@ export async function recompressApplicationDocuments(
   limit = 10,
 ): Promise<RecompressSummary> {
   const docs = await prisma.document.findMany({
-    where: { applicationId },
+    where: { applicationId, sizeBytes: { gte: RECOMPRESS_MIN_BYTES }, recompressedAt: null },
     orderBy: { createdAt: 'asc' },
-    select: { id: true, storageKey: true, mimeType: true, fileName: true, sizeBytes: true, applicationId: true },
+    select: { id: true, storageKey: true, mimeType: true, fileName: true, sizeBytes: true },
+  });
+
+  const sum: RecompressSummary = {
+    processed: 0, shrunk: 0, skipped: 0, failed: 0, remaining: 0, beforeBytes: 0, afterBytes: 0,
+  };
+
+  for (const doc of docs) {
+    // Bound the work per call; count the rest as "remaining" so the caller knows
+    // to run it again.
+    if (sum.shrunk >= limit) {
+      sum.remaining += 1;
+      continue;
+    }
+    sum.processed += 1;
+    // eslint-disable-next-line no-await-in-loop
+    const r = await recompressDoc(doc, actorId);
+    if (r.outcome === 'shrunk') {
+      sum.shrunk += 1;
+      sum.beforeBytes += r.before;
+      sum.afterBytes += r.after;
+    } else if (r.outcome === 'failed') {
+      sum.failed += 1;
+    } else {
+      sum.skipped += 1;
+    }
+  }
+
+  return sum;
+}
+
+/**
+ * Portal-wide sweep: re-compress a batch of the biggest oversized stored scans
+ * across ALL deals, then report how many oversized docs still remain. Designed
+ * to be called repeatedly by a scheduled job — it drains the backlog a batch at
+ * a time and naturally no-ops once every file is under the threshold (the
+ * upload-time cap keeps new ones small, so the backlog never regrows). Peak
+ * memory is ~one document regardless of batch size (sequential).
+ */
+export async function recompressOversizedBatch(
+  limit: number,
+  actorId: string | null,
+): Promise<RecompressSummary> {
+  const docs = await prisma.document.findMany({
+    where: { sizeBytes: { gte: RECOMPRESS_MIN_BYTES }, recompressedAt: null },
+    orderBy: { sizeBytes: 'desc' }, // biggest first — best bytes-saved per run
+    take: limit,
+    select: { id: true, storageKey: true, mimeType: true, fileName: true, sizeBytes: true },
   });
 
   const sum: RecompressSummary = {
@@ -114,67 +231,22 @@ export async function recompressApplicationDocuments(
 
   for (const doc of docs) {
     sum.processed += 1;
-    if ((doc.sizeBytes ?? 0) < RECOMPRESS_MIN_BYTES) {
-      sum.skipped += 1;
-      continue;
-    }
-    // Bound the work per call; count the rest as "remaining" so the caller knows
-    // to run it again.
-    if (sum.shrunk >= limit) {
-      sum.remaining += 1;
-      continue;
-    }
-
-    let bytes: Buffer;
-    try {
-      // eslint-disable-next-line no-await-in-loop
-      bytes = await getDocument(doc.storageKey);
-    } catch (e) {
-      console.error('[recompress] read failed', doc.id, e);
-      sum.failed += 1;
-      continue;
-    }
-
-    let result: { bytes: Buffer; mimeType: string } | null = null;
-    try {
-      // eslint-disable-next-line no-await-in-loop
-      result = await shrinkScan(bytes, doc.mimeType);
-    } catch (e) {
-      console.error('[recompress] shrink failed', doc.id, e);
-      sum.failed += 1;
-      continue;
-    }
-    if (!result) {
-      sum.skipped += 1;
-      continue;
-    }
-
-    try {
-      // eslint-disable-next-line no-await-in-loop
-      await putDocument(doc.storageKey, result.bytes); // overwrite in place
-      // eslint-disable-next-line no-await-in-loop
-      await prisma.document.update({
-        where: { id: doc.id },
-        data: { sizeBytes: result.bytes.length, checksum: sha256(result.bytes), mimeType: result.mimeType },
-      });
-    } catch (e) {
-      console.error('[recompress] write failed', doc.id, e);
-      sum.failed += 1;
-      continue;
-    }
-
-    sum.shrunk += 1;
-    sum.beforeBytes += bytes.length;
-    sum.afterBytes += result.bytes.length;
     // eslint-disable-next-line no-await-in-loop
-    await audit({
-      actorId,
-      action: 'DOC_RECOMPRESS',
-      entityType: 'Document',
-      entityId: doc.id,
-      detail: `Re-compressed ${doc.fileName}: ${bytes.length} → ${result.bytes.length} bytes`,
-    });
+    const r = await recompressDoc(doc, actorId);
+    if (r.outcome === 'shrunk') {
+      sum.shrunk += 1;
+      sum.beforeBytes += r.before;
+      sum.afterBytes += r.after;
+    } else if (r.outcome === 'failed') {
+      sum.failed += 1;
+    } else {
+      sum.skipped += 1;
+    }
   }
 
+  // How many oversized docs the sweep will still act on (not yet processed).
+  sum.remaining = await prisma.document.count({
+    where: { sizeBytes: { gte: RECOMPRESS_MIN_BYTES }, recompressedAt: null },
+  });
   return sum;
 }

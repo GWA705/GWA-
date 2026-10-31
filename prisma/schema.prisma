@@ -1829,10 +1829,18 @@ model Document {
   // read (success or give-up) so it never reprocesses in a loop.
   ocrPending Boolean @default(false)
 
+  // Set once the one-off resolution-cap backfill has processed this doc —
+  // whether it was shrunk or deliberately left alone (a real text PDF, or no
+  // gain). Lets the portal-wide sweep skip already-handled docs so it never
+  // reprocesses an un-shrinkable file in a loop. Null = not yet processed.
+  recompressedAt DateTime?
+
   createdAt DateTime @default(now())
 
   @@index([applicationId])
   @@index([type])
+  // Drives the backfill sweep: the biggest not-yet-processed docs first.
+  @@index([recompressedAt, sizeBytes])
 }
 
 // Extended loan-application details captured when the dealer types the
