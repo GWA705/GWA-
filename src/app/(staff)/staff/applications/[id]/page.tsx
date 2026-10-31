@@ -8,6 +8,7 @@ import { audit } from '@/lib/audit';
 import { StatusBadge } from '@/components/StatusBadge';
 import { DocumentList } from '@/components/DocumentList';
 import { DownloadButton } from '@/components/DownloadButton';
+import { RecompressDocsButton } from './RecompressDocsButton';
 import { HdWaiverCard } from '@/components/HdWaiverCard';
 import { FundingChecklist } from '@/components/FundingChecklist';
 import { VerificationChecklist, type VerificationState } from '@/components/VerificationChecklist';
@@ -1245,6 +1246,9 @@ export default async function StaffApplicationDetail({
                 >
                   ↓ {t('staffDeal.downloadAllDocuments')}
                 </DownloadButton>
+              )}
+              {app.documents.length > 0 && (
+                <RecompressDocsButton applicationId={app.id} className="btn-secondary text-xs" />
               )}
             </div>
           </div>

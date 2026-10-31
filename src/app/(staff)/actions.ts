@@ -1251,6 +1251,34 @@ export async function syncDealFromJournalAction(applicationId: string): Promise<
   return { message: t('actionMsg.staff.checkedNotPaid', { reason: out.reason ?? t('actionMsg.staff.journalNotPaidReason') }) };
 }
 
+/**
+ * Maintenance: shrink this deal's oversized stored scans (one-off, for files
+ * uploaded before the resolution cap existed). Bounded + resumable — run it
+ * again if it reports files remaining.
+ */
+export async function recompressDocumentsAction(applicationId: string): Promise<{ error?: string; message?: string }> {
+  const session = await requireStaffSection('review-queue');
+  const { recompressApplicationDocuments } = await import('@/lib/recompress');
+  let sum;
+  try {
+    sum = await recompressApplicationDocuments(applicationId, session.userId);
+  } catch (e) {
+    console.error('[recompressDocumentsAction] failed', e);
+    return { error: 'Could not shrink the documents — please try again.' };
+  }
+  revalidatePath(`/staff/applications/${applicationId}`);
+  const mb = (n: number) => (n / 1024 / 1024).toFixed(1);
+  const more = sum.remaining > 0 ? ` ${sum.remaining} large file${sum.remaining === 1 ? '' : 's'} remaining — click again to continue.` : '';
+  const bad = sum.failed > 0 ? ` ${sum.failed} couldn’t be processed.` : '';
+  if (sum.shrunk === 0) {
+    return { message: `Nothing to shrink — files are already optimized.${bad}${more}` };
+  }
+  const saved = sum.beforeBytes - sum.afterBytes;
+  return {
+    message: `Shrunk ${sum.shrunk} file${sum.shrunk === 1 ? '' : 's'}: ${mb(sum.beforeBytes)} MB → ${mb(sum.afterBytes)} MB (saved ${mb(saved)} MB).${bad}${more}`,
+  };
+}
+
 // Reviewer toggles a funding document's "completed/verified" state.
 export async function toggleDocumentVerifiedAction(documentId: string): Promise<void> {
   const session = await requireStaffSection('review-queue');

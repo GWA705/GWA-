@@ -23,6 +23,7 @@ export type AuditAction =
   | 'STATUS_CHANGE'
   | 'DOC_UPLOAD'
   | 'DOC_DOWNLOAD'
+  | 'DOC_RECOMPRESS'
   | 'DOCUMENT_DELETE'
   | 'JOURNAL_WRITE'
   | 'JOURNAL_ARCHIVE_IMPORT'
